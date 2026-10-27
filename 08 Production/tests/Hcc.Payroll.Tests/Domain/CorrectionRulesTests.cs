@@ -50,23 +50,28 @@ public sealed class CorrectionRulesTests
         // ₹13,500 a month, weekly off Friday: September 2026 has 30 days, 4 Fridays (4, 11, 18, 25 Sep) → 26 working days, absent on 22 Sep.
         var st = Staff(PayType.Monthly, 1_350_000, 0, 5);
         var days = September(st, absent: D(22));
-        // Before: 1 absent day = 2 half-days of loss of pay → earned 13,500 × 58 / 60 = ₹13,050.00.
+        // SCC sheet (DEC-115): 25 present, absent 4 offs + 22 Sep = 5 → deduction 5, +4 extra → 29 salary days → 13,500 × 29 / 30 = ₹13,050.00.
         Assert.Equal(1_305_000, PayrollCorrections.Gross(st, days, Sep, R));
         long Effect(DayEntry e, DateOnly d) =>
             PayrollCorrections.Gross(st, PayrollCorrections.With(days, st, d, e, PayrollCorrections.Current(days, d).OneDayLeave?.LeaveId), Sep, R)
             - PayrollCorrections.Gross(st, days, Sep, R);
-        // Absent → present: 60 / 60 → ₹13,500.00, raises gross by ₹450.00 (Owner's approval).
+        // Absent → present: deduction 4 → 26 + 4 = 30 → ₹13,500.00, raises gross by ₹450.00 (Owner's approval).
         Assert.Equal(45_000, Effect(DayEntry.Mark(AttendanceStatus.P, 0), D(22)));
-        // Absent → casual leave (paid): also +₹450.00; absent → leave without pay: no change (applies at once).
-        Assert.Equal(45_000, Effect(DayEntry.Leave(LeaveType.CL), D(22)));
+        // Absent → casual leave: one absent day fewer and SCC adds the leave on top → 26 + 1 + 4 = 31 → 30 days + 1 OT day: +₹900.00;
+        // absent → leave without pay: still absent, no change (applies at once).
+        Assert.Equal(90_000, Effect(DayEntry.Leave(LeaveType.CL), D(22)));
         Assert.Equal(0, Effect(DayEntry.Leave(LeaveType.LOP), D(22)));
-        // Present → absent: −₹450.00 (applies at once). One more late mark (1 < 3 late marks per ½ day): no change.
-        Assert.Equal(-45_000, Effect(DayEntry.Mark(AttendanceStatus.A, 0), D(21)));
+        // Present → absent: deduction 6 → only 2 extra days → 24 + 2 = 26 → ₹11,700.00: −₹1,350.00 (applies at once). One more late mark
+        // (1 < 3 late marks per ½ day): no change.
+        Assert.Equal(-135_000, Effect(DayEntry.Mark(AttendanceStatus.A, 0), D(21)));
         Assert.Equal(0, Effect(DayEntry.Mark(AttendanceStatus.L, 0), D(21)));
-        // 60 minutes' overtime on a present day: 13,500 ÷ 30 days ÷ 8 h × 1 h × 1 = ₹56.25 more.
-        Assert.Equal(5_625, Effect(DayEntry.Mark(AttendanceStatus.P, 60), D(21)));
-        // Clearing a present mark leaves the day unmarked = absent for pay: −₹450.00.
-        Assert.Equal(-45_000, Effect(DayEntry.Unmarked, D(21)));
+        // 60 minutes' overtime on a present day: SCC pays OT days, not minutes → no change.
+        Assert.Equal(0, Effect(DayEntry.Mark(AttendanceStatus.P, 60), D(21)));
+        // Clearing a present mark leaves the day unmarked = absent for pay: −₹1,350.00.
+        Assert.Equal(-135_000, Effect(DayEntry.Unmarked, D(21)));
+        // SCC No Thumb: still a present day, but ½ day deduction → 5.5 (still 4 extra days) → 28.5 salary days → ₹12,825.00: −₹225.00.
+        Assert.Equal(-22_500, Effect(DayEntry.Mark(AttendanceStatus.NT, 0), D(21)));
+        Assert.Equal("No thumb punch", DayEntry.Mark(AttendanceStatus.NT, 0).Label);
     }
 
     [Fact]
@@ -97,7 +102,7 @@ public sealed class CorrectionRulesTests
     }
 
     [Fact]
-    public void DEC083_paid_holiday_counts_like_a_weekly_off_monthly_paid_daily_wage_as_weekly_offs()
+    public void DEC083_DEC115_paid_holiday_shortens_the_total_days_and_nobody_loses_pay()
     {
         // Fictional holiday Thu 17 Sep 2026. Weekly off Sunday: Sundays 6, 13, 20, 27 Sep → 4 weekly offs, 25 working days marked present.
         var holidays = new Dictionary<DateOnly, string> { [D(17)] = "Founders’ Day (fictional)" };
@@ -106,25 +111,26 @@ public sealed class CorrectionRulesTests
         var mc = PayrollRules.Counts(monthly, mDays, Sep);
         Assert.Equal((25m, 4m, 1m, 0m), (mc.P, mc.Off, mc.Hol, mc.Unmarked));
         var m = PayrollRules.ComputeLine(monthly, mc, R);
-        // Monthly ₹30,000: the holiday is paid → 30 of 30 days → earned ₹30,000.00; basic 50 % ₹15,000.00 (= PF cap) → PF 12 % ₹1,800.00,
+        // SCC (DEC-115): total days 30 − 1 holiday = 29; 25 present, 4 weekly offs = 4 absent → +4 extra → 29 of 29. Monthly ₹30,000 → earned ₹30,000.00; basic 50 % ₹15,000.00 (= PF cap) → PF 12 % ₹1,800.00,
         // employer 13 % ₹1,950.00; HRA 80 % of basic ₹12,000.00, washing 10 % ₹1,500.00, special ₹1,500.00; ESIC: contract ₹30,000 > ₹21,000 →
         // not covered; PT (man, above ₹10,000, September) ₹200.00 → net 30,000 − 1,800 − 200 = ₹28,000.00.
-        Assert.Equal((30m, 3_000_000L, 1_500_000L, 1_200_000L, 150_000L, 150_000L), (m.PayableDays, m.Earned, m.Basic, m.Hra, m.Washing, m.Special));
+        Assert.Equal((29m, 3_000_000L, 1_500_000L, 1_200_000L, 150_000L, 150_000L), (m.PayableDays, m.Earned, m.Basic, m.Hra, m.Washing, m.Special));
         Assert.Equal((180_000L, 195_000L, 0L, 20_000L, 2_800_000L), (m.Pf, m.PfEr, m.Esic, m.Pt, m.Net));
-        // Without the calendar entry the same day is unmarked = absent: 58 / 60 → ₹29,000.00, and the run warns with the correction hint.
+        // Without the calendar entry the same day is unmarked = absent: 30 total days, 5 absent → 25 + 4 = 29 of 30 → ₹29,000.00, and the run warns.
         var noHol = PayrollRules.ComputeLine(monthly, PayrollRules.Counts(monthly, September(monthly, skip: [D(17)]), Sep), R);
         Assert.Equal(2_900_000, noHol.Earned);
         Assert.Contains("Attendance › Past days", PayrollRules.Warnings(monthly, PayrollRules.Counts(monthly, September(monthly, skip: [D(17)]), Sep)).Single(), StringComparison.Ordinal);
 
-        // Daily wage ₹800 (basic only, PF off by default): days worked only, the holiday like a weekly off is not paid (CA A04-04 still open) →
-        // 25 × 800 = ₹20,000.00; ESIC covered (contract 800 × 26 = ₹20,800 ≤ ₹21,000) on ₹20,000.00 → 0.75 % ₹150.00, employer 3.25 % ₹650.00;
-        // PT ₹200.00 → net 20,000 − 150 − 200 = ₹19,650.00.
+        // Daily wage ₹800 (basic only, PF off by default): gross = 800 × 29 total days; 29 salary days → ₹23,200.00; ESIC month by month: earned
+        // above ₹21,000 → none; PT ₹200.00 → net ₹23,000.00.
         var daily = Staff(PayType.Daily, 0, 80_000, 0);
         var dc = PayrollRules.Counts(daily, September(daily, holidays, skip: [D(17)]), Sep);
         var dl = PayrollRules.ComputeLine(daily, dc, R);
-        Assert.Equal((1m, 25m, 2_000_000L, 15_000L, 65_000L, 20_000L, 1_965_000L), (dc.Hol, dl.PayableDays, dl.Earned, dl.Esic, dl.EsicEr, dl.Pt, dl.Net));
-        // Worked on the holiday (marked present): a normal paid day — daily 26 × 800 = ₹20,800.00; monthly stays ₹30,000.00.
-        Assert.Equal(2_080_000, PayrollRules.ComputeLine(daily, PayrollRules.Counts(daily, September(daily, holidays), Sep), R).Earned);
+        Assert.Equal((1m, 29m, 2_320_000L, 0L, 0L, 20_000L, 2_300_000L), (dc.Hol, dl.PayableDays, dl.Earned, dl.Esic, dl.EsicEr, dl.Pt, dl.Net));
+        // Worked on the holiday (marked present): 26 present, 3 absent → 26 + 4 = 30 → 29 salary days + 1 OT day — daily ₹23,200.00 + ₹800.00 OT;
+        // monthly stays ₹30,000.00 earned.
+        var worked = PayrollRules.ComputeLine(daily, PayrollRules.Counts(daily, September(daily, holidays), Sep), R);
+        Assert.Equal((2_320_000L, 80_000L), (worked.Earned, worked.Ot));
         Assert.Equal(3_000_000, PayrollRules.ComputeLine(monthly, PayrollRules.Counts(monthly, September(monthly, holidays), Sep), R).Earned);
         // Leave skips the holiday as it skips weekly offs: CL Wed 16 – Fri 18 Sep = 2 days; a half day on the holiday = 0.
         Assert.Equal(2m, PayrollRules.LeaveDays(monthly, mDays, D(16), D(18), null));

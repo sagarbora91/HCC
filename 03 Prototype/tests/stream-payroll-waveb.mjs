@@ -35,12 +35,13 @@ export function modal(s:any,uid:string,type:string,id?:string,room?:string){cons
   });
 
   test('[PAY-WB DEC-075] a correction that lowers pay applies at once (audited) and the September draft is recalculated; the lock then goes ahead',()=>{
-    let s=sepDraft();assert.equal(line(s,'2026-09','HR-S02').earned,1680000);   // Aarav ₹18,000, payable 28 of 30 days
-    // Thu 3 Sep marked present, register says absent: ₹18,000 × 54 / 60 = ₹16,200 → −₹600, applies at once.
+    // Aarav ₹18,000, SCC sheet: 22 present, 2 half days, 6 absent → deduction 6 + ½ × 2 = 7 → no extra days → 23 salary days → ₹13,800.
+    let s=sepDraft();assert.deepEqual([line(s,'2026-09','HR-S02').days.deduction,line(s,'2026-09','HR-S02').earned],[7,1380000]);
+    // Thu 3 Sep marked present, register says absent: deduction 8 → 22 salary days → ₹13,200 → −₹600, applies at once.
     s=fix('manager','HR-S02','2026-09-03','A')(s);
     assert.equal(x(s).att['2026-09-03|HR-S02'].status,'A');assert.equal(x(s).att['2026-09-03|HR-S02'].by,'manager');
     const r=x(s).requests.at(-1);assert.deepEqual([r.status,r.direct,r.payEffect,r.before,r.after],['Approved',true,-60000,{kind:'mark',status:'P',otMin:0},{kind:'mark',status:'A',otMin:0}]);
-    assert.deepEqual([line(s,'2026-09','HR-S02').payableDays,line(s,'2026-09','HR-S02').earned],[27,1620000]);
+    assert.deepEqual([line(s,'2026-09','HR-S02').payableDays,line(s,'2026-09','HR-S02').earned],[22,1320000]);
     assert.match(s.audit[0].detail,/Aarav Joshi · 2026-09-03 · Present → Absent · lowers gross pay by ₹600 · reason: Register checked \(fictional\) · September 2026 draft pay-run recalculated/);
     assert.equal(M.hrRunFor(s,'2026-09').preparedBy,'accountant','the preparer stays the maker');
     assert.throws(()=>execute(s,'accountant',{type:'HR_PAYROLL_LOCK',id:M.hrRunFor(s,'2026-09').id}),code('FORBIDDEN'));
@@ -49,9 +50,10 @@ export function modal(s:any,uid:string,type:string,id?:string,room?:string){cons
   });
 
   test('[PAY-WB DEC-075] a correction that raises pay waits for the Owner, blocks the lock, and the approval recalculates (Ravi by hand)',()=>{
-    let s=sepDraft();const before=line(s,'2026-09','HR-S05');assert.deepEqual([before.payableDays,before.net],[28.5,1087662]);
+    // Ravi ₹13,500, SCC sheet: 22 present, 1 half day, 2 days leave, 5 absent → deduction 5.5 → +4 extra → 24.5 + 2 + 4 = 30.5 → 30 salary days + 0.5 OT day.
+    let s=sepDraft();const before=line(s,'2026-09','HR-S05');assert.deepEqual([before.payableDays,before.days.otDays,before.net],[30,0.5,1161881]);
     s=fix('manager','HR-S05','2026-09-22','P')(s);
-    const r=x(s).requests.at(-1);assert.deepEqual([r.status,r.payEffect,!!r.direct],['Pending',45000,false]);   // 13,500 × 1 day = ₹450 more gross
+    const r=x(s).requests.at(-1);assert.deepEqual([r.status,r.payEffect,!!r.direct],['Pending',45000,false]);   // one more OT day: 13,500 ÷ 30 = ₹450 more gross
     assert.equal(x(s).att['2026-09-22|HR-S05'].status,'A','nothing changes before the Owner decides');assert.deepEqual(line(s,'2026-09','HR-S05'),before);
     assert.match(s.audit[0].detail,/raises gross pay by ₹450 — waiting for the Owner/);
     assert.throws(()=>fix('manager','HR-S05','2026-09-22','L')(s),code('NOT_AVAILABLE'));
@@ -60,10 +62,11 @@ export function modal(s:any,uid:string,type:string,id?:string,room?:string){cons
     assert.throws(()=>execute(s,'owner',{type:'HR_REQUEST_DECIDE',id:r.id,approve:false}),code('VALIDATION'));
     s=execute(s,'owner',{type:'HR_REQUEST_DECIDE',id:r.id,approve:true,note:'Checked with the supervisor'});
     assert.equal(x(s).att['2026-09-22|HR-S05'].status,'P');assert.equal(x(s).requests.at(-1).decidedBy,'owner');
-    // ₹13,500: 29.5 days → earned 13,500 × 59 / 60 = ₹13,275.00; OT 120 min ₹112.50 → gross ₹13,387.50; PF 12 % of basic ₹6,637.50 = ₹796.50;
-    // ESIC 0.75 % of (13,275 − washing 663.75) = ₹94.58; PT ₹200; advance ₹1,000 → net ₹11,296.42 (server PayrollCorrectionSqlTests: same).
+    // ₹13,500: absent 4 → deduction 4.5 → +4 → 25.5 + 2 + 4 = 31.5 → 30 salary days (earned ₹13,500) + 1.5 OT days ₹675 (the 120 overtime minutes
+    // are not paid) → gross ₹14,175; PF 12 % of basic ₹6,750 = ₹810; ESIC 0.75 % of (13,500 − washing 675) = ₹96.19; PT ₹200; advance ₹1,000
+    // → net ₹12,068.81 (server PayrollCorrectionSqlTests: same).
     const a=line(s,'2026-09','HR-S05');
-    assert.deepEqual([a.payableDays,a.earned,a.gross,a.pf,a.esic,a.pt,a.advance,a.net],[29.5,1327500,1338750,79650,9458,20000,100000,1129642]);
+    assert.deepEqual([a.payableDays,a.days.otDays,a.earned,a.gross,a.pf,a.esic,a.pt,a.advance,a.net],[30,1.5,1350000,1417500,81000,9619,20000,100000,1206881]);
     s=execute(s,'owner',{type:'HR_PAYROLL_LOCK',id:M.hrRunFor(s,'2026-09').id});assert.equal(M.hrRunFor(s,'2026-09').status,'Locked');
     assert.throws(()=>execute(s,'owner',{type:'HR_REQUEST_DECIDE',id:r.id,approve:true}),code('INVALID_TRANSITION'));
   });
@@ -79,8 +82,9 @@ export function modal(s:any,uid:string,type:string,id?:string,room?:string){cons
 
   test('[PAY-WB DEC-075] back-dated leave: paid leave waits for the Owner, leave without pay applies, a one-day leave can be replaced, leave rules hold',()=>{
     let s=seed();
-    s=fix('manager','HR-S06','2026-09-16','CL',{reason:'Leave form found (fictional)'})(s);   // absent → CL: +₹450 (13,500 × 2 / 60)
-    const cl=x(s).requests.at(-1);assert.deepEqual([cl.status,cl.payEffect],['Pending',45000]);
+    // absent → CL, SCC sheet: one absent day fewer (deduction 5.5 → 4.5) and one leave day added on top → 28.5 → 30 salary days + 0.5 OT day: +₹900
+    s=fix('manager','HR-S06','2026-09-16','CL',{reason:'Leave form found (fictional)'})(s);
+    const cl=x(s).requests.at(-1);assert.deepEqual([cl.status,cl.payEffect],['Pending',90000]);
     s=execute(s,'owner',{type:'HR_REQUEST_DECIDE',id:cl.id,approve:true});
     assert.equal(x(s).att['2026-09-16|HR-S06'],undefined,'the absent mark is replaced by the leave');
     const lv=x(s).leaves.find(l=>l.correctionId===cl.id);assert.deepEqual([lv.type,lv.status,lv.from,lv.to,lv.days,lv.requestedBy,lv.decidedBy],['CL','Approved','2026-09-16','2026-09-16',1,'manager','owner']);
@@ -93,12 +97,14 @@ export function modal(s:any,uid:string,type:string,id?:string,room?:string){cons
     assert.throws(()=>fix('manager','HR-S10','2026-09-14','CL')(s),code('VALIDATION'));   // daily wage: leave without pay only
     assert.throws(()=>fix('manager','HR-S06','2026-09-21','SL')(s),code('VALIDATION'));   // Monday = Kavya's weekly off
     assert.throws(()=>execute(s,'manager',{type:'HR_LEAVE_REQUEST',staffId:'HR-S06',leaveType:'CL',from:'2026-09-30',to:'2026-09-30',reason:'Back-dated'}),e=>e.code==='VALIDATION'&&/Past days/.test(e.message));
-    const w=fix('manager','HR-S06','2026-09-30','OFF',{otMin:60})(s),wr=x(w).requests.at(-1);assert.equal(wr.status,'Pending');   // + overtime raises pay
+    // DEC-115: overtime minutes are not paid (SCC pays OT days) — present → worked on the weekly off with 60 minutes is still a present day: no change.
+    const off=x(fix('manager','HR-S06','2026-09-30','OFF',{otMin:60})(s)).requests.at(-1);assert.deepEqual([off.status,off.direct,off.payEffect],['Approved',true,0]);
+    const w=fix('manager','HR-S05','2026-09-22','P')(s),wr=x(w).requests.at(-1);assert.equal(wr.status,'Pending');   // absent → present raises pay
     assert.throws(()=>execute(w,'owner',{type:'HR_REQUEST_WITHDRAW',id:wr.id}),code('FORBIDDEN'));
     assert.equal(x(execute(w,'manager',{type:'HR_REQUEST_WITHDRAW',id:wr.id})).requests.at(-1).status,'Withdrawn');
   });
 
-  test('[PAY-WB DEC-083] paid holiday: paid like a weekly off for monthly staff, like weekly offs for daily wage (figures by hand); leave skips it; locked month keeps it',()=>{
+  test('[PAY-WB DEC-083 / DEC-115] paid holiday = SCC "Mgmt holiday": the month has one total day fewer and nobody loses pay (figures by hand); leave skips it; locked month keeps it',()=>{
     let s=seed();const sx=x(s);
     // Two fictional staff (weekly off Sunday): present on every September working day except Thu 17 Sep (6, 13, 20, 27 Sep are Sundays).
     for(const [id,payType,monthly,daily] of [['HR-T1','monthly',3000000,0],['HR-T2','daily',0,80000]]){
@@ -109,13 +115,14 @@ export function modal(s:any,uid:string,type:string,id?:string,room?:string){cons
     assert.match(s.audit[0].detail,/Paid holiday 2026-09-17 · Founders’ Day \(fictional\) added · paid like a weekly off/);
     const run=M.hrComputeRun(s,'2026-09'),m=run.lines.find(l=>l.staffId==='HR-T1'),d=run.lines.find(l=>l.staffId==='HR-T2');
     assert.ok(!run.warnings.some(w=>w.startsWith('Holiday')),'the holiday is not an unmarked day');
-    // Monthly ₹30,000: 25 present + 4 weekly offs + 1 holiday = 30 / 30 → ₹30,000; PF 12 % of basic ₹15,000 = ₹1,800; ESIC none (₹30,000 > ₹21,000); PT ₹200 → net ₹28,000.
-    assert.deepEqual([m.counts.P,m.counts.off,m.counts.hol,m.payableDays,m.earned,m.pf,m.esic,m.pt,m.net],[25,4,1,30,3000000,180000,0,20000,2800000]);
-    // Daily ₹800: 25 days worked = ₹20,000 (the holiday, like a weekly off, unpaid — CA A04-04 open); ESIC 0.75 % = ₹150; PT ₹200 → net ₹19,650.
-    assert.deepEqual([d.counts.hol,d.payableDays,d.earned,d.esic,d.pt,d.net],[1,25,2000000,15000,20000,1965000]);
+    // SCC: total days 30 − 1 holiday = 29; 25 present, 4 weekly offs = 4 absent → deduction 4 → +4 extra → 29 salary days of 29.
+    // Monthly ₹30,000 → ₹30,000; PF 12 % of basic ₹15,000 = ₹1,800; ESIC none (₹30,000 > ₹21,000); PT ₹200 → net ₹28,000.
+    assert.deepEqual([m.counts.P,m.counts.off,m.counts.hol,m.counts.mgmtHol,m.days.total,m.payableDays,m.earned,m.pf,m.esic,m.pt,m.net],[25,4,1,1,29,29,3000000,180000,0,20000,2800000]);
+    // Daily ₹800: gross = 800 × 29 total days; 29 salary days → ₹23,200; ESIC none (earned above ₹21,000, month by month); PT ₹200 → net ₹23,000.
+    assert.deepEqual([d.counts.hol,d.payableDays,d.earned,d.esic,d.pt,d.net],[1,29,2320000,0,20000,2300000]);
     assert.equal(M.hrDayStatus(s,st(s,'HR-T1'),'2026-09-17').kind,'holiday');
     const off=execute(s,'owner',{type:'HR_HOLIDAY_REMOVE',date:'2026-09-17'}),noHol=M.hrComputeRun(off,'2026-09');
-    assert.equal(noHol.lines.find(l=>l.staffId==='HR-T1').earned,2900000);   // unmarked = absent: 30,000 × 58 / 60
+    assert.equal(noHol.lines.find(l=>l.staffId==='HR-T1').earned,2900000);   // 30 total days, 5 absent (4 offs + the unmarked day) → 25 + 4 = 29 → 30,000 × 29 / 30
     assert.ok(noHol.warnings.includes(`Holiday Monthly: 1 unmarked day counted as absent — ${M.HR_UNMARKED_HINT}`));
     assert.equal(M.hrComputeRun(seed(),'2026-09').lines.every(l=>l.counts.hol===undefined),true,'no holiday: counts keep their old shape');
     // Leave skips a holiday: Ravi CL Tue 3 – Thu 5 Nov with a holiday on Wed 4 Nov = 2 days.

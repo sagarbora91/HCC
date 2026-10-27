@@ -19,7 +19,7 @@ import {
   hrDeptName,hrDecidable,hrRunFor,hrRunTotals,hrMonthLabel,hrPrevMonth,hrNextMonth,hrMonthComplete,hrRegisterCsv,hrBankCsv,hrStatutoryCsv,hrAdvanceBalance,hrComputeRun,
   hrRateVersions,hrRatesFor,hrRatesDefaultFrom,hrLeavePolicy,hrDeptCap,hrLeaveCalendar,hrRunErrors,hrFnfSettled,hrFnfAdvanceLeftOpen,HR_FNF_OWNER_ABOVE,hrLastLockedMonth,hrBankFilesIssued,hrPayslipMark,hrSettingDefs,hrSettingValue,hrWeekday,
   hrCorrectionWindow,hrPendingRequests,hrPaidHolidays,hrPaidHolidayOn,hrUnmarkedDates,hrEntryLabel,hrFy,
-  HR_ATT_LABEL,HR_LEAVE_LABEL,hrLeaveName,hrLeaveTypeRows,hrHolidays,hrHolidayFy,hrShiftPatterns,HR_WEEKDAYS,HR_DISCLAIMER,HR_NOT_CALCULATED,HR_NOT_PORTED,type HRStaff,type HRRun,type HRLeave,type HRRequest,
+  HR_ATT_LABEL,HR_LEAVE_LABEL,hrLeaveName,hrLeaveTypeRows,hrHolidays,hrHolidayFy,hrShiftPatterns,HR_WEEKDAYS,HR_DISCLAIMER,HR_NOT_CALCULATED,HR_SCC_DAYS,type HRStaff,type HRRun,type HRLeave,type HRRequest,
 } from '../../services/mock';
 import {MyHr,hrLeaveTone,hrAttTone} from './MyHr';
 import {MstLink} from '../masters/MasterList';
@@ -276,12 +276,12 @@ function LeavePolicy({phone}:{phone:boolean}){
   const holidays=hrHolidays(s,{active:true}).filter(h=>h.code>=s.date).slice(0,6);
   const rows:[string,string][]=[...hrLeaveTypeRows(s,{active:true}).map(typeRow),['Half-day leave','First or second half = 0.5 day'],
     ...holidays.map(h=>[`${h.kind==='paid'?'Paid holiday':'Restricted holiday'} · ${shortDate(h.code)}`,`${h.name} · ${hrHolidayFy(h.code)}${h.kind==='paid'?' (not counted as leave)':''}`] as [string,string]),
-    ['Weekly offs','One per staff member (Staff tab); skipped inside leave dates'],
+    ['Weekly offs','One per staff member (Staff tab); skipped inside leave dates; for pay an absent day (the 4 extra days pay for it)'],
     ...depts.map(d=>[`Max off per day · ${d.name}`,`${hrDeptCap(s,d.id)}${p.deptCap[d.id]===undefined?' (default)':''}`] as [string,string])];
   const btn=edit?<button className="btn primary" onClick={()=>open({type:'hr-leave-policy'})}><Settings2 size={16}/> Edit leave policy</button>:null;
   return <section className={phone?'':'card'}><div className={phone?'':'section-title'}><div><h2>Leave policy</h2><p>From SCC: entitlements per April–March year, half-days, weekly offs and a daily limit on staff off (per department here).</p></div>{!phone&&btn}</div>
     <div className={'summary-list'+(phone?' hr-m-rates':' padded')}>{rows.map(([k,v])=><div key={k}><span>{k}</span><strong>{v}</strong></div>)}</div>
-    <div className="info-note hr-warn"><AlertTriangle size={16}/><span>{HR_NOT_PORTED}</span></div>
+    <div className="info-note"><Info size={16}/><span>{HR_SCC_DAYS}</span></div>
     <p className="footnote padded"><MstLink spec="leaveTypes"/> <MstLink spec="holidays"/></p>
     {!edit&&<p className="footnote padded">Only the Owner changes the leave policy.</p>}{phone&&btn&&<StickyFooter>{btn}</StickyFooter>}</section>;
 }
@@ -359,7 +359,7 @@ function Payroll({phone}:{phone:boolean}){
       <button className="btn" onClick={()=>file('statutory')}><Download size={16}/> PF / ESIC / PT statement{r.status==='Draft'?' (draft)':''}</button></div>}
     <div className="padded hr-notes">{notes}</div>
     {r&&t?<div className="table-wrap"><table className="hr-register"><thead><tr><th>Staff</th><th className="number">Days</th><th className="number">Earned</th><th className="number">OT</th><th className="number">Gross</th><th className="number">PF</th><th className="number">ESIC</th><th className="number">PT</th><th className="number">Advance</th><th className="number">Net pay</th><th></th></tr></thead><tbody>
-      {r.lines.map(l=><tr key={l.staffId}><td><strong>{l.name}</strong><small>{l.designation} · {l.payType==='monthly'?money(l.base)+'/mo':money(l.base)+'/day'}{l.structure==='B'?' · basic only':''}</small></td><td className="number">{l.payableDays}</td>
+      {r.lines.map(l=><tr key={l.staffId}><td><strong>{l.name}</strong><small>{l.designation} · {l.payType==='monthly'?money(l.base)+'/mo':money(l.base)+'/day'}{l.structure==='B'?' · basic only':''}</small></td><td className="number">{l.payableDays}{l.days?.otDays?<small>+ {l.days.otDays} OT</small>:null}</td>
         {[l.earned,l.ot,l.gross,l.pf,l.esic,l.pt,l.advance].map((v,i)=><td key={i} className="number">{money(v)}</td>)}<td className="number"><strong>{money(l.net)}</strong></td>
         <td><button className="text-btn" onClick={()=>open({type:'hr-payslip',id:r.id+'|'+l.staffId})}><Printer size={13}/> Payslip{{sent:' · sent',resend:' · re-send (figures changed)',superseded:' · earlier copy superseded','':''}[hrPayslipMark(r,l.staffId)]}</button></td></tr>)}
       <tr className="hr-total"><td><strong>Total · {t.staff} staff</strong></td><td></td>{[t.earned,t.ot,t.gross,t.pf,t.esic,t.pt,t.advance,t.net].map((v,i)=><td key={i} className="number"><strong>{money(v)}</strong></td>)}<td></td></tr>
@@ -425,8 +425,8 @@ function Rates({phone}:{phone:boolean}){
       <h3 className="padded hr-sub">Versions</h3>
       <div className="table-wrap"><table><thead><tr><th>Effective from</th><th>PF</th><th>ESIC</th><th>PT (men / women)</th><th>Overtime</th><th>Rounding</th><th>Locked runs</th></tr></thead><tbody>
         {versions.map(v=><tr key={v.from}><td><strong>{dateLabel(v.from)}</strong>{v.from===now.from&&<small>In force now</small>}</td><td>{v.pfEeBps/100}% + {v.pfErBps/100}% · cap {money(v.pfWageCap)}</td><td>{v.esicEeBps/100}% + {v.esicErBps/100}% · ≤ {money(v.esicCeiling)}{v.esicPeriod?' · per contribution period':' · month by month'}</td>
-          <td>{money(v.ptStd)} (Feb {money(v.ptFeb)}) · women exempt ≤ {money(v.ptFemaleExempt)}</td><td>{v.otBps/10000}×</td><td>{v.rounding==='paise'?'Paise':'Rupee'}</td><td>{usedBy(v.from)||'—'}</td></tr>)}</tbody></table></div></>}
-    <p className="footnote padded">{HR_NOT_PORTED}</p>
+          <td>{money(v.ptStd)} (Feb {money(v.ptFeb)}) · women exempt ≤ {money(v.ptFemaleExempt)}</td><td>{v.otBps/10000}× per OT day{v.daysOverride?` · ${v.daysOverride}-day month`:''}</td><td>{v.rounding==='paise'?'Paise':'Rupee'}</td><td>{usedBy(v.from)||'—'}</td></tr>)}</tbody></table></div></>}
+    <p className="footnote padded">{HR_SCC_DAYS}</p>
     {!edit&&<p className="footnote padded">Only the Owner adds a rate version (DEC-058). Locked pay-runs keep the rates they were calculated with.</p>}</section>;
 }
 export const HrDeskMobile=()=><HrDesk phone/>;

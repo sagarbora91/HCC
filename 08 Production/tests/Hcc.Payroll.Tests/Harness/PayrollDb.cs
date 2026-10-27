@@ -181,6 +181,14 @@ public sealed class Hotel(PayrollDb db, int propertyId)
             Staff[s.Id] = id;
         }
 
+        // DEC-115: the fixture's paid holidays (SCC "Mgmt holidays" — they shorten the month's total days), unless the property already has them.
+        foreach (var hd in g.Holidays ?? [])
+            await Db.ScalarAsync("""
+                IF NOT EXISTS (SELECT 1 FROM hr.holiday WHERE property_id = @p AND code = @d)
+                  INSERT hr.holiday(property_id, code, name, kind, sort_order, active, retired_on, updated_by, updated_utc)
+                  VALUES (@p, @d, @n, 'paid', 10, 1, NULL, @by, '2026-01-01');
+                """, ("@p", PropertyId), ("@d", hd.Date), ("@n", hd.Name), ("@by", U("owner")));
+
         foreach (var chunk in g.Attendance.Chunk(400))
         {
             var sql = new StringBuilder("INSERT hr.attendance(staff_id, work_date, status, ot_minutes, marked_by, marked_utc) VALUES ");

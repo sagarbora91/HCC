@@ -60,7 +60,7 @@ public sealed record AdvanceResult(long AdvanceId, long StaffId, long AmountPais
 public sealed record SetStatutoryRatesRequest(DateOnly? EffectiveFrom = null, int? BasicBps = null, int? HraBps = null, int? WashBps = null,
     int? PfEeBps = null, int? PfErBps = null, long? PfWageCap = null, int? EsicEeBps = null, int? EsicErBps = null, long? EsicCeiling = null,
     long? PtMaleExempt = null, long? PtMaleMid = null, long? PtMaleMidAmt = null, long? PtStd = null, long? PtFeb = null, long? PtFemaleExempt = null,
-    int? OtBps = null, int? LateBlock = null, string? Rounding = null, bool? EsicPeriod = null);
+    int? OtBps = null, int? LateBlock = null, string? Rounding = null, bool? EsicPeriod = null, int? DaysOverride = null);
 
 public sealed record RatesResult(DateOnly EffectiveFrom, IReadOnlyList<string> Changed, IReadOnlyList<string> Carried, IReadOnlyList<string> Kept,
     IReadOnlyList<string> CompletedMonthsToRecalculate, string Notes);
@@ -139,7 +139,12 @@ public sealed record StaffView(long StaffId, string Name, string Dept, string De
 public sealed record PayLineView(long StaffId, string Name, string Dept, string Designation, string PayType, decimal PayableDays,
     long EarnedPaise, long BasicPaise, long HraPaise, long WashingPaise, long SpecialPaise, long OtPaise, long GrossPaise, long PfWagesPaise, long PfPaise,
     long PfErPaise, long EsicWagesPaise, long EsicPaise, long EsicErPaise, long PtPaise, long AdvancePaise, long DeductionsPaise, long NetPaise, long CtcPaise,
-    bool? EsicCovered, string PayslipMark);
+    bool? EsicCovered, string PayslipMark, SccDaysView? Days = null);
+
+/// <summary>DEC-115: the SCC day sheet behind a line (days; halves allowed) — prototype HRSccDays.</summary>
+public sealed record SccDaysView(decimal Total, decimal Present, decimal Half, decimal Leave, decimal Absent, decimal Late, decimal LateDed,
+    decimal AbsentDed, decimal HalfDed, decimal Deduction, decimal Extra, decimal FinalPresent, decimal SalaryDays, decimal OtDays, decimal NoThumb = 0,
+    decimal NoThumbDed = 0);
 
 public sealed record PayRunView(long RunId, string Month, string Status, DateOnly RatesFrom, int LockSeq, string Version, IReadOnlyList<string> Warnings,
     IReadOnlyList<PayLineView> Lines, long NetPaise, int BankFilesIssued);
@@ -163,16 +168,16 @@ public sealed record LeavePolicyView(int Cl, int Sl, int El, int DefaultCap);
 
 public sealed record RateVersionView(DateOnly From, int BasicBps, int HraBps, int WashBps, int PfEeBps, int PfErBps, long PfWageCap, int EsicEeBps, int EsicErBps,
     long EsicCeiling, long PtMaleExempt, long PtMaleMid, long PtMaleMidAmt, long PtStd, long PtFeb, long PtFemaleExempt, int OtBps, int LateBlock, string Rounding,
-    bool EsicPeriod);
+    bool EsicPeriod, int DaysOverride = 0);
 
 public sealed record AttendanceCountsView(string Ym, int Days, decimal P, decimal L, decimal H, decimal HL, decimal A, decimal OFFW, decimal Off,
-    decimal PaidLeave, decimal LopLeave, decimal Unmarked, decimal Na, int OtMin, decimal Hol = 0);
+    decimal PaidLeave, decimal LopLeave, decimal Unmarked, decimal Na, int OtMin, decimal Hol = 0, int MgmtHol = 0, int? Elapsed = null, decimal Nt = 0);
 
 /// <summary>A stored pay-run line in full (counts, structure, base) as calculated by the server.</summary>
 public sealed record BoardLineView(long StaffId, string Name, string Dept, string Designation, string PayType, string Structure, string Gender, long BasePaise,
     AttendanceCountsView Counts, int LatePenaltyHalf, decimal PayableDays, long EarnedPaise, long BasicPaise, long HraPaise, long WashingPaise, long SpecialPaise,
     long OtPaise, long GrossPaise, long PfWagesPaise, long PfPaise, long PfErPaise, long EsicWagesPaise, long EsicPaise, long EsicErPaise, long PtPaise,
-    long AdvancePaise, long DeductionsPaise, long NetPaise, long CtcPaise, bool? EsicCovered);
+    long AdvancePaise, long DeductionsPaise, long NetPaise, long CtcPaise, bool? EsicCovered, SccDaysView? Days = null);
 
 public sealed record BoardSendView(long StaffId, int LockSeq, string ToMasked, int SentBy, string SentUtc);
 

@@ -138,12 +138,12 @@ export function register({test,M,assert}){
     const s=seed(),before=sha(s);
     for(const id of mastersSeedIds())mastersSeed(id,s);for(const sp of masterSpecs()){for(const r of mstRows(s,sp.id))sp.inUse(s,r);}
     assert.equal(sha(s),before);assert.equal(s.mastersX,undefined);
-    assert.equal(sha(strip(seed())),'add626d3e76aa9a5f2475049c8592c3b40207624c92cb44942e7215d08761d52');
-    assert.equal(sha(strip(buildHistory(baseFixture()))),'35e6308217fd38e9c5e3bc9137aa974eefee0930d3f49c8037853b8f76ad8319');
+    assert.equal(sha(strip(seed())),'2c1782df0630d8839427fb944af3a1aa819512238aaa2568163a53f31b3aae1c');
+    assert.equal(sha(strip(buildHistory(baseFixture()))),'bf6895382813f8ef3d265e2c7b77ae6d9b1209c38dca792ea972e20c3cf3a43f');
     assert.equal(sha(loadScenario('FY26').bookings),'66e8195233df0bb433ef76dfe58c83e215f93473a90b5bbf8b2c08613d5dbfce');});
   test('[MFX] FY26 = BASE + history: same FY26 whole-state hash as tests/stream-perf-store.mjs; no stored masters slice; BASE rooms / users identical inside FY26',()=>{
     const f=loadScenario('FY26');
-    assert.equal(sha(f),'07f6681c52f418d4e21c3620c10e34632600523d3903d39eaba612dd14bd98d8');
+    assert.equal(sha(f),'d0babd3b6f7e1ad443e08d9ec4416e2f99faca6ed4ab9ec2786c11e1133a1211');
     assert.equal(f.mastersX,undefined);assert.equal(sha(f.rooms),sha(seed().rooms));assert.equal(sha(f.users),sha(seed().users));});
   test('[MFX] FY26 history is deterministic (two builds identical) and the seed reads do not depend on it being built first',()=>{
     assert.equal(sha(buildHistory(baseFixture())),sha(buildHistory(baseFixture())));

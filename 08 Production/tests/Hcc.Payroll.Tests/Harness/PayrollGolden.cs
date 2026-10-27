@@ -22,17 +22,25 @@ public sealed class PayrollGolden
     public sealed record GDept(string Id, string Name);
 
     public sealed record GCounts(string Ym, int Days, decimal P, decimal L, decimal H, decimal HL, decimal A, decimal OFFW, decimal Off, decimal PaidLeave, decimal LopLeave,
-        decimal Unmarked, decimal Na, int OtMin);
+        decimal Unmarked, decimal Na, int OtMin, int MgmtHol = 0, decimal NT = 0);
+
+    /// <summary>DEC-115: the SCC day sheet of a golden line (prototype HRSccDays).</summary>
+    public sealed record GDays(decimal Total, decimal Present, decimal Half, decimal Leave, decimal Absent, decimal Late, decimal LateDed, decimal AbsentDed,
+        decimal HalfDed, decimal Deduction, decimal Extra, decimal FinalPresent, decimal SalaryDays, decimal OtDays, decimal NoThumb = 0, decimal NoThumbDed = 0);
 
     public sealed record GLine(string StaffId, GCounts Counts, int LatePenaltyHalf, decimal PayableDays, long Earned, long Basic, long Hra, long Washing, long Special, long Ot,
-        long Gross, long PfWages, long Pf, long PfEr, long EsicWages, long Esic, long EsicEr, long Pt, long Advance, long Deductions, long Net, long Ctc, bool? EsicCovered);
+        long Gross, long PfWages, long Pf, long PfEr, long EsicWages, long Esic, long EsicEr, long Pt, long Advance, long Deductions, long Net, long Ctc, bool? EsicCovered,
+        GDays? Days = null);
+
+    /// <summary>A paid holiday of the fixture's Holiday calendar in Aug–Sep 2026 (SCC "Mgmt holidays", DEC-115).</summary>
+    public sealed record GHoliday(string Date, string Name);
 
     public sealed record GTotals(int Staff, long Earned, long Gross, long Pf, long PfEr, long Esic, long EsicEr, long Pt, long Advance, long Deductions, long Net, long Ctc);
 
     public sealed record GRun(IReadOnlyList<GLine> Lines, GTotals Totals, IReadOnlyList<string> Warnings);
 
     public sealed record File(string BusinessDate, IReadOnlyList<GDept> Depts, IReadOnlyList<GStaff> Staff, IReadOnlyList<GLeave> Leaves, IReadOnlyList<GAdvance> Advances,
-        IReadOnlyList<GAtt> Attendance, GRun August, GRun September);
+        IReadOnlyList<GAtt> Attendance, GRun August, GRun September, IReadOnlyList<GHoliday>? Holidays = null);
 
     private static readonly Lazy<File> Loaded = new(() =>
         JsonSerializer.Deserialize<File>(System.IO.File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Golden", "payroll-base.golden.json")),
@@ -58,7 +66,8 @@ public sealed class PayrollGolden
         var days = d.Staff.ToDictionary(s => ids[s.Id], s => new StaffDays(null,
             d.Attendance.Where(a => a.StaffId == s.Id && Date(a.Date) >= month.First && Date(a.Date) <= month.Last)
                 .ToDictionary(a => Date(a.Date), a => new AttendanceMark(Date(a.Date), Enum.Parse<AttendanceStatus>(a.Status), a.OtMin)),
-            d.Leaves.Select((l, i) => (l, i)).Where(x => x.l.StaffId == s.Id).Select(x => Span(x.l, x.i + 1, ids[s.Id])).ToList()));
+            d.Leaves.Select((l, i) => (l, i)).Where(x => x.l.StaffId == s.Id).Select(x => Span(x.l, x.i + 1, ids[s.Id])).ToList(),
+            (d.Holidays ?? []).Where(h => Date(h.Date) >= month.First && Date(h.Date) <= month.Last).ToDictionary(h => Date(h.Date), h => h.Name)));
         return new MonthWorld(month, staff, days, advances, coverage, []);
     }
 
@@ -71,7 +80,11 @@ public sealed class PayrollGolden
         Assert.Equal((g.Counts.Ym, g.Counts.Days, g.Counts.P, g.Counts.L, g.Counts.H, g.Counts.HL, g.Counts.A), (c.Ym, c.Days, c.P, c.L, c.H, c.HL, c.A));
         Assert.Equal((g.Counts.OFFW, g.Counts.Off, g.Counts.PaidLeave, g.Counts.LopLeave, g.Counts.Unmarked, g.Counts.Na, g.Counts.OtMin),
             (c.OFFW, c.Off, c.PaidLeave, c.LopLeave, c.Unmarked, c.Na, c.OtMin));
+        Assert.Equal((g.Counts.MgmtHol, g.Counts.NT), (c.MgmtHol, c.NT));
         Assert.Equal((g.LatePenaltyHalf, g.PayableDays), (l.LatePenaltyHalf, l.PayableDays));
+        var d = l.Days!;
+        Assert.Equal(g.Days, new GDays(d.Total, d.Present, d.Half, d.Leave, d.Absent, d.Late, d.LateDed, d.AbsentDed, d.HalfDed, d.Deduction, d.Extra, d.FinalPresent,
+            d.SalaryDays, d.OtDays, d.NoThumb, d.NoThumbDed));
         Assert.Equal((g.Earned, g.Basic, g.Hra, g.Washing, g.Special, g.Ot, g.Gross), (l.Earned, l.Basic, l.Hra, l.Washing, l.Special, l.Ot, l.Gross));
         Assert.Equal((g.PfWages, g.Pf, g.PfEr, g.EsicWages, g.Esic, g.EsicEr, g.Pt), (l.PfWages, l.Pf, l.PfEr, l.EsicWages, l.Esic, l.EsicEr, l.Pt));
         Assert.Equal((g.Advance, g.Deductions, g.Net, g.Ctc, g.EsicCovered), (l.Advance, l.Deductions, l.Net, l.Ctc, l.EsicCovered));

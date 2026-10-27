@@ -12,7 +12,7 @@ import {
   hrLastLockedMonth,hrLeaveOverCount,hrNextMonth,hrRatesDefaultFrom,hrRatesPastMonths,hrCanLink,hrLockedPayslipCount,hrLeavePolicy,hrFnfCompute,hrElEncashment,hrAmountWords,hrPayslipMessage,hrWaNumber,hrFy,hrPaidLeave,
   hrShiftChoices,hrDesignationChoices,hrDesignationOf,hrPayRuleFields,hrLeaveChoices,hrLeaveName,mstByCode,HR_SHIFTS,HR_WEEKDAYS,HR_FNF_ADJ_MAX,HR_FNF_OWNER_ABOVE,HR_ATT_LABEL,HR_LEAVE_LABEL,HR_LEAVE_TYPES,HR_DISCLAIMER,HR_NOT_CALCULATED,hrKey,
   hrCanRates,hrCorrectionWindow,hrDayEntry,hrEntryLabel,hrParseEntry,hrPlanCorrection,hrCorrectionDateRefusal,hrPendingRequests,hrPaidHolidayOn,hrRunFor,hrMaskAccount,
-  type HRShiftCode,type HRAttStatus,type HRLeaveType,type HRRates,type HRFnfAdj,type HRRun,type HRLine,type HRBank,
+  HR_ATT_MARKS,type HRShiftCode,type HRAttStatus,type HRLeaveType,type HRRates,type HRFnfAdj,type HRRun,type HRLine,type HRBank,
 } from '../../services/mock';
 
 const rs=(v:string)=>Math.round(Number(v)*100);
@@ -127,7 +127,7 @@ export function HRAttModal({id}:{id?:string}){
   const shift=hrShiftInfo(hrShiftFor(s,st,s.date),s);
   return <><div className="modal-heading"><h2>Attendance · {st.name}</h2><p>Business date {dateLabel(s.date)} · rostered {shift.label}{shift.start?` ${shift.start}–${shift.end}`:''}.{prev?` Already recorded as ${HR_ATT_LABEL[prev.status]} — saving corrects it.`:''}</p></div>
     <form className="form" onSubmit={e=>{e.preventDefault();run({type:'HR_ATT_MARK',staffId:st.id,status,otMin:Number(ot)||0,note},`${st.name} · ${HR_ATT_LABEL[status]}`,{close:true});}}>
-      <div className="hr-status-pick" role="radiogroup" aria-label="Attendance status">{(['P','L','H','A','OFF'] as HRAttStatus[]).map(k=>
+      <div className="hr-status-pick" role="radiogroup" aria-label="Attendance status">{HR_ATT_MARKS.map(k=>
         <label key={k} className={status===k?'on':''}><input type="radio" name="hr-status" checked={status===k} onChange={()=>setStatus(k)}/>{HR_ATT_LABEL[k]}</label>)}</div>
       <label>Overtime (minutes, 0–480)<input type="number" inputMode="numeric" min="0" max="480" step="15" value={ot} disabled={status==='A'} onChange={e=>setOt(e.target.value)}/></label>
       <label>Note<input maxLength={120} value={note} onChange={e=>setNote(e.target.value)} placeholder="Optional" enterKeyHint="done"/></label>
@@ -163,7 +163,7 @@ export function HRAttCorrectModal({id,room}:{id?:string;room?:string}){
       <label>Day<input type="date" required min={w.from} max={w.to} value={date} onChange={e=>setDate(e.target.value)}/></label>
       {cur&&<div className="info-note"><Info size={16}/><span>Now: <strong>{hrEntryLabel(cur.entry)}</strong> · rostered {hrShiftInfo(hrShiftFor(s,st,date)).label}{hol?` · paid holiday (${hol.name})`:''}{cur.halfDayLeave?' · half-day leave':''}</span></div>}
       <label>Correct to<select value={mark} onChange={e=>setMark(e.target.value)}>
-        <optgroup label="Attendance">{(['P','L','H','A','OFF'] as HRAttStatus[]).map(k=><option key={k} value={k}>{HR_ATT_LABEL[k]}</option>)}</optgroup>
+        <optgroup label="Attendance">{HR_ATT_MARKS.map(k=><option key={k} value={k}>{HR_ATT_LABEL[k]}</option>)}</optgroup>
         <optgroup label="Leave (back-dated, full day)">{types.map(t=><option key={t} value={t}>{HR_LEAVE_LABEL[t]} ({t})</option>)}</optgroup>
         <option value="none">Not marked (clear the day)</option></select></label>
       {OT_MARKS.includes(mark)&&<label>Overtime (minutes, 0–480)<input type="number" inputMode="numeric" min="0" max="480" step="15" value={ot} onChange={e=>setOt(e.target.value)}/></label>}
@@ -270,7 +270,7 @@ export function HRRatesModal(){
   const pc=(b:number)=>String(b/100);
   // F-05: the form starts from the version in force on the chosen month and sends only the fields that differ from it.
   const formFor=(m:string)=>{const r=hrRatesFor(s,m);return {from:m,basic:pc(r.basicBps),hra:pc(r.hraBps),wash:pc(r.washBps),pfEe:pc(r.pfEeBps),pfEr:pc(r.pfErBps),pfCap:toRs(r.pfWageCap),esicEe:pc(r.esicEeBps),esicEr:pc(r.esicErBps),esicCeiling:toRs(r.esicCeiling),
-    ptMaleExempt:toRs(r.ptMaleExempt),ptMaleMid:toRs(r.ptMaleMid),ptMaleMidAmt:toRs(r.ptMaleMidAmt),ptStd:toRs(r.ptStd),ptFeb:toRs(r.ptFeb),ptFemaleExempt:toRs(r.ptFemaleExempt),ot:String(r.otBps/10000),late:String(r.lateBlock),rounding:r.rounding as string,esicPeriod:r.esicPeriod?'yes':'no'};};
+    ptMaleExempt:toRs(r.ptMaleExempt),ptMaleMid:toRs(r.ptMaleMid),ptMaleMidAmt:toRs(r.ptMaleMidAmt),ptStd:toRs(r.ptStd),ptFeb:toRs(r.ptFeb),ptFemaleExempt:toRs(r.ptFemaleExempt),ot:String(r.otBps/10000),late:String(r.lateBlock),days:String(r.daysOverride??0),rounding:r.rounding as string,esicPeriod:r.esicPeriod?'yes':'no'};};
   const [f,setF]=useState(()=>formFor(hrRatesDefaultFrom(s).slice(0,7)));
   const past=hrRatesPastMonths(s,f.from+'-01');
   const set=(k:keyof typeof f)=>(e:React.ChangeEvent<HTMLInputElement|HTMLSelectElement>)=>setF(k==='from'?formFor(e.target.value):{...f,[k]:e.target.value});
@@ -278,8 +278,8 @@ export function HRRatesModal(){
   const laterVersions=hrRateVersions(s).filter(v=>v.from>f.from+'-01').map(v=>v.from);
   function save(e:React.FormEvent){e.preventDefault();
     const next:Omit<HRRates,'from'>={basicBps:bps(f.basic),hraBps:bps(f.hra),washBps:bps(f.wash),pfEeBps:bps(f.pfEe),pfErBps:bps(f.pfEr),pfWageCap:rs(f.pfCap),esicEeBps:bps(f.esicEe),esicErBps:bps(f.esicEr),esicCeiling:rs(f.esicCeiling),
-      ptMaleExempt:rs(f.ptMaleExempt),ptMaleMid:rs(f.ptMaleMid),ptMaleMidAmt:rs(f.ptMaleMidAmt),ptStd:rs(f.ptStd),ptFeb:rs(f.ptFeb),ptFemaleExempt:rs(f.ptFemaleExempt),otBps:Math.round(Number(f.ot)*10000),lateBlock:Number(f.late),rounding:f.rounding as HRRates['rounding'],esicPeriod:f.esicPeriod==='yes'};
-    const cur=hrRatesFor(s,f.from),diff=Object.fromEntries(Object.entries(next).filter(([k,v])=>cur[k as keyof HRRates]!==v));
+      ptMaleExempt:rs(f.ptMaleExempt),ptMaleMid:rs(f.ptMaleMid),ptMaleMidAmt:rs(f.ptMaleMidAmt),ptStd:rs(f.ptStd),ptFeb:rs(f.ptFeb),ptFemaleExempt:rs(f.ptFemaleExempt),otBps:Math.round(Number(f.ot)*10000),lateBlock:Number(f.late),daysOverride:Number(f.days),rounding:f.rounding as HRRates['rounding'],esicPeriod:f.esicPeriod==='yes'};
+    const cur=hrRatesFor(s,f.from),diff=Object.fromEntries(Object.entries(next).filter(([k,v])=>(cur[k as keyof HRRates]??(k==='daysOverride'?0:undefined))!==v));
     run({type:'HR_STAT_RATES_SET',from:f.from+'-01',...diff},'Statutory rates saved',{close:true});}
   const num=(k:keyof typeof f,label:string,step='0.01')=><label>{label}<input required type="number" inputMode="decimal" min="0" step={step} value={f[k]} onChange={set(k)}/></label>;
   return <><div className="modal-heading"><h2>Statutory rates — new version</h2><p>Illustrative — CA to confirm for a hotel. A version takes effect from the 1st of a month after the last locked pay-run ({last?hrMonthLabel(last):'none yet'}); locked runs keep the rates they were calculated with.</p></div>
@@ -289,12 +289,13 @@ export function HRRatesModal(){
       <fieldset className="hr-fieldset"><legend>Salary structure</legend><div className="form-row">{num('basic','Basic (% of earned)')}{num('hra','HRA (% of basic)')}</div>{num('wash','Washing allowance (% of basic)')}</fieldset>
       <fieldset className="hr-fieldset"><legend>Provident Fund</legend><div className="form-row">{num('pfEe','Employee (%)')}{num('pfEr','Employer (%)')}</div>{num('pfCap','PF wage cap (₹)')}</fieldset>
       <fieldset className="hr-fieldset"><legend>ESIC</legend><div className="form-row">{num('esicEe','Employee (%)')}{num('esicEr','Employer (%)')}</div>{num('esicCeiling','Wage ceiling (₹)')}
-        <label>Coverage rule <small>(illustrative — CA to confirm)</small><select value={f.esicPeriod} onChange={set('esicPeriod')}><option value="yes">Contribution period (Apr–Sep / Oct–Mar): decided at the period start, kept to its end</option><option value="no">Month by month on earned pay (SCC)</option></select></label></fieldset>
+        <label>Coverage rule <small>(illustrative — CA to confirm)</small><select value={f.esicPeriod} onChange={set('esicPeriod')}><option value="no">Month by month on earned pay (SCC)</option><option value="yes">Contribution period (Apr–Sep / Oct–Mar): decided at the period start, kept to its end</option></select></label></fieldset>
       <fieldset className="hr-fieldset"><legend>Professional tax (Maharashtra)</legend>
         <div className="form-row">{num('ptMaleExempt','Men: nil up to (₹)')}{num('ptMaleMid','Men: middle slab up to (₹)')}</div>
         <div className="form-row">{num('ptMaleMidAmt','Middle slab (₹ / month)')}{num('ptStd','Standard (₹ / month)')}</div>
         <div className="form-row">{num('ptFeb','February top slab (₹)')}{num('ptFemaleExempt','Women: nil up to (₹)')}</div></fieldset>
-      <div className="form-row">{num('ot','Overtime (× ordinary rate)')}<label>Late marks per ½-day loss (0 = off)<input required type="number" inputMode="numeric" min="0" max="10" step="1" value={f.late} onChange={set('late')}/></label></div>
+      <div className="form-row">{num('ot','OT day rate (× a day’s pay)')}<label>Total days of a month (0 = calendar days, SCC)<input required type="number" inputMode="numeric" min="0" max="31" step="1" value={f.days} onChange={set('days')}/></label></div>
+      <div className="form-row"><label>Late marks per ½-day loss (0 = off)<input required type="number" inputMode="numeric" min="0" max="10" step="1" value={f.late} onChange={set('late')}/></label></div>
       <label>Rounding<select value={f.rounding} onChange={set('rounding')}><option value="paise">To paise (SCC)</option><option value="rupee">PF nearest rupee · ESIC next higher rupee</option></select></label>
       <div className="modal-actions"><button type="button" className="btn" onClick={closeModal}>Cancel</button><button className="btn primary" disabled={busy}>Save version</button></div>
     </form></>;
@@ -369,15 +370,16 @@ export function HRFnfModal({id}:{id?:string}){
 
 /** Payslip body (shared by the dialog and My shifts & pay). */
 export function HRPayslipDoc({run,line}:{run:HRRun;line:HRLine}){
-  const {s}=useHcc();const c=line.counts,R=(label:string,v:React.ReactNode)=><div key={label}><span>{label}</span><strong className="number">{v}</strong></div>;
+  const {s}=useHcc();const c=line.counts,d=line.days,R=(label:string,v:React.ReactNode)=><div key={label}><span>{label}</span><strong className="number">{v}</strong></div>;
   return <div className="hr-payslip invoice">
     <div className="invoice-top"><Hotel size={28}/><div><h2>{s.settings.hotel}</h2><p>Payslip · {hrMonthLabel(run.month)} · {run.id}</p></div></div>
     <div className="invoice-stamp">{run.status==='Locked'?'DEMONSTRATION PAYSLIP':'DRAFT — NOT FINAL'} · FICTIONAL DATA · ILLUSTRATIVE — CA TO CONFIRM FOR A HOTEL</div>
     <div className="hr-ps-head"><div><small>EMPLOYEE</small><h3>{line.name}</h3><p>{line.designation} · {hrDeptName(s,line.dept)} · {line.staffId}</p></div>
-      <div><small>PAY BASIS</small><h3>{line.payType==='monthly'?`${money(line.base)} / month`:`${money(line.base)} / day`}</h3><p>{c.days} calendar days · payable {line.payableDays}</p></div></div>
+      <div><small>PAY BASIS</small><h3>{line.payType==='monthly'?`${money(line.base)} / month`:`${money(line.base)} / day`}</h3><p>{d?`${d.total} total days · salary days ${line.payableDays}${d.otDays?` + ${d.otDays} OT`:''}`:`${c.days} calendar days · payable ${line.payableDays}`}</p></div></div>
     <div className="hr-ps-grid">
-      <section><h4>Attendance</h4><div className="summary-list">{R('Present',c.P)}{R('Late',c.L)}{R('Half-days',(c.H||0)+(c.HL||0))}{R('Absent / not marked',c.A+c.unmarked)}{R('Paid leave',c.paidLeave)}{R('Leave without pay',c.lopLeave)}{R('Weekly offs',c.off)}{!!c.hol&&R('Paid holidays',c.hol)}{!!c.OFFW&&R('Worked on off day',c.OFFW)}{R('Overtime',`${Math.round(c.otMin/6)/10} h`)}{!!line.latePenaltyHalf&&R('Late rule (½-days)',line.latePenaltyHalf)}</div></section>
-      <section><h4>Earnings</h4><div className="summary-list">{R('Basic',money(line.basic))}{line.structure==='S'&&<>{R('HRA',money(line.hra))}{R('Washing allowance',money(line.washing))}{R('Special allowance',money(line.special))}</>}{R('Overtime',money(line.ot))}{R('Gross earnings',money(line.gross))}</div>
+      {d?<section><h4>Attendance (SCC)</h4><div className="summary-list">{!!c.mgmtHol&&R('Paid holidays (off the total days)',c.mgmtHol)}{R('Total days',d.total)}{R('Present',d.present)}{R('Absent (incl. weekly offs)',d.absent)}{R('Half days',d.half)}{!!d.noThumb&&R('No-thumb marks (½ day each)',d.noThumb)}{R('Late marks',d.late)}{!!d.lateDed&&R('Late deduction',d.lateDed)}{R('Total deduction',d.deduction)}{R('Leaves',d.leave)}{R('Final present',d.finalPresent)}{R('Extra days',d.extra)}{R('Salary days',d.salaryDays)}{R('OT days',d.otDays)}</div></section>:
+      <section><h4>Attendance</h4><div className="summary-list">{R('Present',c.P)}{R('Late',c.L)}{R('Half-days',(c.H||0)+(c.HL||0))}{R('Absent / not marked',c.A+c.unmarked)}{R('Paid leave',c.paidLeave)}{R('Leave without pay',c.lopLeave)}{R('Weekly offs',c.off)}{!!c.hol&&R('Paid holidays',c.hol)}{!!c.OFFW&&R('Worked on off day',c.OFFW)}{R('Overtime',`${Math.round(c.otMin/6)/10} h`)}{!!line.latePenaltyHalf&&R('Late rule (½-days)',line.latePenaltyHalf)}</div></section>}
+      <section><h4>Earnings</h4><div className="summary-list">{R('Basic',money(line.basic))}{line.structure==='S'&&<>{R('HRA',money(line.hra))}{R('Washing allowance',money(line.washing))}{R('Special allowance',money(line.special))}</>}{R(d?`OT days (${d.otDays})`:'Overtime',money(line.ot))}{R('Gross earnings',money(line.gross))}</div>
         <h4>Deductions</h4><div className="summary-list">{R(`Provident Fund (${(run.rates?.pfEeBps??1200)/100}%)`,money(line.pf))}{R(`ESIC (${(run.rates?.esicEeBps??75)/100}%)`,money(line.esic))}{R('Professional tax (MH)',money(line.pt))}{R('Advance recovery',money(line.advance))}{R('Total deductions',money(line.deductions))}</div>
         <h4>Employer contributions <em>(not deducted)</em></h4><div className="summary-list">{R('PF employer',money(line.pfEr))}{R('ESIC employer',money(line.esicEr))}</div></section>
     </div>

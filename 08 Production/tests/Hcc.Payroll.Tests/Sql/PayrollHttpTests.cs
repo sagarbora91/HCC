@@ -100,7 +100,7 @@ public sealed class PayrollHttpTests(PayrollDb db) : IClassFixture<PayrollDb>
         var res = await acc.SendAsync(Post(PayrollService.OpPreparePayRun, new PreparePayRunRequest("2026-08"), "k1"), Ct);
         Assert.Equal(HttpStatusCode.OK, res.StatusCode);
         var run = (await res.Content.ReadFromJsonAsync<PayRunResult>(Web, Ct))!;
-        Assert.Equal(21_210_166, run.NetPaise);
+        Assert.Equal(21_081_040, run.NetPaise);   // golden August net (DEC-115 SCC sheet)
         var again = await acc.SendAsync(Post(PayrollService.OpPreparePayRun, new PreparePayRunRequest("2026-08"), "k1"), Ct);
         Assert.Equal("true", again.Headers.GetValues("Idempotent-Replayed").Single());
         var self = await acc.SendAsync(Post(PayrollService.OpLockPayRun, new LockPayRunRequest(run.RunId, run.Version), "k2"), Ct);

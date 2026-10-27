@@ -32,8 +32,8 @@ export function renderModal(s:any,uid:string,type:string,id?:string){const C=(re
     s=execute(s,'manager',{type:'HR_LEAVE_DECIDE',id:lv.id,approve:true});
     const st=x(s).staff.find(t=>t.id==='HR-S02'),c=M.hrCounts(s,st,'2026-11');
     assert.equal(c.lopLeave,lv.days);
-    const line=M.hrComputeLine(st,{...c,unmarked:0},M.hrRatesFor(s,'2026-11'));
-    assert.equal(line.payableDays,28);assert.equal(line.earned,M.hrMulDiv(1800000,56,1,60));
+    // DEC-115 (SCC sheet): leave without pay is not "Leaves" — its days fall into absent with every other day not worked or on paid leave.
+    const d=M.hrSccDays(c,M.hrRatesFor(s,'2026-11'));assert.equal(d.leave,c.paidLeave);assert.equal(d.absent,d.total-d.present-d.leave-d.half);
     assert.equal(M.hrDayStatus(s,st,'2026-11-10').kind,'off');assert.equal(M.hrDayStatus(s,st,'2026-11-09').kind,'leave');
     // paid leave over an off day: "Paid leave" equals the stored days too (HR-LV-2: EL Mon 2 – Tue 3 Nov, Tuesday off)
     const el=x(s).leaves.find(l=>l.id==='HR-LV-2');assert.equal(el.days,1);assert.equal(c.paidLeave,el.days);
@@ -145,14 +145,15 @@ export function renderModal(s:any,uid:string,type:string,id?:string){const C=(re
     assert.equal(M.hrRatesDefaultFrom(M.loadScenario('FY26')),'2026-10-01');
   });
 
-  test('[PAY-FIX F-07] ESIC contribution-period rule (dated, illustrative): ₹22,000 + 2 LOP stays uncovered; covered at period start stays covered after a raise',()=>{
-    const R=M.hrDefaultRates();assert.equal(R.esicPeriod,true);
+  test('[PAY-FIX F-07] ESIC contribution-period rule (optional since DEC-115; SCC month by month is the default): ₹22,000 with 7 days absent stays uncovered; covered at period start stays covered after a raise',()=>{
+    assert.equal(M.hrDefaultRates().esicPeriod,false,'DEC-115: SCC month by month');const R={...M.hrDefaultRates(),esicPeriod:true};
     const full=(ym,days,extra={})=>({ym,days,P:days,L:0,H:0,HL:0,A:0,OFFW:0,off:0,paidLeave:0,lopLeave:0,unmarked:0,na:0,otMin:0,...extra});
     const mon=(monthly,extra={})=>({id:'T',name:'T',dept:'FO',designation:'x',payType:'monthly',monthly,daily:0,...extra});
-    // reviewer's t1: ₹22,000, 2 days LOP → earned ₹20,533.33; month-by-month charged ESIC ₹146.30 / ₹633.97 for that month only
-    const lop=M.hrComputeLine(mon(2200000),full('2026-09',30,{P:28,A:2}),R);
-    assert.equal(lop.earned,2053333);assert.equal(lop.esic,0);assert.equal(lop.esicEr,0);assert.equal(lop.esicCovered,false);
-    const scc=M.hrComputeLine(mon(2200000),full('2026-09',30,{P:28,A:2}),{...R,esicPeriod:false});assert.equal(scc.esic,14630);assert.equal(scc.esicEr,63397);
+    // ₹22,000, 7 days absent → SCC: deduction 7, no extra days → 23 salary days → earned 22,000 × 23 / 30 = ₹16,866.67; the period rule keeps it
+    // uncovered (contract ₹22,000 > ₹21,000); month by month charges ESIC on 16,866.67 − washing 843.33 = 16,023.34 → ₹120.18 / ₹520.76
+    const lop=M.hrComputeLine(mon(2200000),full('2026-09',30,{P:23,A:7}),R);
+    assert.equal(lop.earned,1686667);assert.equal(lop.esic,0);assert.equal(lop.esicEr,0);assert.equal(lop.esicCovered,false);
+    const scc=M.hrComputeLine(mon(2200000),full('2026-09',30,{P:23,A:7}),{...R,esicPeriod:false});assert.equal(scc.esicWages,1602334);assert.equal(scc.esic,12018);assert.equal(scc.esicEr,52076);
     // covered at the start of Oct–Mar (₹20,000), raised to ₹23,000 in December: still covered until March, not from April
     let s=execute(seed(),'accountant',{type:'HR_PAYROLL_RUN',month:'2026-09'});s=execute(s,'owner',{type:'HR_PAYROLL_LOCK',id:M.hrRunFor(s,'2026-09').id});
     const st={...x(s).staff.find(t=>t.id==='HR-S02'),monthly:2000000};
@@ -162,15 +163,15 @@ export function renderModal(s:any,uid:string,type:string,id?:string){const C=(re
     assert.equal(M.hrEsicCovered(oct,raised,'2026-12',R),true);assert.equal(M.hrEsicCovered(oct,raised,'2027-03',R),true);assert.equal(M.hrEsicCovered(oct,raised,'2027-04',R),false);
     const dec=M.hrComputeLine(raised,full('2026-12',31),R,undefined,M.hrEsicCovered(oct,raised,'2026-12',R));assert.ok(dec.esic>0,'contributes to the period end above the ceiling');
     assert.deepEqual([M.hrEsicPeriodStart('2026-04'),M.hrEsicPeriodStart('2026-09'),M.hrEsicPeriodStart('2026-10'),M.hrEsicPeriodStart('2027-03')],['2026-04','2026-04','2026-10','2026-10']);
-    // dated setting, Owner-only, shown with the CA flag; old versions without the field keep the SCC rule (locked snapshots recompute unchanged)
-    const v=execute(seed(),'owner',{type:'HR_STAT_RATES_SET',from:'2026-11-01',esicPeriod:false});assert.equal(M.hrRatesFor(v,'2026-11').esicPeriod,false);assert.equal(M.hrRatesFor(v,'2026-10').esicPeriod,true);
-    assert.throws(()=>execute(seed(),'accountant',{type:'HR_STAT_RATES_SET',from:'2026-11-01',esicPeriod:false}),code('FORBIDDEN'));
-    assert.match(M.hrSettingValue(seed(),'hr.esic'),/contribution period/);assert.ok(M.cfgDef(seed(),'hr.esic.esicPeriod').illustrative);
+    // dated setting, Owner-only, shown with the CA flag; versions without the field keep the SCC rule (locked snapshots recompute unchanged)
+    const v=execute(seed(),'owner',{type:'HR_STAT_RATES_SET',from:'2026-11-01',esicPeriod:true});assert.equal(M.hrRatesFor(v,'2026-11').esicPeriod,true);assert.equal(M.hrRatesFor(v,'2026-10').esicPeriod,false);
+    assert.throws(()=>execute(seed(),'accountant',{type:'HR_STAT_RATES_SET',from:'2026-11-01',esicPeriod:true}),code('FORBIDDEN'));
+    assert.match(M.hrSettingValue(seed(),'hr.esic'),/month by month/);assert.match(M.hrSettingValue(v,'hr.esic','2026-11'),/contribution period/);assert.ok(M.cfgDef(seed(),'hr.esic.esicPeriod').illustrative);
   });
 
-  test('[PAY-FIX F-08] the SCC extra-days rule and day-based overtime are visibly marked "Not ported from SCC" (policy + rates screens)',()=>{
-    const s=seed();assert.match(M.HR_NOT_PORTED,/extra-days rule/);assert.match(M.HR_NOT_PORTED,/day-based overtime/);
-    for(const phone of [false,true]){assert.match(UI.renderSection(s,'manager','LeavePolicy',phone),/Not ported from SCC/);assert.match(UI.renderSection(s,'owner','Rates',phone),/Not ported from SCC/);}
+  test('[PAY-FIX F-08 → DEC-115] the SCC pay-day rule (extra days, OT days) is stated on the policy and rates screens; nothing says "not ported"',()=>{
+    const s=seed();assert.match(M.HR_SCC_DAYS,/4 extra days/);assert.match(M.HR_SCC_DAYS,/OT days/);
+    for(const phone of [false,true])for(const html of [UI.renderSection(s,'manager','LeavePolicy',phone),UI.renderSection(s,'owner','Rates',phone)]){assert.match(html,/4 extra days/);assert.doesNotMatch(html,/[Nn]ot ported/);}
   });
 
   test('[PAY-FIX F-09] unlock supersedes "sent" payslip marks and records an issued bank file (confirm to unlock; warn and confirm on re-generate)',()=>{
@@ -301,17 +302,19 @@ export function renderModal(s:any,uid:string,type:string,id?:string){const C=(re
     const s0=seed();let s=execute(s0,'manager',{type:'HR_STAFF_ACTIVE',id:'HR-S05',active:false});// Ravi exits on the business date, 24 Oct 2026
     s=execute(s,'accountant',{type:'HR_FNF_SETTLE',staffId:'HR-S05'});s=execute(s,'owner',{type:'HR_FNF_CONFIRM',id:x(s).fnf[0].id});
     const f=x(s).fnf[0];assert.equal(f.salaryIncluded,true);assert.equal(f.month,'2026-10');
-    // Ravi's October F&F line by hand: ₹13,500/month, 31 days; 18 P + 1 late + 4 weekly offs = 23 paid, 1 absent + 7 days after the exit = 16 half-days LOP →
-    // earned 13,500 × 46/62 = 10,016.13; basic 50 % = 5,008.07 (PF wages, under the ₹15,000 cap) → PF 12 % 600.97, employer 13 % 651.05;
-    // washing 10 % of basic = 500.81 → ESIC wages 10,016.13 − 500.81 = 9,515.32 (covered: contract ₹13,500 ≤ ₹21,000) → 0.75 % 71.36, 3.25 % 309.25;
-    // PT Maharashtra, man, earned above ₹10,000 (overtime not in the PT base), not February → ₹200.
-    assert.deepEqual([f.line.earned,f.line.pfWages,f.line.pf,f.line.pfEr,f.line.esicWages,f.line.esic,f.line.esicEr,f.line.pt],[1001613,500807,60097,65105,951532,7136,30925,20000]);
+    // Ravi's October F&F line by hand (SCC sheet, DEC-115): ₹13,500/month; 31 days − 2 paid holidays (2 and 20 Oct) = 29 total days; present 18 + 1 late
+    // = 19 (both holidays worked); absent 29 − 19 = 10 (4 weekly offs, 1 absent, 7 days after the exit, less the 2 worked holidays) → deduction 10,
+    // no extra days → 19 salary days → earned 13,500 × 19 / 29 = 8,844.83; basic 50 % = 4,422.42 (PF wages) → PF 12 % 530.69, employer 13 % 574.91;
+    // washing 10 % of basic = 442.24 → ESIC wages 8,844.83 − 442.24 = 8,402.59 (month by month: earned ≤ ₹21,000) → 0.75 % 63.02, 3.25 % 273.08;
+    // PT Maharashtra, man, earned ₹7,500.01–10,000 → ₹175.
+    assert.deepEqual([f.line.days.total,f.line.days.absent,f.line.days.extra,f.line.payableDays],[29,10,0,19]);
+    assert.deepEqual([f.line.earned,f.line.pfWages,f.line.pf,f.line.pfEr,f.line.esicWages,f.line.esic,f.line.esicEr,f.line.pt],[884483,442242,53069,57491,840259,6302,27308,17500]);
     const rates=M.hrRatesFor(s,'2026-10'),run={id:'HR-PAY-T',month:'2026-10',status:'Draft',rates,lines:M.hrComputeRun(s,'2026-10').lines};
     assert.equal(run.lines.some(l=>l.staffId==='HR-S05'),false);assert.equal(run.lines.length,11);
     const before={...run,lines:M.hrComputeRun(s0,'2026-10').lines.filter(l=>l.staffId!=='HR-S05')};
     assert.deepEqual(run.lines,before.lines,'non-leavers unchanged');
     const st=M.hrStatutoryCsv(s,run).split('\n'),t=M.hrRunTotals({lines:[...run.lines,f.line]}),rp=p=>(p/100).toFixed(2);
-    assert.ok(st.includes('12,HR-S05,Ravi Shinde,10016.13,5008.07,600.97,651.05,9515.32,71.36,309.25,200.00'));
+    assert.ok(st.includes('12,HR-S05,Ravi Shinde,8844.83,4422.42,530.69,574.91,8402.59,63.02,273.08,175.00'));
     assert.equal(st[1],`Provident Fund,${rp(t.pf)},${rp(t.pfEr)},${rp(t.pf+t.pfEr)}`);assert.equal(st[2],`ESIC,${rp(t.esic)},${rp(t.esicEr)},${rp(t.esic+t.esicEr)}`);
     assert.equal(st[3],`Professional Tax (Maharashtra),${rp(t.pt)},0.00,${rp(t.pt)}`);
     assert.equal(st[5],'Sr,Staff ID,Name,Earned,PF wages,PF EE,PF ER,ESIC wages,ESIC EE,ESIC ER,PT','member columns unchanged');

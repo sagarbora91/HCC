@@ -46,7 +46,9 @@ public static class PayrollCalculator
             warnings.AddRange(PayrollRules.Warnings(st, c));
             var adv = w.OpenAdvance(st.StaffId);
             var covered = PayrollRules.EsicCovered(st, w.Month, rates, w.CoverageOf(st.StaffId));
-            lines.Add(PayrollRules.ComputeLine(st, c, rates, adv is null ? null : (adv.InstallmentPaise, adv.Balance), covered));
+            var line = PayrollRules.ComputeLine(st, c, rates, adv is null ? null : (adv.InstallmentPaise, adv.Balance), covered);
+            warnings.AddRange(PayrollRules.SccIssues(st.Name, line.Days!).Select(i => i.Text));   // DEC-115: SCC calcAttendance issues
+            lines.Add(line);
         }
 
         return (lines, warnings);

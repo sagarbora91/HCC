@@ -35,8 +35,8 @@ export function register({test,M,assert}){
     assert.equal(catExtras(s).length,8);assert.deepEqual(catReasons(s).map(r=>r.code),['SERVICE','CORP','REPEAT','LONGSTAY','MGMT']);});
   test('[CAT] golden figures unchanged: occupancy 8, collections ₹21,500, drawer ₹10,725; BASE / FY26 hashes as MA-0',()=>{
     const s=seed();assert.equal(M.metrics(s).occupied,8);assert.equal(M.metrics(s).collections,2150000);assert.equal(M.drawer(s),1072500);
-    assert.equal(sha(strip(seed())),'add626d3e76aa9a5f2475049c8592c3b40207624c92cb44942e7215d08761d52') /* old → new: d885a20a… → add626d3… = SCHEMA 8 → 9 only (masters wave) */;
-    assert.equal(sha(strip(M.buildHistory(M.baseFixture()))),'35e6308217fd38e9c5e3bc9137aa974eefee0930d3f49c8037853b8f76ad8319') /* old → new: ba4a1d4e… → 35e63082… = SCHEMA 8 → 9 only */;});
+    assert.equal(sha(strip(seed())),'2c1782df0630d8839427fb944af3a1aa819512238aaa2568163a53f31b3aae1c') /* old → new: d885a20a… → add626d3… = SCHEMA 8 → 9 only (masters wave) */;
+    assert.equal(sha(strip(M.buildHistory(M.baseFixture()))),'bf6895382813f8ef3d265e2c7b77ae6d9b1209c38dca792ea972e20c3cf3a43f') /* old → new: ba4a1d4e… → 35e63082… = SCHEMA 8 → 9 only */;});
 
   // ── Extras catalogue in front of CHARGE (DEC-MA-4) ──
   test('[CAT] worked ₹4,265 GST journey through the catalogue: Laundry item ₹500 at 18 % gives the same folio as the free-text charge',()=>{

@@ -19,7 +19,7 @@
 //             them (DEC-084, server rule). The board adds holidays, requests (pay effect for payroll roles only, masked bank details) and
 //             the server's open correction window.
 import type {Command} from '../../services/mock';
-import type {HRState,HRStaff,HRRates,HRLine,HRCounts,HRRun,HRLeave,HRAdvance,HRFnf,HRAtt,HRShiftCode,HRSend,HRBankFile,HRRequest,HRDayEntry,HRBank} from '../../domain/streams/staff';
+import type {HRState,HRStaff,HRRates,HRLine,HRCounts,HRSccDays,HRRun,HRLeave,HRAdvance,HRFnf,HRAtt,HRShiftCode,HRSend,HRBankFile,HRRequest,HRDayEntry,HRBank} from '../../domain/streams/staff';
 import {HccClientError} from '../errors';
 import type {SyncArea,CommandCtx} from './types';
 import {protoId,serverId,utcToClock} from './map';
@@ -32,9 +32,14 @@ export type SrvStaffView={staffId:number;name:string;dept:string;designation:str
   /** MA-6: code of the Designations list row chosen on the staff form (null = older record, matched by name). */designationCode?:string|null};
 export type SrvRates={from:string;basicBps:number;hraBps:number;washBps:number;pfEeBps:number;pfErBps:number;pfWageCap:number;esicEeBps:number;esicErBps:number;
   esicCeiling:number;ptMaleExempt:number;ptMaleMid:number;ptMaleMidAmt:number;ptStd:number;ptFeb:number;ptFemaleExempt:number;otBps:number;lateBlock:number;
-  rounding:string;esicPeriod:boolean};
+  rounding:string;esicPeriod:boolean;
+  /** DEC-115 SCC "Days Override" (absent on an older server = 0). */daysOverride?:number};
 export type SrvCounts={ym:string;days:number;p:number;l:number;h:number;hl:number;a:number;offw:number;off:number;paidLeave:number;lopLeave:number;unmarked:number;na:number;otMin:number;
-  /** DEC-083 / MA-6 paid holidays not worked (absent on an older server). */hol?:number};
+  /** DEC-083 / MA-6 paid holidays not worked (absent on an older server). */hol?:number;
+  /** DEC-115: paid holidays of the month (SCC Mgmt holidays), the days read for a part month and no-thumb marks. */mgmtHol?:number;elapsed?:number|null;nt?:number};
+/** DEC-115: the SCC day sheet of a line (Hcc.Contracts SccDaysView). */
+export type SrvSccDays={total:number;present:number;half:number;leave:number;absent:number;late:number;lateDed:number;absentDed:number;halfDed:number;
+  deduction:number;extra:number;finalPresent:number;salaryDays:number;otDays:number;noThumb?:number;noThumbDed?:number};
 /** DEC-075 day entry: kind none|mark|leave. */
 export type SrvDayEntry={kind:string;status:string|null;otMinutes:number;leaveType:string|null};
 export type SrvRequest={requestId:number;kind:string;staffId:number;date:string|null;before:SrvDayEntry|null;after:SrvDayEntry|null;
@@ -43,7 +48,7 @@ export type SrvRequest={requestId:number;kind:string;staffId:number;date:string|
 export type SrvLine={staffId:number;name:string;dept:string;designation:string;payType:string;structure:string;gender:string;basePaise:number;counts:SrvCounts;
   latePenaltyHalf:number;payableDays:number;earnedPaise:number;basicPaise:number;hraPaise:number;washingPaise:number;specialPaise:number;otPaise:number;grossPaise:number;
   pfWagesPaise:number;pfPaise:number;pfErPaise:number;esicWagesPaise:number;esicPaise:number;esicErPaise:number;ptPaise:number;advancePaise:number;
-  deductionsPaise:number;netPaise:number;ctcPaise:number;esicCovered:boolean|null};
+  deductionsPaise:number;netPaise:number;ctcPaise:number;esicCovered:boolean|null;days?:SrvSccDays|null};
 export type SrvRun={runId:number;month:string;status:'Draft'|'Locked';rates:SrvRates;warnings:string[];lockSeq:number;version:string;preparedBy:number;preparedUtc:string;
   lockedBy:number|null;lockedUtc:string|null;lines:SrvLine[];sends:{staffId:number;lockSeq:number;toMasked:string;sentBy:number;sentUtc:string}[];
   bankFiles:{issueNo:number;lockSeq:number;netPaise:number;issuedBy:number;issuedUtc:string}[];
@@ -68,16 +73,21 @@ const opt=<T,>(v:T|null|undefined)=>v===null||v===undefined?undefined:v;
 export function ratesFromServer(r:SrvRates):HRRates{
   return {from:r.from,basicBps:r.basicBps,hraBps:r.hraBps,washBps:r.washBps,pfEeBps:r.pfEeBps,pfErBps:r.pfErBps,pfWageCap:r.pfWageCap,esicEeBps:r.esicEeBps,
     esicErBps:r.esicErBps,esicCeiling:r.esicCeiling,ptMaleExempt:r.ptMaleExempt,ptMaleMid:r.ptMaleMid,ptMaleMidAmt:r.ptMaleMidAmt,ptStd:r.ptStd,ptFeb:r.ptFeb,
-    ptFemaleExempt:r.ptFemaleExempt,otBps:r.otBps,lateBlock:r.lateBlock,rounding:r.rounding==='rupee'?'rupee':'paise',esicPeriod:r.esicPeriod};
+    ptFemaleExempt:r.ptFemaleExempt,otBps:r.otBps,lateBlock:r.lateBlock,rounding:r.rounding==='rupee'?'rupee':'paise',esicPeriod:r.esicPeriod,
+    ...(r.daysOverride?{daysOverride:r.daysOverride}:{})};
 }
 function countsFromServer(c:SrvCounts):HRCounts{
   return {ym:c.ym,days:c.days,P:c.p,L:c.l,H:c.h,HL:c.hl,A:c.a,OFFW:c.offw,off:c.off,paidLeave:c.paidLeave,lopLeave:c.lopLeave,unmarked:c.unmarked,na:c.na,otMin:c.otMin,
-    ...(c.hol?{hol:c.hol}:{})};   // DEC-083: present only when > 0, as hrCounts builds it
+    ...(c.mgmtHol?{mgmtHol:c.mgmtHol}:{}),...(c.hol?{hol:c.hol}:{}),...(c.nt?{NT:c.nt}:{}),...(c.elapsed!=null?{elapsed:c.elapsed}:{})};   // present only when set, as hrCounts builds them
 }
+const daysFromServer=(d:SrvSccDays):HRSccDays=>({total:d.total,present:d.present,half:d.half,leave:d.leave,absent:d.absent,late:d.late,lateDed:d.lateDed,
+  absentDed:d.absentDed,halfDed:d.halfDed,deduction:d.deduction,extra:d.extra,finalPresent:d.finalPresent,salaryDays:d.salaryDays,otDays:d.otDays,
+  noThumb:d.noThumb??0,noThumbDed:d.noThumbDed??0});
 /** A stored server line → prototype HRLine (hrComputeLine key order); the figures are the server's, unchanged. */
 export function lineFromServer(l:SrvLine):HRLine{
   return {staffId:protoId(l.staffId),name:l.name,dept:l.dept,designation:l.designation,payType:l.payType==='daily'?'daily':'monthly',structure:l.structure==='B'?'B':'S',
-    gender:l.gender==='F'?'F':'M',base:l.basePaise,counts:countsFromServer(l.counts),latePenaltyHalf:l.latePenaltyHalf,payableDays:l.payableDays,earned:l.earnedPaise,
+    gender:l.gender==='F'?'F':'M',base:l.basePaise,counts:countsFromServer(l.counts),latePenaltyHalf:l.latePenaltyHalf,payableDays:l.payableDays,
+    ...(l.days?{days:daysFromServer(l.days)}:{}),earned:l.earnedPaise,
     basic:l.basicPaise,hra:l.hraPaise,washing:l.washingPaise,special:l.specialPaise,ot:l.otPaise,gross:l.grossPaise,pfWages:l.pfWagesPaise,pf:l.pfPaise,pfEr:l.pfErPaise,
     esicWages:l.esicWagesPaise,esic:l.esicPaise,esicEr:l.esicErPaise,pt:l.ptPaise,advance:l.advancePaise,deductions:l.deductionsPaise,net:l.netPaise,ctc:l.ctcPaise,
     ...(typeof l.esicCovered==='boolean'?{esicCovered:l.esicCovered}:{})};
@@ -199,7 +209,7 @@ function saveStaffBody(c:CommandCtx):Record<string,unknown>{
 
 const ratesBody=(cmd:Command)=>{const b:Record<string,unknown>={effectiveFrom:cmd.from??null};
   for(const f of ['basicBps','hraBps','washBps','pfEeBps','pfErBps','pfWageCap','esicEeBps','esicErBps','esicCeiling','ptMaleExempt','ptMaleMid','ptMaleMidAmt','ptStd',
-    'ptFeb','ptFemaleExempt','otBps','lateBlock','rounding','esicPeriod'])if(cmd[f]!==undefined)b[f]=cmd[f];
+    'ptFeb','ptFemaleExempt','otBps','lateBlock','rounding','esicPeriod','daysOverride'])if(cmd[f]!==undefined)b[f]=cmd[f];
   return b;};
 /** Sends one server command; `ver` = [kind, prototype id] of the record whose loaded version the server needs (expectedVersion). */
 async function post(c:CommandCtx,name:string,body:Record<string,unknown>,ver?:[kind:string,id:unknown,what:string]):Promise<void>{

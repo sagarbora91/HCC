@@ -59,15 +59,16 @@ public sealed class PayrollCorrectionSqlTests(PayrollDb db) : IClassFixture<Payr
     {
         var h = await GoldenWithAugustLockedAsync();
         var sep = await PrepareAsync(h, "2026-09");
-        Assert.Equal(1_680_000, (await LineAsync(h, sep.RunId, "HR-S02")).Earned);   // golden: Aarav ₹18,000, payable 28 of 30 days
-        // Thu 3 Sep: Aarav was marked present; the register shows he was absent. ₹18,000 × 54 / 60 = ₹16,200.00 → −₹600.00: applies at once.
+        // Golden Aarav ₹18,000 (SCC sheet): 22 present, 2 half days, 6 absent → deduction 7 → no extra days → 23 salary days → ₹13,800.00.
+        Assert.Equal(1_380_000, (await LineAsync(h, sep.RunId, "HR-S02")).Earned);
+        // Thu 3 Sep: Aarav was marked present; the register shows he was absent. Deduction 8 → 22 days → ₹13,200.00 → −₹600.00: applies at once.
         var r = (await CorrectAsync(h, "manager", "HR-S02", "2026-09-03", "A")).Value;
         Assert.Equal(("Applied", false, "Present", "Absent"), (r.Status, r.RaisesPay, r.Before, r.After));
         Assert.Contains("September 2026 draft pay-run recalculated", r.Notes, StringComparison.Ordinal);
         Assert.DoesNotContain("₹", r.Notes, StringComparison.Ordinal);   // the Manager sees no money
         Assert.Equal("A", await MarkAsync(h, "HR-S02", "2026-09-03"));
         var line = await LineAsync(h, sep.RunId, "HR-S02");
-        Assert.Equal((27m, 1_620_000L), (line.PayableDays, line.Earned));
+        Assert.Equal((22m, 1_320_000L), (line.PayableDays, line.Earned));
         Assert.Equal(("Approved", true, h.U("manager"), -60_000L), ((string)(await db.ScalarAsync("SELECT status FROM hr.change_request WHERE request_id = @r;", ("@r", r.RequestId)))!,
             (bool)(await db.ScalarAsync("SELECT direct FROM hr.change_request WHERE request_id = @r;", ("@r", r.RequestId)))!,
             (int)(await db.ScalarAsync("SELECT decided_by FROM hr.change_request WHERE request_id = @r;", ("@r", r.RequestId)))!,
@@ -88,13 +89,13 @@ public sealed class PayrollCorrectionSqlTests(PayrollDb db) : IClassFixture<Payr
         var h = await GoldenWithAugustLockedAsync();
         var sep = await PrepareAsync(h, "2026-09");
         var before = await LineAsync(h, sep.RunId, "HR-S05");
-        Assert.Equal((28.5m, 1_087_662L), (before.PayableDays, before.Net));   // golden Ravi September: net ₹10,876.62
+        Assert.Equal((30m, 1_161_881L), (before.PayableDays, before.Net));   // golden Ravi September (SCC: deduction 5.5 → 30 days + 0.5 OT day): ₹11,618.81
         // Tue 22 Sep: Ravi marked absent but was on duty. Absent → present raises pay → a request; nothing changes until the Owner approves.
         var r = (await CorrectAsync(h, "manager", "HR-S05", "2026-09-22", "P", reason: "Duty register shows him on shift")).Value;
         Assert.Equal(("PendingApproval", true), (r.Status, r.RaisesPay));
         Assert.Equal("A", await MarkAsync(h, "HR-S05", "2026-09-22"));
         Assert.Equal(before, await LineAsync(h, sep.RunId, "HR-S05"));
-        // ₹13,500: payable 28.5 → 29.5 days → earned 13,500 × 59 / 60 = ₹13,275.00 (was ₹12,825.00) → gross +₹450.00.
+        // ₹13,500: deduction 5.5 → 4.5, OT days 0.5 → 1.5 → gross +₹450.00 (13,500 ÷ 30).
         Assert.Equal(45_000, await db.LongAsync("SELECT pay_effect_paise FROM hr.change_request WHERE request_id = @r;", ("@r", r.RequestId)));
         await Hotel.FailsAsync(() => CorrectAsync(h, "manager", "HR-S05", "2026-09-22", "L"), HccErrorCode.NOT_AVAILABLE);   // one request per day
         var blocked = await Hotel.FailsAsync(() => LockAsync(h, sep.RunId), HccErrorCode.INVALID_TRANSITION);
@@ -115,11 +116,11 @@ public sealed class PayrollCorrectionSqlTests(PayrollDb db) : IClassFixture<Payr
         Assert.Contains("September 2026 draft pay-run recalculated", ok.Notes, StringComparison.Ordinal);
         Assert.Equal("P", await MarkAsync(h, "HR-S05", "2026-09-22"));
         Assert.Equal(h.U("manager"), (int)(await db.ScalarAsync("SELECT marked_by FROM hr.attendance WHERE staff_id = @s AND work_date = '2026-09-22';", ("@s", h.S("HR-S05"))))!);
-        // Ravi's recalculated line by hand: earned ₹13,275.00 + OT 120 min (13,500 ÷ 30 ÷ 8 × 2 h = ₹112.50) = gross ₹13,387.50; basic 50 % ₹6,637.50 →
-        // PF 12 % ₹796.50; washing 10 % of basic ₹663.75 → ESIC 0.75 % of (13,275.00 − 663.75 = 12,611.25) = ₹94.58; PT ₹200; advance instalment ₹1,000
-        // → net 13,387.50 − 796.50 − 94.58 − 200 − 1,000 = ₹11,296.42 (= golden ₹10,876.62 + ₹419.80).
+        // Ravi's recalculated line by hand (SCC): 30 salary days → earned ₹13,500.00 + 1.5 OT days ₹675.00 (the 120 overtime minutes are not paid)
+        // = gross ₹14,175.00; basic 50 % ₹6,750.00 → PF 12 % ₹810.00; washing ₹675.00 → ESIC 0.75 % of 12,825.00 = ₹96.19; PT ₹200; advance ₹1,000
+        // → net 14,175.00 − 810.00 − 96.19 − 200 − 1,000 = ₹12,068.81 (prototype stream-payroll-waveb.mjs: same).
         var after = await LineAsync(h, sep.RunId, "HR-S05");
-        Assert.Equal((29.5m, 1_327_500L, 1_338_750L, 79_650L, 9_458L, 20_000L, 100_000L, 1_129_642L),
+        Assert.Equal((30m, 1_350_000L, 1_417_500L, 81_000L, 9_619L, 20_000L, 100_000L, 1_206_881L),
             (after.PayableDays, after.Earned, after.Gross, after.Pf, after.Esic, after.Pt, after.Advance, after.Net));
         Assert.Contains("raises gross pay by ₹450.00 · request", (string)(await db.ScalarAsync(
             "SELECT detail FROM plat.audit_event WHERE property_id = @p AND action = 'HR_ATTENDANCE_CORRECTION_APPROVED';", ("@p", h.PropertyId)))!, StringComparison.Ordinal);
@@ -149,10 +150,11 @@ public sealed class PayrollCorrectionSqlTests(PayrollDb db) : IClassFixture<Payr
     public async Task DEC075_back_dated_leave_paid_leave_waits_for_the_Owner_leave_without_pay_applies_and_the_leave_rules_hold()
     {
         var h = await GoldenWithAugustLockedAsync();
-        // Wed 16 Sep, Kavya absent → casual leave: absent loses 2 half-days, paid leave none → ₹13,500 × 2 / 60 = +₹450.00 → the Owner approves.
+        // Wed 16 Sep, Kavya absent → casual leave (SCC sheet): one absent day fewer and the leave added on top → 28.5 → 30 days + 0.5 OT: +₹900.00
+        // → the Owner approves.
         var cl = (await CorrectAsync(h, "manager", "HR-S06", "2026-09-16", "CL", reason: "Leave form found (fictional)")).Value;
         Assert.Equal(("PendingApproval", "Absent", "Casual leave"), (cl.Status, cl.Before, cl.After));
-        Assert.Equal(45_000, await db.LongAsync("SELECT pay_effect_paise FROM hr.change_request WHERE request_id = @r;", ("@r", cl.RequestId)));
+        Assert.Equal(90_000, await db.LongAsync("SELECT pay_effect_paise FROM hr.change_request WHERE request_id = @r;", ("@r", cl.RequestId)));
         await DecideAsync(h, "owner", cl.RequestId, true);
         Assert.Null(await MarkAsync(h, "HR-S06", "2026-09-16"));   // the absent mark is replaced by the leave
         Assert.Equal(("CL", "Approved", h.U("manager"), h.U("owner"), cl.RequestId, 2L), await LeaveOfAsync(h, "HR-S06", "2026-09-16"));
@@ -173,7 +175,9 @@ public sealed class PayrollCorrectionSqlTests(PayrollDb db) : IClassFixture<Payr
         await Hotel.FailsAsync(() => h.Payroll.RequestLeaveAsync(h.As("manager", PayrollService.OpRequestLeave),
             new RequestLeaveRequest(h.S("HR-S06"), "CL", D("2026-09-30"), null, null, "Back-dated by request"), Ct), HccErrorCode.VALIDATION);   // RequestLeave stays forward-only
         // The requester may withdraw a pending request; nobody else.
-        var w = (await CorrectAsync(h, "manager", "HR-S06", "2026-09-30", "OFF", ot: 60)).Value;
+        // DEC-115: overtime minutes are not paid — present → worked on the weekly off with 60 minutes is still a present day: no change, applies at once.
+        Assert.Equal("Applied", (await CorrectAsync(h, "manager", "HR-S06", "2026-09-30", "OFF", ot: 60)).Value.Status);
+        var w = (await CorrectAsync(h, "manager", "HR-S05", "2026-09-22", "P", reason: "Duty register shows him on shift")).Value;   // raises pay
         await Hotel.FailsAsync(() => h.Payroll.WithdrawPayrollRequestAsync(h.As("owner", PayrollService.OpWithdrawPayrollRequest),
             new WithdrawPayrollRequestRequest(w.RequestId, w.Version), Ct), HccErrorCode.FORBIDDEN);
         Assert.Equal("Withdrawn", (await h.Payroll.WithdrawPayrollRequestAsync(h.As("manager", PayrollService.OpWithdrawPayrollRequest),
@@ -195,7 +199,7 @@ public sealed class PayrollCorrectionSqlTests(PayrollDb db) : IClassFixture<Payr
     }
 
     [Fact]
-    public async Task DEC083_paid_holiday_is_paid_like_a_weekly_off_for_monthly_staff_and_like_weekly_offs_for_daily_wage()
+    public async Task DEC083_DEC115_paid_holiday_shortens_the_total_days_and_nobody_loses_pay()
     {
         var h = await db.NewHotelAsync("2026-10-05");
         var monthly = h.Staff["M"] = await h.AddStaffAsync("Holiday Monthly (fictional)", 3_000_000, "FO", weeklyOff: 0);
@@ -215,18 +219,18 @@ public sealed class PayrollCorrectionSqlTests(PayrollDb db) : IClassFixture<Payr
 
         var sep = await PrepareAsync(h, "2026-09");
         Assert.Empty(sep.Warnings);   // the holiday is not an unmarked day
-        // Monthly ₹30,000: 25 present + 4 weekly offs + 1 holiday = 30 of 30 days → earned ₹30,000.00; PF 12 % of basic ₹15,000.00 = ₹1,800.00;
+        // SCC (DEC-115): total days 30 − 1 holiday = 29; 25 present + 4 weekly offs (absent) → +4 extra → 29 of 29.
+        // Monthly ₹30,000 → earned ₹30,000.00; PF 12 % of basic ₹15,000.00 = ₹1,800.00;
         // ESIC: contract ₹30,000 > ₹21,000 → none; PT ₹200.00 → net ₹28,000.00.
         var m = await LineAsync(h, sep.RunId, "M");
-        Assert.Equal((25m, 4m, 1m, 30m, 3_000_000L, 180_000L, 0L, 20_000L, 2_800_000L), (m.Counts.P, m.Counts.Off, m.Counts.Hol, m.PayableDays, m.Earned, m.Pf, m.Esic, m.Pt, m.Net));
-        // Daily ₹800: 25 days worked × 800 = ₹20,000.00 (the holiday, like a weekly off, is not paid — CA A04-04 open); ESIC covered (800 × 26 = ₹20,800)
-        // 0.75 % = ₹150.00; PT ₹200.00 → net ₹19,650.00.
+        Assert.Equal((25m, 4m, 1m, 29m, 3_000_000L, 180_000L, 0L, 20_000L, 2_800_000L), (m.Counts.P, m.Counts.Off, m.Counts.Hol, m.PayableDays, m.Earned, m.Pf, m.Esic, m.Pt, m.Net));
+        // Daily ₹800: gross = 800 × 29 total days; 29 salary days → ₹23,200.00; ESIC month by month: earned above ₹21,000 → none; PT ₹200.00 → net ₹23,000.00.
         var dl = await LineAsync(h, sep.RunId, "D");
-        Assert.Equal((1m, 25m, 2_000_000L, 15_000L, 20_000L, 1_965_000L), (dl.Counts.Hol, dl.PayableDays, dl.Earned, dl.Esic, dl.Pt, dl.Net));
+        Assert.Equal((1m, 29m, 2_320_000L, 0L, 20_000L, 2_300_000L), (dl.Counts.Hol, dl.PayableDays, dl.Earned, dl.Esic, dl.Pt, dl.Net));
         var board = await h.Queries.GetBoardAsync(h.PropertyId, h.U("housekeeper"), null, null, Ct);   // everyone sees the calendar
         Assert.Equal([new HolidayView(D("2026-09-17"), "Founders’ Day (fictional)")], board.Holidays);
 
-        // Removing it: the draft is stale (the lock refuses it); recalculated, the day is unmarked = absent → ₹30,000 × 58 / 60 = ₹29,000.00, with the hint.
+        // Removing it: the draft is stale (the lock refuses it); recalculated, the day is unmarked = absent → 30 total days, 5 absent → 29 of 30 → ₹29,000.00.
         var removed = (await h.Payroll.RemoveHolidayAsync(h.As("owner", PayrollService.OpRemoveHoliday), new RemoveHolidayRequest(D("2026-09-17")), Ct)).Value;
         Assert.Contains("September 2026 draft pay-run must be recalculated", removed.Notes, StringComparison.Ordinal);
         await Hotel.FailsAsync(() => LockAsync(h, sep.RunId), HccErrorCode.STALE_VERSION);

@@ -41,6 +41,7 @@ public sealed record DayEntry(DayEntryKind Kind, AttendanceStatus? Status = null
         AttendanceStatus.L => "Late",
         AttendanceStatus.H => "Half-day",
         AttendanceStatus.A => "Absent",
+        AttendanceStatus.NT => "No thumb punch",
         _ => "Worked on off day",
     };
 
@@ -66,7 +67,7 @@ public sealed record DayEntry(DayEntryKind Kind, AttendanceStatus? Status = null
             return Unmarked;
         }
 
-        if (code is "P" or "L" or "H" or "A" or "OFF")
+        if (code is "P" or "L" or "H" or "A" or "OFF" or "NT")
         {
             var s = Enum.Parse<AttendanceStatus>(code);
             if (ot is < 0 or > 480) throw HccException.Validation("Overtime must be 0–480 minutes.");

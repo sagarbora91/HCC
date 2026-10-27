@@ -7,7 +7,7 @@ namespace Hcc.Domain.Payroll;
 public sealed record RateChange(int? BasicBps = null, int? HraBps = null, int? WashBps = null, int? PfEeBps = null, int? PfErBps = null, long? PfWageCap = null,
     int? EsicEeBps = null, int? EsicErBps = null, long? EsicCeiling = null, long? PtMaleExempt = null, long? PtMaleMid = null, long? PtMaleMidAmt = null,
     long? PtStd = null, long? PtFeb = null, long? PtFemaleExempt = null, int? OtBps = null, int? LateBlock = null, StatutoryRounding? Rounding = null,
-    bool? EsicPeriod = null);
+    bool? EsicPeriod = null, int? DaysOverride = null);
 
 /// <summary>Result of saving a rate version: the new list, the fields that changed, and what was carried into later versions (F-05).</summary>
 public sealed record RateSaveOutcome(IReadOnlyList<PayrollRates> Versions, PayrollRates Saved, IReadOnlyList<string> Changed, IReadOnlyList<string> Carried,
@@ -39,6 +39,7 @@ public static class RateVersions
         new("lateBlock", r => r.LateBlock, (r, v) => r with { LateBlock = (int)v }, c => c.LateBlock),
         new("rounding", r => r.Rounding, (r, v) => r with { Rounding = (StatutoryRounding)v }, c => c.Rounding),
         new("esicPeriod", r => r.EsicPeriod, (r, v) => r with { EsicPeriod = (bool)v }, c => c.EsicPeriod),
+        new("daysOverride", r => r.DaysOverride, (r, v) => r with { DaysOverride = (int)v }, c => c.DaysOverride),
     ];
 
     /// <summary>Rate version in force for a month (latest effective-from on or before the 1st; the earliest version before any).</summary>

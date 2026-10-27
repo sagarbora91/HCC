@@ -14,13 +14,13 @@ namespace Hcc.Payroll.Tests.Sql;
 
 /// <summary>
 /// W3-b: Payroll lock / unlock / re-lock through Accounting's real outbox consumer, with the BASE payroll golden (August 2026, 12 staff,
-/// net ₹2,12,101.66). Lock → pay-run voucher; unlock → exact reversal (nets to zero, booked once); re-lock → a fresh voucher; a bank file
+/// net ₹2,10,810.40, DEC-115 SCC sheet). Lock → pay-run voucher; unlock → exact reversal (nets to zero, booked once); re-lock → a fresh voucher; a bank file
 /// issued before the unlock keeps its payment voucher and the reversal says so.
 /// </summary>
 [Trait("Category", "Sql")]
 public sealed class PayRunAccountingTests(PayrollDb db) : IClassFixture<PayrollDb>
 {
-    private const long AugustNet = 21_210_166;            // ₹2,12,101.66
+    private const long AugustNet = 21_081_040;            // ₹2,10,810.40
     private const string NetPayable = "2300";
     private const string Bank = "1030";
     private static CancellationToken Ct => TestContext.Current.CancellationToken;

@@ -144,19 +144,19 @@ public class PeopleListsRulesTests
     }
 
     [Fact]
-    public void A_paid_holiday_is_no_loss_of_pay_for_monthly_and_unpaid_for_daily_wage_DEC083()
+    public void A_paid_holiday_shortens_the_total_days_SCC_Mgmt_holidays_and_nobody_loses_pay_DEC115()
     {
         var r = PayrollRates.Defaults();
         var daily = Staff(PayType.Daily);
         var none = new AttendanceCounts("2026-11", 30, 20, 0, 0, 0, 0, 0, 4, 0, 0, 0, 0, 0);
-        var plus = none with { Hol = 1 };
-        // Masters integration — DEC-083 (owner decision, Wave B) is binding: an unworked holiday is not paid to daily-wage staff, like a weekly off
-        // (CA A04-04 open). Old: one more payable day.
+        var plus = none with { Hol = 1, MgmtHol = 1 };
+        // DEC-115 (SCC): the holiday takes a day off the total and off the absent days alike — 20 salary days either way (deduction ≥ 7: no extra days).
         Assert.Equal(0m, PayrollRules.ComputeLine(daily, plus, r).PayableDays - PayrollRules.ComputeLine(daily, none, r).PayableDays);
         var monthly = Staff();
         var lop = new AttendanceCounts("2026-11", 30, 25, 0, 0, 0, 0, 0, 4, 0, 0, 1, 0, 0);
-        Assert.Equal(29m, PayrollRules.ComputeLine(monthly, lop, r).PayableDays);                       // 1 unmarked = absent
-        Assert.Equal(30m, PayrollRules.ComputeLine(monthly, lop with { Unmarked = 0, Hol = 1 }, r).PayableDays);   // the holiday is paid
+        Assert.Equal(29m, PayrollRules.ComputeLine(monthly, lop, r).PayableDays);                       // 1 unmarked = absent: 5 absent → 25 + 4 = 29 of 30
+        var hol = PayrollRules.ComputeLine(monthly, lop with { Unmarked = 0, Hol = 1, MgmtHol = 1 }, r);   // the holiday: 29 total days, 4 absent → 29 of 29
+        Assert.Equal((29m, 29m, monthly.MonthlyPaise), (hol.Days!.Total, hol.PayableDays, hol.Earned));
     }
 
     [Fact]

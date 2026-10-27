@@ -19,23 +19,26 @@ export function register({test,M,assert}){
     assert.deepEqual(['owner','manager','accountant','supervisor'].map(u=>M.hrCanManage(s,u)),[true,true,false,false]);
     assert.equal(M.hrCanRates(s,'owner'),true);assert.equal(M.hrCanRates(s,'accountant'),false);
   });
-  // W05-B (SCC rules): old → new — OT is now 1× the ordinary rate (37,500 → 25,000 paise); PF 12% of basic = 50% of earned (unchanged 168,000);
-  // structured pay splits basic / HRA / washing / special; net 2,599,500 → 2,587,000 paise.
-  test('[HR] payroll line formula (monthly): LOP, late rule, OT 1×, SCC PF / ESIC / PT, advance capped by balance',()=>{
+  // DEC-115 (SCC calcAttendance / calcGM): present 22 + 3 late = 25, 1 half day, 3 weekly offs + 1 absent = 4 absent → deduction 4 + ½ (3 late)
+  // + ½ (half day) = 5 → +4 extra → 25 + 4 = 29 salary days of 30 → ₹29,000; the 120 overtime minutes are not paid (no OT days).
+  test('[HR] payroll line formula (monthly, SCC): deduction, extra days, late rule, SCC PF / ESIC / PT, advance capped by balance',()=>{
     const r=M.hrDefaultRates();
     const staff={id:'T',name:'Test',dept:'FO',designation:'x',payType:'monthly',monthly:3000000,daily:0};
     const c={ym:'2026-09',days:30,P:22,L:3,H:1,HL:0,A:1,OFFW:0,off:3,paidLeave:0,lopLeave:0,unmarked:0,na:0,otMin:120};
     const l=M.hrComputeLine(staff,c,r,{installment:100000,balance:50000});
-    assert.equal(l.latePenaltyHalf,1);assert.equal(l.payableDays,28);assert.equal(l.earned,2800000);assert.equal(l.ot,25000);
-    assert.deepEqual([l.basic,l.hra,l.washing,l.special],[1400000,1120000,140000,140000]);
-    assert.equal(l.gross,2825000);assert.equal(l.pf,168000);assert.equal(l.pfEr,182000);assert.equal(l.esic,0);assert.equal(l.pt,20000);assert.equal(l.advance,50000);assert.equal(l.net,2587000);
-    assert.equal(l.ctc,2825000+182000);
+    assert.deepEqual([l.days.absent,l.days.deduction,l.days.extra],[4,5,4]);
+    assert.equal(l.latePenaltyHalf,1);assert.equal(l.payableDays,29);assert.equal(l.earned,2900000);assert.equal(l.ot,0);
+    assert.deepEqual([l.basic,l.hra,l.washing,l.special],[1450000,1160000,145000,145000]);
+    assert.equal(l.gross,2900000);assert.equal(l.pf,174000);assert.equal(l.pfEr,188500);assert.equal(l.esic,0);assert.equal(l.pt,20000);assert.equal(l.advance,50000);assert.equal(l.net,2656000);
+    assert.equal(l.ctc,2900000+188500);
   });
   test('[HR] payroll line formula (daily wage, basic-only, no PF) and ESIC under ceiling; advance never makes net negative',()=>{
     const r=M.hrDefaultRates();
     const d=M.hrComputeLine({id:'D',name:'D',dept:'KIT',designation:'x',payType:'daily',monthly:0,daily:60000},{ym:'2026-09',days:30,P:20,L:2,H:2,HL:0,A:0,OFFW:1,off:4,paidLeave:0,lopLeave:1,unmarked:0,na:0,otMin:0},r);
-    assert.equal(d.payableDays,24);assert.equal(d.earned,1440000);assert.equal(d.structure,'B');assert.equal(d.pf,0);
-    assert.equal(d.esic,Math.round(1440000*75/10000));assert.equal(d.esicEr,46800);assert.equal(d.pt,20000);
+    // SCC: present 20 + 2 late + 1 day worked on the weekly off = 23, 2 half days, absent 30 − 23 − 2 = 5 (4 offs, the LOP day) → deduction
+    // 5 + 1 = 6 → 2 extra days → 24 + 2 = 26 × ₹600 = ₹15,600; ESIC 0.75 % ₹117, 3.25 % ₹507; PT ₹200.
+    assert.equal(d.payableDays,26);assert.equal(d.earned,1560000);assert.equal(d.structure,'B');assert.equal(d.pf,0);
+    assert.equal(d.esic,11700);assert.equal(d.esicEr,50700);assert.equal(d.pt,20000);
     const tiny=M.hrComputeLine({id:'Y',name:'Y',dept:'KIT',designation:'x',payType:'daily',monthly:0,daily:60000},{ym:'2026-09',days:30,P:1,L:0,H:0,HL:0,A:0,OFFW:0,off:0,paidLeave:0,lopLeave:0,unmarked:29,na:0,otMin:0},r,{installment:100000,balance:300000});
     assert.equal(tiny.net,0);assert.ok(tiny.advance<100000);assert.equal(tiny.pt,0);
   });
@@ -45,7 +48,9 @@ export function register({test,M,assert}){
     assert.throws(()=>execute(s,'housekeeper',{type:'HR_PAYROLL_RUN',month:'2026-09'}),code('FORBIDDEN'));
     assert.throws(()=>execute(s,'accountant',{type:'HR_PAYROLL_RUN',month:'2026-10'}),code('INVALID_TRANSITION'));
     const n=execute(s,'accountant',{type:'HR_PAYROLL_RUN',month:'2026-09'});const r=M.hrRunFor(n,'2026-09');
-    assert.equal(r.status,'Draft');assert.equal(r.lines.length,12);assert.deepEqual(r.warnings,[]);
+    // DEC-115: the only warnings are SCC's day-sheet notes (OT days, high deduction, late marks) — nothing unmarked, no salary missing.
+    assert.equal(r.status,'Draft');assert.equal(r.lines.length,12);assert.deepEqual(r.warnings,r.lines.flatMap(l=>M.hrSccIssues(l.name,l.days).map(i=>i.text)));
+    assert.deepEqual(M.hrRunErrors(r),[],'nothing blocks the lock');
     const ravi=r.lines.find(l=>l.staffId==='HR-S05');assert.equal(ravi.counts.paidLeave,2);assert.equal(ravi.advance,100000);
   });
   test('[HR] maker-checker lock, advance recovery posted once, locked run immutable',()=>{

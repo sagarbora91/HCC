@@ -14,10 +14,11 @@ function toServer(M,S,P,{self}={}){
   const utc=c=>S.clockToUtc(c);
   const rates=r=>({from:r.from,basicBps:r.basicBps,hraBps:r.hraBps,washBps:r.washBps,pfEeBps:r.pfEeBps,pfErBps:r.pfErBps,pfWageCap:r.pfWageCap,esicEeBps:r.esicEeBps,
     esicErBps:r.esicErBps,esicCeiling:r.esicCeiling,ptMaleExempt:r.ptMaleExempt,ptMaleMid:r.ptMaleMid,ptMaleMidAmt:r.ptMaleMidAmt,ptStd:r.ptStd,ptFeb:r.ptFeb,
-    ptFemaleExempt:r.ptFemaleExempt,otBps:r.otBps,lateBlock:r.lateBlock,rounding:r.rounding,esicPeriod:!!r.esicPeriod});
+    ptFemaleExempt:r.ptFemaleExempt,otBps:r.otBps,lateBlock:r.lateBlock,rounding:r.rounding,esicPeriod:!!r.esicPeriod,daysOverride:r.daysOverride??0});
   const line=l=>({staffId:sid.get(l.staffId),name:l.name,dept:l.dept,designation:l.designation,payType:l.payType,structure:l.structure,gender:l.gender,basePaise:l.base,
     counts:{ym:l.counts.ym,days:l.counts.days,p:l.counts.P,l:l.counts.L,h:l.counts.H,hl:l.counts.HL,a:l.counts.A,offw:l.counts.OFFW,off:l.counts.off,paidLeave:l.counts.paidLeave,
-      lopLeave:l.counts.lopLeave,unmarked:l.counts.unmarked,na:l.counts.na,otMin:l.counts.otMin},latePenaltyHalf:l.latePenaltyHalf,payableDays:l.payableDays,
+      lopLeave:l.counts.lopLeave,unmarked:l.counts.unmarked,na:l.counts.na,otMin:l.counts.otMin,hol:l.counts.hol??0,mgmtHol:l.counts.mgmtHol??0,elapsed:l.counts.elapsed??null,nt:l.counts.NT??0},
+    latePenaltyHalf:l.latePenaltyHalf,payableDays:l.payableDays,days:l.days??null,
     earnedPaise:l.earned,basicPaise:l.basic,hraPaise:l.hra,washingPaise:l.washing,specialPaise:l.special,otPaise:l.ot,grossPaise:l.gross,pfWagesPaise:l.pfWages,pfPaise:l.pf,
     pfErPaise:l.pfEr,esicWagesPaise:l.esicWages,esicPaise:l.esic,esicErPaise:l.esicEr,ptPaise:l.pt,advancePaise:l.advance,deductionsPaise:l.deductions,netPaise:l.net,
     ctcPaise:l.ctc,esicCovered:l.esicCovered??null});

@@ -8,7 +8,7 @@ import {mstSpec,mstNextSort,type MasterRow} from '../../../domain/streams/master
 import {money} from '../../../domain/money';
 import {
   hrEnsure,hrCanManage,hrCanPay,hrCanRates,hrStaffOfUser,hrShiftFor,hrKey,hrCheckinStatus,hrApprovedLeaveOn,hrLeaveDays,hrLeaveUsed,
-  hrComputeRun,hrMonthComplete,hrApplyRecoveries,hrReverseRecoveries,hrAdvanceBalance,hrMonday,hrWeek,hrMonthLabel,hrRatesFor,hrRunErrors,
+  HR_ATT_MARKS,hrComputeRun,hrMonthComplete,hrApplyRecoveries,hrReverseRecoveries,hrAdvanceBalance,hrMonday,hrWeek,hrMonthLabel,hrRatesFor,hrRunErrors,
   hrEntitled,hrLeaveAvailable,hrGenderOf,hrFnfSettled,HR_FNF_ADJ_MAX,HR_FNF_OWNER_ABOVE,hrBankFilesIssued,hrRatesDefaultFrom,hrRatesPastMonths,hrBankSnapshot,hrCanLink,hrLockedPayslipCount,hrMaskAccount,hrDeptOff,hrDeptCap,hrDeptName,hrFy,hrLastLockedMonth,hrFnfCompute,hrWaNumber,hrLeavePolicy,hrDefaultRates,HR_ATT_LABEL,HR_LEAVE_TYPES,HR_TRACKED,
   hrDayOff,hrParseEntry,hrPlanCorrection,hrCorrectionDateRefusal,hrEntryLabel,hrSameEntry,hrPendingRequests,
   type HRStaff,type HRShiftCode,type HRAttStatus,type HRLeaveType,type HRRates,type HRFnfAdj,type HRDayEntry,type HRRequest,type HRBank,
@@ -40,7 +40,7 @@ function ratesFrom(k:Kit):{r:HRRates;base:HRRates}{
   const int=(f:keyof HRRates,min:number,max:number,label:string)=>{if(cmd[f]===undefined)return;assert(Number.isInteger(cmd[f])&&cmd[f]>=min&&cmd[f]<=max,`Invalid value for ${label}.`);(r as Record<string,unknown>)[f]=cmd[f];};
   int('basicBps',1000,10000,'basic share');int('hraBps',0,10000,'HRA');int('washBps',0,10000,'washing allowance');
   int('pfEeBps',0,2500,'PF employee rate');int('pfErBps',0,2500,'PF employer rate');int('esicEeBps',0,1000,'ESIC employee rate');int('esicErBps',0,1000,'ESIC employer rate');
-  int('otBps',0,30000,'overtime multiplier');int('lateBlock',0,10,'late rule');
+  int('otBps',0,30000,'overtime multiplier');int('lateBlock',0,10,'late rule');int('daysOverride',0,31,'total days of a month');
   for(const f of ['pfWageCap','esicCeiling','ptMaleExempt','ptMaleMid','ptMaleMidAmt','ptStd','ptFeb','ptFemaleExempt'] as const)if(cmd[f]!==undefined){assert(rupee(cmd[f]),`Invalid amount for ${f}.`);r[f]=cmd[f];}
   if(cmd.rounding!==undefined){assert(cmd.rounding==='paise'||cmd.rounding==='rupee','Rounding is paise or rupee.');r.rounding=cmd.rounding;}
   if(cmd.esicPeriod!==undefined){assert(typeof cmd.esicPeriod==='boolean','ESIC contribution-period rule is on or off.');r.esicPeriod=cmd.esicPeriod;}
@@ -225,7 +225,7 @@ export const handlers:Record<string,Handler>={
     }
     if(!mgr)fail('FORBIDDEN','Access denied: approve permission is required to record attendance for staff.');
     notSelf(k,st,'record or correct attendance or overtime (use self check-in)');
-    assert(['P','L','H','A','OFF'].includes(cmd.status),'Choose an attendance status.');
+    assert((HR_ATT_MARKS as string[]).includes(cmd.status),'Choose an attendance status.');
     const ot=cmd.otMin??0;assert(Number.isInteger(ot)&&ot>=0&&ot<=480,'Overtime must be 0–480 minutes.');
     assert(!(cmd.status==='A'&&ot>0),'An absent day cannot carry overtime.');
     const prev=x.att[key];
