@@ -1,0 +1,1174 @@
+{
+ "generatedBy": "08 Production/tests/Hcc.Accounting.Tests/Golden/export-rulebook-month.mjs (lane acc1-tests); expectations are worked out from rulebook §8, never exported from the code under test",
+ "source": "02 Planning/HCC_Accounting_Rulebook_v1.md §8 (April 2026)",
+ "fictionalDataOnly": true,
+ "asOf": "2026-04-01",
+ "mappingOverrides": {
+  "line:service": "4200",
+  "method:Advance adjusted": "2000"
+ },
+ "parties": {
+  "HDFC": "BA-HDFC",
+  "Morning": "EV-MORNING",
+  "Kaveri": "EV-KAVERI",
+  "Deccan": "CMP-0007",
+  "Goibibo": "CHN-GOIBIBO",
+  "Staff-07": "STF-007"
+ },
+ "opening": [
+  {
+   "account": "1000",
+   "party": null,
+   "ledger": "1000",
+   "debitPaise": 2000000,
+   "creditPaise": 0
+  },
+  {
+   "account": "1030",
+   "party": "BA-HDFC",
+   "ledger": "1030/BA-HDFC",
+   "debitPaise": 30000000,
+   "creditPaise": 0
+  },
+  {
+   "account": "1500",
+   "party": null,
+   "ledger": "1500",
+   "debitPaise": 600000000,
+   "creditPaise": 0
+  },
+  {
+   "account": "1510",
+   "party": null,
+   "ledger": "1510",
+   "debitPaise": 80000000,
+   "creditPaise": 0
+  },
+  {
+   "account": "1520",
+   "party": null,
+   "ledger": "1520",
+   "debitPaise": 50000000,
+   "creditPaise": 0
+  },
+  {
+   "account": "1530",
+   "party": null,
+   "ledger": "1530",
+   "debitPaise": 8000000,
+   "creditPaise": 0
+  },
+  {
+   "account": "1110",
+   "party": "CMP-0007",
+   "ledger": "1110/CMP-0007",
+   "debitPaise": 4000000,
+   "creditPaise": 0
+  },
+  {
+   "account": "2200",
+   "party": "EV-MORNING",
+   "ledger": "2200/EV-MORNING",
+   "debitPaise": 0,
+   "creditPaise": 2500000
+  },
+  {
+   "account": "2000",
+   "party": null,
+   "ledger": "2000",
+   "debitPaise": 0,
+   "creditPaise": 1000000
+  },
+  {
+   "account": "2400",
+   "party": null,
+   "ledger": "2400",
+   "debitPaise": 0,
+   "creditPaise": 200000000
+  },
+  {
+   "account": "3100",
+   "party": null,
+   "ledger": "3100",
+   "debitPaise": 0,
+   "creditPaise": 570500000
+  }
+ ],
+ "steps": {
+  "T1": [
+   {
+    "account": "1100",
+    "party": null,
+    "ledger": "1100",
+    "debitPaise": 42000000,
+    "creditPaise": 0
+   },
+   {
+    "account": "4900",
+    "party": null,
+    "ledger": "4900",
+    "debitPaise": 1000000,
+    "creditPaise": 0
+   },
+   {
+    "account": "4000",
+    "party": null,
+    "ledger": "4000",
+    "debitPaise": 0,
+    "creditPaise": 41000000
+   },
+   {
+    "account": "2110",
+    "party": null,
+    "ledger": "2110",
+    "debitPaise": 0,
+    "creditPaise": 1000000
+   },
+   {
+    "account": "2120",
+    "party": null,
+    "ledger": "2120",
+    "debitPaise": 0,
+    "creditPaise": 1000000
+   }
+  ],
+  "T2": [
+   {
+    "account": "1100",
+    "party": null,
+    "ledger": "1100",
+    "debitPaise": 10500000,
+    "creditPaise": 0
+   },
+   {
+    "account": "4200",
+    "party": null,
+    "ledger": "4200",
+    "debitPaise": 0,
+    "creditPaise": 10000000
+   },
+   {
+    "account": "2110",
+    "party": null,
+    "ledger": "2110",
+    "debitPaise": 0,
+    "creditPaise": 250000
+   },
+   {
+    "account": "2120",
+    "party": null,
+    "ledger": "2120",
+    "debitPaise": 0,
+    "creditPaise": 250000
+   }
+  ],
+  "T3": [
+   {
+    "account": "1000",
+    "party": null,
+    "ledger": "1000",
+    "debitPaise": 3150000,
+    "creditPaise": 0
+   },
+   {
+    "account": "1010",
+    "party": null,
+    "ledger": "1010",
+    "debitPaise": 3150000,
+    "creditPaise": 0
+   },
+   {
+    "account": "4200",
+    "party": null,
+    "ledger": "4200",
+    "debitPaise": 0,
+    "creditPaise": 6000000
+   },
+   {
+    "account": "2110",
+    "party": null,
+    "ledger": "2110",
+    "debitPaise": 0,
+    "creditPaise": 150000
+   },
+   {
+    "account": "2120",
+    "party": null,
+    "ledger": "2120",
+    "debitPaise": 0,
+    "creditPaise": 150000
+   }
+  ],
+  "T4": [
+   {
+    "account": "1115",
+    "party": "CHN-GOIBIBO",
+    "ledger": "1115/CHN-GOIBIBO",
+    "debitPaise": 2100000,
+    "creditPaise": 0
+   },
+   {
+    "account": "4000",
+    "party": null,
+    "ledger": "4000",
+    "debitPaise": 0,
+    "creditPaise": 2000000
+   },
+   {
+    "account": "2110",
+    "party": null,
+    "ledger": "2110",
+    "debitPaise": 0,
+    "creditPaise": 50000
+   },
+   {
+    "account": "2120",
+    "party": null,
+    "ledger": "2120",
+    "debitPaise": 0,
+    "creditPaise": 50000
+   }
+  ],
+  "T5a": [
+   {
+    "account": "2000",
+    "party": null,
+    "ledger": "2000",
+    "debitPaise": 1000000,
+    "creditPaise": 0
+   },
+   {
+    "account": "1100",
+    "party": null,
+    "ledger": "1100",
+    "debitPaise": 0,
+    "creditPaise": 1000000
+   }
+  ],
+  "T5b": [
+   {
+    "account": "1110",
+    "party": "CMP-0007",
+    "ledger": "1110/CMP-0007",
+    "debitPaise": 6300000,
+    "creditPaise": 0
+   },
+   {
+    "account": "1100",
+    "party": null,
+    "ledger": "1100",
+    "debitPaise": 0,
+    "creditPaise": 6300000
+   }
+  ],
+  "T5c": [
+   {
+    "account": "1000",
+    "party": null,
+    "ledger": "1000",
+    "debitPaise": 15200000,
+    "creditPaise": 0
+   },
+   {
+    "account": "1010",
+    "party": null,
+    "ledger": "1010",
+    "debitPaise": 15000000,
+    "creditPaise": 0
+   },
+   {
+    "account": "1020",
+    "party": null,
+    "ledger": "1020",
+    "debitPaise": 15000000,
+    "creditPaise": 0
+   },
+   {
+    "account": "1100",
+    "party": null,
+    "ledger": "1100",
+    "debitPaise": 0,
+    "creditPaise": 45200000
+   }
+  ],
+  "T6": [
+   {
+    "account": "1010",
+    "party": null,
+    "ledger": "1010",
+    "debitPaise": 3150000,
+    "creditPaise": 0
+   },
+   {
+    "account": "2000",
+    "party": null,
+    "ledger": "2000",
+    "debitPaise": 0,
+    "creditPaise": 3150000
+   }
+  ],
+  "T7a": [
+   {
+    "account": "1030",
+    "party": "BA-HDFC",
+    "ledger": "1030/BA-HDFC",
+    "debitPaise": 4000000,
+    "creditPaise": 0
+   },
+   {
+    "account": "1110",
+    "party": "CMP-0007",
+    "ledger": "1110/CMP-0007",
+    "debitPaise": 0,
+    "creditPaise": 4000000
+   }
+  ],
+  "T7b": [
+   {
+    "account": "1030",
+    "party": "BA-HDFC",
+    "ledger": "1030/BA-HDFC",
+    "debitPaise": 5700000,
+    "creditPaise": 0
+   },
+   {
+    "account": "1360",
+    "party": null,
+    "ledger": "1360",
+    "debitPaise": 600000,
+    "creditPaise": 0
+   },
+   {
+    "account": "1110",
+    "party": "CMP-0007",
+    "ledger": "1110/CMP-0007",
+    "debitPaise": 0,
+    "creditPaise": 6300000
+   }
+  ],
+  "T8": [
+   {
+    "account": "5000",
+    "party": null,
+    "ledger": "5000",
+    "debitPaise": 5900000,
+    "creditPaise": 0
+   },
+   {
+    "account": "2200",
+    "party": "EV-MORNING",
+    "ledger": "2200/EV-MORNING",
+    "debitPaise": 0,
+    "creditPaise": 5900000
+   }
+  ],
+  "T9": [
+   {
+    "account": "5010",
+    "party": null,
+    "ledger": "5010",
+    "debitPaise": 4200000,
+    "creditPaise": 0
+   },
+   {
+    "account": "2200",
+    "party": "EV-KAVERI",
+    "ledger": "2200/EV-KAVERI",
+    "debitPaise": 0,
+    "creditPaise": 4200000
+   }
+  ],
+  "T10": [
+   {
+    "account": "5030",
+    "party": null,
+    "ledger": "5030",
+    "debitPaise": 4500000,
+    "creditPaise": 0
+   },
+   {
+    "account": "1030",
+    "party": "BA-HDFC",
+    "ledger": "1030/BA-HDFC",
+    "debitPaise": 0,
+    "creditPaise": 4500000
+   }
+  ],
+  "T11": [
+   {
+    "account": "2200",
+    "party": "EV-MORNING",
+    "ledger": "2200/EV-MORNING",
+    "debitPaise": 6000000,
+    "creditPaise": 0
+   },
+   {
+    "account": "1030",
+    "party": "BA-HDFC",
+    "ledger": "1030/BA-HDFC",
+    "debitPaise": 0,
+    "creditPaise": 6000000
+   }
+  ],
+  "T12": [
+   {
+    "account": "5040",
+    "party": null,
+    "ledger": "5040",
+    "debitPaise": 800000,
+    "creditPaise": 0
+   },
+   {
+    "account": "1000",
+    "party": null,
+    "ledger": "1000",
+    "debitPaise": 0,
+    "creditPaise": 800000
+   }
+  ],
+  "T13a": [
+   {
+    "account": "1200",
+    "party": "STF-007",
+    "ledger": "1200/STF-007",
+    "debitPaise": 500000,
+    "creditPaise": 0
+   },
+   {
+    "account": "1000",
+    "party": null,
+    "ledger": "1000",
+    "debitPaise": 0,
+    "creditPaise": 500000
+   }
+  ],
+  "T13b": [
+   {
+    "account": "5100",
+    "party": null,
+    "ledger": "5100",
+    "debitPaise": 24000000,
+    "creditPaise": 0
+   },
+   {
+    "account": "5110",
+    "party": null,
+    "ledger": "5110",
+    "debitPaise": 1800000,
+    "creditPaise": 0
+   },
+   {
+    "account": "5110",
+    "party": null,
+    "ledger": "5110",
+    "debitPaise": 650000,
+    "creditPaise": 0
+   },
+   {
+    "account": "2300",
+    "party": null,
+    "ledger": "2300",
+    "debitPaise": 0,
+    "creditPaise": 21350000
+   },
+   {
+    "account": "2310",
+    "party": null,
+    "ledger": "2310",
+    "debitPaise": 0,
+    "creditPaise": 3600000
+   },
+   {
+    "account": "2320",
+    "party": null,
+    "ledger": "2320",
+    "debitPaise": 0,
+    "creditPaise": 800000
+   },
+   {
+    "account": "2330",
+    "party": null,
+    "ledger": "2330",
+    "debitPaise": 0,
+    "creditPaise": 200000
+   },
+   {
+    "account": "1200",
+    "party": "STF-007",
+    "ledger": "1200/STF-007",
+    "debitPaise": 0,
+    "creditPaise": 500000
+   }
+  ],
+  "T13c": [
+   {
+    "account": "2300",
+    "party": null,
+    "ledger": "2300",
+    "debitPaise": 21350000,
+    "creditPaise": 0
+   },
+   {
+    "account": "1030",
+    "party": "BA-HDFC",
+    "ledger": "1030/BA-HDFC",
+    "debitPaise": 0,
+    "creditPaise": 21350000
+   }
+  ],
+  "T14a": [
+   {
+    "account": "1030",
+    "party": "BA-HDFC",
+    "ledger": "1030/BA-HDFC",
+    "debitPaise": 21300000,
+    "creditPaise": 0
+   },
+   {
+    "account": "1010",
+    "party": null,
+    "ledger": "1010",
+    "debitPaise": 0,
+    "creditPaise": 21300000
+   }
+  ],
+  "T14b": [
+   {
+    "account": "1030",
+    "party": "BA-HDFC",
+    "ledger": "1030/BA-HDFC",
+    "debitPaise": 14823000,
+    "creditPaise": 0
+   },
+   {
+    "account": "5080",
+    "party": null,
+    "ledger": "5080",
+    "debitPaise": 177000,
+    "creditPaise": 0
+   },
+   {
+    "account": "1020",
+    "party": null,
+    "ledger": "1020",
+    "debitPaise": 0,
+    "creditPaise": 15000000
+   }
+  ],
+  "T15a": [
+   {
+    "account": "1030",
+    "party": "BA-HDFC",
+    "ledger": "1030/BA-HDFC",
+    "debitPaise": 15000000,
+    "creditPaise": 0
+   },
+   {
+    "account": "1000",
+    "party": null,
+    "ledger": "1000",
+    "debitPaise": 0,
+    "creditPaise": 15000000
+   }
+  ],
+  "T15b": [
+   {
+    "account": "5900",
+    "party": null,
+    "ledger": "5900",
+    "debitPaise": 20000,
+    "creditPaise": 0
+   },
+   {
+    "account": "1000",
+    "party": null,
+    "ledger": "1000",
+    "debitPaise": 0,
+    "creditPaise": 20000
+   }
+  ],
+  "T16": [
+   {
+    "account": "3000",
+    "party": null,
+    "ledger": "3000",
+    "debitPaise": 5000000,
+    "creditPaise": 0
+   },
+   {
+    "account": "1030",
+    "party": "BA-HDFC",
+    "ledger": "1030/BA-HDFC",
+    "debitPaise": 0,
+    "creditPaise": 5000000
+   }
+  ],
+  "T17": [
+   {
+    "account": "2400",
+    "party": null,
+    "ledger": "2400",
+    "debitPaise": 4000000,
+    "creditPaise": 0
+   },
+   {
+    "account": "5090",
+    "party": null,
+    "ledger": "5090",
+    "debitPaise": 1500000,
+    "creditPaise": 0
+   },
+   {
+    "account": "1030",
+    "party": "BA-HDFC",
+    "ledger": "1030/BA-HDFC",
+    "debitPaise": 0,
+    "creditPaise": 5500000
+   }
+  ],
+  "T18": [
+   {
+    "account": "5080",
+    "party": null,
+    "ledger": "5080",
+    "debitPaise": 59000,
+    "creditPaise": 0
+   },
+   {
+    "account": "1030",
+    "party": "BA-HDFC",
+    "ledger": "1030/BA-HDFC",
+    "debitPaise": 0,
+    "creditPaise": 59000
+   }
+  ],
+  "T19": [
+   {
+    "account": "1030",
+    "party": "BA-HDFC",
+    "ledger": "1030/BA-HDFC",
+    "debitPaise": 1736000,
+    "creditPaise": 0
+   },
+   {
+    "account": "5070",
+    "party": null,
+    "ledger": "5070",
+    "debitPaise": 354000,
+    "creditPaise": 0
+   },
+   {
+    "account": "1340",
+    "party": null,
+    "ledger": "1340",
+    "debitPaise": 10000,
+    "creditPaise": 0
+   },
+   {
+    "account": "1115",
+    "party": "CHN-GOIBIBO",
+    "ledger": "1115/CHN-GOIBIBO",
+    "debitPaise": 0,
+    "creditPaise": 2100000
+   }
+  ]
+ },
+ "driven": [
+  "T1",
+  "T2",
+  "T3",
+  "T5a",
+  "T5b",
+  "T5c",
+  "T7a",
+  "T8",
+  "T9",
+  "T10",
+  "T12",
+  "T15a",
+  "T15b",
+  "T13a",
+  "T13b",
+  "T13c"
+ ],
+ "notDriven": {
+  "t16": [
+   "T16"
+  ],
+  "acc2": [
+   "T4",
+   "T6",
+   "T7b",
+   "T11",
+   "T14a",
+   "T14b",
+   "T17",
+   "T18",
+   "T19"
+  ]
+ },
+ "events": [
+  {
+   "step": "T1",
+   "date": "2026-04-04",
+   "type": "ChargePosted",
+   "payload": {
+    "folioId": 1,
+    "chargeId": 101,
+    "kind": "room",
+    "serviceDate": "2026-04-04",
+    "amountPaise": 41000000,
+    "taxPaise": 2050000
+   }
+  },
+  {
+   "step": "T8",
+   "date": "2026-04-05",
+   "type": "ExpensePosted",
+   "payload": {
+    "expenseId": 501,
+    "businessDate": "2026-04-05",
+    "category": "Supplies",
+    "funding": "Vendor credit",
+    "amountPaise": 5900000,
+    "vendor": "Morning Supplies",
+    "reversalOf": null,
+    "gstPaise": 900000,
+    "itc": "disallowed"
+   }
+  },
+  {
+   "step": "T5a",
+   "date": "2026-04-06",
+   "type": "ReceiptRecorded",
+   "payload": {
+    "folioId": 1,
+    "receiptId": 301,
+    "kind": "payment",
+    "tender": "Advance adjusted",
+    "amountPaise": 1000000,
+    "businessDate": "2026-04-06"
+   }
+  },
+  {
+   "step": "T5b",
+   "date": "2026-04-06",
+   "type": "ReceiptRecorded",
+   "payload": {
+    "folioId": 1,
+    "receiptId": 302,
+    "kind": "company-credit",
+    "tender": "Company credit",
+    "amountPaise": 6300000,
+    "businessDate": "2026-04-06"
+   }
+  },
+  {
+   "step": "T13a",
+   "date": "2026-04-08",
+   "type": "AdvanceGiven",
+   "payload": {
+    "advanceId": 601,
+    "staffId": 7,
+    "amountPaise": 500000,
+    "installmentPaise": 500000,
+    "date": "2026-04-08",
+    "funding": "Cash"
+   }
+  },
+  {
+   "step": "T2",
+   "date": "2026-04-09",
+   "type": "ChargePosted",
+   "payload": {
+    "folioId": 1,
+    "chargeId": 102,
+    "kind": "service",
+    "serviceDate": "2026-04-09",
+    "amountPaise": 10000000,
+    "taxPaise": 500000
+   }
+  },
+  {
+   "step": "T7a",
+   "date": "2026-04-10",
+   "type": "CompanyPaymentRecorded",
+   "payload": {
+    "companyId": 7,
+    "paymentId": 401,
+    "businessDate": "2026-04-10",
+    "tender": "Bank transfer",
+    "amountPaise": 4000000,
+    "reference": "NEFT-DEMO-0410",
+    "company": "Deccan Agro Ltd"
+   }
+  },
+  {
+   "step": "T5c",
+   "date": "2026-04-11",
+   "type": "ReceiptRecorded",
+   "payload": {
+    "folioId": 1,
+    "receiptId": 303,
+    "kind": "payment",
+    "tender": "Cash",
+    "amountPaise": 15200000,
+    "businessDate": "2026-04-11"
+   }
+  },
+  {
+   "step": "T5c",
+   "date": "2026-04-11",
+   "type": "ReceiptRecorded",
+   "payload": {
+    "folioId": 1,
+    "receiptId": 304,
+    "kind": "payment",
+    "tender": "UPI",
+    "amountPaise": 15000000,
+    "businessDate": "2026-04-11"
+   }
+  },
+  {
+   "step": "T5c",
+   "date": "2026-04-11",
+   "type": "ReceiptRecorded",
+   "payload": {
+    "folioId": 1,
+    "receiptId": 305,
+    "kind": "payment",
+    "tender": "Card",
+    "amountPaise": 15000000,
+    "businessDate": "2026-04-11"
+   }
+  },
+  {
+   "step": "T1",
+   "date": "2026-04-11",
+   "type": "ChargePosted",
+   "payload": {
+    "folioId": 1,
+    "chargeId": 103,
+    "kind": "discount",
+    "serviceDate": "2026-04-11",
+    "amountPaise": -1000000,
+    "taxPaise": -50000
+   }
+  },
+  {
+   "step": "T3",
+   "date": "2026-04-12",
+   "type": "PosBillSettled",
+   "payload": {
+    "billId": 201,
+    "kind": "sale",
+    "businessDate": "2026-04-12",
+    "outlet": "restaurant",
+    "tender": "Cash",
+    "totalPaise": 3150000,
+    "netPaise": 3000000,
+    "cgstPaise": 75000,
+    "sgstPaise": 75000,
+    "reference": "Outlet cash",
+    "mode": "outlet"
+   }
+  },
+  {
+   "step": "T9",
+   "date": "2026-04-12",
+   "type": "ExpensePosted",
+   "payload": {
+    "expenseId": 502,
+    "businessDate": "2026-04-12",
+    "category": "Laundry",
+    "funding": "Vendor credit",
+    "amountPaise": 4200000,
+    "vendor": "Kaveri Textiles",
+    "reversalOf": null,
+    "gstPaise": 200000,
+    "itc": "disallowed"
+   }
+  },
+  {
+   "step": "T3",
+   "date": "2026-04-13",
+   "type": "PosBillSettled",
+   "payload": {
+    "billId": 202,
+    "kind": "sale",
+    "businessDate": "2026-04-13",
+    "outlet": "restaurant",
+    "tender": "UPI",
+    "totalPaise": 3150000,
+    "netPaise": 3000000,
+    "cgstPaise": 75000,
+    "sgstPaise": 75000,
+    "reference": "DEMO-UPI",
+    "mode": "outlet"
+   }
+  },
+  {
+   "step": "T12",
+   "date": "2026-04-14",
+   "type": "ExpensePosted",
+   "payload": {
+    "expenseId": 504,
+    "businessDate": "2026-04-14",
+    "category": "Petty cash",
+    "funding": "Cash",
+    "amountPaise": 800000,
+    "vendor": "",
+    "reversalOf": null
+   }
+  },
+  {
+   "step": "T10",
+   "date": "2026-04-15",
+   "type": "ExpensePosted",
+   "payload": {
+    "expenseId": 503,
+    "businessDate": "2026-04-15",
+    "category": "Utilities",
+    "funding": "Bank transfer",
+    "amountPaise": 4500000,
+    "vendor": "State Electricity Board (fictional)",
+    "reversalOf": null
+   }
+  },
+  {
+   "step": "T15a",
+   "date": "2026-04-25",
+   "type": "CashBanked",
+   "payload": {
+    "transferId": 801,
+    "tillId": 1,
+    "shiftId": 1,
+    "businessDate": "2026-04-25",
+    "amountPaise": 15000000,
+    "bank": "HDFC",
+    "slipNo": "SLIP-20260425"
+   }
+  },
+  {
+   "step": "T15b",
+   "date": "2026-04-26",
+   "type": "ShiftDifferenceDecided",
+   "payload": {
+    "shiftId": 2,
+    "approvalId": 901,
+    "status": "Approved",
+    "businessDate": "2026-04-26",
+    "expectedPaise": 5000000,
+    "countedPaise": 4980000
+   }
+  },
+  {
+   "step": "T13b",
+   "date": "2026-04-30",
+   "type": "PayrollPosted",
+   "payload": {
+    "payRunId": 701,
+    "period": "2026-04",
+    "businessDate": "2026-04-30",
+    "grossPaise": 24000000,
+    "employerPfPaise": 1800000,
+    "employerEsicPaise": 650000,
+    "employeePfPaise": 1800000,
+    "employeeEsicPaise": 150000,
+    "professionalTaxPaise": 200000,
+    "advanceRecoveryPaise": 500000,
+    "otherDeductionsPaise": 0,
+    "netPayablePaise": 21350000,
+    "lockSeq": 1
+   }
+  },
+  {
+   "step": "T13c",
+   "date": "2026-04-30",
+   "type": "PayrollPaid",
+   "payload": {
+    "payRunId": 701,
+    "businessDate": "2026-04-30",
+    "funding": "Bank transfer",
+    "amountPaise": 21350000,
+    "reference": "NEFT-DEMO-PAY",
+    "lockSeq": 1
+   }
+  }
+ ],
+ "expected": {
+  "closing": {
+   "control": {
+    "1000": 4030000,
+    "1010": 18150000,
+    "1020": 15000000,
+    "1030": 23150000,
+    "1110": 6300000,
+    "1500": 600000000,
+    "1510": 80000000,
+    "1520": 50000000,
+    "1530": 8000000,
+    "2110": -1400000,
+    "2120": -1400000,
+    "2200": -12600000,
+    "2310": -3600000,
+    "2320": -800000,
+    "2330": -200000,
+    "2400": -200000000,
+    "3100": -570500000,
+    "4000": -41000000,
+    "4200": -16000000,
+    "4900": 1000000,
+    "5000": 5900000,
+    "5010": 4200000,
+    "5030": 4500000,
+    "5040": 800000,
+    "5100": 24000000,
+    "5110": 2450000,
+    "5900": 20000
+   },
+   "party": {
+    "1030/BA-HDFC": 23150000,
+    "1110/CMP-0007": 6300000,
+    "2200/EV-MORNING": -8400000,
+    "2200/EV-KAVERI": -4200000
+   }
+  },
+  "flow": {
+   "control": {
+    "1000": 2030000,
+    "1010": 18150000,
+    "1020": 15000000,
+    "1030": -6850000,
+    "1110": 2300000,
+    "2000": 1000000,
+    "2110": -1400000,
+    "2120": -1400000,
+    "2200": -10100000,
+    "2310": -3600000,
+    "2320": -800000,
+    "2330": -200000,
+    "4000": -41000000,
+    "4200": -16000000,
+    "4900": 1000000,
+    "5000": 5900000,
+    "5010": 4200000,
+    "5030": 4500000,
+    "5040": 800000,
+    "5100": 24000000,
+    "5110": 2450000,
+    "5900": 20000
+   },
+   "party": {
+    "1110/CMP-0007": 2300000,
+    "1030/BA-HDFC": -6850000,
+    "2200/EV-MORNING": -5900000,
+    "2200/EV-KAVERI": -4200000
+   }
+  },
+  "briefSubset": {
+   "control": {
+    "1000": 4030000,
+    "1010": 18150000,
+    "1020": 15000000,
+    "1030": 18150000,
+    "1110": 6300000,
+    "1500": 600000000,
+    "1510": 80000000,
+    "1520": 50000000,
+    "1530": 8000000,
+    "2110": -1400000,
+    "2120": -1400000,
+    "2200": -12600000,
+    "2310": -3600000,
+    "2320": -800000,
+    "2330": -200000,
+    "2400": -200000000,
+    "3000": 5000000,
+    "3100": -570500000,
+    "4000": -41000000,
+    "4200": -16000000,
+    "4900": 1000000,
+    "5000": 5900000,
+    "5010": 4200000,
+    "5030": 4500000,
+    "5040": 800000,
+    "5100": 24000000,
+    "5110": 2450000,
+    "5900": 20000
+   },
+   "party": {
+    "1030/BA-HDFC": 18150000,
+    "1110/CMP-0007": 6300000,
+    "2200/EV-MORNING": -8400000,
+    "2200/EV-KAVERI": -4200000
+   }
+  },
+  "fullMonthControl": {
+   "1000": 4030000,
+   "1030": 50150000,
+   "1340": 10000,
+   "1360": 600000,
+   "1500": 600000000,
+   "1510": 80000000,
+   "1520": 50000000,
+   "1530": 8000000,
+   "2000": -3150000,
+   "2110": -1450000,
+   "2120": -1450000,
+   "2200": -6600000,
+   "2310": -3600000,
+   "2320": -800000,
+   "2330": -200000,
+   "2400": -196000000,
+   "3000": 5000000,
+   "3100": -570500000,
+   "4000": -43000000,
+   "4200": -16000000,
+   "4900": 1000000,
+   "5000": 5900000,
+   "5010": 4200000,
+   "5030": 4500000,
+   "5040": 800000,
+   "5070": 354000,
+   "5080": 236000,
+   "5090": 1500000,
+   "5100": 24000000,
+   "5110": 2450000,
+   "5900": 20000
+  },
+  "rulebookTrialBalance83": {
+   "1000": 4030000,
+   "1030": 50150000,
+   "1340": 10000,
+   "1360": 600000,
+   "1500": 600000000,
+   "1510": 80000000,
+   "1520": 50000000,
+   "1530": 8000000,
+   "2000": -3150000,
+   "2110": -1450000,
+   "2120": -1450000,
+   "2200": -6600000,
+   "2310": -3600000,
+   "2320": -800000,
+   "2330": -200000,
+   "2400": -196000000,
+   "3000": 5000000,
+   "3100": -570500000,
+   "4000": -43000000,
+   "4200": -16000000,
+   "4900": 1000000,
+   "5000": 5900000,
+   "5010": 4200000,
+   "5030": 4500000,
+   "5040": 800000,
+   "5070": 354000,
+   "5080": 236000,
+   "5090": 1500000,
+   "5100": 24000000,
+   "5110": 2450000,
+   "5900": 20000
+  }
+ }
+}

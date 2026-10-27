@@ -3,71 +3,18 @@
 // drives the transactions ACC-1 can book through real commands; this file holds the expectations.
 //
 // TWO KINDS OF TESTS
-//   • self-checks of the encoded rulebook (opening, 27 entries of §8.2, the §8.3 trial balance) — they pass on their own;
+//   • self-checks of the encoded rulebook (opening, 26 entries of §8.2, the §8.3 trial balance) — they pass on their own;
 //   • engine tests against the posting contract (02 Planning/agents/ACC1-POSTING-CONTRACT.md) — they need the other ACC-1 lanes. A test whose
 //     selector or command is not exported yet FAILS with "waits for lane <x>" (see lane() below); after `git merge claude/acc1` they run for real.
 //
 // WHAT IS DRIVEN (and what is not): T1 T2 T3 T5a T5b T5c T7a T8 T9 T10 T12 T15a T15b. Not drivable in ACC-1 (see ACC1-TESTS-DONE.md):
 // T13a–c (the prototype books no payroll or salary-advance voucher), T16 (an Owner drawing is taken from the cash drawer; a drawing from the
 // bank is rulebook B6 "new"). Left out by the brief (need ACC-2): T4, T6, T7b, T11, T14, T17, T18, T19.
+import {R,OPENING,STEP,ALL,DRIVEN,SERVER,BRIEF,ACC2,RULEBOOK_TB_83,control,model,sum} from './_rulebook-month.mjs';
 export function register({test,M,assert}){
-  const R=r=>Math.round(r*100);
   const T='[ACC1-RULEBOOK] ';
   const FROM='2026-04-01',TO='2026-04-30';
-  // ───────────────────────── the rulebook, encoded ─────────────────────────
-  // Account: ledger code, or `code/Party` with the party named as in the rulebook (resolved to ids by partyId()).
-  const e=(a,dr,cr=0)=>({a,dr:R(dr),cr:R(cr)});
-  const OPENING=[e('1000',20000),e('1030/HDFC',300000),e('1500',6000000),e('1510',800000),e('1520',500000),e('1530',80000),e('1110/Deccan',40000),
-    e('2200/Morning',0,25000),e('2000',0,10000),e('2400',0,2000000),e('3100',0,5705000)];
-  const STEP={
-    T1:[e('1100',420000),e('4900',10000),e('4000',0,410000),e('2110',0,10000),e('2120',0,10000)],
-    T2:[e('1100',105000),e('4200',0,100000),e('2110',0,2500),e('2120',0,2500)],
-    T3:[e('1000',31500),e('1010',31500),e('4200',0,60000),e('2110',0,1500),e('2120',0,1500)],
-    T4:[e('1115/Goibibo',21000),e('4000',0,20000),e('2110',0,500),e('2120',0,500)],
-    T5a:[e('2000',10000),e('1100',0,10000)],
-    T5b:[e('1110/Deccan',63000),e('1100',0,63000)],
-    T5c:[e('1000',152000),e('1010',150000),e('1020',150000),e('1100',0,452000)],
-    T6:[e('1010',31500),e('2000',0,31500)],
-    T7a:[e('1030/HDFC',40000),e('1110/Deccan',0,40000)],
-    T7b:[e('1030/HDFC',57000),e('1360',6000),e('1110/Deccan',0,63000)],
-    T8:[e('5000',59000),e('2200/Morning',0,59000)],
-    T9:[e('5010',42000),e('2200/Kaveri',0,42000)],
-    T10:[e('5030',45000),e('1030/HDFC',0,45000)],
-    T11:[e('2200/Morning',60000),e('1030/HDFC',0,60000)],
-    T12:[e('5040',8000),e('1000',0,8000)],
-    T13a:[e('1200/Staff-07',5000),e('1000',0,5000)],
-    T13b:[e('5100',240000),e('5110',18000),e('5110',6500),e('2300',0,213500),e('2310',0,36000),e('2320',0,8000),e('2330',0,2000),e('1200/Staff-07',0,5000)],
-    T13c:[e('2300',213500),e('1030/HDFC',0,213500)],
-    T14a:[e('1030/HDFC',213000),e('1010',0,213000)],
-    T14b:[e('1030/HDFC',148230),e('5080',1770),e('1020',0,150000)],
-    T15a:[e('1030/HDFC',150000),e('1000',0,150000)],
-    T15b:[e('5900',200),e('1000',0,200)],
-    T16:[e('3000',50000),e('1030/HDFC',0,50000)],
-    T17:[e('2400',40000),e('5090',15000),e('1030/HDFC',0,55000)],
-    T18:[e('5080',590),e('1030/HDFC',0,590)],
-    T19:[e('1030/HDFC',17360),e('5070',3540),e('1340',100),e('1115/Goibibo',0,21000)],
-  };
-  /** Steps ACC-1 drives and books today. */
-  const DRIVEN=['T1','T2','T3','T5a','T5b','T5c','T7a','T8','T9','T10','T12','T15a','T15b'];
-  /** The brief's subset: DRIVEN plus the payroll and drawing steps that wait for later lanes (the target when they can be driven). */
-  const BRIEF=[...DRIVEN,'T13a','T13b','T13c','T16'];
-  const ALL=Object.keys(STEP);
-  /** §8.3, literally (control-level, rupees; Dr positive, Cr negative) — the independent check of the encoding above. */
-  const RULEBOOK_TB_83={'1000':40300,'1030':501500,'1360':6000,'1340':100,'1500':6000000,'1510':800000,'1520':500000,'1530':80000,'3000':50000,'4900':10000,
-    '5000':59000,'5010':42000,'5030':45000,'5040':8000,'5100':240000,'5110':24500,'5080':2360,'5900':200,'5090':15000,'5070':3540,
-    '2200':-66000,'2000':-31500,'2110':-14500,'2120':-14500,'2310':-36000,'2320':-8000,'2330':-2000,'2400':-1960000,'3100':-5705000,'4000':-430000,'4200':-160000};
-
-  const control=a=>a.split('/')[0];
-  /** Balances (paise, Dr positive) of a list of {a,dr,cr} by full account and by control. */
-  function model(steps,withOpening=true){
-    const full={},ctl={};
-    for(const x of [...(withOpening?OPENING:[]),...steps.flatMap(k=>STEP[k])]){
-      full[x.a]=(full[x.a]??0)+x.dr-x.cr;ctl[control(x.a)]=(ctl[control(x.a)]??0)+x.dr-x.cr;
-    }
-    const strip=o=>Object.fromEntries(Object.entries(o).filter(([,v])=>v!==0));
-    return {full:strip(full),ctl:strip(ctl)};
-  }
-  const sum=(xs,k)=>xs.reduce((a,x)=>a+x[k],0);
+  // The rulebook as data (opening, T1…T19, §8.3) lives in tests/_rulebook-month.mjs, shared with the server's Golden/rulebook-month.json.
   const inr=p=>(p/100).toLocaleString('en-IN');
 
   // ───────────────────────── self-checks (no engine needed) ─────────────────────────
@@ -86,8 +33,10 @@ export function register({test,M,assert}){
     for(const p of ['1110/Deccan','1115/Goibibo','1200/Staff-07'])assert.equal(m.full[p]??0,0,p);
   });
   test(T+'the driven subset and the brief subset: balanced, and they differ by exactly the payroll and drawing steps',()=>{
-    for(const set of [DRIVEN,BRIEF]){const m=model(set);assert.equal(Object.values(m.ctl).reduce((a,v)=>a+v,0),0);}
-    const d=model(DRIVEN).ctl,b=model(BRIEF).ctl;
+    for(const set of [DRIVEN,SERVER,BRIEF]){const m=model(set);assert.equal(Object.values(m.ctl).reduce((a,v)=>a+v,0),0);}
+    assert.deepEqual([...BRIEF,...ACC2].sort(),[...ALL].sort(),'ACC-2 adds exactly T4 T6 T7b T11 T14a/b T17 T18 T19');
+    const d=model(DRIVEN).ctl,b=model(BRIEF).ctl,sv=model(SERVER).ctl;
+    assert.equal(sv['1030'],R(231500));assert.equal(sv['3000']??0,0);
     // 1000 −5,000 (T13a), 1030 −2,13,500 −50,000, 1200 nil after T13b, 2300 nil, 5100 + 5110, 2310 / 2320 / 2330, 3000
     assert.equal(b['1000']-d['1000'],-R(5000));assert.equal(b['1030']-d['1030'],-R(263500));assert.equal(b['3000'],R(50000));assert.equal(b['5100'],R(240000));assert.equal(b['5110'],R(24500));
     assert.equal(d['1000'],R(45300));assert.equal(d['1030'],R(445000));assert.equal(b['1000'],R(40300));assert.equal(b['1030'],R(181500));
