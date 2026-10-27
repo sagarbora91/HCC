@@ -24,8 +24,21 @@ export function register({test,assert}){
     assert.ok(app.includes('const closeModal=()=>{if(dirty.current){setDiscardAsk(true);return;}discardSheet();};'));
     const pop=app.slice(app.indexOf('const onPop='),app.indexOf("window.addEventListener('popstate'"));
     assert.ok(pop.includes('if(dirty.current){')&&pop.includes('setDiscardAsk(true);return;}'),'popstate with a dirty sheet opens the dialog');
-    assert.ok(app.includes('if(discardAsk){setDiscardAsk(false);return;}'),'Android Back while the dialog is open = Keep editing');
-    assert.ok(app.includes('<DiscardAsk onKeep={()=>setDiscardAsk(false)} onDiscard={discardSheet}/>'));
+    assert.ok(app.includes('if(discardAsk){keepEditing();return;}'),'Android Back while the dialog is open = Keep editing');
+    assert.ok(app.includes('<DiscardAsk onKeep={keepEditing} onDiscard={discardSheet}/>'));
+  });
+  test('[V15-2] an inline master form (tablet / desktop detail pane) with unsaved edits holds Back and page navigation behind DiscardAsk',()=>{
+    const app=read('src/app/App.tsx');
+    assert.ok(app.includes('const setDirty=useCallback((v:boolean)=>{(modalRef.current?dirty:pageDirty).current=v;},[]);'),'setDirty lands on the sheet or the page');
+    assert.ok(app.includes("if(pageDirty.current&&!modalRef.current&&p!==page){pendingNav.current=()=>go(p,opts);setDiscardAsk(true);return;}"),'go() asks first');
+    const pop=app.slice(app.indexOf('const onPop='),app.indexOf("window.addEventListener('popstate'"));
+    assert.ok(pop.includes('if(pageDirty.current){')&&pop.includes("history.pushState({hcc:'page',page,idx:histIdx()+1},'')")&&pop.includes('pendingNav.current=()=>{try{history.back();}'),'Back re-pins the page and finishes only on Discard');
+    assert.ok(app.includes('const keepEditing=()=>{setDiscardAsk(false);pendingNav.current=null;};'));
+    assert.ok(app.includes('pageDirty.current=false;setModal(null);setError(\'\');const nav=pendingNav.current;pendingNav.current=null;nav?.();'),'Discard runs the held navigation');
+    const form=read('src/features/masters/MasterForm.tsx');
+    assert.ok(form.includes('setD(x=>({...x,[k]:v}));setDirty(true);'),'inline edits mark the page dirty (no longer only sheets)');
+    assert.ok(form.includes('useEffect(()=>sheet?undefined:()=>setDirty(false),[sheet,setDirty]);'),'the inline form clears the flag when it leaves');
+    assert.ok(form.includes('after:()=>{setDirty(false);onDone?.(row?.id);}'),'a save clears it');
   });
   test('[DISCARD] the master form and phone master sheets never call window.confirm / confirm()',()=>{
     const files=['src/features/masters/MasterForm.tsx',...walk('src/mobile/masters'),...walk('src/features/masters')].filter(f=>/\.tsx?$/.test(f));

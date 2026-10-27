@@ -32,6 +32,17 @@ export function register({test,assert}){
     const s=readFileSync('src/app/mobile/MobileShell.tsx','utf8');
     assert.ok(s.includes('isLargeText(usePrefs().prefs.textScale)'));assert.ok(s.includes("(large?' m-large':'')"));assert.ok(s.includes('tabLabel(t,large)'));
   });
+  test('[V15-3] long app-bar titles (14+ characters) wrap to two lines between words at every text size, the date line is dropped, DEMO pill icon-only up to 400 px',()=>{
+    assert.equal(T.LONG_TITLE_CHARS,14);
+    for(const t of ['Appearance & display','Master configuration','Approvals & audit','Guest services'])assert.ok(T.isLongTitle(t),t);
+    for(const t of ['Room board','Housekeeping','Modules','More',''])assert.ok(!T.isLongTitle(t),t);
+    const r=rule('.m-shell.m-longtitle .m-title');
+    assert.ok(!r.includes('font-size'),'keeps the 18 px title size');assert.ok(r.includes('white-space:normal'));assert.ok(r.includes('-webkit-line-clamp:2'));assert.ok(r.includes('overflow-wrap:break-word'));assert.ok(!r.includes('ellipsis'));
+    assert.ok(rule('.m-shell.m-longtitle .m-date').includes('display:none'));
+    assert.ok(css.includes('@media(max-width:400px){.m-shell .m-demo-pill{padding:0 9px}.m-shell .m-demo-text{display:none}}'));
+    const s=readFileSync('src/app/mobile/MobileShell.tsx','utf8');
+    assert.ok(s.includes("(isLongTitle(title)?' m-longtitle':'')"));assert.ok(s.includes('<span className="m-demo-text">DEMO</span>'));
+  });
   test('[LARGETEXT] z-largetext.css has no colour literals (tokens only)',()=>{
     assert.doesNotMatch(css,/#[0-9a-fA-F]{3,8}\b/);
   });

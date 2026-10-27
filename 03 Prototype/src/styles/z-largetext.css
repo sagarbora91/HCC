@@ -5,6 +5,12 @@
    set by MobileShell). No colours here. */
 :root{--tabbar:max(64px,calc(64px + (var(--hcc-text,1) - 1) * 60px))} /* toasts and docks sit outside .m-shell */
 .m-shell{--tabbar:max(64px,calc(64px + (var(--hcc-text,1) - 1) * 60px));--appbar:max(56px,calc(56px + (var(--hcc-text,1) - 1) * 60px))}
+/* V15-3 · a long title (14+ characters, class m-longtitle from MobileShell) gets the large-text treatment at every size: two lines
+   (2 x 18 x 1.2 = 43 px fits the 56 px bar), breaking between words only, and the business-date line is dropped (home still shows it).
+   In the demo build the DEMO pill beside the title is icon-only on phones up to 400 px (the 360 px minimum left the title ~80 px). */
+.m-shell.m-longtitle .m-title{white-space:normal;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow-wrap:break-word;line-height:1.2}
+.m-shell.m-longtitle .m-date{display:none}
+@media(max-width:400px){.m-shell .m-demo-pill{padding:0 9px}.m-shell .m-demo-text{display:none}}
 /* app bar: title may use two lines, the business-date line is dropped (the home page still shows it) */
 .m-shell.m-large .m-title{white-space:normal;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow-wrap:anywhere;line-height:1.2}
 .m-shell.m-large .m-date{display:none}

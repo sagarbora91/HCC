@@ -30,6 +30,17 @@ const R={};
   calls=fake({withColor:false});N.styleStatusBar('dark');await flush();R.old=calls;clear();
   // plugin failure never throws or rejects unhandled
   calls=fake({failColor:true});R.fail=(()=>{try{N.styleStatusBar('hc');return 'ok';}catch(e){return String(e);}})();await flush();clear();
+  // V15-1: rotation / resize paints the colours again, once per burst, through the real timer; unregister removes the listeners
+  const fakeWin=()=>{const ls={};return {ls,addEventListener:(t,fn)=>{(ls[t]??=[]).push(fn);},removeEventListener:(t,fn)=>{ls[t]=(ls[t]??[]).filter(f=>f!==fn);},setTimeout,clearTimeout,fire:t=>{for(const f of ls[t]??[])f();}};};
+  calls=fake();globalThis.document={documentElement:{getAttribute:()=>'dark'}};
+  let win=fakeWin();const off=N.listenStatusBarRestyle(5,win);
+  R.restyleListeners=Object.keys(win.ls).sort();
+  win.fire('resize');win.fire('resize');win.fire('orientationchange');
+  await new Promise(r=>setTimeout(r,30));
+  R.restyleCalls=calls.filter(c=>c[0]==='StatusBarColor');
+  off();R.restyleAfterOff=Object.values(win.ls).flat().length;win.fire('resize');await new Promise(r=>setTimeout(r,30));R.restyleCallsAfterOff=calls.filter(c=>c[0]==='StatusBarColor').length;
+  clear();
+  N.resetNativeCache();win=fakeWin();N.listenStatusBarRestyle(5,win)();R.restyleBrowser=Object.values(win.ls).flat().length;
 }
 export function register({test,assert}){
   test('[STATUSBAR] outside the APK styleStatusBar is a no-op',()=>{assert.equal(R.browser,'ok');});
@@ -48,6 +59,15 @@ export function register({test,assert}){
   test('[STATUSBAR] an APK without StatusBarColor skips that call; a failing plugin never throws',()=>{
     assert.equal(R.old.filter(c=>c[0]==='StatusBarColor').length,0);assert.ok(R.old.some(c=>c[1]==='setBackgroundColor'));
     assert.equal(R.fail,'ok');
+  });
+  test('[V15-1] inside the APK a resize / orientation burst repaints the theme colours once after the delay; unregister stops it; a browser gets no listener',()=>{
+    assert.deepEqual(R.restyleListeners,['orientationchange','resize']);
+    assert.deepEqual(R.restyleCalls.map(c=>[c[1],c[2].top]),[['setColors','#ae4155']],'three events inside the delay = one repaint, in the theme on screen');
+    assert.equal(R.restyleAfterOff,0);assert.equal(R.restyleCallsAfterOff,1);
+    assert.equal(R.restyleBrowser,0);
+    assert.equal(N.STATUS_BAR_RESTYLE_MS,150);
+    const app=readFileSync('src/app/App.tsx','utf8');
+    assert.ok(app.includes('const offRestyle=listenStatusBarRestyle();'),'App registers the repaint with the back-button listener');
   });
   test('[STATUSBAR] Java plugin: name, setColors, API 35 gate, draws the decor top padding, registered before super.onCreate',()=>{
     const j=read('StatusBarColorPlugin.java');assert.ok(j.length>0);

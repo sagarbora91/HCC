@@ -72,6 +72,18 @@ export function styleStatusBar(theme:'light'|'dark'|'hc'=currentTheme()){
   try{void sb.setOverlaysWebView?.({overlay:false});void sb.setBackgroundColor?.({color});void sb.setStyle?.({style:'DARK'});}catch{/* ignore */}
   try{if(nativePluginAvailable('StatusBarColor')){const bottom=surfaceColour();void Promise.resolve(nativePlugin('StatusBarColor')?.setColors?.(bottom?{top:color,bottom}:{top:color})).catch(()=>{});}}catch{/* ignore */}
 }
+type WinLike={addEventListener:(t:string,fn:()=>void)=>void;removeEventListener:(t:string,fn:()=>void)=>void;setTimeout:(fn:()=>void,ms:number)=>unknown;clearTimeout:(id:unknown)=>void};
+/** V15-1: on Android 15+ a rotation re-lays out the decor view and the StatusBarColor paint falls back to the manifest colour (maroon) while the
+ *  theme stays dark, so the APK paints the theme colours again a moment after every resize / orientation change (debounced: the inset padding
+ *  settles after the layout pass). Native only (a no-op in a browser). Returns the unregister function. */
+export const STATUS_BAR_RESTYLE_MS=150;
+export function listenStatusBarRestyle(delayMs=STATUS_BAR_RESTYLE_MS,win:WinLike|undefined=globalThis as unknown as WinLike):()=>void{
+  if(!isNative()||typeof win?.addEventListener!=='function')return ()=>{};
+  let timer:unknown;
+  const fire=()=>{if(timer!==undefined)win.clearTimeout(timer);timer=win.setTimeout(()=>{timer=undefined;styleStatusBar();},delayMs);};
+  win.addEventListener('resize',fire);win.addEventListener('orientationchange',fire);
+  return ()=>{if(timer!==undefined)win.clearTimeout(timer);timer=undefined;win.removeEventListener('resize',fire);win.removeEventListener('orientationchange',fire);};
+}
 
 // ── Files: CSV export and printing ──
 /** `HCC-<slug>-<yyyymmdd>.<ext>`; only letters, digits, dot, dash and underscore survive. */
