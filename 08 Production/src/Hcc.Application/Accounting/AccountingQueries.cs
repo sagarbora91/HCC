@@ -19,7 +19,7 @@ namespace Hcc.Application.Accounting;
 /// that had been exported is known to have changed; flagged dates are carried again by the next export.
 /// </summary>
 public sealed class AccountingQueries(IAccountingStore store, IAccessPolicy policy, IOpeningBalanceSource? opening = null, ICommandRunner? runner = null,
-    TimeProvider? clock = null)
+    TimeProvider? clock = null, IOpeningEntryStore? openingEntries = null)
 {
     public const int CsvMaxDays = 366;
 
@@ -78,8 +78,9 @@ public sealed class AccountingQueries(IAccountingStore store, IAccessPolicy poli
         var rows = VoucherBuilder.TrialBalance(vouchers)
             .Select(r => new TrialBalanceRowView(r.Account, r.Name, r.Group.ToString(), r.DebitPaise, r.CreditPaise, r.BalancePaise)).ToList();
         var (d, c) = VoucherBuilder.Totals(vouchers);
-        if (!cumulative || opening is null) return new TrialBalanceView(date, cumulative, d, c, d == c, rows);
-        var ob = await opening.GetAsync(caller.PropertyId, ct).ConfigureAwait(false);
+        if (!cumulative || (opening is null && openingEntries is null)) return new TrialBalanceView(date, cumulative, d, c, d == c, rows);
+        // ACC-1 contract §5: the approved hand-entered opening (acc.opening_entry) supersedes the imported one (OpeningBalanceQueries).
+        var ob = await OpeningBalanceQueries.EffectiveOpeningAsync(openingEntries, opening, caller.PropertyId, ct).ConfigureAwait(false);
         var open = OpeningRows(ob);
         var included = open.Count > 0 && (ob.AsOfDate is null || date >= ob.AsOfDate.Value);
         if (included)
