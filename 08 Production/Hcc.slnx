@@ -137,5 +137,8 @@
     <File Path="database/migrations/4200_acc_ledger_groups.sql" />
     <File Path="database/migrations/4201_acc_ledger.sql" />
     <File Path="database/migrations/4202_acc_chart_rbac_seed.sql" />
+    <File Path="database/migrations/4210_acc_source_entry_party.sql" />
+    <File Path="database/migrations/4211_acc_locked_entry_party.sql" />
+    <File Path="database/migrations/4215_exp_udhaar_kind_gst.sql" />
   </Folder>
 </Solution>

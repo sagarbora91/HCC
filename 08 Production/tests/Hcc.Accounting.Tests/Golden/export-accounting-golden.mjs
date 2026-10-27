@@ -11,7 +11,13 @@ import path from 'node:path';import {fileURLToPath} from 'node:url';
 import {CHECK,bundleMock,writeGolden} from '../../../tools/golden/golden-lib.mjs';
 const DIR=path.dirname(fileURLToPath(import.meta.url));
 const M=await bundleMock('mock-accounting');
-const {seed,execute,drawer,loadScenario,accLiveVouchers,accTrialBalance,accCsv,accTallyXml,accCashDifference,accExceptions,accMapping,lineTax,posSlice,expenseCounts,ACC_TALLY_DEMO_ID}=M;
+const {seed,execute,drawer,loadScenario,accLiveVouchers,accTrialBalance,accCsv,accTallyXml,accCashDifference,accExceptions,accMapping,lineTax,posSlice,expenseCounts,ACC_TALLY_DEMO_ID,
+  mnySettlesTo,accPartyFor}=M;
+// ACC-1 (acc1-parties, contract §3): the parties each source names, as the server's consumer resolves them (PartyContext): tender = the account
+// the method settles to, company = the stay's company account, vendor = the expense vendor's code. Absent = none named.
+const parties=(s,o)=>{const p={};const t=o.method?mnySettlesTo(s,o.method)?.code:undefined;if(t)p.tender=t;
+  const c=o.company?accPartyFor(s,'1110',{company:o.company}):undefined;if(c)p.company=c;
+  const v=o.vendor?accPartyFor(s,'2200',{vendor:o.vendor}):undefined;if(v)p.vendor=v;return p;};
 
 /** Raw source facts for a date in the prototype's derivation order (accLiveVouchers). */
 function sources(s,date){
@@ -20,16 +26,16 @@ function sources(s,date){
     out.push({kind:'line',id:`${b.id}/${l.id}`,sub:l.kind,amountPaise:l.amount,taxPaise:lineTax(l),narration:`${l.label} · ${b.guest} · room ${b.room}`});
   for(const b of s.bookings)for(const r of b.receipts.filter(r=>r.date===date&&r.amount!==0)){
     const label=r.kind==='payment'?'Payment received':r.kind==='deposit'?'Deposit received':r.kind==='refund'?'Payment refunded':r.kind==='deposit-return'?'Deposit returned':r.kind;
-    out.push({kind:'receipt',id:`${b.id}/${r.id}`,sub:r.kind,tender:r.method,amountPaise:r.amount,
+    out.push({kind:'receipt',id:`${b.id}/${r.id}`,sub:r.kind,tender:r.method,amountPaise:r.amount,parties:parties(s,{method:r.method,company:b.company?.account}),
       narration:r.kind==='company-credit'?`Company credit · ${r.reference} · ${b.guest}`:`${label} · ${r.method} · ${r.reference} · ${b.guest}`});}
   for(const r of posSlice(s).receipts.filter(r=>r.date===date&&r.amount!==0))
-    out.push({kind:'pos',id:r.id,sub:r.kind,tender:r.method,amountPaise:r.amount,netPaise:r.net,taxPaise:r.tax,
+    out.push({kind:'pos',id:r.id,sub:r.kind,tender:r.method,amountPaise:r.amount,netPaise:r.net,taxPaise:r.tax,parties:parties(s,{method:r.method}),
       narration:`${r.kind==='void'?'Outlet bill void':'Outlet bill'} · ${r.outlet} · ${r.method} · ${r.reference} · ${r.order}`});
   for(const e of s.expenses.filter(e=>e.date===date&&expenseCounts(e)&&e.amount!==0))
-    out.push({kind:'expense',id:e.id,sub:e.reversalOf?'reversal':'expense',category:e.category,funding:e.method,amountPaise:e.amount,
+    out.push({kind:'expense',id:e.id,sub:e.reversalOf?'reversal':'expense',category:e.category,funding:e.method,amountPaise:e.amount,parties:parties(s,{method:e.method,vendor:e.vendor}),
       narration:`${e.reversalOf?'Reversal of '+e.reversalOf+' · ':''}${e.vendor} · ${e.category} · ${e.method}`});
   const diff=accCashDifference(s,date);
-  if(diff)out.push({kind:'closing',id:`CLOSE/${date}/cash-difference`,sub:'cash-difference',amountPaise:diff,narration:`Cash ${diff>0?'over':'short'} accepted at shift close · ${date}`});
+  if(diff)out.push({kind:'closing',id:`CLOSE/${date}/cash-difference`,sub:'cash-difference',amountPaise:diff,parties:parties(s,{method:'Cash'}),narration:`Cash ${diff>0?'over':'short'} accepted at shift close · ${date}`});
   return out;
 }
 const voucher=v=>({no:v.no,date:v.date,type:v.type,narration:v.narration,sourceKind:v.source.kind,sourceId:v.source.id,sub:v.source.sub,

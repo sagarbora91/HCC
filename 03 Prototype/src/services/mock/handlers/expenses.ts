@@ -26,6 +26,8 @@ import {EXP_VOID_REASONS,EXP_MAX_PAISE,EXP_PHOTO_MAX_BYTES,EXP_DESC_MAX,EXP_UD_D
   expMonthLocked,expMonthLockedMessage,expMonthSummary,expMonthLockRefusal,expBudgetAlert,expBudgetCopyPlan,expRecPosted,expRecRef,expPettyDescription,
   expUdOut,expUdPayment,expUdMobile,expDueDay,expLedgerCsv,expMonthCsv,expItcOf,expItcRefusal,expCanSetMoney,EXP_OWNER_ONLY_BUDGETS,EXP_OWNER_ONLY_RECURRING,
   expMonthUnlockRefusal,type EXPState,type ExpRecTpl,type ExpEditLog} from '../../../domain/streams/expenses-scc';
+import {expUdGst,type ExpUdKind} from '../../../domain/streams/expenses-scc'; // ACC-1 (acc1-parties): Udhaar credit raised (contract §4)
+import {gstForFood,gstForRoomNight,gstForService} from '../../../domain/gst';
 
 const limited=(role:string)=>!closingUnlimitedRoles.includes(role);
 /** Coarse gate of edit / void: an expense user (the record decides the rest: own draft / pending, or a decider). */
@@ -334,16 +336,26 @@ export const handlers:Record<string,Handler>={
     s.expenses.push(e);
     return `${eid} · petty ${money(amount)} · ${e.description} · awaiting approval`+over;
   },
-  // SCC addReceivable (1564-1575): never posts to cash or income.
+  // SCC addReceivable (1564-1575): never posts to cash. ACC-1 (contract §4, rulebook A17, DEC-144): the credit IS a sale booked the day it is
+  // raised — `kind` (restaurant | room | other, the screen asks) and `gstBps` (the GST rate of what was sold; absent with a kind = the GST
+  // master's rate on the business date) are kept on the row; Accounting posts Dr 1120/<customer> · Cr revenue · Cr CGST · Cr SGST.
+  // Without `kind` (older screens) nothing extra is stored: the credit books as 'other' without GST, like the rows raised before ACC-1.
   EXP_UD_ADD:k=>{
     const {s,cmd,open,assert,id,uid}=k;need(k,rbacCanSubmitExpense,'expenses permission is required');open();
     const name=txt(cmd.name);assert(name,'Customer name is required');assert(name.length<=80,'Keep the name to 80 characters.');
     const amount=amountOk(k,cmd.amount,'Enter a valid amount');
     const due=txt(cmd.dueDate)||addDays(s.date,EXP_UD_DUE_DAYS);assert(/^\d{4}-\d{2}-\d{2}$/.test(due),'Choose a valid due date.');
     const note=txt(cmd.note);assert(note.length<=200,'Keep the note to 200 characters.');
-    const x=slice(k),r={id:id('UD'),name,mobile:expUdMobile(cmd.mobile),amount,date:s.date,dueDate:due,note,settlements:[],by:uid,at:s.clock};
+    const kind=cmd.kind===undefined||cmd.kind===null||cmd.kind===''?undefined:String(cmd.kind) as ExpUdKind;
+    assert(kind===undefined||['restaurant','room','other'].includes(kind),'Choose what was sold on credit: restaurant bill, room folio or other.');
+    let gstBps:number|undefined;
+    if(cmd.gstBps!==undefined&&cmd.gstBps!==null&&cmd.gstBps!==''){gstBps=Number(cmd.gstBps);assert(Number.isInteger(gstBps)&&gstBps>=0&&gstBps<=2800,'GST rate: 0 to 28 %.');}
+    else if(kind)gstBps=kind==='restaurant'?gstForFood(s,s.date).bps:kind==='room'?gstForRoomNight(s,s.date,amount).bps:gstForService(s,s.date).bps;
+    const x=slice(k),r={id:id('UD'),name,mobile:expUdMobile(cmd.mobile),amount,date:s.date,dueDate:due,note,settlements:[],by:uid,at:s.clock,
+      ...(kind?{kind}:{}),...(gstBps!==undefined&&(kind||gstBps)?{gstBps}:{})};
     x.udhaar=[...(x.udhaar??[]),r];
-    return `${r.id} · credit ${name} ${money(amount)} · due ${due}`;
+    const g=expUdGst(r);
+    return `${r.id} · credit ${name} ${money(amount)} · due ${due}`+(kind?` · ${kind}${g.tax?` · GST ${money(g.tax)} in it`:''} · sale booked (Udhaar receivables)`:'');
   },
   // SCC payReceivable (1576-1591): more than outstanding + ₹0.50 is capped to the outstanding. DEC-130: the payment is a DESK RECEIPT — a
   // front-desk payment method; cash goes into the open shift's drawer under the same rules as other drawer cash (the payments permission,

@@ -37,7 +37,7 @@ public sealed class GoldenAccountingTests
         foreach (var s in day.GetProperty("sources").EnumerateArray())
         {
             var (id, n) = (S(s, "id"), S(s, "narration"));
-            list.Add(S(s, "kind") switch
+            list.Add(SourceRules.WithParties(S(s, "kind") switch
             {
                 "line" => Line(s, id, date, n),
                 "receipt" => SourceRules.FolioReceipt(id, S(s, "sub"), S(s, "tender"), date, L(s, "amountPaise"), n),
@@ -45,10 +45,18 @@ public sealed class GoldenAccountingTests
                 "expense" => SourceRules.Expense(id, S(s, "sub") == "reversal", S(s, "category"), S(s, "funding"), date, L(s, "amountPaise"), n),
                 "closing" => SourceRules.CashDifference(id, date, L(s, "amountPaise"), n),
                 var k => throw new InvalidOperationException("Unknown source kind " + k),
-            });
+            }, Parties(s)));
         }
 
         return list;
+    }
+
+    /// <summary>ACC-1 (contract §3): the parties the prototype source names (tender's settles-to account, company, vendor), as the consumer resolves them.</summary>
+    private static PartyContext? Parties(JsonElement s)
+    {
+        if (!s.TryGetProperty("parties", out var p)) return null;
+        string? P(string k) => p.TryGetProperty(k, out var v) ? v.GetString() : null;
+        return new PartyContext(Tender: P("tender"), Company: P("company"), Vendor: P("vendor"));
     }
 
     private static AccountingSource Line(JsonElement s, string id, DateOnly date, string n)
@@ -119,7 +127,7 @@ public sealed class GoldenAccountingTests
         var d24 = Build(Day("base-24oct"));
         Assert.Equal(10, d24.Count(v => v.Type == VoucherType.Receipt));
         // Net receipts ₹21,500 = Overview "collections" (spec §7): tender debits of the payment receipts.
-        Assert.Equal(2_150_000, d24.Where(v => v.SourceKind == "receipt").Sum(v => v.Entries.Where(e => e.Account is "1000" or "1010" or "1020" or "1030").Sum(e => e.DebitPaise)));
+        Assert.Equal(2_150_000, d24.Where(v => v.SourceKind == "receipt").Sum(v => v.Entries.Where(e => PartyLedgers.ControlOf(e.Account) is "1000" or "1010" or "1020" or "1030").Sum(e => e.DebitPaise)));
         var d23 = Build(Day("base-23oct"));
         Assert.Equal(8, d23.Count);
         var tb = VoucherBuilder.TrialBalance(d23).ToDictionary(r => r.Account);
@@ -139,10 +147,10 @@ public sealed class GoldenAccountingTests
             flow.Single(v => v.Sub == "discount").Entries.Select(e => (e.Account, e.DebitPaise, e.CreditPaise)));
         var refund = flow.Single(v => v.Sub == "refund");
         Assert.Equal(VoucherType.Payment, refund.Type);
-        Assert.Equal([("1100", 5000L, 0L), ("1000", 0L, 5000L)], refund.Entries.Select(e => (e.Account, e.DebitPaise, e.CreditPaise)));
-        Assert.Equal([("5900", 5000L, 0L), ("1000", 0L, 5000L)],
+        Assert.Equal([("1100", 5000L, 0L), ("1000/TILL", 0L, 5000L)], refund.Entries.Select(e => (e.Account, e.DebitPaise, e.CreditPaise)));
+        Assert.Equal([("5900", 5000L, 0L), ("1000/TILL", 0L, 5000L)],
             Build(Day("cash-short")).Single(v => v.SourceKind == "closing").Entries.Select(e => (e.Account, e.DebitPaise, e.CreditPaise)));
-        Assert.Equal([("5010", 0L, 180000L), ("1000", 180000L, 0L)],
+        Assert.Equal([("5010", 0L, 180000L), ("1000/TILL", 180000L, 0L)],
             Build(Day("expense-reversal")).Single(v => v.Sub == "reversal").Entries.Select(e => (e.Account, e.DebitPaise, e.CreditPaise)));
         var gas = Build(Day("acc-unmapped")).Single(v => v.SourceKey == "EXP-ACC-1");
         Assert.Equal("9999", gas.Entries[0].Account);

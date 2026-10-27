@@ -412,6 +412,9 @@
      "sub": "payment",
      "tender": "Cash",
      "amountPaise": 200000,
+     "parties": {
+      "tender": "TILL"
+     },
      "narration": "Payment received · Cash · DEMO-100 · Ananya Rao"
     },
     {
@@ -420,6 +423,9 @@
      "sub": "payment",
      "tender": "UPI",
      "amountPaise": 200000,
+     "parties": {
+      "tender": "BANK-1"
+     },
      "narration": "Payment received · UPI · DEMO-101 · Vikram Shah"
     },
     {
@@ -428,6 +434,9 @@
      "sub": "payment",
      "tender": "UPI",
      "amountPaise": 300000,
+     "parties": {
+      "tender": "BANK-1"
+     },
      "narration": "Payment received · UPI · DEMO-102 · Riya Mehta"
     },
     {
@@ -436,6 +445,9 @@
      "sub": "payment",
      "tender": "Cash",
      "amountPaise": 200000,
+     "parties": {
+      "tender": "TILL"
+     },
      "narration": "Payment received · Cash · DEMO-103 · Arjun Kapoor"
     },
     {
@@ -444,6 +456,9 @@
      "sub": "payment",
      "tender": "UPI",
      "amountPaise": 200000,
+     "parties": {
+      "tender": "BANK-1"
+     },
      "narration": "Payment received · UPI · DEMO-104 · Nisha Desai"
     },
     {
@@ -452,6 +467,9 @@
      "sub": "payment",
      "tender": "UPI",
      "amountPaise": 450000,
+     "parties": {
+      "tender": "BANK-1"
+     },
      "narration": "Payment received · UPI · DEMO-105 · Kabir Sen"
     },
     {
@@ -460,6 +478,9 @@
      "sub": "payment",
      "tender": "Cash",
      "amountPaise": 200000,
+     "parties": {
+      "tender": "TILL"
+     },
      "narration": "Payment received · Cash · DEMO-106 · Tara Iyer"
     },
     {
@@ -468,6 +489,9 @@
      "sub": "payment",
      "tender": "UPI",
      "amountPaise": 200000,
+     "parties": {
+      "tender": "BANK-1"
+     },
      "narration": "Payment received · UPI · DEMO-107 · Dev Malhotra"
     },
     {
@@ -476,6 +500,9 @@
      "sub": "payment",
      "tender": "UPI",
      "amountPaise": 100000,
+     "parties": {
+      "tender": "BANK-1"
+     },
      "narration": "Payment received · UPI · DEMO-108 · Ishaan Bose"
     },
     {
@@ -484,6 +511,9 @@
      "sub": "payment",
      "tender": "Cash",
      "amountPaise": 100000,
+     "parties": {
+      "tender": "TILL"
+     },
      "narration": "Payment received · Cash · DEMO-109 · Aditi Nair"
     },
     {
@@ -494,6 +524,9 @@
      "amountPaise": 52500,
      "netPaise": 50000,
      "taxPaise": 2500,
+     "parties": {
+      "tender": "TILL"
+     },
      "narration": "Outlet bill · restaurant · Cash · Outlet cash · POS-F01"
     },
     {
@@ -504,6 +537,9 @@
      "amountPaise": 71400,
      "netPaise": 68000,
      "taxPaise": 3400,
+     "parties": {
+      "tender": "BANK-1"
+     },
      "narration": "Outlet bill · restaurant · UPI · DEMO-UPI-POS-7731 · POS-F02"
     },
     {
@@ -513,6 +549,10 @@
      "category": "Laundry",
      "funding": "Cash",
      "amountPaise": 180000,
+     "parties": {
+      "tender": "TILL",
+      "vendor": "V-FRESH-LINEN-SERVIC"
+     },
      "narration": "Fresh Linen Services · Laundry · Cash"
     }
    ],
@@ -527,7 +567,7 @@
      "sub": "sale",
      "entries": [
       {
-       "account": "1000",
+       "account": "1000/TILL",
        "debitPaise": 52500,
        "creditPaise": 0
       },
@@ -591,7 +631,7 @@
      "sub": "payment",
      "entries": [
       {
-       "account": "1000",
+       "account": "1000/TILL",
        "debitPaise": 200000,
        "creditPaise": 0
       },
@@ -657,7 +697,7 @@
      "sub": "payment",
      "entries": [
       {
-       "account": "1000",
+       "account": "1000/TILL",
        "debitPaise": 200000,
        "creditPaise": 0
       },
@@ -723,7 +763,7 @@
      "sub": "payment",
      "entries": [
       {
-       "account": "1000",
+       "account": "1000/TILL",
        "debitPaise": 200000,
        "creditPaise": 0
       },
@@ -789,7 +829,7 @@
      "sub": "payment",
      "entries": [
       {
-       "account": "1000",
+       "account": "1000/TILL",
        "debitPaise": 100000,
        "creditPaise": 0
       },
@@ -816,7 +856,7 @@
        "creditPaise": 0
       },
       {
-       "account": "1000",
+       "account": "1000/TILL",
        "debitPaise": 0,
        "creditPaise": 180000
       }
@@ -963,6 +1003,9 @@
      "sub": "payment",
      "tender": "Cash",
      "amountPaise": 200000,
+     "parties": {
+      "tender": "TILL"
+     },
      "narration": "Payment received · Cash · DEMO-100 · Ananya Rao"
     },
     {
@@ -971,6 +1014,9 @@
      "sub": "deposit",
      "tender": "Cash",
      "amountPaise": 300000,
+     "parties": {
+      "tender": "TILL"
+     },
      "narration": "Deposit received · Cash · Demo cash · Ananya Rao"
     },
     {
@@ -979,6 +1025,9 @@
      "sub": "deposit-return",
      "tender": "Cash",
      "amountPaise": 100000,
+     "parties": {
+      "tender": "TILL"
+     },
      "narration": "Deposit returned · Cash · Demo cash · Ananya Rao"
     },
     {
@@ -987,6 +1036,9 @@
      "sub": "payment",
      "tender": "Card",
      "amountPaise": 55000,
+     "parties": {
+      "tender": "BANK-1"
+     },
      "narration": "Payment received · Card · DEMO-CARD · Ananya Rao"
     },
     {
@@ -995,6 +1047,9 @@
      "sub": "refund",
      "tender": "Cash",
      "amountPaise": 5000,
+     "parties": {
+      "tender": "TILL"
+     },
      "narration": "Payment refunded · Cash · Refund of seed-pay-0 · Ananya Rao"
     },
     {
@@ -1003,6 +1058,9 @@
      "sub": "payment",
      "tender": "UPI",
      "amountPaise": 200000,
+     "parties": {
+      "tender": "BANK-1"
+     },
      "narration": "Payment received · UPI · DEMO-101 · Vikram Shah"
     },
     {
@@ -1011,6 +1069,9 @@
      "sub": "payment",
      "tender": "UPI",
      "amountPaise": 300000,
+     "parties": {
+      "tender": "BANK-1"
+     },
      "narration": "Payment received · UPI · DEMO-102 · Riya Mehta"
     },
     {
@@ -1019,6 +1080,9 @@
      "sub": "payment",
      "tender": "Cash",
      "amountPaise": 200000,
+     "parties": {
+      "tender": "TILL"
+     },
      "narration": "Payment received · Cash · DEMO-103 · Arjun Kapoor"
     },
     {
@@ -1027,6 +1091,9 @@
      "sub": "payment",
      "tender": "UPI",
      "amountPaise": 200000,
+     "parties": {
+      "tender": "BANK-1"
+     },
      "narration": "Payment received · UPI · DEMO-104 · Nisha Desai"
     },
     {
@@ -1035,6 +1102,9 @@
      "sub": "payment",
      "tender": "UPI",
      "amountPaise": 450000,
+     "parties": {
+      "tender": "BANK-1"
+     },
      "narration": "Payment received · UPI · DEMO-105 · Kabir Sen"
     },
     {
@@ -1043,6 +1113,9 @@
      "sub": "payment",
      "tender": "Cash",
      "amountPaise": 200000,
+     "parties": {
+      "tender": "TILL"
+     },
      "narration": "Payment received · Cash · DEMO-106 · Tara Iyer"
     },
     {
@@ -1051,6 +1124,9 @@
      "sub": "payment",
      "tender": "UPI",
      "amountPaise": 200000,
+     "parties": {
+      "tender": "BANK-1"
+     },
      "narration": "Payment received · UPI · DEMO-107 · Dev Malhotra"
     },
     {
@@ -1059,6 +1135,9 @@
      "sub": "payment",
      "tender": "UPI",
      "amountPaise": 100000,
+     "parties": {
+      "tender": "BANK-1"
+     },
      "narration": "Payment received · UPI · DEMO-108 · Ishaan Bose"
     },
     {
@@ -1067,6 +1146,9 @@
      "sub": "payment",
      "tender": "Cash",
      "amountPaise": 100000,
+     "parties": {
+      "tender": "TILL"
+     },
      "narration": "Payment received · Cash · DEMO-109 · Aditi Nair"
     },
     {
@@ -1077,6 +1159,9 @@
      "amountPaise": 52500,
      "netPaise": 50000,
      "taxPaise": 2500,
+     "parties": {
+      "tender": "TILL"
+     },
      "narration": "Outlet bill · restaurant · Cash · Outlet cash · POS-F01"
     },
     {
@@ -1087,6 +1172,9 @@
      "amountPaise": 71400,
      "netPaise": 68000,
      "taxPaise": 3400,
+     "parties": {
+      "tender": "BANK-1"
+     },
      "narration": "Outlet bill · restaurant · UPI · DEMO-UPI-POS-7731 · POS-F02"
     },
     {
@@ -1096,6 +1184,10 @@
      "category": "Laundry",
      "funding": "Cash",
      "amountPaise": 180000,
+     "parties": {
+      "tender": "TILL",
+      "vendor": "V-FRESH-LINEN-SERVIC"
+     },
      "narration": "Fresh Linen Services · Laundry · Cash"
     }
    ],
@@ -1430,7 +1522,7 @@
      "sub": "sale",
      "entries": [
       {
-       "account": "1000",
+       "account": "1000/TILL",
        "debitPaise": 52500,
        "creditPaise": 0
       },
@@ -1494,7 +1586,7 @@
      "sub": "payment",
      "entries": [
       {
-       "account": "1000",
+       "account": "1000/TILL",
        "debitPaise": 200000,
        "creditPaise": 0
       },
@@ -1516,7 +1608,7 @@
      "sub": "deposit",
      "entries": [
       {
-       "account": "1000",
+       "account": "1000/TILL",
        "debitPaise": 300000,
        "creditPaise": 0
       },
@@ -1604,7 +1696,7 @@
      "sub": "payment",
      "entries": [
       {
-       "account": "1000",
+       "account": "1000/TILL",
        "debitPaise": 200000,
        "creditPaise": 0
       },
@@ -1670,7 +1762,7 @@
      "sub": "payment",
      "entries": [
       {
-       "account": "1000",
+       "account": "1000/TILL",
        "debitPaise": 200000,
        "creditPaise": 0
       },
@@ -1736,7 +1828,7 @@
      "sub": "payment",
      "entries": [
       {
-       "account": "1000",
+       "account": "1000/TILL",
        "debitPaise": 100000,
        "creditPaise": 0
       },
@@ -1763,7 +1855,7 @@
        "creditPaise": 0
       },
       {
-       "account": "1000",
+       "account": "1000/TILL",
        "debitPaise": 0,
        "creditPaise": 100000
       }
@@ -1785,7 +1877,7 @@
        "creditPaise": 0
       },
       {
-       "account": "1000",
+       "account": "1000/TILL",
        "debitPaise": 0,
        "creditPaise": 5000
       }
@@ -1807,7 +1899,7 @@
        "creditPaise": 0
       },
       {
-       "account": "1000",
+       "account": "1000/TILL",
        "debitPaise": 0,
        "creditPaise": 180000
       }
@@ -1904,6 +1996,9 @@
      "sub": "payment",
      "tender": "Cash",
      "amountPaise": 200000,
+     "parties": {
+      "tender": "TILL"
+     },
      "narration": "Payment received · Cash · DEMO-100 · Ananya Rao"
     },
     {
@@ -1912,6 +2007,9 @@
      "sub": "payment",
      "tender": "UPI",
      "amountPaise": 200000,
+     "parties": {
+      "tender": "BANK-1"
+     },
      "narration": "Payment received · UPI · DEMO-101 · Vikram Shah"
     },
     {
@@ -1920,6 +2018,9 @@
      "sub": "payment",
      "tender": "UPI",
      "amountPaise": 300000,
+     "parties": {
+      "tender": "BANK-1"
+     },
      "narration": "Payment received · UPI · DEMO-102 · Riya Mehta"
     },
     {
@@ -1928,6 +2029,9 @@
      "sub": "payment",
      "tender": "Cash",
      "amountPaise": 200000,
+     "parties": {
+      "tender": "TILL"
+     },
      "narration": "Payment received · Cash · DEMO-103 · Arjun Kapoor"
     },
     {
@@ -1936,6 +2040,9 @@
      "sub": "payment",
      "tender": "UPI",
      "amountPaise": 200000,
+     "parties": {
+      "tender": "BANK-1"
+     },
      "narration": "Payment received · UPI · DEMO-104 · Nisha Desai"
     },
     {
@@ -1944,6 +2051,9 @@
      "sub": "payment",
      "tender": "UPI",
      "amountPaise": 450000,
+     "parties": {
+      "tender": "BANK-1"
+     },
      "narration": "Payment received · UPI · DEMO-105 · Kabir Sen"
     },
     {
@@ -1952,6 +2062,9 @@
      "sub": "payment",
      "tender": "Cash",
      "amountPaise": 200000,
+     "parties": {
+      "tender": "TILL"
+     },
      "narration": "Payment received · Cash · DEMO-106 · Tara Iyer"
     },
     {
@@ -1960,6 +2073,9 @@
      "sub": "payment",
      "tender": "UPI",
      "amountPaise": 200000,
+     "parties": {
+      "tender": "BANK-1"
+     },
      "narration": "Payment received · UPI · DEMO-107 · Dev Malhotra"
     },
     {
@@ -1968,6 +2084,9 @@
      "sub": "payment",
      "tender": "UPI",
      "amountPaise": 100000,
+     "parties": {
+      "tender": "BANK-1"
+     },
      "narration": "Payment received · UPI · DEMO-108 · Ishaan Bose"
     },
     {
@@ -1976,6 +2095,9 @@
      "sub": "payment",
      "tender": "Cash",
      "amountPaise": 100000,
+     "parties": {
+      "tender": "TILL"
+     },
      "narration": "Payment received · Cash · DEMO-109 · Aditi Nair"
     },
     {
@@ -1986,6 +2108,9 @@
      "amountPaise": 52500,
      "netPaise": 50000,
      "taxPaise": 2500,
+     "parties": {
+      "tender": "TILL"
+     },
      "narration": "Outlet bill · restaurant · Cash · Outlet cash · POS-F01"
     },
     {
@@ -1996,6 +2121,9 @@
      "amountPaise": 71400,
      "netPaise": 68000,
      "taxPaise": 3400,
+     "parties": {
+      "tender": "BANK-1"
+     },
      "narration": "Outlet bill · restaurant · UPI · DEMO-UPI-POS-7731 · POS-F02"
     },
     {
@@ -2005,6 +2133,10 @@
      "category": "Laundry",
      "funding": "Cash",
      "amountPaise": 180000,
+     "parties": {
+      "tender": "TILL",
+      "vendor": "V-FRESH-LINEN-SERVIC"
+     },
      "narration": "Fresh Linen Services · Laundry · Cash"
     },
     {
@@ -2012,6 +2144,9 @@
      "id": "CLOSE/2026-10-24/cash-difference",
      "sub": "cash-difference",
      "amountPaise": -5000,
+     "parties": {
+      "tender": "TILL"
+     },
      "narration": "Cash short accepted at shift close · 2026-10-24"
     }
    ],
@@ -2026,7 +2161,7 @@
      "sub": "sale",
      "entries": [
       {
-       "account": "1000",
+       "account": "1000/TILL",
        "debitPaise": 52500,
        "creditPaise": 0
       },
@@ -2090,7 +2225,7 @@
      "sub": "payment",
      "entries": [
       {
-       "account": "1000",
+       "account": "1000/TILL",
        "debitPaise": 200000,
        "creditPaise": 0
       },
@@ -2156,7 +2291,7 @@
      "sub": "payment",
      "entries": [
       {
-       "account": "1000",
+       "account": "1000/TILL",
        "debitPaise": 200000,
        "creditPaise": 0
       },
@@ -2222,7 +2357,7 @@
      "sub": "payment",
      "entries": [
       {
-       "account": "1000",
+       "account": "1000/TILL",
        "debitPaise": 200000,
        "creditPaise": 0
       },
@@ -2288,7 +2423,7 @@
      "sub": "payment",
      "entries": [
       {
-       "account": "1000",
+       "account": "1000/TILL",
        "debitPaise": 100000,
        "creditPaise": 0
       },
@@ -2315,7 +2450,7 @@
        "creditPaise": 0
       },
       {
-       "account": "1000",
+       "account": "1000/TILL",
        "debitPaise": 0,
        "creditPaise": 180000
       }
@@ -2337,7 +2472,7 @@
        "creditPaise": 0
       },
       {
-       "account": "1000",
+       "account": "1000/TILL",
        "debitPaise": 0,
        "creditPaise": 5000
       }
@@ -2410,6 +2545,9 @@
      "sub": "payment",
      "tender": "Cash",
      "amountPaise": 200000,
+     "parties": {
+      "tender": "TILL"
+     },
      "narration": "Payment received · Cash · DEMO-100 · Ananya Rao"
     },
     {
@@ -2418,6 +2556,9 @@
      "sub": "payment",
      "tender": "UPI",
      "amountPaise": 200000,
+     "parties": {
+      "tender": "BANK-1"
+     },
      "narration": "Payment received · UPI · DEMO-101 · Vikram Shah"
     },
     {
@@ -2426,6 +2567,9 @@
      "sub": "payment",
      "tender": "UPI",
      "amountPaise": 300000,
+     "parties": {
+      "tender": "BANK-1"
+     },
      "narration": "Payment received · UPI · DEMO-102 · Riya Mehta"
     },
     {
@@ -2434,6 +2578,9 @@
      "sub": "payment",
      "tender": "Cash",
      "amountPaise": 200000,
+     "parties": {
+      "tender": "TILL"
+     },
      "narration": "Payment received · Cash · DEMO-103 · Arjun Kapoor"
     },
     {
@@ -2442,6 +2589,9 @@
      "sub": "payment",
      "tender": "UPI",
      "amountPaise": 200000,
+     "parties": {
+      "tender": "BANK-1"
+     },
      "narration": "Payment received · UPI · DEMO-104 · Nisha Desai"
     },
     {
@@ -2450,6 +2600,9 @@
      "sub": "payment",
      "tender": "UPI",
      "amountPaise": 450000,
+     "parties": {
+      "tender": "BANK-1"
+     },
      "narration": "Payment received · UPI · DEMO-105 · Kabir Sen"
     },
     {
@@ -2458,6 +2611,9 @@
      "sub": "payment",
      "tender": "Cash",
      "amountPaise": 200000,
+     "parties": {
+      "tender": "TILL"
+     },
      "narration": "Payment received · Cash · DEMO-106 · Tara Iyer"
     },
     {
@@ -2466,6 +2622,9 @@
      "sub": "payment",
      "tender": "UPI",
      "amountPaise": 200000,
+     "parties": {
+      "tender": "BANK-1"
+     },
      "narration": "Payment received · UPI · DEMO-107 · Dev Malhotra"
     },
     {
@@ -2474,6 +2633,9 @@
      "sub": "payment",
      "tender": "UPI",
      "amountPaise": 100000,
+     "parties": {
+      "tender": "BANK-1"
+     },
      "narration": "Payment received · UPI · DEMO-108 · Ishaan Bose"
     },
     {
@@ -2482,6 +2644,9 @@
      "sub": "payment",
      "tender": "Cash",
      "amountPaise": 100000,
+     "parties": {
+      "tender": "TILL"
+     },
      "narration": "Payment received · Cash · DEMO-109 · Aditi Nair"
     },
     {
@@ -2492,6 +2657,9 @@
      "amountPaise": 52500,
      "netPaise": 50000,
      "taxPaise": 2500,
+     "parties": {
+      "tender": "TILL"
+     },
      "narration": "Outlet bill · restaurant · Cash · Outlet cash · POS-F01"
     },
     {
@@ -2502,6 +2670,9 @@
      "amountPaise": 71400,
      "netPaise": 68000,
      "taxPaise": 3400,
+     "parties": {
+      "tender": "BANK-1"
+     },
      "narration": "Outlet bill · restaurant · UPI · DEMO-UPI-POS-7731 · POS-F02"
     },
     {
@@ -2511,6 +2682,10 @@
      "category": "Laundry",
      "funding": "Cash",
      "amountPaise": 180000,
+     "parties": {
+      "tender": "TILL",
+      "vendor": "V-FRESH-LINEN-SERVIC"
+     },
      "narration": "Fresh Linen Services · Laundry · Cash"
     },
     {
@@ -2520,6 +2695,10 @@
      "category": "Laundry",
      "funding": "Cash",
      "amountPaise": -180000,
+     "parties": {
+      "tender": "TILL",
+      "vendor": "V-FRESH-LINEN-SERVIC"
+     },
      "narration": "Reversal of EXP-101 · Fresh Linen Services · Laundry · Cash"
     }
    ],
@@ -2534,7 +2713,7 @@
      "sub": "sale",
      "entries": [
       {
-       "account": "1000",
+       "account": "1000/TILL",
        "debitPaise": 52500,
        "creditPaise": 0
       },
@@ -2598,7 +2777,7 @@
      "sub": "payment",
      "entries": [
       {
-       "account": "1000",
+       "account": "1000/TILL",
        "debitPaise": 200000,
        "creditPaise": 0
       },
@@ -2664,7 +2843,7 @@
      "sub": "payment",
      "entries": [
       {
-       "account": "1000",
+       "account": "1000/TILL",
        "debitPaise": 200000,
        "creditPaise": 0
       },
@@ -2730,7 +2909,7 @@
      "sub": "payment",
      "entries": [
       {
-       "account": "1000",
+       "account": "1000/TILL",
        "debitPaise": 200000,
        "creditPaise": 0
       },
@@ -2796,7 +2975,7 @@
      "sub": "payment",
      "entries": [
       {
-       "account": "1000",
+       "account": "1000/TILL",
        "debitPaise": 100000,
        "creditPaise": 0
       },
@@ -2823,7 +3002,7 @@
        "creditPaise": 0
       },
       {
-       "account": "1000",
+       "account": "1000/TILL",
        "debitPaise": 0,
        "creditPaise": 180000
       }
@@ -2845,7 +3024,7 @@
        "creditPaise": 180000
       },
       {
-       "account": "1000",
+       "account": "1000/TILL",
        "debitPaise": 180000,
        "creditPaise": 0
       }
@@ -2912,6 +3091,9 @@
      "sub": "payment",
      "tender": "Cash",
      "amountPaise": 200000,
+     "parties": {
+      "tender": "TILL"
+     },
      "narration": "Payment received · Cash · DEMO-100 · Ananya Rao"
     },
     {
@@ -2920,6 +3102,9 @@
      "sub": "payment",
      "tender": "UPI",
      "amountPaise": 200000,
+     "parties": {
+      "tender": "BANK-1"
+     },
      "narration": "Payment received · UPI · DEMO-101 · Vikram Shah"
     },
     {
@@ -2928,6 +3113,9 @@
      "sub": "payment",
      "tender": "UPI",
      "amountPaise": 300000,
+     "parties": {
+      "tender": "BANK-1"
+     },
      "narration": "Payment received · UPI · DEMO-102 · Riya Mehta"
     },
     {
@@ -2936,6 +3124,9 @@
      "sub": "payment",
      "tender": "Cash",
      "amountPaise": 200000,
+     "parties": {
+      "tender": "TILL"
+     },
      "narration": "Payment received · Cash · DEMO-103 · Arjun Kapoor"
     },
     {
@@ -2944,6 +3135,9 @@
      "sub": "payment",
      "tender": "UPI",
      "amountPaise": 200000,
+     "parties": {
+      "tender": "BANK-1"
+     },
      "narration": "Payment received · UPI · DEMO-104 · Nisha Desai"
     },
     {
@@ -2952,6 +3146,9 @@
      "sub": "payment",
      "tender": "UPI",
      "amountPaise": 450000,
+     "parties": {
+      "tender": "BANK-1"
+     },
      "narration": "Payment received · UPI · DEMO-105 · Kabir Sen"
     },
     {
@@ -2960,6 +3157,9 @@
      "sub": "payment",
      "tender": "Cash",
      "amountPaise": 200000,
+     "parties": {
+      "tender": "TILL"
+     },
      "narration": "Payment received · Cash · DEMO-106 · Tara Iyer"
     },
     {
@@ -2968,6 +3168,9 @@
      "sub": "payment",
      "tender": "UPI",
      "amountPaise": 200000,
+     "parties": {
+      "tender": "BANK-1"
+     },
      "narration": "Payment received · UPI · DEMO-107 · Dev Malhotra"
     },
     {
@@ -2976,6 +3179,9 @@
      "sub": "payment",
      "tender": "UPI",
      "amountPaise": 100000,
+     "parties": {
+      "tender": "BANK-1"
+     },
      "narration": "Payment received · UPI · DEMO-108 · Ishaan Bose"
     },
     {
@@ -2984,6 +3190,9 @@
      "sub": "payment",
      "tender": "Cash",
      "amountPaise": 100000,
+     "parties": {
+      "tender": "TILL"
+     },
      "narration": "Payment received · Cash · DEMO-109 · Aditi Nair"
     },
     {
@@ -2994,6 +3203,9 @@
      "amountPaise": 52500,
      "netPaise": 50000,
      "taxPaise": 2500,
+     "parties": {
+      "tender": "TILL"
+     },
      "narration": "Outlet bill · restaurant · Cash · Outlet cash · POS-F01"
     },
     {
@@ -3004,6 +3216,9 @@
      "amountPaise": 71400,
      "netPaise": 68000,
      "taxPaise": 3400,
+     "parties": {
+      "tender": "BANK-1"
+     },
      "narration": "Outlet bill · restaurant · UPI · DEMO-UPI-POS-7731 · POS-F02"
     },
     {
@@ -3013,6 +3228,10 @@
      "category": "Laundry",
      "funding": "Cash",
      "amountPaise": 180000,
+     "parties": {
+      "tender": "TILL",
+      "vendor": "V-FRESH-LINEN-SERVIC"
+     },
      "narration": "Fresh Linen Services · Laundry · Cash"
     },
     {
@@ -3022,6 +3241,10 @@
      "category": "Kitchen gas",
      "funding": "UPI",
      "amountPaise": 120000,
+     "parties": {
+      "tender": "BANK-1",
+      "vendor": "V-SHREE-GANESH-GAS-A"
+     },
      "narration": "Shree Ganesh Gas Agency (fictional) · Kitchen gas · UPI"
     }
    ],
@@ -3036,7 +3259,7 @@
      "sub": "sale",
      "entries": [
       {
-       "account": "1000",
+       "account": "1000/TILL",
        "debitPaise": 52500,
        "creditPaise": 0
       },
@@ -3100,7 +3323,7 @@
      "sub": "payment",
      "entries": [
       {
-       "account": "1000",
+       "account": "1000/TILL",
        "debitPaise": 200000,
        "creditPaise": 0
       },
@@ -3166,7 +3389,7 @@
      "sub": "payment",
      "entries": [
       {
-       "account": "1000",
+       "account": "1000/TILL",
        "debitPaise": 200000,
        "creditPaise": 0
       },
@@ -3232,7 +3455,7 @@
      "sub": "payment",
      "entries": [
       {
-       "account": "1000",
+       "account": "1000/TILL",
        "debitPaise": 200000,
        "creditPaise": 0
       },
@@ -3298,7 +3521,7 @@
      "sub": "payment",
      "entries": [
       {
-       "account": "1000",
+       "account": "1000/TILL",
        "debitPaise": 100000,
        "creditPaise": 0
       },
@@ -3325,7 +3548,7 @@
        "creditPaise": 0
       },
       {
-       "account": "1000",
+       "account": "1000/TILL",
        "debitPaise": 0,
        "creditPaise": 180000
       }
@@ -3430,6 +3653,9 @@
      "sub": "payment",
      "tender": "Cash",
      "amountPaise": 200000,
+     "parties": {
+      "tender": "TILL"
+     },
      "narration": "Payment received · Cash · DEMO-100 · Ananya Rao"
     },
     {
@@ -3438,6 +3664,9 @@
      "sub": "payment",
      "tender": "UPI",
      "amountPaise": 200000,
+     "parties": {
+      "tender": "BANK-1"
+     },
      "narration": "Payment received · UPI · DEMO-101 · Vikram Shah"
     },
     {
@@ -3446,6 +3675,9 @@
      "sub": "payment",
      "tender": "UPI",
      "amountPaise": 300000,
+     "parties": {
+      "tender": "BANK-1"
+     },
      "narration": "Payment received · UPI · DEMO-102 · Riya Mehta"
     },
     {
@@ -3454,6 +3686,9 @@
      "sub": "payment",
      "tender": "Cash",
      "amountPaise": 200000,
+     "parties": {
+      "tender": "TILL"
+     },
      "narration": "Payment received · Cash · DEMO-103 · Arjun Kapoor"
     },
     {
@@ -3462,6 +3697,9 @@
      "sub": "payment",
      "tender": "UPI",
      "amountPaise": 200000,
+     "parties": {
+      "tender": "BANK-1"
+     },
      "narration": "Payment received · UPI · DEMO-104 · Nisha Desai"
     },
     {
@@ -3470,6 +3708,9 @@
      "sub": "payment",
      "tender": "UPI",
      "amountPaise": 450000,
+     "parties": {
+      "tender": "BANK-1"
+     },
      "narration": "Payment received · UPI · DEMO-105 · Kabir Sen"
     },
     {
@@ -3478,6 +3719,9 @@
      "sub": "payment",
      "tender": "Cash",
      "amountPaise": 200000,
+     "parties": {
+      "tender": "TILL"
+     },
      "narration": "Payment received · Cash · DEMO-106 · Tara Iyer"
     },
     {
@@ -3486,6 +3730,9 @@
      "sub": "payment",
      "tender": "UPI",
      "amountPaise": 200000,
+     "parties": {
+      "tender": "BANK-1"
+     },
      "narration": "Payment received · UPI · DEMO-107 · Dev Malhotra"
     },
     {
@@ -3494,6 +3741,9 @@
      "sub": "payment",
      "tender": "UPI",
      "amountPaise": 100000,
+     "parties": {
+      "tender": "BANK-1"
+     },
      "narration": "Payment received · UPI · DEMO-108 · Ishaan Bose"
     },
     {
@@ -3502,6 +3752,9 @@
      "sub": "payment",
      "tender": "Cash",
      "amountPaise": 100000,
+     "parties": {
+      "tender": "TILL"
+     },
      "narration": "Payment received · Cash · DEMO-109 · Aditi Nair"
     },
     {
@@ -3512,6 +3765,9 @@
      "amountPaise": 52500,
      "netPaise": 50000,
      "taxPaise": 2500,
+     "parties": {
+      "tender": "TILL"
+     },
      "narration": "Outlet bill · restaurant · Cash · Outlet cash · POS-F01"
     },
     {
@@ -3522,6 +3778,9 @@
      "amountPaise": 71400,
      "netPaise": 68000,
      "taxPaise": 3400,
+     "parties": {
+      "tender": "BANK-1"
+     },
      "narration": "Outlet bill · restaurant · UPI · DEMO-UPI-POS-7731 · POS-F02"
     },
     {
@@ -3531,6 +3790,10 @@
      "category": "Laundry",
      "funding": "Cash",
      "amountPaise": 180000,
+     "parties": {
+      "tender": "TILL",
+      "vendor": "V-FRESH-LINEN-SERVIC"
+     },
      "narration": "Fresh Linen Services · Laundry · Cash"
     },
     {
@@ -3540,6 +3803,10 @@
      "category": "Kitchen gas",
      "funding": "UPI",
      "amountPaise": 120000,
+     "parties": {
+      "tender": "BANK-1",
+      "vendor": "V-SHREE-GANESH-GAS-A"
+     },
      "narration": "Shree Ganesh Gas Agency (fictional) · Kitchen gas · UPI"
     }
    ],
@@ -3554,7 +3821,7 @@
      "sub": "sale",
      "entries": [
       {
-       "account": "1000",
+       "account": "1000/TILL",
        "debitPaise": 52500,
        "creditPaise": 0
       },
@@ -3618,7 +3885,7 @@
      "sub": "payment",
      "entries": [
       {
-       "account": "1000",
+       "account": "1000/TILL",
        "debitPaise": 200000,
        "creditPaise": 0
       },
@@ -3684,7 +3951,7 @@
      "sub": "payment",
      "entries": [
       {
-       "account": "1000",
+       "account": "1000/TILL",
        "debitPaise": 200000,
        "creditPaise": 0
       },
@@ -3750,7 +4017,7 @@
      "sub": "payment",
      "entries": [
       {
-       "account": "1000",
+       "account": "1000/TILL",
        "debitPaise": 200000,
        "creditPaise": 0
       },
@@ -3816,7 +4083,7 @@
      "sub": "payment",
      "entries": [
       {
-       "account": "1000",
+       "account": "1000/TILL",
        "debitPaise": 100000,
        "creditPaise": 0
       },
@@ -3843,7 +4110,7 @@
        "creditPaise": 0
       },
       {
-       "account": "1000",
+       "account": "1000/TILL",
        "debitPaise": 0,
        "creditPaise": 180000
       }

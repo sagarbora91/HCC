@@ -8,7 +8,7 @@
 // move); cash settles to a till, credit to nothing, the rest to a bank account; an account that active methods settle to cannot be
 // retired; one default account per method kind; the opening balance is setup-only (fixed once money settles through the account).
 import {registerMaster,type MasterSpec,type FieldSpec,type MasterRow} from './masters';
-import {ACC_CHART} from './accounting';
+import {ACC_CHART,accPartyRetireBlocker} from './accounting';
 import {mastersSeed} from '../../fixtures/ext/masters-seed';
 import {
   MNY_PM,MNY_BA,MNY_EC,MNY_EV,MNY_KINDS,MNY_PLACES,MNY_VENDOR_TYPES,MNY_SEED_METHODS,MNY_SEED_ACCOUNTS,MNY_SEED_CATEGORIES,mnySeedVendors,
@@ -85,7 +85,9 @@ export const MNY_BA_SPEC:MasterSpec<MnyAccount>={
     return undefined;
   },
   canRetire:(s,row)=>{const ms=mnyMethods(s).filter(m=>m.active&&m.settlesTo===row.code);
-    return ms.length?`Active payment methods settle to ${row.name} (${ms.map(m=>m.name).join(', ')}) — retire or move them first.`:undefined;},
+    if(ms.length)return `Active payment methods settle to ${row.name} (${ms.map(m=>m.name).join(', ')}) — retire or move them first.`;
+    // ACC-1 (contract §3, rulebook §3.3.1): a till (1000/<code>) or bank account (1030/<code>) with a non-zero ledger balance stays.
+    return accPartyRetireBlocker(s,row.kind==='till'?'1000':'1030',row.code)||undefined;},
   seed:s=>mastersSeed(MNY_BA,s) as MnyAccount[],
 };
 
@@ -122,6 +124,8 @@ export const MNY_EV_SPEC:MasterSpec<MnyVendor>={
     if(row.tds&&!p)return 'Enter the PAN when TDS applies.';
     return undefined;
   },
+  // ACC-1 (contract §3, rulebook §3.3.1): a vendor whose party ledger 2200/<code> has a non-zero balance cannot be retired.
+  canRetire:(s,row)=>accPartyRetireBlocker(s,'2200',row.code)||undefined,
   seed:s=>mastersSeed(MNY_EV,s) as MnyVendor[],
 };
 

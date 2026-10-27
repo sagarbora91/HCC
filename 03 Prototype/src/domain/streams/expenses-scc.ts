@@ -43,8 +43,12 @@ export type ExpPettyEntry={id:string;amount:number;date:string;by:string;at:stri
 /** `desk` (DEC-130): taken as a desk receipt — cash into the open shift's drawer, other modes to their own ledgers — and booked in Accounting
  *  (Dr the tender · Cr Udhaar receivables). Settlements recorded before DEC-130 have no `desk`: they never reached the drawer or the books. */
 export type ExpUdSettlement={id:string;amount:number;date:string;mode:string;by:string;at:string;desk?:true;reference?:string};
+/** ACC-1 (contract §4, rulebook A17, DEC-144): `kind` = what was sold on credit (restaurant bill, room folio or other — the screen asks) and
+ *  `gstBps` = its GST rate. Raising the credit posts a Sales voucher the same day (Dr 1120/<customer> gross · Cr F&B / room / other revenue ·
+ *  Cr CGST · Cr SGST). Rows raised before ACC-1 have neither: kind 'other' (4100), no GST lines (CA note in ACC1-PARTIES-DONE.md). */
+export type ExpUdKind='restaurant'|'room'|'other';
 export type ExpUdReceivable={id:string;name:string;mobile:string;amount:number;date:string;dueDate:string;note:string;settlements:ExpUdSettlement[];by:string;at:string;
-  void?:boolean;voidReason?:string;voidAt?:string;voidBy?:string};
+  void?:boolean;voidReason?:string;voidAt?:string;voidBy?:string;kind?:ExpUdKind;gstBps?:number};
 /** SCC gm_tax_feed[month] (1508): the month's figures when the Owner generated the feed and locked the month. HCC keeps the expense side
  *  (HCC has no manual income ledger) and SCC's "GST paid on purchases". `stale` is set by a write into the locked month (Owner override). */
 export type ExpMonthFeed={month:string;expense:number;count:number;byCategory:Record<string,number>;gstPaid:number;generatedAt:string;by:string;stale?:boolean;staleAt?:string;
@@ -286,6 +290,20 @@ export function expUdPayment(r:ExpUdReceivable,amount:number):{amount:number;cap
 }
 /** SCC addReceivable mobile (1566, 1569): digits only, kept only when ≥ 10 digits (the last 10). */
 export function expUdMobile(v:unknown):string{const m=String(v??'').replace(/\D/g,'');return m.length>=10?m.slice(-10):'';}
+// ── ACC-1 · Udhaar credit raised (contract §4) ──
+export const EXP_UD_KINDS:{value:ExpUdKind;label:string}[]=[{value:'restaurant',label:'Restaurant bill'},{value:'room',label:'Room folio'},{value:'other',label:'Other'}];
+/** Kind of a credit (rows raised before ACC-1: 'other'). */
+export const expUdKind=(r:Pick<ExpUdReceivable,'kind'>):ExpUdKind=>r.kind==='restaurant'||r.kind==='room'?r.kind:'other';
+/** Revenue mapping key of a credit's kind: restaurant → pos:sales (F&B), room → line:room, other → line:service. */
+export const expUdRevenueKey=(r:Pick<ExpUdReceivable,'kind'>)=>({restaurant:'pos:sales',room:'line:room',other:'line:service'} as const)[expUdKind(r)];
+/** GST inside a credit's gross amount (the amount the customer owes is tax-inclusive): taxable = gross × 10000 ÷ (10000 + bps) rounded half
+ *  away from zero (as gstLineTax), tax = gross − taxable, split CGST / SGST as gstSplit (SGST = half toward zero, CGST takes the odd paisa).
+ *  bps 0 / absent (rows before ACC-1) = no GST. Server: SourceRules.UdhaarCredit (same arithmetic). */
+export function expUdGst(r:Pick<ExpUdReceivable,'amount'|'gstBps'>):{taxable:number;tax:number;cgst:number;sgst:number}{
+  const g=r.amount,b=Math.max(0,Math.trunc(Number(r.gstBps)||0));if(!b)return {taxable:g,tax:0,cgst:0,sgst:0};
+  const n=Math.abs(g)*10000,d=10000+b,q=Math.floor(n/d),rem=n-q*d,t=q+(rem*2>=d?1:0),taxable=g<0?-t:t,tax=g-taxable,sgst=Math.trunc(tax/2)||0;
+  return {taxable,tax,cgst:tax-sgst,sgst};
+}
 /** Open credits (not written off, outstanding > 0), oldest first; totals by SCC's ageing buckets. */
 export function expUdOpen(s:State):{open:ExpUdReceivable[];total:number;buckets:Record<'0–30'|'31–60'|'60+',number>}{
   const open=(expSlice(s).udhaar??[]).filter(r=>!r.void&&expUdOut(r)>0).sort((a,b)=>String(a.date).localeCompare(String(b.date)));

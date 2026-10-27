@@ -125,8 +125,10 @@ public sealed record PettyFloatRecord(long EntryId, int PropertyId, long Amount,
 public sealed record UdhaarSettlementRecord(long SettlementId, long ReceivableId, long Amount, DateOnly Date, string Mode, int RecordedBy, DateTime RecordedUtc,
     bool Desk = false, string? Reference = null, int? TillId = null);
 
+/// <summary>ACC-1 (contract §4): <c>Kind</c> restaurant | room | other (null = raised before ACC-1: other), <c>GstBps</c> its GST rate (migration 4215).</summary>
 public sealed record UdhaarRecord(long ReceivableId, int PropertyId, string Name, string? Mobile, long Amount, DateOnly CreditDate, DateOnly? DueDate, string? Note,
-    int CreatedBy, DateTime CreatedUtc, bool Void, string? VoidReason, int? VoidedBy, DateOnly? VoidedDate, IReadOnlyList<UdhaarSettlementRecord> Settlements)
+    int CreatedBy, DateTime CreatedUtc, bool Void, string? VoidReason, int? VoidedBy, DateOnly? VoidedDate, IReadOnlyList<UdhaarSettlementRecord> Settlements,
+    string? Kind = null, int GstBps = 0)
 {
     public long Paid => Settlements.Sum(s => s.Amount);
 

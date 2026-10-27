@@ -64,7 +64,7 @@ public sealed class SqlAccountingStore(SqlConnectionFactory connections) : IAcco
         => WithAsync<IReadOnlyList<AccountingSource>>(tx, async (c, t) =>
         {
             await using var cmd = Cmd("""
-                SELECT s.source_id, s.source_key, s.source_kind, s.sub, s.voucher_type, s.business_date, s.narration, e.map_key, e.debit_paise, e.credit_paise
+                SELECT s.source_id, s.source_key, s.source_kind, s.sub, s.voucher_type, s.business_date, s.narration, e.map_key, e.debit_paise, e.credit_paise, e.party_id
                 FROM acc.source s JOIN acc.source_entry e ON e.source_id = s.source_id
                 WHERE s.property_id = @p AND s.business_date BETWEEN @f AND @t
                 ORDER BY s.business_date, s.source_id, e.line_no;
@@ -86,7 +86,7 @@ public sealed class SqlAccountingStore(SqlConnectionFactory connections) : IAcco
                     list.Add(new AccountingSource(rd.GetString(1), rd.GetString(2), rd.GetString(3), AccSql.Date(rd, 5), AccSql.Type(rd.GetString(4)), rd.GetString(6), entries));
                 }
 
-                entries!.Add(new SourceEntry(rd.GetString(7), rd.GetInt64(8), rd.GetInt64(9)));
+                entries!.Add(new SourceEntry(rd.GetString(7), rd.GetInt64(8), rd.GetInt64(9), rd.IsDBNull(10) ? null : rd.GetString(10))); // ACC-1: party_id (migration 4210)
             }
 
             return list;
@@ -278,7 +278,7 @@ public sealed class SqlAccountingStore(SqlConnectionFactory connections) : IAcco
                     cmd.Parameters.Set("@l", SqlDbType.BigInt, id);
                     cmd.Parameters.Set("@s", SqlDbType.Int, i);
                     cmd.Parameters.Set("@j", SqlDbType.TinyInt, (byte)j);
-                    cmd.Parameters.Set("@a", SqlDbType.VarChar, e.Account, 4);
+                    cmd.Parameters.Set("@a", SqlDbType.VarChar, e.Account, PartyLedgers.MaxAccountLength); // ACC-1: party ledger ids (migration 4211)
                     cmd.Parameters.Set("@dr", SqlDbType.BigInt, e.DebitPaise);
                     cmd.Parameters.Set("@cr", SqlDbType.BigInt, e.CreditPaise);
                     await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);

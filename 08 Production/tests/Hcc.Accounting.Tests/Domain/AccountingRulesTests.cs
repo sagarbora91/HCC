@@ -169,9 +169,9 @@ public sealed class AccountingRulesTests
         ], Map);
         var pay = vs.Single(v => v.SourceKey == "company-payment:12");
         Assert.Equal((VoucherType.Receipt, "company-payment", true), (pay.Type, pay.Sub, pay.Balanced));
-        Assert.Equal([("1030", 630_000L, 0L), ("1110", 0L, 630_000L)], pay.Entries.Select(x => (x.Account, x.DebitPaise, x.CreditPaise)));
+        Assert.Equal([("1030", 630_000L, 0L), ("1110/CMP-4", 0L, 630_000L)], pay.Entries.Select(x => (x.Account, x.DebitPaise, x.CreditPaise)));
         Assert.Contains("Demo Industries (fictional)", pay.Narration, StringComparison.Ordinal);
-        Assert.Equal(0, vs.SelectMany(v => v.Entries).Where(e => e.Account == "1110").Sum(e => e.DebitPaise - e.CreditPaise));
+        Assert.Equal(0, vs.SelectMany(v => v.Entries).Where(e => PartyLedgers.ControlOf(e.Account) == "1110").Sum(e => e.DebitPaise - e.CreditPaise));
         // The daily company-credit reconciliation still compares only the checkout's company credit (Sub company-credit): Rs 6,300.
         var check = Reconciliation.Check(vs, Map, new OperationalFigures(0, 0, 0, 0, 0, 0, 0, 630_000)).Single(c => c.Id == "company-credit");
         Assert.True(check.Ok);

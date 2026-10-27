@@ -291,13 +291,22 @@ public sealed class ExpenseRegisterCommands(ICommandRunner runner, IAccessPolicy
         if (req.AmountPaise <= 0 || req.AmountPaise > ApiConventions.MaxPaisePerField) throw HccException.Validation("Enter a valid amount");
         var note = ExpenseScc.Optional(req.Note, ExpenseScc.NoteMax, "note");
         DateOnly? due = string.IsNullOrWhiteSpace(req.DueDate) ? null : StayDates.Parse(req.DueDate, "dueDate");
+        // ACC-1 (contract §4, rulebook A17, DEC-144): what was sold on credit and its GST rate; the credit is booked as a sale the same day.
+        var kind = string.IsNullOrWhiteSpace(req.Kind) ? null : req.Kind.Trim();
+        if (kind is not null and not ("restaurant" or "room" or "other")) throw HccException.Validation("Choose what was sold on credit: restaurant bill, room folio or other.");
+        var gstBps = req.GstBps ?? 0;
+        if (gstBps is < 0 or > 2800) throw HccException.Validation("GST rate: 0 to 28 %.");
+        if (kind is null && gstBps != 0) throw HccException.Validation("Choose what was sold on credit before its GST rate.");
         return await runner.RunAsync(ctx with { Operation = OpAddUdhaar }, req, async (tx, c) =>
         {
             var bd = await store.BusinessDateAsync(tx, ctx.PropertyId, c).ConfigureAwait(false);
             var dueDate = due ?? bd.AddDays(ExpenseScc.UdhaarDueDays);
-            var id = await registers.InsertUdhaarAsync(tx, new UdhaarRecord(0, ctx.PropertyId, name, ExpenseScc.UdhaarMobile(req.Mobile), req.AmountPaise, bd, dueDate, note,
-                ctx.PrincipalId, UtcNow, false, null, null, null, []), c).ConfigureAwait(false);
-            var msg = $"UD-{Id(id)} · credit {name} {new Paise(req.AmountPaise)} · due {StayDates.ToWire(dueDate)}";
+            var mobile = ExpenseScc.UdhaarMobile(req.Mobile);
+            var id = await registers.InsertUdhaarAsync(tx, new UdhaarRecord(0, ctx.PropertyId, name, mobile, req.AmountPaise, bd, dueDate, note,
+                ctx.PrincipalId, UtcNow, false, null, null, null, [], kind, gstBps), c).ConfigureAwait(false);
+            await tx.PublishAsync(Contracts.Accounting.AccountingEvents.UdhaarCreditRaised, id,
+                new Contracts.Accounting.UdhaarCreditRaisedEvent(id, bd, name, mobile, req.AmountPaise, kind, gstBps), c).ConfigureAwait(false);
+            var msg = $"UD-{Id(id)} · credit {name} {new Paise(req.AmountPaise)} · due {StayDates.ToWire(dueDate)}" + (kind is null ? "" : $" · {kind} · sale booked (Udhaar receivables)");
             await tx.AuditAsync("UDHAAR_ADDED", "udhaar:" + Id(id), msg, c).ConfigureAwait(false);
             return new ExpenseRegisterResult(msg, id);
         }, ct).ConfigureAwait(false);

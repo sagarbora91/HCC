@@ -400,7 +400,8 @@ export const accounting:SyncArea={
         ...(txt(c.cmd.receipt)?{receipt:txt(c.cmd.receipt)}:{}),...override(c.cmd)});}},
     {type:'EXP_UD_ADD',reload:['expensesX'],precheck:cmd=>txt(cmd.name)?undefined:'Customer name is required',
       async send(c){const m=c.cmd;await c.api.command('AddUdhaar',{name:txt(m.name),amountPaise:m.amount,...(txt(m.mobile)?{mobile:txt(m.mobile)}:{}),
-        ...(DATE.test(String(m.dueDate??''))?{dueDate:m.dueDate}:{}),...(txt(m.note)?{note:txt(m.note)}:{})});}},
+        ...(DATE.test(String(m.dueDate??''))?{dueDate:m.dueDate}:{}),...(txt(m.note)?{note:txt(m.note)}:{}),
+        ...(txt(m.kind)?{kind:txt(m.kind)}:{}),...(Number.isInteger(m.gstBps)?{gstBps:m.gstBps}:{})});}}, // ACC-1 (acc1-parties): what was sold + its GST (A17)
     // DEC-130: a desk receipt — cash needs the till with the open shift (and reloads the cash desk + cash book), other modes their reference.
     {type:'EXP_UD_PAY',reload:['expensesX'],precheck:(cmd,s,me)=>udPayPrecheck(cmd,s,me),
       async send(c){const mode=txt(c.cmd.mode),cash=mnyIsDrawer(c.state,mode);

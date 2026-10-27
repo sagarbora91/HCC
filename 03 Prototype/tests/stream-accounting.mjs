@@ -52,14 +52,14 @@ export function register({test,M,assert}){
     const c=checks(s,D);assert.ok(Object.values(c).every(x=>x.ok),JSON.stringify(Object.values(c).filter(x=>!x.ok)));
     assert.equal(c.collections.report,M.metrics(s).collections);assert.equal(c.cash.ledger,M.drawer(s)-s.openingCash);
     const disc=vs.find(v=>v.source.sub==='discount');assert.deepEqual(disc.entries.map(e=>[e.account,e.debit,e.credit]),[['1100',0,21000],['4900',20000,0],['2110',500,0],['2120',500,0]]); // DEC-069 GST: discount ₹200 at the room rate 5 % = −₹10 (was −₹20 on 2100), split CGST/SGST
-    const ref=vs.find(v=>v.source.sub==='refund');assert.equal(ref.type,'Payment');assert.deepEqual(ref.entries.map(e=>[e.account,e.debit,e.credit]),[['1100',5000,0],['1000',0,5000]]);
+    const ref=vs.find(v=>v.source.sub==='refund');assert.equal(ref.type,'Payment');assert.deepEqual(ref.entries.map(e=>[e.account,e.debit,e.credit]),[['1100',5000,0],['1000/TILL',0,5000]]);
     assert.equal(M.accExceptions(s,D).filter(x=>x.severity==='error').length,0);
   });
   test('[ACC] closed day reconciles to the closing record, cash difference posts to over/short',()=>{
     let s=M.seed();s=M.execute(s,'cashier',{type:'SHIFT_SUBMIT',counted:M.drawer(s)-5000,reason:'Short by ₹50'});
     const apr=s.approvals.at(-1).id;s=M.execute(s,'owner',{type:'SHIFT_DIFFERENCE_DECIDE',id:apr,approve:true});
     const vs=M.accVouchers(s,D),j=vs.find(v=>v.source.kind==='closing');assert.ok(j,'cash difference voucher');
-    assert.deepEqual(j.entries.map(e=>[e.account,e.debit,e.credit]),[['5900',5000,0],['1000',0,5000]]);
+    assert.deepEqual(j.entries.map(e=>[e.account,e.debit,e.credit]),[['5900',5000,0],['1000/TILL',0,5000]]);
     assert.ok(Object.values(checks(s,D)).every(x=>x.ok));
   });
   test('[ACC] lock requires a closed day; lock freezes snapshot; second lock rejected; idempotent key',()=>{
@@ -129,7 +129,7 @@ export function register({test,M,assert}){
     assert.equal(M.accBalanced(v),false);
     let s=M.seed();s=M.execute(s,'manager',{type:'EXPENSE_REVERSE',id:'EXP-101',reason:'Duplicate entry'});
     const r=M.accVouchers(s,D).find(v=>v.source.sub==='reversal');
-    assert.ok(r,'reversal voucher');{assert.deepEqual(r.entries.map(e=>[e.account,e.debit,e.credit]),[['5010',0,180000],['1000',180000,0]]);assert.ok(checks(s,D).expenses.ok);}
+    assert.ok(r,'reversal voucher');{assert.deepEqual(r.entries.map(e=>[e.account,e.debit,e.credit]),[['5010',0,180000],['1000/TILL',180000,0]]);assert.ok(checks(s,D).expenses.ok);}
   });
   test('[ACC] CSV export: generic header, one row per entry, debit total = credit total',()=>{
     const s=M.seed(),vs=M.accVouchers(s,D),csv=M.accCsv(vs),rows=csv.split('\r\n');
