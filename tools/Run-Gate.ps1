@@ -39,6 +39,7 @@ $prod = Join-Path $Repo '08 Production'
 $reportDir = Join-Path $Repo '05 Delivery Evidence\Gates'
 $reportPath = Join-Path $reportDir "$Wave-gate-$stamp.md"
 $allSteps = @('tsc', 'npm-test', 'npm-build', 'dotnet-build', 'dotnet-test', 'migrations-lock', 'secret-scan')
+$Only = @($Only | ForEach-Object { $_ -split '[,; ]+' } | Where-Object { $_ })   # -File passes a comma list as one string
 foreach ($o in $Only) { if ($o -notin $allSteps) { throw "Unknown step '$o'. Steps: $($allSteps -join ', ')" } }
 $selected = if ($Only.Count) { $allSteps | Where-Object { $_ -in $Only } } else { $allSteps }
 
