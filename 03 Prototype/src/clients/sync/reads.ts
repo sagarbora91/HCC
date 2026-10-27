@@ -94,6 +94,7 @@ export const READS={
   'GET /accounting/mapping/history':ACCOUNTING,
   'GET /accounting/locks/history':ACCOUNTING,
   'GET /expenses':one(anyScope('PERM-EXP-001'),anyScope('PERM-EXP-002'),anyScope('PERM-EXP-003')),
+  'GET /expenses/registers':one(anyScope('PERM-EXP-001'),anyScope('PERM-EXP-002'),anyScope('PERM-EXP-003')), // DEC-120 SCC registers
   'GET /compliance/obligations':COMPLIANCE,
   'GET /compliance/calendar':COMPLIANCE,
   'GET /compliance/ca-packs':COMPLIANCE,

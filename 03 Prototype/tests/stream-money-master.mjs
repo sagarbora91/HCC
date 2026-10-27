@@ -175,30 +175,30 @@ export async function register({test,M,assert}){
   test('[MNY] a new category with its ledger maps the accounting key (Kitchen gas → 5050) and is offered on the form',()=>{
     let s=save(seed(),'expenseCategories',{code:'GAS',name:'Kitchen gas',ledger:'5050',needsBill:false});
     assert.equal(accMapping(s)['expense:Kitchen gas'],'5050');assert.deepEqual(mnyCategoryNames(s),[...EXPENSE_CATEGORIES,'Kitchen gas']);
-    s=execute(s,'reception',{type:'EXPENSE',vendor:'Gas Agency (fictional)',category:'GAS',amount:120000,method:'Cash'});
+    s=execute(s,'reception',{type:'EXPENSE',description:'Test expense stream-money-master:178',vendor:'Gas Agency (fictional)',category:'GAS',amount:120000,method:'Cash'});
     assert.equal(s.expenses.at(-1).category,'Kitchen gas');
     assert.throws(()=>save(seed(),'expenseCategories',{code:'X',name:'X',ledger:'1000',needsBill:false}),reason('MASTER_INVALID'));});
   test('[MNY] expense category rules: unknown → VALIDATION, retired → MASTER_RETIRED, needs-bill → bill number on submit (draft allowed)',()=>{
     let s=seed();
-    assert.equal(code(()=>execute(s,'reception',{type:'EXPENSE',vendor:'X',category:'Repairs',amount:100,method:'Cash'})),'VALIDATION');
+    assert.equal(code(()=>execute(s,'reception',{type:'EXPENSE',description:'Test expense stream-money-master:183',vendor:'X',category:'Repairs',amount:100,method:'Cash'})),'VALIDATION');
     const sup=byCode(s,'expenseCategories','SUPPLIES');let r=execute(s,'owner',{type:'MST_MASTER_RETIRE',master:'expenseCategories',id:sup.id});
-    assert.throws(()=>execute(r,'reception',{type:'EXPENSE',vendor:'X',category:'Supplies',amount:100,method:'Cash'}),reason('MASTER_RETIRED'));
+    assert.throws(()=>execute(r,'reception',{type:'EXPENSE',description:'Test expense stream-money-master:185',vendor:'X',category:'Supplies',amount:100,method:'Cash'}),reason('MASTER_RETIRED'));
     assert.deepEqual(mnyCategoryNames(r,'Supplies'),EXPENSE_CATEGORIES);assert.ok(!mnyCategoryNames(r).includes('Supplies'));
     s=save(s,'expenseCategories',{...byCode(s,'expenseCategories','UTIL'),needsBill:true});
-    assert.throws(()=>execute(s,'reception',{type:'EXPENSE',vendor:'Water Board',category:'Utilities',amount:100,method:'UPI'}),/bill/);
-    s=execute(s,'reception',{type:'EXPENSE',vendor:'Water Board',category:'Utilities',amount:100,method:'UPI',draft:true});
+    assert.throws(()=>execute(s,'reception',{type:'EXPENSE',description:'Test expense stream-money-master:188',vendor:'Water Board',category:'Utilities',amount:100,method:'UPI'}),/bill/);
+    s=execute(s,'reception',{type:'EXPENSE',description:'Test expense stream-money-master:189',vendor:'Water Board',category:'Utilities',amount:100,method:'UPI',draft:true});
     assert.throws(()=>execute(s,'reception',{type:'EXPENSE_SUBMIT',id:s.expenses.at(-1).id}),/bill/);
-    s=execute(s,'reception',{type:'EXPENSE',vendor:'Water Board',category:'Utilities',amount:100,method:'UPI',receipt:'WB-1'});assert.equal(s.expenses.at(-1).status,'Pending');});
+    s=execute(s,'reception',{type:'EXPENSE',description:'Test expense stream-money-master:191',vendor:'Water Board',category:'Utilities',amount:100,method:'UPI',receipt:'WB-1'});assert.equal(s.expenses.at(-1).status,'Pending');});
   test('[MNY] category approval limit overrides the Manager limit (₹1,000 for Petty cash); the Owner still approves above it',()=>{
     let s=save(seed(),'expenseCategories',{...byCode(seed(),'expenseCategories','PETTY'),approvalLimit:100000});
     assert.equal(mnyApprovalLimit(s,'Petty cash',EXPENSE_MANAGER_LIMIT),100000);assert.equal(mnyApprovalLimit(s,'Supplies',EXPENSE_MANAGER_LIMIT),EXPENSE_MANAGER_LIMIT);
-    s=execute(s,'reception',{type:'EXPENSE',vendor:'Tea & Snacks Counter',category:'Petty cash',amount:200000,method:'Cash'});const id=s.expenses.at(-1).id;
+    s=execute(s,'reception',{type:'EXPENSE',description:'Test expense stream-money-master:195',vendor:'Tea & Snacks Counter',category:'Petty cash',amount:200000,method:'Cash'});const id=s.expenses.at(-1).id;
     assert.throws(()=>execute(s,'manager',{type:'EXPENSE_APPROVE',id,approve:true}),/Owner approval/);
     s=execute(s,'owner',{type:'EXPENSE_APPROVE',id,approve:true});assert.equal(s.expenses.find(e=>e.id===id).status,'Posted');});
   test('[MNY] a new credit funding source behaves like Vendor credit: no drawer, Journal voucher, "vendor credit" report line',()=>{
     let s=save(seed(),'paymentMethods',{code:'SUPPACC',name:'Supplier account',kind:'credit',needsReference:false,usableAt:['expenses'],ledger:'2200'});
     const d=drawer(s);
-    s=execute(s,'reception',{type:'EXPENSE',vendor:'Hardware Corner',category:'Maintenance',amount:30000,method:'Supplier account'});
+    s=execute(s,'reception',{type:'EXPENSE',description:'Test expense stream-money-master:201',vendor:'Hardware Corner',category:'Maintenance',amount:30000,method:'Supplier account'});
     s=execute(s,'owner',{type:'EXPENSE_APPROVE',id:s.expenses.at(-1).id,approve:true});
     assert.equal(drawer(s),d);assert.equal(accMapping(s)['funding:Supplier account'],'2200');
     const v=M.accVouchers(s,s.date).find(v=>v.source.id===s.expenses.at(-1).id);assert.equal(v.type,'Journal');
@@ -206,11 +206,11 @@ export async function register({test,M,assert}){
 
   // ── Expense vendors ──
   test('[MNY] expense vendor: a typed name in other case is stored as the list name; free text kept; retired vendor refused',()=>{
-    let s=execute(seed(),'reception',{type:'EXPENSE',vendor:'morning supplies',category:'Supplies',amount:100,method:'Cash'});
+    let s=execute(seed(),'reception',{type:'EXPENSE',description:'Test expense stream-money-master:209',vendor:'morning supplies',category:'Supplies',amount:100,method:'Cash'});
     assert.equal(s.expenses.at(-1).vendor,'Morning Supplies');
-    s=execute(s,'reception',{type:'EXPENSE',vendor:'Brand New Shop',category:'Supplies',amount:100,method:'Cash'});assert.equal(s.expenses.at(-1).vendor,'Brand New Shop');
+    s=execute(s,'reception',{type:'EXPENSE',description:'Test expense stream-money-master:211',vendor:'Brand New Shop',category:'Supplies',amount:100,method:'Cash'});assert.equal(s.expenses.at(-1).vendor,'Brand New Shop');
     const v=byCode(s,'expenseVendors','V-MORNING-SUPPLIES');const r=execute(s,'owner',{type:'MST_MASTER_RETIRE',master:'expenseVendors',id:v.id});
-    assert.throws(()=>execute(r,'reception',{type:'EXPENSE',vendor:'Morning Supplies',category:'Supplies',amount:100,method:'Cash'}),reason('MASTER_RETIRED'));});
+    assert.throws(()=>execute(r,'reception',{type:'EXPENSE',description:'Test expense stream-money-master:213',vendor:'Morning Supplies',category:'Supplies',amount:100,method:'Cash'}),reason('MASTER_RETIRED'));});
   test('[MNY] vendor GSTIN / PAN / TDS rules; stored in capitals; PAN must match the GSTIN',()=>{
     const s=seed(),base={code:'V-ACME',name:'Acme Linen',type:'laundry'};
     assert.throws(()=>save(s,'expenseVendors',{...base,gstin:'27ABCDE1234F1Z',tds:false}),/GSTIN/);

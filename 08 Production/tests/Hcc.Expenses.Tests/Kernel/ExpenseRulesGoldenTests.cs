@@ -82,24 +82,30 @@ public class ExpenseRulesGoldenTests
     }
 
     [Fact]
-    public void Duplicate_warning_ignores_case_rejected_items_and_reversal_records()
+    public void Duplicate_key_is_SCCs_date_amount_description_ignoring_case_rejected_void_and_reversal_records()
     {
+        // DEC-120: SCC addEntry 526 — same date + amount + description (case-insensitive); the vendor plays no part.
         var facts = new[]
         {
-            F(101, "Fresh Linen Services", 180_000, "Cash", "Posted"),
-            F(102, "Morning Supplies", 85_000, "UPI", "Rejected"),
-            F(103, "Fresh Linen Services", -180_000, "Cash", "Posted", reversal: true),
+            new ExpenseFact(101, "Fresh Linen Services", new Paise(180_000), Day, "Cash", "Posted", false, "Linen wash"),
+            new ExpenseFact(102, "Morning Supplies", new Paise(85_000), Day, "UPI", "Rejected", false, "Tea"),
+            new ExpenseFact(103, "Fresh Linen Services", new Paise(-180_000), Day, "Cash", "Posted", true, "Linen wash"),
+            new ExpenseFact(104, "Other", new Paise(50_000), Day, "UPI", "Void", false, "Soap"),
+            new ExpenseFact(105, "Old record", new Paise(70_000), Day, "UPI", "Posted", false),
         };
-        Assert.Equal([101L], ExpenseRules.Duplicates(facts, "fresh linen services", new Paise(180_000), Day));
-        Assert.Empty(ExpenseRules.Duplicates(facts, "Morning Supplies", new Paise(85_000), Day));   // rejected items do not warn
-        Assert.Empty(ExpenseRules.Duplicates(facts, "Fresh Linen Services", new Paise(180_000), Day, exceptId: 101));
-        Assert.Empty(ExpenseRules.Duplicates(facts, "Fresh Linen Services", new Paise(180_000), Day.AddDays(1)));
+        Assert.Equal([101L], ExpenseRules.Duplicates(facts, " LINEN wash ", new Paise(180_000), Day));
+        Assert.Empty(ExpenseRules.Duplicates(facts, "Tea", new Paise(85_000), Day));     // rejected items do not count
+        Assert.Empty(ExpenseRules.Duplicates(facts, "Soap", new Paise(50_000), Day));    // nor void ones
+        Assert.Empty(ExpenseRules.Duplicates(facts, "Linen wash", new Paise(180_000), Day, exceptId: 101));
+        Assert.Empty(ExpenseRules.Duplicates(facts, "Linen wash", new Paise(180_000), Day.AddDays(1)));
+        Assert.Empty(ExpenseRules.Duplicates(facts, "Linen wash", new Paise(180_001), Day));
+        Assert.Empty(ExpenseRules.Duplicates(facts, "", new Paise(70_000), Day));         // a record without a description never matches
     }
 
     [Fact]
     public void Validation_follows_the_prototype()
     {
-        Assert.Throws<HccException>(() => ExpenseRules.NormalizeNew("", "Supplies", "Cash", 100, null, null));       // Enter a vendor.
+        Assert.Equal(string.Empty, ExpenseRules.NormalizeNew("", "Supplies", "Cash", 100, null, null).Vendor);       // DEC-120: the vendor is optional (SCC)
         Assert.Throws<HccException>(() => ExpenseRules.NormalizeNew("X", "", "Cash", 100, null, null));              // Choose a category.
         var bad = Assert.Throws<HccException>(() => ExpenseRules.NormalizeNew("X", "Supplies", "Bitcoin", 100, null, null));
         Assert.Equal(HccErrorCode.VALIDATION, bad.Code);                                                              // Choose a funding source.

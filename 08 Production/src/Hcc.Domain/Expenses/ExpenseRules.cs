@@ -15,6 +15,9 @@ public static class ExpenseState
     public const string Posted = "Posted";
     public const string Rejected = "Rejected";
     public const string Reversed = "Reversed";
+
+    /// <summary>DEC-120 (SCC void): a draft or pending expense withdrawn with one of SCC's six reasons; kept for audit, never counted.</summary>
+    public const string Void = "Void";
 }
 
 /// <summary>Funding sources (prototype EXPENSE_METHODS, REQ-EXP-001). Cash is drawer cash; Vendor credit has no drawer effect.</summary>
@@ -31,8 +34,8 @@ public static class ExpenseMethods
     public static readonly IReadOnlyList<string> SuggestedCategories = ["Supplies", "Laundry", "Maintenance", "Utilities", "Petty cash"];
 }
 
-/// <summary>The fields of an expense that the figures and duplicate rules read.</summary>
-public sealed record ExpenseFact(long ExpenseId, string Vendor, Paise Amount, DateOnly Date, string Method, string Status, bool IsReversal);
+/// <summary>The fields of an expense that the figures and duplicate rules read (DEC-120: the description is SCC's duplicate key).</summary>
+public sealed record ExpenseFact(long ExpenseId, string Vendor, Paise Amount, DateOnly Date, string Method, string Status, bool IsReversal, string? Description = null);
 
 /// <summary>Posted figures for one business date (prototype report pack "Expenses and cash" tab).</summary>
 public sealed record ExpenseTotals(Paise Cash, Paise NonCash, Paise VendorCredit, Paise Total, Paise Reversals, int Count);
@@ -49,11 +52,14 @@ public static class ExpenseRules
     /// <summary>Posted and later-reversed expenses both happened on their date; the negative reversal record offsets on its own date (<c>expenseCounts</c>).</summary>
     public static bool Counts(string status) => status is ExpenseState.Posted or ExpenseState.Reversed;
 
+    /// <summary>
+    /// New expense fields. DEC-120 (SCC): the vendor is optional (SCC "Vendor / payee — optional"); the category and funding source are checked
+    /// against the masters by the command (<see cref="ExpenseMasters"/>); the amount is &gt; 0 and at most ₹10 crore.
+    /// </summary>
     public static (string Vendor, string Category, string Method, Paise Amount, string? Notes, string? Receipt) NormalizeNew(
         string? vendor, string? category, string? method, long amountPaise, string? notes, string? receipt, IReadOnlyList<TenderMethod>? methods = null)
     {
         var v = (vendor ?? string.Empty).Trim();
-        if (v.Length == 0) throw HccException.Validation("Enter a vendor.");
         if (v.Length > VendorMax) throw HccException.Validation($"The vendor is at most {VendorMax} characters.");
         var c = (category ?? string.Empty).Trim();
         if (c.Length == 0) throw HccException.Validation("Choose a category.");
@@ -82,16 +88,9 @@ public static class ExpenseRules
         return t;
     }
 
-    /// <summary>Same vendor (case-insensitive) + amount + date, excluding rejected items and reversal records (prototype <c>expenseDuplicates</c>). A warning only.</summary>
-    public static IReadOnlyList<long> Duplicates(IEnumerable<ExpenseFact> all, string vendor, Paise amount, DateOnly date, long exceptId = 0)
-    {
-        ArgumentNullException.ThrowIfNull(all);
-        var v = (vendor ?? string.Empty).Trim();
-        if (v.Length == 0 || amount == Paise.Zero) return [];
-        return all.Where(e => e.ExpenseId != exceptId && !e.IsReversal && e.Status != ExpenseState.Rejected && e.Amount == amount && e.Date == date
-                && string.Equals(e.Vendor.Trim(), v, StringComparison.OrdinalIgnoreCase))
-            .Select(e => e.ExpenseId).ToList();
-    }
+    /// <summary>DEC-120: SCC's duplicate key (date + amount + description) — <see cref="ExpenseScc.Duplicates"/>.</summary>
+    public static IReadOnlyList<long> Duplicates(IEnumerable<ExpenseFact> all, string? description, Paise amount, DateOnly date, long exceptId = 0) =>
+        ExpenseScc.Duplicates(all, description, amount, date, exceptId);
 
     /// <summary>Net posted figures for a date, split by funding source (prototype report pack: cash, UPI+bank, vendor credit, total; reversals shown separately).</summary>
     public static ExpenseTotals Totals(IEnumerable<ExpenseFact> all, DateOnly date, IReadOnlyList<TenderMethod>? methods = null)

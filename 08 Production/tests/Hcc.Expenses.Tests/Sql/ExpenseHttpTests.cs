@@ -89,10 +89,10 @@ public class ExpenseHttpTests : IAsyncLifetime
     public async Task Submit_decide_and_list_over_HTTP_with_contract_errors()
     {
         using (var anon = await _http.SendAsync(Req(HttpMethod.Get, "/expenses", null), Ct)) Assert.Equal(HttpStatusCode.Unauthorized, anon.StatusCode);
-        using (var noKey = await _http.SendAsync(Req(HttpMethod.Post, "/commands/SubmitExpense", Who.Reception, new SubmitExpenseRequest("Aqua", "Supplies", 3_000, "UPI")), Ct))
+        using (var noKey = await _http.SendAsync(Req(HttpMethod.Post, "/commands/SubmitExpense", Who.Reception, new SubmitExpenseRequest("Aqua", "Supplies", 3_000, "UPI", Description: "Water cans")), Ct))
             Assert.Equal(HttpStatusCode.UnprocessableEntity, noKey.StatusCode);
 
-        var submitted = await Send<ExpenseResult>(Req(HttpMethod.Post, "/commands/SubmitExpense", Who.Reception, new SubmitExpenseRequest("Aqua", "Supplies", 3_000, "UPI"), "k-submit-1"));
+        var submitted = await Send<ExpenseResult>(Req(HttpMethod.Post, "/commands/SubmitExpense", Who.Reception, new SubmitExpenseRequest("Aqua", "Supplies", 3_000, "UPI", Description: "Water cans"), "k-submit-1"));
         Assert.Equal("Pending", submitted.Expense.Status);
         using (var own = await _http.SendAsync(Req(HttpMethod.Post, "/commands/DecideExpense", Who.Reception, new DecideExpenseRequest(submitted.Expense.ExpenseId, submitted.Expense.Version, true), "k-dec-0"), Ct))
             Assert.Equal(HttpStatusCode.Forbidden, own.StatusCode);
@@ -107,6 +107,31 @@ public class ExpenseHttpTests : IAsyncLifetime
         var summary = await Send<ExpenseSummaryView>(Req(HttpMethod.Get, "/expenses/summary?date=2026-10-24", Who.Accountant));
         Assert.True(summary.NonCashPaise >= 3_000);
         using (var hk = await _http.SendAsync(Req(HttpMethod.Get, "/expenses", Who.Housekeeper), Ct)) Assert.Equal(HttpStatusCode.Forbidden, hk.StatusCode);
+    }
+
+    [Fact]
+    public async Task DEC120_registers_edit_void_bill_photo_and_CSV_routes_answer_over_HTTP()
+    {
+        var jpeg = Convert.ToBase64String(new byte[] { 0xFF, 0xD8, 0xFF, 7 });
+        var e = await Send<ExpenseResult>(Req(HttpMethod.Post, "/commands/SubmitExpense", Who.Reception,
+            new SubmitExpenseRequest(null, "Supplies", 4_000, "UPI", Description: "Soap", BillPhotoBase64: jpeg, BillPhotoContentType: "image/jpeg"), "k-scc-1"));
+        var photo = await Send<ExpenseBillPhotoView>(Req(HttpMethod.Get, $"/expenses/{e.Expense.ExpenseId}/bill-photo", Who.Manager));
+        Assert.Equal(jpeg, photo.ImageBase64);
+        var edited = await Send<ExpenseResult>(Req(HttpMethod.Post, "/commands/EditExpense", Who.Manager,
+            new EditExpenseRequest(e.Expense.ExpenseId, e.Expense.Version, 4_500, "Supplies", "UPI", "Soap and brushes", "Bill corrected"), "k-scc-2"));
+        Assert.Equal(4_500, edited.Expense.AmountPaise);
+        var voided = await Send<ExpenseResult>(Req(HttpMethod.Post, "/commands/VoidExpense", Who.Accountant,
+            new VoidExpenseRequest(e.Expense.ExpenseId, edited.Expense.Version, "Duplicate entry"), "k-scc-3"));
+        Assert.Equal("Void", voided.Expense.Status);
+        await Send<ExpenseRegisterResult>(Req(HttpMethod.Post, "/commands/SetExpenseBudget", Who.Manager, new SetExpenseBudgetRequest("Supplies", 100_000), "k-scc-4"));
+        await Send<ExpenseRegisterResult>(Req(HttpMethod.Post, "/commands/AddUdhaar", Who.Cashier, new AddUdhaarRequest("Mohan (fictional)", 5_000), "k-scc-5"));
+        var reg = await Send<ExpenseRegistersView>(Req(HttpMethod.Get, "/expenses/registers", Who.Reception));
+        Assert.Equal("2026-10-24", reg.BusinessDate);
+        Assert.Contains(reg.Budgets, b => b.Category == "Supplies" && b.AmountPaise == 100_000);
+        Assert.Single(reg.Udhaar);
+        var csv = await Send<ExpenseExportView>(Req(HttpMethod.Get, "/expenses/export/month?month=2026-10", Who.Accountant));
+        Assert.Equal("expense_month_2026-10.csv", csv.FileName);
+        using (var cashier = await _http.SendAsync(Req(HttpMethod.Get, "/expenses/export/ledger", Who.Cashier), Ct)) Assert.Equal(HttpStatusCode.Forbidden, cashier.StatusCode);
     }
 
     private async Task<T> Send<T>(HttpRequestMessage r)

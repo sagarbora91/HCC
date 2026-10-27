@@ -77,3 +77,36 @@ export async function compressSlipPhoto(file:Blob):Promise<{dataUrl:string;bytes
     return {dataUrl:slipDataUrl(r.bytes),bytes:r.bytes.length,width:r.width,height:r.height};
   }finally{src.img.close?.();canvas.width=0;canvas.height=0;}
 }
+
+// ── DEC-120 · expense bill photo (SCC expense.js readPhoto 456-473), through the same decode / canvas / data-URL pipeline as the slip ──
+// SCC: a picked file above 4 MB is refused ("Photo too large (max 4MB)"); the photo is drawn at scale min(1, 1000 ÷ width) — width at most
+// 1000 px, never enlarged, the canvas truncating the scaled size to whole pixels — and saved as JPEG quality 0.7. One pass, no size search.
+/** SCC: the largest picked file (4 MB). */
+export const BILL_MAX_INPUT_BYTES=4*1024*1024;
+/** SCC: the widest saved photo (px) and its JPEG quality. */
+export const BILL_WIDTH=1000;
+export const BILL_QUALITY=0.7;
+/** SCC's canvas size: scale = min(1, 1000 ÷ width); a canvas width / height set to a fraction keeps the whole pixels (at least 1 here). */
+export function billFit(width:number,height:number):{width:number;height:number}{
+  const sc=Math.min(1,BILL_WIDTH/width);return {width:Math.max(1,Math.trunc(width*sc)),height:Math.max(1,Math.trunc(height*sc))};
+}
+/** Why a picked file is refused before reading it ('' = accepted). */
+export function billPickRefusal(file:{size:number;type?:string}):string{
+  if(file.type&&!/^image\//.test(file.type))return 'Choose a photo of the bill.';
+  return file.size>BILL_MAX_INPUT_BYTES?'Photo too large (max 4MB)':'';
+}
+/** Bill photo → JPEG data URL (SCC sizes); throws an Error with a user-facing message. */
+export async function compressBillPhoto(file:Blob):Promise<{dataUrl:string;bytes:number;width:number;height:number}>{
+  const why=billPickRefusal(file);if(why)throw new Error(why);
+  const src=await decode(file);
+  const canvas=document.createElement('canvas');const ctx=canvas.getContext('2d');
+  if(!ctx)throw new Error('This device cannot prepare the photo. Use another device.');
+  try{
+    const size=billFit(src.width,src.height);
+    canvas.width=size.width;canvas.height=size.height;ctx.fillStyle='#fff';ctx.fillRect(0,0,size.width,size.height);ctx.drawImage(src.img,0,0,size.width,size.height);
+    const blob=await new Promise<Blob|null>(ok=>canvas.toBlob(ok,'image/jpeg',BILL_QUALITY));
+    if(!blob)throw new Error('This device cannot prepare the photo. Use another device.');
+    const bytes=new Uint8Array(await blob.arrayBuffer());
+    return {dataUrl:slipDataUrl(bytes),bytes:bytes.length,width:size.width,height:size.height};
+  }finally{src.img.close?.();canvas.width=0;canvas.height=0;}
+}

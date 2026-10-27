@@ -86,13 +86,21 @@ public static class CashOutRules
     /// The slip photo as stored: JPEG or PNG only (checked on the bytes, not just the declared type), 1 … 102,399 bytes. The app compresses it
     /// on the device; the server never re-encodes it.
     /// </summary>
-    public static (string ContentType, byte[] Bytes) SlipImage(string? base64, string? contentType)
+    public static (string ContentType, byte[] Bytes) SlipImage(string? base64, string? contentType) =>
+        Photo(base64, contentType, SlipMaxBytes, "Take a photo of the deposit slip.", "The slip photo must be a JPEG or PNG image.",
+            "The slip photo must be under 100 KB. Take it again (the app compresses it).", "The slip photo is not valid base64.");
+
+    /// <summary>
+    /// A photo sent by the app (the deposit slip; DEC-120 the expense bill photo): JPEG or PNG only, checked on the bytes, 1 … <paramref name="maxBytes"/>
+    /// bytes; the server never re-encodes it. The messages name the photo.
+    /// </summary>
+    public static (string ContentType, byte[] Bytes) Photo(string? base64, string? contentType, int maxBytes, string missing, string wrongType, string tooBig, string notBase64)
     {
-        if (string.IsNullOrWhiteSpace(base64)) throw HccException.Validation("Take a photo of the deposit slip.");
+        if (string.IsNullOrWhiteSpace(base64)) throw HccException.Validation(missing);
         var type = contentType?.Trim().ToLowerInvariant();
-        if (type is not ("image/jpeg" or "image/png")) throw HccException.Validation("The slip photo must be a JPEG or PNG image.");
-        // Base64 of 102,399 bytes is 136,532 characters; anything longer is refused before decoding.
-        if (base64.Length > 136_532 + 4) throw HccException.Validation("The slip photo must be under 100 KB. Take it again (the app compresses it).");
+        if (type is not ("image/jpeg" or "image/png")) throw HccException.Validation(wrongType);
+        // Base64 of maxBytes is 4 × ceil(maxBytes ÷ 3) characters; anything longer is refused before decoding.
+        if (base64.Length > (maxBytes + 2) / 3 * 4 + 4) throw HccException.Validation(tooBig);
         byte[] bytes;
         try
         {
@@ -100,16 +108,16 @@ public static class CashOutRules
         }
         catch (FormatException)
         {
-            throw HccException.Validation("The slip photo is not valid base64.");
+            throw HccException.Validation(notBase64);
         }
 
-        if (bytes.Length == 0) throw HccException.Validation("Take a photo of the deposit slip.");
-        if (bytes.Length > SlipMaxBytes) throw HccException.Validation("The slip photo must be under 100 KB. Take it again (the app compresses it).");
+        if (bytes.Length == 0) throw HccException.Validation(missing);
+        if (bytes.Length > maxBytes) throw HccException.Validation(tooBig);
         var isJpeg = bytes.Length >= 3 && bytes[0] == 0xFF && bytes[1] == 0xD8 && bytes[2] == 0xFF;
         var isPng = bytes.Length >= 8 && bytes[0] == 0x89 && bytes[1] == 0x50 && bytes[2] == 0x4E && bytes[3] == 0x47 && bytes[4] == 0x0D && bytes[5] == 0x0A
                     && bytes[6] == 0x1A && bytes[7] == 0x0A;
         if ((type == "image/jpeg" && !isJpeg) || (type == "image/png" && !isPng))
-            throw HccException.Validation("The slip photo must be a JPEG or PNG image.");
+            throw HccException.Validation(wrongType);
         return (type, bytes);
     }
 

@@ -7,7 +7,7 @@ export function register({test,M,assert}){
   // BL-004 typed errors
   test('Typed error: overlapping booking → NOT_AVAILABLE',()=>{let s=baseFixture();s=execute(s,'owner',{type:'BOOK',guest:'A Guest',room:'105',arrival:s.date,departure:'2026-10-26',people:1});assert.equal(code(()=>execute(s,'owner',{type:'BOOK',guest:'B Guest',room:'105',arrival:'2026-10-25',departure:'2026-10-27',people:1})),'NOT_AVAILABLE');});
   test('Typed error: housekeeper payment → FORBIDDEN',()=>{assert.equal(code(()=>execute(baseFixture(),'housekeeper',{type:'PAYMENT',id:'HCC-1041',amount:100,method:'Cash'})),'FORBIDDEN');});
-  test('Typed error: action on closed day → DAY_CLOSED',()=>{let s=loadScenario('S1');s=execute(s,'manager',{type:'SHIFT_CLOSE',counted:drawer(s)});s=execute(s,'manager',{type:'DAY_CLOSE'});assert.equal(code(()=>execute(s,'owner',{type:'EXPENSE',vendor:'V',category:'Supplies',amount:100,method:'Cash'})),'DAY_CLOSED');});
+  test('Typed error: action on closed day → DAY_CLOSED',()=>{let s=loadScenario('S1');s=execute(s,'manager',{type:'SHIFT_CLOSE',counted:drawer(s)});s=execute(s,'manager',{type:'DAY_CLOSE'});assert.equal(code(()=>execute(s,'owner',{type:'EXPENSE',description:'Test expense m1:10',vendor:'V',category:'Supplies',amount:100,method:'Cash'})),'DAY_CLOSED');});
   test('Typed error: unknown booking → NOT_FOUND; bad input → VALIDATION',()=>{assert.equal(code(()=>execute(baseFixture(),'owner',{type:'REGISTER',id:'NOPE'})),'NOT_FOUND');assert.equal(code(()=>execute(baseFixture(),'owner',{type:'BOOK',guest:'X',room:'105',arrival:'2026-10-24',departure:'2026-10-25',people:1})),'VALIDATION');});
 
   // BL-003 simulated clock (DEC-030, QG-P10)
@@ -81,7 +81,7 @@ export function register({test,M,assert}){
     const t=s.tasks.find(t=>t.booking===id);
     X('housekeeper',{type:'TASK',id:t.id,action:'start'});[0,1,2].forEach(i=>X('housekeeper',{type:'TASK',id:t.id,action:'check',index:i}));
     X('housekeeper',{type:'TASK',id:t.id,action:'complete'});X('supervisor',{type:'TASK',id:t.id,action:'inspect'});
-    X('cashier',{type:'EXPENSE',vendor:'Aqua Water Cans',category:'Supplies',amount:30000,method:'Cash'});
+    X('cashier',{type:'EXPENSE',description:'Test expense m1:84',vendor:'Aqua Water Cans',category:'Supplies',amount:30000,method:'Cash'});
     X('manager',{type:'EXPENSE_APPROVE',id:s.expenses.at(-1).id,approve:true});drawers.push(drawer(s));
     X('manager',{type:'NIGHT_POST'});X('manager',{type:'SHIFT_CLOSE',counted:drawer(s)});s=tillClear(M,s);X('manager',{type:'DAY_CLOSE'});
     const rerun=code(()=>execute(s,'manager',{type:'DAY_CLOSE'}));

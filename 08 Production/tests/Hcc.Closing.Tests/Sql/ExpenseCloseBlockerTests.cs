@@ -23,7 +23,7 @@ public sealed class ExpenseCloseBlockerTests
     private static readonly DateOnly D24 = new(2026, 10, 24);
 
     private static async Task<ExpenseView> SubmitAsync(Hotel h, string vendor, long amount, bool draft = false)
-        => (await h.Get<ExpenseCommands>().SubmitAsync(h.Ctx(h.Reception, ExpenseCommands.OpSubmit), new SubmitExpenseRequest(vendor, "Supplies", amount, "UPI", draft), Ct)).Value.Expense;
+        => (await h.Get<ExpenseCommands>().SubmitAsync(h.Ctx(h.Reception, ExpenseCommands.OpSubmit), new SubmitExpenseRequest(vendor, "Supplies", amount, "UPI", draft, Description: vendor + " bill"), Ct)).Value.Expense;
 
     // The Manager approves within the limit; the Owner rejects (under the real policy a Manager's limited grant also asks an amount for a
     // rejection: "Amount needed for a limited permission" — reported separately, not changed here).

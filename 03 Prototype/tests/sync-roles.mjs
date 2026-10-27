@@ -77,6 +77,7 @@ function routes(role){
     'GET /accounting/mapping':()=>[],
     'GET /accounting/mapping/history':()=>[],
     'GET /accounting/locks/history':()=>[],
+    'GET /expenses/registers':()=>({businessDate:BD,budgets:[],recurring:[],petty:[],udhaar:[],months:[]}), // DEC-120 SCC registers
     'GET /expenses':({query})=>page(query.status==='Pending'?[{expenseId:71,ref:'EXP-71',vendor:'Fictional Stores',category:'Supplies',amountPaise:45000,method:'Cash',businessDate:BD,status:'Pending',
       submittedBy:uid,notes:null,receipt:null,reason:null,decidedBy:null,decidedUtc:null,reversalOf:null,reversedBy:null,version:'E71'}]:[],query,'items'),
     'GET /compliance/obligations':()=>[],
