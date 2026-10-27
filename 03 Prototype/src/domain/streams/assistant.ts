@@ -284,7 +284,7 @@ export function aiAnswer(s:State,uid:string,question:string,intent:AIIntent=aiMa
     return ans('Pending approvals',pa.length+pe.length?`${plural(pa.length,'approval')} and ${plural(pe.length,'expense')} are waiting for a decision.`:'Nothing is waiting for approval.',
       [{label:'Approvals',value:String(pa.length)},{label:'Expenses',value:String(pe.length)}],
       'Approval requests with status Pending plus expenses submitted and not yet approved or rejected. A request cannot be approved by the person who raised it.',[link('approvals','Approvals & audit'),link('expenses','Expenses')],
-      [...pa.map(x=>`${approvalKindLabel(x.kind)}${a.money?' · '+money(x.amount):''} · ${x.reason} · raised by ${userName(s,x.actor)}`),...pe.map(e=>`Expense · ${e.vendor}${a.money?' · '+money(e.amount):''} · raised by ${userName(s,e.actor)}`)]);}
+      [...pa.map(x=>`${approvalKindLabel(x.kind)}${a.money?' · '+money(x.amount):''} · ${x.reason} · raised by ${userName(s,x.actor)}`),...pe.map(e=>`Expense · ${e.vendor||e.description||'—'}${a.money?' · '+money(e.amount):''} · raised by ${userName(s,e.actor)}`)]);}
   case 'rooms':{const st=s.rooms.map(r=>({r,st:roomStatus(s,r)}));const pick=(k:string)=>st.filter(x=>x.st===k).map(x=>x.r.id);
     const dirty=pick('Dirty'),cleaning=pick('Cleaning'),insp=pick('Inspection'),blocked=pick('Blocked');
     return ans('Dirty and blocked rooms',`${plural(dirty.length,'room')} dirty, ${cleaning.length} being cleaned, ${insp.length} awaiting inspection and ${blocked.length} blocked tonight.`,

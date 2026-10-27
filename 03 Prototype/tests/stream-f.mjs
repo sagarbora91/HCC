@@ -74,7 +74,7 @@ export function register({test,M,assert}){
   // ── BL-029 Expenses ──
   test('[F] Expense: draft → submit → approve → reverse; drawer counted exactly once',()=>{
     let s=baseFixture();const d0=drawer(s);
-    s=execute(s,'cashier',{type:'EXPENSE',vendor:'Aqua Water Cans',category:'Supplies',amount:30000,method:'Cash',draft:true,receipt:'aqua-0001.jpg',notes:'20 cans'});
+    s=execute(s,'cashier',{type:'EXPENSE',description:'Test expense stream-f:77',vendor:'Aqua Water Cans',category:'Supplies',amount:30000,method:'Cash',draft:true,receipt:'aqua-0001.jpg',notes:'20 cans'});
     const id=s.expenses.at(-1).id;assert.equal(s.expenses.at(-1).status,'Draft');assert.equal(s.expenses.at(-1).receipt,'aqua-0001.jpg');assert.equal(drawer(s),d0);
     assert.equal(code(()=>execute(s,'reception',{type:'EXPENSE_SUBMIT',id})),'FORBIDDEN'); // not own draft
     assert.equal(code(()=>execute(s,'manager',{type:'EXPENSE_APPROVE',id,approve:true})),'INVALID_TRANSITION'); // draft not approvable
@@ -94,14 +94,15 @@ export function register({test,M,assert}){
   });
   test('[F] Expense: vendor credit has no drawer effect; manager limit; reject without reason still works; duplicate warning',()=>{
     let s=baseFixture();const d0=drawer(s);
-    s=execute(s,'reception',{type:'EXPENSE',vendor:'Paint Depot',category:'Maintenance',amount:600000,method:'Vendor credit'});
+    s=execute(s,'reception',{type:'EXPENSE',description:'Test expense stream-f:97',vendor:'Paint Depot',category:'Maintenance',amount:600000,method:'Vendor credit'});
     const id=s.expenses.at(-1).id;
     assert.throws(()=>execute(s,'manager',{type:'EXPENSE_APPROVE',id,approve:true}),/Owner approval/);
     s=execute(s,'owner',{type:'EXPENSE_APPROVE',id,approve:true});assert.equal(drawer(s),d0);
     s=execute(s,'manager',{type:'EXPENSE_APPROVE',id:'EXP-102',approve:false});assert.equal(s.expenses.find(e=>e.id==='EXP-102').status,'Rejected');
-    assert.equal(M.expenseDuplicates(s,'fresh linen services',180000,s.date).length,1);
-    assert.equal(M.expenseDuplicates(s,'Morning Supplies',85000,s.date).length,0); // rejected items do not warn
-    assert.equal(code(()=>execute(s,'reception',{type:'EXPENSE',vendor:'X',category:'Supplies',amount:100,method:'Bitcoin'})),'VALIDATION');
+    // DEC-120: SCC's duplicate key = date + amount + description (case-insensitive); records saved before DEC-120 have no description.
+    assert.equal(M.expenseDuplicates(s,'TEST EXPENSE stream-f:97',600000,s.date).length,1);
+    assert.equal(M.expenseDuplicates(s,'fresh linen services',180000,s.date).length,0);
+    assert.equal(code(()=>execute(s,'reception',{type:'EXPENSE',description:'Test expense stream-f:104',vendor:'X',category:'Supplies',amount:100,method:'Bitcoin'})),'VALIDATION');
   });
 
   // ── BL-030 Day closing ──
@@ -140,7 +141,7 @@ export function register({test,M,assert}){
     assert.equal(code(()=>execute(s,'manager',{type:'CLOSE_RUN'})),'DAY_CLOSED');
     s=execute(s,'manager',{type:'NEXT_DAY'});
     s=execute(s,'manager',{type:'SHIFT_OPEN',handover:s.openingCash}); // DEC-078: a cash expense needs an open shift, opened by its owner
-    s=execute(s,'reception',{type:'EXPENSE',vendor:'Later Vendor',category:'Supplies',amount:5000,method:'Cash'});
+    s=execute(s,'reception',{type:'EXPENSE',description:'Test expense stream-f:143',vendor:'Later Vendor',category:'Supplies',amount:5000,method:'Cash'});
     s=execute(s,'manager',{type:'EXPENSE_APPROVE',id:s.expenses.at(-1).id,approve:true});
     assert.equal(JSON.stringify(s.closings[d]),rec);
     const p=M.reportPack(s,d,d);assert.equal(p.tabs.find(t=>t.id==='expenses').metrics.find(m=>m.id==='total').value,s.closings[d].expenses.total);
@@ -237,7 +238,7 @@ export function register({test,M,assert}){
     X('cashier',{type:'PAYMENT',id,amount:50000,method:'Cash',kind:'deposit-return'});drawers.push(drawer(s));
     const folio26=totals(s.bookings.find(b=>b.id===id));
     X('reception',{type:'CHECKOUT',id,key:'checkout:'+id});
-    X('cashier',{type:'EXPENSE',vendor:'Aqua Water Cans',category:'Supplies',amount:30000,method:'Cash'});
+    X('cashier',{type:'EXPENSE',description:'Test expense stream-f:240',vendor:'Aqua Water Cans',category:'Supplies',amount:30000,method:'Cash'});
     X('manager',{type:'EXPENSE_APPROVE',id:s.expenses.at(-1).id,approve:true});drawers.push(drawer(s));
     X('manager',{type:'CLOSE_RUN'});X('cashier',{type:'SHIFT_SUBMIT',counted:drawer(s)});s=tillClear(M,s);X('manager',{type:'DAY_CLOSE'});
     const rerun=code(()=>execute(s,'manager',{type:'DAY_CLOSE'}));

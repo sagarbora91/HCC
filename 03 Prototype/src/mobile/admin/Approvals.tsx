@@ -57,7 +57,7 @@ function ExpensesList(){
   return <>
     <MaIntro>Submitters cannot approve their own expense. Rejecting asks for a reason.</MaIntro>
     {list.length?list.map(e=>{const block=maExpenseBlock(s,uid,e);return <article className="ma-card" key={e.id} aria-label={`Expense ${e.id}`}>
-      <div className="ma-card-top"><div><strong>{e.vendor}</strong><span>{e.id} · {shortDate(e.date)}</span></div><strong className="ma-amt number">{money(e.amount)}</strong></div>
+      <div className="ma-card-top"><div><strong>{e.description??e.vendor}</strong><span>{e.description&&e.vendor?e.vendor+' · ':''}{e.id} · {shortDate(e.date)}</span></div><strong className="ma-amt number">{money(e.amount)}</strong></div>
       <MaRows rows={[['Category',e.category],['Method',e.method],['Submitted by',s.users.find(x=>x.id===e.actor)?.name.split(' · ')[0]||e.actor]]}/>
       <div className="ma-actions"><MaGuard className="btn primary" block={block} busy={busy} onClick={()=>run({type:'EXPENSE_APPROVE',id:e.id,approve:true,key:'expense:'+e.id},'Expense approved and posted')}><Check size={18}/>Approve</MaGuard>
         {!block&&<button type="button" className="btn" disabled={busy} onClick={()=>open({type:'expense-reason',id:e.id,room:'reject'})}><X size={18}/>Reject…</button>}</div>

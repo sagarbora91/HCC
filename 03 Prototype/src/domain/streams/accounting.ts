@@ -144,7 +144,7 @@ export function accLiveVouchers(s:State,date:string,mapping=accMapping(s)):ACCVo
   }
   for(const e of s.expenses.filter(e=>e.date===date&&expenseCounts(e)&&e.amount!==0)){
     const miss:string[]=[],head=map('expense:'+e.category,miss),fund=map('funding:'+e.method,miss);
-    push({date,type:mnyIsCredit(s,e.method)?'Journal':'Payment',narration:`${e.reversalOf?'Reversal of '+e.reversalOf+' · ':''}${e.vendor} · ${e.category} · ${e.method}`,
+    push({date,type:mnyIsCredit(s,e.method)?'Journal':'Payment',narration:`${e.reversalOf?'Reversal of '+e.reversalOf+' · ':''}${e.vendor||e.description||'—'} · ${e.category} · ${e.method}`, // DEC-120: the vendor is optional
       source:{kind:'expense',id:e.id,sub:e.reversalOf?'reversal':'expense'}},miss,[dr(head,e.amount),cr(fund,e.amount)]);
   }
   // ── Wave B1 (DEC-073): cash leaving the drawer — same vouchers as the server projector (keys banking:{id}, banking:{id}/rejected, drawing:{id}) ──

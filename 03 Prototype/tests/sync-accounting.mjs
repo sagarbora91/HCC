@@ -54,6 +54,7 @@ export async function register({test,assert,M}){
     'POST /commands/ResetLedgerMapping':({body})=>({mapKey:body.mapKey,before:'5050',after:'5010',isDefault:true}),
     'GET /expenses':({query})=>{const all=[...exps.values()].filter(e=>query.status?e.status===query.status:e.businessDate>=query.from&&e.businessDate<=query.to);
       return {items:all,page:1,pageSize:100,total:all.length,ownOnly:false};},
+    'GET /expenses/registers':()=>({businessDate:D,budgets:[],recurring:[],petty:[],udhaar:[],months:[]}), // DEC-120 (mapping: tests/sync-expenses-scc.mjs)
     'POST /commands/SubmitExpense':({body})=>{const id=nextExp++;const e=srvExp(id,{vendor:body.vendor,category:body.category,amount:body.amountPaise,method:body.method,date:D,
       status:body.draft?'Draft':'Pending',actor:'owner',notes:body.notes,receipt:body.receipt});exps.set(id,e);return {expense:e,duplicateOf:[],cashMovementId:null};},
     'POST /commands/SubmitExpenseDraft':({body})=>{const e={...exps.get(body.expenseId),status:'Pending',version:'AAAAAAAAF1='};exps.set(body.expenseId,e);return {expense:e,duplicateOf:[],cashMovementId:null};},
@@ -104,7 +105,7 @@ export async function register({test,assert,M}){
     const tally=M.accTallyXml(s,Y,D);assert.equal(tally.count,M.accTallyXml(P,Y,D).count);assert.equal(tally.debit,M.accTallyXml(P,Y,D).debit);
   });
   test('[W4-7 expenses] expenses = GET /expenses (window + every Draft / Pending) mapped to the prototype Expense; compliance from obligations + calendar',()=>{
-    assert.deepEqual(bootGets.filter(p=>p.startsWith('/expenses')).sort(),['/expenses','/expenses?Draft','/expenses?Pending']);
+    assert.deepEqual(bootGets.filter(p=>p.startsWith('/expenses')).sort(),['/expenses','/expenses/registers','/expenses?Draft','/expenses?Pending']);
     assert.deepEqual(s.expenses.map(e=>e.id),['99','101','102']);
     const strip=e=>[e.vendor,e.category,e.amount,e.method,e.date,e.status];
     assert.deepEqual(s.expenses.slice(1).map(strip),P.expenses.map(strip));
@@ -137,10 +138,10 @@ export async function register({test,assert,M}){
   srv.on('GET /accounting/export/tally',({query})=>({from:query.from,to:query.to,dates:1,voucherCount:2,debitPaise:5000,creditPaise:5000,simulated:true,
     fileName:`HCC-tally-SIMULATED-${query.from}_${query.to}.xml`,xml:'<ENVELOPE/>',reexportDates:[],provisionalDates:[D],exportId:10,pendingEvents:2,legacyDates:['2026-10-01']}));
   await seq('tallyPending',{type:'ACC_TALLY_EXPORT',from:D,to:D,key:'tally:2'});
-  const proto=M.execute(M.seed(),'owner',{type:'EXPENSE',vendor:'Petty Stores',category:'Petty cash',method:'Cash',amount:42000,receipt:'bill.jpg',notes:'Tea',draft:false});
-  await seq('exp',{type:'EXPENSE',vendor:' Petty Stores ',category:'Petty cash',method:'Cash',amount:42000,receipt:'bill.jpg',notes:'Tea',draft:false,key:'modal-7:submit'});
+  const proto=M.execute(M.seed(),'owner',{type:'EXPENSE',description:'Test expense sync-accounting:140',vendor:'Petty Stores',category:'Petty cash',method:'Cash',amount:42000,receipt:'bill.jpg',notes:'Tea',draft:false});
+  await seq('exp',{type:'EXPENSE',description:'Test expense sync-accounting:141',vendor:' Petty Stores ',category:'Petty cash',method:'Cash',amount:42000,receipt:'bill.jpg',notes:'Tea',draft:false,key:'modal-7:submit'});
   const added=rt.get().state.expenses.find(e=>e.id==='103');
-  await seq('expBad',{type:'EXPENSE',vendor:'X',category:'Supplies',method:'Cheque',amount:100});
+  await seq('expBad',{type:'EXPENSE',description:'Test expense sync-accounting:143',vendor:'X',category:'Supplies',method:'Cheque',amount:100});
   await seq('submit',{type:'EXPENSE_SUBMIT',id:'99',key:'expsubmit:99'});
   await seq('approveNoTill',{type:'EXPENSE_APPROVE',id:'103',approve:true,key:'expense:103'});
   // Till handshake: the money area's cash-desk read learns the till with the open shift as ids 'till','current'.
@@ -189,7 +190,7 @@ export async function register({test,assert,M}){
   test('[W4-7 expenses] EXPENSE (same record as the prototype) / SUBMIT / APPROVE (till for cash) / reject / REVERSE → server commands with key + loaded version, then expenses reload',()=>{
     assert.ok(res.exp.r.ok,res.exp.r.text);assert.deepEqual(res.exp.calls[0],'POST /commands/SubmitExpense');assert.ok(res.exp.calls.includes('GET /expenses'));
     assert.equal(cmds('SubmitExpense')[0].key,'modal-7:submit');
-    assert.deepEqual(cmds('SubmitExpense')[0].body,{vendor:'Petty Stores',category:'Petty cash',amountPaise:42000,method:'Cash',draft:false,notes:'Tea',receipt:'bill.jpg'});
+    assert.deepEqual(cmds('SubmitExpense')[0].body,{vendor:'Petty Stores',category:'Petty cash',amountPaise:42000,method:'Cash',draft:false,notes:'Tea',receipt:'bill.jpg',description:'Test expense sync-accounting:141'});
     const pe=proto.expenses.at(-1);
     assert.deepEqual([added.vendor,added.category,added.amount,added.method,added.date,added.status,added.notes,added.receipt],[pe.vendor,pe.category,pe.amount,pe.method,pe.date,pe.status,pe.notes,pe.receipt]);
     assert.deepEqual([res.expBad.r.reason,res.expBad.calls.length],['precheck',0]);assert.match(res.expBad.r.text,/funding source/);
@@ -225,7 +226,7 @@ export async function register({test,assert,M}){
   const row=(t,a)=>t.find(r=>r.account===a)??{debit:0,credit:0};
   const acc=fakeServer({'GET /me/capabilities':()=>capabilities({roles:['ACC'],grants:[['PERM-RPT-001','A'],['PERM-EXP-001','A'],['PERM-ACC-001','A']]}),
     'GET /accounting/days':()=>[],'GET /accounting/trial-balance':()=>({rows:[]}),'GET /accounting/mapping':()=>[],'GET /accounting/mapping/history':()=>[],'GET /accounting/locks/history':()=>[],
-    'GET /expenses':()=>({items:[],page:1,pageSize:100,total:0,ownOnly:true})});
+    'GET /expenses':()=>({items:[],page:1,pageSize:100,total:0,ownOnly:true}),'GET /expenses/registers':()=>({businessDate:D,budgets:[],recurring:[],petty:[],udhaar:[],months:[]})});
   const ra=await startRuntime(S,acc);
   const hk=fakeServer({'GET /me/capabilities':()=>capabilities({roles:['HKP'],grants:[['PERM-HK-001','A']]})});
   const rh=await startRuntime(S,hk);
@@ -239,7 +240,10 @@ export async function register({test,assert,M}){
     assert.deepEqual([rh.get().state.expenses,rh.get().state.accountingX?.server],[[],undefined]);
     const area=S.AREAS.find(a=>a.id==='accounting');assert.deepEqual(area.unmapped,{});
     assert.deepEqual(area.commands.map(c=>c.type).sort(),['ACC_LOCK','ACC_MAP_RESET','ACC_MAP_SET','ACC_TALLY_EXPORT','ACC_UNLOCK','CMP_CA_PACK','CMP_FILE','CMP_NA','CMP_OBLIGATION_SAVE','CMP_OBLIGATION_TOGGLE',
-      'CMP_REOPEN','CMP_SETTINGS_SET','EXPENSE','EXPENSE_APPROVE','EXPENSE_REVERSE','EXPENSE_SUBMIT']);
+      'CMP_REOPEN','CMP_SETTINGS_SET','EXPENSE','EXPENSE_APPROVE','EXPENSE_REVERSE','EXPENSE_SUBMIT',
+      // DEC-120 SCC expense features
+      'EXP_BUDGET_COPY','EXP_BUDGET_SET','EXP_CSV','EXP_EDIT','EXP_MONTH_LOCK','EXP_PETTY_FLOAT','EXP_PETTY_FLOAT_DECIDE','EXP_PETTY_OUT','EXP_REC_DELETE','EXP_REC_POST','EXP_REC_SAVE',
+      'EXP_REC_TOGGLE','EXP_UD_ADD','EXP_UD_PAY','EXP_UD_VOID','EXP_VOID'].sort());
   });
   // N5: the imported opening trial balance dated inside the window counts from its own date (names / groups of imported ledgers kept).
   const imp=[{account:'1000',name:'Cash in hand',group:'Asset',debitPaise:2500000,creditPaise:0,balancePaise:2500000},

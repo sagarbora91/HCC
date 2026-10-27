@@ -10,6 +10,9 @@ public static class ExpensePermissions
     public const string Submit = "PERM-EXP-001";
     public const string Decide = "PERM-EXP-002";
     public const string PostReverse = "PERM-EXP-003";
+
+    /// <summary>DEC-120: the SCC month lock and its override are the Owner's (DEC-058 Owner-only money settings): masters.manage-money.</summary>
+    public const string Owner = "PERM-MST-002";
 }
 
 /// <summary>
@@ -24,17 +27,22 @@ public static class ExpenseEvents
 
 public sealed record ExpenseRecord(long ExpenseId, int PropertyId, string Vendor, string Category, Paise Amount, string Method, DateOnly BusinessDate,
     string Status, int SubmittedBy, string? Notes, string? Receipt, string? Reason, int? DecidedBy, DateTime? DecidedUtc, int? TillId, long? ReversalOf,
-    long? ReversedBy, byte[] Version)
+    long? ReversedBy, byte[] Version, string? Description = null, int? GstRateBps = null, long? GstPaise = null, string? Source = null, string? SourceRef = null,
+    string? VoidReason = null, int? VoidedBy = null, DateTime? VoidedUtc = null, DateTime? CreatedUtc = null, bool HasBillPhoto = false)
 {
     public bool IsReversal => ReversalOf is not null;
 
-    public ExpenseFact Fact => new(ExpenseId, Vendor, Amount, BusinessDate, Method, Status, IsReversal);
+    public ExpenseFact Fact => new(ExpenseId, Vendor, Amount, BusinessDate, Method, Status, IsReversal, Description);
 }
 
 public sealed record NewExpense(int PropertyId, string Vendor, string Category, Paise Amount, string Method, DateOnly BusinessDate, string Status,
-    int SubmittedBy, string? Notes, string? Receipt, string? Reason, int? DecidedBy, int? TillId, long? ReversalOf, DateTime NowUtc);
+    int SubmittedBy, string? Notes, string? Receipt, string? Reason, int? DecidedBy, int? TillId, long? ReversalOf, DateTime NowUtc,
+    string? Description = null, int? GstRateBps = null, long? GstPaise = null, string? Source = null, string? SourceRef = null);
 
 public sealed record ExpenseFilter(string? Status, DateOnly? From, DateOnly? To, int? SubmittedBy);
+
+/// <summary>One logged change (ops.expense_edit).</summary>
+public sealed record ExpenseEditRecord(long EditId, long ExpenseId, int By, DateTime AtUtc, string Reason, string OldJson, string NewJson);
 
 /// <summary>Persistence port of the Expenses commands and queries (SQL adapter in Infrastructure/Expenses).</summary>
 public interface IExpenseStore
@@ -46,10 +54,39 @@ public interface IExpenseStore
     /// <summary>Row lock (UPDLOCK) inside the command transaction; null when unknown at the property.</summary>
     Task<ExpenseRecord?> LockAsync(ICommandTransaction tx, int propertyId, long expenseId, CancellationToken ct = default);
 
-    /// <summary>Writes the mutable columns (status, date, reason, decision, till, reversed_by) when the version still matches; STALE_VERSION otherwise. Returns the new row.</summary>
+    /// <summary>
+    /// Writes the mutable columns (status, date, amount, category, method, description, GST, receipt, reason, decision, till, reversed_by, void)
+    /// when the version still matches; STALE_VERSION otherwise. Returns the new row.
+    /// </summary>
     Task<ExpenseRecord> UpdateAsync(ICommandTransaction tx, ExpenseRecord updated, byte[] expectedVersion, DateTime nowUtc, CancellationToken ct = default);
 
     Task<IReadOnlyList<ExpenseFact>> FactsOnAsync(ICommandTransaction tx, int propertyId, DateOnly date, CancellationToken ct = default);
+
+    // DEC-120 · SCC features.
+
+    /// <summary>Stores (or replaces) the bill photo of an expense.</summary>
+    Task PutBillPhotoAsync(ICommandTransaction tx, long expenseId, string contentType, byte[] image, int by, DateTime nowUtc, CancellationToken ct = default);
+
+    /// <summary>The bill photo (null when none) — at the property only.</summary>
+    Task<(string ContentType, byte[] Image)?> BillPhotoAsync(int propertyId, long expenseId, CancellationToken ct = default);
+
+    Task InsertEditAsync(ICommandTransaction tx, long expenseId, int by, DateTime nowUtc, string reason, string oldJson, string newJson, CancellationToken ct = default);
+
+    /// <summary>Everyone who changed the expense (the maker-checker rule refuses their approval when they are not its submitter).</summary>
+    Task<IReadOnlyList<int>> EditorsAsync(ICommandTransaction tx, long expenseId, CancellationToken ct = default);
+
+    Task<IReadOnlyDictionary<long, IReadOnlyList<ExpenseEditRecord>>> EditsAsync(int propertyId, IReadOnlyCollection<long> expenseIds, CancellationToken ct = default);
+
+    /// <summary>Every record of the property (optionally only dated within [from, to]) with the submitter's name — ledger CSV, month figures, budgets.</summary>
+    Task<IReadOnlyList<LedgerRow>> LedgerAsync(ICommandTransaction? tx, int propertyId, DateOnly? from, DateOnly? to, CancellationToken ct = default);
+
+    /// <summary>Records posted from a recurring template this month that still stand (not void, rejected or reversed; no reversal records): count and Σ.</summary>
+    Task<(int Count, long Sum)> SourceRefAsync(ICommandTransaction tx, int propertyId, string sourceRef, CancellationToken ct = default);
+
+    Task<string> HotelNameAsync(int propertyId, CancellationToken ct = default);
+
+    /// <summary>The property's business date, read on its own connection (registers view, CSV file name).</summary>
+    Task<DateOnly> ReadBusinessDateAsync(int propertyId, CancellationToken ct = default);
 
     // Reads (own connection).
     Task<ExpenseRecord?> GetAsync(int propertyId, long expenseId, CancellationToken ct = default);
@@ -57,4 +94,81 @@ public interface IExpenseStore
     Task<(IReadOnlyList<ExpenseRecord> Items, int Total)> ListAsync(int propertyId, ExpenseFilter filter, int page, int pageSize, CancellationToken ct = default);
 
     Task<IReadOnlyList<ExpenseFact>> FactsOnAsync(int propertyId, DateOnly date, CancellationToken ct = default);
+}
+
+/// <summary>The Expense categories / vendors masters as the expense commands read them (ops.expense_category / ops.expense_vendor, MA-3).</summary>
+public interface IExpenseMasterSource
+{
+    /// <summary>Categories (retired included); an empty list = not seeded yet (the commands then use the seed list).</summary>
+    Task<IReadOnlyList<ExpenseCategoryRow>> CategoriesAsync(ICommandTransaction? tx, int propertyId, CancellationToken ct = default);
+
+    Task<IReadOnlyList<ExpenseVendorRow>> VendorsAsync(ICommandTransaction? tx, int propertyId, CancellationToken ct = default);
+
+    /// <summary>SCC vendor auto-add: seeds the lists first (idempotent), then adds an active row with a history entry unless the name exists.</summary>
+    Task AddVendorAsync(ICommandTransaction tx, int propertyId, string name, int by, DateTime nowUtc, CancellationToken ct = default);
+}
+
+public sealed record RecurringRecord(int TemplateId, int PropertyId, string Name, long Amount, int DueDay, string Category, string Method, string Vendor, bool Active,
+    int CreatedBy, DateTime CreatedUtc);
+
+public sealed record PettyFloatRecord(long EntryId, int PropertyId, long Amount, DateOnly BusinessDate, string Status, string? Note, int RecordedBy, DateTime RecordedUtc,
+    int? DecidedBy, DateTime? DecidedUtc, string? Reason);
+
+public sealed record UdhaarSettlementRecord(long SettlementId, long ReceivableId, long Amount, DateOnly Date, string Mode, int RecordedBy, DateTime RecordedUtc);
+
+public sealed record UdhaarRecord(long ReceivableId, int PropertyId, string Name, string? Mobile, long Amount, DateOnly CreditDate, DateOnly? DueDate, string? Note,
+    int CreatedBy, DateTime CreatedUtc, bool Void, string? VoidReason, int? VoidedBy, DateOnly? VoidedDate, IReadOnlyList<UdhaarSettlementRecord> Settlements)
+{
+    public long Paid => Settlements.Sum(s => s.Amount);
+
+    public long Outstanding => ExpenseScc.UdhaarOut(Amount, Paid);
+}
+
+public sealed record MonthLockRecord(string Month, long Expense, int Count, long GstPaid, string ByCategoryJson, int GeneratedBy, DateTime GeneratedUtc, bool Stale, DateTime? StaleUtc);
+
+/// <summary>DEC-120 SCC registers: budgets, recurring templates, petty-cash float, Udhaar, month locks (SQL adapter SqlExpenseRegisterStore).</summary>
+public interface IExpenseRegisterStore
+{
+    Task<IReadOnlyDictionary<string, long>> BudgetsAsync(ICommandTransaction? tx, int propertyId, string month, CancellationToken ct = default);
+
+    Task<IReadOnlyList<(string Month, string Category, long Amount)>> AllBudgetsAsync(int propertyId, CancellationToken ct = default);
+
+    Task SetBudgetAsync(ICommandTransaction tx, int propertyId, string month, string category, long amount, int by, DateTime nowUtc, CancellationToken ct = default);
+
+    Task<IReadOnlyList<RecurringRecord>> RecurringAsync(ICommandTransaction? tx, int propertyId, CancellationToken ct = default);
+
+    Task<RecurringRecord?> LockRecurringAsync(ICommandTransaction tx, int propertyId, int templateId, CancellationToken ct = default);
+
+    Task<int> InsertRecurringAsync(ICommandTransaction tx, RecurringRecord t, CancellationToken ct = default);
+
+    Task UpdateRecurringAsync(ICommandTransaction tx, RecurringRecord t, CancellationToken ct = default);
+
+    Task DeleteRecurringAsync(ICommandTransaction tx, int templateId, int by, DateTime nowUtc, CancellationToken ct = default);
+
+    Task<IReadOnlyList<PettyFloatRecord>> PettyAsync(int propertyId, CancellationToken ct = default);
+
+    Task<long> InsertPettyAsync(ICommandTransaction tx, PettyFloatRecord e, CancellationToken ct = default);
+
+    Task<PettyFloatRecord?> LockPettyAsync(ICommandTransaction tx, int propertyId, long entryId, CancellationToken ct = default);
+
+    Task DecidePettyAsync(ICommandTransaction tx, long entryId, string status, int by, DateTime nowUtc, string? reason, CancellationToken ct = default);
+
+    Task<IReadOnlyList<UdhaarRecord>> UdhaarAsync(int propertyId, CancellationToken ct = default);
+
+    Task<long> InsertUdhaarAsync(ICommandTransaction tx, UdhaarRecord r, CancellationToken ct = default);
+
+    Task<UdhaarRecord?> LockUdhaarAsync(ICommandTransaction tx, int propertyId, long receivableId, CancellationToken ct = default);
+
+    Task<long> InsertSettlementAsync(ICommandTransaction tx, UdhaarSettlementRecord s, CancellationToken ct = default);
+
+    Task VoidUdhaarAsync(ICommandTransaction tx, long receivableId, string? reason, int by, DateOnly date, CancellationToken ct = default);
+
+    Task<IReadOnlyList<MonthLockRecord>> MonthLocksAsync(ICommandTransaction? tx, int propertyId, CancellationToken ct = default);
+
+    Task<MonthLockRecord?> MonthLockAsync(ICommandTransaction tx, int propertyId, string month, CancellationToken ct = default);
+
+    /// <summary>Generate / regenerate the month's feed (replaces it; clears the stale flag, as SCC's wholesale replace).</summary>
+    Task SaveMonthLockAsync(ICommandTransaction tx, int propertyId, MonthLockRecord m, CancellationToken ct = default);
+
+    Task MarkStaleAsync(ICommandTransaction tx, int propertyId, string month, DateTime nowUtc, CancellationToken ct = default);
 }

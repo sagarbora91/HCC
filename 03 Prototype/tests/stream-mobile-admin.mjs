@@ -121,7 +121,7 @@ export async function register({test,M,assert}){
     if(er.status==='Expired'){const ex=X.maApprovalActions(old,'manager',er);assert.match(ex.approveBlock,/Expired/);assert.equal(ex.rejectBlock,undefined);}
   });
   test('[MA] Expense cards: submitter cannot decide own expense; housekeeper never can',()=>{
-    let s=execute(seed(),'reception',{type:'EXPENSE',vendor:'Ma Test Vendor',category:'Supplies',amount:10000,method:'UPI'});
+    let s=execute(seed(),'reception',{type:'EXPENSE',description:'Test expense stream-mobile-admin:124',vendor:'Ma Test Vendor',category:'Supplies',amount:10000,method:'UPI'});
     let e=s.expenses.at(-1);
     if(e.status==='Draft'){s=execute(s,'reception',{type:'EXPENSE_SUBMIT',id:e.id});e=s.expenses.at(-1);}
     assert.equal(e.status,'Pending');

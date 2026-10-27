@@ -38,7 +38,7 @@ public class ExpenseRealPolicyTests(ExpensesDb db) : IClassFixture<ExpensesDb>
     }
 
     private async Task<ExpenseView> SubmitAsync(Staff s, string vendor, long amount)
-        => (await s.Commands.SubmitAsync(db.Ctx(s.Reception), new SubmitExpenseRequest(vendor, "Supplies", amount, "UPI"), Ct)).Value.Expense;
+        => (await s.Commands.SubmitAsync(db.Ctx(s.Reception), new SubmitExpenseRequest(vendor, "Supplies", amount, "UPI", Description: vendor + " " + Guid.NewGuid().ToString("N")[..6]), Ct)).Value.Expense;
 
     private Task<CommandResult<ExpenseResult>> DecideAsync(Staff s, int who, ExpenseView e, bool approve, string? reason = null)
         => s.Commands.DecideAsync(db.Ctx(who), new DecideExpenseRequest(e.ExpenseId, e.Version, approve, reason), Ct);

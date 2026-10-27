@@ -6,12 +6,18 @@
 //                           that date is inside the window, its rows come as `opening` and become a voucher on that date), /accounting/mapping (+/history), /accounting/locks/history. The prototype
 //                           selectors read `accountingX.server` (domain/streams/accounting.ts) instead of deriving vouchers on the
 //                           device; locked days also fill `locks` (who/when, snapshot) for the lock / unlock dialogs.
-//             expenses    ← GET /expenses (window of 62 days + every Draft / Pending, pages of 100). Version kept per expense.
+//             expenses    ← GET /expenses (window of 62 days + every Draft / Pending, pages of 100). Version kept per expense. DEC-120: description,
+//                           GST on the bill, source, void, edit log (→ editLog / editors), hasBillPhoto (the photo: GET /expenses/{id}/bill-photo on demand).
+//             expensesX   ← GET /expenses/registers (DEC-120 SCC registers: budgets, recurring templates, petty-cash top-ups, Udhaar, month locks).
 //             complianceX ← GET /compliance/obligations, /compliance/calendar?includeInactive=true (filings + settings),
 //                           /compliance/ca-packs. Periods and due dates are computed by the same rules on both sides.
 //   commands  ACC_LOCK/ACC_UNLOCK/ACC_MAP_SET/ACC_MAP_RESET → Lock/UnlockAccountingPeriod, Set/ResetLedgerMapping;
 //             ACC_TALLY_EXPORT → GET /accounting/export/tally (recorded on the server, DEC-077) and the server's XML is saved;
 //             EXPENSE/EXPENSE_SUBMIT/EXPENSE_APPROVE/EXPENSE_REVERSE → SubmitExpense, SubmitExpenseDraft, DecideExpense, ReverseExpense;
+//             DEC-120: EXP_EDIT/EXP_VOID → EditExpense, VoidExpense; EXP_BUDGET_SET/EXP_BUDGET_COPY → SetExpenseBudget, CopyExpenseBudgets;
+//             EXP_REC_SAVE/TOGGLE/DELETE/POST → Save/Toggle/Delete/PostRecurringExpense; EXP_PETTY_FLOAT/_DECIDE/EXP_PETTY_OUT → RequestPettyFloat,
+//             DecidePettyFloat, RecordPettyDisbursement; EXP_UD_ADD/PAY/VOID → AddUdhaar, PayUdhaar, VoidUdhaar; EXP_MONTH_LOCK → LockExpenseMonth;
+//             EXP_CSV → GET /expenses/export/ledger | /expenses/export/month (the server's SCC CSV is saved);
 //             CMP_* → MarkComplianceFiled, MarkComplianceNotApplicable, ReopenComplianceFiling, SaveComplianceObligation,
 //             ToggleComplianceObligation, SaveComplianceSettings, GenerateCaPack.
 //   versions  the server needs the record version on most commands while the prototype commands carry none: the version
@@ -19,6 +25,7 @@
 //   till      a Cash expense decision / reversal needs the till with the open shift (DEC-052): ids 'till' → 'current' (learned by the
 //             money area when it loads the shift) or the only till known on this device.
 import type {Command,Expense,State} from '../../services/mock';
+import type {EXPState,ExpEditLog} from '../../domain/streams/expenses-scc';
 import type {ACCState,ACCVoucher,ACCServerDay,ACCLock,ACCMapRow,ACCException,ACCCheck,ACCDayStatus,ACCVoucherType,ACCSourceKind,ACCServer,ACCTBGroup} from '../../domain/streams/accounting';
 import {ACC_DEFAULT_MAP,accAccount} from '../../domain/streams/accounting';
 import type {CMPState,CMPObligation,CMPFiling,CMPPack,CMPRule,CMPKind,CMPFreq} from '../../domain/streams/compliance';
@@ -28,7 +35,7 @@ import {HccClientError} from '../errors';
 import type {SyncArea,LoaderCtx,CommandCtx} from './types';
 import {serverId,protoUserId,utcToClock,paise,isoDate} from './map';
 import {CASH_SLICES} from './money';
-import {saveTextFile} from '../../app/native';
+import {saveTextFile,saveCsv} from '../../app/native';
 
 /** GET /accounting/export/tally (TallyExportView; DEC-077 re-export / provisional dates and the export log id; A03b-05 pending accounting
  *  events — every unlocked date carried is then provisional — and the dates an export before voucher ids took to Tally). */
@@ -59,7 +66,19 @@ type SrvMappingRow={mapKey:string;group:string;value:string;account?:string|null
 type SrvMappingChange={changeId:number;atUtc:string;actor:number;mapKey:string;before?:string|null;after?:string|null};
 type SrvLockEvent={lockId:number;businessDate:string;action:string;atUtc:string;actor:number;reason?:string|null};
 export type SrvExpense={expenseId:number;ref:string;vendor:string;category:string;amountPaise:number;method:string;businessDate:string;status:string;submittedBy:number;
-  notes?:string|null;receipt?:string|null;reason?:string|null;decidedBy?:number|null;decidedUtc?:string|null;reversalOf?:number|null;reversedBy?:number|null;version:string};
+  notes?:string|null;receipt?:string|null;reason?:string|null;decidedBy?:number|null;decidedUtc?:string|null;reversalOf?:number|null;reversedBy?:number|null;version:string;
+  /** DEC-120 SCC features (ExpenseView). */
+  description?:string|null;gstRateBps?:number|null;gstPaise?:number|null;source?:string|null;sourceRef?:string|null;voidReason?:string|null;voidedBy?:number|null;
+  voidedUtc?:string|null;hasBillPhoto?:boolean;createdUtc?:string|null;edits?:SrvExpenseEdit[]|null};
+type SrvExpenseEdit={editId:number;by:number;atUtc:string;reason:string;old:Record<string,string|number>;new:Record<string,string|number>};
+/** GET /expenses/registers (ExpenseRegistersView). */
+type SrvRegisters={businessDate:string;budgets:{month:string;category:string;amountPaise:number}[];
+  recurring:{templateId:number;name:string;amountPaise:number;dueDay:number;category:string;method:string;vendor:string;active:boolean;createdBy:number;createdUtc:string}[];
+  petty:{entryId:number;amountPaise:number;businessDate:string;status:string;note?:string|null;recordedBy:number;recordedUtc:string;decidedBy?:number|null;decidedUtc?:string|null;reason?:string|null}[];
+  udhaar:{receivableId:number;name:string;mobile?:string|null;amountPaise:number;creditDate:string;dueDate?:string|null;note?:string|null;createdBy:number;createdUtc:string;void:boolean;
+    voidReason?:string|null;voidedBy?:number|null;voidedDate?:string|null;settlements:{settlementId:number;amountPaise:number;date:string;mode:string;recordedBy:number;recordedUtc:string}[]}[];
+  months:{month:string;expensePaise:number;count:number;gstPaidPaise:number;byCategory:Record<string,number>;generatedBy:number;generatedUtc:string;stale:boolean;staleUtc?:string|null}[]};
+type SrvExport={fileName:string;csv:string;rows:number};
 type SrvExpensePage={items:SrvExpense[];page:number;pageSize:number;total:number;ownOnly:boolean};
 type SrvRuleView={effectiveFrom:string;type:string;text:string;day?:number|null;month?:number|null;specialMonth?:number|null;specialDay?:number|null};
 export type SrvObligation={obligationId:number;kind:string;name:string;form:string;frequency:string;owner:string;trackedFrom:string;active:boolean;note?:string|null;version:string;rules:SrvRuleView[]};
@@ -140,7 +159,42 @@ export function expenseFromServer(e:SrvExpense):Expense{
   if(e.notes)x.notes=e.notes;if(e.receipt)x.receipt=e.receipt;if(e.reason)x.reason=e.reason;
   if(e.decidedBy!=null)x.approver=protoUserId(e.decidedBy);if(e.decidedUtc)x.decidedAt=clock(e.decidedUtc);
   if(e.reversalOf!=null)x.reversalOf=String(e.reversalOf);if(e.reversedBy!=null)x.reversedBy=String(e.reversedBy);
+  // DEC-120 SCC features.
+  if(e.description)x.description=e.description;
+  if(e.gstRateBps)x.gstRateBps=e.gstRateBps;if(e.gstPaise)x.gstPaise=paise(e.gstPaise,'gstPaise');
+  if(e.source==='petty'||e.source==='recurring')x.source=e.source;if(e.sourceRef)x.sourceRef=e.sourceRef;
+  if(e.voidReason)x.voidReason=e.voidReason;if(e.voidedBy!=null)x.voidedBy=protoUserId(e.voidedBy);if(e.voidedUtc)x.voidedAt=clock(e.voidedUtc);
+  if(e.hasBillPhoto)x.hasBillPhoto=true;if(e.createdUtc)x.createdAt=clock(e.createdUtc);
+  if(e.edits?.length){
+    x.editLog=e.edits.map((d):ExpEditLog=>({at:clock(d.atUtc),by:protoUserId(d.by),old:{...d.old},new:{...d.new},reason:d.reason}));
+    const editors=[...new Set(e.edits.map(d=>protoUserId(d.by)))].filter(u=>u!==x.actor);if(editors.length)x.editors=editors;
+  }
   return x;
+}
+/** GET /expenses/registers → s.expensesX (ids = the server ids as strings). */
+export function registersFromServer(r:SrvRegisters):EXPState{
+  const budgets:NonNullable<EXPState['budgets']>={};
+  for(const b of r.budgets)(budgets[b.month]??={})[b.category]=paise(b.amountPaise,'amountPaise');
+  return {budgets,
+    recurring:r.recurring.map(t=>({id:String(t.templateId),name:t.name,amount:paise(t.amountPaise,'amountPaise'),dueDay:t.dueDay,category:t.category,method:t.method,vendor:t.vendor,
+      active:t.active,createdAt:clock(t.createdUtc),createdBy:protoUserId(t.createdBy)})),
+    petty:r.petty.map(p=>({id:String(p.entryId),amount:paise(p.amountPaise,'amountPaise'),date:isoDate(p.businessDate,'businessDate'),by:protoUserId(p.recordedBy),at:clock(p.recordedUtc),
+      status:(p.status==='Approved'||p.status==='Rejected'?p.status:'Pending') as 'Pending'|'Approved'|'Rejected',...(p.note?{note:p.note}:{}),
+      ...(p.decidedBy!=null?{decidedBy:protoUserId(p.decidedBy)}:{}),...(p.decidedUtc?{decidedAt:clock(p.decidedUtc)}:{}),...(p.reason?{reason:p.reason}:{})})),
+    udhaar:r.udhaar.map(u=>({id:String(u.receivableId),name:u.name,mobile:u.mobile??'',amount:paise(u.amountPaise,'amountPaise'),date:isoDate(u.creditDate,'creditDate'),dueDate:u.dueDate??'',
+      note:u.note??'',by:protoUserId(u.createdBy),at:clock(u.createdUtc),settlements:u.settlements.map(x=>({id:String(x.settlementId),amount:paise(x.amountPaise,'amountPaise'),date:x.date,mode:x.mode,
+        by:protoUserId(x.recordedBy),at:clock(x.recordedUtc)})),...(u.void?{void:true,voidReason:u.voidReason??'',voidAt:u.voidedDate??'',...(u.voidedBy!=null?{voidBy:protoUserId(u.voidedBy)}:{})}:{})})),
+    months:Object.fromEntries(r.months.map(m=>[m.month,{month:m.month,expense:m.expensePaise,count:m.count,byCategory:{...m.byCategory},gstPaid:m.gstPaidPaise,generatedAt:clock(m.generatedUtc),
+      by:protoUserId(m.generatedBy),...(m.stale?{stale:true,staleAt:m.staleUtc?clock(m.staleUtc):clock(m.generatedUtc)}:{})}]))};
+}
+async function loadExpenseRegisters(c:LoaderCtx):Promise<EXPState>{
+  if(!holds(c,'PERM-EXP-001','PERM-EXP-002','PERM-EXP-003'))return {};
+  return registersFromServer(await c.api.get<SrvRegisters>('/expenses/registers'));
+}
+/** A bill photo data URL → the wire pair (base64, content type); undefined when none. */
+export function billPhotoWire(v:unknown):{billPhotoBase64:string;billPhotoContentType:string}|undefined{
+  const m=/^data:(image\/(?:jpeg|png));base64,(.+)$/.exec(typeof v==='string'?v:'');
+  return m?{billPhotoBase64:m[2],billPhotoContentType:m[1]}:undefined;
 }
 async function expensePages(c:LoaderCtx,q:Record<string,string>):Promise<SrvExpense[]>{
   const out:SrvExpense[]=[];
@@ -203,12 +257,17 @@ const DATE=/^\d{4}-\d{2}-\d{2}$/;
 
 function expensePrecheck(cmd:Command,s?:State):string|undefined{
   if(!Number.isSafeInteger(cmd.amount)||cmd.amount<=0)return 'Amount must be a positive whole number of paise.';
-  if(!txt(cmd.vendor))return 'Enter a vendor.';
+  // DEC-120 (SCC): the vendor is optional; the description is required once the expense goes for approval.
+  if(!cmd.draft&&!txt(cmd.description))return 'Description is required';
   if(!txt(cmd.category))return 'Choose a category.';
   // MA-3: funding source = an active payment method usable for expenses (money masters; seed = the old four).
   if(!s||!mnyMethodFor(s,cmd.method,'expenses'))return 'Choose a funding source.';
   return undefined;
 }
+/** GST on the bill (rate basis points, amount paise) as sent; only the fields the command carries. */
+const gstWire=(m:Command)=>({...(Number.isSafeInteger(m.gstRateBps)?{gstRateBps:m.gstRateBps}:{}),...(Number.isSafeInteger(m.gstPaise)?{gstPaise:m.gstPaise}:{})});
+/** The Owner's locked-month override reason (SCC), when the command carries one. */
+const override=(m:Command)=>txt(m.override)?{overrideReason:txt(m.override)}:{};
 const cmpItem=(cmd:Command)=>({obligationId:serverId(cmd.obligation,'Obligation'),period:txt(cmd.period)});
 const reason5=(cmd:Command)=>{const r=txt(cmd.reason);return r.length>=5&&r.length<=120?undefined:'Give a reason of 5–120 characters.';};
 
@@ -217,6 +276,7 @@ export const accounting:SyncArea={
   loaders:[
     {slice:'accountingX',requires:'reports',reads:['GET /accounting/days','GET /accounting/trial-balance','GET /accounting/mapping','GET /accounting/mapping/history','GET /accounting/locks/history'],needs:['date'],load:loadAccounting},
     {slice:'expenses',reads:['GET /expenses'],needs:['date'],load:loadExpenses},
+    {slice:'expensesX',reads:['GET /expenses/registers'],load:loadExpenseRegisters},
     {slice:'complianceX',requires:'reports',reads:['GET /compliance/obligations','GET /compliance/calendar','GET /compliance/ca-packs'],load:loadCompliance},
   ],
   commands:[
@@ -240,23 +300,71 @@ export const accounting:SyncArea={
         return {result:{count:r.voucherCount,dates:r.dates,reexport:r.reexportDates??[],provisional:r.provisionalDates??[],pending:r.pendingEvents??0,legacy:r.legacyDates??[],saved},
           ...(saved==='failed'?{warning:'The server recorded the Tally export, but this device could not save the XML. Try the download again.'+(note?' '+note:'')}:note?{warning:note}:{})};}},
     // ── Expenses & petty cash (Petty cash is a category; limits per role are the server's PERM-EXP-002 limits) ──
-    {type:'EXPENSE',reload:['expenses'],precheck:expensePrecheck,
-      async send(c){const m=c.cmd;
-        const r=await c.api.command<{expense:SrvExpense;duplicateOf:number[]}>('SubmitExpense',{vendor:txt(m.vendor),category:txt(m.category),amountPaise:m.amount,method:m.method,draft:!!m.draft,
-          ...(txt(m.notes)?{notes:txt(m.notes).slice(0,300)}:{}),...(txt(m.receipt)?{receipt:txt(m.receipt).slice(0,120)}:{})});
-        return {result:{id:String(r?.expense?.expenseId??''),duplicateOf:(r?.duplicateOf??[]).map(String)}};}},
+    {type:'EXPENSE',reload:['expenses','expensesX'],precheck:expensePrecheck,
+      async send(c){const m=c.cmd,gst=gstWire(m);
+        const r=await c.api.command<{expense:SrvExpense;duplicateOf:number[];budgetAlert?:string|null}>('SubmitExpense',{vendor:txt(m.vendor)||null,category:txt(m.category),amountPaise:m.amount,
+          method:m.method,draft:!!m.draft,...(txt(m.notes)?{notes:txt(m.notes).slice(0,300)}:{}),...(txt(m.receipt)?{receipt:txt(m.receipt).slice(0,120)}:{}),
+          ...(txt(m.description)?{description:txt(m.description)}:{}),...(DATE.test(String(m.date??''))?{expenseDate:m.date}:{}),...gst,...billPhotoWire(m.billPhoto),
+          ...(m.confirmDuplicate?{confirmDuplicate:true}:{}),...(m.confirmGst?{confirmGst:true}:{}),...override(m)});
+        return {result:{id:String(r?.expense?.expenseId??''),duplicateOf:(r?.duplicateOf??[]).map(String)},...(r?.budgetAlert?{warning:r.budgetAlert}:{})};}},
     {type:'EXPENSE_SUBMIT',reload:['expenses'],
-      async send(c){const id=String(c.cmd.id);await c.api.command('SubmitExpenseDraft',{expenseId:serverId(id,'Expense'),expectedVersion:loadedVersion(c,'expense',id,'This expense')});}},
-    {type:'EXPENSE_APPROVE',reload:['expenses'],
+      async send(c){const id=String(c.cmd.id);await c.api.command('SubmitExpenseDraft',{expenseId:serverId(id,'Expense'),expectedVersion:loadedVersion(c,'expense',id,'This expense'),...override(c.cmd)});}},
+    {type:'EXPENSE_APPROVE',reload:['expenses','expensesX'],
       async send(c){const id=String(c.cmd.id),approve=!!c.cmd.approve,e=expenseOf(c);
-        await c.api.command('DecideExpense',{expenseId:serverId(id,'Expense'),expectedVersion:loadedVersion(c,'expense',id,'This expense'),approve,
-          ...(!approve&&txt(c.cmd.reason)?{reason:txt(c.cmd.reason)}:{}),...(approve&&e?.method==='Cash'?{tillId:currentTill(c)}:{})});
-        return approve&&e?.method==='Cash'?{reload:CASH_SLICES}:undefined;}}, // cash left the drawer: money's cash desk + cash book
+        const r=await c.api.command<{budgetAlert?:string|null}>('DecideExpense',{expenseId:serverId(id,'Expense'),expectedVersion:loadedVersion(c,'expense',id,'This expense'),approve,
+          ...(!approve&&txt(c.cmd.reason)?{reason:txt(c.cmd.reason)}:{}),...(approve&&e?.method==='Cash'?{tillId:currentTill(c)}:{}),...override(c.cmd)});
+        const warn=r?.budgetAlert?{warning:r.budgetAlert}:{};
+        return approve&&e?.method==='Cash'?{reload:CASH_SLICES,...warn}:warn;}}, // cash left the drawer: money's cash desk + cash book
     {type:'EXPENSE_REVERSE',reload:['expenses'],precheck:cmd=>txt(cmd.reason)?undefined:'A reason is required to reverse an expense.',
       async send(c){const id=String(c.cmd.id),e=expenseOf(c);
         await c.api.command('ReverseExpense',{expenseId:serverId(id,'Expense'),expectedVersion:loadedVersion(c,'expense',id,'This expense'),reason:txt(c.cmd.reason),
-          ...(e?.method==='Cash'?{tillId:currentTill(c)}:{})});
+          ...(e?.method==='Cash'?{tillId:currentTill(c)}:{}),...override(c.cmd)});
         return e?.method==='Cash'?{reload:CASH_SLICES}:undefined;}},
+    // ── DEC-120 · SCC expense features ──
+    {type:'EXP_EDIT',reload:['expenses','expensesX'],precheck:cmd=>txt(cmd.reason)?undefined:'Reason required',
+      async send(c){const m=c.cmd,id=String(m.id);
+        const r=await c.api.command<{budgetAlert?:string|null}>('EditExpense',{expenseId:serverId(id,'Expense'),expectedVersion:loadedVersion(c,'expense',id,'This expense'),amountPaise:m.amount,
+          category:txt(m.category),method:m.method,description:txt(m.description)||null,reason:txt(m.reason),...gstWire(m),...(m.receipt!==undefined?{receipt:txt(m.receipt)||null}:{}),
+          ...billPhotoWire(m.billPhoto),...(m.confirmGst?{confirmGst:true}:{})});
+        return r?.budgetAlert?{warning:r.budgetAlert}:undefined;}},
+    {type:'EXP_VOID',reload:['expenses','expensesX'],precheck:cmd=>txt(cmd.reason)?undefined:'Choose a reason.',
+      async send(c){const id=String(c.cmd.id);
+        await c.api.command('VoidExpense',{expenseId:serverId(id,'Expense'),expectedVersion:loadedVersion(c,'expense',id,'This expense'),reason:txt(c.cmd.reason),...(txt(c.cmd.note)?{note:txt(c.cmd.note)}:{})});}},
+    {type:'EXP_BUDGET_SET',reload:['expensesX'],
+      async send(c){await c.api.command('SetExpenseBudget',{category:txt(c.cmd.category),amountPaise:Number(c.cmd.amount)||0});}},
+    {type:'EXP_BUDGET_COPY',reload:['expensesX'],
+      async send(c){await c.api.command('CopyExpenseBudgets',{});}},
+    {type:'EXP_REC_SAVE',reload:['expensesX'],precheck:cmd=>txt(cmd.name)?undefined:'Template name is required',
+      async send(c){const m=c.cmd;const r=await c.api.command<{id?:number|null}>('SaveRecurringExpense',{templateId:m.id?serverId(m.id,'Template'):null,name:txt(m.name),amountPaise:m.amount,
+        dueDay:Math.floor(Number(m.dueDay)),category:txt(m.category),method:m.method,vendor:txt(m.vendor)||null,...(m.confirmDuplicate?{confirmDuplicate:true}:{})});
+        return {result:{id:r?.id!=null?String(r.id):undefined}};}},
+    {type:'EXP_REC_TOGGLE',reload:['expensesX'],async send(c){await c.api.command('ToggleRecurringExpense',{templateId:serverId(c.cmd.id,'Template')});}},
+    {type:'EXP_REC_DELETE',reload:['expensesX'],async send(c){await c.api.command('DeleteRecurringExpense',{templateId:serverId(c.cmd.id,'Template')});}},
+    {type:'EXP_REC_POST',reload:['expenses','expensesX'],
+      async send(c){const r=await c.api.command<{id?:number|null;budgetAlert?:string|null}>('PostRecurringExpense',{templateId:serverId(c.cmd.id,'Template'),amountPaise:c.cmd.amount,
+        ...(c.cmd.again?{again:true}:{}),...override(c.cmd)});
+        return {result:{id:r?.id!=null?String(r.id):undefined},...(r?.budgetAlert?{warning:r.budgetAlert}:{})};}},
+    {type:'EXP_PETTY_FLOAT',reload:['expensesX'],
+      async send(c){await c.api.command('RequestPettyFloat',{amountPaise:c.cmd.amount,...(txt(c.cmd.note)?{note:txt(c.cmd.note)}:{})});}},
+    {type:'EXP_PETTY_FLOAT_DECIDE',reload:['expensesX'],
+      async send(c){await c.api.command('DecidePettyFloat',{entryId:serverId(c.cmd.id,'Top-up'),approve:!!c.cmd.approve,...(txt(c.cmd.reason)?{reason:txt(c.cmd.reason)}:{})});}},
+    {type:'EXP_PETTY_OUT',reload:['expenses','expensesX'],
+      async send(c){await c.api.command('RecordPettyDisbursement',{amountPaise:c.cmd.amount,category:txt(c.cmd.category),...(txt(c.cmd.for)?{for:txt(c.cmd.for)}:{}),
+        ...(txt(c.cmd.receipt)?{receipt:txt(c.cmd.receipt)}:{}),...override(c.cmd)});}},
+    {type:'EXP_UD_ADD',reload:['expensesX'],precheck:cmd=>txt(cmd.name)?undefined:'Customer name is required',
+      async send(c){const m=c.cmd;await c.api.command('AddUdhaar',{name:txt(m.name),amountPaise:m.amount,...(txt(m.mobile)?{mobile:txt(m.mobile)}:{}),
+        ...(DATE.test(String(m.dueDate??''))?{dueDate:m.dueDate}:{}),...(txt(m.note)?{note:txt(m.note)}:{})});}},
+    {type:'EXP_UD_PAY',reload:['expensesX'],
+      async send(c){await c.api.command('PayUdhaar',{receivableId:serverId(c.cmd.id,'Credit'),amountPaise:c.cmd.amount,mode:txt(c.cmd.mode)});}},
+    {type:'EXP_UD_VOID',reload:['expensesX'],
+      async send(c){await c.api.command('VoidUdhaar',{receivableId:serverId(c.cmd.id,'Credit'),...(txt(c.cmd.reason)?{reason:txt(c.cmd.reason)}:{})});}},
+    {type:'EXP_MONTH_LOCK',reload:['expensesX'],precheck:cmd=>/^\d{4}-\d{2}$/.test(String(cmd.month??''))?undefined:'Choose a month.',
+      async send(c){await c.api.command('LockExpenseMonth',{month:String(c.cmd.month)});}},
+    // SCC ledger / month CSV: built by the server (SCC columns + HCC Ref, Status) and saved on this device.
+    {type:'EXP_CSV',reload:[],precheck:cmd=>cmd.kind==='ledger'||cmd.kind==='month'&&/^\d{4}-\d{2}$/.test(String(cmd.month??''))?undefined:'Choose what to export.',
+      async send(c){const r=c.cmd.kind==='ledger'?await c.api.get<SrvExport>('/expenses/export/ledger'):await c.api.get<SrvExport>('/expenses/export/month',{month:String(c.cmd.month)});
+        const saved=await saveCsv(/^[\w.-]+\.csv$/.test(r.fileName)?r.fileName:'expenses.csv',r.csv);
+        return {result:{rows:r.rows,saved},...(saved==='failed'?{warning:'This device could not save the CSV. Try again.'}:{})};}},
     // ── Compliance calendar (Owner + Accountant, DEC-055) ──
     {type:'CMP_FILE',reload:['complianceX'],
       precheck:cmd=>{const r=txt(cmd.reference);return r.length>=4&&r.length<=40&&/^[\w\-/. ]+$/.test(r)?undefined:'Enter the acknowledgement / challan reference (4–40 characters: letters, digits and - / .).';},

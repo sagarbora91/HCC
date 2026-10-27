@@ -1,0 +1,30 @@
+/* DEC-120 · SCC expense features on the Expenses page and its dialogs (desktop + phone). Colours are tokens only (CP-3). */
+.exp-sections{margin:4px 0 14px}
+.exp-banner{margin:0 0 12px}
+.exp-filters{grid-template-columns:repeat(3,minmax(0,1fr));align-items:end}
+.exp-filters label{display:flex;flex-direction:column;gap:6px;font-size:11px;color:var(--muted)}
+.exp-filters select,.exp-filters input{width:100%}
+.exp-kpis{margin:10px 16px 14px}
+.exp-list{display:flex;flex-direction:column;gap:8px}
+.exp-cards{display:flex;flex-direction:column;gap:10px;padding:0 0 8px}
+.exp-item{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
+.exp-item>div:first-child{display:flex;flex-direction:column;gap:3px;min-width:0}
+.exp-item small{overflow-wrap:anywhere}
+.exp-item-actions{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:8px}
+.exp-forms{align-items:start}
+.exp-forms form{padding:12px;border:1px solid var(--line);border-radius:8px}
+.exp-ud-form{max-width:760px}
+.exp-buckets{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+.exp-inline{display:flex;flex-direction:column;gap:4px;font-size:11px;color:var(--muted)}
+.exp-budget-input{width:110px;text-align:right;padding:5px 8px;border:1px solid var(--line);border-radius:6px}
+.exp-gauge{height:5px;margin-top:4px;border-radius:3px;background:var(--line);overflow:hidden}
+.exp-gauge span{display:block;height:100%;background:var(--primary-fill)}
+.exp-gauge span.over{background:var(--danger-fill)}
+.exp-photo-pick{display:flex;flex-direction:column;gap:6px}
+.exp-photo-preview{display:flex;flex-direction:column;align-items:flex-start;gap:6px}
+.exp-photo-preview img{max-width:100%;max-height:200px;border-radius:8px;border:1px solid var(--line)}
+.exp-photo-full{display:block;max-width:100%;max-height:70vh;margin:0 auto;border-radius:8px}
+.exp-text{width:100%;font:inherit;padding:10px;border:1px solid var(--line);border-radius:8px;resize:vertical}
+.danger-text{color:var(--c-a35b44)}
+.mm-card .exp-item{background:transparent}
+@media (max-width:767px){.exp-filters{grid-template-columns:1fr}.exp-item{flex-direction:column}.exp-item-actions{justify-content:flex-start}.exp-budget-input{width:100%}}

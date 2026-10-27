@@ -70,7 +70,7 @@ public sealed class PaymentMethodMasterTests
         Assert.Equal(0, day.OutletCashPaise);
 
         var exp = (await h.Get<ExpenseCommands>().SubmitAsync(h.Ctx(h.Reception, ExpenseCommands.OpSubmit),
-            new SubmitExpenseRequest("Milk vendor (fictional)", "Supplies", 25000, "Paytm wallet"), Ct)).Value.Expense;
+            new SubmitExpenseRequest("Milk vendor (fictional)", "Supplies", 25000, "Paytm wallet", Description: "Milk"), Ct)).Value.Expense;
         Assert.Equal("Paytm wallet", exp.Method);
         Assert.Contains("Paytm wallet", (await h.Get<ExpenseQueries>().OptionsAsync(h.PropertyId, h.Owner, Ct)).Methods);
 
@@ -121,7 +121,7 @@ public sealed class PaymentMethodMasterTests
         await AddMethodAsync(h, "CASH-COUNTER", "Counter cash", "cash", "TILL", false, ["expenses"]);
         var (till, shift) = await h.OpenTillAsync(100000, Ct);
         var cmds = h.Get<ExpenseCommands>();
-        var e = (await cmds.SubmitAsync(h.Ctx(h.Reception, ExpenseCommands.OpSubmit), new SubmitExpenseRequest("Tea stall (fictional)", "Petty cash", 12000, "Counter cash"), Ct)).Value.Expense;
+        var e = (await cmds.SubmitAsync(h.Ctx(h.Reception, ExpenseCommands.OpSubmit), new SubmitExpenseRequest("Tea stall (fictional)", "Petty cash", 12000, "Counter cash", Description: "Tea for staff"), Ct)).Value.Expense;
         var noTill = await Expect.Fails(HccErrorCode.VALIDATION, () => cmds.DecideAsync(h.Ctx(h.Owner, ExpenseCommands.OpDecide), new DecideExpenseRequest(e.ExpenseId, e.Version, true), Ct));
         Assert.Equal("Choose the till that pays this cash expense.", noTill.Message);
         var posted = (await cmds.DecideAsync(h.Ctx(h.Owner, ExpenseCommands.OpDecide), new DecideExpenseRequest(e.ExpenseId, e.Version, true, null, till), Ct)).Value;
