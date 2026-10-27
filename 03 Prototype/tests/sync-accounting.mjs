@@ -173,7 +173,7 @@ export async function register({test,assert,M}){
   await seq('reopen',{type:'CMP_REOPEN',fy:2026,itemId:'oc1',reason:'Wrong challan'});
   await seq('reopenBad',{type:'CMP_REOPEN',fy:2026,itemId:'oc1',reason:'x'});
   await seq('fy',{type:'CMP_FY_SET',fy:2027});
-  await seq('profile',{type:'CMP_PROFILE_SET',name:'HCC Demo Residency',pan:'aahfh2604k',gstin:'27AAHFH2604K1Z9',entity:'partnership',gstType:'regular',hasEmployees:true,qrmp:false,notes:''});
+  await seq('profile',{type:'CMP_PROFILE_SET',name:'HCC Demo Residency',pan:'abcde1234f',gstin:'27ABCDE1234F1Z5',entity:'partnership',gstType:'regular',hasEmployees:true,qrmp:false,notes:''});
   await seq('arch',{type:'CMP_ARCHIVE_KEY',obligationKey:'GSTR-1',key:'cmp:arch:1'});
   await seq('cat',{type:'CMP_ARCHIVE_CAT',cat:'comp'});
   await seq('custAdd',{type:'CMP_CUSTOM_SAVE',name:'Lift licence',cat:'lab',freq:'Annual',dueDay:0,months:['March'],checklist:'Inspect\nPay',buffer:''});
@@ -235,7 +235,7 @@ export async function register({test,assert,M}){
     assert.deepEqual(body('MarkComplianceNotApplicable'),{fyStart:2026,itemId:'oc2'},'the selected FY when the command carries none');
     assert.deepEqual(body('ReopenComplianceItem'),{fyStart:2026,itemId:'oc1',reason:'Wrong challan'});assert.deepEqual([res.reopenBad.r.reason,res.reopenBad.calls.length],['precheck',0]);
     assert.deepEqual(body('SetComplianceFy'),{fyStart:2027});
-    assert.deepEqual(body('SaveComplianceProfile'),{name:'HCC Demo Residency',pan:'aahfh2604k',gstin:'27AAHFH2604K1Z9',entity:'partnership',gstType:'regular',hasEmployees:true,qrmp:false,notes:'',expectedVersion:'AAAAAAAAP1='});
+    assert.deepEqual(body('SaveComplianceProfile'),{name:'HCC Demo Residency',pan:'abcde1234f',gstin:'27ABCDE1234F1Z5',entity:'partnership',gstType:'regular',hasEmployees:true,qrmp:false,notes:'',expectedVersion:'AAAAAAAAP1='});
     assert.deepEqual([body('ToggleComplianceArchive'),cmds('ToggleComplianceArchive')[0].key],[{key:'GSTR-1'},'cmp:arch:1']);assert.deepEqual(body('ToggleComplianceCategoryArchive'),{cat:'comp'});
     assert.deepEqual(cmds('SaveCustomObligation')[0].body,{cat:'lab',name:'Lift licence',freq:'Annual',dueDay:0,months:['March'],form:'',who:'',what:'',why:'',penalty:'',responsible:'',reviewer:'',
       risk:null,buffer:null,checklist:['Inspect','Pay'],workflow:[],evidence:[]});assert.deepEqual(res.custAdd.r.result,{id:'cust-13'});

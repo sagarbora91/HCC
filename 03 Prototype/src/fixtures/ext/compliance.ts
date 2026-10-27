@@ -46,7 +46,7 @@ const NO_EVIDENCE=new Set(['jn4','jl11']);
 export function cmpFixtureState(s:State):CMPState{
   const obligations=cmpFixtureLegacyObligations();
   const x=cmpFromLegacy({obligations,filings:cmpFixtureLegacyFilings(obligations),packs:[],settings:{...CMP_DEFAULT_SETTINGS}},s);
-  x.profile={name:s.settings.hotel,pan:'AAHFH2604K',gstin:'27AAHFH2604K1Z9',entity:'partnership',gstType:'regular',hasEmployees:true,qrmp:false,
+  x.profile={name:s.settings.hotel,pan:'ABCDE1234F',gstin:'27ABCDE1234F1Z5',entity:'partnership',gstType:'regular',hasEmployees:true,qrmp:false,
     notes:'Fictional demo firm profile (one per property).',updatedBy:'owner',updatedAt:'2026-04-01T09:00'};
   const fy=2026,b=(x.records[String(fy)]??={});
   for(const m of CMP_MONTHS)for(const c of cmpMonthCards(x,m)){

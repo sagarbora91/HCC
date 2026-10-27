@@ -330,4 +330,4 @@ export type State={
   shift?:import('./streams/closing').ShiftRecord;
 };
 export type Command={type:string;key?:string;[field:string]:any};
-export const SCHEMA=9; // 9 = masters wave MA-1…MA-7 (new optional slices / fields; v8 saves migrate, masters seed lazily)
+export const SCHEMA=10; // 10 = SCC port wave (leave one record per date, SCC compliance slice, SCC expense registers; v9 saves migrate by shape). 9 = masters wave MA-1…MA-7 (new optional slices / fields; v8 saves migrate, masters seed lazily)

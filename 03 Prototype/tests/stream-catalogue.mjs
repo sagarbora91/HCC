@@ -35,8 +35,8 @@ export function register({test,M,assert}){
     assert.equal(catExtras(s).length,8);assert.deepEqual(catReasons(s).map(r=>r.code),['SERVICE','CORP','REPEAT','LONGSTAY','MGMT']);});
   test('[CAT] golden figures unchanged: occupancy 8, collections ₹21,500, drawer ₹10,725; BASE / FY26 hashes as MA-0',()=>{
     const s=seed();assert.equal(M.metrics(s).occupied,8);assert.equal(M.metrics(s).collections,2150000);assert.equal(M.drawer(s),1072500);
-    assert.equal(sha(strip(seed())),'f421d366580e5b0225f663e19ccbfb42cfb5ffbe7d07fb5ded2f1463cef85bc1') /* SCC tax port (DEC-116): 2c1782df… → f421d366… = the compliance slice only */ /* old → new: d885a20a… → add626d3… = SCHEMA 8 → 9 only (masters wave) */;
-    assert.equal(sha(strip(M.buildHistory(M.baseFixture()))),'e733a0d475bdf0fe3756ef4660ff650b722c946438494bc8c9b9441829c010f8') /* SCC tax port (DEC-116): bf689538… → e733a0d4… = the compliance slice only */ /* old → new: ba4a1d4e… → 35e63082… = SCHEMA 8 → 9 only */;});
+    assert.equal(sha(strip(seed())),'4a8aad03ae04d1c840c05ed22afabdd6fcf89b3e36cd93a68232a0bba9fb8616') /* SCC port wave (DEC-116, tax + leave): 2c1782df… → 4a8aad03… = compliance + leave slices, SCHEMA 9 → 10 */ /* old → new: d885a20a… → add626d3… = SCHEMA 8 → 9 only (masters wave) */;
+    assert.equal(sha(strip(M.buildHistory(M.baseFixture()))),'197643a1f6faf1044d5fc0bc1a1482a27cbf5e019365b9e5bfac6409c8ccad1c') /* SCC port wave (DEC-116, tax + leave): bf689538… → 197643a1… = compliance + leave slices, SCHEMA 9 → 10 */ /* old → new: ba4a1d4e… → 35e63082… = SCHEMA 8 → 9 only */;});
 
   // ── Extras catalogue in front of CHARGE (DEC-MA-4) ──
   test('[CAT] worked ₹4,265 GST journey through the catalogue: Laundry item ₹500 at 18 % gives the same folio as the free-text charge',()=>{

@@ -165,7 +165,7 @@ public sealed class ComplianceWorld : IAsyncDisposable
             }
 
             await w.RunLegacyMigrationAsync(ct);
-            await w.Db.ExecAsync($"UPDATE cmp.profile SET pan = N'AAHFH2604K', gstin = N'27AAHFH2604K1Z9', entity = 'partnership', notes = N'Fictional demo firm profile (one per property).' WHERE property_id = {w.PropertyId};", ct);
+            await w.Db.ExecAsync($"UPDATE cmp.profile SET pan = N'ABCDE1234F', gstin = N'27ABCDE1234F1Z5', entity = 'partnership', notes = N'Fictional demo firm profile (one per property).' WHERE property_id = {w.PropertyId};", ct);
             // Every other FY 2026–27 card due before the business date: filed the day before; QRMP cards NA; GSTR-1 September (oc4) open.
             var snap = await w.Store.SnapshotAsync(w.PropertyId, ct);
             var cal = snap.Calendar();

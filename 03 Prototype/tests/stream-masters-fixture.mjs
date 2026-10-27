@@ -138,12 +138,12 @@ export function register({test,M,assert}){
     const s=seed(),before=sha(s);
     for(const id of mastersSeedIds())mastersSeed(id,s);for(const sp of masterSpecs()){for(const r of mstRows(s,sp.id))sp.inUse(s,r);}
     assert.equal(sha(s),before);assert.equal(s.mastersX,undefined);
-    assert.equal(sha(strip(seed())),'f421d366580e5b0225f663e19ccbfb42cfb5ffbe7d07fb5ded2f1463cef85bc1') /* SCC tax port (DEC-116): 2c1782df… → f421d366… = the compliance slice only */;
-    assert.equal(sha(strip(buildHistory(baseFixture()))),'e733a0d475bdf0fe3756ef4660ff650b722c946438494bc8c9b9441829c010f8') /* SCC tax port (DEC-116): bf689538… → e733a0d4… = the compliance slice only */;
+    assert.equal(sha(strip(seed())),'4a8aad03ae04d1c840c05ed22afabdd6fcf89b3e36cd93a68232a0bba9fb8616') /* SCC port wave (DEC-116, tax + leave): 2c1782df… → 4a8aad03… = compliance + leave slices, SCHEMA 9 → 10 */;
+    assert.equal(sha(strip(buildHistory(baseFixture()))),'197643a1f6faf1044d5fc0bc1a1482a27cbf5e019365b9e5bfac6409c8ccad1c') /* SCC port wave (DEC-116, tax + leave): bf689538… → 197643a1… = compliance + leave slices, SCHEMA 9 → 10 */;
     assert.equal(sha(loadScenario('FY26').bookings),'66e8195233df0bb433ef76dfe58c83e215f93473a90b5bbf8b2c08613d5dbfce');});
   test('[MFX] FY26 = BASE + history: same FY26 whole-state hash as tests/stream-perf-store.mjs; no stored masters slice; BASE rooms / users identical inside FY26',()=>{
     const f=loadScenario('FY26');
-    assert.equal(sha(f),'7fccdfc68d75b04d07212721f920c1653817765aff30b498d1bb76b10f1f7698' /* SCC tax port (DEC-116): d0babd3b… → 7fccdfc6… = the compliance slice only */);
+    assert.equal(sha(f),'8ba459414eb1c855b086225cac83bc07db65bf45cc2da6bbccb067b0a26729dc' /* SCC port wave (DEC-116, tax + leave): d0babd3b… → 8ba45941… = compliance + leave slices, SCHEMA 9 → 10 */);
     assert.equal(f.mastersX,undefined);assert.equal(sha(f.rooms),sha(seed().rooms));assert.equal(sha(f.users),sha(seed().users));});
   test('[MFX] FY26 history is deterministic (two builds identical) and the seed reads do not depend on it being built first',()=>{
     assert.equal(sha(buildHistory(baseFixture())),sha(buildHistory(baseFixture())));

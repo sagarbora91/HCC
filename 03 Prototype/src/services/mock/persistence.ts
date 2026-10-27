@@ -32,11 +32,11 @@ function migrate(s:State&{schema:number}):boolean{
     }
     if(s.staffX&&'holidays' in s.staffX)delete s.staffX.holidays;
   }
-  // SCC tax port (DEC-116, no SCHEMA bump): a compliance slice in the W05-C shape (obligations × periods) becomes SCC's (records per FY and
+  // SCC tax port (DEC-116, SCHEMA 10 with the SCC port wave): a compliance slice in the W05-C shape (obligations × periods) becomes SCC's (records per FY and
   // card); every filing, not-applicable mark, switched-off obligation and reopened filing is carried over. Detects the old shape itself, so it
   // is idempotent and runs on any schema.
-  if(cmpIsLegacy(s.complianceX))s.complianceX=cmpFromLegacy(s.complianceX as never,s);
-  // SCC leave port (DEC-116 / DEC-119; no SCHEMA bump — the shape is detected, so this is idempotent): old leave SPANS (no `date`) become one
+  if(cmpIsLegacy(s.complianceX)){s.complianceX=cmpFromLegacy(s.complianceX as never,s);changed=true;}
+  // SCC leave port (DEC-116 / DEC-119; SCHEMA 10 — the shape is detected, so this is idempotent): old leave SPANS (no `date`) become one
   // record per counted date (staff.ts hrMigrateLeaveDays), and a stored Leave types list gets SCC's "Other" category.
   if(hrMigrateLeaveDays(s))changed=true;
   const lt=s.mastersX?.rows?.[HRM_LEAVE_TYPES];

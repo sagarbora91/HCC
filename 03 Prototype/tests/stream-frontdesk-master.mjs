@@ -40,8 +40,8 @@ export function register({test,M,assert}){
     assert.deepEqual(mstRows(s,'policies').map(r=>[r.code,r.name,r.cancelChargeBps,r.noShowChargeBps,r.depositBps,r.sources.length]),[['DEFAULT','Default',0,0,0,0]]);});
   test('[FDM] Fixture figures, BASE and FY26 history hashes unchanged',()=>{
     const s=seed();assert.equal(M.metrics(s).occupied,8);assert.equal(M.metrics(s).collections,2150000);assert.equal(M.drawer(s),1072500);
-    assert.equal(sha(strip(seed())),'f421d366580e5b0225f663e19ccbfb42cfb5ffbe7d07fb5ded2f1463cef85bc1') /* SCC tax port (DEC-116): 2c1782df… → f421d366… = the compliance slice only */ /* old → new: d885a20a… → add626d3… = SCHEMA 8 → 9 only (masters wave) */;
-    assert.equal(sha(strip(M.buildHistory(M.baseFixture()))),'e733a0d475bdf0fe3756ef4660ff650b722c946438494bc8c9b9441829c010f8') /* SCC tax port (DEC-116): bf689538… → e733a0d4… = the compliance slice only */ /* old → new: ba4a1d4e… → 35e63082… = SCHEMA 8 → 9 only */;});
+    assert.equal(sha(strip(seed())),'4a8aad03ae04d1c840c05ed22afabdd6fcf89b3e36cd93a68232a0bba9fb8616') /* SCC port wave (DEC-116, tax + leave): 2c1782df… → 4a8aad03… = compliance + leave slices, SCHEMA 9 → 10 */ /* old → new: d885a20a… → add626d3… = SCHEMA 8 → 9 only (masters wave) */;
+    assert.equal(sha(strip(M.buildHistory(M.baseFixture()))),'197643a1f6faf1044d5fc0bc1a1482a27cbf5e019365b9e5bfac6409c8ccad1c') /* SCC port wave (DEC-116, tax + leave): bf689538… → 197643a1… = compliance + leave slices, SCHEMA 9 → 10 */ /* old → new: ba4a1d4e… → 35e63082… = SCHEMA 8 → 9 only */;});
 
   // ── M9 booking sources ──
   test('[FDM] OTA channels and company accounts register their own source rows (auto, in use → retire not delete)',()=>{
