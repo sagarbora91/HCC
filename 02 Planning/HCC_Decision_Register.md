@@ -1,6 +1,6 @@
 # Hotel Control Centre — Decision Register
 
-Version: 1.4 · Updated: 27 October 2026 (owner answers DEC-112…120; v1.2 26 Oct: audit A11-11 clean-up) · Owner: Sagar
+Version: 1.5 · Updated: 27 October 2026 (owner answers DEC-112…120; DEC-116/119/120 built in the SCC port wave — open owner questions in `05 Delivery Evidence/SCC Port/SCC_Port_Owner_Questions_2026-10-27.md`; v1.2 26 Oct: audit A11-11 clean-up) · Owner: Sagar
 
 **Statuses:** Agreed · Proposed · Proposed (agent rule, needs owner confirmation) · Needs owner decision · Superseded · Unverified.
 **Rule:** later owner changes take precedence; earlier entries are superseded (never rewritten) and the impact is recorded.
