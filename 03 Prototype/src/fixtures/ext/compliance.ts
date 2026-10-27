@@ -46,8 +46,11 @@ const NO_EVIDENCE=new Set(['jn4','jl11']);
 export function cmpFixtureState(s:State):CMPState{
   const obligations=cmpFixtureLegacyObligations();
   const x=cmpFromLegacy({obligations,filings:cmpFixtureLegacyFilings(obligations),packs:[],settings:{...CMP_DEFAULT_SETTINGS}},s);
+  // DEC-133: fictional licence numbers and expiry dates in FY 2027–28 (the FY 2026–27 demo calendar stays SCC's own); the renewal cards show on
+  // the May and December pages of FY 2027–28 — the year the calendar moves to by itself on 1 April 2027 (DEC-125).
   x.profile={name:s.settings.hotel,pan:'ABCDE1234F',gstin:'27ABCDE1234F1Z5',entity:'partnership',gstType:'regular',hasEmployees:true,qrmp:false,
-    notes:'Fictional demo firm profile (one per property).',updatedBy:'owner',updatedAt:'2026-04-01T09:00'};
+    notes:'Fictional demo firm profile (one per property).',fssaiNo:'DEMO-FSSAI-0001',fssaiExpiry:'2027-05-31',lodgingNo:'DEMO-LODGING-0001',lodgingExpiry:'2027-12-31',
+    updatedBy:'owner',updatedAt:'2026-04-01T09:00'};
   const fy=2026,b=(x.records[String(fy)]??={});
   for(const m of CMP_MONTHS)for(const c of cmpMonthCards(x,m)){
     const due=cmpParseDue(c.due,fy);if(!due||due>=s.date||OPEN.has(c.id)||cmpRecord(x,fy,c.id))continue;

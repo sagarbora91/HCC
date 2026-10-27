@@ -24,6 +24,17 @@ public static class ComplianceRules
     public const int MaxFirmName = 120, MaxPan = 20, MaxGstin = 20, MaxNotes = 500, MaxEvidenceRef = 200, MaxReviewer = 200, MaxName = 200, MaxText = 2000, MaxShort = 200,
         MaxListLines = 40, MaxFileName = 200;
 
+    /// <summary>DEC-133: a licence number (free text) up to 60 characters.</summary>
+    public const int MaxLicenceNo = 60;
+
+    /// <summary>DEC-133: the licence part of the firm-profile audit text (prototype cmpLicenceAudit).</summary>
+    public static string LicenceAudit(CmpProfile p)
+    {
+        ArgumentNullException.ThrowIfNull(p);
+        static string D(DateOnly d) => d.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        return (p.FssaiExpiry is { } f ? " · FSSAI licence expires " + D(f) : string.Empty) + (p.LodgingExpiry is { } l ? " · lodging licence expires " + D(l) : string.Empty);
+    }
+
     public const string PayableNote = "Estimate — verify with CA before filing.";
 
     public const string PayableBasis = "EPF = employee + employer PF and ESIC = employee + employer ESIC of every line of the month’s LOCKED pay run; Professional Tax = PT deducted in that run; GST (estimate) = CGST + SGST + IGST on the tax invoices issued in the month (rooms and restaurant), less the month’s credit notes — the GSTR-1 working summary’s SAC total; input tax credit is not deducted.";
@@ -46,7 +57,7 @@ public static class ComplianceRules
         int done = 0, na = 0, open = 0, overdue = 0;
         var filed = new List<string>();
         foreach (var m in SccTaxCatalogue.Months)
-            foreach (var c in cal.MonthCards(m))
+            foreach (var c in cal.MonthCards(m, fy))
             {
                 if (cal.IsNa(fy, c.Id)) { na++; continue; }
                 if (cal.IsDone(fy, c.Id)) { done++; continue; }
@@ -62,7 +73,7 @@ public static class ComplianceRules
         foreach (var r in ac)
             lines.Add($"OPEN · {SccTaxRules.StripHtml(SccTaxRules.RenderFyText(r.Name, fy))} · {r.Month} · due {r.DueDate?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) ?? r.Due} · {When(r.Days)}");
         foreach (var m in SccTaxCatalogue.Months)
-            foreach (var c in cal.MonthCards(m))
+            foreach (var c in cal.MonthCards(m, fy))
                 if (cal.Record(fy, c.Id) is { Done: true, Na: false, FiledOn: { } on } rec && today.DayNumber - on.DayNumber is >= 0 and <= 35)
                     filed.Add($"FILED · {SccTaxRules.StripHtml(SccTaxRules.RenderFyText(c.Name, fy))} · filed {on.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)}{(string.IsNullOrEmpty(rec.EvidenceRef) ? string.Empty : " · ref " + rec.EvidenceRef)}");
         lines.AddRange(filed);

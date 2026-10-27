@@ -6,7 +6,7 @@ import {RotateCcw,Send,Plus,Pencil,Archive,Trash2,Printer,Save,AlertTriangle} fr
 import {useHcc} from '../../app/context';
 import type {ModalProps} from '../../app/registry';
 import {cmpSlice,cmpActionCenter,cmpCanManage,cmpHasAccess,cmpRecord,cmpFindCard,cmpRenderFYText,cmpStripHtml,cmpFyLabel,cmpPackLines,cmpPayableAmount,cmpTypeLabel,
-  cmpCatLabel,cmpBuiltInObligations,cmpPrintModel,cmpWhen,CMP_CAT_ORDER,CMP_MONTHS,CMP_GST_TYPES,CMP_ENTITIES,CMP_FREQS,CMP_MAX_PACKS,CMP_ILLUSTRATIVE,
+  cmpCatLabel,cmpBuiltInObligations,cmpLicenceObligations,cmpLicenceCard,cmpPrintModel,cmpWhen,CMP_CAT_ORDER,CMP_LIMITS,CMP_MONTHS,CMP_GST_TYPES,CMP_ENTITIES,CMP_FREQS,CMP_MAX_PACKS,CMP_ILLUSTRATIVE,
   type CMPCustom,type CMPMonth,type CMPCat} from '../../services/mock';
 import {Empty,Pill,dateLabel} from '../../components/ui';
 import {printDocument} from '../../app/native';
@@ -38,8 +38,14 @@ export function CmpProfileModal(){
   const {s,uid,run,busy,closeModal}=useHcc();const x=cmpSlice(s),f=x.profile,owner=cmpCanManage(s,uid);
   const [name,setName]=useState(f?.name??s.settings.hotel),[pan,setPan]=useState(f?.pan??''),[gstin,setGstin]=useState(f?.gstin??''),[entity,setEntity]=useState<string>(f?.entity??'proprietorship');
   const [type,setType]=useState<string>(f?.gstType??'regular'),[emp,setEmp]=useState(f?.hasEmployees===false?'no':'yes'),[qrmp,setQrmp]=useState(f?.qrmp===true),[notes,setNotes]=useState(f?.notes??'');
+  const [fssaiNo,setFssaiNo]=useState(f?.fssaiNo??''),[fssaiExpiry,setFssaiExpiry]=useState(f?.fssaiExpiry??''),[lodgingNo,setLodgingNo]=useState(f?.lodgingNo??''),[lodgingExpiry,setLodgingExpiry]=useState(f?.lodgingExpiry??'');
   const qrmpShown=type==='regular'||type==='both';
-  return <form className="form cmp-profile" onSubmit={e=>{e.preventDefault();void run({type:'CMP_PROFILE_SET',name,pan,gstin,entity,gstType:type,hasEmployees:emp!=='no',qrmp,notes,key:cmpActionKey(s,'profile')},'Firm profile saved',{close:true});}}>
+  /** DEC-133: where the renewal card will sit (the FY page of the expiry month). */
+  const where=(kind:'fssai'|'lodging',expiry:string)=>{const l=cmpLicenceCard({profile:{...(f??{name,pan,gstin,entity:'proprietorship',gstType:'regular',hasEmployees:true,qrmp:false,notes:''}),
+    fssaiExpiry:kind==='fssai'?expiry:'',lodgingExpiry:kind==='lodging'?expiry:''}},kind);
+    return <small className="cmp-lic-note">{l?`Renewal card: ${l.month} page of ${cmpFyLabel(l.fy)}, due ${dateLabel(l.expiry)} (risk High).`:'No expiry date — no renewal card.'}</small>;};
+  return <form className="form cmp-profile" onSubmit={e=>{e.preventDefault();void run({type:'CMP_PROFILE_SET',name,pan,gstin,entity,gstType:type,hasEmployees:emp!=='no',qrmp,notes,
+      fssaiNo,fssaiExpiry,lodgingNo,lodgingExpiry,key:cmpActionKey(s,'profile')},'Firm profile saved',{close:true});}}>
     <div className="modal-heading"><h2>Firm profile</h2><p>The hotel is one firm: one profile for this property{owner?'':' — only the Owner changes it'}. The GST type and “has employees” decide which SCC cards apply.</p></div>
     <fieldset disabled={!owner} className="cmp-fieldset">
       <label>Firm name<input required maxLength={120} value={name} onChange={e=>setName(e.target.value)}/></label>
@@ -50,6 +56,12 @@ export function CmpProfileModal(){
       {qrmpShown&&<label className="cmp-check"><input type="checkbox" checked={qrmp} onChange={e=>setQrmp(e.target.checked)}/>QRMP scheme (quarterly GSTR-1 / GSTR-3B, monthly payment) — advisory only</label>}
       <label>Has employees<select value={emp} onChange={e=>setEmp(e.target.value)}><option value="yes">Yes — payroll filings apply</option><option value="no">No — hide EPF, ESIC, PT deduction and LWF</option></select></label>
       <label>Notes<textarea rows={2} maxLength={500} value={notes} onChange={e=>setNotes(e.target.value)}/></label></fieldset>
+    <fieldset disabled={!owner} className="cmp-fieldset"><legend>Licences (optional) — each expiry date adds its renewal card</legend>
+      <div className="form-row"><label>FSSAI licence number<input maxLength={CMP_LIMITS.licenceNo} value={fssaiNo} autoComplete="off" onChange={e=>setFssaiNo(e.target.value)}/></label>
+        <label>FSSAI licence expiry<input type="date" value={fssaiExpiry} onChange={e=>setFssaiExpiry(e.target.value)}/>{where('fssai',fssaiExpiry)}</label></div>
+      <div className="form-row"><label>Lodging house licence number<input maxLength={CMP_LIMITS.licenceNo} value={lodgingNo} autoComplete="off" onChange={e=>setLodgingNo(e.target.value)}/></label>
+        <label>Lodging licence expiry<input type="date" value={lodgingExpiry} onChange={e=>setLodgingExpiry(e.target.value)}/>{where('lodging',lodgingExpiry)}</label></div>
+      <p className="cmp-meta">After a renewal, enter the new expiry date: the card moves to that month and financial year. Lead time and penalties: CA to confirm.</p></fieldset>
     {f?.updatedAt&&<small>Last saved {f.updatedAt.replace('T',' ')} by {cmpName(s,f.updatedBy)}.</small>}
     <div className="modal-actions"><button type="button" className="btn" onClick={closeModal}>Close</button>{owner&&<button className="btn primary" disabled={busy||!name.trim()}><Save size={16}/>Save profile</button>}</div>
   </form>;
@@ -72,7 +84,7 @@ export function CmpReopenModal({id,room}:ModalProps){
 export function CmpManageModal(){
   const {s,run,busy,open,closeModal}=useHcc();const x=cmpSlice(s);const [del,setDel]=useState('');
   const [caName,setCaName]=useState(x.settings.caName),[caEmail,setCaEmail]=useState(x.settings.caEmail),[days,setDays]=useState(String(x.settings.dueSoonDays));
-  const builtIn=cmpBuiltInObligations();
+  const builtIn=[...cmpBuiltInObligations(),...cmpLicenceObligations()];// DEC-133: the licence cards are archived like SCC's built-in keys
   // The obligation key travels as `obligationKey` (`key` is the command's idempotency key).
   const arch=(obligationKey:string,label:string)=>{void run({type:'CMP_ARCHIVE_KEY',obligationKey,key:cmpActionKey(s,'arch',obligationKey)},label);};
   const monthsTxt=(c:CMPCustom)=>(c.months??[]).map(m=>m.slice(0,3)).join(', ')||'—';

@@ -52,7 +52,7 @@ export const CMP_FREQS=['Monthly','Quarterly','Annual','One-time'];
 
 /** A card as the calendar shows it: an SCC built-in, or a custom obligation expanded for one month (SCC expandCustom). */
 export type CMPCard=CMPSccCard&{_custom?:boolean;_gid?:string;responsible?:string;reviewer?:string;risk?:string;buffer?:number|null;
-  checklist?:string[];workflow?:string[];evidence?:string[]};
+  checklist?:string[];workflow?:string[];evidence?:string[];/** DEC-133: a licence-renewal card built from the firm profile's expiry date. */_licence?:'fssai'|'lodging'};
 
 // ── FY (SCC L138–146) ──
 export const cmpFyLabel=(fy:number)=>`FY ${fy}–${String(fy+1).slice(-2)}`;
@@ -62,6 +62,18 @@ export const cmpCalendarYearForMonth=(month:string,fy:number)=>['January','Febru
 export const cmpFyOfDate=(date:string)=>{const y=+date.slice(0,4),m=+date.slice(5,7);return m>=4?y:y-1;};
 /** SCC switchFY clamp (L235): max(2026, year). */
 export const cmpClampFy=(fy:number)=>Math.max(CMP_FY_MIN,Number.isInteger(fy)?fy:CMP_FY_MIN);
+/** DEC-125: an FY inside SCC's list (2026–27 … 2032–33): before it → 2026–27, after it → the last FY. */
+export const cmpFyInList=(fy:number)=>Math.min(CMP_FY_MAX,Math.max(CMP_FY_MIN,Number.isInteger(fy)?fy:CMP_FY_MIN));
+/** DEC-125: the FY of the business date, kept inside SCC's list (a business date before April 2026 → 2026–27, after the list → 2032–33). */
+export const cmpBusinessFy=(date:string)=>cmpFyInList(cmpFyOfDate(date));
+/** DEC-125 (owner, 27 Oct 2026): the compliance FY follows the business date on 1 April. A user's pick holds while the business date is
+ *  still in the FY it was picked in (`chosenIn` = cmpFyOfDate of the business date at the pick); after the next 1 April — and without a
+ *  pick (null / absent) — the calendar shows the business date's FY. Never the device clock. Server twin: SccTaxRules.EffectiveFy. */
+export function cmpEffectiveFy(selected:number,chosenIn:number|null|undefined,date:string):number{
+  return chosenIn!=null&&chosenIn===cmpFyOfDate(date)?cmpFyInList(selected):cmpBusinessFy(date);
+}
+/** DEC-125: the last day a pick made in FY `chosenIn` holds (31 March), as YYYY-MM-DD. */
+export const cmpFyPickEnds=(chosenIn:number)=>`${chosenIn+1}-03-31`;
 
 /** `new Date(y, mi, day)` as an ISO date — the same roll-over as JavaScript (day 0 = last day of the month before; 31 Apr = 1 May). */
 const isoOf=(y:number,mi:number,day:number)=>new Date(Date.UTC(y,mi,day)).toISOString().slice(0,10);
@@ -151,8 +163,9 @@ export function cmpObligationKey(item:Pick<CMPCard,'name'|'_custom'|'_gid'>|null
   if(item._custom&&item._gid)return item._gid;
   return String(item.name||'').split(/[–|]/)[0]!.trim();
 }
-/** SCC isPayrollItem (L1609–1611): built-in labour cards except the business-level ones. */
-export const cmpIsPayrollItem=(item:Pick<CMPCard,'cat'|'_custom'|'id'>|null|undefined)=>!!item&&item.cat==='lab'&&!item._custom&&!CMP_BUSINESS_LAB_IDS.includes(item.id);
+/** SCC isPayrollItem (L1609–1611): built-in labour cards except the business-level ones. DEC-133: the licence cards are business-level
+ *  too (like SCC's Shops & Establishment renewal), so they stay when the firm has no employees. */
+export const cmpIsPayrollItem=(item:Pick<CMPCard,'cat'|'_custom'|'id'|'_licence'>|null|undefined)=>!!item&&item.cat==='lab'&&!item._custom&&!item._licence&&!CMP_BUSINESS_LAB_IDS.includes(item.id);
 /** SCC gstFilingMode (L1804–1810). */
 export function cmpGstFilingMode(item:Pick<CMPCard,'cat'|'name'>|null|undefined):'qrmp'|'monthly'|null{
   if(!item||item.cat!=='gst')return null;

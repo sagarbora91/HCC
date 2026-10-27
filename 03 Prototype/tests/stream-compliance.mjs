@@ -77,12 +77,12 @@ export function register({test,M,assert}){
     const r=cmpSlice(s).reopened[0];assert.deepEqual([r.fy,r.itemId,r.part,r.record,r.reopenedBy,r.reopenReason],[2026,'oc1','done',before,'owner','Wrong reference']);
     assert.equal(cmpSlice(seed()).reopened,undefined);});
 
-  test('[CMP] FY selector 2026–27 … 2032–33, kept until changed (never follows the date, as SCC); records are per FY',()=>{
+  test('[CMP] FY selector 2026–27 … 2032–33; records are per FY; DEC-125: on 1 April the calendar follows the business date (SCC kept the pick until changed)',()=>{
     let s=seed();assert.throws(()=>execute(s,'owner',{type:'CMP_FY_SET',fy:2025}),/financial year/);assert.throws(()=>execute(s,'owner',{type:'CMP_FY_SET',fy:2033}),/financial year/);
     s=execute(s,'accountant',{type:'CMP_FY_SET',fy:2027});assert.equal(cmpSlice(s).fyStart,2027);assert.equal(cmpActionCenter(s).length,0);
     assert.equal(cmpMonthPage(s,'October').stats.completed,0);
     s=execute(s,'accountant',{type:'CMP_DONE',itemId:'ap1'});assert.equal(rec(s,'ap1',2027).done,true);assert.equal(rec(s,'ap1',2026).done,true);
-    const later={...s,date:'2027-05-02'};assert.equal(cmpSlice(later).fyStart,2027);assert.equal(cmpSlice({...seed(),date:'2027-05-02'}).fyStart,2026);});
+    const later={...s,date:'2027-05-02'};assert.equal(cmpSlice(later).fyStart,2027);assert.equal(cmpSlice({...seed(),date:'2027-05-02'}).fyStart,2027);});
 
   test('[CMP] firm profile as SCC: name required; PAN / GSTIN upper-cased, no format check; QRMP only for regular / both; the type and employees decide the cards',()=>{
     let s=seed();assert.throws(()=>execute(s,'owner',{type:'CMP_PROFILE_SET',name:' '}),/firm name/);

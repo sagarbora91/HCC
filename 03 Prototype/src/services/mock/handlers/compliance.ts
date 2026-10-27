@@ -7,7 +7,7 @@ import type {Handler,Kit} from '../commands';
 import {
   CMPState,CMPCustom,CMPRecord,CMP_MONTHS,CMP_CATS,CMP_GST_TYPES,CMP_FREQS,CMP_MAX_PACKS,CMP_MAX_REOPENED,CMP_FILE_MAX_BYTES,CMP_LIMITS,CMP_FY_MIN,CMP_FY_MAX,
   CMP_ENTITIES,cmpSlice,cmpHasAccess,cmpFindCard,cmpItemMonth,cmpRecord,cmpParseDue,cmpRenderFYText,cmpStripHtml,cmpFyLabel,cmpBuiltInObligations,
-  cmpPackCounts,cmpPackLines,cmpTypeLabel,cmpCatLabel,
+  cmpPackCounts,cmpPackLines,cmpTypeLabel,cmpCatLabel,cmpFyOfDate,cmpLicenceObligations,type CMPProfile,
 } from '../../../domain/streams/compliance';
 import {nights} from '../../../domain/money';
 
@@ -20,20 +20,23 @@ const validDate=(d:string)=>ISO.test(d)&&new Date(d+'T00:00:00Z').toISOString().
 const fyOf=(k:Kit,x:CMPState)=>{const v=k.cmd.fy===undefined?x.fyStart:Number(k.cmd.fy);
   k.assert(Number.isInteger(v)&&v>=CMP_FY_MIN&&v<=CMP_FY_MAX,`Choose a financial year from ${cmpFyLabel(CMP_FY_MIN)} to ${cmpFyLabel(CMP_FY_MAX)}.`);return v;};
 const limit=(k:Kit,v:string,max:number,what:string)=>{k.assert(v.length<=max,`${what} is limited to ${max} characters.`);return v;};
-/** The card being recorded: it must exist in the catalogue (or be a custom obligation's month) — SCC findItemMonth. */
-const card=(k:Kit,x:CMPState)=>{const id=txt(k.cmd.itemId);const c=cmpFindCard(x,id);k.assert(c,'That compliance item is not in the calendar.','NOT_FOUND');
+/** The card being recorded: it must exist in the catalogue (or be a custom obligation's month) — SCC findItemMonth. DEC-133: a licence card
+ *  only in the FY of its expiry date. */
+const card=(k:Kit,x:CMPState,fy:number)=>{const id=txt(k.cmd.itemId);const c=cmpFindCard(x,id,fy);k.assert(c,'That compliance item is not in the calendar.','NOT_FOUND');
   return {id,card:c!,month:cmpItemMonth(x,id)!};};
 /** SCC: a firm must be selected to record (L2163, L2181, L2404). HCC: the property's compliance profile (the Owner sets it). */
 const firm=(k:Kit,x:CMPState)=>k.assert(x.profile,'Set the compliance firm profile first (Owner: Compliance calendar › Firm profile).','INVALID_TRANSITION');
 const bucket=(x:CMPState,fy:number)=>(x.records[String(fy)]??={});
 const label=(c:{name:string},fy:number)=>cmpStripHtml(cmpRenderFYText(c.name,fy));
+/** DEC-133: the licence part of the profile audit text (same on the server). */
+const cmpLicenceAudit=(p:CMPProfile)=>`${p.fssaiExpiry?' · FSSAI licence expires '+p.fssaiExpiry:''}${p.lodgingExpiry?' · lodging licence expires '+p.lodgingExpiry:''}`;
 const lines=(v:unknown):string[]=>(Array.isArray(v)?v.map(String):String(v??'').split('\n')).map(s=>s.trim()).filter(Boolean);
 
 export const handlers:Record<string,Handler>={
   // SCC confirmDone (L2402–2425): every field optional; filed-on any date (default today = the business date); the record replaces the earlier one.
   // HCC safeguard: a done item is not overwritten — the Owner reopens it first (keeps the old record).
   CMP_DONE:k=>{
-    access(k);const x=slice(k);firm(k,x);const fy=fyOf(k,x),{id,card:c}=card(k,x),cur=cmpRecord(x,fy,id);
+    access(k);const x=slice(k);firm(k,x);const fy=fyOf(k,x),{id,card:c}=card(k,x,fy),cur=cmpRecord(x,fy,id);
     k.assert(cur?.na!==true,'This item is marked Not Applicable (NA) and is read-only. Remove NA first to record a filing (Owner: Reopen).','INVALID_TRANSITION');
     k.assert(!cur?.done,'Already marked filed. The Owner can reopen it.','INVALID_TRANSITION');
     const filedOn=txt(k.cmd.filedOn)||k.s.date;k.assert(validDate(filedOn),'Filed on must be a valid date.');
@@ -47,7 +50,7 @@ export const handlers:Record<string,Handler>={
 
   // SCC toggleNA, marking side (L2187–2192): additive na flag, no reason; the other fields stay.
   CMP_NA:k=>{
-    access(k);const x=slice(k);firm(k,x);const fy=fyOf(k,x),{id,card:c}=card(k,x),cur=cmpRecord(x,fy,id);
+    access(k);const x=slice(k);firm(k,x);const fy=fyOf(k,x),{id,card:c}=card(k,x,fy),cur=cmpRecord(x,fy,id);
     k.assert(cur?.na!==true,'Already marked not applicable. The Owner can reopen it.','INVALID_TRANSITION');
     bucket(x,fy)[id]={...(cur??{}),na:true,naBy:k.uid,naAt:k.s.clock};
     return `${label(c,fy)} · ${cmpFyLabel(fy)} · not applicable`;},
@@ -66,8 +69,9 @@ export const handlers:Record<string,Handler>={
     const c=cmpFindCard(x,id);
     return `${c?label(c,fy):id} · ${cmpFyLabel(fy)} · reopened (was ${part==='na'?'not applicable':'filed'+(cur!.filedOn?' on '+cur!.filedOn:'')}${cur!.evidenceRef?' · evidence '+cur!.evidenceRef:''}) · ${reason}`;},
 
-  // SCC switchFY (L234–239): FY 2026–27 … 2032–33, kept until changed (never follows the date — owner question 5).
-  CMP_FY_SET:k=>{access(k);const x=slice(k);const fy=fyOf(k,x);x.fyStart=fy;return `Compliance calendar · ${cmpFyLabel(fy)}`;},
+  // SCC switchFY (L234–239): FY 2026–27 … 2032–33. DEC-125: the pick holds until the next 1 April of the business date (fyChosenIn = the
+  // business date's FY now); after that the calendar follows the business date again (cmpEffectiveFy).
+  CMP_FY_SET:k=>{access(k);const x=slice(k);const fy=fyOf(k,x);x.fyStart=fy;x.fyChosenIn=cmpFyOfDate(k.s.date);return `Compliance calendar · ${cmpFyLabel(fy)}`;},
 
   // SCC saveFirm (L1187–1216): name required; PAN / GSTIN upper-cased, no format check; QRMP only for regular / both. One profile per property (Owner).
   CMP_PROFILE_SET:k=>{
@@ -75,16 +79,23 @@ export const handlers:Record<string,Handler>={
     const name=limit(k,txt(c.name),CMP_LIMITS.firmName,'Firm name');k.assert(name,'Please enter a firm name.');
     const gstType=txt(c.gstType)||'regular';k.assert((CMP_GST_TYPES as string[]).includes(gstType),'Choose the GST registration type.');
     const entity=txt(c.entity)||'proprietorship';k.assert(CMP_ENTITIES.some(e=>e.id===entity),'Choose the entity type.');
+    // DEC-133: licence numbers (free text) and expiry dates, all optional; a field the command leaves out keeps its value, '' clears it.
+    const lic=(field:'fssaiNo'|'lodgingNo'|'fssaiExpiry'|'lodgingExpiry',what:string,date:boolean)=>{
+      if(c[field]===undefined||c[field]===null)return x.profile?.[field]??'';
+      const v=txt(c[field]);if(date)k.assert(!v||validDate(v),`${what} must be a valid date.`);else limit(k,v,CMP_LIMITS.licenceNo,what);return v;};
+    const fssaiNo=lic('fssaiNo','FSSAI licence number',false),fssaiExpiry=lic('fssaiExpiry','FSSAI licence expiry',true),
+      lodgingNo=lic('lodgingNo','Lodging licence number',false),lodgingExpiry=lic('lodgingExpiry','Lodging licence expiry',true);
     x.profile={name,pan:limit(k,txt(c.pan).toUpperCase(),CMP_LIMITS.pan,'PAN'),gstin:limit(k,txt(c.gstin).toUpperCase(),CMP_LIMITS.gstin,'GSTIN'),
       entity:entity as never,gstType:gstType as never,hasEmployees:c.hasEmployees!==false&&c.hasEmployees!=='no',
-      qrmp:(gstType==='regular'||gstType==='both')&&c.qrmp===true,notes:limit(k,txt(c.notes),CMP_LIMITS.notes,'Notes'),updatedBy:k.uid,updatedAt:k.s.clock};
+      qrmp:(gstType==='regular'||gstType==='both')&&c.qrmp===true,notes:limit(k,txt(c.notes),CMP_LIMITS.notes,'Notes'),
+      ...(fssaiNo?{fssaiNo}:{}),...(fssaiExpiry?{fssaiExpiry}:{}),...(lodgingNo?{lodgingNo}:{}),...(lodgingExpiry?{lodgingExpiry}:{}),updatedBy:k.uid,updatedAt:k.s.clock} satisfies CMPProfile;
     const p=x.profile;
-    return `Compliance firm profile · ${p.name} · ${cmpTypeLabel(p.gstType)}${p.qrmp?' · QRMP':''}${p.hasEmployees?'':' · no employees'}`;},
+    return `Compliance firm profile · ${p.name} · ${cmpTypeLabel(p.gstType)}${p.qrmp?' · QRMP':''}${p.hasEmployees?'':' · no employees'}${cmpLicenceAudit(p)}`;},
 
   // SCC toggleArchive (L1465–1473): a built-in obligation key or a custom obligation id (cmd.obligationKey); applies everywhere.
   CMP_ARCHIVE_KEY:k=>{
     manage(k);const x=slice(k),key=txt(k.cmd.obligationKey);
-    k.assert(key&&(cmpBuiltInObligations().some(o=>o.key===key)||x.custom.some(c=>c.id===key)),'Unknown obligation.','NOT_FOUND');
+    k.assert(key&&(cmpBuiltInObligations().some(o=>o.key===key)||cmpLicenceObligations().some(o=>o.key===key)||x.custom.some(c=>c.id===key)),'Unknown obligation.','NOT_FOUND');
     const i=x.archived.indexOf(key);if(i>=0)x.archived.splice(i,1);else x.archived.push(key);
     return `${x.custom.find(c=>c.id===key)?.name??key} · ${i>=0?'restored':'archived'}`;},
 
@@ -129,7 +140,7 @@ export const handlers:Record<string,Handler>={
 
   // SCC evAttachHere / confirmDone files (L2294–2299, L2419–2424): files per FY and item (firm required). HCC limit: 5 MB a file.
   CMP_EVIDENCE_ADD:k=>{
-    access(k);const x=slice(k);firm(k,x);const fy=fyOf(k,x),{id,card:c}=card(k,x);
+    access(k);const x=slice(k);firm(k,x);const fy=fyOf(k,x),{id,card:c}=card(k,x,fy);
     const name=limit(k,txt(k.cmd.name)||'evidence',CMP_LIMITS.fileName,'File name'),data=String(k.cmd.dataUrl??'');
     const m=/^data:([\w.+-]+\/[\w.+-]+)?(?:;[\w.+-]+=[^;,]*)*;base64,/.exec(data);k.assert(m,'Choose a file to attach.');
     const b64=data.slice(m![0].length),pad=b64.endsWith('==')?2:b64.endsWith('=')?1:0,size=Math.floor(b64.length*3/4)-pad;

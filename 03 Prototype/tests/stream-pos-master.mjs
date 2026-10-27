@@ -38,8 +38,8 @@ export function register({test,M,assert}){
     assert.deepEqual(tea.outlets,['RESTAURANT','ROOM-SERVICE']);assert.equal(tea.gstClass,'food');assert.equal(row(s,'menuItems','BIRYANI').soldOutToday,true);
     assert.equal(s.mastersX,undefined);assert.equal(P(s).outlets[0].code,undefined);});
   test('[POS-MST] BASE and FY26 hashes unchanged; fixture POS figures unchanged (drawer ₹10,725, day summary, open check preview at 5 %)',()=>{
-    assert.equal(sha(strip(seed())),'4a8aad03ae04d1c840c05ed22afabdd6fcf89b3e36cd93a68232a0bba9fb8616') /* SCC port wave (DEC-116, tax + leave): 2c1782df… → 4a8aad03… = compliance + leave slices, SCHEMA 9 → 10 */ /* old → new: d885a20a… → add626d3… = SCHEMA 8 → 9 only (masters wave) */;
-    assert.equal(sha(strip(M.buildHistory(M.baseFixture()))),'197643a1f6faf1044d5fc0bc1a1482a27cbf5e019365b9e5bfac6409c8ccad1c') /* SCC port wave (DEC-116, tax + leave): bf689538… → 197643a1… = compliance + leave slices, SCHEMA 9 → 10 */ /* old → new: ba4a1d4e… → 35e63082… = SCHEMA 8 → 9 only */;
+    assert.equal(sha(strip(seed())),'aecae3b2a71894626f970b40b4766521c22018d2fc2291eeb5d51f6f5ea40d3b') /* SCC decisions wave (DEC-133): 4a8aad03… → aecae3b2… = the demo firm profile's fictional licence numbers / expiry dates only */ /* SCC port wave (DEC-116, tax + leave): 2c1782df… → 4a8aad03… = compliance + leave slices, SCHEMA 9 → 10 */ /* old → new: d885a20a… → add626d3… = SCHEMA 8 → 9 only (masters wave) */;
+    assert.equal(sha(strip(M.buildHistory(M.baseFixture()))),'5dc19a447a8388b272639b35da3dbe65e8ec703060b30687bac3c5b04e9b0fc1') /* SCC decisions wave (DEC-133): 197643a1… → 5dc19a44… = the demo firm profile's fictional licence fields only */ /* SCC port wave (DEC-116, tax + leave): bf689538… → 197643a1… = compliance + leave slices, SCHEMA 9 → 10 */ /* old → new: ba4a1d4e… → 35e63082… = SCHEMA 8 → 9 only */;
     const s=seed();assert.equal(M.drawer(s),1072500);const d=M.posDaySummary(s);assert.deepEqual([d.checks,d.net,d.tax,d.gross,d.outletCash],[2,118000,5900,123900,52500]);
     const t=M.posOrderTotals(s,ord(s,'POS-F03'));assert.equal(t.taxBps,500);assert.equal(t.net,2*42000+38000+4*7000+2*12000);});
 

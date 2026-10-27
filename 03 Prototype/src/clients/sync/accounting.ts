@@ -32,7 +32,7 @@ import type {EXPState,ExpEditLog} from '../../domain/streams/expenses-scc';
 import type {ACCState,ACCVoucher,ACCServerDay,ACCLock,ACCMapRow,ACCException,ACCCheck,ACCDayStatus,ACCVoucherType,ACCSourceKind,ACCServer,ACCTBGroup} from '../../domain/streams/accounting';
 import {ACC_DEFAULT_MAP,accAccount} from '../../domain/streams/accounting';
 import type {CMPState,CMPPack,CMPRecord,CMPCustom,CMPFile,CMPReopened,CMPProfile,CMPCat} from '../../domain/streams/compliance';
-import {cmpEmpty,CMP_DEFAULT_SETTINGS} from '../../domain/streams/compliance';
+import {cmpEmpty,cmpSlice,CMP_DEFAULT_SETTINGS} from '../../domain/streams/compliance';
 import {mnyMethodFor} from '../../domain/streams/money-master';
 import {addDays} from '../../domain/money';
 import {HccClientError} from '../errors';
@@ -86,7 +86,8 @@ type SrvExport={fileName:string;csv:string;rows:number};
 type SrvExpensePage={items:SrvExpense[];page:number;pageSize:number;total:number;ownOnly:boolean};
 type SrvSettings={caName:string;caEmail:string;dueSoonDays:number;version:string};
 /** GET /compliance/state (Hcc.Contracts.Compliance.ComplianceStateView). */
-type SrvCmpProfile={name:string;pan:string;gstin:string;entity:string;gstType:string;hasEmployees:boolean;qrmp:boolean;notes:string;updatedBy?:number|null;updatedUtc?:string|null;version:string};
+type SrvCmpProfile={name:string;pan:string;gstin:string;entity:string;gstType:string;hasEmployees:boolean;qrmp:boolean;notes:string;updatedBy?:number|null;updatedUtc?:string|null;version:string;
+  /** DEC-133 */fssaiNo?:string|null;fssaiExpiry?:string|null;lodgingNo?:string|null;lodgingExpiry?:string|null};
 type SrvCmpRecord={fyStart:number;itemId:string;done:boolean;na:boolean;filedOn?:string|null;notes?:string|null;evidenceRef?:string|null;reviewerNote?:string|null;dueDate?:string|null;
   doneBy?:number|null;doneUtc?:string|null;naBy?:number|null;naUtc?:string|null;legacy?:string|null};
 type SrvCmpCustom={customId:number;id:string;cat:string;name:string;freq:string;dueDay:number;months:string[];form:string;who:string;what:string;why:string;penalty:string;
@@ -94,7 +95,8 @@ type SrvCmpCustom={customId:number;id:string;cat:string;name:string;freq:string;
 type SrvCmpEvidence={evidenceId:number;fyStart:number;itemId:string;fileName:string;contentType:string;sizeBytes:number;addedBy:number;addedUtc:string};
 type SrvCmpReopened={fyStart:number;itemId:string;part:string;wasDone:boolean;wasNa:boolean;filedOn?:string|null;notes?:string|null;evidenceRef?:string|null;reviewerNote?:string|null;
   dueDate?:string|null;recordedBy?:number|null;recordedUtc?:string|null;reopenedBy:number;reopenedUtc:string;reason:string};
-export type SrvCmpState={asOf:string;profile?:SrvCmpProfile|null;fyStart:number;records:SrvCmpRecord[];custom:SrvCmpCustom[];archived:string[];archivedCats:string[];
+/** fyStart = the EFFECTIVE FY (DEC-125); fyChosenIn = the business date's FY while a pick holds, else null. */
+export type SrvCmpState={asOf:string;profile?:SrvCmpProfile|null;fyStart:number;fyChosenIn?:number|null;records:SrvCmpRecord[];custom:SrvCmpCustom[];archived:string[];archivedCats:string[];
   evidence:SrvCmpEvidence[];reopened:SrvCmpReopened[];settings:SrvSettings};
 type SrvPack={packId:number;atUtc:string;by:number;to:string;toName:string;overdue:number;due:number;filed:number;notApplicable:number;lines:string[]};
 
@@ -239,8 +241,9 @@ export function cmpStateFromServer(st:SrvCmpState,packs:CMPPack[]):CMPState{
     reopenedBy:protoUserId(r.reopenedBy),reopenedAt:clock(r.reopenedUtc),reopenReason:r.reason}));
   const p=st.profile;
   const profile:CMPProfile|undefined=p?{name:p.name,pan:p.pan,gstin:p.gstin,entity:p.entity as CMPProfile['entity'],gstType:p.gstType as CMPProfile['gstType'],hasEmployees:p.hasEmployees,
-    qrmp:p.qrmp,notes:p.notes,...(p.updatedBy!=null?{updatedBy:protoUserId(p.updatedBy),updatedAt:clock(p.updatedUtc)}:{})}:undefined;
-  return {...(profile?{profile}:{}),fyStart:st.fyStart,records,custom,archived:[...st.archived],archivedCats:st.archivedCats as CMPCat[],files,packs,
+    qrmp:p.qrmp,notes:p.notes,...(p.fssaiNo?{fssaiNo:p.fssaiNo}:{}),...(p.fssaiExpiry?{fssaiExpiry:p.fssaiExpiry}:{}),...(p.lodgingNo?{lodgingNo:p.lodgingNo}:{}),
+    ...(p.lodgingExpiry?{lodgingExpiry:p.lodgingExpiry}:{}),...(p.updatedBy!=null?{updatedBy:protoUserId(p.updatedBy),updatedAt:clock(p.updatedUtc)}:{})}:undefined;
+  return {...(profile?{profile}:{}),fyStart:st.fyStart,fyChosenIn:st.fyChosenIn??null,records,custom,archived:[...st.archived],archivedCats:st.archivedCats as CMPCat[],files,packs,
     settings:{caName:st.settings.caName,caEmail:st.settings.caEmail,dueSoonDays:st.settings.dueSoonDays},...(reopened.length?{reopened}:{})};
 }
 async function loadCompliance(c:LoaderCtx):Promise<CMPState>{
@@ -283,8 +286,10 @@ function expensePrecheck(cmd:Command,s?:State):string|undefined{
 const gstWire=(m:Command)=>({...(Number.isSafeInteger(m.gstRateBps)?{gstRateBps:m.gstRateBps}:{}),...(Number.isSafeInteger(m.gstPaise)?{gstPaise:m.gstPaise}:{})});
 /** The Owner's locked-month override reason (SCC), when the command carries one. */
 const override=(m:Command)=>txt(m.override)?{overrideReason:txt(m.override)}:{};
-/** The card a compliance command is about: FY start (the selected FY when the command carries none) + item id. */
-const cmpItem=(cmd:Command,s?:State)=>({fyStart:cmd.fy!==undefined?Number(cmd.fy):(s?.complianceX as CMPState|undefined)?.fyStart??2026,itemId:txt(cmd.itemId)});
+/** The card a compliance command is about: FY start (the effective FY — DEC-125 — when the command carries none) + item id. */
+const cmpItem=(cmd:Command,s?:State)=>({fyStart:cmd.fy!==undefined?Number(cmd.fy):s?cmpSlice(s).fyStart:2026,itemId:txt(cmd.itemId)});
+/** DEC-133: the licence fields the command carries ('' clears; a field left out keeps its value on the server). */
+const cmpLicenceWire=(m:Command)=>Object.fromEntries((['fssaiNo','fssaiExpiry','lodgingNo','lodgingExpiry'] as const).filter(k=>m[k]!==undefined&&m[k]!==null).map(k=>[k,txt(m[k])]));
 const reason5=(cmd:Command)=>{const r=txt(cmd.reason);return r.length>=5&&r.length<=120?undefined:'Give a reason of 5–120 characters.';};
 /** "cust-12" → 12 (the server's custom obligation id). */
 const customId=(id:unknown)=>{const m=/^cust-(\d+)$/.exec(String(id??''));if(!m)throw new HccClientError('VALIDATION','This custom obligation is not on the server yet. Refresh and try again.');return Number(m[1]);};
@@ -397,7 +402,7 @@ export const accounting:SyncArea={
       async send(c){await c.api.command('SetComplianceFy',{fyStart:Number(c.cmd.fy)});}},
     {type:'CMP_PROFILE_SET',reload:['complianceX'],precheck:cmd=>txt(cmd.name)?undefined:'Please enter a firm name.',
       async send(c){const m=c.cmd;await c.api.command('SaveComplianceProfile',{name:txt(m.name),pan:txt(m.pan),gstin:txt(m.gstin),entity:txt(m.entity)||'proprietorship',
-        gstType:txt(m.gstType)||'regular',hasEmployees:m.hasEmployees!==false,qrmp:m.qrmp===true,notes:txt(m.notes),expectedVersion:c.ids.version('cmpProfile','1')??null});}},
+        gstType:txt(m.gstType)||'regular',hasEmployees:m.hasEmployees!==false,qrmp:m.qrmp===true,notes:txt(m.notes),...cmpLicenceWire(m),expectedVersion:c.ids.version('cmpProfile','1')??null});}},
     {type:'CMP_ARCHIVE_KEY',reload:['complianceX'],
       async send(c){await c.api.command('ToggleComplianceArchive',{key:txt(c.cmd.obligationKey)});}},
     {type:'CMP_ARCHIVE_CAT',reload:['complianceX'],

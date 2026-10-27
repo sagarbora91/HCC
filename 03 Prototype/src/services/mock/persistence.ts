@@ -5,7 +5,7 @@ import {hrMigrateLegacy,hrMigrateLeaveDays} from '../../domain/streams/staff';
 import {extendBase as cmpSeed} from '../../fixtures/ext/compliance';
 import {mstRows,mstNextSort,type MasterRow} from '../../domain/streams/masters';
 import {HRM_HOLIDAYS,HRM_LEAVE_TYPES} from '../../domain/streams/people-masters';
-import {cmpIsLegacy,cmpFromLegacy} from '../../domain/streams/compliance';
+import {cmpIsLegacy,cmpFromLegacy,cmpStampFyChoice} from '../../domain/streams/compliance';
 /** Oldest saved schema that is migrated instead of reset (W05-B review F-04). */
 export const MIGRATE_FROM_SCHEMA=7;
 /** One-time state migrations keyed on the saved schema; each is a no-op on current-shape state. Returns true when a shape-detected
@@ -36,6 +36,9 @@ function migrate(s:State&{schema:number}):boolean{
   // card); every filing, not-applicable mark, switched-off obligation and reopened filing is carried over. Detects the old shape itself, so it
   // is idempotent and runs on any schema.
   if(cmpIsLegacy(s.complianceX)){s.complianceX=cmpFromLegacy(s.complianceX as never,s);changed=true;}
+  // DEC-125 (compliance FY follows the business date on 1 April; SCHEMA 10, shape-detected, idempotent): a save from before DEC-125 whose audit
+  // shows an FY pick gets fyChosenIn = the business date's FY, so the pick holds until the next 1 April (no jump on restore).
+  if(cmpStampFyChoice(s))changed=true;
   // SCC leave port (DEC-116 / DEC-119; SCHEMA 10 — the shape is detected, so this is idempotent): old leave SPANS (no `date`) become one
   // record per counted date (staff.ts hrMigrateLeaveDays), and a stored Leave types list gets SCC's "Other" category.
   if(hrMigrateLeaveDays(s))changed=true;
