@@ -6,11 +6,11 @@ export function register({test,M,assert}){
   test('[S8] a v7 save without Wave 0.5 slices restores without reset and is upgraded to the current SCHEMA',()=>{
     const r=M.restoreState(v7Save());assert.equal(r.reset,false);assert.equal(r.state.schema,M.SCHEMA);
     assert.equal(r.state.bookings.length,M.seed().bookings.length,'bookings kept');assert.equal(M.drawer(r.state),M.drawer(M.seed()),'drawer unchanged');});
-  test('[S8] the v7 upgrade seeds the fictional compliance obligations (F14) and never overwrites existing ones',()=>{
-    const r=M.restoreState(v7Save());const x=r.state.complianceX;assert.ok(x&&x.obligations.length>0,'obligations seeded');
-    assert.equal(x.obligations.length,M.seed().complianceX.obligations.length);
-    const kept=structuredClone(M.seed());kept.complianceX.obligations=kept.complianceX.obligations.slice(0,2);kept.schema=7;
-    assert.equal(M.restoreState(JSON.stringify(kept)).state.complianceX.obligations.length,2,'existing slice untouched');});
+  test('[S8] the v7 upgrade seeds the fictional compliance calendar (F14; SCC shape since DEC-116) and never overwrites an existing one',()=>{
+    const r=M.restoreState(v7Save());const x=r.state.complianceX;assert.ok(x&&Object.keys(x.records['2026']).length>0,'records seeded');
+    assert.equal(Object.keys(x.records['2026']).length,Object.keys(M.seed().complianceX.records['2026']).length);
+    const kept=structuredClone(M.seed());kept.complianceX.records={'2026':{oc1:kept.complianceX.records['2026'].oc1}};kept.schema=7;
+    assert.deepEqual(Object.keys(M.restoreState(JSON.stringify(kept)).state.complianceX.records['2026']),['oc1'],'existing slice untouched');});
   test('[S8] saves older than 7 or newer than SCHEMA are reset, not migrated',()=>{
     for(const v of [6,M.SCHEMA+1]){const s=structuredClone(M.seed());s.schema=v;assert.equal(M.restoreState(JSON.stringify(s)).reset,true,'schema '+v);}});
   test('[S9] a v8 save (before the masters wave) restores without reset, keeps its data and reads the masters from their seeds',()=>{

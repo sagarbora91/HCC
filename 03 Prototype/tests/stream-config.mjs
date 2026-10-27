@@ -267,7 +267,7 @@ export function register({test,M,assert}){
     assert.ok(hr.filter(d=>d.key.startsWith('hr.pf.')).every(d=>d.illustrative&&/Illustrative — CA to confirm for a hotel/.test(d.help)));
     assert.equal(cfgDef(s,'hr.leave.half').editable,false);
     for(const k of ['cmp.caName','cmp.caEmail','cmp.dueSoonDays'])assert.ok(cmp.some(d=>d.key===k&&d.editable),k);
-    assert.ok(cmp.some(d=>d.key.startsWith('cmp.rule.')&&!d.editable));
+    for(const k of ['cmp.profile.gstType','cmp.profile.hasEmployees','cmp.catalogue'])assert.ok(cmp.some(d=>d.key===k&&!d.editable),k);// SCC profile / catalogue: shown, edited in the calendar (DEC-116)
     assert.equal(cfgCanChange(s,'techadmin',cfgDef(s,'cmp.caName')).mode,'deny');assert.equal(cfgCanChange(s,'techadmin',cfgDef(s,'hr.pf.pfEeBps')).mode,'deny');
     assert.equal(new Set(defs.map(d=>d.key)).size,defs.length);});
   test('[CFG] idempotency: a repeated SETTING_SET key returns the earlier state',()=>{

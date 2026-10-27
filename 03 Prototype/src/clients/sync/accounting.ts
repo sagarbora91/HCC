@@ -7,13 +7,16 @@
 //                           selectors read `accountingX.server` (domain/streams/accounting.ts) instead of deriving vouchers on the
 //                           device; locked days also fill `locks` (who/when, snapshot) for the lock / unlock dialogs.
 //             expenses    ← GET /expenses (window of 62 days + every Draft / Pending, pages of 100). Version kept per expense.
-//             complianceX ← GET /compliance/obligations, /compliance/calendar?includeInactive=true (filings + settings),
-//                           /compliance/ca-packs. Periods and due dates are computed by the same rules on both sides.
+//             complianceX ← GET /compliance/state (SCC tax module in full, DEC-116: firm profile, FY, records per FY and card,
+//                           custom obligations, archived keys / categories, evidence file list, reopened log, settings) and
+//                           /compliance/ca-packs. Cards, due dates and the control layer are computed by the same SCC rules on both sides;
+//                           the ≈₹ payable feed (GET /compliance/payable), an evidence file and the evidence ZIP are fetched by the screens.
 //   commands  ACC_LOCK/ACC_UNLOCK/ACC_MAP_SET/ACC_MAP_RESET → Lock/UnlockAccountingPeriod, Set/ResetLedgerMapping;
 //             ACC_TALLY_EXPORT → GET /accounting/export/tally (recorded on the server, DEC-077) and the server's XML is saved;
 //             EXPENSE/EXPENSE_SUBMIT/EXPENSE_APPROVE/EXPENSE_REVERSE → SubmitExpense, SubmitExpenseDraft, DecideExpense, ReverseExpense;
-//             CMP_* → MarkComplianceFiled, MarkComplianceNotApplicable, ReopenComplianceFiling, SaveComplianceObligation,
-//             ToggleComplianceObligation, SaveComplianceSettings, GenerateCaPack.
+//             CMP_* → MarkComplianceDone, MarkComplianceNotApplicable, ReopenComplianceItem, SetComplianceFy, SaveComplianceProfile,
+//             ToggleComplianceArchive, ToggleComplianceCategoryArchive, SaveCustomObligation, DeleteCustomObligation,
+//             AddComplianceEvidence, DeleteComplianceEvidence, SaveComplianceSettings, GenerateCaPack.
 //   versions  the server needs the record version on most commands while the prototype commands carry none: the version
 //             loaded last (ids.version) is sent, so a record changed elsewhere since the last load answers STALE_VERSION.
 //   till      a Cash expense decision / reversal needs the till with the open shift (DEC-052): ids 'till' → 'current' (learned by the
@@ -21,7 +24,8 @@
 import type {Command,Expense,State} from '../../services/mock';
 import type {ACCState,ACCVoucher,ACCServerDay,ACCLock,ACCMapRow,ACCException,ACCCheck,ACCDayStatus,ACCVoucherType,ACCSourceKind,ACCServer,ACCTBGroup} from '../../domain/streams/accounting';
 import {ACC_DEFAULT_MAP,accAccount} from '../../domain/streams/accounting';
-import type {CMPState,CMPObligation,CMPFiling,CMPPack,CMPRule,CMPKind,CMPFreq} from '../../domain/streams/compliance';
+import type {CMPState,CMPPack,CMPRecord,CMPCustom,CMPFile,CMPReopened,CMPProfile,CMPCat} from '../../domain/streams/compliance';
+import {cmpEmpty,CMP_DEFAULT_SETTINGS} from '../../domain/streams/compliance';
 import {mnyMethodFor} from '../../domain/streams/money-master';
 import {addDays} from '../../domain/money';
 import {HccClientError} from '../errors';
@@ -61,12 +65,18 @@ type SrvLockEvent={lockId:number;businessDate:string;action:string;atUtc:string;
 export type SrvExpense={expenseId:number;ref:string;vendor:string;category:string;amountPaise:number;method:string;businessDate:string;status:string;submittedBy:number;
   notes?:string|null;receipt?:string|null;reason?:string|null;decidedBy?:number|null;decidedUtc?:string|null;reversalOf?:number|null;reversedBy?:number|null;version:string};
 type SrvExpensePage={items:SrvExpense[];page:number;pageSize:number;total:number;ownOnly:boolean};
-type SrvRuleView={effectiveFrom:string;type:string;text:string;day?:number|null;month?:number|null;specialMonth?:number|null;specialDay?:number|null};
-export type SrvObligation={obligationId:number;kind:string;name:string;form:string;frequency:string;owner:string;trackedFrom:string;active:boolean;note?:string|null;version:string;rules:SrvRuleView[]};
-type SrvFiling={status:string;by:number;atUtc:string;reference?:string|null;reason?:string|null};
-type SrvCalendarItem={obligationId:number;kind:string;name:string;period:string;dueDate:string;days:number;status:string;filing?:SrvFiling|null};
 type SrvSettings={caName:string;caEmail:string;dueSoonDays:number;version:string};
-export type SrvCalendar={asOf:string;items:SrvCalendarItem[];settings:SrvSettings};
+/** GET /compliance/state (Hcc.Contracts.Compliance.ComplianceStateView). */
+type SrvCmpProfile={name:string;pan:string;gstin:string;entity:string;gstType:string;hasEmployees:boolean;qrmp:boolean;notes:string;updatedBy?:number|null;updatedUtc?:string|null;version:string};
+type SrvCmpRecord={fyStart:number;itemId:string;done:boolean;na:boolean;filedOn?:string|null;notes?:string|null;evidenceRef?:string|null;reviewerNote?:string|null;dueDate?:string|null;
+  doneBy?:number|null;doneUtc?:string|null;naBy?:number|null;naUtc?:string|null;legacy?:string|null};
+type SrvCmpCustom={customId:number;id:string;cat:string;name:string;freq:string;dueDay:number;months:string[];form:string;who:string;what:string;why:string;penalty:string;
+  responsible:string;reviewer:string;risk?:string|null;buffer?:number|null;checklist:string[];workflow:string[];evidence:string[];updatedBy?:number|null;updatedUtc?:string|null;version:string};
+type SrvCmpEvidence={evidenceId:number;fyStart:number;itemId:string;fileName:string;contentType:string;sizeBytes:number;addedBy:number;addedUtc:string};
+type SrvCmpReopened={fyStart:number;itemId:string;part:string;wasDone:boolean;wasNa:boolean;filedOn?:string|null;notes?:string|null;evidenceRef?:string|null;reviewerNote?:string|null;
+  dueDate?:string|null;recordedBy?:number|null;recordedUtc?:string|null;reopenedBy:number;reopenedUtc:string;reason:string};
+export type SrvCmpState={asOf:string;profile?:SrvCmpProfile|null;fyStart:number;records:SrvCmpRecord[];custom:SrvCmpCustom[];archived:string[];archivedCats:string[];
+  evidence:SrvCmpEvidence[];reopened:SrvCmpReopened[];settings:SrvSettings};
 type SrvPack={packId:number;atUtc:string;by:number;to:string;toName:string;overdue:number;due:number;filed:number;notApplicable:number;lines:string[]};
 
 // ── Permissions (module PERM ids do not change can(); the loaders check them to avoid 403 noise) ──
@@ -155,35 +165,40 @@ async function loadExpenses(c:LoaderCtx):Promise<Expense[]>{
   return [...byId.values()].sort((a,b)=>a.expenseId-b.expenseId).map(e=>{c.ids.setVersion('expense',String(e.expenseId),e.version);return expenseFromServer(e);});
 }
 
-// ── Compliance ──
-const ruleFromServer=(r:SrvRuleView):CMPRule=>r.type==='month-end'?{type:'month-end'}:r.type==='fixed'?{type:'fixed',month:Number(r.month),day:Number(r.day)}
-  :{type:'day',day:Number(r.day),...(r.specialMonth&&r.specialDay?{special:{month:r.specialMonth,day:r.specialDay}}:{})};
-export function obligationFromServer(o:SrvObligation):CMPObligation{
-  return {id:String(o.obligationId),kind:o.kind as CMPKind,name:o.name,form:o.form,freq:(o.frequency==='Annual'?'Annual':'Monthly') as CMPFreq,
-    rules:o.rules.map(r=>({from:r.effectiveFrom,rule:ruleFromServer(r)})),owner:o.owner,from:o.trackedFrom,active:o.active,...(o.note?{note:o.note}:{})};
+// ── Compliance (SCC tax module in full) ──
+const opt=(v:string|null|undefined)=>v?v:'';
+export function cmpRecordFromServer(r:SrvCmpRecord):CMPRecord{
+  return {...(r.done?{done:true}:{}),...(r.na?{na:true}:{}),...(r.filedOn?{filedOn:r.filedOn}:{}),...(r.done||r.notes?{notes:opt(r.notes)}:{}),
+    ...(r.done?{evidenceRef:opt(r.evidenceRef),reviewerNote:opt(r.reviewerNote)}:{}),...(r.dueDate?{dueDate:r.dueDate}:{}),
+    ...(r.doneBy!=null?{by:protoUserId(r.doneBy),at:clock(r.doneUtc)}:{}),...(r.naBy!=null?{naBy:protoUserId(r.naBy),naAt:clock(r.naUtc)}:{}),...(r.legacy?{legacy:r.legacy}:{})};
 }
-/** Prototype rule (dialog) → DueRuleDto. */
-export function ruleToServer(r:unknown):Record<string,unknown>{
-  const x=(r??{}) as {type?:string;day?:number;month?:number;special?:{month:number;day:number}};
-  if(x.type==='month-end')return {type:'month-end'};
-  if(x.type==='fixed')return {type:'fixed',month:x.month,day:x.day};
-  return {type:'day',day:x.day,...(x.special?{specialMonth:x.special.month,specialDay:x.special.day}:{})};
+export function cmpStateFromServer(st:SrvCmpState,packs:CMPPack[]):CMPState{
+  const records:Record<string,Record<string,CMPRecord>>={};
+  for(const r of st.records)(records[String(r.fyStart)]??={})[r.itemId]=cmpRecordFromServer(r);
+  const custom:CMPCustom[]=st.custom.map(c=>({id:c.id,cat:c.cat as CMPCat,name:c.name,freq:c.freq,dueDay:c.dueDay,months:[...c.months],form:c.form,who:c.who,what:c.what,why:c.why,
+    penalty:c.penalty,responsible:c.responsible,reviewer:c.reviewer,risk:(c.risk??'') as CMPCustom['risk'],buffer:c.buffer??null,checklist:[...c.checklist],workflow:[...c.workflow],
+    evidence:[...c.evidence],urgent:false,...(c.updatedBy!=null?{updatedBy:protoUserId(c.updatedBy),updatedAt:clock(c.updatedUtc)}:{})}));
+  const files:CMPFile[]=st.evidence.map(e=>({id:String(e.evidenceId),fy:e.fyStart,itemId:e.itemId,name:e.fileName,size:e.sizeBytes,type:e.contentType,addedBy:protoUserId(e.addedBy),addedAt:clock(e.addedUtc)}));
+  const reopened:CMPReopened[]=st.reopened.map(r=>({fy:r.fyStart,itemId:r.itemId,part:r.part==='na'?'na':'done',
+    record:cmpRecordFromServer({fyStart:r.fyStart,itemId:r.itemId,done:r.wasDone,na:r.wasNa,filedOn:r.filedOn,notes:r.notes,evidenceRef:r.evidenceRef,reviewerNote:r.reviewerNote,dueDate:r.dueDate,
+      doneBy:r.wasDone?r.recordedBy:null,doneUtc:r.recordedUtc,naBy:r.wasNa&&!r.wasDone?r.recordedBy:null,naUtc:r.recordedUtc}),
+    reopenedBy:protoUserId(r.reopenedBy),reopenedAt:clock(r.reopenedUtc),reopenReason:r.reason}));
+  const p=st.profile;
+  const profile:CMPProfile|undefined=p?{name:p.name,pan:p.pan,gstin:p.gstin,entity:p.entity as CMPProfile['entity'],gstType:p.gstType as CMPProfile['gstType'],hasEmployees:p.hasEmployees,
+    qrmp:p.qrmp,notes:p.notes,...(p.updatedBy!=null?{updatedBy:protoUserId(p.updatedBy),updatedAt:clock(p.updatedUtc)}:{})}:undefined;
+  return {...(profile?{profile}:{}),fyStart:st.fyStart,records,custom,archived:[...st.archived],archivedCats:st.archivedCats as CMPCat[],files,packs,
+    settings:{caName:st.settings.caName,caEmail:st.settings.caEmail,dueSoonDays:st.settings.dueSoonDays},...(reopened.length?{reopened}:{})};
 }
 async function loadCompliance(c:LoaderCtx):Promise<CMPState>{
-  const empty=c.current('complianceX') as CMPState|undefined;
-  if(!holds(c,'PERM-CMP-001'))return {obligations:[],filings:[],packs:[],settings:{...(empty?.settings??{caName:'',caEmail:'',dueSoonDays:7})}};
-  const [obs,cal,packs]=await Promise.all([
-    c.api.get<SrvObligation[]>('/compliance/obligations'),
-    c.api.get<SrvCalendar>('/compliance/calendar',{includeInactive:true}),
-    c.api.get<SrvPack[]>('/compliance/ca-packs'),
-  ]);
-  for(const o of obs)c.ids.setVersion('obligation',String(o.obligationId),o.version);
-  c.ids.setVersion('cmpSettings','1',cal.settings.version);
-  const filings:CMPFiling[]=cal.items.filter(i=>i.filing).map(i=>({obligation:String(i.obligationId),period:i.period,status:i.filing!.status==='Filed'?'Filed':'Not applicable',
-    by:protoUserId(i.filing!.by),at:clock(i.filing!.atUtc),...(i.filing!.reference?{reference:i.filing!.reference}:{}),...(i.filing!.reason?{reason:i.filing!.reason}:{})}));
+  const cur=c.current('complianceX') as CMPState|undefined;
+  if(!holds(c,'PERM-CMP-001'))return {...cmpEmpty(),settings:{...CMP_DEFAULT_SETTINGS,...(cur?.settings??{})}};
+  const [st,packs]=await Promise.all([c.api.get<SrvCmpState>('/compliance/state'),c.api.get<SrvPack[]>('/compliance/ca-packs')]);
+  c.ids.setVersion('cmpSettings','1',st.settings.version);
+  if(st.profile)c.ids.setVersion('cmpProfile','1',st.profile.version);
+  for(const x of st.custom)c.ids.setVersion('cmpCustom',x.id,x.version);
   const cmpPacks:CMPPack[]=packs.map(p=>({id:String(p.packId),at:clock(p.atUtc),by:protoUserId(p.by),to:p.to,toName:p.toName,
     counts:{overdue:p.overdue,due:p.due,filed:p.filed,na:p.notApplicable},lines:[...p.lines]}));
-  return {obligations:obs.map(obligationFromServer),filings,packs:cmpPacks,settings:{caName:cal.settings.caName,caEmail:cal.settings.caEmail,dueSoonDays:cal.settings.dueSoonDays}};
+  return cmpStateFromServer(st,cmpPacks);
 }
 
 // ── Command helpers ──
@@ -209,15 +224,20 @@ function expensePrecheck(cmd:Command,s?:State):string|undefined{
   if(!s||!mnyMethodFor(s,cmd.method,'expenses'))return 'Choose a funding source.';
   return undefined;
 }
-const cmpItem=(cmd:Command)=>({obligationId:serverId(cmd.obligation,'Obligation'),period:txt(cmd.period)});
+/** The card a compliance command is about: FY start (the selected FY when the command carries none) + item id. */
+const cmpItem=(cmd:Command,s?:State)=>({fyStart:cmd.fy!==undefined?Number(cmd.fy):(s?.complianceX as CMPState|undefined)?.fyStart??2026,itemId:txt(cmd.itemId)});
 const reason5=(cmd:Command)=>{const r=txt(cmd.reason);return r.length>=5&&r.length<=120?undefined:'Give a reason of 5–120 characters.';};
+/** "cust-12" → 12 (the server's custom obligation id). */
+const customId=(id:unknown)=>{const m=/^cust-(\d+)$/.exec(String(id??''));if(!m)throw new HccClientError('VALIDATION','This custom obligation is not on the server yet. Refresh and try again.');return Number(m[1]);};
+const list=(v:unknown)=>(Array.isArray(v)?v.map(String):String(v??'').split('\n')).map(x=>x.trim()).filter(Boolean);
+const dataUrlParts=(d:string)=>{const i=d.indexOf(','),head=i<0?'':d.slice(5,i);return {contentType:head.split(';')[0]||'application/octet-stream',base64:i<0?'':d.slice(i+1)};};
 
 export const accounting:SyncArea={
   id:'accounting',
   loaders:[
     {slice:'accountingX',requires:'reports',reads:['GET /accounting/days','GET /accounting/trial-balance','GET /accounting/mapping','GET /accounting/mapping/history','GET /accounting/locks/history'],needs:['date'],load:loadAccounting},
     {slice:'expenses',reads:['GET /expenses'],needs:['date'],load:loadExpenses},
-    {slice:'complianceX',requires:'reports',reads:['GET /compliance/obligations','GET /compliance/calendar','GET /compliance/ca-packs'],load:loadCompliance},
+    {slice:'complianceX',requires:'reports',reads:['GET /compliance/state','GET /compliance/ca-packs'],load:loadCompliance},
   ],
   commands:[
     // ── Accounting (module 20) ──
@@ -257,24 +277,38 @@ export const accounting:SyncArea={
         await c.api.command('ReverseExpense',{expenseId:serverId(id,'Expense'),expectedVersion:loadedVersion(c,'expense',id,'This expense'),reason:txt(c.cmd.reason),
           ...(e?.method==='Cash'?{tillId:currentTill(c)}:{})});
         return e?.method==='Cash'?{reload:CASH_SLICES}:undefined;}},
-    // ── Compliance calendar (Owner + Accountant, DEC-055) ──
-    {type:'CMP_FILE',reload:['complianceX'],
-      precheck:cmd=>{const r=txt(cmd.reference);return r.length>=4&&r.length<=40&&/^[\w\-/. ]+$/.test(r)?undefined:'Enter the acknowledgement / challan reference (4–40 characters: letters, digits and - / .).';},
-      async send(c){await c.api.command('MarkComplianceFiled',{...cmpItem(c.cmd),reference:txt(c.cmd.reference)});}},
-    {type:'CMP_NA',reload:['complianceX'],precheck:reason5,
-      async send(c){await c.api.command('MarkComplianceNotApplicable',{...cmpItem(c.cmd),reason:txt(c.cmd.reason)});}},
+    // ── Compliance calendar = SCC tax module in full (Owner + Accountant, DEC-055; Owner manages, DEC-058) ──
+    {type:'CMP_DONE',reload:['complianceX'],precheck:cmd=>txt(cmd.itemId)?undefined:'Choose a compliance item.',
+      async send(c){const m=c.cmd;await c.api.command('MarkComplianceDone',{...cmpItem(m,c.state),...(txt(m.filedOn)?{filedOn:txt(m.filedOn)}:{}),
+        notes:txt(m.notes),evidenceRef:txt(m.evidenceRef),reviewerNote:txt(m.reviewerNote)});}},
+    {type:'CMP_NA',reload:['complianceX'],
+      async send(c){await c.api.command('MarkComplianceNotApplicable',cmpItem(c.cmd,c.state));}},
     {type:'CMP_REOPEN',reload:['complianceX'],precheck:reason5,
-      async send(c){await c.api.command('ReopenComplianceFiling',{...cmpItem(c.cmd),reason:txt(c.cmd.reason)});}},
-    {type:'CMP_OBLIGATION_SAVE',reload:['complianceX'],
-      precheck:cmd=>{const n=txt(cmd.name);return n.length>=3&&n.length<=60?undefined:'Obligation name must be 3–60 characters.';},
-      async send(c){const m=c.cmd,id=m.id?String(m.id):undefined;
-        const body:Record<string,unknown>={id:id?serverId(id,'Obligation'):null,name:txt(m.name),form:txt(m.form),owner:txt(m.owner)||'Accountant',rule:ruleToServer(m.rule),
-          ...(txt(m.note)?{note:txt(m.note)}:{})};
-        if(id){body.effectiveFrom=txt(m.effectiveFrom)||undefined;body.expectedVersion=loadedVersion(c,'obligation',id,'This obligation');}else body.kind=txt(m.kind);
-        const r=await c.api.command<{obligationId:number}>('SaveComplianceObligation',body);
-        return {result:{id:r?.obligationId!=null?String(r.obligationId):id}};}},
-    {type:'CMP_OBLIGATION_TOGGLE',reload:['complianceX'],
-      async send(c){const id=String(c.cmd.id);await c.api.command('ToggleComplianceObligation',{obligationId:serverId(id,'Obligation'),expectedVersion:loadedVersion(c,'obligation',id,'This obligation')});}},
+      async send(c){await c.api.command('ReopenComplianceItem',{...cmpItem(c.cmd,c.state),reason:txt(c.cmd.reason)});}},
+    {type:'CMP_FY_SET',reload:['complianceX'],
+      async send(c){await c.api.command('SetComplianceFy',{fyStart:Number(c.cmd.fy)});}},
+    {type:'CMP_PROFILE_SET',reload:['complianceX'],precheck:cmd=>txt(cmd.name)?undefined:'Please enter a firm name.',
+      async send(c){const m=c.cmd;await c.api.command('SaveComplianceProfile',{name:txt(m.name),pan:txt(m.pan),gstin:txt(m.gstin),entity:txt(m.entity)||'proprietorship',
+        gstType:txt(m.gstType)||'regular',hasEmployees:m.hasEmployees!==false,qrmp:m.qrmp===true,notes:txt(m.notes),expectedVersion:c.ids.version('cmpProfile','1')??null});}},
+    {type:'CMP_ARCHIVE_KEY',reload:['complianceX'],
+      async send(c){await c.api.command('ToggleComplianceArchive',{key:txt(c.cmd.obligationKey)});}},
+    {type:'CMP_ARCHIVE_CAT',reload:['complianceX'],
+      async send(c){await c.api.command('ToggleComplianceCategoryArchive',{cat:txt(c.cmd.cat)});}},
+    {type:'CMP_CUSTOM_SAVE',reload:['complianceX'],
+      precheck:cmd=>!txt(cmd.name)?'Please enter an obligation name.':!(Array.isArray(cmd.months)&&cmd.months.length)?'Please select at least one applicable month.':undefined,
+      async send(c){const m=c.cmd,id=txt(m.id);
+        const r=await c.api.command<{id:string}>('SaveCustomObligation',{...(id?{customId:customId(id),expectedVersion:loadedVersion(c,'cmpCustom',id,'This custom obligation')}:{}),
+          cat:txt(m.cat)||'gst',name:txt(m.name),freq:txt(m.freq)||'Monthly',dueDay:Number.isInteger(Number(m.dueDay))?Number(m.dueDay):0,months:(m.months as unknown[]).map(String),
+          form:txt(m.form),who:txt(m.who),what:txt(m.what),why:txt(m.why),penalty:txt(m.penalty),responsible:txt(m.responsible),reviewer:txt(m.reviewer),
+          risk:txt(m.risk)||null,buffer:m.buffer===null||m.buffer===undefined||m.buffer===''?null:Number(m.buffer),checklist:list(m.checklist),workflow:list(m.workflow),evidence:list(m.evidence)});
+        return {result:{id:r?.id??id}};}},
+    {type:'CMP_CUSTOM_DELETE',reload:['complianceX'],
+      async send(c){await c.api.command('DeleteCustomObligation',{customId:customId(c.cmd.id)});}},
+    {type:'CMP_EVIDENCE_ADD',reload:['complianceX'],precheck:cmd=>String(cmd.dataUrl??'').startsWith('data:')?undefined:'Choose a file to attach.',
+      async send(c){const d=dataUrlParts(String(c.cmd.dataUrl));
+        await c.api.command('AddComplianceEvidence',{...cmpItem(c.cmd,c.state),fileName:txt(c.cmd.name)||'evidence',contentType:d.contentType,base64:d.base64});}},
+    {type:'CMP_EVIDENCE_DELETE',reload:['complianceX'],
+      async send(c){await c.api.command('DeleteComplianceEvidence',{evidenceId:serverId(c.cmd.id,'Evidence file')});}},
     {type:'CMP_SETTINGS_SET',reload:['complianceX'],
       async send(c){const m=c.cmd;
         await c.api.command('SaveComplianceSettings',{...(m.caName!==undefined?{caName:txt(m.caName)}:{}),...(m.caEmail!==undefined?{caEmail:txt(m.caEmail)}:{}),

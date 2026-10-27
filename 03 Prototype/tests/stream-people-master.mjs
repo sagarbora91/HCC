@@ -6,7 +6,7 @@ export function register({test,M,assert}){
   const {seed,execute,mstRows,mstByCode,mstSpec,mstSpecsOfGroup,mstHistory,mstReasonOf,MstError,mstSearch,
     hrShiftInfo,hrShiftFor,hrCheckinStatus,hrShiftPatterns,hrShiftPattern,hrCounts,hrComputeLine,hrComputeRun,hrLeaveDays,hrLeaveBalance,hrLeaveQuota,hrLeavePolicy,hrElEncashment,
     hrLeaveName,hrLeavePaid,hrLeaveChoices,hrTrackedTypes,hrHolidayPaid,hrHolidayOn,hrHolidayDates,hrHolidayFy,hrDesignationOf,hrDesignationChoices,hrSeedDesignations,
-    hrWeeklyOffAuto,hrShiftMinutes,hrPayRuleFields,cmpItems,cmpDueDate,cmpShiftDue,hrDayStatus,HR_SHIFTS}=M;
+    hrWeeklyOffAuto,hrShiftMinutes,hrPayRuleFields,cmpSlice,cmpView,cmpFindCard,cmpParseDue,hrDayStatus,HR_SHIFTS}=M;
   const code=c=>e=>e.code===c;
   const reason=r=>e=>e instanceof MstError&&e.reason===r&&mstReasonOf(e)===r;
   const src=f=>readFileSync(f,'utf8');
@@ -33,8 +33,8 @@ export function register({test,M,assert}){
     for(const t of x(s).staff)assert.equal(hrDesignationOf(s,t)?.name,t.designation);});
   test('[PPL] fixture figures, BASE and FY26 hashes unchanged; no list stored in the fixture',()=>{
     const s=seed();assert.equal(M.metrics(s).occupied,8);assert.equal(M.metrics(s).collections,2150000);assert.equal(M.drawer(s),1072500);assert.equal(s.mastersX,undefined);
-    assert.equal(sha(strip(seed())),'2c1782df0630d8839427fb944af3a1aa819512238aaa2568163a53f31b3aae1c') /* old → new: d885a20a… → add626d3… = SCHEMA 8 → 9 only (masters wave) */;
-    assert.equal(sha(strip(M.buildHistory(M.baseFixture()))),'bf6895382813f8ef3d265e2c7b77ae6d9b1209c38dca792ea972e20c3cf3a43f') /* old → new: ba4a1d4e… → 35e63082… = SCHEMA 8 → 9 only */;});
+    assert.equal(sha(strip(seed())),'f421d366580e5b0225f663e19ccbfb42cfb5ffbe7d07fb5ded2f1463cef85bc1') /* SCC tax port (DEC-116): 2c1782df… → f421d366… = the compliance slice only */ /* old → new: d885a20a… → add626d3… = SCHEMA 8 → 9 only (masters wave) */;
+    assert.equal(sha(strip(M.buildHistory(M.baseFixture()))),'e733a0d475bdf0fe3756ef4660ff650b722c946438494bc8c9b9441829c010f8') /* SCC tax port (DEC-116): bf689538… → e733a0d4… = the compliance slice only */ /* old → new: ba4a1d4e… → 35e63082… = SCHEMA 8 → 9 only */;});
   test('[PPL] payroll and the holiday calendar (DEC-115, SCC Mgmt holidays): August has no unworked holiday; September (no paid holiday) is unchanged with every holiday retired; October loses 2 total days',()=>{
     const s=seed(),run=x(s).runs[0];assert.equal(run.month,'2026-08');for(const l of run.lines)assert.equal('hol' in l.counts,false);
     // MA-11 old → new: holidays of the locked August month cannot be retired any more (Wave B's lock rule) — retire every other one.
@@ -194,14 +194,10 @@ export function register({test,M,assert}){
     assert.throws(()=>save(s,'owner','holidays',{code:'2026-08-20',name:'New paid day',kind:'paid'}),e=>/payroll is locked/.test(e.message));
     assert.ok(mstByCode(save(s,'owner','holidays',{code:'2026-08-21',name:'Optional day',kind:'restricted'}),'holidays','2026-08-21'));
     const fresh=mstByCode(s,'holidays','2026-12-25');assert.equal(mstSpec('holidays').inUse(s,fresh).count,0);assert.ok(execute(s,'owner',{type:'MST_MASTER_DELETE',master:'holidays',id:fresh.id}));});
-  test('[PPL] compliance due dates roll past paid holidays (not past Sundays or restricted days); the raw rule date is unchanged',()=>{
-    const s=seed(),it=cmpItems(s,true).find(i=>i.key==='CMPO-EPF:2026-07');
-    assert.equal(it.due,'2026-08-17');// 15 Aug is a paid holiday, 16 Aug a Sunday
-    assert.equal(cmpDueDate(it.obligation,'2026-07'),'2026-08-15');assert.equal(cmpDueDate(it.obligation,'2026-07',hrHolidayDates(s)),'2026-08-17');
-    assert.equal(cmpShiftDue('2026-10-11',new Set(['2026-10-11'])),'2026-10-12');assert.equal(cmpShiftDue('2026-10-11',new Set()),'2026-10-11');
-    const open=structuredClone(s);open.staffX.runs.find(r=>r.month==='2026-08').status='Draft'; // MA-11: a locked month's holidays cannot be retired
-    const off=execute(open,'owner',{type:'MST_MASTER_RETIRE',master:'holidays',id:mstByCode(s,'holidays','2026-08-15').id});
-    assert.equal(cmpItems(off,true).find(i=>i.key==='CMPO-EPF:2026-07').due,'2026-08-15');});
+  test('[PPL] SCC tax port (DEC-116): compliance due dates no longer roll past paid holidays — SCC never moves a due date',()=>{
+    const s=seed(),x=cmpSlice(s),v=cmpView(x,cmpFindCard(x,'ag5'),'August',2026,s.date);
+    assert.ok(hrHolidayDates(s).has('2026-08-15'));assert.equal(v.due,'2026-08-15');// EPF July wages: 15 Aug is a paid holiday, the date stays
+    assert.equal(cmpParseDue('15 Aug',2026),'2026-08-15');assert.equal(typeof M.cmpShiftDue,'undefined');});
 
   // ── Designations ──
   test('[PPL] designation seed codes are unique and valid; the staff form choices follow the department',()=>{

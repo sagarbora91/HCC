@@ -67,10 +67,10 @@ public class HttpEndpointTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task Calendar_and_commands_over_HTTP()
+    public async Task State_views_and_commands_over_HTTP()
     {
-        using (var anon = await _http.SendAsync(Req(HttpMethod.Get, "/compliance/calendar", null), Ct)) Assert.Equal(HttpStatusCode.Unauthorized, anon.StatusCode);
-        using (var mgr = await _http.SendAsync(Req(HttpMethod.Get, "/compliance/calendar", Users.Manager), Ct))
+        using (var anon = await _http.SendAsync(Req(HttpMethod.Get, "/compliance/state", null), Ct)) Assert.Equal(HttpStatusCode.Unauthorized, anon.StatusCode);
+        using (var mgr = await _http.SendAsync(Req(HttpMethod.Get, "/compliance/state", Users.Manager), Ct))
         {
             Assert.Equal(HttpStatusCode.Forbidden, mgr.StatusCode);
             Assert.Equal("FORBIDDEN", (await mgr.Content.ReadFromJsonAsync<ErrorResponse>(Ct))!.Code);
@@ -78,31 +78,47 @@ public class HttpEndpointTests : IAsyncLifetime
 
         using (var badge = await _http.SendAsync(Req(HttpMethod.Get, "/compliance/badge", Users.Manager), Ct))
             Assert.Equal(0, (await badge.Content.ReadFromJsonAsync<BadgeResult>(Web, Ct))!.Count);
-        var view = (await (await _http.SendAsync(Req(HttpMethod.Get, "/compliance/calendar", Users.Accountant), Ct)).Content.ReadFromJsonAsync<CalendarView>(Web, Ct))!;
-        Assert.Equal(37, view.Items.Count);
-        Assert.Equal(1, view.Counts.Overdue);
+        var state = (await (await _http.SendAsync(Req(HttpMethod.Get, "/compliance/state", Users.Accountant), Ct)).Content.ReadFromJsonAsync<ComplianceStateView>(Web, Ct))!;
+        Assert.Equal((2026, 55, "regular"), (state.FyStart, state.Records.Count, state.Profile!.GstType));
+        var month = (await (await _http.SendAsync(Req(HttpMethod.Get, "/compliance/month?fy=2026&month=October", Users.Accountant), Ct)).Content.ReadFromJsonAsync<MonthView>(Web, Ct))!;
+        Assert.Equal(1, month.Stats.Overdue);
+        var ac = (await (await _http.SendAsync(Req(HttpMethod.Get, "/compliance/action-center", Users.Owner), Ct)).Content.ReadFromJsonAsync<ActionCenterView>(Web, Ct))!;
+        Assert.Equal(11, ac.Rows.Count);
+        foreach (var path in new[] { "/compliance/dashboard?q=Q3", "/compliance/register", "/compliance/print?month=October", "/compliance/payable", "/compliance/evidence-zip", "/compliance/due-this-week" })
+            using (var r = await _http.SendAsync(Req(HttpMethod.Get, path, Users.Owner), Ct)) Assert.Equal(HttpStatusCode.OK, r.StatusCode);
 
-        var g1 = view.Items.Single(i => i.Kind == "GSTR-1" && i.Period == "2026-09").ObligationId;
-        var body = new MarkFiledRequest(g1, "2026-09", "ARN-AA2610-0042");
-        using (var noKey = await _http.SendAsync(Req(HttpMethod.Post, "/commands/MarkComplianceFiled", Users.Accountant, body), Ct))
+        var body = new MarkDoneRequest(2026, "oc4", null, "ARN-AA2610-0042");
+        using (var noKey = await _http.SendAsync(Req(HttpMethod.Post, "/commands/MarkComplianceDone", Users.Accountant, body), Ct))
             Assert.Equal(HttpStatusCode.UnprocessableEntity, noKey.StatusCode);
-        using (var ok = await _http.SendAsync(Req(HttpMethod.Post, "/commands/MarkComplianceFiled", Users.Accountant, body, "h1"), Ct))
+        using (var ok = await _http.SendAsync(Req(HttpMethod.Post, "/commands/MarkComplianceDone", Users.Accountant, body, "h1"), Ct))
         {
             Assert.Equal(HttpStatusCode.OK, ok.StatusCode);
-            Assert.Equal(13, (await ok.Content.ReadFromJsonAsync<FilingResult>(Web, Ct))!.DaysLate);
+            Assert.Equal(13, (await ok.Content.ReadFromJsonAsync<MarkDoneResult>(Web, Ct))!.DaysLate);
         }
 
-        using (var replay = await _http.SendAsync(Req(HttpMethod.Post, "/commands/MarkComplianceFiled", Users.Accountant, body, "h1"), Ct))
+        using (var replay = await _http.SendAsync(Req(HttpMethod.Post, "/commands/MarkComplianceDone", Users.Accountant, body, "h1"), Ct))
             Assert.Equal("true", replay.Headers.GetValues(AccessEndpoints.ReplayedHeader).Single());
-        using (var again = await _http.SendAsync(Req(HttpMethod.Post, "/commands/MarkComplianceFiled", Users.Accountant, body, "h2"), Ct))
+        using (var again = await _http.SendAsync(Req(HttpMethod.Post, "/commands/MarkComplianceDone", Users.Accountant, body, "h2"), Ct))
             Assert.Equal(HttpStatusCode.Conflict, again.StatusCode);
 
-        var reopen = new ReopenFilingRequest(g1, "2026-09", "Wrong reference");
-        using (var acc = await _http.SendAsync(Req(HttpMethod.Post, "/commands/ReopenComplianceFiling", Users.Accountant, reopen, "h3"), Ct))
+        var reopen = new ReopenItemRequest(2026, "oc4", "Wrong reference");
+        using (var acc = await _http.SendAsync(Req(HttpMethod.Post, "/commands/ReopenComplianceItem", Users.Accountant, reopen, "h3"), Ct))
             Assert.Equal(HttpStatusCode.Forbidden, acc.StatusCode);
-        using (var owner = await _http.SendAsync(Req(HttpMethod.Post, "/commands/ReopenComplianceFiling", Users.Owner, reopen, "h4"), Ct))
+        using (var owner = await _http.SendAsync(Req(HttpMethod.Post, "/commands/ReopenComplianceItem", Users.Owner, reopen, "h4"), Ct))
             Assert.Equal(HttpStatusCode.OK, owner.StatusCode);
-        using (var pack = await _http.SendAsync(Req(HttpMethod.Post, "/commands/GenerateCaPack", Users.Accountant, null, "h5"), Ct))
+        using (var na = await _http.SendAsync(Req(HttpMethod.Post, "/commands/MarkComplianceNotApplicable", Users.Accountant, new MarkNotApplicableRequest(2026, "oc2"), "h5"), Ct))
+            Assert.Equal(HttpStatusCode.OK, na.StatusCode);
+        using (var ev = await _http.SendAsync(Req(HttpMethod.Post, "/commands/AddComplianceEvidence", Users.Accountant, new AddEvidenceRequest(2026, "oc4", "a.pdf", "application/pdf", "JVBERg=="), "h6"), Ct))
+        {
+            Assert.Equal(HttpStatusCode.OK, ev.StatusCode);
+            var id = (await ev.Content.ReadFromJsonAsync<EvidenceResult>(Web, Ct))!.EvidenceId;
+            var file = (await (await _http.SendAsync(Req(HttpMethod.Get, "/compliance/evidence/" + id.ToString(System.Globalization.CultureInfo.InvariantCulture), Users.Owner), Ct)).Content.ReadFromJsonAsync<EvidenceFileView>(Web, Ct))!;
+            Assert.Equal("JVBERg==", file.Base64);
+        }
+
+        using (var fy = await _http.SendAsync(Req(HttpMethod.Post, "/commands/SetComplianceFy", Users.Accountant, new SetFyRequest(2027), "h7"), Ct))
+            Assert.Equal(HttpStatusCode.OK, fy.StatusCode);
+        using (var pack = await _http.SendAsync(Req(HttpMethod.Post, "/commands/GenerateCaPack", Users.Accountant, null, "h8"), Ct))
             Assert.Equal(HttpStatusCode.OK, pack.StatusCode);
         var packs = (await (await _http.SendAsync(Req(HttpMethod.Get, "/compliance/ca-packs", Users.Owner), Ct)).Content.ReadFromJsonAsync<List<CaPackDto>>(Web, Ct))!;
         Assert.Single(packs);
