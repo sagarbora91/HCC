@@ -68,7 +68,7 @@ public static class AccountingDays
 /// Accounting commands (module spec 20 §8; prototype ACC_LOCK / ACC_UNLOCK / ACC_MAP_SET / ACC_MAP_RESET). Vouchers are never
 /// keyed by hand: they are derived from the sources the outbox consumer records.
 /// </summary>
-public sealed class AccountingService(ICommandRunner runner, IAccountingStore store, IAccessPolicy policy, TimeProvider clock)
+public sealed class AccountingService(ICommandRunner runner, IAccountingStore store, IAccessPolicy policy, TimeProvider clock, IOpeningEntryStore? openingEntries = null)
 {
     public const string OpLock = "LockAccountingPeriod";
     public const string OpUnlock = "UnlockAccountingPeriod";
@@ -92,6 +92,7 @@ public sealed class AccountingService(ICommandRunner runner, IAccountingStore st
             var day = await AccountingDays.EvaluateAsync(store, tx, caller.PropertyId, req.BusinessDate, ct2).ConfigureAwait(false);
             if (day.Lock is not null) throw new HccException(HccErrorCode.INVALID_TRANSITION, "This date is already locked.");
             if (day.Status == DayStatus.Open) throw new HccException(HccErrorCode.INVALID_TRANSITION, "Close the business day before locking it.");
+            await OpeningBalanceGuard.RequireLockableAsync(openingEntries, tx, caller.PropertyId, req.BusinessDate, ct2).ConfigureAwait(false); // ACC-1 §5 "opening balances pending"
             var errors = day.Errors;
             if (errors.Count > 0)
                 throw HccException.Validation($"Resolve {errors.Count} exception{(errors.Count == 1 ? "" : "s")} first ({errors[0].Title}).");

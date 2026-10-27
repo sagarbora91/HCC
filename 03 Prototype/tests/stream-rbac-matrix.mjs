@@ -116,6 +116,8 @@ const CMDS={
   CFG_DECIDE:C('OWN MGR','DEC-058 + §7 (Manager decides Manager-approver requests)'),BACKUP_SIMULATE:C('OWN TAD','ADM-005'),
   ACC_TALLY_EXPORT:C('OWN ACC','DEC-063 G13 Tally tab; DEC-077 export log'),ACC_LOCK:C('OWN MGR ACC','Module 20 §8'),ACC_UNLOCK:C('OWN','Module 20 §8'),ACC_MAP_SET:C('OWN','Module 20 §8 + matrix note: TAD holds no financial actions'),ACC_MAP_RESET:C('OWN','as ACC_MAP_SET'),
   ACC_LEDGER_UPSERT:C('OWN','ACC-1 contract §7: chart of accounts = Owner-only money master (PERM-ACC-007, DEC-058)'),ACC_LEDGER_RETIRE:C('OWN','as ACC_LEDGER_UPSERT'),ACC_GROUP_UPSERT:C('OWN','as ACC_LEDGER_UPSERT'),
+  // ACC-1 opening balances (contract §5/§7, DEC-148): enter = Owner / Manager / Accountant with reports (PERM-ACC-008); approve / reopen = Owner (PERM-ACC-009).
+  ACC_OPENING_SAVE:C('OWN MGR ACC','ACC-1 contract §7 PERM-ACC-008'),ACC_OPENING_APPROVE:C('OWN','ACC-1 contract §7 PERM-ACC-009'),ACC_OPENING_REOPEN:C('OWN','ACC-1 contract §5 (Owner reopens)'),
   OWN_CREDENTIAL_CHANGE:C(ALL,'A02b-05: every signed-in user changes their own password / PIN (server ChangeOwnCredential)'),
   AI_ASK:C(ALL,'Module 26: any user, answer filtered'),AI_CLEAR:C(ALL,'Module 26: own history'),AI_SETTINGS:C('OWN MGR','Module 26 (approve)'),
   CB_LOCK:C('OWN MGR ACC','Wave 0.5: day locked by a checker'),CB_REOPEN:C('OWN','Wave 0.5: owner reopen'),

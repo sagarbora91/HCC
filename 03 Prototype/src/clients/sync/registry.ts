@@ -28,6 +28,7 @@ import {staff} from './staff';
 import {accounting} from './accounting';
 // ACC-1 lanes: add ONE import line for your sync file below (append only).
 import {accountingChart} from './accounting-chart'; // ACC-1 chart lane
+import {accountingOpening} from './accounting-opening';
 // ACC-1 end
 
 // W4-8 POS:
@@ -79,6 +80,7 @@ export const AREAS:SyncArea[]=[
   accounting, // W4-7
   // ACC-1 lanes: add your sync module name on ONE line below (append only).
   accountingChart, // ACC-1 chart lane
+  accountingOpening, // ACC-1 opening balances
   // ACC-1 end
 
   pos, // W4-8
