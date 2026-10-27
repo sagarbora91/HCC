@@ -127,28 +127,28 @@ export function register({test,M,assert}){
     assert.throws(()=>execute(s,'reception',{type:'EXPENSE',description:'X',category:'Supplies',amount:5000,method:'UPI',gstPaise:100,itc:'maybe'}),says('VALIDATION',/Choose ITC allowed or ITC disallowed/));
     assert.throws(()=>execute(s,'reception',{type:'EXPENSE',description:'Y',category:'Supplies',amount:5000,method:'UPI',gstPaise:6000,confirmGst:true,itc:'allowed'}),says('VALIDATION',/ITC cannot be allowed on more GST than the bill amount/));
     assert.equal(execute(s,'reception',{type:'EXPENSE',description:'Y',category:'Supplies',amount:5000,method:'UPI',gstPaise:6000,confirmGst:true}).expenses.at(-1).itc,'disallowed');});
-  test('[EXP-DEC] DEC-135 · posting books ITC allowed GST to the GST input-credit ledger (Dr category net · Dr 1300 · Cr funding), disallowed as before; a reversal mirrors it',()=>{
+  test('[EXP-DEC] DEC-135 · posting books ITC allowed GST to the GST input-credit ledger (Dr category net · Dr 1310 — ACC-1 default; the CGST / SGST split is the integration step · Cr funding), disallowed as before; a reversal mirrors it',()=>{
     let s=seed();
     s=execute(s,'reception',{type:'EXPENSE',description:'Bulbs',category:'Maintenance',amount:59000,method:'UPI',gstRateBps:1800,gstPaise:9000,itc:'allowed'});const a=s.expenses.at(-1).id;
     s=execute(s,'reception',{type:'EXPENSE',description:'Soap',category:'Supplies',amount:118000,method:'Cash',gstRateBps:1800,gstPaise:18000});const d=s.expenses.at(-1).id;
     s=execute(s,'owner',{type:'EXPENSE_APPROVE',id:a,approve:true});s=execute(s,'owner',{type:'EXPENSE_APPROVE',id:d,approve:true});
     let vs=M.accLiveVouchers(s,D);const va=vs.find(v=>v.source.id===a),vd=vs.find(v=>v.source.id===d);
-    assert.deepEqual(va.entries.map(e=>[e.account,e.debit,e.credit]),[['5020',50000,0],['1300',9000,0],['1010',0,59000]]);
+    assert.deepEqual(va.entries.map(e=>[e.account,e.debit,e.credit]),[['5020',50000,0],['1310',9000,0],['1010',0,59000]]);
     assert.deepEqual(vd.entries.map(e=>[e.account,e.debit,e.credit]),[['5000',118000,0],['1000',0,118000]],'disallowed: the whole bill to the category');
-    assert.equal(M.accLedgerName('1300'),'GST input credit');
+    assert.equal(M.accLedgerName('1300'),'GST input credit (legacy, locked snapshots only)');assert.equal(M.accLedgerName('1310'),'Input CGST'); // ACC-1
     s=execute(s,'owner',{type:'EXPENSE_REVERSE',id:a,reason:'Wrong vendor'});
     const r=s.expenses.find(e=>e.reversalOf===a);assert.deepEqual([r.amount,r.gstPaise,r.itc],[-59000,-9000,'allowed']);
     vs=M.accLiveVouchers(s,D);
-    assert.deepEqual(vs.find(v=>v.source.id===r.id).entries.map(e=>[e.account,e.debit,e.credit]),[['5020',0,50000],['1300',0,9000],['1010',59000,0]]);
-    assert.equal(net(vs,'1300'),0,'the reversal nets the input credit to zero');
+    assert.deepEqual(vs.find(v=>v.source.id===r.id).entries.map(e=>[e.account,e.debit,e.credit]),[['5020',0,50000],['1310',0,9000],['1010',59000,0]]);
+    assert.equal(net(vs,'1310'),0,'the reversal nets the input credit to zero');
     assert.ok(balanced(vs));
     const checks=M.accReconcile(s,D);assert.ok(checks.find(c=>c.id==='expenses').ok&&checks.every(c=>c.ok),JSON.stringify(checks.filter(c=>!c.ok)));
     assert.ok(M.accTrialBalance(M.accVouchersUpTo(s,D)).reduce((a,r)=>a+r.balance,0)===0,'trial balance balanced');});
   test('[EXP-DEC] DEC-135 · the mapping screen and the Tally XML carry the GST input-credit ledger; the Owner can map it elsewhere',()=>{
     let s=execute(seed(),'reception',{type:'EXPENSE',description:'Bulbs',category:'Maintenance',amount:59000,method:'UPI',gstRateBps:1800,gstPaise:9000,itc:'allowed'});
     s=execute(s,'owner',{type:'EXPENSE_APPROVE',id:s.expenses.at(-1).id,approve:true});
-    const row=M.accMapRows(s).find(r=>r.key==='tax:gst-input');assert.deepEqual([row.group,row.value,row.account,row.defaultAccount,row.uses],['GST input credit (ITC)','gst-input','1300','1300',1]);
-    const x=M.accTallyXml(s,D,D);assert.match(x.xml,/<LEDGERNAME>GST input credit<\/LEDGERNAME><ISDEEMEDPOSITIVE>Yes<\/ISDEEMEDPOSITIVE><AMOUNT>-90\.00<\/AMOUNT>/);assert.equal(x.debit,x.credit);
+    const row=M.accMapRows(s).find(r=>r.key==='tax:gst-input');assert.deepEqual([row.group,row.value,row.account,row.defaultAccount,row.uses],['GST input credit (ITC)','gst-input','1310','1310',1]);
+    const x=M.accTallyXml(s,D,D);assert.match(x.xml,/<LEDGERNAME>Input CGST<\/LEDGERNAME><ISDEEMEDPOSITIVE>Yes<\/ISDEEMEDPOSITIVE><AMOUNT>-90\.00<\/AMOUNT>/);assert.equal(x.debit,x.credit);
     assert.throws(()=>execute(s,'manager',{type:'ACC_MAP_SET',source:'tax:gst-input',account:'5020'}),code('FORBIDDEN'));
     const m=execute(s,'owner',{type:'ACC_MAP_SET',source:'tax:gst-input',account:'5020'});
     assert.deepEqual(M.accLiveVouchers(m,D).find(v=>v.source.kind==='expense'&&v.entries.length===3).entries.map(e=>e.account),['5020','5020','1010']);});

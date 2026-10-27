@@ -106,7 +106,7 @@ public sealed class MappingAndExportTests(AccountingDb db) : IClassFixture<Accou
         Assert.Equal("HCC-vouchers-2026-09-02_2026-09-02.csv", name);
         var rows = csv.Split("\r\n");
         Assert.Equal("Date,Voucher No,Voucher Type,Ledger,Debit,Credit,Narration,Source ID", rows[0]);
-        Assert.Equal("2026-09-02,PMT/20260902/001,Payment,Utilities,750.00,,\"Demo Power, \"\"East\"\" · Utilities · Cash\",expense:41", rows[1]);
+        Assert.Equal("2026-09-02,PMT/20260902/001,Payment,\"Electricity, water & fuel\",750.00,,\"Demo Power, \"\"East\"\" · Utilities · Cash\",expense:41", rows[1]);
 
         await Fails(HccErrorCode.FORBIDDEN, () => db.Queries.TallyAsync(db.As("MGR"), S2, S2, Ct));
         await Fails(HccErrorCode.FORBIDDEN, () => db.Queries.TallyAsync(db.As("CSH"), S2, S2, Ct));
@@ -117,7 +117,7 @@ public sealed class MappingAndExportTests(AccountingDb db) : IClassFixture<Accou
         Assert.Equal(75_000, t.DebitPaise);
         Assert.Contains("SIMULATED EXPORT", t.Xml, StringComparison.Ordinal);
         Assert.Contains("<SVCURRENTCOMPANY>HCC Demo Residency</SVCURRENTCOMPANY>", t.Xml, StringComparison.Ordinal);
-        Assert.Contains("<LEDGERNAME>Utilities</LEDGERNAME><ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE><AMOUNT>-750.00</AMOUNT>", t.Xml, StringComparison.Ordinal);
+        Assert.Contains("<LEDGERNAME>Electricity, water &amp; fuel</LEDGERNAME><ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE><AMOUNT>-750.00</AMOUNT>", t.Xml, StringComparison.Ordinal);
         Assert.Contains("&quot;East&quot;", t.Xml, StringComparison.Ordinal);
         Assert.Equal(17, (await db.Queries.TallyAsync(db.As("OWN"), S2, S2, Ct)).Xml.Split('\n').Length);
 
@@ -139,19 +139,19 @@ public sealed class MappingAndExportTests(AccountingDb db) : IClassFixture<Accou
         await db.ProjectAsync();
         var day = await db.Queries.DayAsync(db.As("ACC"), d, Ct);
         Assert.All(day.Vouchers, v => Assert.True(v.Balanced, v.Number));
-        Assert.Equal([("5020", 50_000L, 0L), ("1300", 9_000L, 0L), ("1010", 0L, 59_000L)], day.Vouchers.Single(v => v.SourceKey == "expense:61").Entries.Select(e => (e.Account, e.DebitPaise, e.CreditPaise)));
+        Assert.Equal([("5020", 50_000L, 0L), ("1310", 9_000L, 0L), ("1010", 0L, 59_000L)], day.Vouchers.Single(v => v.SourceKey == "expense:61").Entries.Select(e => (e.Account, e.DebitPaise, e.CreditPaise)));
         Assert.Equal([("1000", 100_000L, 0L), ("1120", 0L, 100_000L)], day.Vouchers.Single(v => v.SourceKey == "udhaar-payment:71").Entries.Select(e => (e.Account, e.DebitPaise, e.CreditPaise)));
         Assert.Equal(0, day.Errors);
         var map = await db.Queries.MappingAsync(db.As("OWN"), Ct);
-        Assert.Contains(map, r => r.MapKey == "tax:gst-input" && r.Account == "1300" && r.DefaultAccount == "1300" && r.Group == "GST input credit (ITC)" && r.Uses == 2);
+        Assert.Contains(map, r => r.MapKey == "tax:gst-input" && r.Account == "1310" && r.DefaultAccount == "1310" && r.Group == "GST input credit (ITC)" && r.Uses == 2);
         Assert.Contains(map, r => r.MapKey == "receipt:udhaar" && r.Account == "1120" && r.Uses == 1);
         var tally = await db.Queries.TallyAsync(db.As("OWN"), d, d, Ct);
-        Assert.Contains("<LEDGERNAME>GST input credit</LEDGERNAME>", tally.Xml, StringComparison.Ordinal);
+        Assert.Contains("<LEDGERNAME>Input CGST</LEDGERNAME>", tally.Xml, StringComparison.Ordinal);
         Assert.Contains("<LEDGERNAME>Udhaar receivables (customer credit)</LEDGERNAME>", tally.Xml, StringComparison.Ordinal);
         Assert.Equal(tally.DebitPaise, tally.CreditPaise);
         var tb = await db.Queries.TrialBalanceAsync(db.As("ACC"), d, false, Ct);
         Assert.True(tb.Balanced);
-        Assert.Equal(0, tb.Rows.Where(r => r.Account == "1300").Sum(r => r.BalancePaise));               // the reversal netted the input credit
+        Assert.Equal(0, tb.Rows.Where(r => r.Account == "1310").Sum(r => r.BalancePaise));               // the reversal netted the input credit
         Assert.Equal(-100_000, tb.Rows.Single(r => r.Account == "1120").BalancePaise);                  // Cr: the receipt settled Udhaar receivables
     }
 }
