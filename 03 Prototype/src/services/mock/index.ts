@@ -38,6 +38,7 @@ export * from '../../domain/streams/accounting-chart'; // ACC-1 chart lane
 export * from '../../domain/streams/accounting-parties'; // acc1-parties (contract §3)
 export * from '../../domain/streams/accounting-opening';
 export * from '../../domain/streams/accounting-reports'; // acc1-statements
+export * from './rulebook-bind'; // acc1-tests: scenario ACC-RULEBOOK driver
 // ACC-1 end
 export * from '../../domain/streams/assistant';
 export * from '../../domain/streams/compliance';

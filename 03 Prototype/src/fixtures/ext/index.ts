@@ -15,6 +15,7 @@ import * as messaging from './messaging';
 import * as pos from './pos';
 import * as staff from './staff';
 import * as accounting from './accounting';
+import * as accountingRulebook from './accounting-rulebook'; // ACC-1 acc1-tests
 import * as assistant from './assistant';
 import * as compliance from './compliance';
-export const extensions=[reservations,guests,folio,housekeeping,admin,closing,yieldMod,groups,channels,maintenance,inventory,handover,services,messaging,pos,staff,accounting,assistant,compliance];
+export const extensions=[reservations,guests,folio,housekeeping,admin,closing,yieldMod,groups,channels,maintenance,inventory,handover,services,messaging,pos,staff,accounting,accountingRulebook,assistant,compliance];
