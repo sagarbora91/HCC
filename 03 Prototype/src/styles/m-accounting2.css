@@ -42,6 +42,7 @@
 .acc-m .acc-range label{flex:1 1 140px;flex-direction:column;align-items:stretch;font-size:14px;gap:4px}
 .acc-m .acc-range input[type=date]{min-height:48px;font-size:16px;width:100%}
 .acc-m .acc-subbar{padding:8px 0;gap:8px}
+.acc-m .acc-subbar .filters button{min-height:48px;font-size:16px} /* ACC-1 integration smoke: the trial-balance detail toggle measured 44 px at 360 px */
 .acc-m .acc-picker{flex-direction:column;align-items:stretch}
 .acc-m .acc-picker>label:not(.acc-search){font-size:14px;flex-basis:auto}
 .acc-m .acc-picker select{min-height:48px;font-size:16px;width:100%}
