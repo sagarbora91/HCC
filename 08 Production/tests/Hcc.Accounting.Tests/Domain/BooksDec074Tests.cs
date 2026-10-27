@@ -33,7 +33,8 @@ public sealed class BooksDec074Tests
         Assert.Equal((VoucherType.Sales, "SAL/20261024/001", "group-attrition:7", "line", "group-attrition"), (v.Type, v.Number, v.SourceKey, v.SourceKind, v.Sub));
         Assert.True(v.Balanced);
         Assert.Empty(v.Unmapped);
-        Assert.Equal([("1110", 3_186_000L, 0L), ("4000", 0L, 2_700_000L), ("2110", 0L, 243_000L), ("2120", 0L, 243_000L)],
+        Assert.Equal([("1110", 3_186_000L, 0L), ("4300", 0L, 2_700_000L), // ACC-1: attrition → 4300
+            ("2110", 0L, 243_000L), ("2120", 0L, 243_000L)],
             v.Entries.Select(x => (x.Account, x.DebitPaise, x.CreditPaise)));
         Assert.Contains("3 line(s) · group 12 · attrition 7", v.Narration, StringComparison.Ordinal);
         Assert.Throws<InvalidOperationException>(() => AccountingEventMapper.GroupAttrition(e with { CgstPaise = 243_001 }));   // never recomputed, never accepted inconsistent
@@ -81,7 +82,7 @@ public sealed class BooksDec074Tests
         };
         var tb = VoucherBuilder.TrialBalance(VoucherBuilder.Build(D, sources, Map)).ToDictionary(r => r.Account, r => r.BalancePaise);
         Assert.Equal((0L, 0L), (tb["1110"], tb["2000"]));
-        Assert.Equal((-420_000L, -2_700_000L, 1_606_000L, 2_000_000L), (tb["1100"], tb["4000"], tb["1010"], tb["1030"]));
+        Assert.Equal((-420_000L, -2_700_000L, 1_606_000L, 2_000_000L), (tb["1100"], tb["4300"], tb["1010"], tb["1030"]));
         Assert.True(AccountingEventMapper.GroupSettlement(new GroupSettledEvent(12, 420_000, 420_000), 0, D).IsZero);   // no deposit held → no voucher
     }
 

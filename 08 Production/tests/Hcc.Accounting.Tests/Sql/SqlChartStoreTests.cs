@@ -7,6 +7,7 @@ using Hcc.Domain.Accounting;
 using Hcc.Domain.Errors;
 using Hcc.Infrastructure.SqlServer.Access;
 using Hcc.Infrastructure.SqlServer.Accounting;
+using Hcc.Infrastructure.SqlServer.Billing;
 using Microsoft.Data.SqlClient;
 using static Hcc.Accounting.Tests.Harness.Assertions;
 

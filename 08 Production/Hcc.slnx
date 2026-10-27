@@ -136,6 +136,6 @@
     <File Path="database/migrations/4190_expense_scc_decisions.sql" />
     <File Path="database/migrations/4200_acc_ledger_groups.sql" />
     <File Path="database/migrations/4201_acc_ledger.sql" />
-    <File Path="database/migrations/4202_acc_rbac_chart.sql" />
+    <File Path="database/migrations/4202_acc_chart_rbac_seed.sql" />
   </Folder>
 </Solution>

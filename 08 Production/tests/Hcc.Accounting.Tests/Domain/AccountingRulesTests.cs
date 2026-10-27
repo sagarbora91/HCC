@@ -85,7 +85,8 @@ public sealed class AccountingRulesTests
         var sale = new PosBillSettledEvent(11, "sale", D, "restaurant", "UPI", 105_000, 100_000, 2_500, 2_500, "DEMO-UPI");
         var vs = VoucherBuilder.Build(D, [AccountingEventMapper.PosBill(sale), AccountingEventMapper.PosBill(sale with { Kind = "void", TotalPaise = -105_000, NetPaise = -100_000, CgstPaise = -2_500, SgstPaise = -2_500 })], Map);
         Assert.Equal(["SAL/20261024/001", "SAL/20261024/002"], vs.Select(v => v.Number));
-        Assert.Equal([("1010", 0L, 105_000L), ("4100", 100_000L, 0L), ("2110", 2_500L, 0L), ("2120", 2_500L, 0L)], vs[1].Entries.Select(x => (x.Account, x.DebitPaise, x.CreditPaise)));
+        Assert.Equal([("1010", 0L, 105_000L), ("4200", 100_000L, 0L), // ACC-1: outlet sales → 4200
+            ("2110", 2_500L, 0L), ("2120", 2_500L, 0L)], vs[1].Entries.Select(x => (x.Account, x.DebitPaise, x.CreditPaise)));
         Assert.Equal(0, VoucherBuilder.TrialBalance(vs).Sum(r => Math.Abs(r.BalancePaise)));
         var exp = VoucherBuilder.Build(D, [AccountingEventMapper.Expense(new ExpensePostedEvent(5, D, "Supplies", "Vendor credit", 40_000, "Demo Traders", null))], Map).Single();
         Assert.Equal("JRN/20261024/001", exp.Number);
@@ -199,8 +200,10 @@ public sealed class AccountingRulesTests
     {
         // Rs 590 bulbs with Rs 90 GST, ITC allowed: Dr Repairs 500 · Dr GST input credit 90 · Cr UPI 590; the reversal record (−590, −90) swaps
         // every side. Disallowed (or an event published before DEC-135, no fields) keeps the whole bill in the category.
-        Assert.Equal(("GST input credit", AccountGroup.Asset), (ChartOfAccounts.NameOf("1300"), ChartOfAccounts.Find("1300")!.Group));
-        Assert.Equal("1300", ChartOfAccounts.DefaultMapping["tax:gst-input"]);
+        // ACC-1 (contract §2): 1300 is the legacy ledger of locked snapshots (Duties & Taxes); the default is 1310 Input CGST (the CGST / SGST split
+        // of the ITC is the integration step of AccountingSource.Expense, then 1310 takes half and 1320 the other half).
+        Assert.Equal(("GST input credit (legacy, locked snapshots only)", AccountGroup.Liability), (ChartOfAccounts.NameOf("1300"), ChartOfAccounts.Find("1300")!.Group));
+        Assert.Equal("1310", ChartOfAccounts.DefaultMapping["tax:gst-input"]);
         Assert.True(ChartOfAccounts.IsValidKey("tax:gst-input"));
         Assert.Equal("GST input credit (ITC)", ChartOfAccounts.KeyGroup("tax:gst-input"));
         var vs = VoucherBuilder.Build(D,
@@ -212,13 +215,13 @@ public sealed class AccountingRulesTests
         ], Map);
         Assert.All(vs, v => Assert.True(v.Balanced, v.Number));
         static (string, long, long)[] E(Voucher v) => v.Entries.Select(x => (x.Account, x.DebitPaise, x.CreditPaise)).ToArray();
-        Assert.Equal([("5020", 50_000L, 0L), ("1300", 9_000L, 0L), ("1010", 0L, 59_000L)], E(vs.Single(v => v.SourceKey == "expense:51")));
-        Assert.Equal([("5020", 0L, 50_000L), ("1300", 0L, 9_000L), ("1010", 59_000L, 0L)], E(vs.Single(v => v.SourceKey == "expense:52")));
+        Assert.Equal([("5020", 50_000L, 0L), ("1310", 9_000L, 0L), ("1010", 0L, 59_000L)], E(vs.Single(v => v.SourceKey == "expense:51")));
+        Assert.Equal([("5020", 0L, 50_000L), ("1310", 0L, 9_000L), ("1010", 59_000L, 0L)], E(vs.Single(v => v.SourceKey == "expense:52")));
         Assert.Equal([("5000", 118_000L, 0L), ("1000", 0L, 118_000L)], E(vs.Single(v => v.SourceKey == "expense:53")));
         Assert.Equal([("5000", 11_800L, 0L), ("1000", 0L, 11_800L)], E(vs.Single(v => v.SourceKey == "expense:54")));
-        Assert.Equal(0, vs.SelectMany(v => v.Entries).Where(e => e.Account == "1300").Sum(e => e.DebitPaise - e.CreditPaise));
+        Assert.Equal(0, vs.SelectMany(v => v.Entries).Where(e => e.Account == "1310").Sum(e => e.DebitPaise - e.CreditPaise));
         var xml = VoucherExport.TallyXml(vs, "HCC Demo Residency", "DEMO");
-        Assert.Contains("<LEDGERNAME>GST input credit</LEDGERNAME><ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE><AMOUNT>-90.00</AMOUNT>", xml, StringComparison.Ordinal);
+        Assert.Contains("<LEDGERNAME>Input CGST</LEDGERNAME><ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE><AMOUNT>-90.00</AMOUNT>", xml, StringComparison.Ordinal);
     }
 
     [Fact]
