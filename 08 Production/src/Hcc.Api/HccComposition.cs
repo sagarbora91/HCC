@@ -123,6 +123,7 @@ public static class HccComposition
         api.MapExpensesEndpoints();       // W2-4
         api.MapAccountingEndpoints();    // W2-3
         // ACC-1 lanes: add ONE api.MapAccounting<Lane>Endpoints(); line below (append only).
+        api.MapAccountingReportEndpoints(); // ACC-1 acc1-statements
         // ACC-1 end
         api.MapComplianceEndpoints();    // W2-5
         api.MapPosEndpoints();           // W2-6

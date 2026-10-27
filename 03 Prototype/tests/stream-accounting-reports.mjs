@@ -24,7 +24,7 @@ export function register({test,M,assert}){
     let run=st.opening;for(const r of st.rows){run+=r.debit-r.credit;assert.equal(r.running,run,r.no);assert.ok(r.debit>=0&&r.credit>=0);}
     assert.equal(st.debit,st.rows.reduce((a,r)=>a+r.debit,0));assert.equal(st.credit,st.rows.reduce((a,r)=>a+r.credit,0));
     assert.equal(st.closing,st.opening+st.debit-st.credit);assert.equal(st.closing,sumNet(M.accVouchersUpTo(s,D),'1100'));
-    assert.ok(st.rows.length>0&&st.rows.every(r=>r.date===D));assert.equal(st.name,'Guest ledger');
+    assert.ok(st.rows.length>0&&st.rows.every(r=>r.date===D));assert.equal(st.name,M.accLedgerName('1100'));
     // the same closing whatever the start: the opening absorbs the earlier vouchers
     const wide=M.accStatement(s,'1100',Y,D);assert.equal(wide.closing,st.closing);assert.equal(wide.opening,sumNet(M.accVouchersUpTo(s,'2026-10-22'),'1100'));
   });
@@ -57,7 +57,7 @@ export function register({test,M,assert}){
     for(const r of tb.rows)assert.equal(r.openingDebit-r.openingCredit,prev[r.account]??0,r.account);
     // a wider window has the same closing column
     const wide=M.accTrialBalance6(s,Y,D,false);assert.deepEqual(wide.rows.map(r=>[r.account,r.closingDebit,r.closingCredit]),tb.rows.map(r=>[r.account,r.closingDebit,r.closingCredit]));
-    assert.equal(tb.rows.find(r=>r.account==='1100').name,'Guest ledger');assert.ok(tb.rows.find(r=>r.account==='1100').group);
+    assert.equal(tb.rows.find(r=>r.account==='1100').name,M.accLedgerName('1100'));assert.ok(tb.rows.find(r=>r.account==='1100').group);
   });
   test('[ACC1-STATEMENTS] six-column TB: control summary vs party detail (locked snapshot read as locked)',()=>{
     const s=withParties(),from='2026-10-01',to='2026-10-01';
@@ -68,7 +68,7 @@ export function register({test,M,assert}){
     const rows=det.rows.filter(r=>r.account==='1110'||r.control==='1110');
     assert.deepEqual(rows.map(r=>r.account),['1110','1110/CMP-A','1110/CMP-B'],'control row (direct postings) then its parties');
     assert.deepEqual(rows.map(r=>[r.closingDebit,r.closingCredit]),[[250000,0],[1000000,0],[0,400000]]);
-    assert.equal(rows[0].control,undefined);assert.equal(rows[1].control,'1110');assert.match(rows[1].name,/^Company receivables \(city ledger\) · /);
+    assert.equal(rows[0].control,undefined);assert.equal(rows[1].control,'1110');assert.ok(rows[1].name.startsWith(M.accLedgerName('1110')+' · '),rows[1].name);
     assert.equal(rows[1].group,rows[0].group,'a party takes its control group');
     assert.equal(rows.reduce((a,r)=>a+r.closingDebit-r.closingCredit,0),c.closingDebit-c.closingCredit,'detail ties to the control');
     assert.equal(det.totals.debit,sum.totals.debit);assert.equal(det.totals.credit,sum.totals.credit);
