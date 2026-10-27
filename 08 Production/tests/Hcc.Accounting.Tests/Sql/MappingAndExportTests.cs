@@ -131,7 +131,7 @@ public sealed class MappingAndExportTests(AccountingDb db) : IClassFixture<Accou
     [Fact]
     public async Task Dec135_and_Dec130_input_credit_and_Udhaar_receipts_reach_the_vouchers_mapping_screen_Tally_and_a_balanced_trial_balance()
     {
-        var d = new DateOnly(2026, 9, 20); // a closed date no other test of this fixture uses
+        var d = new DateOnly(2026, 8, 20); // a closed date no other test of this fixture uses (ACC-1: moved out of the Exports test's 2 Sep – 2 Oct Tally window, order-dependent before)
         await db.PublishAsync(AccountingEvents.ExpensePosted, 61, new ExpensePostedEvent(61, d, "Maintenance", "UPI", 59_000, "Demo Electricals", null, 9_000, "allowed"));
         await db.PublishAsync(AccountingEvents.ExpenseReversed, 62, new ExpensePostedEvent(62, d, "Maintenance", "UPI", -59_000, "Demo Electricals", 61, -9_000, "allowed"));
         await db.PublishAsync(AccountingEvents.ExpensePosted, 63, new ExpensePostedEvent(63, d, "Supplies", "Cash", 118_000, "Demo Soap", null, 18_000, "disallowed"));
@@ -140,7 +140,7 @@ public sealed class MappingAndExportTests(AccountingDb db) : IClassFixture<Accou
         var day = await db.Queries.DayAsync(db.As("ACC"), d, Ct);
         Assert.All(day.Vouchers, v => Assert.True(v.Balanced, v.Number));
         Assert.Equal([("5020", 50_000L, 0L), ("1300", 9_000L, 0L), ("1010", 0L, 59_000L)], day.Vouchers.Single(v => v.SourceKey == "expense:61").Entries.Select(e => (e.Account, e.DebitPaise, e.CreditPaise)));
-        Assert.Equal([("1000", 100_000L, 0L), ("1120", 0L, 100_000L)], day.Vouchers.Single(v => v.SourceKey == "udhaar-payment:71").Entries.Select(e => (e.Account, e.DebitPaise, e.CreditPaise)));
+        Assert.Equal([("1000", 100_000L, 0L), ("1120/UD-RAMESH-FICTIONAL", 0L, 100_000L)], day.Vouchers.Single(v => v.SourceKey == "udhaar-payment:71").Entries.Select(e => (e.Account, e.DebitPaise, e.CreditPaise)));
         Assert.Equal(0, day.Errors);
         var map = await db.Queries.MappingAsync(db.As("OWN"), Ct);
         Assert.Contains(map, r => r.MapKey == "tax:gst-input" && r.Account == "1300" && r.DefaultAccount == "1300" && r.Group == "GST input credit (ITC)" && r.Uses == 2);

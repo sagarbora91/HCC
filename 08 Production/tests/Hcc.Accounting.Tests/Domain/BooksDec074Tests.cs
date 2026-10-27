@@ -93,7 +93,7 @@ public sealed class BooksDec074Tests
         // ₹3,000 advance (bank transfer), then two pay runs recover ₹1,000 each: 1200 = 3,000 − 1,000 − 1,000 = ₹1,000 debit (an asset), never a credit.
         var adv = One(AccountingEventMapper.Advance(new AdvanceGivenEvent(41, 5, 300_000, 100_000, new DateOnly(2026, 8, 10))));
         Assert.Equal((VoucherType.Payment, "payroll", "advance", "advance:41"), (adv.Type, adv.SourceKind, adv.Sub, adv.SourceKey));
-        Assert.Equal([("1200", 300_000L, 0L), ("1030", 0L, 300_000L)], adv.Entries.Select(x => (x.Account, x.DebitPaise, x.CreditPaise)));   // W2 payload: no funding → bank
+        Assert.Equal([("1200/STF-5", 300_000L, 0L), ("1030", 0L, 300_000L)], adv.Entries.Select(x => (x.Account, x.DebitPaise, x.CreditPaise)));   // W2 payload: no funding → bank
         Assert.Equal("1000", One(AccountingEventMapper.Advance(new AdvanceGivenEvent(42, 5, 100, 0, D, "Cash"))).Entries[1].Account);
 
         static PayrollPostedEvent Run(long id, DateOnly d) => new(id, "2026-08", d, 1_317_338, 83_504, 39_664, 77_081, 9_153, 20_000, 100_000, 0, 1_111_104);
@@ -103,7 +103,7 @@ public sealed class BooksDec074Tests
         {
             var v = One(s);
             Assert.True(v.Balanced);
-            balance += v.Entries.Where(x => x.Account == "1200").Sum(x => x.DebitPaise - x.CreditPaise);
+            balance += v.Entries.Where(x => PartyLedgers.ControlOf(x.Account) == "1200").Sum(x => x.DebitPaise - x.CreditPaise);
             Assert.True(balance >= 0, $"1200 went negative after {v.SourceKey}");
         }
 
@@ -138,7 +138,7 @@ public sealed class BooksDec074Tests
         Assert.Equal((0L, 160_585L), a["2310"]);
         Assert.Equal((0L, 48_817L), a["2320"]);
         Assert.Equal((0L, 20_000L), a["2330"]);
-        Assert.Equal((0L, 300_000L), a["1200"]);
+        Assert.Equal((0L, 300_000L), a["1200/STF-5"]);   // ACC-1: the leaver's party ledger
         Assert.Equal((0L, 911_104L), a["2300"]);
         var paid = One(list[1]);
         Assert.Equal((VoucherType.Payment, "fnf-payment", "fnf-paid:9"), (paid.Type, paid.Sub, paid.SourceKey));
@@ -154,7 +154,7 @@ public sealed class BooksDec074Tests
         var j = One(Assert.Single(part));
         Assert.True(j.Balanced);
         Assert.Equal(1_440_506, j.Credit);
-        Assert.Equal((0L, 111_104L), ByAccount(j)["1200"]);
+        Assert.Equal((0L, 111_104L), ByAccount(j)["1200/STF-5"]);
         Assert.Equal((0L, 1_100_000L), ByAccount(j)["2340"]);
         Assert.False(ByAccount(j).ContainsKey("2300"));
         Assert.Contains("advance 1888.96 left open", j.Narration, StringComparison.Ordinal);
@@ -164,7 +164,7 @@ public sealed class BooksDec074Tests
         var neg = One(Assert.Single(AccountingEventMapper.Fnf(Ravi(1_300_000, 0, -88_896, 300_000), new DateOnly(2026, 8, 31))));
         Assert.True(neg.Balanced);
         Assert.Equal(1_529_402, neg.Debit);
-        Assert.Equal((88_896L, 0L), ByAccount(neg)["1200"]);
+        Assert.Equal((88_896L, 0L), ByAccount(neg)["1200/STF-5"]);
         Assert.Contains("recoverable from the leaver 888.96", neg.Narration, StringComparison.Ordinal);
     }
 
@@ -180,7 +180,7 @@ public sealed class BooksDec074Tests
         var j = One(list[0]);
         // Unsplit: Dr 5100 13,173.38 | Cr 1200 3,000 · Cr 2340 1,062.34 (statutory not split) · Cr 2300 9,111.04.
         Assert.True(j.Balanced);
-        Assert.Equal([("5100", 1_317_338L, 0L), ("1200", 0L, 300_000L), ("2340", 0L, 106_234L), ("2300", 0L, 911_104L)], j.Entries.Select(x => (x.Account, x.DebitPaise, x.CreditPaise)));
+        Assert.Equal([("5100", 1_317_338L, 0L), ("1200/STF-5", 0L, 300_000L), ("2340", 0L, 106_234L), ("2300", 0L, 911_104L)], j.Entries.Select(x => (x.Account, x.DebitPaise, x.CreditPaise)));
         Assert.Contains("published before DEC-074", j.Narration, StringComparison.Ordinal);
         Assert.Equal(911_104, One(list[1]).Credit);
 
@@ -212,7 +212,8 @@ public sealed class BooksDec074Tests
         Assert.Equal(["SAL/20261024/001", "RCT/20261024/001", "PMT/20261024/001", "PMT/20261024/002", "PMT/20261024/003", "JRN/20261024/001"], vs.Select(v => v.Number));
         var (dr, cr) = VoucherBuilder.Totals(vs);
         Assert.Equal(dr, cr);
-        Assert.Empty(VoucherBuilder.Exceptions(vs, vs, false, DayStatus.Closed));
+        // ACC-1: pure mapper calls name no tender account / company (the consumer reads them), so those sides warn no-party — never an error.
+        Assert.All(VoucherBuilder.Exceptions(vs, vs, false, DayStatus.Closed), x => Assert.Equal(("no-party", "warning"), (x.Kind, x.Severity)));
 
         // Attrition ₹27,000 net + ₹4,860 GST; master receipts in − out = 20,000 − 800 = ₹19,200.
         var checks = Reconciliation.Check(vs, Map, new OperationalFigures(0, 0, 0, 0, 0, 0, 0, 0, 2_700_000, 486_000, 1_920_000)).ToDictionary(c => c.Id);
