@@ -16,7 +16,7 @@ import {
   hrApproverChoices,hrRunFor,HR_ENT_DEFAULTS,hrKindLabel,
   type HRStaff,type HRShiftCode,type HRAttStatus,type HRLeaveType,type HRRates,type HRFnfAdj,type HRDayEntry,type HRRequest,type HRBank,type HRLeave,type HRHalf,type HREnt,
 } from '../../../domain/streams/staff';
-import {hrLeaveRequestPlan,hrLeaveRequestToast,hrLeaveOverBalance,hrLeaveHardBlackoutText,hrLeaveSoftBlackoutText,hrLeaveCategory,hrLeaveImportParse} from '../../../domain/streams/staff-leave';
+import {hrLeaveRequestPlan,hrLeaveRequestToast,hrLeaveOverBalance,hrLeaveApproveOverBalance,hrLeaveHardBlackoutText,hrLeaveSoftBlackoutText,hrLeaveCategory,hrLeaveImportParse} from '../../../domain/streams/staff-leave';
 import {hrDesignationOf,hrShiftChoices,hrLeaveName,HRM_DESIGNATIONS,HRM_LEAVE_TYPES,HRM_HOLIDAYS,type HRDesignation} from '../../../domain/streams/people-masters';
 import {mstRows,mstStored,mstByCode} from '../../../domain/streams/masters';
 import {addDays} from '../../../domain/money';
@@ -351,8 +351,10 @@ export const handlers:Record<string,Handler>={
       approver,status:'Pending',requestedBy:k.uid,requestedAt:s.clock});
     return `${base} · ${st.name} · ${hrLeaveName(s,type)} · ${half?hrKindLabel({half}):'Full Day'} · ${from}${to!==from?' – '+to:''} · ${toast.text}${over?' · over the quota (confirmed)':''}${bk.hits.length?' · blackout '+bk.labels+' (confirmed)':''}`;
   },
-  /** SCC decideLeave (L280-296): one date record; pending only. No balance check again (SCC). HCC keeps: a manager decides (DEC-058), nobody decides
-   *  their own leave or their own request (DEC-119), an approved full day cannot sit on recorded attendance. The deciding user is recorded (audit). */
+  /** SCC decideLeave (L280-296): one date record; pending only. HCC keeps: a manager decides (DEC-058), nobody decides their own leave or their own
+   *  request (DEC-119), an approved full day cannot sit on recorded attendance. The deciding user is recorded (audit). DEC-122: approving re-checks
+   *  the balance (SCC re-checks nothing) — this date over the person's quota for its leave year needs confirmOverBalance (SCC's warning text);
+   *  rejecting is never checked; LOP and the untracked categories have no quota. */
   HR_LEAVE_DECIDE:k=>{
     manage(k);const {s,cmd,assert,fail}=k,x=hrEnsure(s),l=x.leaves.find(l=>l.id===cmd.id);
     assert(l,'Leave record not found.','NOT_FOUND');
@@ -361,9 +363,11 @@ export const handlers:Record<string,Handler>={
     const note=String(cmd.note??'').trim();assert(note.length<=200,'Note: up to 200 characters.');
     if(cmd.approve){const a=x.att[hrKey(l!.date,l!.staffId)];
       assert(!a||(!!l!.half&&(a.status==='H'||a.status==='A')),'Attendance is already recorded on this date.','INVALID_TRANSITION');}
+    const over=cmd.approve?hrLeaveApproveOverBalance(s,l!):undefined;
+    if(over&&!cmd.confirmOverBalance)fail('INVALID_TRANSITION',over);
     l!.status=cmd.approve?'Approved':'Rejected';l!.decidedBy=k.uid;l!.decidedAt=s.clock;if(note)l!.note=note;
     const st=x.staff.find(t=>t.id===l!.staffId);
-    return `${l!.id} · ${st?.name??l!.staffId} · ${l!.date} · ${hrLeaveName(s,l!.type)} ${hrKindLabel(l!)} · ${cmd.approve?'Leave approved — now live for floor gate & payroll':'Leave rejected — kept for audit'}${note?' · '+note:''}`;
+    return `${l!.id} · ${st?.name??l!.staffId} · ${l!.date} · ${hrLeaveName(s,l!.type)} ${hrKindLabel(l!)} · ${cmd.approve?'Leave approved — now live for floor gate & payroll':'Leave rejected — kept for audit'}${over?' · over the quota (confirmed)':''}${note?' · '+note:''}`;
   },
   /** SCC removeLeave (L1452) = cancel with an audit record (DEC-119: no hard delete; the record leaves the calendar, counts and files). Pending: the
    *  requester, the person on leave or a manager; approved or rejected: a manager; an approved day before the business date is changed through a

@@ -193,7 +193,8 @@ export function register({test,M,assert}){
     assert.deepEqual([M.hrEntFor(s,'HR-S05'),M.hrEntFor(s,'HR-S06'),M.hrLeavePolicy(s).perStaff],[{CL:3,SL:0,EL:20},{CL:10.5,SL:0,EL:20},{'HR-S05':{CL:3}}]);
     for(let i=0;i<120;i++){const sid=['HR-S02','HR-S05','HR-S07','HR-S11'][Math.floor(r()*4)],d=add('2026-10-26',Math.floor(r()*170)),half=r()<0.3?'AM':undefined;
       try{s=req(s,'manager',{staffId:sid,leaveType:['CL','SL','EL'][Math.floor(r()*3)],from:d,to:d,...(half?{half}:{}),confirmOverBalance:true});}catch{continue;}
-      const l=x(s).leaves.at(-1);if(r()<0.7)s=execute(s,'owner',{type:'HR_LEAVE_DECIDE',id:l.id,approve:r()<0.8});}
+      // DEC-122: an approval over the quota now asks for a confirmation too (stream-leave-scc-decisions.mjs) — given here, the grid is about usage
+      const l=x(s).leaves.at(-1);if(r()<0.7)s=execute(s,'owner',{type:'HR_LEAVE_DECIDE',id:l.id,approve:r()<0.8,confirmOverBalance:true});}
     const data=sccData(s),ent=sccEnt(s);
     for(const sid of ['HR-S02','HR-S05','HR-S07','HR-S11'])for(const fyStart of [2026,2027]){
       const fy=fyRangeOf(fyStart,4),o=fyUsage(data,name(s,sid),fy),h=M.hrFyUsage(s,sid,fy);

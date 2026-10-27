@@ -13,7 +13,7 @@ import {
   hrLeaveImportPreview,hrLeaveExportJson,hrLeaveClearList,hrLeavePolicy,hrLeaveWeekOff,hrDeptCap,hrKindLabel,hrDecidable,hrLeaveOverCount,
   HR_HALF_LABEL,HR_MAX_SHIFT,HR_MAX_DAY,HR_TRACKED,HR_WEEKDAYS,HR_ENT_DEFAULTS,HR_SCC_WEEKOFF_DEFAULT,type HRLeave,type HRHalf,type HRLeaveType,
 } from '../../services/mock';
-import {LeaveApprovalsView,hrLeaveReadOnly} from './Leave';
+import {LeaveApprovalsView,hrLeaveReadOnly,useLeaveDecide} from './Leave';
 
 type S=ReturnType<typeof useHcc>['s'];
 const userName=(s:S,id?:string)=>s.users.find(u=>u.id===id)?.name.split(' · ')[0]??id??'—';
@@ -59,11 +59,10 @@ export function HRLeaveModal({id,room}:{id?:string;room?:string}){
 
 /** 'hr-leave-day': SCC day view. id = date, room = as-of date (past view = read-only). */
 export function HRLeaveDayModal({id,room}:{id?:string;room?:string}){
-  const {s,uid,open,run,busy,closeModal}=useHcc();const date=id&&/^\d{4}-\d{2}-\d{2}$/.test(id)?id:s.date,asOf=asOfOf(s,room),ro=hrLeaveReadOnly(s,asOf);
+  const {s,uid,open,run,busy,closeModal}=useHcc();const decide=useLeaveDecide();const date=id&&/^\d{4}-\d{2}-\d{2}$/.test(id)?id:s.date,asOf=asOfOf(s,room),ro=hrLeaveReadOnly(s,asOf);
   const mgr=hrCanManage(s,uid),all=hrLeavesOn(s,date),leaves=all.filter(l=>l.status!=='Cancelled'),removed=all.filter(l=>l.status==='Cancelled'),agendas=hrAgendasOn(s,date);
   const cap=hrCapacity(s,date),tally=hrDeptTally(s,date),ok=new Set(hrDecidable(s,uid).map(l=>l.id)),me=hrStaffOfUser(s,uid);
   const canAdd=mgr&&!ro&&!cap.dayFull&&date>=s.date;
-  const decide=(l:HRLeave,approve:boolean)=>run({type:'HR_LEAVE_DECIDE',id:l.id,approve},approve?'Leave approved — now live for floor gate & payroll':'Leave rejected — kept for audit');
   const canRemove=(l:HRLeave)=>!ro&&(l.status==='Pending'?(mgr||l.requestedBy===uid||l.staffId===me?.id):mgr&&(l.status!=='Approved'||l.date>=s.date));
   const remove=(l:HRLeave)=>{if(window.confirm('Remove this leave record?'))run({type:'HR_LEAVE_CANCEL',id:l.id},'Leave removed');};
   const bar=(label:string,used:number)=><div className="lv-slot" key={label}><div className="lv-slot-label">{label}</div><div className={'lv-slot-count '+(used>=HR_MAX_SHIFT?'full':used>=3?'warn':'ok')}>{used} / {HR_MAX_SHIFT}</div>
@@ -100,7 +99,7 @@ export function HRLeaveDayModal({id,room}:{id?:string;room?:string}){
 
 /** 'hr-leave-detail': SCC staff detail. id = leave record ID, room = as-of date. */
 export function HRLeaveDetailModal({id,room}:{id?:string;room?:string}){
-  const {s,uid,run,busy,closeModal}=useHcc();const l=hrSlice(s).leaves.find(x=>x.id===id);
+  const {s,uid,busy,closeModal}=useHcc();const decideLeave=useLeaveDecide();const l=hrSlice(s).leaves.find(x=>x.id===id);
   if(!l)return <Empty title="Leave record unavailable"/>;
   const ro=hrLeaveReadOnly(s,asOfOf(s,room)),ok=hrDecidable(s,uid).some(x=>x.id===l.id);
   const typeLabel=l.half==='AM'?'Half Day — Morning':l.half==='PM'?'Half Day — Afternoon':'Full Day';
@@ -109,7 +108,7 @@ export function HRLeaveDetailModal({id,room}:{id?:string;room?:string}){
     ['Decided By',l.decidedBy?userName(s,l.decidedBy):l.decidedByName??'—'],['Decided At',l.decidedAt?hrLeaveDateShort(l.decidedAt.slice(0,10)):'—'],['Record ID',l.id],
     ...(l.status==='Cancelled'?[['Removed by',`${userName(s,l.cancelledBy)} · ${l.cancelledAt??''}${l.note?' · '+l.note:''}`] as [string,string]]:[]),
     ['Requested by',`${userName(s,l.requestedBy)} · ${l.requestedAt}`]];
-  const decide=(approve:boolean)=>run({type:'HR_LEAVE_DECIDE',id:l.id,approve},approve?'Leave approved — now live for floor gate & payroll':'Leave rejected — kept for audit',{close:true});
+  const decide=(approve:boolean)=>decideLeave(l,approve,{close:true});
   return <><div className="modal-heading"><h2>{staffName(s,l.staffId)}</h2><p>Leave on {hrLeaveDateShort(l.date)}</p></div>
     <div className="summary-list padded lv-detail">{rows.map(([k,v])=><div key={k}><span>{k}</span><strong>{v}</strong></div>)}{l.reason&&<div><span>Reason / Notes</span><strong className="lv-reason">{l.reason}</strong></div>}</div>
     <div className="modal-actions"><button type="button" className="btn" onClick={closeModal}>Close</button>
@@ -232,11 +231,11 @@ export function HRLeaveClearModal(){
 
 /** 'hr-leave-decide' (kept for older links): one date record, room = 'approve' | 'reject'; the note is optional (SCC asks none). */
 export function HRLeaveDecideModal({id,room}:{id?:string;room?:string}){
-  const {s,run,closeModal,busy}=useHcc();const l=hrSlice(s).leaves.find(x=>x.id===id);const [note,setNote]=useState('');
+  const {s,closeModal,busy}=useHcc();const decide=useLeaveDecide();const l=hrSlice(s).leaves.find(x=>x.id===id);const [note,setNote]=useState('');
   if(!l)return <Empty title="Leave record unavailable"/>;
   const approve=room!=='reject';
   return <><div className="modal-heading"><h2>{approve?'Approve leave':'Reject leave'}</h2><p>{l.id} · {staffName(s,l.staffId)} · {hrLeaveName(s,l.type)} · {hrKindLabel(l)} · {shortDate(l.date)}{l.reason?` · “${l.reason}”`:''} · requested by {userName(s,l.requestedBy)}</p></div>
-    <form className="form" onSubmit={e=>{e.preventDefault();void run({type:'HR_LEAVE_DECIDE',id:l.id,approve,...(note.trim()?{note:note.trim()}:{})},approve?'Leave approved — now live for floor gate & payroll':'Leave rejected — kept for audit',{close:true});}}>
+    <form className="form" onSubmit={e=>{e.preventDefault();void decide(l,approve,{note:note.trim()||undefined,close:true});}}>
       <label>Note (optional)<input maxLength={200} value={note} onChange={e=>setNote(e.target.value)} enterKeyHint="done"/></label>
       <div className="modal-actions"><button type="button" className="btn" onClick={closeModal}>Cancel</button><button className={'btn '+(approve?'primary':'danger')} disabled={busy}>{approve?'Approve':'Reject'}</button></div>
     </form></>;

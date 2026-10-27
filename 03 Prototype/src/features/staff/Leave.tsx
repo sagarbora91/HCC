@@ -12,7 +12,7 @@ import {saveCsv,saveTextFile} from '../../app/native';
 import {MstLink} from '../masters/MasterList';
 import {
   hrSlice,hrCanManage,hrCanRates,hrCapacity,hrPendingLeaves,hrDecidable,hrLeaveMonthView,hrLeaveStats,hrLeaveStrip,hrLeaveReport,hrLeaveReportCsv,
-  hrLeaveExportJson,hrLeaveClampYm,hrLeaveMonthJumper,hrLeaveFyLabel,hrLeaveMonthName,hrLeaveDateShort,hrLeaveFmt,hrLeaveApproverName,hrLeaveName,
+  hrLeaveExportJson,hrLeaveDecideCmd,hrLeaveClampYm,hrLeaveMonthJumper,hrLeaveFyLabel,hrLeaveMonthName,hrLeaveDateShort,hrLeaveFmt,hrLeaveApproverName,hrLeaveName,
   hrLeavePolicy,hrLeaveWeekOff,hrEntFor,hrDeptCap,hrKindLabel,hrPrevMonth,hrNextMonth,HR_LEAVE_START_YM,HR_TRACKED,HR_WEEKDAYS,HR_MAX_DAY,HR_MAX_SHIFT,
   HR_ENT_DEFAULTS,HR_SCC_WEEKOFF_DEFAULT,HR_SCC_DAYS,type HRLeave,
 } from '../../services/mock';
@@ -26,6 +26,17 @@ function ReadOnlyBanner({s,asOf}:{s:S;asOf:string}){
   return hrLeaveReadOnly(s,asOf)?<div className="info-note hr-warn lv-readonly" role="status"><Info size={16}/><span>Viewing {hrLeaveDateShort(asOf)} (past date) — read-only. Add / edit / delete are disabled.</span></div>:null;
 }
 const toneClass:Record<string,string>={amber:'lv-amber',mid:'lv-mid',red:'lv-red',blue:'lv-blue',"":''};
+/** DEC-122: every approve / reject of a leave date on the leave screens (approvals list, day view, leave detail, decide dialog — desktop and phone).
+ *  Approving a date over the person's quota first shows SCC's over-quota warning in a confirm dialog and sends confirmOverBalance only when the
+ *  person confirms (the server refuses an unconfirmed one with the same text); "Cancel" sends nothing. Rejecting never asks. */
+export function useLeaveDecide(){
+  const {s,run}=useHcc();
+  return (l:HRLeave,approve:boolean,opts:{note?:string;close?:boolean}={}):Promise<boolean>=>{
+    const cmd=hrLeaveDecideCmd(s,l,approve,w=>window.confirm(w),opts.note);
+    if(!cmd)return Promise.resolve(false);
+    return run(cmd,approve?'Leave approved — now live for floor gate & payroll':'Leave rejected — kept for audit',opts.close?{close:true}:{});
+  };
+}
 
 /** SCC header + stats + staffing strip + month calendar. `ym` / `asOf` are shared with the report (HrDesk keeps them). */
 export function LeaveDeskView({phone,ym,setYm,asOf,setAsOf}:{phone:boolean;ym:string;setYm:(v:string)=>void;asOf:string;setAsOf:(v:string)=>void}){
@@ -91,9 +102,8 @@ export function LeaveDeskView({phone,ym,setYm,asOf,setAsOf}:{phone:boolean;ym:st
 
 /** SCC renderApprovals: every pending DATE record (badge = their number); approve / reject one by one. HCC (DEC-119): nobody decides their own leave. */
 export function LeaveApprovalsView({phone,asOf}:{phone:boolean;asOf:string}){
-  const {s,uid,run,busy}=useHcc();const pend=hrPendingLeaves(s),ok=new Set(hrDecidable(s,uid).map(l=>l.id)),ro=hrLeaveReadOnly(s,asOf);
+  const {s,uid,busy}=useHcc();const decide=useLeaveDecide();const pend=hrPendingLeaves(s),ok=new Set(hrDecidable(s,uid).map(l=>l.id)),ro=hrLeaveReadOnly(s,asOf);
   const meta=(l:HRLeave)=>`${hrKindLabel(l).replace('Half Day ','Half ')} · ${hrLeaveName(s,l.type)} · Approver: ${hrLeaveApproverName(s,l)||'—'}${l.reason?' · '+l.reason:''}`;
-  const decide=(l:HRLeave,approve:boolean)=>run({type:'HR_LEAVE_DECIDE',id:l.id,approve},approve?'Leave approved — now live for floor gate & payroll':'Leave rejected — kept for audit');
   const why=(l:HRLeave)=>hrCanManage(s,uid)?'Your own leave or request — another manager decides':'Managers decide';
   const btns=(l:HRLeave)=>!ro&&ok.has(l.id)?<><button className="btn small-btn primary" disabled={busy} onClick={()=>decide(l,true)}><Check size={14}/> Approve</button>
     <button className="btn small-btn danger" disabled={busy} onClick={()=>decide(l,false)}><X size={14}/> Reject</button></>:<span className="muted">{ro?'Read-only (past view)':why(l)}</span>;

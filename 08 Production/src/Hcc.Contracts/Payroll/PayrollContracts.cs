@@ -53,7 +53,9 @@ public sealed record LeaveRequestResult(IReadOnlyList<LeaveResult> Added, int Bl
 
 public sealed record LeaveResult(long LeaveId, long StaffId, string LeaveType, DateOnly From, DateOnly To, string? Half, decimal Days, string Status, string Version);
 
-public sealed record DecideLeaveRequest(long LeaveId, string ExpectedVersion, bool Approve, string? Note = null);
+/// <summary>One date record approved or rejected. DEC-122: an approval that takes the person over the quota for that date's leave year needs
+/// <see cref="ConfirmOverBalance"/> (SCC's over-quota warning answered OK); a rejection ignores it.</summary>
+public sealed record DecideLeaveRequest(long LeaveId, string ExpectedVersion, bool Approve, string? Note = null, bool ConfirmOverBalance = false);
 
 public sealed record CancelLeaveRequest(long LeaveId, string ExpectedVersion);
 

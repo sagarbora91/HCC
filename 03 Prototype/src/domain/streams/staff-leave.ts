@@ -9,7 +9,7 @@
 //   importJSON (L1843) → hrLeaveImportParse (+ the merge in the HR_LEAVE_IMPORT handler) · exportJSON (L1974) → hrLeaveExportJson
 // Statuses: SCC pending / approved / rejected (+ legacy = approved). HCC adds Cancelled = SCC's "removed" record, kept for audit (DEC-119) and left
 // out of every view, count and file below.
-import type {State} from '../types';
+import type {State,Command} from '../types';
 import {addDays} from '../money';
 import {
   hrSlice,hrLeavesOn,hrLeaveActive,hrCapacity,hrCanAddLeave,hrIsDuplicate,hrIsWeekOff,hrLeaveDays,hrEntFor,hrFyUsage,hrFy,hrLeavePolicy,hrDeptCap,
@@ -32,13 +32,14 @@ export const hrLeaveApproverName=(s:State,l:{approver?:string;approverName?:stri
 export const hrLeaveCategory=(code:string)=>HR_SCC_CATEGORY[code]??code;
 
 // ── Calendar range (SCC START_MONTH / START_YEAR, buildMonthJumper) ──
-/** SCC: the calendar cannot go before May 2026 (START_MONTH 4, START_YEAR 2026) — ported as SCC has it (owner question). */
-export const HR_LEAVE_START_YM='2026-05';
+/** DEC-123 (owner, 27 Oct 2026): the calendar starts at April 2026, the start of FY 2026–27, so that year's history shows (SCC stopped at May 2026:
+ *  START_MONTH 4, START_YEAR 2026). The month arrows, the month jumper, Today / View-as-of, the report and print all use this one minimum. */
+export const HR_LEAVE_START_YM='2026-04';
 export const hrLeaveClampYm=(ym:string)=>ym<HR_LEAVE_START_YM?HR_LEAVE_START_YM:ym;
-/** SCC buildMonthJumper: every month from May 2026 to December of the year after the viewed one. */
+/** SCC buildMonthJumper: every month from the start month (April 2026, DEC-123) to December of the year after the viewed one. */
 export function hrLeaveMonthJumper(viewYm:string):string[]{
   const end=+viewYm.slice(0,4)+1,out:string[]=[];
-  for(let y=2026,m=5;y<=end;m++){if(m>12){m=1;y++;if(y>end)break;}out.push(`${y}-${String(m).padStart(2,'0')}`);}
+  for(let y=+HR_LEAVE_START_YM.slice(0,4),m=+HR_LEAVE_START_YM.slice(5,7);y<=end;m++){if(m>12){m=1;y++;if(y>end)break;}out.push(`${y}-${String(m).padStart(2,'0')}`);}
   return out;
 }
 /** SCC getFY label of a month, e.g. "FY 2026–27". */
@@ -78,6 +79,25 @@ export function hrLeaveOverBalance(s:State,st:Pick<HRStaff,'id'|'name'>,type:str
   const fy=hrFy(from),used=hrFyUsage(s,st.id,fy)[type]??0,quota=hrEntFor(s,st.id)[type as 'CL'|'SL'|'EL'],req=hrLeaveDays(s,from,to||from,half);
   if(used+req<=quota)return undefined;
   return `${st.name} has used ${hrLeaveFmt(used)} of ${quota} ${hrLeaveCategory(type)} day(s) this ${fy.label}.\nThis request adds ${hrLeaveFmt(req)} more and EXCEEDS the balance.\n\nRecord it anyway (it will still need approval)?`;
+}
+/** DEC-122 (owner, 27 Oct 2026 — SCC re-checks nothing at approval): approving ONE date record of a tracked category re-checks the person's balance
+ *  for that date's leave year — approved use by date (hrFyUsage, this record left out) + this date (SCC leaveDaysOf: full day 1, AM / PM 0.5) over
+ *  the entitlement (per-staff override, else the default) → SCC's over-quota warning (the request's text, asking "Approve it anyway?"); the
+ *  approval goes on only when confirmed (`confirmOverBalance`). Rejecting needs no check; LOP and the other categories have no quota. Undefined =
+ *  no warning. Each date is decided on its own, so two pending requests that together pass the quota: the first approves, the second warns. */
+export function hrLeaveApproveOverBalance(s:State,l:Pick<HRLeave,'id'|'staffId'|'type'|'date'|'half'>):string|undefined{
+  if(!(HR_TRACKED as string[]).includes(l.type)||!l.date)return undefined;
+  const fy=hrFy(l.date),used=hrFyUsage(s,l.staffId,fy,l.id)[l.type]??0,quota=hrEntFor(s,l.staffId)[l.type as 'CL'|'SL'|'EL'],add=l.half?0.5:1;
+  if(used+add<=quota)return undefined;
+  return `${staffName(s,l.staffId)} has used ${hrLeaveFmt(used)} of ${quota} ${hrLeaveCategory(l.type)} day(s) this ${fy.label}.\nThis request adds ${hrLeaveFmt(add)} more and EXCEEDS the balance.\n\nApprove it anyway?`;
+}
+/** DEC-122: the HR_LEAVE_DECIDE command a leave screen sends for one date (approvals list, day view, leave detail, decide dialog; desktop and phone).
+ *  Approving over the quota first asks `ask` (the screen's confirm dialog) with hrLeaveApproveOverBalance's warning and then sends
+ *  confirmOverBalance; undefined = the person said no (nothing is sent). Rejecting never asks. */
+export function hrLeaveDecideCmd(s:State,l:HRLeave,approve:boolean,ask:(warning:string)=>boolean,note?:string):Command|undefined{
+  const over=approve?hrLeaveApproveOverBalance(s,l):undefined;
+  if(over&&!ask(over))return undefined;
+  return {type:'HR_LEAVE_DECIDE',id:l.id,approve,...(note?{note}:{}),...(over?{confirmOverBalance:true}:{})};
 }
 /** SCC renderBalanceHint (L1271-1296): the live line under the form; `exceed` paints it red. */
 export function hrLeaveBalanceHint(s:State,staffId:string,type:string,from:string,to:string,half?:HRHalf):{text:string;exceed:boolean;tracked:boolean}|undefined{
