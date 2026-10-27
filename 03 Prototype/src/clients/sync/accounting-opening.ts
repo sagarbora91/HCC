@@ -49,7 +49,7 @@ async function loadOpening(c:LoaderCtx):Promise<ACCState>{
   return cur;
 }
 /** Patch loader for accountingX (registered at the ACC-1 integration: GET /accounting/opening in READS and tests/_role-reads.json). */
-export const accountingOpeningLoader:SliceLoader={slice:'accountingX',kind:'patch',requires:'reports',reads:['GET /accounting/opening'],needs:['accountingX'],load:loadOpening};
+export const accountingOpeningLoader:SliceLoader={slice:'accountingX',kind:'patch',requires:'reports',reads:['GET /accounting/opening'],load:loadOpening}; // a patch runs after the owner; needs:['accountingX'] (its own slice) was a cycle
 
 export const accountingOpening:SyncArea={
   id:'accounting-opening',
