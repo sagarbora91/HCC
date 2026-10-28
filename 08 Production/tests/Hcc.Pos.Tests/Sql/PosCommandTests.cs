@@ -129,7 +129,7 @@ public class PosCommandTests(PosDb db) : IClassFixture<PosDb>
         Assert.True(replay.Replayed);
         Assert.Equal(s.BillId, replay.Value.BillId);
         await Fails(HccErrorCode.INVALID_TRANSITION, () => db.SettleFolioAsync(o.OrderId, null, Who.Reception));
-        Assert.Single((await db.FolioQueries.GetFolioAsync(new Hcc.Application.Billing.Caller(db.PropertyId, Who.Owner), folio)).Lines, l => l.Kind == "service");
+        Assert.Single((await db.FolioQueries.GetFolioAsync(new Hcc.Application.Billing.Caller(db.PropertyId, Who.Owner), folio)).Lines, l => l.Kind == "food"); // ACC-2 ruling 3
         // a bill posted to a folio is corrected on the folio, not voided here
         await Fails(HccErrorCode.INVALID_TRANSITION, () => db.Pos.VoidBillAsync(db.As(Who.Reception), PosDb.Key(), new VoidBillRequest(o.OrderId, "Wrong room", null)));
         Assert.Equal(stay, await db.LongAsync("SELECT stay_id FROM pos.bill WHERE bill_id = @b", ("@b", SqlDbType.BigInt, s.BillId)));
