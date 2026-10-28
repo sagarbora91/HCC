@@ -173,6 +173,27 @@ public class PurchaseSqlTests(ExpensesDb db) : IClassFixture<ExpensesDb>
     }
 
     [Fact]
+    public async Task Coordinator_ruling_T11_the_vendor_opening_balance_is_the_oldest_open_item_and_is_paid_first()
+    {
+        var cat = await CategoryAsync();
+        var (code, v) = await VendorAsync();
+        await db.ExecAsync("""
+            INSERT acc.opening_entry(property_id, as_of, status, entered_by, entered_utc, approved_by, approved_utc) VALUES (@p, '2026-04-01', 'approved', 2, SYSUTCDATETIME(), 1, SYSUTCDATETIME());
+            INSERT acc.opening_line(property_id, line_no, account, debit_paise, credit_paise) VALUES (@p, 1, @a, 0, 2500000), (@p, 2, '3100', 2500000, 0);
+            """, ("@p", SqlDbType.Int, db.PropertyId), ("@a", SqlDbType.VarChar, "2200/" + code));
+        var b = await BillAsync(v, cat, 5_900_000);
+        var r = (await db.Vendor.PayAsync(db.Ctx(Who.Manager), new RecordVendorPaymentRequest(code, 6_000_000, "Bank transfer", "NEFT-T11"), Ct)).Value;
+        Assert.Equal(new[] { new VendorAllocationDto(0, 2_500_000, true), new VendorAllocationDto(b.ExpenseId, 3_500_000) }, r.Payment.Allocations);
+        var ag = (await db.VendorQueries.AgeingAsync(db.PropertyId, Who.Owner, null, code, Ct)).Rows.Single();
+        Assert.Equal((2_400_000L, 0L, 2_400_000L), (ag.OpenPaise, ag.AdvancePaise, ag.NetPaise));
+        // The opening item is listed (paid off now) only while open; an explicit allocation to it is refused once nothing is left.
+        await Fails(HccErrorCode.VALIDATION, () => db.Vendor.PayAsync(db.Ctx(Who.Manager),
+            new RecordVendorPaymentRequest(code, 100, "UPI", "u", Allocations: [new VendorAllocationDto(0, 100, true)]), Ct));
+        var listed = (await db.VendorQueries.ListAsync(db.PropertyId, Who.Owner, Ct)).Items.Single(p => p.PaymentId == r.Payment.PaymentId);
+        Assert.True(listed.Allocations[0].Opening);
+    }
+
+    [Fact]
     public async Task A_cash_vendor_payment_leaves_the_drawer_and_a_same_day_void_by_the_Owner_puts_it_back()
     {
         var (till, shift) = await db.OpenTillAsync(500_000);

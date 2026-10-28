@@ -24,7 +24,7 @@ const txt=(v:unknown)=>typeof v==='string'?v.trim():'';
 
 /** GET /expenses/vendor-payments (Hcc.Contracts.Expenses.VendorPaymentView). */
 export type SrvVendorPayment={paymentId:number;vendorCode:string;vendor:string;businessDate:string;amountPaise:number;method:string;reference:string;recordedBy:number;recordedUtc:string;
-  allocations:{expenseId:number;amountPaise:number}[];voided:boolean;voidReason?:string|null;voidedBy?:number|null;voidedDate?:string|null};
+  allocations:{expenseId:number;amountPaise:number;opening?:boolean}[];voided:boolean;voidReason?:string|null;voidedBy?:number|null;voidedDate?:string|null};
 /** GET /accounting/assets (Hcc.Contracts.Accounting.FixedAssetView). */
 export type SrvFixedAsset={assetId:number;assetNo:string;ledger:string;name:string;costPaise:number;itcPaise:number;purchaseDate:string;vendor:string;expenseId:number;
   putToUse?:string|null;disposedDate?:string|null;disposedAmountPaise?:number|null;disposedVoucher?:string|null};
@@ -33,7 +33,7 @@ export type SrvFixedAsset={assetId:number;assetNo:string;ledger:string;name:stri
 export function vendorPaymentFromServer(p:SrvVendorPayment):ExpVendorPayment{
   const v:ExpVendorPayment={id:String(p.paymentId),vendor:p.vendorCode||p.vendor,date:isoDate(p.businessDate,'businessDate'),amount:paise(p.amountPaise,'amountPaise'),method:p.method,
     reference:p.reference??'',by:protoUserId(p.recordedBy),at:utcToClock(p.recordedUtc),
-    allocations:(p.allocations??[]).map(a=>({expense:String(a.expenseId),amount:paise(a.amountPaise,'amountPaise')}))};
+    allocations:(p.allocations??[]).map(a=>({expense:a.opening?'opening':String(a.expenseId),amount:paise(a.amountPaise,'amountPaise')}))}; // coordinator ruling: the opening balance item
   if(p.voided){v.void=true;if(p.voidReason)v.voidReason=p.voidReason;if(p.voidedBy!=null)v.voidBy=protoUserId(p.voidedBy);if(p.voidedDate)v.voidAt=isoDate(p.voidedDate,'voidedDate');}
   return v;
 }
@@ -66,7 +66,7 @@ function currentTill(c:CommandCtx):number{
 export function vendorPayBody(cmd:Command,cash:boolean,till?:number):Record<string,unknown>{
   const body:Record<string,unknown>={vendor:txt(cmd.vendor),amountPaise:cmd.amount,method:txt(cmd.method),reference:txt(cmd.reference)||null};
   if(typeof cmd.date==='string'&&cmd.date)body.businessDate=cmd.date;
-  if(Array.isArray(cmd.allocations))body.allocations=(cmd.allocations as {expense:string;amount:number}[]).map(a=>({expenseId:serverId(a.expense,'Bill'),amountPaise:a.amount}));
+  if(Array.isArray(cmd.allocations))body.allocations=(cmd.allocations as {expense:string;amount:number}[]).map(a=>a.expense==='opening'?{expenseId:0,amountPaise:a.amount,opening:true}:{expenseId:serverId(a.expense,'Bill'),amountPaise:a.amount});
   if(cash)body.tillId=till;
   return body;
 }

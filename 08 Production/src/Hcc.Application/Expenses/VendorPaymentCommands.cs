@@ -63,6 +63,9 @@ public interface IVendorPaymentStore
     /// <summary>Counted records (Posted / Reversed) whose vendor is <paramref name="vendorName"/> or <paramref name="vendorCode"/> (any case).</summary>
     Task<IReadOnlyList<VendorBillRow>> BillsAsync(ICommandTransaction? tx, int propertyId, string vendorName, string vendorCode, CancellationToken ct = default);
 
+    /// <summary>The vendor's opening balance from the APPROVED opening entry (credit − debit on 2200/[vendor]; positive = the hotel owes), or null.</summary>
+    Task<(DateOnly AsOf, long Paise)?> OpeningAsync(ICommandTransaction? tx, int propertyId, string vendorCode, CancellationToken ct = default);
+
     /// <summary>Σ returned (amount, GST) against a bill by return records that are not void / rejected (positive paise).</summary>
     Task<(long Amount, long Gst)> ReturnedAsync(ICommandTransaction tx, long expenseId, CancellationToken ct = default);
 }
@@ -105,23 +108,28 @@ public sealed class VendorPaymentCommands(ICommandRunner runner, IAccessPolicy p
 
     private Task<bool> IsOwnerAsync(CommandContext ctx, CancellationToken ct) => policy.HasAsync(ctx.PropertyId, ctx.PrincipalId, ExpensePermissions.Owner, null, ct);
 
-    /// <summary>Open bills of a vendor as of a date (credit-funded posted bills; payable less posted returns and live allocations).</summary>
+    /// <summary>Open bills of a vendor as of a date (credit-funded posted bills; payable less posted returns and live allocations). Coordinator
+    /// ruling (rulebook T11): the approved opening balance is the OLDEST open item (ExpenseId 0 = <see cref="VendorAllocationDto.Opening"/>).</summary>
     internal static IReadOnlyList<ExpensePurchase.OpenBill> OpenBills(IReadOnlyList<VendorBillRow> rows, IReadOnlyList<VendorPaymentRecord> pays, IReadOnlyList<TenderMethod>? methods,
-        DateOnly asOf)
+        DateOnly asOf, (DateOnly AsOf, long Paise)? opening = null)
     {
         var returned = rows.Where(r => r.ReturnOf is not null && r.BusinessDate <= asOf).GroupBy(r => r.ReturnOf!.Value)
             .ToDictionary(g => g.Key, g => g.Sum(r => -(r.AmountPaise - (r.TdsPaise ?? 0))));
         var alloc = pays.Where(p => p.LiveOn(asOf)).SelectMany(p => p.Allocations).GroupBy(a => a.ExpenseId).ToDictionary(g => g.Key, g => g.Sum(a => a.AmountPaise));
-        return rows.Where(r => r.Status == ExpenseState.Posted && r.ReversalOf is null && r.ReturnOf is null && r.AmountPaise > 0 && r.BusinessDate <= asOf
+        var list = new List<ExpensePurchase.OpenBill>();
+        if (opening is { Paise: > 0 } o && o.AsOf <= asOf) list.Add(new ExpensePurchase.OpenBill(0, o.AsOf, o.Paise, 0, alloc.GetValueOrDefault(0)));
+        list.AddRange(rows.Where(r => r.Status == ExpenseState.Posted && r.ReversalOf is null && r.ReturnOf is null && r.AmountPaise > 0 && r.BusinessDate <= asOf
                 && PaymentMethodBook.KindOf(methods, r.Method) == MoneyMasterValues.Credit)
             .OrderBy(r => r.BusinessDate).ThenBy(r => r.ExpenseId)
-            .Select(r => new ExpensePurchase.OpenBill(r.ExpenseId, r.BusinessDate, r.AmountPaise - (r.TdsPaise ?? 0), returned.GetValueOrDefault(r.ExpenseId), alloc.GetValueOrDefault(r.ExpenseId)))
-            .ToList();
+            .Select(r => new ExpensePurchase.OpenBill(r.ExpenseId, r.BusinessDate, r.AmountPaise - (r.TdsPaise ?? 0), returned.GetValueOrDefault(r.ExpenseId), alloc.GetValueOrDefault(r.ExpenseId))));
+        return list;
     }
 
     /// <summary>The party ledger 2200/[vendor] balance (positive = the hotel owes): credit-funded counted records net of TDS − live payments.</summary>
-    internal static long Balance(IReadOnlyList<VendorBillRow> rows, IReadOnlyList<VendorPaymentRecord> pays, IReadOnlyList<TenderMethod>? methods, DateOnly asOf) =>
-        rows.Where(r => r.BusinessDate <= asOf && PaymentMethodBook.KindOf(methods, r.Method) == MoneyMasterValues.Credit).Sum(r => r.AmountPaise - (r.TdsPaise ?? 0))
+    internal static long Balance(IReadOnlyList<VendorBillRow> rows, IReadOnlyList<VendorPaymentRecord> pays, IReadOnlyList<TenderMethod>? methods, DateOnly asOf,
+        (DateOnly AsOf, long Paise)? opening = null) =>
+        (opening is { } o && o.AsOf <= asOf ? o.Paise : 0)
+        + rows.Where(r => r.BusinessDate <= asOf && PaymentMethodBook.KindOf(methods, r.Method) == MoneyMasterValues.Credit).Sum(r => r.AmountPaise - (r.TdsPaise ?? 0))
         - pays.Where(p => p.LiveOn(asOf)).Sum(p => p.AmountPaise);
 
     public async Task<CommandResult<VendorPaymentResult>> PayAsync(CommandContext ctx, RecordVendorPaymentRequest req, CancellationToken ct = default)
@@ -152,17 +160,18 @@ public sealed class VendorPaymentCommands(ICommandRunner runner, IAccessPolicy p
 
             var rows = await payments.BillsAsync(tx, ctx.PropertyId, v.Name, v.Code, c).ConfigureAwait(false);
             var pays = await payments.ListAsync(tx, ctx.PropertyId, v.Code, c).ConfigureAwait(false);
-            var open = OpenBills(rows, pays, ms, date);
+            var open = OpenBills(rows, pays, ms, date, await payments.OpeningAsync(tx, ctx.PropertyId, v.Code, c).ConfigureAwait(false));
             IReadOnlyList<VendorAllocationDto> allocations;
             if (req.Allocations is { } sent)
             {
-                var list = sent.Select(a => (a.ExpenseId, a.AmountPaise)).ToList();
+                var list = sent.Select(a => (a.Opening ? 0L : a.ExpenseId, a.AmountPaise)).ToList();
+                if (list.Any(a => a.Item1 == 0) && !open.Any(b => b.ExpenseId == 0 && b.Open > 0)) throw HccException.Validation("The vendor has no opening balance left to pay.");
                 if (ExpensePurchase.AllocationRefusal(open, req.AmountPaise, list) is { } why) throw HccException.Validation(why);
-                allocations = sent;
+                allocations = list.Select(a => new VendorAllocationDto(a.Item1, a.AmountPaise, a.Item1 == 0)).ToList();
             }
             else
             {
-                allocations = ExpensePurchase.Allocate(open, req.AmountPaise).Select(a => new VendorAllocationDto(a.ExpenseId, a.Amount)).ToList();
+                allocations = ExpensePurchase.Allocate(open, req.AmountPaise).Select(a => new VendorAllocationDto(a.ExpenseId, a.Amount, a.ExpenseId == 0)).ToList();
             }
 
             var now = UtcNow;
@@ -303,8 +312,9 @@ public sealed class VendorPaymentQueries(IAccessPolicy policy, IVendorPaymentSto
         {
             var bills = await payments.BillsAsync(null, propertyId, v.Name, v.Code, ct).ConfigureAwait(false);
             var pays = all.Where(p => p.VendorCode == v.Code).ToList();
-            var open = VendorPaymentCommands.OpenBills(bills, pays, ms, date).Where(b => b.Open > 0).ToList();
-            var balance = VendorPaymentCommands.Balance(bills, pays, ms, date);
+            var opening = await payments.OpeningAsync(null, propertyId, v.Code, ct).ConfigureAwait(false);
+            var open = VendorPaymentCommands.OpenBills(bills, pays, ms, date, opening).Where(b => b.Open > 0).ToList();
+            var balance = VendorPaymentCommands.Balance(bills, pays, ms, date, opening);
             var openTotal = open.Sum(b => b.Open);
             if (openTotal == 0 && balance >= 0) continue;
             var buckets = ExpensePurchase.AgeBuckets.ToDictionary(b => b, _ => 0L);
@@ -314,8 +324,9 @@ public sealed class VendorPaymentQueries(IAccessPolicy policy, IVendorPaymentSto
                 var d = date.DayNumber - b.Date.DayNumber;
                 var bucket = ExpensePurchase.AgeBucket(d);
                 buckets[bucket] += b.Open;
-                var row = bills.First(x => x.ExpenseId == b.ExpenseId);
-                views.Add(new VendorOpenBillView(b.ExpenseId, StayDates.ToWire(b.Date), row.Category, row.Description, b.Payable, b.Returned, b.Allocated, b.Open, d, bucket));
+                var row = bills.FirstOrDefault(x => x.ExpenseId == b.ExpenseId);
+                views.Add(new VendorOpenBillView(b.ExpenseId, StayDates.ToWire(b.Date), row?.Category ?? "Opening balance", row?.Description ?? "Opening balance", b.Payable, b.Returned,
+                    b.Allocated, b.Open, d, bucket, b.ExpenseId == 0));
             }
 
             rows.Add(new VendorAgeingRow(v.Code, v.Name, openTotal, Math.Max(0, openTotal - balance), balance, buckets, views));

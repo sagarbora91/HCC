@@ -151,6 +151,21 @@ export function register({test,M,assert}){
     assert.ok(balanced(vs(t)));
   });
 
+  test('[ACC2-PURCHASE] coordinator ruling (rulebook T11): the vendor opening balance is the oldest open item `opening`; ₹60,000 pays 25,000 opening + 35,000 of the ₹59,000 bill',()=>{
+    let s=base();s.accountingX={...(s.accountingX??{}),opening:{asOf:'2026-04-01',status:'approved',by:'owner',at:'2026-04-01T10:00',approvedBy:'owner',approvedAt:'2026-04-01T10:00',
+      lines:[{account:'2200/V-DECCAN',debit:0,credit:2500000},{account:'3100',debit:2500000,credit:0}]}};
+    let id;[s,id]=bill(s,{vendor:'Deccan Agro Traders (fictional)',category:'Banquet supplies',amount:5900000});
+    const open=M.expVendorOpenBills(s,'V-DECCAN');assert.deepEqual(open.map(b=>[b.expense,b.date,b.open]),[['opening','2026-04-01',2500000],[id,D,5900000]]);
+    assert.equal(M.expVendorAgeing(s,D,'V-DECCAN')[0].buckets['90+'],2500000,'the opening is aged from its asOf');
+    s=execute(s,'manager',{type:'EXP_VENDOR_PAY',vendor:'V-DECCAN',amount:6000000,method:'Bank transfer',reference:'NEFT-T11'});
+    assert.deepEqual(s.expensesX.vendorPayments.at(-1).allocations,[{expense:'opening',amount:2500000},{expense:id,amount:3500000}]);
+    const ag=M.expVendorAgeing(s,D,'V-DECCAN')[0];assert.deepEqual([ag.open,ag.advance,ag.net],[2400000,0,2400000]);
+    assert.equal(-M.expVendorBalance(s,'V-DECCAN'),M.accPartyBalance(s,'2200/V-DECCAN'),'net = the party ledger, opening included');
+    // An explicit allocation may name the opening item.
+    let t=execute(s,'accountant',{type:'EXP_VENDOR_PAY',vendor:'V-DECCAN',amount:100,method:'UPI',reference:'u',allocations:[{expense:id,amount:100}]});
+    assert.throws(()=>execute(t,'accountant',{type:'EXP_VENDOR_PAY',vendor:'V-DECCAN',amount:100,method:'UPI',reference:'u',allocations:[{expense:'opening',amount:100}]}),/not an open bill/,'fully paid');
+  });
+
   test('[ACC2-PURCHASE] ageing buckets 0–30 / 31–60 / 61–90 / 90+ by bill date; a vendor with nothing open drops out',()=>{
     let s=base();const ids=[];
     for(const [amt,date] of [[100,'2026-10-20'],[200,'2026-09-10'],[300,'2026-08-10'],[400,'2026-05-01']]){let id;[s,id]=bill(s,{vendor:'Kaveri Kitchen Equipment (fictional)',category:'Banquet supplies',amount:amt*100});ids.push(id);s.expenses.find(e=>e.id===id).date=date;}

@@ -116,6 +116,16 @@ export function expVendorPayCash(s:State,date:string):number{
     if(p.date===date&&!(p.void&&p.voidAt===date))t+=p.amount;else if(p.void&&p.voidAt===date&&p.date<date)t-=p.amount;}
   return t;
 }
+/** Coordinator ruling (ACC-2, rulebook T11): the allocation id of a vendor's opening balance (it has no expense record). */
+export const EXP_OPENING='opening';
+/** The vendor's opening balance from the APPROVED opening entry (contract ACC-1 §5): Σ credit − debit on `2200/<vendor>` (positive = the
+ *  hotel owes), dated the entry's asOf; undefined when there is none. */
+export function expVendorOpening(s:State,vendor:string):{amount:number;date:string}|undefined{
+  const o=s.accountingX?.opening;if(o?.status!=='approved')return undefined;
+  const id='2200/'+expVendorKey(s,vendor);let amount=0,hit=false;
+  for(const l of o.lines)if(l.account===id){amount+=l.credit-l.debit;hit=true;}
+  return hit?{amount,date:o.asOf}:undefined;
+}
 /** A payment stands on `asOf`: dated on or before it and not void — or voided on a later business day (a reversing void). */
 export const expVendorPayLive=(p:ExpVendorPayment,asOf:string)=>p.date<=asOf&&(!p.void||(!!p.voidAt&&p.voidAt>asOf&&p.voidAt!==p.date));
 /** A credit-funded bill (or return) record of the vendor that counts (Posted / Reversed originals and their records). */
@@ -132,10 +142,14 @@ const days=(from:string,to:string)=>Math.round((Date.parse(to+'T00:00:00Z')-Date
 export function expVendorOpenBills(s:State,vendor:string,asOf=s.date,all=false):ExpOpenBill[]{
   const key=expVendorKey(s,vendor),recs=vendorRecords(s,key);
   const returned=new Map<string,number>();for(const r of recs)if(expIsReturn(r))returned.set(expReturnOf(r),(returned.get(expReturnOf(r))??0)-expBillPayable(r));
-  return recs.filter(e=>e.status==='Posted'&&!e.reversalOf&&!expIsReturn(e)&&mnyIsCredit(s,e.method)&&e.amount>0&&e.date<=asOf)
+  // Coordinator ruling (ACC-2): the vendor's opening balance (approved opening entry, 2200/<vendor>) is the OLDEST open item, expense 'opening'.
+  const op=expVendorOpening(s,key),opening:ExpOpenBill[]=[];
+  if(op&&op.amount>0&&op.date<=asOf){let allocated=0;for(const p of expVendorPayments(s))if(!p.void&&expVendorKey(s,p.vendor)===key)for(const x of p.allocations)if(x.expense===EXP_OPENING)allocated+=x.amount; // per vendor
+    opening.push({expense:EXP_OPENING,date:op.date,vendor:key,category:'Opening balance',description:'Opening balance',payable:op.amount,returned:0,allocated,open:Math.max(0,op.amount-allocated),days:days(op.date,asOf)});}
+  return [...opening,...recs.filter(e=>e.status==='Posted'&&!e.reversalOf&&!expIsReturn(e)&&mnyIsCredit(s,e.method)&&e.amount>0&&e.date<=asOf)
     .sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:a.id<b.id?-1:a.id>b.id?1:0)
     .map(e=>{const payable=expBillPayable(e),ret=returned.get(e.id)??0,allocated=expBillAllocated(s,e.id);
-      return {expense:e.id,date:e.date,vendor:key,category:e.category,description:e.description??e.vendor,payable,returned:ret,allocated,open:Math.max(0,payable-ret-allocated),days:days(e.date,asOf)};})
+      return {expense:e.id,date:e.date,vendor:key,category:e.category,description:e.description??e.vendor,payable,returned:ret,allocated,open:Math.max(0,payable-ret-allocated),days:days(e.date,asOf)};})]
     .filter(b=>all||b.open>0);
 }
 /** Oldest-first allocation of `amount` to the vendor's open bills (contract §3.2 default); the rest is an advance. */
@@ -162,6 +176,7 @@ export function expVendorAllocationRefusal(s:State,vendor:string,amount:number,a
  *  (bills, reversal and return records, each net of TDS) − Σ payments that are not void. */
 export function expVendorBalance(s:State,vendor:string,asOf=s.date):number{
   const key=expVendorKey(s,vendor);let t=0;
+  const op=expVendorOpening(s,key);if(op&&op.date<=asOf)t+=op.amount; // the approved opening balance (Cr = the hotel owes)
   for(const e of vendorRecords(s,key))if(e.date<=asOf&&mnyIsCredit(s,e.method))t+=expBillPayable(e);
   for(const p of expVendorPayments(s))if(expVendorPayLive(p,asOf)&&expVendorKey(s,p.vendor)===key)t-=p.amount;
   return t;
@@ -180,6 +195,7 @@ export type ExpVendorAgeRow={vendor:string;name:string;open:number;advance:numbe
 export function expVendorAgeing(s:State,asOf=s.date,vendor?:string):ExpVendorAgeRow[]{
   const keys=new Set<string>();
   for(const e of s.expenses)if(counts(e)&&txt(e.vendor))keys.add(expVendorKey(s,e.vendor));
+  for(const l of s.accountingX?.opening?.status==='approved'?s.accountingX.opening.lines:[])if(l.account.startsWith('2200/'))keys.add(l.account.slice(5)); // opening balances
   for(const p of expVendorPayments(s))keys.add(expVendorKey(s,p.vendor));
   const want=vendor?expVendorKey(s,vendor):'';
   return [...keys].filter(k=>k&&(!want||k===want)).sort().map(k=>{

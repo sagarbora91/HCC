@@ -53,9 +53,10 @@ public sealed class SqlVendorPaymentStore(SqlConnectionFactory connections) : IV
 
         foreach (var a in p.Allocations)
         {
-            await using var cmd = Sql(tx).Command("INSERT ops.vendor_payment_alloc(vendor_payment_id, expense_id, amount_paise) VALUES (@id, @e, @a);");
+            await using var cmd = Sql(tx).Command("INSERT ops.vendor_payment_alloc(vendor_payment_id, expense_id, opening, amount_paise) VALUES (@id, @e, @o, @a);");
             Add(cmd, "@id", SqlDbType.BigInt, id);
-            Add(cmd, "@e", SqlDbType.BigInt, a.ExpenseId);
+            Add(cmd, "@e", SqlDbType.BigInt, a.Opening ? null : a.ExpenseId);
+            Add(cmd, "@o", SqlDbType.Bit, a.Opening);
             Add(cmd, "@a", SqlDbType.BigInt, a.AmountPaise);
             await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
         }
@@ -78,7 +79,7 @@ public sealed class SqlVendorPaymentStore(SqlConnectionFactory connections) : IV
         while (await rd.ReadAsync(ct).ConfigureAwait(false))
         {
             if (!m.TryGetValue(rd.GetInt64(0), out var l)) m[rd.GetInt64(0)] = l = [];
-            l.Add(new VendorAllocationDto(rd.GetInt64(1), rd.GetInt64(2)));
+            l.Add(rd.IsDBNull(1) ? new VendorAllocationDto(0, rd.GetInt64(2), true) : new VendorAllocationDto(rd.GetInt64(1), rd.GetInt64(2)));
         }
 
         return m;
@@ -96,7 +97,7 @@ public sealed class SqlVendorPaymentStore(SqlConnectionFactory connections) : IV
 
     public async Task<VendorPaymentRecord?> LockAsync(ICommandTransaction tx, int propertyId, long paymentId, CancellationToken ct = default)
     {
-        await using var allocs = Sql(tx).Command("SELECT vendor_payment_id, expense_id, amount_paise FROM ops.vendor_payment_alloc WHERE vendor_payment_id = @id ORDER BY expense_id;");
+        await using var allocs = Sql(tx).Command("SELECT vendor_payment_id, expense_id, amount_paise FROM ops.vendor_payment_alloc WHERE vendor_payment_id = @id ORDER BY alloc_id;");
         Add(allocs, "@id", SqlDbType.BigInt, paymentId);
         await using var rows = Sql(tx).Command($"SELECT {Columns} FROM ops.vendor_payment p WITH (UPDLOCK, ROWLOCK) WHERE p.vendor_payment_id = @id AND p.property_id = @p;");
         Add(rows, "@id", SqlDbType.BigInt, paymentId);
@@ -121,7 +122,7 @@ public sealed class SqlVendorPaymentStore(SqlConnectionFactory connections) : IV
 
     public async Task<IReadOnlyList<VendorPaymentRecord>> ListAsync(ICommandTransaction? tx, int propertyId, string? vendorCode, CancellationToken ct = default)
     {
-        var allocSql = $"SELECT a.vendor_payment_id, a.expense_id, a.amount_paise FROM ops.vendor_payment_alloc a JOIN ops.vendor_payment p ON p.vendor_payment_id = a.vendor_payment_id WHERE {ListWhere};";
+        var allocSql = $"SELECT a.vendor_payment_id, a.expense_id, a.amount_paise FROM ops.vendor_payment_alloc a JOIN ops.vendor_payment p ON p.vendor_payment_id = a.vendor_payment_id WHERE {ListWhere} ORDER BY a.alloc_id;";
         var rowSql = $"SELECT {Columns} FROM ops.vendor_payment p WHERE {ListWhere} ORDER BY p.business_date, p.vendor_payment_id;";
         void Ps(SqlCommand c)
         {
@@ -178,6 +179,31 @@ public sealed class SqlVendorPaymentStore(SqlConnectionFactory connections) : IV
         await using var c2 = connections.Command(sql, conn);
         await ReadAsync(c2).ConfigureAwait(false);
         return list;
+    }
+
+    public async Task<(DateOnly AsOf, long Paise)?> OpeningAsync(ICommandTransaction? tx, int propertyId, string vendorCode, CancellationToken ct = default)
+    {
+        const string sql = """
+            SELECT e.as_of, SUM(l.credit_paise - l.debit_paise) FROM acc.opening_entry e JOIN acc.opening_line l ON l.property_id = e.property_id
+            WHERE e.property_id = @p AND e.status = 'approved' AND l.account = @a GROUP BY e.as_of;
+            """;
+        async Task<(DateOnly, long)?> ReadAsync(SqlCommand cmd)
+        {
+            Add(cmd, "@p", SqlDbType.Int, propertyId);
+            Add(cmd, "@a", SqlDbType.VarChar, "2200/" + vendorCode, 41);
+            await using var rd = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+            return await rd.ReadAsync(ct).ConfigureAwait(false) ? (DateOnly.FromDateTime(rd.GetDateTime(0)), rd.GetInt64(1)) : null;
+        }
+
+        if (tx is not null)
+        {
+            await using var c1 = Sql(tx).Command(sql);
+            return await ReadAsync(c1).ConfigureAwait(false);
+        }
+
+        await using var conn = await connections.OpenAsync(ct).ConfigureAwait(false);
+        await using var c2 = connections.Command(sql, conn);
+        return await ReadAsync(c2).ConfigureAwait(false);
     }
 
     public async Task<(long Amount, long Gst)> ReturnedAsync(ICommandTransaction tx, long expenseId, CancellationToken ct = default)

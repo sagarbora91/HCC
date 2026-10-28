@@ -27,10 +27,16 @@ CREATE TABLE ops.vendor_payment(
 CREATE INDEX IX_vendor_payment_vendor ON ops.vendor_payment(property_id, vendor_code, business_date);
 CREATE INDEX IX_vendor_payment_date ON ops.vendor_payment(property_id, business_date);
 
+-- Coordinator ruling (ACC-2, rulebook T11): a vendor's opening balance (approved opening entry on 2200/<vendor>) has no expense record — it is
+-- the oldest open item, allocated with expense_id NULL and opening = 1.
 CREATE TABLE ops.vendor_payment_alloc(
+  alloc_id BIGINT IDENTITY CONSTRAINT PK_vendor_payment_alloc PRIMARY KEY,
   vendor_payment_id BIGINT NOT NULL CONSTRAINT FK_vendor_payment_alloc_payment REFERENCES ops.vendor_payment,
-  expense_id BIGINT NOT NULL CONSTRAINT FK_vendor_payment_alloc_expense REFERENCES ops.expense,
+  expense_id BIGINT NULL CONSTRAINT FK_vendor_payment_alloc_expense REFERENCES ops.expense,
+  opening BIT NOT NULL CONSTRAINT DF_vendor_payment_alloc_opening DEFAULT 0,
   amount_paise BIGINT NOT NULL CONSTRAINT CK_vendor_payment_alloc_amount CHECK (amount_paise BETWEEN 1 AND 10000000000),
-  CONSTRAINT PK_vendor_payment_alloc PRIMARY KEY (vendor_payment_id, expense_id));
-CREATE INDEX IX_vendor_payment_alloc_expense ON ops.vendor_payment_alloc(expense_id) INCLUDE (amount_paise);
+  CONSTRAINT CK_vendor_payment_alloc_target CHECK ((opening = 1 AND expense_id IS NULL) OR (opening = 0 AND expense_id IS NOT NULL)));
+CREATE UNIQUE INDEX UX_vendor_payment_alloc_expense ON ops.vendor_payment_alloc(vendor_payment_id, expense_id) WHERE expense_id IS NOT NULL;
+CREATE UNIQUE INDEX UX_vendor_payment_alloc_opening ON ops.vendor_payment_alloc(vendor_payment_id) WHERE opening = 1;
+CREATE INDEX IX_vendor_payment_alloc_expense ON ops.vendor_payment_alloc(expense_id) INCLUDE (amount_paise) WHERE expense_id IS NOT NULL;
 GO

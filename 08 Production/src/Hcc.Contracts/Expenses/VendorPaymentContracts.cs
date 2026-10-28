@@ -3,8 +3,9 @@ namespace Hcc.Contracts.Expenses;
 // ACC-2 · lane acc2-purchase — vendor payments, advances, voids, returns, ageing and the fixed-asset register (02 Planning/agents/
 // ACC2-POSTING-CONTRACT.md §3, §9). Prototype: services/mock/handlers/expenses-vendor.ts, sync clients/sync/expenses-vendor.ts.
 
-/// <summary>One allocation of a payment to a bill.</summary>
-public sealed record VendorAllocationDto(long ExpenseId, long AmountPaise);
+/// <summary>One allocation of a payment to a bill — or, with <c>Opening</c> (ExpenseId 0), to the vendor's opening balance (coordinator ruling,
+/// rulebook T11: the opening is the oldest open item; prototype <c>expense:'opening'</c>).</summary>
+public sealed record VendorAllocationDto(long ExpenseId, long AmountPaise, bool Opening = false);
 
 /// <summary>RecordVendorPayment K (PERM-EXP-004): vendor (code or name of the Expense vendors master), amount, method (cash / UPI / bank —
 /// never a credit method), reference (required except cash), business date (default the business date; never later), allocations (default:
@@ -26,8 +27,9 @@ public sealed record VendorPaymentList(IReadOnlyList<VendorPaymentView> Items);
 
 public sealed record VendorPaymentResult(VendorPaymentView Payment, long AdvancePaise);
 
+/// <summary>An open item of a vendor: a bill, or the opening balance (<c>Opening</c>, ExpenseId 0, dated the opening entry's asOf).</summary>
 public sealed record VendorOpenBillView(long ExpenseId, string BusinessDate, string Category, string? Description, long PayablePaise, long ReturnedPaise, long AllocatedPaise,
-    long OpenPaise, int Days, string Bucket);
+    long OpenPaise, int Days, string Bucket, bool Opening = false);
 
 /// <summary>Creditor ageing row: open bills by bucket (0–30 / 31–60 / 61–90 / 90+ days), the advance and the net (= the party ledger 2200/[vendor]).</summary>
 public sealed record VendorAgeingRow(string VendorCode, string Vendor, long OpenPaise, long AdvancePaise, long NetPaise, IReadOnlyDictionary<string, long> Buckets,
