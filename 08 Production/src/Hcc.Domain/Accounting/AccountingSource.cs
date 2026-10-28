@@ -196,6 +196,46 @@ public static class SourceRules
 
     // ── end ACC-1 ──
 
+    // ── ACC-2 gst lane (contract §4 advances switch, §6 set-off; rulebook A6 / A6a / A6b, E1) ──
+
+    /// <summary>Source sub of the GST on an advance received (A6 switch on).</summary>
+    public const string AdvanceGstSub = "advance-gst";
+
+    /// <summary>Source sub of the advance GST reversed when the deposit is applied (A6a, GSTR-1 11B) or returned (A6b, refund voucher).</summary>
+    public const string AdvanceGstReversalSub = "advance-gst-reversal";
+
+    /// <summary>Source sub of the month-end GST set-off journal (E1) and of its reversal when a later set-off replaces it.</summary>
+    public const string GstSetoffSub = "gst-setoff";
+
+    public const string GstSetoffReversalSub = "gst-setoff-reversal";
+
+    /// <summary>
+    /// GST on a booking advance (A6, firm-profile switch "GST on advances" on; DEC-142 default off): Journal, Dr GST paid on advances (1350) ·
+    /// Cr CGST · Cr SGST — the GST inside the amount at the booked room's rate (<see cref="GstSetOff.CumTax"/>). Kind <c>tax</c>.
+    /// </summary>
+    public static AccountingSource AdvanceGst(string sourceKey, DateOnly date, long cgstPaise, long sgstPaise, string narration)
+        => new(sourceKey, SourceKinds.Tax, AdvanceGstSub, date, VoucherType.Journal, narration,
+            [Dr(GstSetOff.KeyAdvance, checked(cgstPaise + sgstPaise)), Cr("folio:cgst", cgstPaise), Cr("folio:sgst", sgstPaise)]);
+
+    /// <summary>The advance GST reversed (A6a / A6b): Journal, Dr CGST · Dr SGST · Cr 1350.</summary>
+    public static AccountingSource AdvanceGstReversal(string sourceKey, DateOnly date, long cgstPaise, long sgstPaise, string narration)
+        => new(sourceKey, SourceKinds.Tax, AdvanceGstReversalSub, date, VoucherType.Journal, narration,
+            [Dr("folio:cgst", cgstPaise), Dr("folio:sgst", sgstPaise), Cr(GstSetOff.KeyAdvance, checked(cgstPaise + sgstPaise))]);
+
+    /// <summary>The month-end GST set-off journal (E1) from <see cref="GstSetOff.Entries"/>: Journal, kind <c>tax</c>, sub <c>gst-setoff</c>.</summary>
+    public static AccountingSource GstSetoff(string sourceKey, DateOnly date, GstSetOffResult setoff, string narration)
+        => new(sourceKey, SourceKinds.Tax, GstSetoffSub, date, VoucherType.Journal, narration, GstSetOff.Entries(setoff));
+
+    /// <summary>A replaced set-off reversed (the exact negative of the stored entries), dated the new set-off's business date.</summary>
+    public static AccountingSource GstSetoffReversal(string sourceKey, DateOnly date, IReadOnlyList<SourceEntry> original, string narration)
+    {
+        ArgumentNullException.ThrowIfNull(original);
+        return new(sourceKey, SourceKinds.Tax, GstSetoffReversalSub, date, VoucherType.Journal, narration,
+            original.Select(e => new SourceEntry(e.MapKey, e.CreditPaise, e.DebitPaise, e.Party)).ToList());
+    }
+
+    // ── end ACC-2 gst lane ──
+
     /// <summary>Accepted cash difference (counted − expected): short = Dr over/short · Cr cash; over = Dr cash · Cr over/short (Journal).</summary>
     public static AccountingSource CashDifference(string sourceKey, DateOnly date, long differencePaise, string narration)
         => new(sourceKey, SourceKinds.Closing, "cash-difference", date, VoucherType.Journal, narration,

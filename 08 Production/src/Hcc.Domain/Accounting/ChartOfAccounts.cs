@@ -280,6 +280,10 @@ public static partial class ChartOfAccounts
         // DEC-130 an Udhaar payment settles the customer's credit; ACC-1 (contract §2) the expense ITC splits half / half like output GST:
         // CGST half → 1310 (tax:gst-input), SGST half → 1320 (tax:gst-input-sgst); 1300 stays for locked snapshots only.
         ["receipt:udhaar"] = "1120", ["tax:gst-input"] = "1310", ["tax:gst-input-sgst"] = "1320",
+        // ACC-2 gst lane (contract §4, §6): the tax ledgers the GST set-off journal, the advance-GST lines and the RCM / cash-ledger entries post to.
+        ["tax:output-cgst"] = "2110", ["tax:output-sgst"] = "2120", ["tax:output-igst"] = "2130", ["tax:gst-input-igst"] = "1330",
+        ["tax:gst-cash"] = "1340", ["tax:advance-gst"] = "1350", ["tax:rcm-payable"] = "2140",
+        // ACC-2 gst end
     };
 
     /// <summary>ACC-1: the SGST-half ITC key (contract §2).</summary>

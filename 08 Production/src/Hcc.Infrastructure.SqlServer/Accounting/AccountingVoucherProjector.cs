@@ -226,7 +226,48 @@ public sealed class AccountingVoucherProjector(SqlConnectionFactory connections,
 
         if (source is not null && !source.IsZero)
             await InsertSourceAsync(connection, transaction, propertyId, source, evt.EventType, evt.OutboxId, clock.GetUtcNow().UtcDateTime, ct).ConfigureAwait(false);
+
+        // ACC-2 gst lane (contract §4, rulebook A6 / A6a / A6b): GST on a booking advance when the firm profile's switch is on (DEC-142: off by default).
+        if (evt.EventType == AccountingEvents.ReceiptRecorded && await AdvanceGstAsync(Parse<ReceiptRecordedPayload>(evt), connection, transaction, propertyId, ct).ConfigureAwait(false) is { } adv)
+            await InsertSourceAsync(connection, transaction, propertyId, adv, evt.EventType, evt.OutboxId, clock.GetUtcNow().UtcDateTime, ct).ConfigureAwait(false);
     }
+
+    // ── ACC-2 gst lane · GST on booking advances (contract §4; rulebook §4.6, A6 / A6a / A6b; DEC-142) ──
+
+    /// <summary>Source key of the advance-GST line of a folio receipt (the folio in the key lets the reversal cap read what the folio holds).</summary>
+    public static string AdvanceGstKey(long folioId, long receiptId)
+        => "advance-gst:folio:" + folioId.ToString(CultureInfo.InvariantCulture) + "/receipt:" + receiptId.ToString(CultureInfo.InvariantCulture);
+
+    /// <summary>
+    /// With the switch on: a deposit received → Dr 1350 · Cr CGST · Cr SGST (cum-tax at the booked room's rate: the first agreed night's GST rate,
+    /// else the dated master on the nightly rate at arrival); a deposit applied (<c>deposit-apply</c>, acc2-flows) or returned → the reversal, never
+    /// more than the folio's advance GST still held. Null otherwise (switch off, another kind, nothing to post).
+    /// </summary>
+    private async Task<AccountingSource?> AdvanceGstAsync(ReceiptRecordedPayload e, SqlConnection c, SqlTransaction t, int propertyId, CancellationToken ct)
+    {
+        var inflow = e.Kind == "deposit";
+        if (!inflow && e.Kind is not ("deposit-apply" or "deposit-return")) return null;
+        if (e.AmountPaise <= 0) return null;
+        if (await SqlGstMonthStore.AdvanceContextAsync(c, t, propertyId, e.FolioId, ct).ConfigureAwait(false) is not { } ctx) return null;
+        var bps = ctx.Bps ?? (ctx.RatePaise > 0
+            ? new Hcc.Domain.Tax.GstMaster(await new Hcc.Infrastructure.SqlServer.Tax.SqlGstMasterStore(connections).ActiveVersionsAsync(null, propertyId, ct).ConfigureAwait(false))
+                .RoomNight(ctx.Arrival, new Hcc.Domain.Money.Paise(ctx.RatePaise)).Bps
+            : 0);
+        var (tax, cgst, sgst) = GstSetOff.CumTax(e.AmountPaise, bps);
+        var key = AdvanceGstKey(e.FolioId, e.ReceiptId);
+        var pct = (bps / 100m).ToString("0.##", CultureInfo.InvariantCulture);
+        if (inflow)
+            return tax == 0 ? null : SourceRules.AdvanceGst(key, e.BusinessDate, cgst, sgst,
+                $"GST on advance (receipt voucher, GSTR-1 11A) · folio {e.FolioId.ToString(CultureInfo.InvariantCulture)} · receipt {e.ReceiptId.ToString(CultureInfo.InvariantCulture)} · {SourceRules.Rupees(e.AmountPaise)} at {pct} %");
+        var held = await SqlGstMonthStore.AdvanceGstHeldAsync(c, t, propertyId, e.FolioId, ct).ConfigureAwait(false);
+        var back = Math.Min(tax, held);
+        if (back <= 0) return null;
+        var (bc, bs) = GstSplit.Of(back);
+        return SourceRules.AdvanceGstReversal(key, e.BusinessDate, bc, bs,
+            $"Advance GST reversed ({(e.Kind == "deposit-return" ? "refund voucher" : "adjusted against the invoice, GSTR-1 11B")}) · folio {e.FolioId.ToString(CultureInfo.InvariantCulture)} · receipt {e.ReceiptId.ToString(CultureInfo.InvariantCulture)} · {SourceRules.Rupees(e.AmountPaise)}");
+    }
+
+    // ── end ACC-2 gst lane ──
 
     private async Task<AccountingSource?> CorrectionLineAsync(SqlConnection c, SqlTransaction t, long approvalId, CancellationToken ct)
     {

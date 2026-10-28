@@ -118,6 +118,8 @@ const CMDS={
   ACC_LEDGER_UPSERT:C('OWN','ACC-1 contract §7: chart of accounts = Owner-only money master (PERM-ACC-007, DEC-058)'),ACC_LEDGER_RETIRE:C('OWN','as ACC_LEDGER_UPSERT'),ACC_GROUP_UPSERT:C('OWN','as ACC_LEDGER_UPSERT'),
   // ACC-1 opening balances (contract §5/§7, DEC-148): enter = Owner / Manager / Accountant with reports (PERM-ACC-008); approve / reopen = Owner (PERM-ACC-009).
   ACC_OPENING_SAVE:C('OWN MGR ACC','ACC-1 contract §7 PERM-ACC-008'),ACC_OPENING_APPROVE:C('OWN','ACC-1 contract §7 PERM-ACC-009'),ACC_OPENING_REOPEN:C('OWN','ACC-1 contract §5 (Owner reopens)'),
+  // ACC-2 gst lane (contract §6, §9): tax entries = Owner / Accountant (PERM-ACC-013); month lock / unlock = Owner (PERM-ACC-012), the Accountant requests; GST on advances = Owner money setting (DEC-058, DEC-142).
+  ACC_GST_SETOFF:C('OWN ACC','ACC-2 contract §6 PERM-ACC-013'),ACC_GST_PAY:C('OWN ACC','ACC-2 contract §6 PERM-ACC-013'),ACC_STAT_REMIT:C('OWN ACC','ACC-2 contract §6 D5 PERM-ACC-013'),ACC_MONTH_LOCK:C('OWN','ACC-2 contract §9 PERM-ACC-012'),ACC_MONTH_LOCK_REQUEST:C('ACC','ACC-2 contract §9 (Accountant: request)'),ACC_MONTH_UNLOCK:C('OWN','ACC-2 contract §6 (DEC-131 mirror)'),ACC_GST_ADVANCES_SET:C('OWN','ACC-2 contract §4 Owner-only money setting (DEC-058, DEC-142)'),
   OWN_CREDENTIAL_CHANGE:C(ALL,'A02b-05: every signed-in user changes their own password / PIN (server ChangeOwnCredential)'),
   AI_ASK:C(ALL,'Module 26: any user, answer filtered'),AI_CLEAR:C(ALL,'Module 26: own history'),AI_SETTINGS:C('OWN MGR','Module 26 (approve)'),
   CB_LOCK:C('OWN MGR ACC','Wave 0.5: day locked by a checker'),CB_REOPEN:C('OWN','Wave 0.5: owner reopen'),
