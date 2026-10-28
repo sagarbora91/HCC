@@ -43,9 +43,13 @@ public static class ExpensePurchase
         return category.ItcBlocked || (category.Capital && ItcBlockedAssetLedgers.Contains(category.Ledger ?? string.Empty)) ? ItcBlockedMessage(category.Name) : null;
     }
 
+    /// <summary>Entry-time purchase fields (prototype <c>expPurchaseEntry</c>).</summary>
+    public sealed record EntryFields(string? GstKind, bool Rcm, int? RcmBps, bool ItcAllowed);
+
     /// <summary>Entry-time purchase fields (prototype <c>expPurchaseEntry</c>): the GST kind (sent, else the vendor's state — kept only when sent or
-    /// inter), the RCM rate override (0–28 %), the ITC flag of an RCM bill (its ITC is the RCM GST, kept without vendor GST). Throws the refusal.</summary>
-    public static (string? GstKind, int? RcmBps, bool ItcAllowed) Entry(ExpenseCategoryRow? category, ExpenseVendorRow? vendor, string? gstKind, int? rcmBps, long? gstPaise,
+    /// inter); for an RCM category the RCM flag and rate (the typed override 0–28 %, else the category default — re-stamped at approval) and the
+    /// ITC flag of the RCM GST (kept without vendor GST). Throws the refusal.</summary>
+    public static EntryFields Entry(ExpenseCategoryRow? category, ExpenseVendorRow? vendor, string? gstKind, int? rcmBps, long? gstPaise,
         bool itcAllowed, string? itcRequested)
     {
         var k = (gstKind ?? string.Empty).Trim();
@@ -54,20 +58,17 @@ public static class ExpensePurchase
         string? stored = k.Length > 0 || kind == Inter ? kind : null;
         int? bps = null;
         var itc = itcAllowed;
-        if (category?.Rcm == true)
+        var rcm = category?.Rcm == true;
+        if (rcm)
         {
             if (gstPaise is not null and not 0) throw HccException.Validation(RcmGstMessage);
-            if (rcmBps is { } b)
-            {
-                if (b is < 0 or > 2800) throw HccException.Validation("Reverse-charge GST rate: 0 to 28 %.");
-                bps = b;
-            }
-
+            if (rcmBps is { } b && b is < 0 or > 2800) throw HccException.Validation("Reverse-charge GST rate: 0 to 28 %.");
+            bps = rcmBps ?? category!.RcmBps ?? 0;
             itc = string.Equals(itcRequested, ExpenseScc.ItcAllowed, StringComparison.Ordinal);
         }
 
         if (ItcBlockRefusal(category, itc) is { } why) throw HccException.Validation(why);
-        return (stored, bps, itc);
+        return new EntryFields(stored, rcm, bps, itc);
     }
 
     /// <summary>The fields stamped at approval (prototype <c>expPurchaseStamp</c>): RCM + rate (the bill's own, else the category default), capital.

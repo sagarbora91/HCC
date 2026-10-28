@@ -60,17 +60,19 @@ export function expItcBlockRefusal(s:State,category:string,itc:unknown):string{
   return '';
 }
 /** The purchase fields a new / edited bill carries (contract §3), or the refusal: `gstKind` (sent, else the vendor's state — kept only when
- *  sent or inter), `rcmBps` override for a reverse-charge category (0–28 %); an RCM bill carries no vendor GST; ITC refused on a blocked
+ *  sent or inter), `rcm` + `rcmBps` for a reverse-charge category (the typed rate 0–28 %, else the category default); an RCM bill carries no vendor GST; ITC refused on a blocked
  *  category. `itc` = the flag the caller resolved; an RCM category keeps 'allowed' / 'disallowed' without GST (its ITC is the RCM GST). */
 export function expPurchaseEntry(s:State,x:{category:string;vendor?:string;gstKind?:unknown;rcmBps?:unknown;gstPaise?:number;itc?:unknown}):
-  {error?:string;fields:Pick<Expense,'gstKind'|'rcmBps'>&{itc?:'allowed'|'disallowed'}}{
-  const c=mnyCategory(s,x.category),fields:Pick<Expense,'gstKind'|'rcmBps'>&{itc?:'allowed'|'disallowed'}={};
+  {error?:string;fields:Pick<Expense,'gstKind'|'rcm'|'rcmBps'>&{itc?:'allowed'|'disallowed'}}{
+  const c=mnyCategory(s,x.category),fields:Pick<Expense,'gstKind'|'rcm'|'rcmBps'>&{itc?:'allowed'|'disallowed'}={};
   if(x.gstKind!==undefined&&x.gstKind!==null&&x.gstKind!==''&&x.gstKind!=='intra'&&x.gstKind!=='inter')return {error:'Choose the GST on the bill: intra-state (CGST + SGST) or inter-state (IGST).',fields};
   const kind=x.gstKind==='intra'||x.gstKind==='inter'?x.gstKind:expGstKindOf(s,x.vendor);
   if(x.gstKind==='intra'||x.gstKind==='inter'||kind==='inter')fields.gstKind=kind;
   if(c?.rcm){
     if(x.gstPaise)return {error:EXP_RCM_GST_MESSAGE,fields};
     if(x.rcmBps!==undefined&&x.rcmBps!==null&&x.rcmBps!==''){const b=Number(x.rcmBps);if(!(Number.isInteger(b)&&b>=0&&b<=2800))return {error:'Reverse-charge GST rate: 0 to 28 %.',fields};fields.rcmBps=b;}
+    else fields.rcmBps=Number(c.rcmBps??0);
+    fields.rcm=true; // re-stamped from the category at approval (expPurchaseStamp)
     if(x.itc==='allowed'||x.itc==='disallowed')fields.itc=x.itc;
   }
   const why=expItcBlockRefusal(s,x.category,x.itc);if(why)return {error:why,fields};

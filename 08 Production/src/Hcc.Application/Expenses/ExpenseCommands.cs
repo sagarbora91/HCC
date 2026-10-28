@@ -159,7 +159,7 @@ public sealed class ExpenseCommands(ICommandRunner runner, IAccessPolicy policy,
             // ACC-2 (contract §3): GST kind (sent, else the vendor's state), RCM rate, the ITC guard (DEC-143) and no vendor GST on an RCM bill.
             var pe = ExpensePurchase.Entry(cat, VendorRow(vendors, ven.Item1), req.GstKind, req.RcmBps, gst.Paise, itc, req.Itc);
             var e = await store.InsertAsync(tx, new NewExpense(ctx.PropertyId, ven.Item1, cat.Name, n.Amount, n.Method, date, status, ctx.PrincipalId,
-                n.Notes, n.Receipt, null, null, null, null, UtcNow, description, gst.RateBps, gst.Paise, ItcAllowed: pe.ItcAllowed, GstKind: pe.GstKind, RcmBps: pe.RcmBps), c).ConfigureAwait(false);
+                n.Notes, n.Receipt, null, null, null, null, UtcNow, description, gst.RateBps, gst.Paise, ItcAllowed: pe.ItcAllowed, GstKind: pe.GstKind, Rcm: pe.Rcm, RcmBps: pe.RcmBps), c).ConfigureAwait(false);
             if (photo is { } p) await store.PutBillPhotoAsync(tx, e.ExpenseId, p.ContentType, p.Bytes, ctx.PrincipalId, UtcNow, c).ConfigureAwait(false);
             var dupOf = ExpenseScc.Duplicates(await store.FactsOnAsync(tx, ctx.PropertyId, date, c).ConfigureAwait(false), description, n.Amount, date, e.ExpenseId);
             var alert = await BudgetAlertAsync(registers, store, tx, ctx.PropertyId, cat.Name, date, bd, n.Amount.Value, c).ConfigureAwait(false);
@@ -496,7 +496,7 @@ public sealed class ExpenseCommands(ICommandRunner runner, IAccessPolicy policy,
             var u = await store.UpdateAsync(tx, e with
             {
                 Amount = n.Amount, Category = cat.Name, Method = n.Method, Description = description, GstRateBps = gst.RateBps, GstPaise = gst.Paise, Receipt = n.Receipt,
-                BusinessDate = date, ItcAllowed = pe.ItcAllowed, GstKind = pe.GstKind, RcmBps = pe.RcmBps,
+                BusinessDate = date, ItcAllowed = pe.ItcAllowed, GstKind = pe.GstKind, Rcm = pe.Rcm, RcmBps = pe.RcmBps,
             }, expected, now, c).ConfigureAwait(false);
             if (photo is { } p) await store.PutBillPhotoAsync(tx, e.ExpenseId, p.ContentType, p.Bytes, ctx.PrincipalId, now, c).ConfigureAwait(false);
             await store.InsertEditAsync(tx, e.ExpenseId, ctx.PrincipalId, now, reason, JsonSerializer.Serialize(oldMap), JsonSerializer.Serialize(newMap), c).ConfigureAwait(false);

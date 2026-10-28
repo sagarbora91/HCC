@@ -107,13 +107,14 @@ public sealed class PurchaseRulesTests
         var rcm = plain with { Code = "SEC", Name = "Security", Rcm = true, RcmBps = 1800 };
         var car = plain with { Code = "CAR", Name = "Vehicles", Capital = true, Ledger = "1540" };
         var ka = new ExpenseVendorRow(1, "V-KAVERI", "Kaveri", true, "KA");
-        Assert.Equal(("inter", (int?)null, true), ExpensePurchase.Entry(plain, ka, null, null, 1_800, true, "allowed"));
-        Assert.Equal(((string?)null, (int?)null, false), ExpensePurchase.Entry(plain, ka with { State = "MH" }, null, null, null, false, null));
+        Assert.Equal(new ExpensePurchase.EntryFields("inter", false, null, true), ExpensePurchase.Entry(plain, ka, null, null, 1_800, true, "allowed"));
+        Assert.Equal(new ExpensePurchase.EntryFields(null, false, null, false), ExpensePurchase.Entry(plain, ka with { State = "MH" }, null, null, null, false, null));
         Assert.Equal("intra", ExpensePurchase.Entry(plain, ka, "intra", null, 1_800, true, "allowed").GstKind);
         Assert.Contains("DEC-143", Assert.Throws<HccException>(() => ExpensePurchase.Entry(food, null, null, null, 500, true, "allowed")).Message, StringComparison.Ordinal);
         Assert.Contains("DEC-143", Assert.Throws<HccException>(() => ExpensePurchase.Entry(car, null, null, null, 18_000, true, "allowed")).Message, StringComparison.Ordinal);
         Assert.Throws<HccException>(() => ExpensePurchase.Entry(rcm, null, null, null, 18_000, false, null));
-        Assert.Equal(((string?)null, (int?)500, true), ExpensePurchase.Entry(rcm, null, null, 500, null, false, "allowed"));
+        Assert.Equal(new ExpensePurchase.EntryFields(null, true, 500, true), ExpensePurchase.Entry(rcm, null, null, 500, null, false, "allowed"));
+        Assert.Equal(new ExpensePurchase.EntryFields(null, true, 1800, false), ExpensePurchase.Entry(rcm, null, null, null, null, false, null));
         Assert.Equal((true, (int?)1800, false), ExpensePurchase.Stamp(rcm, null, null, false));
         Assert.Equal((true, (int?)500, false), ExpensePurchase.Stamp(rcm, null, 500, false));
         Assert.Equal((false, (int?)null, true), ExpensePurchase.Stamp(car, null, null, false));

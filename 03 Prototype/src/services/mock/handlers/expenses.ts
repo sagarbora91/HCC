@@ -179,6 +179,7 @@ export const handlers:Record<string,Handler>={
     e!.status=cmd.approve?'Posted':'Rejected';e!.date=date;e!.approver=uid;e!.decidedAt=s.clock;
     if(!cmd.approve&&cmd.reason?.trim())e!.reason=String(cmd.reason).trim();
     Object.assign(e!,stamp); // ACC-2: RCM / capital / TDS fields (none for an ordinary bill)
+    if(cmd.approve&&!expIsReturn(e!)&&!stamp.rcm){delete e!.rcm;delete e!.rcmBps;if(!e!.gstPaise)delete e!.itc;} // the category is no longer RCM at posting
     if(stamp.capital){const x={...accSlice(s)};s.accountingX=x;const a=accAssetFromExpense(s,e!,k.id('FA'),assetLedger);x.assets=[...(x.assets??[]),a];e!.assetNo=a.no;} // ACC-2 §3.4 asset register
     return e!.id+' · '+e!.status+over+(cmd.approve?alertText(k,e!.category,date):'');
   },
@@ -239,7 +240,7 @@ export const handlers:Record<string,Handler>={
     e.amount=amount;e.category=cat.name;e.method=pm.name;
     if(description)e.description=description;else delete e.description;
     delete e.gstPaise;delete e.gstRateBps;delete e.itc;Object.assign(e,g);if(itc)e.itc=itc;
-    delete e.gstKind;delete e.rcmBps;Object.assign(e,pe.fields); // ACC-2
+    delete e.gstKind;delete e.rcm;delete e.rcmBps;Object.assign(e,pe.fields); // ACC-2
     if(receipt)e.receipt=receipt;else delete e.receipt;
     if(photo)e.billPhoto=photo;
     e.editLog=[...(e.editLog??[]),{at:s.clock,by:uid,old,new:nu,reason}];

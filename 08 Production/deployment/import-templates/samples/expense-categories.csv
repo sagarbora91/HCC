@@ -2,4 +2,3 @@ code,name,ledger,needsBill,approvalLimit,itcBlocked,rcm,rcmBps,capital,sortOrder
 GARDEN,Garden and landscaping,5020,yes,5000.00,no,no,,no,100,yes
 SECURITY,Security services,5050,yes,,no,yes,18,no,110,yes
 STAFFWEL,Staff welfare,5050,no,2000.00,yes,no,,no,120,yes
-FURNITURE,Furniture and fittings,1510,yes,,no,no,,yes,130,yes
