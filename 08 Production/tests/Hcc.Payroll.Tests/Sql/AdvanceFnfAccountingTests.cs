@@ -1,3 +1,4 @@
+using Hcc.Domain.Accounting;
 using Hcc.Application.Accounting;
 using Hcc.Application.Billing;
 using Hcc.Application.Payroll;
@@ -58,7 +59,7 @@ public sealed class AdvanceFnfAccountingTests(PayrollDb db) : IClassFixture<Payr
         var day = await Books.DayAsync(new Caller(h.PropertyId, h.U("owner")), new DateOnly(2026, 8, 10), Ct);
         var v = Assert.Single(day.Vouchers);
         Assert.Equal(("PMT/20260810/001", "Payment", "advance", "advance:" + adv.AdvanceId), (v.Number, v.Type, v.Sub, v.SourceKey));
-        Assert.Equal([("1200", Advance, 0L), ("1030", 0L, Advance)], v.Entries.Select(e => (e.Account, e.DebitPaise, e.CreditPaise)));
+        Assert.Equal([("1200/" + PartyLedgers.Staff(ravi), Advance, 0L), ("1030", 0L, Advance)], v.Entries.Select(e => (e.Account, e.DebitPaise, e.CreditPaise))); // ACC-1: staff advances post to the staff party ledger; the funding bank has no settles-to party in this golden
         var tb = await BalancesAsync(h, asOf);
         Assert.Equal((Advance, -Advance), (B(tb, "1200"), B(tb, "1030")));
         Assert.Equal(Advance, await RegisterBalanceAsync(h, ravi));
