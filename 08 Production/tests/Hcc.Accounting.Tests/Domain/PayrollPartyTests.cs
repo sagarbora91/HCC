@@ -60,7 +60,8 @@ public sealed class PayrollPartyTests
     [Fact]
     public void T13a_and_T13c_advance_and_net_pay_post_to_the_staff_party_and_the_bank_the_funding_settles_to()
     {
-        var adv = Assert.Single(VoucherBuilder.Build(D, [AccountingEventMapper.Advance(new AdvanceGivenEvent(5, 7, 500_000, 500_000, new DateOnly(2026, 4, 8), "Bank transfer"),
+        var apr8 = new DateOnly(2026, 4, 8);
+        var adv = Assert.Single(VoucherBuilder.Build(apr8, [AccountingEventMapper.Advance(new AdvanceGivenEvent(5, 7, 500_000, 500_000, apr8, "Bank transfer"),
             new PartyContext(Tender: "BA-HDFC"))], Map));
         Assert.Equal([("1200/STF-7", 500_000L, 0L), ("1030/BA-HDFC", 0L, 500_000L)], E(adv));
         var paid = Assert.Single(VoucherBuilder.Build(D, [AccountingEventMapper.PayRunPaid(new PayrollPaidEvent(41, D, "Bank transfer", 21_350_000, "Bank file 1 · April 2026"),

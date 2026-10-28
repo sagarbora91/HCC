@@ -119,7 +119,7 @@ public class PosCommandTests(PosDb db) : IClassFixture<PosDb>
         Assert.Equal(before.Totals.TotalPaise + 46_200, after.Totals.TotalPaise);
         Assert.NotEqual(before.Version, after.Version);
         var line = after.Lines.Single(l => l.ChargeId == s.ChargeId);
-        Assert.Equal(("service", 44_000L, 500, 2_200L), (line.Kind, line.AmountPaise, line.TaxBps, line.TaxPaise));
+        Assert.Equal(("food", 44_000L, 500, 2_200L), (line.Kind, line.AmountPaise, line.TaxBps, line.TaxPaise)); // ACC-2 (coordinator ruling 3): F&B on a folio is charge kind food
         Assert.Contains("Room service", line.Label, StringComparison.Ordinal);
         Assert.Contains(s.BillNo, line.Label, StringComparison.Ordinal);
         // no outlet receipt, no drawer movement for a room charge

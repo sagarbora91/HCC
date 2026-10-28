@@ -39,7 +39,7 @@ public sealed class PerStaffRecoveryTests(PayrollDb db) : IClassFixture<PayrollD
 
         // the event names each staff member's recovery
         var payload = (string)(await db.ScalarAsync("SELECT payload FROM plat.outbox WHERE event_type = 'PayrollPosted' AND property_id = @p;", ("@p", h.PropertyId)))!;
-        Assert.Contains("\"advanceRecoveries\":[{\"staffId\":" + ravi + ",\"paise\":100000}]", payload, StringComparison.Ordinal);
+        Assert.Contains("\"advanceRecoveries\":[{\"paise\":100000,\"staffId\":" + ravi + "}]", payload, StringComparison.Ordinal); // wire {staffId, paise} (outbox JSON keys sorted)
 
         var owner = new Caller(h.PropertyId, h.U("owner"));
         // coordinator ruling 2: the pay-run voucher is dated the period's last day (31 Aug); the narration carries the lock date
