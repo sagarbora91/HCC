@@ -10,6 +10,7 @@ import {cbIsLocked,cbLockedMessage,lineTax,gstLineSplit,gstSplitLines,gstPct,gst
 import {Pill,Empty,field,amount,submit,shortDate} from '../../components/ui';
 import {bookingActionSlots} from '../../app/registry';
 import {CompanyCreditPanel} from '../groups/credit';
+import {ApplyDepositPanel} from './deposit'; // ACC-2
 import {useCashBlock} from '../../clients/sync/cashier-ui';
 const useBooking=(id:string)=>{const c=useHcc();return {...c,b:c.s.bookings.find(b=>b.id===id)};};
 /** Production only (W4 D1): issue the tax invoice for a departed stay that has none — the step after checkout was refused (e.g. no hotel
@@ -168,6 +169,7 @@ export function CheckoutModal({id}:{id:string}){
   const pending=folioApprovalsFor(s,b.id).filter(a=>folioApprovalStatus(s,a)==='Pending');
   return <><div className="modal-heading"><h2>Ready to say goodbye?</h2><p>Review {b.guest}’s folio before releasing Room {b.room}.</p></div>
     <div className="summary-list"><div><span>Room nights posted / agreed</span><strong>{n.posted} of {n.agreed}</strong></div><div><span>Total charges including GST</span><strong>{money(t.total)}</strong></div><div><span>Net payments</span><strong>{money(t.paid)}</strong></div><div><span>Outstanding balance</span><strong>{money(t.balance)}</strong></div><div><span>Deposit to return</span><strong>{money(t.deposit)}</strong></div><div><span>Pending approvals</span><strong>{pending.length?pending.map(a=>a.id).join(', '):'None'}</strong></div></div>
+    <ApplyDepositPanel b={b}/>
     <CompanyCreditPanel b={b}/>
     {blockers.length>0?<div className="info-note folio-blockers" role="status"><AlertTriangle size={17}/><div><strong>Checkout is blocked until:</strong><ul>{blockers.map(x=><li key={x}>{x}</li>)}</ul></div></div>
       :<div className="info-note"><Info size={17}/>Checkout preserves all stay charges, marks the room dirty, creates exactly one housekeeping task and {process.env.HCC_BUILD==='production'?'then issues the tax invoice':'allocates a sample invoice number once'}. Repeating checkout returns the same result.</div>}

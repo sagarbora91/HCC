@@ -10,6 +10,7 @@ import {Empty,shortDate} from '../../components/ui';
 import {mmCheckoutChecklist,mmCheckoutCommand} from './logic';
 import {IssueInvoiceAction} from '../../features/folio/modals';
 import {CompanyCreditPanel} from '../../features/groups/credit';
+import {ApplyDepositPanel} from '../../features/folio/deposit'; // ACC-2
 
 export function MmCheckout({id}:{id?:string}){
   const {s,run,booking,open,busy,permission}=useHcc();
@@ -30,6 +31,7 @@ export function MmCheckout({id}:{id?:string}){
       <div className="mm-row"><div className="mm-row-main"><strong>Outstanding</strong></div><div className="mm-row-amt"><strong className="number">{money(t.balance)}</strong></div></div>
       <div className="mm-row"><div className="mm-row-main"><strong>Deposit to return</strong></div><div className="mm-row-amt"><strong className="number">{money(t.deposit)}</strong></div></div>
     </div>
+    <ApplyDepositPanel b={b} mobile/>
     <CompanyCreditPanel b={b} mobile/>
     {c.clear?<div className="info-note"><Info size={17}/>All clear. Checkout marks the room dirty, creates one housekeeping task and allocates a sample invoice number once.</div>
       :<p className="mm-why" role="status">Confirm is available when every item shows Done.{!canCheckout?' Your role cannot check guests out — reception or a manager does.':''}</p>}

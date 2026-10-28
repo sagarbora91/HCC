@@ -7,7 +7,8 @@ import {money,totals,grpSlice,grpCompany,grpCredit,grpCreditPreview,grpCreditRef
 import type {Booking,GRPCompany} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {Empty,field,submit} from '../../components/ui';
-import {grpPaise} from './parts';
+import {grpPaise,grpActive} from './parts';
+import {accPartyRetireBlocker} from '../accounting/_contract-stubs-2';
 
 /** "₹4,300 used of ₹1,50,000 · ₹1,45,700 left" — the account's credit in one line. */
 export function grpCreditLine(c:GRPCompany,k:{exposure:number;available:number}){return `${money(k.exposure)} used of ${money(c.creditLimit)}${c.creditLimit===0?' (no credit)':''} · ${money(k.available)} left`;}
@@ -18,7 +19,7 @@ export function CompanyCreditPanel({b,mobile}:{b:Booking;mobile?:boolean}){
   const [pick,setPick]=useState('');
   const t=totals(b);
   if(t.balance<=0||b.status!=='In house')return null;
-  const cc=folioCompanyCreditState(s,b,t.balance),p=grpCreditPreview(s,b,t.balance),accounts=grpSlice(s).companies;
+  const cc=folioCompanyCreditState(s,b,t.balance),p=grpCreditPreview(s,b,t.balance),accounts=grpSlice(s).companies.filter(grpActive);
   const cls='info-note folio-credit'+(mobile?' mm-cc':'');
   if(!p.c){
     if(!b.company&&!(permission('reservations')&&accounts.length))return null;
@@ -52,7 +53,7 @@ export function CompanyCreditPanel({b,mobile}:{b:Booking;mobile?:boolean}){
  * remaining credit and, for the estimated stay value (`stay`: agreed nights + GST), the refusal the booking would get.
  */
 export function CompanyAccountPicker({value,onChange,stay,mobile}:{value:string;onChange:(id:string)=>void;stay:number;mobile?:boolean}){
-  const {s}=useHcc();const accounts=grpSlice(s).companies;
+  const {s}=useHcc();const accounts=grpSlice(s).companies.filter(grpActive);
   if(!accounts.length)return null;
   const c=grpCompany(s,value),k=c?grpCredit(s,c):undefined,refusal=c&&k&&stay>0?grpCreditRefusal(c,k.exposure,stay,'booking'):undefined;
   return <div className={'grp-acct'+(mobile?' grp-acct-m':'')}>
@@ -72,9 +73,10 @@ export function CompanyPaymentModal({id}:{id?:string}){
       <p>Money received from the company against what it owes on company credit. It frees credit under the limit.</p></div>
     <div className="summary-list grp-summary"><div><span>Owed on company credit</span><strong>{money(k.receivable)}</strong></div><div><span>Credit</span><strong>{grpCreditLine(c,k)}</strong></div></div>
     {k.receivable<=0?<><div className="info-note"><Info size={16}/>{c.name} owes nothing on company credit.</div><div className="modal-actions"><button className="btn" onClick={closeModal}>Close</button></div></>:
-    <form className="form" onSubmit={e=>submit(e,f=>run({type:'GRP_COMPANY_PAYMENT',company:c.id,amount:grpPaise(f.get('amount'))??0,method:field(f,'method'),reference:field(f,'reference'),
+    <form className="form" onSubmit={e=>submit(e,f=>run({type:'GRP_COMPANY_PAYMENT',company:c.id,amount:grpPaise(f.get('amount'))??0,...(grpPaise(f.get('tds'))?{tds:grpPaise(f.get('tds'))}:{}),method:field(f,'method'),reference:field(f,'reference'),
         invoice:field(f,'invoice'),key:modal!.key},'Company payment recorded',{close:true}))}>
       <label>Amount received (₹)<input name="amount" required inputMode="decimal" defaultValue={String(k.receivable/100)} enterKeyHint="next"/></label>
+ <label>TDS deducted by the company (₹, optional)<input name="tds" inputMode="decimal" placeholder="0" enterKeyHint="next"/><small>The company paid net of TDS and holds the certificate (Form 16A). The receivable is cleared by the amount received plus the TDS; the TDS waits in TDS receivable until it shows in Form 26AS.</small></label>
       <label>Method<select name="method" defaultValue={GRP_PAY_METHODS[0]}>{GRP_PAY_METHODS.map(m=><option key={m}>{m}</option>)}</select><small>No cash on company credit; record a cheque as a bank transfer.</small></label>
       <label>Transaction reference<input name="reference" required maxLength={120} placeholder="e.g. NEFT / UTR number (fictional)" enterKeyHint="next"/></label>
       <label>Invoice it pays (optional)<input name="invoice" maxLength={16} placeholder="e.g. DEMO/2627/0001" autoCapitalize="characters" enterKeyHint="send"/></label>

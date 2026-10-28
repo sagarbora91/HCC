@@ -2,20 +2,23 @@
 import React,{useState} from 'react';
 import {RefreshCw,Send,Printer,PlugZap,Pause,Unplug,Settings2,Check,X,Plus} from 'lucide-react';
 import {money,chnSlice,chnPending,chnAcceptCheck,chnPushPreview,chnCommissionReport,chnRoomTypes,chnChannelName,chnPct,chnRate,chnCommissionHidden,CHN_PUSH_DAYS,
-  type CHNMessage,type CHNChannel,rmsTypeName} from '../../services/mock';
+  type CHNMessage,type CHNChannel,rmsTypeName,rbacSeesBooks} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {PageTitle,Empty,shortDate,clockTime} from '../../components/ui';
 import {ChnPill,ChnSimulated,stay,party,firstName} from './shared';
+import {PayoutsTab} from './payout';
 
-export type ChnTab='inbox'|'channels'|'push'|'commission';
+export type ChnTab='inbox'|'channels'|'push'|'commission'|'payouts';
 export const CHN_TABS:{id:ChnTab;label:string}[]=[{id:'inbox',label:'Inbox'},{id:'channels',label:'Channels & mapping'},{id:'push',label:'Rate & availability push'},{id:'commission',label:'Commission report'}];
-export const chnTabOf=(t:string):ChnTab=>(CHN_TABS.some(x=>x.id===t)?t:'inbox') as ChnTab;
+export const chnTabOf=(t:string):ChnTab=>(CHN_TABS.some(x=>x.id===t)||t==='payouts'?t:'inbox') as ChnTab;
+/** ACC-2 (DEC-150): the Payouts tab, shown to roles that see the books (Owner, Manager, Accountant). */
+export const CHN_PAYOUT_TAB:{id:ChnTab;label:string}={id:'payouts',label:'Payouts'};
 /** DEC-079 D7 (Wave D5): without the commission rates (production, no PERM-OTA-004) there is no commission report to show. */
-export const chnTabsFor=(hidden:boolean)=>hidden?CHN_TABS.filter(x=>x.id!=='commission'):CHN_TABS;
-export const chnTabFor=(t:string,hidden:boolean):ChnTab=>{const x=chnTabOf(t);return hidden&&x==='commission'?'inbox':x;};
+export const chnTabsFor=(hidden:boolean,payouts=false)=>[...(hidden?CHN_TABS.filter(x=>x.id!=='commission'):CHN_TABS),...(payouts?[CHN_PAYOUT_TAB]:[])];
+export const chnTabFor=(t:string,hidden:boolean,payouts=false):ChnTab=>{const x=chnTabOf(t);return (hidden&&x==='commission')||(x==='payouts'&&!payouts)?'inbox':x;};
 
 export function ChannelsPage(){
-  const {s,tab,setTab,run,busy}=useHcc();const hidden=chnCommissionHidden(s);const t=chnTabFor(tab,hidden);
+  const {s,uid,tab,setTab,run,busy}=useHcc();const hidden=chnCommissionHidden(s);const po=rbacSeesBooks(s,uid);const t=chnTabFor(tab,hidden,po);
   const st=chnSlice(s),pend=chnPending(s),rep=chnCommissionReport(s);
   return <><PageTitle title="OTA channels" sub="Module 21 · channel manager preview — connections, room mapping, rate & availability push, inbound reservations and commission. Simulated."
     action={<button className="btn primary" disabled={busy} onClick={()=>run({type:'CHN_PULL'},'Checked channels (simulated)')}><RefreshCw size={15}/> Check for new messages</button>}/>
@@ -27,8 +30,8 @@ export function ChannelsPage(){
       {!hidden&&<div><span>Commission due</span><strong>{money(rep.total.commission)}</strong></div>}
     </div>
     <section className="card">
-      <div className="tabs chn-tabs" role="tablist">{chnTabsFor(hidden).map(x=><button key={x.id} role="tab" aria-selected={t===x.id} className={t===x.id?'active':''} onClick={()=>setTab(x.id)}>{x.label}{x.id==='inbox'&&pend.length>0&&<span>{pend.length}</span>}</button>)}</div>
-      {t==='inbox'&&<InboxTab/>}{t==='channels'&&<ChannelsTab/>}{t==='push'&&<PushTab/>}{t==='commission'&&<CommissionTab/>}
+      <div className="tabs chn-tabs" role="tablist">{chnTabsFor(hidden,po).map(x=><button key={x.id} role="tab" aria-selected={t===x.id} className={t===x.id?'active':''} onClick={()=>setTab(x.id)}>{x.label}{x.id==='inbox'&&pend.length>0&&<span>{pend.length}</span>}</button>)}</div>
+      {t==='inbox'&&<InboxTab/>}{t==='channels'&&<ChannelsTab/>}{t==='push'&&<PushTab/>}{t==='commission'&&<CommissionTab/>}{t==='payouts'&&<PayoutsTab/>}
     </section></>;
 }
 

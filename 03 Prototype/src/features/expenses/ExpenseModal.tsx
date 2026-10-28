@@ -10,12 +10,13 @@ import {ExpCategorySelect,ExpVendorInput,ExpCreditNote,mnyExpenseSources,mnyFirs
 import {useHcc} from '../../app/context';
 import {dateLabel} from '../../components/ui';
 import {GstFields,ItcField,BillPhotoPicker,useOverride,expPaise,expBps} from './Scc';
+import {ExpensePurchaseFields,purchaseCommand,purchaseProblem,vendorGstKind} from './purchase'; // ACC-2 purchase fields (contract §3)
 
 /** The add-expense form state shared by the desktop dialog and the phone sheet. */
 export function useExpenseForm(){
   const {s}=useHcc();
   const [f,setF]=useState(()=>({vendor:'',description:'',category:mnyCategoryNames(s)[0]??'',method:mnyFirstSource(s),amount:'',receipt:'',notes:'',date:s.date,rate:'',gst:'',photo:'',
-    confirmDuplicate:false,confirmGst:false,itc:'disallowed' as 'allowed'|'disallowed'}));
+    confirmDuplicate:false,confirmGst:false,itc:'disallowed' as 'allowed'|'disallowed',gstKind:'intra' as 'intra'|'inter',rcmBps:''}));
   const ov=useOverride(f.date);
   const paise=expPaise(f.amount),rate=expBps(f.rate),gst=f.gst.trim()?expPaise(f.gst):0;
   const dups=paise>0&&f.description.trim()?expenseDuplicates(s,f.description,paise,f.date):[];
@@ -23,10 +24,11 @@ export function useExpenseForm(){
   const problem=(draft:boolean)=>!(paise>0)?'Enter an amount greater than zero.':paise>EXP_MAX_PAISE?'Amount is too large (maximum ₹10,00,00,000).'
     :!draft&&!f.description.trim()?'Description is required':Number.isNaN(rate)?'Enter a GST rate between 0 and 100 %.':Number.isNaN(gst)?'Enter the GST on the bill in rupees.'
     :gst>paise&&!f.confirmGst?expGstOverMessage(gst,paise):gst>0&&expItcRefusal(f.itc,gst,paise)?expItcRefusal(f.itc,gst,paise)
+    :purchaseProblem(s,f,Number.isNaN(gst)?0:gst,Number.isNaN(rate)?0:rate)
     :dups.length&&!f.confirmDuplicate?expDuplicateMessage(f.date,paise,f.description.trim()):ov.blocked;
   const command=(draft:boolean,key:string)=>({type:'EXPENSE',vendor:f.vendor,description:f.description.trim(),category:f.category,method:f.method,amount:paise,receipt:f.receipt,notes:f.notes,draft,
     ...(f.date!==s.date?{date:f.date}:{}),...(rate?{gstRateBps:rate}:{}),...(gst?{gstPaise:gst,itc:f.itc}:{}),...(f.photo?{billPhoto:f.photo}:{}),
-    ...(f.confirmDuplicate?{confirmDuplicate:true}:{}),...(f.confirmGst?{confirmGst:true}:{}),...(ov.override?{override:ov.override}:{}),key:key+(draft?':draft':':submit')});
+    ...(f.confirmDuplicate?{confirmDuplicate:true}:{}),...purchaseCommand(s,f,Number.isNaN(gst)?0:gst),...(f.confirmGst?{confirmGst:true}:{}),...(ov.override?{override:ov.override}:{}),key:key+(draft?':draft':':submit')});
   const alert=paise>0?expBudgetAlert(s,f.category,f.date,paise):null;
   return {f,setF,ov,paise,gst,dups,dates,problem,command,alert};
 }
@@ -41,6 +43,7 @@ export function ExpenseSccFields({x}:{x:ReturnType<typeof useExpenseForm>}){
     <GstFields amount={paise} rate={f.rate} gst={f.gst} onRate={v=>setF({...f,rate:v})} onGst={v=>setF({...f,gst:v,confirmGst:false})}/>
     {gst>paise&&paise>0&&<label className="checkbox-line"><input type="checkbox" checked={f.confirmGst} onChange={e=>setF({...f,confirmGst:e.target.checked})}/> {expGstOverMessage(gst,paise)}</label>}
     <ItcField gst={Number.isNaN(gst)?0:gst} amount={paise} value={f.itc} onChange={v=>setF({...f,itc:v})}/>
+    <ExpensePurchaseFields f={f} setF={setF} paise={Number.isNaN(paise)?0:paise} gst={gst}/>
     {!!dups.length&&<div className="info-note f-warn" role="alert"><AlertTriangle size={16}/><span>{expDuplicateMessage(f.date,paise,f.description.trim())} ({dups.map(d=>`${d.id} ${d.status}`).join(', ')})
       <label className="checkbox-line"><input type="checkbox" checked={f.confirmDuplicate} onChange={e=>setF({...f,confirmDuplicate:e.target.checked})}/> Save anyway</label></span></div>}
     <BillPhotoPicker value={f.photo} onChange={v=>setF({...f,photo:v})}/>
@@ -61,7 +64,7 @@ export function ExpenseModal(){
   }
   return <><div className="modal-heading"><h2>Record an expense</h2><p>Business date {dateLabel(s.date)}. Another authorised person approves before it is posted; drawer cash is reduced once, on posting.</p></div>
     <form ref={form} className="form" onSubmit={e=>{e.preventDefault();save(false);}}>
-      <ExpVendorInput value={f.vendor} onChange={v=>setF({...f,vendor:v})}/>
+      <ExpVendorInput value={f.vendor} onChange={v=>setF({...f,vendor:v,gstKind:vendorGstKind(s,v)})}/>
       <div className="form-row"><ExpCategorySelect value={f.category} onChange={v=>setF({...f,category:v})}/>
         <label>Funding source<select value={f.method} onChange={set('method')}>{mnyExpenseSources(s).map(([v,l])=><option key={v} value={v}>{l}</option>)}</select></label></div>
       <label>Amount (₹)<input required inputMode="decimal" value={f.amount} onChange={set('amount')}/></label>

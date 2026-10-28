@@ -4,14 +4,16 @@
 import {usePaged,ShowMore,PHONE_PAGE} from '../../components/ShowMore';
 import React,{useState,useRef} from 'react';
 import {Plus,Paperclip} from 'lucide-react';
-import {money,expenseCounts,EXPENSE_MANAGER_LIMIT,closingUnlimitedRoles,Expense,rbacCanSubmitExpense,rbacCanDecideExpense,cbIsLocked,cbLockedMessage,mnyIsDrawer,mnyApprovalLimit,
+import {money,expenseCounts,EXPENSE_MANAGER_LIMIT,closingUnlimitedRoles,Expense,rbacCanSubmitExpense,rbacCanDecideExpense,rbacSeesBooks,cbIsLocked,cbLockedMessage,mnyIsDrawer,mnyApprovalLimit,
   mnyShortLabel,expLedgerFilter,expDescription,expMonthLocked,expYm,EXP_LEDGER_CAP} from '../../services/mock';
 import {ExpCategorySelect,ExpVendorInput,ExpCreditNote,mnyExpenseSources} from '../../features/money/masters';
 import {useHcc} from '../../app/context';
 import {ChipFilter,KpiCard,Fab} from '../../app/mobile/components';
 import {Pill,Empty,shortDate,dateLabel} from '../../components/ui';
-import {EXP_SECTIONS,type ExpSection,ExpBanners,ExpRecurring,ExpPetty,ExpBudgets,ExpUdhaar,ExpMonth,ExpRowExtras,ExpRowActions,useExpCsv} from '../../features/expenses/Scc';
+import {expSectionsFor,type ExpSection,ExpBanners,ExpRecurring,ExpPetty,ExpBudgets,ExpUdhaar,ExpMonth,ExpRowExtras,ExpRowActions,useExpCsv} from '../../features/expenses/Scc';
 import {useExpenseForm,ExpenseSccFields} from '../../features/expenses/ExpenseModal';
+import {ExpVendors} from '../../features/expenses/vendors';
+import {vendorGstKind} from '../../features/expenses/purchase';
 
 const TABS=['All','Draft','Pending','Posted','Rejected','Reversed','Void'] as const;
 const tone=(st:string)=>st==='Posted'?'green':st==='Pending'?'orange':st==='Draft'?'blue':'neutral';
@@ -45,7 +47,7 @@ export function MmExpenses(){
     return null;
   }
   return <div className="mm-page mm-has-fab">
-    <ChipFilter label="Expense section" value={section} onChange={setSection} options={EXP_SECTIONS.map(([id,label])=>({id,label}))}/>
+    <ChipFilter label="Expense section" value={section} onChange={setSection} options={expSectionsFor(rbacSeesBooks(s,uid)).map(([id,label])=>({id,label}))}/>
     <ExpBanners onSection={setSection}/>
     {section==='register'?<>
       <div className="mm-kpis"><KpiCard label="Posted today" value={money(today.reduce((a,e)=>a+e.amount,0))} sub={`Drawer cash ${money(today.filter(e=>mnyIsDrawer(s,e.method)).reduce((a,e)=>a+e.amount,0))}`}/>
@@ -62,7 +64,7 @@ export function MmExpenses(){
         </article>;})}
       <ShowMore p={pg}/>
       {!list.length&&<Empty title={tab==='All'?'No expenses recorded':`No ${tab.toLowerCase()} expenses`} body="Submitted expenses appear here for approval."/>}
-    </>:section==='recurring'?<ExpRecurring phone/>:section==='petty'?<ExpPetty phone/>:section==='budgets'?<ExpBudgets phone/>:section==='udhaar'?<ExpUdhaar phone/>:<ExpMonth phone/>}
+    </>:section==='recurring'?<ExpRecurring phone/>:section==='petty'?<ExpPetty phone/>:section==='budgets'?<ExpBudgets phone/>:section==='udhaar'?<ExpUdhaar phone/>:section==='vendors'&&rbacSeesBooks(s,uid)?<ExpVendors phone/>:<ExpMonth phone/>}
     {rbacCanSubmitExpense(s,uid)&&<Fab label="Add expense" icon={Plus} onClick={()=>open({type:'expense'})}/>}
   </div>;
 }
@@ -80,7 +82,7 @@ export function MmExpenseSheet(){
   }
   return <><div className="modal-heading"><h2>Add expense</h2><p>Business date {dateLabel(s.date)}. Another authorised person approves before it is posted; drawer cash is reduced once, on posting.</p></div>
     <form ref={form} className="form mm-form" onSubmit={e=>{e.preventDefault();save(false);}} noValidate>
-      <ExpVendorInput phone value={f.vendor} onChange={v=>setF({...f,vendor:v})}/>
+      <ExpVendorInput phone value={f.vendor} onChange={v=>setF({...f,vendor:v,gstKind:vendorGstKind(s,v)})}/>
       <ExpCategorySelect value={f.category} onChange={v=>setF({...f,category:v})}/>
       <label className="mm-amount">Amount (₹)<input required inputMode="decimal" enterKeyHint="next" value={f.amount} onChange={set('amount')} placeholder="0"/></label>
       <div className="mm-field"><span className="mm-label" id="mm-fund">Funding source</span>

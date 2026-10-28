@@ -17,8 +17,11 @@ import {compressBillPhoto} from '../../app/slipPhoto';
 import {Pill,Empty,dateLabel,shortDate} from '../../components/ui';
 import {mnyExpenseSources} from '../money/masters';
 import {BillPhotoProd} from '../../clients/sync/expense-ui';
+import {CashDeductionBadge} from '../accounting/cashguard'; // ACC-2
 
-export const EXP_SECTIONS=[['register','Register'],['recurring','Recurring'],['petty','Petty cash'],['budgets','Budgets'],['udhaar','Udhaar'],['month','Month & tax']] as const;
+export const EXP_SECTIONS=[['register','Register'],['recurring','Recurring'],['petty','Petty cash'],['budgets','Budgets'],['udhaar','Udhaar'],['vendors','Vendor payments'],['month','Month & tax']] as const;
+/** ACC-2: the Vendor payments section shows vendor balances, so only the roles that see the books get it (not the Cashier, DEC-079). */
+export const expSectionsFor=(books:boolean)=>EXP_SECTIONS.filter(x=>books||x[0]!=='vendors');
 export type ExpSection=typeof EXP_SECTIONS[number][0];
 
 /** Rupee text → paise (NaN when not a valid amount with at most 2 decimals). */
@@ -415,15 +418,24 @@ export function ExpRowExtras({e}:{e:Expense}){
   const {open}=useHcc();
   return <>{e.description&&e.vendor&&<small>{e.vendor}</small>}
     {(e.gstPaise||e.gstRateBps)&&<small>GST {e.gstRateBps?e.gstRateBps/100+' % · ':''}{money(e.gstPaise??0)}{e.gstPaise?' · '+EXP_ITC_LABEL[e.itc==='allowed'?'allowed':'disallowed']:''}</small>}
+    {e.gstKind==='inter'&&<small>Inter-state bill · IGST</small>}
+    {e.rcm&&<small><Pill tone="blue">{`Reverse charge${e.rcmBps?' '+e.rcmBps/100+' %':''}`}</Pill></small>}
+    {e.capital&&<small><Pill tone="blue">{`Fixed asset${e.assetNo?' '+e.assetNo:''}`}</Pill></small>}
+    {!!e.tdsPaise&&<small>TDS held back {money(e.tdsPaise)}{e.tdsSection?' · '+e.tdsSection:''}</small>}
+    {e.cashDeductionLost&&<small><CashDeductionBadge lost/></small>}
     {e.source&&<small><Pill>{e.source==='petty'?'petty cash':'recurring'}</Pill></small>}
     {e.status==='Void'&&<small>Void · {e.voidReason}</small>}
     {(e.billPhoto||e.hasBillPhoto)&&<button type="button" className="text-btn" onClick={()=>open({type:'exp-photo',id:e.id})}><Eye size={13}/> Bill photo</button>}
     {!!e.editLog?.length&&<small>Changed {e.editLog.length}× · last: {e.editLog.at(-1)!.reason}</small>}</>;
 }
+/** ACC-2 (contract §3.5): a vendor return / credit note is requested by Owner, Manager or Accountant with the payments permission. */
+const canReturn=(s:ReturnType<typeof useHcc>['s'],uid:string)=>{const u=s.users.find(x=>x.id===uid);return !!u&&['Owner','Manager','Accountant'].includes(u.role)&&can(s,uid,'payments');};
 /** Register actions added by DEC-120: edit (draft / pending), void (draft / pending), copy summary. */
 export function ExpRowActions({e}:{e:Expense}){
   const {s,uid,open,busy}=useHcc();
-  if(e.reversalOf||!['Draft','Pending'].includes(e.status))return <button type="button" className="text-btn" onClick={()=>open({type:'exp-text',id:e.id})}><Copy size={13}/> Text</button>;
+  if(e.reversalOf||!['Draft','Pending'].includes(e.status))return <span className="inline">{e.status==='Posted'&&!e.reversalOf&&!!e.vendor&&canReturn(s,uid)&&
+    <button type="button" className="text-btn" disabled={busy} onClick={()=>open({type:'exp-return',id:e.id})}>Return…</button>}
+    <button type="button" className="text-btn" onClick={()=>open({type:'exp-text',id:e.id})}><Copy size={13}/> Text</button></span>;
   const own=e.actor===uid,decider=rbacCanDecideExpense(s,uid);
   const canEdit=e.status==='Draft'?own:own&&rbacCanSubmitExpense(s,uid)||decider,canVoid=e.status==='Draft'?own:decider;
   return <span className="inline">{canEdit&&<button type="button" className="text-btn" disabled={busy} onClick={()=>open({type:'exp-edit',id:e.id})}>Edit…</button>}

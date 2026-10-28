@@ -2,7 +2,7 @@
 // gst, flows, parity), named exactly as 02 Planning/agents/ACC2-POSTING-CONTRACT.md names them where it names them, with plausible bodies so
 // `npx tsc --noEmit` passes and the screens render. NOT rules: the integrator deletes this file and points the screens at the real exports
 // (`from '../../services/mock'`). Screens import contract names ONLY from here. Money = integer paise.
-import {accTrialBalance6,accPartyLedgers,money,addDays} from '../../services/mock';
+import {accTrialBalance6,mnyCategory,money,addDays} from '../../services/mock';
 import type {State,ACCManualVoucher,ACCManualLine,ACCManualTemplate,ACCAsset,ACCMonthLock,ExpVendorPayment,CHNPayout,Expense} from '../../services/mock';
 import {csvMinimal} from '../../domain/csv';
 
@@ -169,4 +169,16 @@ export function accCashGuard(_s:State,i:ACCCashGuardInput):ACCCashGuardVerdict{
   if(i.kind==='payment'&&i.amount>lim)return {ok:true,deductionLost:true,warning:`Cash above ${money(lim)} to one person in a day: the expense is allowed but the income-tax deduction is lost (the old 40A(3) rule — VERIFY the section number). Pay by bank or UPI next time.`};
   return {ok:true};
 }
+
+// ───────────────────────────── §3 purchase fields on the expense form (DEC-143, DEC-145, §3.3 / §3.4 / §5) ─────────────────────────────
+/** DEC-143 guard message ('' = ITC may be allowed): ITC only on bills directly for 18 % supplies, never on a category on the s.17(5) list. Not a contract name:
+ *  the purchase lane extends `expItcRefusal` with the category; the integrator points the form at the real guard. */
+export function expPurchaseItcGuard(s:State,i:{category:string;itc:'allowed'|'disallowed';gstBps?:number}):string{
+  if(i.itc!=='allowed')return '';
+  if(mnyCategory(s,i.category)?.itcBlocked)return 'ITC cannot be allowed on this category — it is on the blocked-credit list (section 17(5)); input credit is claimed only on bills directly for 18 % supplies (DEC-143). Mark ITC disallowed.';
+  if(i.gstBps&&i.gstBps!==1800)return 'ITC is allowed only on bills directly for 18 % supplies (DEC-143). Mark ITC disallowed, or correct the GST rate.';
+  return '';
+}
+/** TDS the vendor bill would hold back (§5). The tds lane exports the real one; the purchase lane stubs it `(s, e) => 0` — so do we. */
+export const tdsForBill=(_s:State,_e:Pick<Expense,'vendor'|'amount'|'gstPaise'|'date'>):number=>0;
 export type { Expense };
