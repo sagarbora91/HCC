@@ -44,7 +44,7 @@ export function accCashLimitOn(s:State,key:ACCCashLimitKey,date:string):number{
 }
 // Master configuration › Money and tax: the three dated limits (Owner-only money settings, DEC-058).
 registerSettingsGroup({id:'acc-cash-guards',group:'money',defs:(s:State)=>ACC_CASH_SEED.map(d=>({key:d.key,label:d.label,type:'money' as const,unit:d.unit,
-  help:`${d.help} Source: ${d.source} — ${ACC_CASH_VERIFY}.`,money:true,dated:true,effectiveMode:'date' as const,illustrative:true,
+  help:`${d.help} Source: ${d.source} — ${ACC_CASH_VERIFY}. Illustrative — CA to confirm for a hotel.`,money:true,dated:true,effectiveMode:'date' as const,illustrative:true,
   default:accCashSeedOn(d.key,s.date),min:100,max:100000000,show:(v:unknown)=>money(Number(v)),
   affects:'Cash receipts (refused at the limit) and cash payments (warned above it) dated on or after the effective date. Recorded entries are not changed.'}))});
 

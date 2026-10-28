@@ -118,6 +118,8 @@ const CMDS={
   ACC_LEDGER_UPSERT:C('OWN','ACC-1 contract §7: chart of accounts = Owner-only money master (PERM-ACC-007, DEC-058)'),ACC_LEDGER_RETIRE:C('OWN','as ACC_LEDGER_UPSERT'),ACC_GROUP_UPSERT:C('OWN','as ACC_LEDGER_UPSERT'),
   // ACC-1 opening balances (contract §5/§7, DEC-148): enter = Owner / Manager / Accountant with reports (PERM-ACC-008); approve / reopen = Owner (PERM-ACC-009).
   ACC_OPENING_SAVE:C('OWN MGR ACC','ACC-1 contract §7 PERM-ACC-008'),ACC_OPENING_APPROVE:C('OWN','ACC-1 contract §7 PERM-ACC-009'),ACC_OPENING_REOPEN:C('OWN','ACC-1 contract §5 (Owner reopens)'),
+  // ACC-2 flows (contract §4, §8, §9): deposit applied at check-out = a folio receipt (PAY-001); OTA payout = PERM-OTA-004 holders; Udhaar reversal = Owner (A17b).
+  DEPOSIT_APPLY:C('OWN MGR REC CSH','ACC-2 contract §4 A6a (payments, open shift)'),CHN_PAYOUT:C('OWN MGR ACC','ACC-2 contract §4 / §9 PERM-OTA-004'),EXP_UD_PAY_REVERSE:C('OWN','ACC-2 contract §8 A17b (Owner)'),
   OWN_CREDENTIAL_CHANGE:C(ALL,'A02b-05: every signed-in user changes their own password / PIN (server ChangeOwnCredential)'),
   AI_ASK:C(ALL,'Module 26: any user, answer filtered'),AI_CLEAR:C(ALL,'Module 26: own history'),AI_SETTINGS:C('OWN MGR','Module 26 (approve)'),
   CB_LOCK:C('OWN MGR ACC','Wave 0.5: day locked by a checker'),CB_REOPEN:C('OWN','Wave 0.5: owner reopen'),
