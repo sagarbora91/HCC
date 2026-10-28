@@ -24,6 +24,11 @@ import {clone} from '../../../domain/clone';
 import {accCashEnforce,accCashNote} from '../../../domain/streams/accounting-guards'; // ACC-2 flows (contract §7)
 import {mnyMethod,mnyIsDrawer} from '../../../domain/streams/money-master'; // ACC-2 parity: advance funding
 import {drawer} from '../../../domain/selectors';
+import {accLockOf} from '../../../domain/streams/accounting'; // ACC-2 integration (ruling 6)
+import {hrMonthEnd as payrollMonthEnd} from '../../../domain/streams/staff';
+/** ACC-2 integration (ruling 6): the date a pay-run / net-pay voucher is booked on, fixed when it happens — the pay period's last day when
+ *  that day is not locked (the month's trial balance holds at month end), else the business date of the act. */
+const payrollBookOn=(s:Kit['s'],month:string)=>{const end=payrollMonthEnd(month);return s.date>end&&!accLockOf(s,end)?end:s.date;};
 
 const DATE=/^\d{4}-\d{2}-\d{2}$/;
 function staffOf(k:Kit,id:string):HRStaff{const st=hrEnsure(k.s).staff.find(x=>x.id===id);k.assert(st,'Staff member not found.','NOT_FOUND');return st!;}
@@ -549,7 +554,7 @@ export const handlers:Record<string,Handler>={
     assert(!waiting,`${waiting} attendance correction${waiting===1?'':'s'} for ${hrMonthLabel(run!.month)} ${waiting===1?'waits':'wait'} for the Owner — approve or reject ${waiting===1?'it':'them'} before locking.`,'INVALID_TRANSITION');
     const fresh=hrComputeRun(s,run!.month);
     assert(JSON.stringify(fresh.lines)===JSON.stringify(run!.lines)&&JSON.stringify(hrRatesFor(s,run!.month))===JSON.stringify(run!.rates),'Attendance, leave, advances or rates changed after this draft. Recalculate before locking.','STALE_VERSION');
-    run!.status='Locked';run!.lockedBy=k.uid;run!.lockedAt=s.clock;run!.lockedOn=s.date;hrApplyRecoveries(x,run!);hrBankSnapshot(x,run!);
+    run!.status='Locked';run!.lockedBy=k.uid;run!.lockedAt=s.clock;run!.lockedOn=s.date;run!.lockedBookOn=payrollBookOn(s,run!.month);hrApplyRecoveries(x,run!);hrBankSnapshot(x,run!);
     return `${run!.id} · ${hrMonthLabel(run!.month)} locked · bank details frozen · payslips released`;
   },
   /** SCC unlockRun: Owner only, latest locked run only, with a reason; advance recoveries are reversed and the run returns to Draft. */
@@ -567,8 +572,8 @@ export const handlers:Record<string,Handler>={
     // ACC-2 (contract §8): the unlock keeps what the undone lock booked (its PayRun voucher) and dates its reversal (server PayRunReversal).
     const lockedOn=hrOn(run!.lockedOn,run!.lockedAt);
     run!.unlocks=[...(run!.unlocks??[]),{at:s.clock,by:k.uid,reason:String(cmd.reason).trim(),...(sent.length?{sent}:{}),...(files.length?{bankFiles:files}:{}),
-      nets:Object.fromEntries(run!.lines.map(l=>[l.staffId,l.net])),on:s.date,...(lockedOn?{lockedOn}:{}),book:hrRunBook(run!)}];
-    run!.status='Draft';delete run!.lockedBy;delete run!.lockedAt;delete run!.lockedOn;delete run!.bank;delete run!.sent;delete run!.bankFiles;
+      nets:Object.fromEntries(run!.lines.map(l=>[l.staffId,l.net])),on:s.date,...(lockedOn?{lockedOn}:{}),...(run!.lockedBookOn?{lockedBookOn:run!.lockedBookOn}:{}),book:hrRunBook(run!)}];
+    run!.status='Draft';delete run!.lockedBy;delete run!.lockedAt;delete run!.lockedOn;delete run!.lockedBookOn;delete run!.bank;delete run!.sent;delete run!.bankFiles;
     return `${run!.id} · ${hrMonthLabel(run!.month)} unlocked · advance recoveries reversed · payslips withdrawn${sent.length?` · ${sent.length} sent payslip${sent.length===1?'':'s'} marked superseded`:''}${files.length?' · bank file already issued — next file must not pay twice':''}`;
   },
   /** F-09: record (and allow) a bank transfer file for a locked run; a repeat — including after an unlock — needs confirmReissue. */
@@ -578,7 +583,7 @@ export const handlers:Record<string,Handler>={
     const prior=hrBankFilesIssued(run!);
     if(prior.length&&!cmd.confirmReissue)fail('INVALID_TRANSITION',`A bank file for ${hrMonthLabel(run!.month)} was already generated on ${prior[prior.length-1].at} (net ${money(prior[prior.length-1].net)}). Paying this file in full again may pay twice — confirm to generate it again.`);
     const net=run!.lines.reduce((n,l)=>n+l.net,0);
-    run!.bankFiles=[...(run!.bankFiles??[]),{at:s.clock,by:k.uid,net,on:s.date}]; // ACC-2: the first file of a lock = the net-pay payment voucher
+    run!.bankFiles=[...(run!.bankFiles??[]),{at:s.clock,by:k.uid,net,on:s.date,bookOn:payrollBookOn(s,run!.month)}]; // ACC-2: the first file of a lock = the net-pay payment voucher
     return `${run!.id} · ${hrMonthLabel(run!.month)} bank transfer file · net ${money(net)}${prior.length?` · REISSUE (earlier file ${money(prior[prior.length-1].net)})`:''} (simulated — no money moves)`;
   },
   /** DEC-056: simulated WhatsApp send of a locked payslip (nothing leaves the device). */

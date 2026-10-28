@@ -16,6 +16,7 @@ import {mnyVendor,mnyMethodFor,mnyMethod,mnyIsCredit,mnyIsDrawer} from '../../..
 import {mstFail} from '../../../domain/streams/masters';
 import {rbacIsAccountant} from '../../../domain/streams/rbac';
 import {accLockOf} from '../../../domain/streams/accounting';
+import {accCashEnforce,accCashNote} from '../../../domain/streams/accounting-guards'; // ACC-2 integration: the flows lane's cash guard (contract §7)
 import {expSlice,expDateCheck,expMonthLocked,expMonthLockedMessage,EXP_MAX_PAISE,type EXPState,type ExpVendorPayment} from '../../../domain/streams/expenses-scc';
 import {EXP_VENDOR_PAY_ROLES,expVendorAllocate,expVendorAllocationRefusal,expVendorOpenBills,expIsReturn,expReturned,expReturnMethod,expVendorName} from '../../../domain/streams/expenses-vendor';
 
@@ -28,9 +29,6 @@ function payer(k:Kit,what:string){
   if(!ok)k.fail('FORBIDDEN',`Access denied: only the Owner, the Manager or the Accountant ${what}.`);
 }
 const amountOk=(k:Kit,n:unknown,msg:string)=>{if(!(Number.isSafeInteger(n)&&(n as number)>0&&(n as number)<=EXP_MAX_PAISE))k.fail('VALIDATION',msg);return n as number;};
-/** acc2-flows lane: `accCashGuard(s, {kind:'payment', party, amount, date})` (contract §7) — a no-op stub until that lane merges (it warns and
- *  never refuses a payment; the B10 flag is not on ExpVendorPayment). Integrator: replace with the guard's call. */
-const cashGuard=(_k:Kit,_x:{party:string;amount:number;date:string}):string=>'';
 
 export const handlers:Record<string,Handler>={
   EXP_VENDOR_PAY:k=>{
@@ -47,17 +45,18 @@ export const handlers:Record<string,Handler>={
     const w=expDateCheck(s,date,pm!.name);if(w)fail(w.code,w.message);
     assert(!accLockOf(s,date),`The books of ${date} are locked — unlock the day first.`,'DAY_CLOSED');
     if(cash)assert(s.shiftOpen,'Open cash shift required: a cash vendor payment leaves the drawer.','INVALID_TRANSITION');
-    const warn=cash?cashGuard(k,{party:'2200/'+v!.code,amount,date}):'';
+    // ACC-2 integration (contract §7 B10): cash above ₹10,000 to one vendor in a day posts with a warning and the record is marked "deduction lost".
+    const cg=cash?accCashEnforce(s,{kind:'payment',party:'2200/'+v!.code,amount,date,method:pm!.name,name:v!.name}):undefined;
     let allocations:{expense:string;amount:number}[];
     if(cmd.allocations!==undefined&&cmd.allocations!==null){const why=expVendorAllocationRefusal(s,v!.code,amount,cmd.allocations);if(why)fail('VALIDATION',why);
       allocations=(cmd.allocations as {expense:string;amount:number}[]).map(a=>({expense:txt(a.expense),amount:a.amount}));}
     else allocations=expVendorAllocate(s,v!.code,amount);
     const allocated=allocations.reduce((a,x)=>a+x.amount,0),advance=amount-allocated;
-    const p:ExpVendorPayment={id:id('VP'),vendor:v!.code,date,amount,method:pm!.name,reference,by:uid,at:s.clock,allocations};
+    const p:ExpVendorPayment={id:id('VP'),vendor:v!.code,date,amount,method:pm!.name,reference,by:uid,at:s.clock,allocations,...(cg?.deductionLost?{cashDeductionLost:true}:{})};
     const x=slice(k);x.vendorPayments=[...(x.vendorPayments??[]),p];
     return `${p.id} · ${v!.name} paid ${money(amount)} by ${pm!.name}${reference?' · '+reference:''}`
       +(allocations.length?` · against ${allocations.map(a=>`${a.expense} ${money(a.amount)}`).join(', ')}`:'')
-      +(advance>0?` · advance ${money(advance)}`:'')+(date!==s.date?` · dated ${date}`:'')+(warn?' · '+warn:'');
+      +(advance>0?` · advance ${money(advance)}`:'')+(date!==s.date?` · dated ${date}`:'')+(cg?accCashNote(cg):'');
   },
   EXP_VENDOR_PAY_VOID:k=>{
     const {s,cmd,fail,assert,uid,user,open}=k;

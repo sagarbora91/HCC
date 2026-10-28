@@ -9,7 +9,7 @@ export function register({test,M,assert}){
   const retire=(s,u,c,r)=>M.execute(s,u,{type:'ACC_LEDGER_RETIRE',code:c,...(r?{reason:r}:{})});
   // The §2 table of the contract: code → [group, control].
   const TABLE={'1000':['cash',1],'1005':['cash'],'1010':['bank'],'1020':['bank'],'1030':['bank',1],'1100':['debtors'],'1110':['debtors',1],'1115':['debtors',1],
-    '1120':['debtors',1],'1200':['loans-advances',1],'1210':['loans-advances'],'1300':['duties-taxes'],'1310':['duties-taxes'],'1320':['duties-taxes'],'1330':['duties-taxes'],
+    '1120':['debtors',1],'1200':['loans-advances',1],'1210':['loans-advances',1],'1300':['duties-taxes'],'1310':['duties-taxes'],'1320':['duties-taxes'],'1330':['duties-taxes'],
     '1340':['duties-taxes'],'1350':['duties-taxes'],'1360':['loans-advances'],'1370':['loans-advances'],'1400':['suspense'],'1500':['fixed-assets'],'1510':['fixed-assets'],
     '1520':['fixed-assets'],'1530':['fixed-assets'],'1540':['fixed-assets'],'2000':['current-liabilities'],'2100':['duties-taxes'],'2110':['duties-taxes'],'2120':['duties-taxes'],
     '2130':['duties-taxes'],'2140':['duties-taxes'],'2150':['duties-taxes'],'2200':['creditors',1],'2300':['current-liabilities'],'2310':['duties-taxes'],'2320':['duties-taxes'],
@@ -35,7 +35,7 @@ export function register({test,M,assert}){
     assert.deepEqual(M.ACC_LEDGERS.map(l=>l.code),Object.keys(TABLE).sort());
     for(const l of M.ACC_LEDGERS){const [g,c]=TABLE[l.code];assert.equal(l.group,g,l.code);assert.equal(!!l.control,!!c,l.code);assert.equal(l.system,true);assert.equal(l.active,true);
       assert.ok(M.ACC_GROUPS.some(x=>x.id===l.group),l.code);}
-    assert.deepEqual(M.ACC_LEDGERS.filter(l=>l.control).map(l=>l.code),['1000','1030','1110','1115','1120','1200','2200','2400']);
+    assert.deepEqual(M.ACC_LEDGERS.filter(l=>l.control).map(l=>l.code),['1000','1030','1110','1115','1120','1200','1210','2200','2400']);
     const legacy=Object.fromEntries(M.ACC_CHART.map(a=>[a.code,a.group]));
     assert.deepEqual([legacy['1000'],legacy['1110'],legacy['2110'],legacy['3000'],legacy['4000'],legacy['4900'],legacy['5100'],legacy['9999'],legacy['1400'],legacy['4950']],
       ['Asset','Asset','Liability','Liability','Income','Income','Expense','Suspense','Suspense','Income']);

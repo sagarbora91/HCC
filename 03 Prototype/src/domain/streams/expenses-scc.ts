@@ -64,7 +64,8 @@ export type ExpMonthFeed={month:string;expense:number;count:number;byCategory:Re
 export type ExpMonthUnlock={at:string;by:string;reason:string};
 /** ACC-2 (contract §3.2): a payment to a vendor, allocated to open bills oldest-first by default; the unallocated rest is an advance (the party goes Dr). */
 export type ExpVendorPayment={id:string;vendor:string;date:string;amount:number;method:string;reference:string;by:string;at:string;allocations:{expense:string;amount:number}[];
-  void?:boolean;voidReason?:string;voidBy?:string;voidAt?:string};
+  void?:boolean;voidReason?:string;voidBy?:string;voidAt?:string;
+  /** ACC-2 integration (contract §7 B10): cash above the payment limit to this vendor on the day — the income-tax deduction is lost. */ cashDeductionLost?:boolean};
 export type EXPState={
   /** ACC-2 */ vendorPayments?:ExpVendorPayment[];
   /** SCC gm_budgets: month (YYYY-MM) → category → cap in paise (0 / absent = no budget). */

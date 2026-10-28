@@ -136,18 +136,23 @@ export type HRLine={staffId:string;name:string;dept:string;designation:string;pa
   /** Employer cost = gross + PF employer + ESIC employer. */ ctc:number};
 export type HRSend={staffId:string;to:string;at:string;by:string};
 export type HRBankFile={at:string;by:string;net:number;
-  /** ACC-2 (contract §8): the business date the file was generated (the net-pay payment voucher's date; absent on older files → `at`). */ on?:string};
+  /** ACC-2 (contract §8): the business date the file was generated (the net-pay payment voucher's date; absent on older files → `at`). */ on?:string;
+  /** ACC-2 integration (ruling 6): the date its net-pay voucher is booked on, fixed when the file is made — the pay period's last day when
+   *  that day is not locked yet, else the business date of the file. Absent on older files → the period's last day rule (accPayrollDate). */ bookOn?:string};
 export type HRUnlock={at:string;by:string;reason:string;
   /** Payslips sent before this unlock — superseded. */ sent?:HRSend[];
   /** Bank files generated before this unlock (already given to the bank). */ bankFiles?:HRBankFile[];
   /** Net pay per staff ID in the lock that was undone. */ nets?:Record<string,number>;
   /** ACC-2 (contract §8): business date of the unlock (the pay-run reversal voucher's date), the business date the undone lock was posted, and
-   *  the figures that lock booked (its PayRun voucher, reversed on `on`). Absent on unlocks recorded before ACC-2. */ on?:string;lockedOn?:string;book?:HRRunBook};
+   *  the figures that lock booked (its PayRun voucher, reversed on `on`). Absent on unlocks recorded before ACC-2. */ on?:string;lockedOn?:string;book?:HRRunBook;
+  /** ACC-2 integration (ruling 6): the date the undone lock's PayRun voucher was booked on (HRRun.lockedBookOn of that lock). */ lockedBookOn?:string};
 /** Bank details as frozen in a locked run (F-02: the bank file pays where the checker approved, not the live staff master). */
 export type HRBank={bankName:string;accountNo:string;ifsc:string};
 export type HRRun={id:string;month:string;status:'Draft'|'Locked';rates:HRRates;lines:HRLine[];warnings:string[];
   preparedBy:string;preparedAt:string;lockedBy?:string;lockedAt?:string;
   /** ACC-2 (contract §8): business date of the current lock (the PayRun voucher's date; absent on older runs → `lockedAt`). */ lockedOn?:string;
+  /** ACC-2 integration (ruling 6): the date the current lock's PayRun voucher is booked on, fixed at the lock — the pay period's last day when
+   *  that day is not locked yet, else the business date of the lock. Absent on older runs → the period's last day rule (accPayrollDate). */ lockedBookOn?:string;
   /** Bank details per staff ID, copied at lock (F-02). Absent on runs locked before the snapshot existed. */ bank?:Record<string,HRBank>;
   /** Simulated WhatsApp payslip sends. */ sent?:HRSend[];
   /** Owner unlocks (SCC unlockRun): recoveries reversed, back to Draft. F-09: the payslip sends, bank files and net figures of the

@@ -23,6 +23,7 @@ import {gstForRoomNight,gstSplit} from '../gst';
 import {accSlice,accVouchersUpTo,accDayStatus,accLockOf,accLockBlocker,accLiveVouchers,type ACCEntry,type ACCVoucher,type ACCMonthLock} from './accounting';
 import {accControlOf} from './accounting-parties';
 import {cmpSlice} from './compliance';
+import {hrSlice} from './staff'; // ACC-2 integration (ruling 6): the month lock needs the month's pay run locked and paid
 
 // ── Ledgers (rulebook §3.2) ──
 export const ACC_GST_LEDGER={outCgst:'2110',outSgst:'2120',outIgst:'2130',inCgst:'1310',inSgst:'1320',inIgst:'1330',cash:'1340',advance:'1350',rcm:'2140'} as const;
@@ -235,6 +236,11 @@ export function accMonthLockBlocker(s:State,month:string):string{
     if(accDayStatus(s,d)==='Open')return `${d} is not closed — close every business day of ${month} first.`;
     const why=accLockBlocker(s,d);if(why)return `${d}: ${why}`;
   }
+  // ACC-2 integration (ruling 6): the month's pay run must be locked and paid (its bank file made) before the books of the month close.
+  const hr=hrSlice(s);
+  if(hr.staff.length){const run=hr.runs.find(r=>r.month===month);
+    if(!run||run.status!=='Locked')return `The pay run for ${month} must be locked first (Staff › Payroll) — its voucher belongs to the month.`;
+    if(!(run.bankFiles??[]).length)return `The pay run for ${month} must be paid first (generate its bank file) — the net-pay voucher belongs to the month.`;}
   return '';
 }
 /** Days of the month the lock still has to lock (closed, not locked), ascending. */

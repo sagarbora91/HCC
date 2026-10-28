@@ -104,18 +104,18 @@ export function register({test,M,assert}){
       ['1200/HR-S05',0,rec],['2340',0,50000],['2300',0,g.net]].filter(e=>e[1]||e[2])));
     const p=one(vs,'fnf-paid:'+f.id);assert.deepEqual(ent(p),[['2300',g.net,0],['1030/BANK-1',0,g.net]]);assert.equal(p.source.sub,'fnf-payment');
   });
-  test(T+'a negative full and final books Dr recoverable from the leaver (payroll:fnf-recoverable → 1200/<staff>, as the server) and no payment',()=>{
+  test(T+'a negative full and final books Dr recoverable from the leaver (payroll:fnf-recoverable → 1210/<staff>, ruling 7 — both sides) and no payment',()=>{
     const s=structuredClone(seed());
     s.staffX.fnf=[{id:'HR-FNF-T',staffId:'HR-S06',name:'—',lastDay:D,month:'2026-10',salaryIncluded:false,rates:{},advanceOutstanding:0,
       adjustments:[{label:'Notice pay shortfall',kind:'ded',amount:400000}],earnings:0,recoveries:400000,net:-400000,by:'accountant',at:D+'T10:00',status:'Settled',confirmedBy:'owner',confirmedAt:D+'T11:00',confirmedOn:D}];
     const vs=payroll(s);assert.equal(vs.length,1);
-    assert.deepEqual(ent(vs[0]),[['2340',0,400000],['1200/HR-S06',400000,0]]);assert.match(vs[0].narration,/recoverable from the leaver ₹4000\.00/);
+    assert.deepEqual(ent(vs[0]),[['2340',0,400000],['1210/HR-S06',400000,0]]);assert.match(vs[0].narration,/recoverable from the leaver ₹4000\.00/);
   });
   test(T+'payroll keys are mapped like the server (Payroll group in the mapping table) and the Owner can re-point them',()=>{
     const s=t13(),rows=M.accMapRows(s),get=k=>rows.find(r=>r.key===k);
     for(const [k,a] of Object.entries({'payroll:salaries':'5100','payroll:employer-pf':'5110','payroll:employer-esic':'5110','payroll:net-payable':'2300','payroll:pf-payable':'2310',
       'payroll:esic-payable':'2320','payroll:pt-payable':'2330','payroll:other-deductions':'2340','payroll:advances':'1200','payroll:fnf-additions':'5100','payroll:fnf-deductions':'2340',
-      'payroll:fnf-recoverable':'1200','line:food':'4200'})){assert.equal(M.ACC_DEFAULT_MAP[k],a,k);assert.equal(get(k)?.account,a,k);}
+      'payroll:fnf-recoverable':'1210','line:food':'4200'})){assert.equal(M.ACC_DEFAULT_MAP[k],a,k);assert.equal(get(k)?.account,a,k);}
     assert.equal(get('payroll:salaries').group,'Payroll');assert.ok(get('payroll:salaries').uses>=1);assert.ok(M.ACC_KEY_PATTERN.test('payroll:salaries'));
     const o=execute(s,'owner',{type:'ACC_MAP_SET',source:'payroll:salaries',account:'5120'});
     assert.equal(one(payroll(o),'payroll:HR-PAY-T13').entries[0].account,'5120');

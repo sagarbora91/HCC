@@ -48,20 +48,12 @@ export function register({test,M,assert}){
   // ───────────── the month and the set-off journal on the rulebook month (scenario ACC-RULEBOOK, April 2026) ─────────────
   let cache;const month=()=>cache??(cache=M.loadScenario('ACC-RULEBOOK'));
   /** The rulebook month plus T4 (OTA stay) and T19 (Goibibo payout, TCS ₹100) put into the 29 April snapshot, as the acc2-tests lane drives them. */
-  function withOta(){
-    const s=structuredClone(month()),d='2026-04-29',live=M.accLiveVouchers(s,d);
-    const t4={no:'SAL/20260429/900',date:d,type:'Sales',narration:'T4 OTA stay (test)',source:{kind:'line',id:'T4',sub:'room'},unmapped:[],
-      entries:[{account:'1115/goibibo',debit:R(21000),credit:0},{account:'4000',debit:0,credit:R(20000)},{account:'2110',debit:0,credit:R(500)},{account:'2120',debit:0,credit:R(500)}]};
-    const t19={no:'RCT/20260429/900',date:d,type:'Receipt',narration:'T19 Goibibo payout (test)',source:{kind:'ota',id:'T19',sub:'ota-payout'},unmapped:[],
-      entries:[{account:'1030/BA-HDFC',debit:R(17360),credit:0},{account:'5070',debit:R(3540),credit:0},{account:'1340',debit:R(100),credit:0},{account:'1115/goibibo',debit:0,credit:R(21000)}]};
-    const vs=[...live,t4,t19],t=M.accTotals(vs);
-    s.accountingX.locks={...(s.accountingX.locks??{}),[d]:{date:d,lockedAt:'2026-04-30T09:00',lockedBy:'owner',vouchers:vs,debit:t.debit,credit:t.credit,count:vs.length}};
-    return s;
-  }
-  test(T+'accGstMonth on the driven rulebook month: output 14,000 + 14,000 (T1–T3), no ITC, no TCS, challan 28,000; nothing posted yet',()=>{
+  // ACC-2 integration: the tests lane's scenario now drives T4 (OTA stay, ota-credit) and T19 (CHN_PAYOUT) itself, so nothing is injected.
+  function withOta(){return structuredClone(month());}
+  test(T+'accGstMonth on the driven rulebook month (the whole of §8.2 since the merge): output 14,500 + 14,500 (T1–T4), no ITC, TCS 100 (T19), challan 28,900; nothing posted yet',()=>{
     const g=M.accGstMonth(month(),'2026-04');
     assert.deepEqual([g.from,g.to],['2026-04-01','2026-04-30']);
-    assert.deepEqual(g.output,H(0,14000,14000));assert.deepEqual(g.credit,H(0,0,0));assert.equal(g.tcs,0);assert.equal(g.setoff.challan,R(28000));
+    assert.deepEqual(g.output,H(0,14500,14500));assert.deepEqual(g.credit,H(0,0,0));assert.equal(g.tcs,R(100));assert.equal(g.setoff.challan,R(28900));
     assert.equal(g.posted,undefined);assert.equal(g.locked,false);
   });
   test(T+'rulebook §8.6 through the books: with T4 + T19 the month is 14,500 + 14,500, TCS 100 → the set-off posts in May (Dr 2110 14,500 · Dr 2120 14,500 · Cr 1340 29,000), challan 28,900',()=>{
@@ -91,7 +83,7 @@ export function register({test,M,assert}){
     assert.match(r.audit[0].detail,/replaces the set-off of 2026-05-01/);
     assert.equal(M.accLiveVouchers(r,'2026-05-01').filter(v=>v.source.sub==='gst-setoff').length,0);
     assert.equal(M.accLiveVouchers(r,'2026-05-02').filter(v=>v.source.sub==='gst-setoff').length,1);
-    const locked=structuredClone(later);locked.accountingX.locks['2026-05-01']={date:'2026-05-01',lockedAt:'x',lockedBy:'owner',vouchers:[],debit:0,credit:0,count:0};
+    const locked=structuredClone(later);(locked.accountingX.locks??={})['2026-05-01']={date:'2026-05-01',lockedAt:'x',lockedBy:'owner',vouchers:[],debit:0,credit:0,count:0};
     assert.throws(()=>ex(locked,'accountant',{type:'ACC_GST_SETOFF',month:'2026-04'}),e=>e.code==='INVALID_TRANSITION'&&/posted on 2026-05-01, which is locked/.test(e.message));
   });
   test(T+'ACC_GST_PAY: challan through the gst-payment template (Dr 1340 · Cr the bank party; RCM Dr 2140 · Cr 1340) — Owner approved, Accountant pending (manual-voucher stub)',()=>{
@@ -101,12 +93,14 @@ export function register({test,M,assert}){
     assert.throws(()=>ex(s,'owner',{...pay,challan:''}),/challan/);
     assert.throws(()=>ex(s,'owner',{...pay,date:'2026-04-30'}),/dated after the month/);
     assert.throws(()=>ex(s,'owner',{...pay,amount:0}),/amount/);
+    const before=s; // ACC-2 integration: a challan beyond what the month still owes is refused (rulebook §8.6 test), so the Accountant's RCM case pays before the Owner's
     s=ex(s,'owner',pay);
     const mv=s.accountingX.manual.at(-1);
     assert.deepEqual([mv.template,mv.type,mv.status,mv.date,mv.reference],['gst-payment','Payment','approved','2026-05-01','CIN-DEMO-0520']);
     assert.deepEqual(mv.lines.map(l=>[l.account.split('/')[0],l.debit/100,l.credit/100]),[['1340',28900,0],['1030',0,28900]]);
     assert.ok(/^1030\//.test(mv.lines[1].account),'bank party: '+mv.lines[1].account);
-    const acc=ex(s,'accountant',{...pay,amount:R(1000),rcm:R(400),challan:'CIN-DEMO-RCM'});
+    const acc=ex(before,'accountant',{...pay,amount:R(1000),rcm:R(400),challan:'CIN-DEMO-RCM'});
+    assert.throws(()=>ex(s,'owner',{...pay,amount:R(1000),challan:'CIN-DEMO-OVER'}),/cash ledger \(1340\)/,'over the month’s challan');
     const m2=acc.accountingX.manual.at(-1);
     assert.equal(m2.status,'pending');assert.deepEqual(m2.lines.slice(2).map(l=>[l.account,l.debit/100,l.credit/100]),[['2140',400,0],['1340',0,400]]);
     assert.throws(()=>ex(s,'owner',{...pay,rcm:R(30000)}),/reverse-charge/);

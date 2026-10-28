@@ -105,7 +105,8 @@ export type ACCManualTemplate='journal'|'contra'|'capital-introduced'|'owner-dra
 export type ACCManualLine={account:string;debit:number;credit:number;note?:string};
 /** A manual voucher (contract §2): the Accountant's are pending until the Owner decides; the Owner's own are approved at once. */
 export type ACCManualVoucher={id:string;date:string;type:'Journal'|'Contra'|'Payment'|'Receipt';narration:string;reference?:string;lines:ACCManualLine[];template?:ACCManualTemplate;
-  status:'pending'|'approved'|'rejected'|'void';by:string;at:string;decidedBy?:string;decidedAt?:string;reason?:string;voidOf?:string;voidedBy?:string;bookedOn?:string};
+  status:'pending'|'approved'|'rejected'|'void';by:string;at:string;decidedBy?:string;decidedAt?:string;reason?:string;voidOf?:string;voidedBy?:string;bookedOn?:string;
+  /** ACC-2 integration (contract §7 B10): a cash Payment above the payment limit to one party in a day — the deduction is lost (P&L notes). */ cashDeductionLost?:boolean};
 /** Fixed-asset register row (contract §3.4): created when a capital purchase posts; no depreciation journal in HCC (DEC-140 / DEC-138). */
 export type ACCAsset={id:string;no:string;ledger:string;name:string;cost:number;date:string;vendor:string;expense:string;itc:number;putToUse?:string;disposed?:{date:string;amount:number;voucher:string}};
 /** Month lock (contract §6): every day of the month locked, the GST set-off posted, no pending manual voucher; mirrors the SCC expense month lock. */
@@ -132,7 +133,7 @@ export const ACC_LEDGERS:ACCLedger[]=[
   BL('1115','OTA receivables','debtors',{control:true,note:'One party per OTA channel (ACC-2 posts it)'}),
   BL('1120','Udhaar receivables (customer credit)','debtors',{control:true,note:'DEC-130 / DEC-144: one party per Udhaar customer'}),
   BL('1200','Staff advances','loans-advances',{control:true,note:'Salary advances recovered through payroll; one party per staff member'}),
-  BL('1210','Recoverable from leavers (F&F)','loans-advances'),
+  BL('1210','Recoverable from leavers (F&F)','loans-advances',{control:true,note:'ACC-2 (ruling 7): one party per staff member — a full and final that leaves the leaver owing (D4)'}),
   BL('1300','GST input credit (legacy, locked snapshots only)','duties-taxes',{gst:'input',note:'DEC-135 one-ledger ITC before ACC-1; new ITC goes to 1310 / 1320'}),
   BL('1310','Input CGST','duties-taxes',{gst:'input',note:'ITC marked allowed, CGST half'}),
   BL('1320','Input SGST','duties-taxes',{gst:'input',note:'ITC marked allowed, SGST half'}),

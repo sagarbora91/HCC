@@ -54,7 +54,7 @@ registerSettingsGroup({id:'acc-cash-guards',group:'money',defs:(s:State)=>ACC_CA
 export type ACCCashFlow={kind:'receipt'|'payment';party:string;scope?:string;date:string;amount:number;transport?:boolean;source:string};
 const isCash=(s:State,method:string|undefined)=>!!method&&mnyIsDrawer(s,method);
 const vendorParty=(s:State,v:string|undefined,fallback:string)=>{const t=String(v??'').trim();if(!t)return fallback;const row=mnyVendor(s,t);return '2200/'+(row?.code??t);};
-const transportOf=(s:State,category:string|undefined)=>!!category&&!!(mnyCategory(s,category) as {transport?:boolean}|undefined)?.transport;
+const transportOf=(s:State,category:string|undefined)=>!!category&&!!mnyCategory(s,category)?.transport; // ruling 10: MnyCategory.transport
 /** Every recorded cash receipt / payment of the state with its party (drawer-cash methods; void / rejected records excluded). */
 export function accCashFlows(s:State):ACCCashFlow[]{
   const out:ACCCashFlow[]=[];

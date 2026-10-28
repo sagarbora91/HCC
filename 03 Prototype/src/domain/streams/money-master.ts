@@ -35,10 +35,15 @@ export type MnyAccount=MasterRow&{kind:'till'|'bank';bank?:string;accountLast4?:
 /** M17 · expense category (ledger = accounting default for "expense:<name>"; approvalLimit = Manager limit override, paise). */
 export type MnyCategory=MasterRow&{ledger?:string;needsBill:boolean;approvalLimit?:number;
   /** ACC-2 (contract §3): reverse charge (DEC-145) and its rate; capital = fixed-asset purchases (ledger must be a fixed-assets ledger); itcBlocked = s.17(5) list, the ITC switch stays off (DEC-143). */
-  rcm?:boolean;rcmBps?:number;capital?:boolean;itcBlocked?:boolean};
+  rcm?:boolean;rcmBps?:number;capital?:boolean;itcBlocked?:boolean;
+  /** ACC-2 integration (ruling 10, contract §7): goods-transport category — the cash-payment limit is ₹35,000 (cash.transportLimit), not ₹10,000. */
+  transport?:boolean};
 /** M18 · expense vendor (DEC-MA-6, separate from maintenance vendors). */
 export type MnyVendor=MasterRow&{type:string;gstin?:string;pan?:string;tds:boolean;contact?:string;terms?:string;
-  /** ACC-2 (contract §3, §5): two-letter GST state code (MH = intra-state) and the TDS rate-table row when `tds` is on. */ state?:string;tdsSection?:string};
+  /** ACC-2 (contract §3, §5): two-letter GST state code (MH = intra-state) and the TDS rate-table row when `tds` is on. */ state?:string;tdsSection?:string;
+  /** ACC-2 integration (ruling 9, contract §5): the payee's TDS rate column — 'individual' (individual / HUF: old 194C 1 %) or 'other' (default, 2 %).
+   *  The master form suggests 'individual' when the PAN's 4th letter is P or H. */
+  payeeType?:'individual'|'other'};
 
 // ───────────────────────────── Seeds = the old constants (folio FOLIO_TENDERS, POS_TENDERS, closing EXPENSE_METHODS / TENDERS /
 // EXPENSE_CATEGORIES, accounting ACC_DEFAULT_MAP) + "Company credit" (receipts of authorised company credit) ─────────────────────────────

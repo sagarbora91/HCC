@@ -13,10 +13,10 @@
 //   ACC_MONTH_LOCK_REQUEST {month} Accountant: asks the Owner (kept in the audit trail; accMonthLockRequests lists open requests).
 //   ACC_MONTH_UNLOCK {month, reason}  Owner: lifts the month lock (DEC-131 mirror) and unlocks the expense month; day locks stay.
 //   ACC_GST_ADVANCES_SET {on}      Owner (money setting): the firm profile's "GST on advances" switch (A6, DEC-142 default off).
-// Payments and remittances go through the manual-voucher API of acc2-manual (`accManualSave`). LOCAL STUB below until that lane merges:
-// it stores the voucher in accountingX.manual (Owner → approved, Accountant → pending, contract §2) with the template, and nothing posts it
-// here (the manual lane's section of accLiveVouchers does). The integrator replaces the stub with the real import (ACC2-GST-DONE.md).
+// Payments and remittances go through the manual-voucher API of acc2-manual (`accManualSave`, handlers/accounting-manual.ts) since the
+// ACC-2 integration: Owner → approved, Accountant → pending (contract §2), every §2 guard, and the manual section of accLiveVouchers posts it.
 import type {Handler,Kit} from '../commands';
+import {accManualSave as accManualSaveApi} from './accounting-manual'; // ACC-2 integration (contract §2)
 import {money} from '../../../domain/money';
 import {rbacMoneyAdmin} from '../../../domain/streams/rbac';
 import {accSlice,accMapping,accLockOf,ACC_SUSPENSE,type ACCState,type ACCManualVoucher,type ACCManualLine,type ACCManualTemplate} from '../../../domain/streams/accounting';
@@ -39,20 +39,9 @@ const owner=(k:Kit,what:string)=>{k.req('admin');if(k.user.role!=='Owner')k.fail
 const monthOf=(k:Kit)=>{const m=txt(k.cmd.month);k.assert(ACC_MONTH.test(m),'Choose a month (YYYY-MM).');return m;};
 const validDate=(d:string)=>DATE.test(d)&&!Number.isNaN(Date.parse(d+'T00:00:00Z'))&&new Date(d+'T00:00:00Z').toISOString().slice(0,10)===d;
 
-// ── LOCAL STUB of acc2-manual's accManualSave (contract §2) — replaced at integration ──
-type ManualInput={date:string;type:ACCManualVoucher['type'];narration:string;reference?:string;lines:ACCManualLine[];template:ACCManualTemplate};
-function accManualSave(k:Kit,v:ManualInput):ACCManualVoucher{
-  const {s,uid,user,assert}=k;
-  const d=v.lines.reduce((a,l)=>a+l.debit,0),c=v.lines.reduce((a,l)=>a+l.credit,0);
-  assert(d===c&&d>0,'The voucher does not balance.');
-  assert(v.date<=s.date,'A voucher cannot be dated after the business date.');
-  assert(!accLockOf(s,v.date),`${v.date} is locked — unlock the day first.`,'INVALID_TRANSITION');
-  const x=slice(k),mv:ACCManualVoucher={id:k.id('MV'),date:v.date,type:v.type,narration:v.narration,...(v.reference?{reference:v.reference}:{}),lines:v.lines,
-    template:v.template,status:user.role==='Owner'?'approved':'pending',by:uid,at:s.clock,...(user.role==='Owner'?{decidedBy:uid,decidedAt:s.clock}:{}),bookedOn:v.date};
-  x.manual=[...(x.manual??[]),mv];
-  return mv;
-}
-// ── end LOCAL STUB ──
+// ACC-2 integration: the manual lane's voucher API (contract §2) replaces the lane's local stub — every §2 guard, Owner approved / Accountant pending.
+type ManualInput={date:string;type:ACCManualVoucher["type"];narration:string;reference?:string;lines:ACCManualLine[];template:ACCManualTemplate};
+const accManualSave=(k:Kit,v:ManualInput):ACCManualVoucher=>accManualSaveApi(k,v).voucher;
 
 /** Tender side of a payment: the ledger the method maps to, on the party it settles to (contract §3; e.g. 1030/<bank>). */
 function tender(k:Kit,method:string):string{
@@ -73,8 +62,11 @@ function payment(k:Kit){
 }
 
 /** The compliance card hook (contract §6 D5): the remittance marks the month's EPF / ESIC / PT card done with the challan as evidence. */
-function markCard(k:Kit,kind:ACCStatKind,month:string,date:string,challan:string,note:string):string{
-  const w=cmpLegacyCard(ACC_STAT_CARD_KIND[kind],month);if(!w)return ' · no compliance card for that month';
+function markCard(k:Kit,kind:ACCStatKind,month:string,date:string,challan:string,note:string):string{return accMarkComplianceCard(k,ACC_STAT_CARD_KIND[kind],month,date,challan,note);}
+/** ACC-2 integration (ruling 9): the same hook for any legacy card kind ('EPF', 'ESIC', 'PT', 'TDS'): the month's card marked filed with the
+ *  challan as evidence; a card already filed / not applicable, or no firm profile, is left as it is (said in the summary). */
+export function accMarkComplianceCard(k:Kit,cardKind:string,month:string,date:string,challan:string,note:string):string{
+  const w=cmpLegacyCard(cardKind,month);if(!w)return ' · no compliance card for that month';
   const x:CMPState=cmpSlice(k.s);
   if(!x.profile)return ' · compliance card not marked (set the firm profile first)';
   const c=cmpFindCard(x,w.itemId,w.fy);if(!c)return ' · no compliance card for that month';
@@ -85,6 +77,12 @@ function markCard(k:Kit,kind:ACCStatKind,month:string,date:string,challan:string
   k.s.complianceX=x;const b=(x.records[String(w.fy)]??={});
   b[w.itemId]={done:true,filedOn:date,notes:note,evidenceRef:challan,reviewerNote:'',...(dueDate?{dueDate}:{}),by:k.uid,at:k.s.clock};
   return ` · compliance card ${w.itemId} marked filed (evidence ${challan})`;
+}
+
+/** GST payments already entered for a month (approved or pending gst-payment vouchers; the cash deposited into 1340). */
+function accGstPaidFor(s:Kit['s'],month:string):number{
+  return (s.accountingX?.manual??[]).filter(v=>v.template==='gst-payment'&&(v.status==='approved'||v.status==='pending')&&!v.voidOf&&v.narration.startsWith(`GST paid for ${month} `))
+    .reduce((a,v)=>a+v.lines.filter(l=>l.account===ACC_GST_LEDGER.cash).reduce((x,l)=>x+l.debit,0),0);
 }
 
 export const handlers:Record<string,Handler>={
@@ -106,6 +104,10 @@ export const handlers:Record<string,Handler>={
     k.assert(Number.isSafeInteger(rcm)&&rcm>=0&&rcm<=p.amount,'The reverse-charge part is whole paise, zero or more, at most the amount paid.');
     const L=ACC_GST_LEDGER,lines:ACCManualLine[]=[{account:L.cash,debit:p.amount,credit:0,note:'Challan deposit (E2)'},{account:p.acct,debit:0,credit:p.amount},
       ...(rcm?[{account:L.rcm,debit:rcm,credit:0,note:'RCM paid in cash (E3)'},{account:L.cash,debit:0,credit:rcm}]:[])];
+    // ACC-2 integration (rulebook §8.6 test): the challan cannot exceed what the month still owes — its challan (payable less the cash already
+    // in 1340) plus the RCM still on 2140, less the GST payments already entered for the month (approved or pending).
+    const g=accGstMonth(k.s,p.month),due=Math.max(0,g.setoff.challan+Math.max(0,g.rcmBalance)),paid=accGstPaidFor(k.s,p.month);
+    if(p.amount>due-paid)k.fail('VALIDATION',`The challan for ${p.month} cannot exceed what the electronic cash ledger (1340) still needs: ${money(Math.max(0,due-paid))} (challan ${money(due)}, already entered ${money(paid)}).`);
     const v=accManualSave(k,{date:p.date,type:'Payment',narration:`GST paid for ${p.month} · challan ${p.challan}${rcm?' · RCM '+money(rcm):''}`,reference:p.challan,lines,template:'gst-payment'});
     return `GST payment ${p.month} · ${money(p.amount)} · ${p.method} · challan ${p.challan}${rcm?` · RCM ${money(rcm)}`:''} · manual voucher ${v.id} (${v.status})`;
   },

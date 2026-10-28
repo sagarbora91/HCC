@@ -13,9 +13,7 @@ import type {ExpVendorPayment} from './expenses-scc';
 import {mnyCategory,mnyVendor,mnyIsCredit,mnyIsDrawer,mnyMethod,mnyNames} from './money-master';
 import {gstSplit} from '../gst';
 
-/** Local stub of the acc2-tds lane's `tdsForBill(s, expense | payment)` (contract §5, src/domain/tds.ts): no TDS is held until that lane
- *  merges. Integrator: delete this line and `import {tdsForBill} from '../tds'`. */
-const tdsForBill=(_s:State,_e:Expense|ExpVendorPayment):number=>0;
+import {tdsForBill} from '../tds'; // ACC-2 integration: the acc2-tds lane's calculator (contract §5) replaces the purchase lane's stub
 
 /** The hotel's own GST state (DEC-136: place of supply is the hotel). A vendor with another two-letter state code bills IGST. */
 export const EXP_HOME_STATE='MH';
@@ -79,15 +77,15 @@ export function expPurchaseEntry(s:State,x:{category:string;vendor?:string;gstKi
   return {fields};
 }
 /** Fields stamped on a bill when it is approved (contract §3: "from the category flag at the time of posting"): rcm + rcmBps (the bill's own
- *  rate, else the category default), capital, TDS held back (tdsForBill — stub 0 until acc2-tds), the vendor's TDS section. Absent flags are
+ *  rate, else the category default), capital, TDS held back (tdsForBill, contract §5), the vendor's TDS section. Absent flags are
  *  not written (older records and ordinary bills stay unchanged). Refusal text when ITC is allowed on a blocked category. */
 export function expPurchaseStamp(s:State,e:Expense):{error?:string;fields:Partial<Expense>}{
   const c=mnyCategory(s,e.category),f:Partial<Expense>={};
   const why=expItcBlockRefusal(s,e.category,e.itc);if(why)return {error:why,fields:f};
   if(c?.rcm){if(e.gstPaise)return {error:EXP_RCM_GST_MESSAGE,fields:f};f.rcm=true;f.rcmBps=e.rcmBps??Number(c.rcmBps??0);}
   if(c?.capital)f.capital=true;
-  const tds=tdsForBill(s,{...e,...f});
-  if(tds){f.tdsPaise=tds;const sec=mnyVendor(s,txt(e.vendor))?.tdsSection;if(sec)f.tdsSection=sec;}
+  const t=tdsForBill(s,{vendor:txt(e.vendor),amount:e.amount,gstPaise:e.gstPaise??0,date:e.date,exclude:e.id});
+  if(t.paise){f.tdsPaise=t.paise;const sec=t.section||mnyVendor(s,txt(e.vendor))?.tdsSection;if(sec)f.tdsSection=sec;}
   return {fields:f};
 }
 

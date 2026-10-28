@@ -180,7 +180,7 @@ export const handlers:Record<string,Handler>={
     // ACC-2 flows (contract §7, rulebook B10): cash above ₹10,000 to one party in a day (₹35,000 transport) posts with a warning and the
     // record is marked "deduction lost" (P&L notes).
     const cg=cmd.approve?accCashEnforce(s,{kind:'payment',party:e!.vendor?'2200/'+(mnyVendor(s,e!.vendor)?.code??e!.vendor):'expense:'+e!.id,amount:e!.amount,date,method:e!.method,
-      transport:!!(mnyCategory(s,e!.category) as {transport?:boolean}|undefined)?.transport,name:e!.vendor||undefined}):undefined;
+      transport:!!mnyCategory(s,e!.category)?.transport,name:e!.vendor||undefined}):undefined;
     if(cg?.deductionLost)e!.cashDeductionLost=true;
     e!.status=cmd.approve?'Posted':'Rejected';e!.date=date;e!.approver=uid;e!.decidedAt=s.clock;
     if(!cmd.approve&&cmd.reason?.trim())e!.reason=String(cmd.reason).trim();

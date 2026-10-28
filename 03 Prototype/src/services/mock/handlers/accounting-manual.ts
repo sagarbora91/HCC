@@ -10,7 +10,7 @@
 //                                                                                 (e.g. 2400/LN-HDFC), group secured-loans / unsecured-loans.
 // accManualSave(k, {date, type, narration, reference?, lines, template?}) = the manual-voucher API other ACC-2 handlers call (tds / gst lanes'
 // remittances replace their local `accManualSave` stub with this export).
-// Cash guards (contract §7) run through accManualCashCheck — a LOCAL STUB until acc2-flows merges (see the DONE file).
+// Cash guards (contract §7) run through accManualCashCheck → the flows lane's accCashGuard (ACC-2 integration).
 // The audit row of each command is written by execute() from the returned detail text. Production: clients/sync/accounting-manual.ts.
 import type {Handler,Kit} from '../commands';
 import {money} from '../../../domain/money';
@@ -46,11 +46,11 @@ export function accManualSave(k:Kit,x:ACCManualSaveInput):{voucher:ACCManualVouc
   }
   refuse(k,accManualProblems(s,x));
   const lines=accManualNormalise(x.lines),type=String(x.type) as ACCManualType,date=String(x.date);
-  const cash=accManualCashCheck(s,{type,date,lines});
+  const cash=accManualCashCheck(s,{type,date,lines,...(id?{exclude:id}:{})});
   if(cash.refused)k.fail('VALIDATION',cash.refused);
   const approved=user.role==='Owner',reference=String(x.reference??'').trim(),template=x.template?String(x.template) as ACCManualTemplate:undefined;
   const v:ACCManualVoucher={id:id||k.id('MV'),date,type,narration:String(x.narration).trim(),...(reference?{reference}:{}),lines,...(template?{template}:{}),
-    status:approved?'approved':'pending',by:uid,at:s.clock,...(approved?{decidedBy:uid,decidedAt:s.clock,bookedOn:date}:{})};
+    status:approved?'approved':'pending',by:uid,at:s.clock,...(approved?{decidedBy:uid,decidedAt:s.clock,bookedOn:date}:{}),...(cash.deductionLost?{cashDeductionLost:true}:{})};
   const list=manual(k),i=list.findIndex(x=>x.id===v.id);if(i<0)list.push(v);else list[i]=v;
   return {voucher:v,detail:`Manual ${type} ${v.id} dated ${date} ${id?'changed':'saved'} · ${total(lines)} · ${approved?'approved (Owner)':'pending the Owner’s approval'}${cash.warning?' · '+cash.warning:''}`};
 }
@@ -66,7 +66,9 @@ export const handlers:Record<string,Handler>={
     const list=manual(k),i=list.findIndex(x=>x.id===v!.id);
     if(cmd.approve===true){
       refuse(k,accManualProblems(s,v!));
-      list[i]={...v!,status:'approved',decidedBy:uid,decidedAt:s.clock,bookedOn:v!.date};
+      const cash=accManualCashCheck(s,{type:v!.type,date:v!.date,lines:v!.lines,exclude:v!.id}); // ACC-2 integration: the cash guard counts once approved
+      if(cash.refused)k.fail('VALIDATION',cash.refused);
+      list[i]={...v!,status:'approved',decidedBy:uid,decidedAt:s.clock,bookedOn:v!.date,...(cash.deductionLost?{cashDeductionLost:true}:{})};
       return `Manual ${v!.type} ${v!.id} dated ${v!.date} approved · ${total(v!.lines)}`;
     }
     const reason=reasonOf(k);

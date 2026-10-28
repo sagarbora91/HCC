@@ -13,7 +13,7 @@ import type {ExpUdReceivable} from './expenses-scc';
 import {mnyAccounts,mnyMethod,mnyMethodIndex,mnyVendor,mnyVendors,type MnyAccount} from './money-master';
 
 /** Control ledgers (contract §2 / §3): they hold party sub-ledgers and are never meant to be posted to directly. */
-export const ACC_PARTY_CONTROLS=['1000','1030','1110','1115','1120','1200','2200','2400'] as const;
+export const ACC_PARTY_CONTROLS=['1000','1030','1110','1115','1120','1200','1210','2200','2400'] as const; // ACC-2 integration (ruling 7): 1210 recoverable from leavers, one party per staff member
 export type ACCPartyControl=typeof ACC_PARTY_CONTROLS[number];
 /** One party sub-ledger (contract §3: `accPartyLedgers(s)` returns {id, control, partyId, name, active}[]). */
 export type ACCPartyLedger={id:string;control:string;partyId:string;name:string;active:boolean};
@@ -25,7 +25,7 @@ export type ACCPartyCtx={
   /** Company account id (1110). */company?:string;
   /** OTA channel id (1115). */channel?:string;
   /** Udhaar customer party id (1120), see accUdhaarPartyId. */udhaar?:string;
-  /** Staff id (1200). */staff?:string;
+  /** Staff id (1200 staff advances; 1210 recoverable from a leaver, ruling 7). */staff?:string;
   /** Expense vendor name or code as stored on the expense (2200). */vendor?:string;
 };
 
@@ -64,7 +64,10 @@ export function accPartyLedgers(s:State):ACCPartyLedger[]{
   const ud=new Map<string,string>();for(const r of udhaar(s)){const id=accUdhaarPartyId(r);if(!ud.has(id))ud.set(id,r.name);}
   for(const [id,name] of ud)add('1120',id,name,true);
   for(const x of staff(s))add('1200',x.id,x.name,x.active!==false);
+  for(const x of staff(s))add('1210',x.id,x.name,x.active!==false); // ACC-2 integration (ruling 7): a negative F&F posts to 1210/<leaver>
   for(const v of mnyVendors(s))add('2200',v.code,v.name,v.active);
+  // ACC-2 integration (ruling 2, manual DONE item 1): loan parties 2400/<CODE> are Owner-added chart rows (kind 'loan', ACC_LOAN_ADD).
+  for(const l of (s.accountingX?.chart?.ledgers??[]) as {code:string;name:string;active:boolean;kind?:string}[])if(l.kind==='loan'&&l.code.startsWith('2400/'))add('2400',l.code.slice(5),l.name,l.active);
   return out;
 }
 /** Display name of a party ledger id (the master row's name), or undefined when it is not a party id / not in the masters any more. */
@@ -75,8 +78,9 @@ export function accPartyName(s:State,id:string):string|undefined{
     case '1110':return companies(s).find(x=>x.id===p)?.name;
     case '1115':return channels(s).find(x=>x.id===p)?.name;
     case '1120':return udhaar(s).find(r=>accUdhaarPartyId(r)===p)?.name;
-    case '1200':return staff(s).find(x=>x.id===p)?.name;
+    case '1200':case '1210':return staff(s).find(x=>x.id===p)?.name; // 1210: ruling 7
     case '2200':return mnyVendors(s).find(v=>v.code===p)?.name;
+    case '2400':return ((s.accountingX?.chart?.ledgers??[]) as {code:string;name:string;kind?:string}[]).find(l=>l.kind==='loan'&&l.code===id)?.name; // ACC-2 integration (ruling 2)
     default:return undefined;
   }
 }
@@ -102,7 +106,7 @@ export function accPartyFor(s:State,control:string,ctx:ACCPartyCtx):string|undef
     case '1110':return ctx.company&&companies(s).some(c=>c.id===ctx.company)?ctx.company:undefined;
     case '1115':return ctx.channel&&channels(s).some(c=>c.id===ctx.channel)?ctx.channel:undefined;
     case '1120':return ctx.udhaar||undefined;
-    case '1200':return ctx.staff&&staff(s).some(x=>x.id===ctx.staff)?ctx.staff:undefined;
+    case '1200':case '1210':return ctx.staff&&staff(s).some(x=>x.id===ctx.staff)?ctx.staff:undefined; // 1210: ruling 7
     case '2200':{const v=String(ctx.vendor??'').trim();return v?mnyVendor(s,v)?.code:undefined;}
     default:return undefined; // 2400 loans: Owner-added rows come with ACC-2
   }

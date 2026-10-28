@@ -17,7 +17,7 @@
 // purchase lane's expense posting may import tdsForBill without a cycle.
 import type {State,Expense} from './types';
 import type {CMPProfile} from './streams/compliance';
-import {gstFy,gstLineTax} from './gst';
+import {gstFy} from './gst';
 import {mnyVendor} from './streams/money-master';
 
 export const TDS_CA_NOTE='CA to confirm';
@@ -132,6 +132,12 @@ export function tdsTable(s:State,date:string){
 }
 
 // ───────────────────────────── TDS on a bill (C9) ─────────────────────────────
+/** ACC-2 integration (ruling 9, contract §5 amended): TDS = base × rate rounded to the nearest RUPEE (half up; old s.288B), in paise. */
+export const tdsRound=(base:number,bps:number):number=>base<=0||bps<=0?0:Math.floor((base*bps+500000)/1000000)*100;
+/** The payee's rate column (ruling 9): the vendor's payeeType, else 'other'. */
+export const tdsPayeeType=(v:{payeeType?:string}|undefined):TdsColumn=>v?.payeeType==='individual'?'individual':'other';
+/** Hint for the vendor master: a PAN whose 4th letter is P (individual) or H (HUF) suggests 'individual'. */
+export const tdsPayeeHint=(pan:string|undefined):TdsColumn|''=>{const c=String(pan??'').trim().toUpperCase();return /^[A-Z]{5}[0-9]{4}[A-Z]$/.test(c)?(c[3]==='P'||c[3]==='H'?'individual':'other'):'';};
 export type TdsBillInput={vendor:string;amount:number;gstPaise?:number;date:string;
   /** The expense id being posted (excluded from the vendor's earlier bills when it is already stored). */ exclude?:string};
 export type TdsBillResult={paise:number;section:string;taxable:number;
@@ -159,7 +165,9 @@ export function tdsForBill(s:State,bill:TdsBillInput):TdsBillResult{
   if(!base)return none(`${v.name}: choose the TDS section on the vendor.`);
   const amount=Math.round(Number(bill.amount)||0),taxable=tdsTaxable(amount,Math.round(Number(bill.gstPaise)||0));
   if(taxable<=0)return none('Nothing taxable on the bill.',code,taxable);
-  const d=tdsSectionDef(base)!,date=bill.date,bps=tdsRateBps(s,code,date,set.tdsDeductorType);
+  // ACC-2 integration (ruling 9): the rate column follows the PAYEE (old 194C: individual / HUF 1 %, others 2 %) — the vendor's payeeType,
+  // default 'other'; the firm profile's tdsDeductorType is kept but no longer read here.
+  const d=tdsSectionDef(base)!,date=bill.date,bps=tdsRateBps(s,code,date,tdsPayeeType(v));
   const th=tdsValueOn(s,`tds.${base}.threshold` as TdsKey,date);
   const fy=gstFy(date),from=d.basis==='month'?date.slice(0,7)+'-01':fy.from,to=d.basis==='month'?date.slice(0,7)+'-31':fy.to;
   const same=(e:Expense)=>{const n=norm(e.vendor);return !!n&&(n===norm(v.name)||n===norm(v.code));};
@@ -177,7 +185,7 @@ export function tdsForBill(s:State,bill:TdsBillInput):TdsBillResult{
     reason=`${rs(total)} to ${v.name} ${period} above ${rs(yearTh)}${!already&&untaxed?` (earlier bills without TDS ${rs(untaxed)} included)`:''}`;
   }
   if(!deductBase)return {paise:0,section:code,taxable,base:0,bps,reason:`${rs(total)} to ${v.name} ${period} — within the ${rs(d.basis==='single+year'?th:yearTh)} threshold`};
-  const paise=Math.min(amount,gstLineTax(deductBase,bps));
+  const paise=Math.min(amount,tdsRound(deductBase,bps)); // ruling 9: TDS rounds to the nearest rupee (old s.288B)
   return {paise,section:code,taxable,base:deductBase,bps,reason:`${d.label} ${tdsPct(bps)} on ${rs(deductBase)} · ${reason}`};
 }
 
@@ -191,7 +199,7 @@ export function tdsForBill(s:State,bill:TdsBillInput):TdsBillResult{
 export function tdsCompanyExpected(s:State,x:{taxable:number;date:string;monthTaxable?:number}):{paise:number;bps:number;threshold:number}{
   const threshold=tdsValueOn(s,'tds.rent.threshold',x.date),bps=tdsValueOn(s,'tds.rent.bpsOther',x.date);
   const month=x.monthTaxable??x.taxable;
-  return {paise:month>threshold&&x.taxable>0?gstLineTax(x.taxable,bps):0,bps,threshold};
+  return {paise:month>threshold&&x.taxable>0?tdsRound(x.taxable,bps):0,bps,threshold}; // ruling 9: whole rupees
 }
 /** Highest share of a settlement a company's TDS may take (20 %: the no-PAN rate is the highest TDS rate; anything above is not TDS). */
 export const TDS_RECEIVABLE_MAX_BPS=2000;

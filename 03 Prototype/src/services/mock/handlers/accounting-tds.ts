@@ -7,6 +7,8 @@
 // The rates themselves are dated Master configuration settings (SETTING_SET on tds.*; registered in domain/streams/accounting-tds.ts).
 // Production: clients/sync/accounting-tds.ts.
 import type {Handler,Kit} from '../commands';
+import {accManualSave as accManualSaveApi} from './accounting-manual'; // ACC-2 integration (contract §2)
+import {accMarkComplianceCard} from './accounting-gst'; // ACC-2 integration (ruling 9): the remittance marks the month's TDS card
 import {money} from '../../../domain/money';
 import {accSlice,accMapping,type ACCState,type ACCManualVoucher,type ACCManualLine,type ACCManualTemplate} from '../../../domain/streams/accounting';
 import {accLedger} from '../../../domain/streams/accounting-chart';
@@ -19,21 +21,8 @@ const TAX_ROLES=['Owner','Accountant'];
 const owner=(k:Kit)=>{if(k.user.role!=='Owner')k.fail('FORBIDDEN','Access denied: only the Owner changes the TDS settings (money settings, DEC-058).');};
 const tax=(k:Kit)=>{k.req('reports');if(!TAX_ROLES.includes(k.user.role))k.fail('FORBIDDEN','Access denied: TDS entries are for the Owner and the Accountant (PERM-ACC-013).');};
 
-/**
- * LOCAL STUB of the manual lane's `accManualSave` (acc2-manual, contract §2) — the integrator replaces it with the manual lane's export.
- * Stores the voucher in s.accountingX.manual: the Owner's own is approved at once, an Accountant's is pending. The manual lane's guards
- * (balanced, active ledgers, locked day, cash guards) and its posting section of accLiveVouchers come with that merge.
- */
-function accManualSave(k:Kit,v:{date:string;type:ACCManualVoucher['type'];narration:string;reference?:string;lines:ACCManualLine[];template:ACCManualTemplate}):ACCManualVoucher{
-  const x:ACCState={...accSlice(k.s)};k.s.accountingX=x;
-  const dr=v.lines.reduce((a,l)=>a+l.debit,0),cr=v.lines.reduce((a,l)=>a+l.credit,0);
-  k.assert(dr===cr&&dr>0,'The entry does not balance.');
-  const approved=k.user.role==='Owner';
-  const mv:ACCManualVoucher={id:k.id('MV'),date:v.date,type:v.type,narration:v.narration,...(v.reference?{reference:v.reference}:{}),lines:v.lines,template:v.template,
-    status:approved?'approved':'pending',by:k.uid,at:k.s.clock,...(approved?{decidedBy:k.uid,decidedAt:k.s.clock}:{}),bookedOn:v.date};
-  x.manual=[...(x.manual??[]),mv];
-  return mv;
-}
+/** ACC-2 integration: the manual lane's voucher API (contract §2) replaces the lane's local stub — every §2 guard, Owner approved / Accountant pending. */
+const accManualSave=(k:Kit,v:{date:string;type:ACCManualVoucher["type"];narration:string;reference?:string;lines:ACCManualLine[];template:ACCManualTemplate}):ACCManualVoucher=>accManualSaveApi(k,v).voucher;
 
 export const handlers:Record<string,Handler>={
   ACC_TDS_SETTINGS:k=>{
@@ -67,6 +56,8 @@ export const handlers:Record<string,Handler>={
     const payable=map[ACC_TDS_PAYABLE_KEY]??TDS_LEDGER.payable,bank=accPost(s,code!,{method});
     const v=accManualSave(k,{date,type:'Payment',narration:tdsRemitNarration(section!,month,challan),reference:challan,template:'tds-remittance',
       lines:[{account:payable,debit:amount,credit:0},{account:bank,debit:0,credit:amount}]});
-    return `${v.id} · TDS remittance · ${tdsSectionDef(section!)!.label} · ${month} · ${money(amount)} by ${method} · challan ${challan} · Dr ${payable} · Cr ${bank} · ${v.status==='approved'?'approved':'waiting for the Owner'}`;
+    // ACC-2 integration (ruling 9): as the gst lane does for PF / ESIC / PT, the month's TDS compliance card is marked filed with the challan.
+    const card=accMarkComplianceCard(k,'TDS',month,date,challan,`TDS ${tdsSectionDef(section!)!.label} ${money(amount)} remitted · ${method} · manual voucher ${v.id}`);
+    return `${v.id} · TDS remittance · ${tdsSectionDef(section!)!.label} · ${month} · ${money(amount)} by ${method} · challan ${challan} · Dr ${payable} · Cr ${bank} · ${v.status==='approved'?'approved':'waiting for the Owner'}${card}`;
   },
 };

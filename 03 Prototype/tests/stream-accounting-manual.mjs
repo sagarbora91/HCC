@@ -90,7 +90,7 @@ export function register({test,M,assert}){
     assert.deepEqual(p(L({account:'5080',debit:20_000_000_000,credit:0},{account:BANK,debit:0,credit:20_000_000_000})),[M_.lineLarge(1),M_.lineLarge(2)]);
     assert.deepEqual(p(L({account:'9999',debit:R(1),credit:0},ok)),[M_.lineNever(1,'9999')]);
     assert.deepEqual(p(L({account:'1400',debit:R(1),credit:0},ok)),[M_.lineNever(1,'1400')]);
-    for(const c of ['1000','1030','1110','1115','1120','1200','2200','2400'])assert.deepEqual(p(L({account:c,debit:R(1),credit:0},ok)),[M_.lineControl(1,c)],c);
+    for(const c of ['1000','1030','1110','1115','1120','1200','1210','2200','2400'])assert.deepEqual(p(L({account:c,debit:R(1),credit:0},ok)),[M_.lineControl(1,c)],c);
     assert.deepEqual(p(L({account:'5081',debit:R(1),credit:0},ok)),[M_.lineUnknown(1,'5081')]);
     assert.deepEqual(p(L({account:'1110/CO-404',debit:R(1),credit:0},ok)),[M_.lineUnknown(1,'1110/CO-404')]);
     assert.deepEqual(p(L({account:'5080/X',debit:R(1),credit:0},ok)),[M_.lineUnknown(1,'5080/X')]);
@@ -194,9 +194,15 @@ export function register({test,M,assert}){
     for(const t of ['capital-introduced','owner-drawing-bank','bank-charges','interest-income','tds-remittance'])
       assert.deepEqual(M.accManualProblems(s,{...T(t),date:D,narration:T(t).narration}),[],t);
   });
-  test('[ACC2-MANUAL] cash guard hook (contract §7): a cash Payment / Receipt with a party goes through accManualCashCheck (local stub allows, flows lane wires the limits)',()=>{
+  test('[ACC2-MANUAL] cash guard (contract §7, ACC-2 integration: the accCashGuard of the flows lane): a ₹15,000 cash Payment to one person is warned and marked deduction lost; a ₹2,00,000 cash Receipt from one party is refused',()=>{
     const s=M.seed();
-    assert.deepEqual(M.accManualCashCheck(s,{type:'Payment',date:D,lines:[{account:'1200/HR-S01',debit:R(15000),credit:0},{account:TILL,debit:0,credit:R(15000)}]}),{});
-    assert.deepEqual(M.accManualCashGuardStub(s,{kind:'receipt',party:'1110/CO-1',amount:R(250000),date:D}),{});
+    const pay=M.accManualCashCheck(s,{type:'Payment',date:D,lines:[{account:'1200/HR-S01',debit:R(15000),credit:0},{account:TILL,debit:0,credit:R(15000)}]});
+    assert.equal(pay.deductionLost,true);assert.match(pay.warning,/more than ₹10,000/);assert.equal(pay.refused,undefined);
+    assert.deepEqual(M.accManualCashCheck(s,{type:'Payment',date:D,lines:[{account:'1200/HR-S01',debit:R(10000),credit:0},{account:TILL,debit:0,credit:R(10000)}]}),{});
+    const co=s.groupsX.companies[0].id;
+    const rec={type:'ACC_MANUAL_SAVE',voucherType:'Receipt',date:D,narration:'Cash from a company (fictional)',lines:[{account:TILL,debit:R(200000),credit:0},{account:'1110/'+co,debit:0,credit:R(200000)}]};
+    assert.throws(()=>M.execute(s,'owner',rec),e=>e.code==='VALIDATION'&&/s.186/.test(e.message));
+    const ok=M.execute(s,'owner',{type:'ACC_MANUAL_SAVE',voucherType:'Payment',date:D,narration:'Advance in cash (fictional)',lines:[{account:'1200/HR-S01',debit:R(15000),credit:0},{account:TILL,debit:0,credit:R(15000)}]});
+    assert.equal(ok.accountingX.manual.at(-1).cashDeductionLost,true,'the voucher carries the B10 flag');
   });
 }

@@ -210,9 +210,9 @@ export function accRulebookMonth(s0:State,exec:Exec=need(engine)):State{
         run(MANAGER,{type:'CHECKOUT',id:st.id});
       }
       // T5a (contract §4, A6a): the ₹10,000 advance held since before HCC is applied to room 308's folio — no deposit receipt exists in HCC for it
-      // (booked before HCC: no advance-GST line), so the command is DEPOSIT_APPLY {booking, amount} exactly as the contract writes it.
+      // (booked before HCC: no advance-GST line), so the command is DEPOSIT_APPLY {booking, amount, source:'opening'} (coordinator ruling 4: the advance comes from 2000 in the opening balance; Manager / Owner).
       const b308=stays.find(x=>x.room==='308')!;
-      run(MANAGER,{type:'DEPOSIT_APPLY',booking:b308.id,amount:P(10000)});
+      run(MANAGER,{type:'DEPOSIT_APPLY',booking:b308.id,amount:P(10000),source:'opening'});
       settleGuest(s.bookings.find(b=>b.id===b308.id)!);
       clean(ACC_RB.otaStay.room);
     }

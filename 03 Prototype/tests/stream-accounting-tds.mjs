@@ -10,8 +10,9 @@ export function register({test,M,assert}){
   const fails=f=>{try{f();}catch(e){return e;}assert.fail('expected a refusal');};
   const P=r=>Math.round(r*100);
   /** A TDS vendor (the purchase lane adds tdsSection to the master form; here it is set on the stored row). */
-  const withVendor=(s,code,name,section)=>{
-    s=execute(s,'owner',{type:'MST_MASTER_SAVE',master:'expenseVendors',row:{code,name,type:'other',tds:true,pan:'AAAPS1234C'}});
+  // ACC-2 integration (ruling 9): the rate column follows the payee — these fixtures are 'other' payees (2 %) unless a test says otherwise.
+  const withVendor=(s,code,name,section,payeeType='other')=>{
+    s=execute(s,'owner',{type:'MST_MASTER_SAVE',master:'expenseVendors',row:{code,name,type:'other',tds:true,pan:'AAAPS1234C',payeeType}});
     s=structuredClone(s);s.mastersX.rows.expenseVendors.find(r=>r.code===code).tdsSection=section;return s;};
   /** A posted bill as the purchase lane stores it (tdsPaise = what tdsForBill returned at posting). */
   let n=0;const bill=(s,vendor,date,amount,gstPaise=0,tdsPaise=0)=>{s=structuredClone(s);
@@ -68,9 +69,14 @@ export function register({test,M,assert}){
     assert.equal(P(59000)-r.paise,P(58000),'net credit to 2200/<vendor>');assert.match(r.reason,/single bill ₹50,000 above ₹30,000/);
     // Below the single threshold and the year: nothing (the reason says why).
     const small=M.tdsForBill(s,{vendor:'V-SHIV-CIVIL',amount:P(20000),date:D});assert.equal(small.paise,0);assert.match(small.reason,/within/);
-    // Individual column (1 %), rounding half away from zero on paise.
-    const ind=execute(s,'owner',{type:'ACC_TDS_SETTINGS',tdsDeductorType:'individual'});
-    assert.equal(M.tdsForBill(ind,{vendor:'V-SHIV-CIVIL',amount:3000050,date:D}).paise,30001);
+    // Individual column (1 %) — ruling 9: the PAYEE's type (vendor payeeType), not the firm profile; TDS rounds to the nearest rupee.
+    const ind=withVendor(seed(),'V-SHIV-CIVIL','Shiv Civil Works (fictional)','contractor','individual');
+    assert.equal(M.tdsForBill(ind,{vendor:'V-SHIV-CIVIL',amount:3000050,date:D}).paise,30000,'₹300.0050 → ₹300');
+    assert.equal(M.tdsForBill(ind,{vendor:'V-SHIV-CIVIL',amount:P(30050),date:D}).paise,P(301),'₹300.50 → ₹301 (half up)');
+    assert.equal(M.tdsForBill(execute(s,'owner',{type:'ACC_TDS_SETTINGS',tdsDeductorType:'individual'}),{vendor:'V-SHIV-CIVIL',amount:P(59000),gstPaise:P(9000),date:D}).paise,P(1000),'the firm profile column is no longer read');
+    // the vendor master suggests the column from the PAN (4th letter P / H = individual) when the type is left empty
+    const hinted=execute(seed(),'owner',{type:'MST_MASTER_SAVE',master:'expenseVendors',row:{code:'V-HINT',name:'Hint Works (fictional)',type:'other',tds:true,pan:'AAAPS1234C'}});
+    assert.equal(M.mnyVendor(hinted,'V-HINT').payeeType,'individual');
     // Switch off / vendor not flagged / no section → 0.
     assert.equal(M.tdsForBill(execute(s,'owner',{type:'ACC_TDS_SETTINGS',hotelDeductsTds:false}),{vendor:'V-SHIV-CIVIL',amount:P(59000),date:D}).paise,0);
     assert.equal(M.tdsForBill(s,{vendor:'Morning Supplies',amount:P(59000),date:D}).paise,0);
@@ -101,7 +107,7 @@ export function register({test,M,assert}){
     let pr=withVendor(seed(),'V-CA','Audit Partners (fictional)','professional');
     pr=bill(pr,'Audit Partners (fictional)','2026-06-01',P(40000));
     assert.equal(M.tdsForBill(pr,{vendor:'V-CA',amount:P(11800),gstPaise:P(1800),date:D}).paise,0,'₹40,000 + ₹10,000 = ₹50,000 is not above ₹50,000');
-    assert.equal(M.tdsForBill(pr,{vendor:'V-CA',amount:P(10001),date:D}).paise,500010,'₹50,001 crosses: 10 % of the whole ₹50,001');
+    assert.equal(M.tdsForBill(pr,{vendor:'V-CA',amount:P(10001),date:D}).paise,500000,'₹50,001 crosses: 10 % of the whole ₹50,001 = ₹5,000.10 → ₹5,000 (ruling 9: nearest rupee)');
   });
 
   test('[ACC2-TDS] ACC_TDS_REMIT: manual template tds-remittance Dr 2150 · Cr 1030/<bank>; Owner approved, Accountant pending; guards; deductee report with remitted and CSV',()=>{

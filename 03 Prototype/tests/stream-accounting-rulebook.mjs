@@ -354,7 +354,8 @@ export function register({test,M,assert}){
   test(T2+'T11: the ₹60,000 payment is allocated oldest first — ₹35,000 of the ₹59,000 bill (the ₹25,000 opening first); the bill keeps ₹24,000 open',()=>{
     const s=month(),vp=(s.expensesX?.vendorPayments??[]);assert.equal(vp.length,1,'one vendor payment');
     const p=vp[0],bill=s.expenses.find(e=>e.vendor==='Morning Supplies'&&e.amount===R(59000));assert.ok(bill);
-    assert.deepEqual([p.vendor,p.amount,p.method,p.date,!!p.void],['Morning Supplies',R(6000000/100),'Bank transfer','2026-04-18',false]);
+    // ACC-2 integration: a vendor payment stores the vendor master CODE (purchase lane, contract §3.2 "an active master row"); its name for display
+    assert.deepEqual([p.vendor,M.expVendorName(s,p.vendor),p.amount,p.method,p.date,!!p.void],['EV-MORNING','Morning Supplies',R(6000000/100),'Bank transfer','2026-04-18',false]);
     assert.equal(p.allocations.filter(a=>a.expense===bill.id).reduce((a,x)=>a+x.amount,0),R(35000),'35,000 against the 59,000 bill');
     const rest=p.allocations.filter(a=>a.expense!==bill.id).reduce((a,x)=>a+x.amount,0);assert.ok(rest===R(25000)||rest===0,'the ₹25,000 opening balance is allocated first (or carried as the opening line): '+rest);
     assert.ok(p.allocations.reduce((a,x)=>a+x.amount,0)<=p.amount);
@@ -396,7 +397,7 @@ export function register({test,M,assert}){
   // ───────────────────────── ACC-2 manual vouchers (contract §2): every guard, Owner vs Accountant ─────────────────────────
   test(T2+'manual voucher guards: unbalanced, empty, unknown ledger, control ledger without a party, 9999 / 1400, future date, Contra with a non-bank line, Payment without a bank side — all refused with a reason',()=>{
     const s=month(),owner=(o)=>()=>cmd(s,'owner',mv(o),'acc2-manual'),refused=(o,re)=>assert.throws(owner(o),e=>!/waits for lane/.test(e.message)&&re.test(e.message),JSON.stringify(o.lines));
-    refused({type:'Journal',date:MAY1,lines:manualLines(['5040',10000,0],['1000',0,9000])},/balanc|equal|debit/i);
+    refused({type:'Journal',date:MAY1,lines:manualLines(['5040',10000,0],['1000/TILL',0,9000])},/balanc|equal|debit/i); // ACC-2 integration: the till party (a bare 1000 is refused first as a control without its party)
     refused({type:'Journal',date:MAY1,lines:[]},/line|balanc|enter/i);
     refused({type:'Journal',date:MAY1,lines:manualLines(['7777',10000,0],['1000',0,10000])},/ledger|account|chart/i);
     refused({type:'Payment',date:MAY1,lines:manualLines(['5080',10000,0],['1030',0,10000])},/party|control|bank account/i);          // 1030 without a bank party

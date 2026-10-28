@@ -21,6 +21,7 @@ import type {State} from '../types';
 import {accSlice,accLockOf,type ACCLedger,type ACCManualLine,type ACCManualTemplate,type ACCManualVoucher,type ACCVoucher} from './accounting';
 import {accChartIndex,accChartSlice,accGroupOf,accLedger} from './accounting-chart';
 import {accIsControl,accIsParty,accControlOf,accPartyIdOf,accPartyLedgers,accPartySlug} from './accounting-parties';
+import {accCashGuard} from './accounting-guards'; // ACC-2 integration: contract §7 cash guard (replaces the lane's stub)
 
 // ── Constants ──
 export const ACC_MANUAL_TYPES=['Journal','Contra','Payment','Receipt'] as const;
@@ -185,20 +186,23 @@ export const accManualNormalise=(lines:ACCManualLine[]):ACCManualLine[]=>lines.m
 export const accManualIsBadDebt=(x:{template?:unknown;lines?:unknown})=>x.template==='bad-debt'||(Array.isArray(x.lines)&&(x.lines as Partial<ACCManualLine>[]).some(l=>String(l?.account??'').trim()==='5300'&&(l?.debit??0)>0));
 
 // ── Cash guards (contract §7; B9 / B10) ──
-/** Result of the flows lane's cash guard: `refused` = the s.186 receipt limit (CASH_LIMIT); `warning` = the payment limit (deduction lost). */
-export type ACCCashGuardResult={refused?:string;warning?:string};
-/** LOCAL STUB of the flows lane's `accCashGuard` (src/domain/streams/accounting-guards.ts, contract §7) until acc2-flows merges: allows
- *  everything. The integrator replaces this function's body with a call to the real guard (see ACC2-MANUAL-DONE.md "Integration needed"). */
-export function accManualCashGuardStub(_s:State,_x:{kind:'receipt'|'payment';party:string;amount:number;date:string}):ACCCashGuardResult{return {};}
+/** Result of the cash guard for a manual voucher: `refused` = the s.186 receipt limit (CASH_LIMIT); `warning` = the payment limit (deduction lost). */
+export type ACCManualCashResult={refused?:string;warning?:string;deductionLost?:boolean};
+/** ACC-2 integration: the flows lane's guard (accounting-guards.ts, contract §7) for a manual Payment / Receipt (the stub is gone). */
+function accManualCashGuard(s:State,x:{kind:'receipt'|'payment';party:string;amount:number;date:string;exclude?:string}):ACCManualCashResult{
+  const g=accCashGuard(s,{kind:x.kind,party:x.party,amount:x.amount,date:x.date,...(x.exclude?{exclude:x.exclude}:{})});
+  return g.refused?{refused:g.message}:g.deductionLost?{warning:g.warning,deductionLost:true}:{};
+}
 /** The cash guard of a Payment / Receipt that moves cash (1000 / 1005) with a party on the other side: {kind, party, amount} or undefined. */
-export function accManualCashCheck(s:State,x:{type:string;date:string;lines:ACCManualLine[]}):ACCCashGuardResult{
+export function accManualCashCheck(s:State,x:{type:string;date:string;lines:ACCManualLine[];exclude?:string}):ACCManualCashResult{
   if(x.type!=='Payment'&&x.type!=='Receipt')return {};
   const cash=x.lines.filter(l=>['1000','1005'].includes(accControlOf(l.account)));
+  // (a manual Payment / Receipt keeps the cash guard; the voucher being re-saved / approved is excluded from the day's total)
   if(!cash.length)return {};
   const party=x.lines.find(l=>!['1000','1005'].includes(accControlOf(l.account))&&accIsParty(l.account));
   if(!party)return {};
   const amount=cash.reduce((a,l)=>a+(x.type==='Payment'?l.credit:l.debit),0);
-  return accManualCashGuardStub(s,{kind:x.type==='Payment'?'payment':'receipt',party:party.account,amount,date:x.date});
+  return accManualCashGuard(s,{kind:x.type==='Payment'?'payment':'receipt',party:party.account,amount,date:x.date,...(x.exclude?{exclude:x.exclude}:{})});
 }
 
 // ── Guided templates (contract §2; the UI lane fills the form, these build the lines) ──

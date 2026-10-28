@@ -22,7 +22,7 @@ export const ACC_PAYROLL_MAP:Record<string,string>={
   'payroll:net-payable':'2300','payroll:pf-payable':'2310','payroll:esic-payable':'2320',
   'payroll:pt-payable':'2330','payroll:other-deductions':'2340','payroll:advances':'1200',
   // DEC-074 (illustrative — CA to confirm): F&F additions, deductions and an amount the leaver owes (party = the leaver, as the server).
-  'payroll:fnf-additions':'5100','payroll:fnf-deductions':'2340','payroll:fnf-recoverable':'1200',
+  'payroll:fnf-additions':'5100','payroll:fnf-deductions':'2340','payroll:fnf-recoverable':'1210', // ACC-2 integration (ruling 7, rulebook D4): 1210/<leaver>
 };
 
 const cr=(key:string,amount:number,x:Partial<ACCPayrollLine>={}):ACCPayrollLine=>amount>=0?{key,debit:0,credit:amount,...x}:{key,debit:-amount,credit:0,...x};
@@ -61,16 +61,18 @@ export function accPayrollSources(s:State,date:string):ACCPayrollDraft[]{
       source:{kind:'payroll',id:'advance:'+a.id,sub:'advance'},lines:[dr('payroll:advances',a.amount,{staff:a.staffId}),cr('funding:'+f,a.amount,{method:f})]});}
   // D1 / D2 · pay run posted at lock, net pay paid by the first bank file of that lock, the exact reversal at an Owner unlock
   for(const run of x.runs){
-    const locks:{seq:number;on?:string;book?:HRRunBook;unlockedOn?:string;files:{on?:string;at:string;net:number}[]}[]=(run.unlocks??[]).map((u,i)=>({seq:i+1,on:u.lockedOn,book:u.book,unlockedOn:u.on,files:u.bankFiles??[]}));
-    if(run.status==='Locked')locks.push({seq:locks.length+1,on:hrOn(run.lockedOn,run.lockedAt),book:hrRunBook(run),files:run.bankFiles??[]});
+    const locks:{seq:number;on?:string;bookOn?:string;book?:HRRunBook;unlockedOn?:string;files:{on?:string;bookOn?:string;at:string;net:number}[]}[]=(run.unlocks??[]).map((u,i)=>({seq:i+1,on:u.lockedOn,bookOn:u.lockedBookOn,book:u.book,unlockedOn:u.on,files:u.bankFiles??[]}));
+    if(run.status==='Locked')locks.push({seq:locks.length+1,on:hrOn(run.lockedOn,run.lockedAt),bookOn:run.lockedBookOn,book:hrRunBook(run),files:run.bankFiles??[]});
     let issued=0;
     for(const l of locks){
       const sfx=lockSuffix(l.seq),first=l.files[0],firstOn=first?hrOn(first.on,first.at)!:'';
-      const tag=(what:string,on:string)=>accPayrollDate(run.month,on)!==on?` · ${what} ${on}`:'';
-      if(l.book&&l.on&&accPayrollDate(run.month,l.on)===date)out.push({type:'Journal',narration:`Pay run ${run.month} · run ${run.id}${l.seq>1?' · lock '+l.seq:''}${tag('locked',l.on)}`,
+      // ACC-2 integration (ruling 6): the booking date stamped at the act wins (period's last day only while that day was unlocked); older records keep the clip.
+      const at=(on:string,bookOn?:string)=>bookOn??accPayrollDate(run.month,on);
+      const tag=(what:string,on:string,bookOn?:string)=>at(on,bookOn)!==on?` · ${what} ${on}`:'';
+      if(l.book&&l.on&&at(l.on,l.bookOn)===date)out.push({type:'Journal',narration:`Pay run ${run.month} · run ${run.id}${l.seq>1?' · lock '+l.seq:''}${tag('locked',l.on,l.bookOn)}`,
         source:{kind:'payroll',id:'payroll:'+run.id+sfx,sub:'payrun'},lines:accPayRunLines(l.book)});
-      if(first&&accPayrollDate(run.month,firstOn)===date&&first.net)
-        out.push(paid('payroll-paid:'+run.id+sfx,'payment',`Net pay paid · ${ACC_PAYROLL_FUNDING} · Bank file ${issued+1} · ${hrMonthLabel(run.month)} · run ${run.id}${tag('paid',firstOn)}`,first.net));
+      if(first&&at(firstOn,first.bookOn)===date&&first.net)
+        out.push(paid('payroll-paid:'+run.id+sfx,'payment',`Net pay paid · ${ACC_PAYROLL_FUNDING} · Bank file ${issued+1} · ${hrMonthLabel(run.month)} · run ${run.id}${tag('paid',firstOn,first.bookOn)}`,first.net));
       if(l.book&&l.unlockedOn===date){
         const flag=l.files.length?' · BANK FILE ALREADY ISSUED: net-pay payment voucher kept (not reversed); do not pay twice on re-lock':'';
         out.push({type:'Journal',narration:`Reversal of pay run ${run.month} · run ${run.id} · lock ${l.seq} unlocked · reverses payroll:${run.id}${sfx}${flag}`,
@@ -94,9 +96,9 @@ export function accPayrollDates(s:State):string[]{
   const x=hrSlice(s),d=new Set<string>();
   x.advances.forEach(a=>d.add(a.date));
   for(const run of x.runs){
-    const at=(on:string)=>accPayrollDate(run.month,on);
-    for(const u of run.unlocks??[]){if(u.lockedOn)d.add(at(u.lockedOn));if(u.on)d.add(u.on);const f=u.bankFiles?.[0];if(f)d.add(at(hrOn(f.on,f.at)!));}
-    if(run.status==='Locked'){const on=hrOn(run.lockedOn,run.lockedAt);if(on)d.add(at(on));const f=run.bankFiles?.[0];if(f)d.add(at(hrOn(f.on,f.at)!));}
+    const at=(on:string,bookOn?:string)=>bookOn??accPayrollDate(run.month,on); // ruling 6: the stamped booking date wins
+    for(const u of run.unlocks??[]){if(u.lockedOn)d.add(at(u.lockedOn,u.lockedBookOn));if(u.on)d.add(u.on);const f=u.bankFiles?.[0];if(f)d.add(at(hrOn(f.on,f.at)!,f.bookOn));}
+    if(run.status==='Locked'){const on=hrOn(run.lockedOn,run.lockedAt);if(on)d.add(at(on,run.lockedBookOn));const f=run.bankFiles?.[0];if(f)d.add(at(hrOn(f.on,f.at)!,f.bookOn));}
   }
   for(const f of x.fnf??[])if(hrFnfSettled(f)){const on=hrOn(f.confirmedOn,f.confirmedAt??f.at);if(on)d.add(on);}
   return [...d];
