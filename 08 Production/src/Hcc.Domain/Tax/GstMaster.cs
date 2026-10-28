@@ -336,6 +336,7 @@ public static class GstPosting
     {
         "room" => RoomRevenue,
         "service" => OtherRevenue,
+        "food" => "4200", // ACC-2 parity: F&B on a folio (line:food)
         "discount" => DiscountsAllowed,
         "correction" => Adjustments,
         _ => throw new ArgumentOutOfRangeException(nameof(lineKind), lineKind, null),

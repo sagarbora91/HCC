@@ -39,11 +39,13 @@ public sealed class PerStaffRecoveryTests(PayrollDb db) : IClassFixture<PayrollD
 
         // the event names each staff member's recovery
         var payload = (string)(await db.ScalarAsync("SELECT payload FROM plat.outbox WHERE event_type = 'PayrollPosted' AND property_id = @p;", ("@p", h.PropertyId)))!;
-        Assert.Contains("\"advanceRecoveries\":[{\"staffId\":" + ravi + ",\"amountPaise\":100000}]", payload, StringComparison.Ordinal);
+        Assert.Contains("\"advanceRecoveries\":[{\"staffId\":" + ravi + ",\"paise\":100000}]", payload, StringComparison.Ordinal);
 
         var owner = new Caller(h.PropertyId, h.U("owner"));
-        var day = await Books.DayAsync(owner, new DateOnly(2026, 10, 24), Ct);
+        // coordinator ruling 2: the pay-run voucher is dated the period's last day (31 Aug); the narration carries the lock date
+        var day = await Books.DayAsync(owner, new DateOnly(2026, 8, 31), Ct);
         var v = day.Vouchers.Single(x => x.SourceKey == "payroll:" + run.RunId);
+        Assert.EndsWith(" · locked 2026-10-24", v.Narration, StringComparison.Ordinal);
         var staff = "1200/" + PartyLedgers.Staff(ravi);
         Assert.Equal([(staff, 0L, 100_000L)], v.Entries.Where(e => e.Account.StartsWith("1200", StringComparison.Ordinal)).Select(e => (e.Account, e.DebitPaise, e.CreditPaise)));
         Assert.DoesNotContain(day.Exceptions, x => x.Kind == "no-party" && x.Id.EndsWith(":1200", StringComparison.Ordinal));

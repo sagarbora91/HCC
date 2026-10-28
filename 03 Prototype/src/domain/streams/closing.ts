@@ -111,7 +111,7 @@ export function shiftExpected(s:State){
   const parts={opening:s.openingCash,payments:sum(['payment']),deposits:sum(['deposit']),refunds:neg(sum(['refund'])),returns:neg(sum(['deposit-return'])),
     expenses:neg(sum(['expense','expense-reversal'])),other:sum(['company-credit']),restaurant:sum(['pos-sale','pos-void']),
     /** DEC-073: bank deposits, till transfers and Owner drawings, signed (usually negative: cash out of the drawer). */
-    transfers:sum(['banking','transfer-out','transfer-in','owner-drawing'])};
+    transfers:sum(['banking','transfer-out','transfer-in','owner-drawing','staff-advance'])}; // ACC-2: a cash salary advance leaves the drawer
   const expected=parts.opening+parts.payments+parts.deposits+parts.restaurant+parts.other+parts.transfers-parts.refunds-parts.returns-parts.expenses;
   return {...parts,expected,consistent:expected===drawer(s)};
 }

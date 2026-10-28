@@ -21,6 +21,8 @@ import {hrDesignationOf,hrShiftChoices,hrLeaveName,HRM_DESIGNATIONS,HRM_LEAVE_TY
 import {mstRows,mstStored,mstByCode} from '../../../domain/streams/masters';
 import {addDays} from '../../../domain/money';
 import {clone} from '../../../domain/clone';
+import {mnyMethod,mnyIsDrawer} from '../../../domain/streams/money-master'; // ACC-2 parity: advance funding
+import {drawer} from '../../../domain/selectors';
 
 const DATE=/^\d{4}-\d{2}-\d{2}$/;
 function staffOf(k:Kit,id:string):HRStaff{const st=hrEnsure(k.s).staff.find(x=>x.id===id);k.assert(st,'Staff member not found.','NOT_FOUND');return st!;}
@@ -494,9 +496,16 @@ export const handlers:Record<string,Handler>={
     assert(!x.advances.some(a=>a.staffId===st.id&&hrAdvanceBalance(a)>0),'This staff member already has an open advance.','INVALID_TRANSITION');
     assert(String(cmd.reason??'').trim(),'Give a reason.');
     const fromMonth=cmd.fromMonth??s.date.slice(0,7);assert(/^\d{4}-\d{2}$/.test(fromMonth)&&fromMonth>=s.date.slice(0,7),'Recovery starts this month or later.');
+    // ACC-2 (coordinator ruling 1): `funding` = the payment method (default Cash). Cash leaves the drawer of the open shift (never below zero);
+    // the voucher credits that method's ledger (Cash → 1000/<till>, a bank method → 1030/<bank>).
+    const funding=String(cmd.funding??'Cash').trim()||'Cash';
+    assert(mnyMethod(s,funding),`${funding} is not a payment method — choose how the advance is paid.`);
+    const cash=mnyIsDrawer(s,funding);
+    if(cash){k.open();assert(s.shiftOpen,'Open cash shift required: a cash advance is paid from the drawer. Open a cashier shift first, or pay it by bank.','INVALID_TRANSITION');
+      assert(cmd.amount<=drawer(s),`Not enough cash in the drawer (${money(drawer(s))}) for this advance.`,'INVALID_TRANSITION');}
     const id=k.id('HR-ADV');
-    x.advances.push({id,staffId:st.id,amount:cmd.amount,installment:cmd.installment,recovered:0,date:s.date,reason:String(cmd.reason).trim(),by:k.uid,recoveries:[],...(cmd.fromMonth?{fromMonth}:{})});
-    return `${id} · ${st.name} · advance ${money(cmd.amount)} · ${cmd.installment?money(cmd.installment)+'/month':'full recovery'} from ${hrMonthLabel(fromMonth)} (simulated bank transfer, not drawer cash)`;
+    x.advances.push({id,staffId:st.id,amount:cmd.amount,installment:cmd.installment,recovered:0,date:s.date,reason:String(cmd.reason).trim(),by:k.uid,recoveries:[],...(cmd.fromMonth?{fromMonth}:{}),funding});
+    return `${id} · ${st.name} · advance ${money(cmd.amount)} · ${cmd.installment?money(cmd.installment)+'/month':'full recovery'} from ${hrMonthLabel(fromMonth)} (${cash?'cash from the drawer':funding+', simulated — no money moves'})`;
   },
   /** New dated statutory rate version (effective from the 1st of a month after the last locked run). Owner. */
   HR_STAT_RATES_SET:k=>{

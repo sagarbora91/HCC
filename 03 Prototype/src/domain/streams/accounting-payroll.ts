@@ -3,15 +3,19 @@
 // same sides). Pure: State → keyed drafts; accLiveVouchers (accounting.ts, its ACC-2 parity section) resolves the keys through the mapping and
 // the parties. Money = integer paise. Exported names start with 'acc' (shared mock namespace).
 import type {State} from '../types';
-import {hrSlice,hrRunBook,hrOn,hrFnfSettled,hrFnfAdvanceRecovered,hrMonthLabel,type HRRunBook,type HRFnf} from './staff';
+import {hrSlice,hrRunBook,hrOn,hrFnfSettled,hrFnfAdvanceRecovered,hrMonthLabel,hrMonthEnd,type HRRunBook,type HRFnf} from './staff';
 
 /** One keyed side of a payroll source (server SourceEntry): `staff` names the 1200 party (payroll:advances, payroll:fnf-recoverable), `method`
  *  the funding's settles-to account (funding:*). */
 export type ACCPayrollLine={key:string;debit:number;credit:number;staff?:string;method?:string};
 export type ACCPayrollDraft={type:'Journal'|'Payment';narration:string;source:{kind:'payroll';id:string;sub:string};lines:ACCPayrollLine[]};
 
-/** HCC pays advances, net pay and F&F by bank transfer (server PayrollService.AdvanceFunding; the bank file is simulated). */
+/** Net pay (bank file) and F&F are paid by bank transfer (server PayrollService.AdvanceFunding; the bank file is simulated); an advance is paid by
+ *  its own `funding` (coordinator ruling 1: HR_ADVANCE_ADD `funding`, default Cash) — advances given before ACC-2 were bank transfers. */
 export const ACC_PAYROLL_FUNDING='Bank transfer';
+/** Coordinator ruling 2: the pay run and its net pay are dated the pay period's last day when the lock / the bank file comes later (the month's
+ *  trial balance holds at month end); the narration carries the real date. */
+export const accPayrollDate=(month:string,on:string)=>{const end=hrMonthEnd(month);return on>end?end:on;};
 /** Mapping keys of the payroll sources and their default ledgers (server ChartOfAccounts.DefaultMapping). */
 export const ACC_PAYROLL_MAP:Record<string,string>={
   'payroll:salaries':'5100','payroll:employer-pf':'5110','payroll:employer-esic':'5110',
@@ -52,17 +56,21 @@ const paid=(id:string,sub:'payment'|'fnf-payment',narration:string,amount:number
 export function accPayrollSources(s:State,date:string):ACCPayrollDraft[]{
   const x=hrSlice(s),out:ACCPayrollDraft[]=[];
   // D3 · salary advance given (Payment): Dr 1200/<staff> · Cr funding
-  for(const a of x.advances)if(a.date===date&&a.amount)out.push({type:'Payment',narration:`Salary advance given · ${ACC_PAYROLL_FUNDING} · advance ${a.id} · staff ${a.staffId}`,
-    source:{kind:'payroll',id:'advance:'+a.id,sub:'advance'},lines:[dr('payroll:advances',a.amount,{staff:a.staffId}),cr('funding:'+ACC_PAYROLL_FUNDING,a.amount,{method:ACC_PAYROLL_FUNDING})]});
+  for(const a of x.advances){if(a.date!==date||!a.amount)continue;const f=a.funding??ACC_PAYROLL_FUNDING;
+    out.push({type:'Payment',narration:`Salary advance given · ${f} · advance ${a.id} · staff ${a.staffId}`,
+      source:{kind:'payroll',id:'advance:'+a.id,sub:'advance'},lines:[dr('payroll:advances',a.amount,{staff:a.staffId}),cr('funding:'+f,a.amount,{method:f})]});}
   // D1 / D2 · pay run posted at lock, net pay paid by the first bank file of that lock, the exact reversal at an Owner unlock
   for(const run of x.runs){
     const locks:{seq:number;on?:string;book?:HRRunBook;unlockedOn?:string;files:{on?:string;at:string;net:number}[]}[]=(run.unlocks??[]).map((u,i)=>({seq:i+1,on:u.lockedOn,book:u.book,unlockedOn:u.on,files:u.bankFiles??[]}));
     if(run.status==='Locked')locks.push({seq:locks.length+1,on:hrOn(run.lockedOn,run.lockedAt),book:hrRunBook(run),files:run.bankFiles??[]});
     let issued=0;
     for(const l of locks){
-      const sfx=lockSuffix(l.seq),first=l.files[0];
-      if(l.book&&l.on===date)out.push({type:'Journal',narration:`Pay run ${run.month} · run ${run.id}${l.seq>1?' · lock '+l.seq:''}`,source:{kind:'payroll',id:'payroll:'+run.id+sfx,sub:'payrun'},lines:accPayRunLines(l.book)});
-      if(first&&hrOn(first.on,first.at)===date&&first.net)out.push(paid('payroll-paid:'+run.id+sfx,'payment',`Net pay paid · ${ACC_PAYROLL_FUNDING} · Bank file ${issued+1} · ${hrMonthLabel(run.month)} · run ${run.id}`,first.net));
+      const sfx=lockSuffix(l.seq),first=l.files[0],firstOn=first?hrOn(first.on,first.at)!:'';
+      const tag=(what:string,on:string)=>accPayrollDate(run.month,on)!==on?` · ${what} ${on}`:'';
+      if(l.book&&l.on&&accPayrollDate(run.month,l.on)===date)out.push({type:'Journal',narration:`Pay run ${run.month} · run ${run.id}${l.seq>1?' · lock '+l.seq:''}${tag('locked',l.on)}`,
+        source:{kind:'payroll',id:'payroll:'+run.id+sfx,sub:'payrun'},lines:accPayRunLines(l.book)});
+      if(first&&accPayrollDate(run.month,firstOn)===date&&first.net)
+        out.push(paid('payroll-paid:'+run.id+sfx,'payment',`Net pay paid · ${ACC_PAYROLL_FUNDING} · Bank file ${issued+1} · ${hrMonthLabel(run.month)} · run ${run.id}${tag('paid',firstOn)}`,first.net));
       if(l.book&&l.unlockedOn===date){
         const flag=l.files.length?' · BANK FILE ALREADY ISSUED: net-pay payment voucher kept (not reversed); do not pay twice on re-lock':'';
         out.push({type:'Journal',narration:`Reversal of pay run ${run.month} · run ${run.id} · lock ${l.seq} unlocked · reverses payroll:${run.id}${sfx}${flag}`,
@@ -86,8 +94,9 @@ export function accPayrollDates(s:State):string[]{
   const x=hrSlice(s),d=new Set<string>();
   x.advances.forEach(a=>d.add(a.date));
   for(const run of x.runs){
-    for(const u of run.unlocks??[]){if(u.lockedOn)d.add(u.lockedOn);if(u.on)d.add(u.on);const f=u.bankFiles?.[0];if(f)d.add(hrOn(f.on,f.at)!);}
-    if(run.status==='Locked'){const on=hrOn(run.lockedOn,run.lockedAt);if(on)d.add(on);const f=run.bankFiles?.[0];if(f)d.add(hrOn(f.on,f.at)!);}
+    const at=(on:string)=>accPayrollDate(run.month,on);
+    for(const u of run.unlocks??[]){if(u.lockedOn)d.add(at(u.lockedOn));if(u.on)d.add(u.on);const f=u.bankFiles?.[0];if(f)d.add(at(hrOn(f.on,f.at)!));}
+    if(run.status==='Locked'){const on=hrOn(run.lockedOn,run.lockedAt);if(on)d.add(at(on));const f=run.bankFiles?.[0];if(f)d.add(at(hrOn(f.on,f.at)!));}
   }
   for(const f of x.fnf??[])if(hrFnfSettled(f)){const on=hrOn(f.confirmedOn,f.confirmedAt??f.at);if(on)d.add(on);}
   return [...d];

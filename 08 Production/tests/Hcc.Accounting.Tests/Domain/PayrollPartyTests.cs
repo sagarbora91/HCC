@@ -1,6 +1,7 @@
 using Hcc.Application.Accounting;
 using Hcc.Contracts.Accounting;
 using Hcc.Domain.Accounting;
+using Hcc.Domain.Billing;
 
 namespace Hcc.Accounting.Tests.Domain;
 
@@ -66,5 +67,14 @@ public sealed class PayrollPartyTests
             new PartyContext(Tender: "BA-HDFC"))], Map));
         Assert.Equal([("2300", 21_350_000L, 0L), ("1030/BA-HDFC", 0L, 21_350_000L)], E(paid));
         Assert.Equal("4200", ChartOfAccounts.DefaultMapping["line:food"]);   // ACC-2 parity: F&B folio lines (prototype Line.kind food)
+    }
+
+    [Fact]
+    public void Food_charge_kind_round_trips_and_books_to_FnB_revenue()
+    {
+        Assert.Equal(("food", ChargeKind.Food), (BillingCodes.Code(ChargeKind.Food), BillingCodes.ParseChargeKind("food")));
+        var v = Assert.Single(VoucherBuilder.Build(D, [SourceRules.FolioLine("charge:9", "food", D, 100_000, 2_500, 2_500, "Room service · bill POS/2604/0001")], Map));
+        Assert.Equal([("1100", 105_000L, 0L), ("4200", 0L, 100_000L), ("2110", 0L, 2_500L), ("2120", 0L, 2_500L)], E(v));
+        Assert.Equal(("food", "line:food"), (v.Sub, SourceRules.LineKey("food")));
     }
 }

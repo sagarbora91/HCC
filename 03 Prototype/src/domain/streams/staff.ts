@@ -79,7 +79,9 @@ export type HRAgenda={id:string;date:string;title:string;
 export type HRAdvance={id:string;staffId:string;amount:number;
   /** Monthly recovery; 0 = recover the full balance in the first month (SCC emi 0). */ installment:number;
   recovered:number;date:string;reason:string;by:string;recoveries:{runId:string;amount:number}[];
-  /** First month to recover from (YYYY-MM). Default: month of `date`. */ fromMonth?:string};
+  /** First month to recover from (YYYY-MM). Default: month of `date`. */ fromMonth?:string;
+  /** ACC-2 (coordinator ruling 1): the payment method it was paid by (Cash = the drawer → 1000/<till>; a bank method → 1030/<bank>). Absent on
+   *  advances given before ACC-2 — those were simulated bank transfers (ACC_PAYROLL_FUNDING). */ funding?:string};
 export type HRRounding='paise'|'rupee';
 /** Dated statutory rates (one version per effective-from date). bps = basis points (1% = 100); money in paise. */
 export type HRRates={from:string;

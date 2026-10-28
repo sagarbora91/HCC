@@ -24,7 +24,7 @@ export function register({test,M,assert}){
       earned:f.gross,basic:0,hra:0,washing:0,special:0,ot:0,pfWages:0,esicWages:0,ctc:f.gross+f.pfEr+f.esicEr,...f,deductions:f.pf+f.esic+f.pt+f.advance,net:f.gross-f.pf-f.esic-f.pt-f.advance});
     const lines=[line('HR-S07',{gross:3000000,pf:180000,pfEr:180000,esic:22500,esicEr:97500,pt:20000,advance:500000}),
       line('HR-S01',{gross:21000000,pf:1620000,pfEr:1620000,esic:127500,esicEr:552500,pt:180000,advance:0})];
-    x.runs.push({id:'HR-PAY-T13',month:'2026-09',status:'Locked',rates:{},lines,warnings:[],preparedBy:'accountant',preparedAt:D+'T11:00',lockedBy:'owner',lockedAt:D+'T17:40',lockedOn:D,
+    x.runs.push({id:'HR-PAY-T13',month:'2026-10',status:'Locked',rates:{},lines,warnings:[],preparedBy:'accountant',preparedAt:D+'T11:00',lockedBy:'owner',lockedAt:D+'T17:40',lockedOn:D,
       bankFiles:[{at:D+'T18:00',by:'owner',net:lines.reduce((a,l)=>a+l.net,0),on:D}]});
     return s;
   };
@@ -50,18 +50,28 @@ export function register({test,M,assert}){
   });
 
   // ── the commands drive the vouchers ──
-  test(T+'HR_ADVANCE_ADD books Dr 1200/<staff> · Cr the bank the transfer settles to, on the business date (key advance:<id>)',()=>{
-    let s=execute(seed(),'owner',{type:'HR_ADVANCE_ADD',staffId:'HR-S02',amount:250000,installment:0,reason:'School fees (fictional)'});
-    const a=s.staffX.advances.at(-1),v=one(payroll(s),'advance:'+a.id);
-    assert.deepEqual(ent(v),[['1200/HR-S02',250000,0],['1030/BANK-1',0,250000]]);
-    assert.match(v.narration,/^Salary advance given · Bank transfer · advance HR-ADV-\S+ · staff HR-S02$/);
+  test(T+'HR_ADVANCE_ADD funding (coordinator ruling 1): Cash by default — Cr 1000/<till>, the drawer drops; a bank method — Cr 1030/<bank>; key advance:<id>',()=>{
+    const s0=seed(),d0=M.drawer(s0);
+    let s=execute(s0,'owner',{type:'HR_ADVANCE_ADD',staffId:'HR-S02',amount:250000,installment:0,reason:'School fees (fictional)'});
+    let a=s.staffX.advances.at(-1),v=one(payroll(s),'advance:'+a.id);
+    assert.equal(a.funding,'Cash');assert.deepEqual(ent(v),[['1200/HR-S02',250000,0],['1000/TILL',0,250000]]);
+    assert.match(v.narration,/^Salary advance given · Cash · advance HR-ADV-\S+ · staff HR-S02$/);
+    assert.equal(M.drawer(s),d0-250000);assert.equal(M.shiftExpected(s).expected,M.drawer(s));assert.ok(M.shiftExpected(s).consistent);
+    assert.ok(M.shiftMovements(s).some(m=>m.kind==='staff-advance'&&m.amount===-250000));
     assert.ok(M.accDates(s).includes(D));assert.ok(M.accReconcile(s,D).every(c=>c.ok),JSON.stringify(M.accReconcile(s,D).filter(c=>!c.ok)));
+    s=execute(seed(),'owner',{type:'HR_ADVANCE_ADD',staffId:'HR-S02',amount:250000,installment:0,reason:'School fees (fictional)',funding:'Bank transfer'});
+    a=s.staffX.advances.at(-1);v=one(payroll(s),'advance:'+a.id);
+    assert.deepEqual(ent(v),[['1200/HR-S02',250000,0],['1030/BANK-1',0,250000]]);assert.equal(M.drawer(s),d0);
+    assert.throws(()=>execute(seed(),'owner',{type:'HR_ADVANCE_ADD',staffId:'HR-S02',amount:99900000,installment:0,reason:'x',funding:'Cash'}),/Not enough cash/);
+    assert.throws(()=>execute(seed(),'owner',{type:'HR_ADVANCE_ADD',staffId:'HR-S02',amount:1000,installment:0,reason:'x',funding:'Barter'}),/not a payment method/);
   });
   test(T+'pay run lock → PayRun with the recovery per staff; bank file → net pay paid once per lock; unlock → exact reversal, payment kept; re-lock → /lock2',()=>{
+    // coordinator ruling 2: the pay run and its net pay are dated 30 Sep (the period's last day); the reversal the unlock date
+    const E='2026-09-30',P=s=>[...payroll(s,E),...payroll(s,D)];
     let s=execute(seed(),'accountant',{type:'HR_PAYROLL_RUN',month:'2026-09'});const id=M.hrRunFor(s,'2026-09').id;
     s=execute(s,'owner',{type:'HR_PAYROLL_LOCK',id});
     const r=M.hrRunFor(s,'2026-09');assert.equal(r.lockedOn,D);
-    const run=one(payroll(s),'payroll:'+id),t=M.hrRunTotals(r);
+    const run=one(payroll(s,E),'payroll:'+id),t=M.hrRunTotals(r);assert.match(run.narration,/ · locked 2026-10-24$/);assert.equal(payroll(s,D).length,0);
     assert.ok(M.accBalanced(run));assert.equal(M.accVoucherTotals(run).debit,t.gross+t.pfEr+t.esicEr);
     const rec=r.lines.filter(l=>l.advance>0);assert.ok(rec.length>=1,'the BASE advance of HR-S05 is recovered in September');
     assert.deepEqual(run.entries.filter(e=>e.account.startsWith('1200')).map(e=>[e.account,e.credit]),rec.map(l=>['1200/'+l.staffId,l.advance]));
@@ -69,17 +79,17 @@ export function register({test,M,assert}){
     // bank file: the first file of the lock is the payment; a re-issue is not a second payment
     s=execute(s,'accountant',{type:'HR_PAYROLL_BANK_FILE',id});
     s=execute(s,'accountant',{type:'HR_PAYROLL_BANK_FILE',id,confirmReissue:true});
-    const paid=payroll(s).filter(v=>v.source.sub==='payment');assert.equal(paid.length,1);
+    const paid=P(s).filter(v=>v.source.sub==='payment');assert.equal(paid.length,1);assert.equal(paid[0].date,E);assert.match(paid[0].narration,/ · paid 2026-10-24$/);
     assert.deepEqual(ent(paid[0]),[['2300',t.net,0],['1030/BANK-1',0,t.net]]);assert.equal(paid[0].source.id,'payroll-paid:'+id);
     // unlock: the reversal swaps every entry of the lock's PayRun (same day here), the payment voucher stays
     s=execute(s,'owner',{type:'HR_PAYROLL_UNLOCK',id,reason:'Attendance correction (fictional)',confirmBankFile:true});
-    let vs=payroll(s);const rev=one(vs,`payroll-unlock:${id}/lock1`);
+    let vs=P(s);const rev=one(payroll(s,D),`payroll-unlock:${id}/lock1`);
     assert.deepEqual(ent(rev),ent(run).map(([a,d,c])=>[a,c,d]));assert.match(rev.narration,/BANK FILE ALREADY ISSUED/);
     one(vs,'payroll:'+id);one(vs,'payroll-paid:'+id);
     assert.equal(s.staffX.runs.find(x=>x.id===id).unlocks[0].lockedOn,D);
     // re-lock (the Accountant prepared it, the Owner locks): lock 2 posts under its own key; its net pay will not be booked twice by the old file
-    s=execute(s,'owner',{type:'HR_PAYROLL_LOCK',id});vs=payroll(s);
-    const two=one(vs,`payroll:${id}/lock2`);assert.deepEqual(ent(two),ent(run));assert.match(two.narration,/· lock 2$/);
+    s=execute(s,'owner',{type:'HR_PAYROLL_LOCK',id});vs=P(s);
+    const two=one(vs,`payroll:${id}/lock2`);assert.deepEqual(ent(two),ent(run));assert.match(two.narration,/ · lock 2 · locked 2026-10-24$/);
     const sum=M.accTrialBalance(vs);for(const row of sum.filter(r=>['5100','5110','2310','2320','2330'].includes(r.account)))assert.equal(row.balance,ent(run).filter(e=>e[0]===row.account).reduce((a,e)=>a+e[1]-e[2],0),row.account+': one lock counts');
     assert.ok(vs.every(M.accBalanced));
   });
@@ -110,11 +120,11 @@ export function register({test,M,assert}){
     const o=execute(s,'owner',{type:'ACC_MAP_SET',source:'payroll:salaries',account:'5120'});
     assert.equal(one(payroll(o),'payroll:HR-PAY-T13').entries[0].account,'5120');
   });
-  test(T+'BASE: the seeded advance (10 Aug) and the August run locked on 2 Sep are vouchers on those dates; FY26 history books its runs on their lock dates',()=>{
-    const s=seed();assert.ok(M.accDates(s).includes('2026-08-10')&&M.accDates(s).includes('2026-09-02'));
-    assert.deepEqual(payroll(s,'2026-08-10').map(v=>v.source.id),['advance:HR-ADV-1']);
-    assert.deepEqual(payroll(s,'2026-09-02').map(v=>v.source.id),['payroll:HR-PAY-1']);
-    assert.ok(payroll(s,'2026-09-02').every(M.accBalanced));
+  test(T+'BASE: the seeded advance (10 Aug, a bank transfer before ACC-2) and the August run locked on 2 Sep, dated 31 Aug (ruling 2)',()=>{
+    const s=seed();assert.ok(M.accDates(s).includes('2026-08-10')&&M.accDates(s).includes('2026-08-31')&&!M.accDates(s).includes('2026-09-02'));
+    assert.deepEqual(payroll(s,'2026-08-10').map(v=>v.source.id),['advance:HR-ADV-1']);assert.equal(payroll(s,'2026-08-10')[0].entries[1].account,'1030/BANK-1');
+    assert.deepEqual(payroll(s,'2026-08-31').map(v=>v.source.id),['payroll:HR-PAY-1']);assert.match(payroll(s,'2026-08-31')[0].narration,/ · locked 2026-09-02$/);
+    assert.ok(payroll(s,'2026-08-31').every(M.accBalanced));
   });
 
   // ── F&B folio lines (contract §8, rulebook A3) ──

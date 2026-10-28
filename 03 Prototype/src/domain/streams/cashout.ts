@@ -12,6 +12,7 @@
 // The demo has one drawer (the front desk, `desk`) plus one other till for transfers; the server has as many tills as the hotel creates.
 import type {State} from '../types';
 import {isProductionBuild} from '../build';
+import {mnyIsDrawer as cxDrawerMethod} from './money-master'; // ACC-2: cash salary advances leave the drawer
 
 export type CXKind='banking'|'till'|'drawing';
 export type CXStatus='Pending'|'Confirmed'|'Accepted'|'Rejected'|'Posted';
@@ -84,6 +85,9 @@ export function cxDeskMovements(s:State,d:string):CXMovement[]{
     if(r.kind==='till'&&r.status==='Accepted'&&r.toTill===x.desk&&r.decidedDate===d)
       out.push({id:r.id+':in',kind:'transfer-in',label:`Till transfer received from ${cxTillName(s,r.fromTill)}`,reference:r.reason||'Till transfer',amount:r.amount,actor:r.decidedBy??''});
   }
+  // ACC-2 (coordinator ruling 1): a salary advance paid in cash leaves the drawer the day it is given (Dr 1200/<staff> · Cr 1000/<till>).
+  for(const a of (s.staffX?.advances??[]) as {id:string;staffId:string;amount:number;date:string;by:string;funding?:string}[])
+    if(a.date===d&&a.funding&&cxDrawerMethod(s,a.funding))out.push({id:a.id,kind:'staff-advance',label:'Salary advance · '+a.staffId,reference:a.id,amount:-a.amount,actor:a.by});
   return out;
 }
 /** Net desk-drawer effect of the cash-out records on business date `d` (part of drawer(s) and of expected cash). */
