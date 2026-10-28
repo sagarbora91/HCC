@@ -25,7 +25,8 @@ namespace Hcc.Application.Expenses;
 /// </summary>
 public sealed class ExpenseCommands(ICommandRunner runner, IAccessPolicy policy, IExpenseStore store, ICashDrawerPort drawer, TimeProvider clock, Hcc.Application.Closing.IBusinessDayGuard? days = null,
     MoneyMasters.IPaymentMethodSource? methods = null, IExpenseMasterSource? masters = null, IExpenseRegisterStore? registers = null,
-    IFixedAssetStore? assets = null) // ACC-2 acc2-purchase: the fixed-asset register (contract §3.4)
+    IFixedAssetStore? assets = null, // ACC-2 acc2-purchase: the fixed-asset register (contract §3.4)
+    Accounting.CashGuardService? cashGuard = null) // ACC-2 acc2-flows: the B10 cash guard (contract §7)
 {
     private async Task<IReadOnlyList<Hcc.Domain.MoneyMasters.TenderMethod>?> MethodsAsync(ICommandTransaction? tx, int propertyId, CancellationToken ct) =>
         methods is null ? null : await methods.MethodsAsync(tx, propertyId, ct).ConfigureAwait(false);
@@ -285,6 +286,15 @@ public sealed class ExpenseCommands(ICommandRunner runner, IAccessPolicy policy,
                     $"Cash expense · {Payee(e)}", e.Category, c).ConfigureAwait(false);
             }
 
+            // ACC-2 flows (contract §7, B10): drawer cash above Rs 10,000 to one payee in a day posts with a warning and "deduction lost".
+            Hcc.Domain.Accounting.CashGuardResult? cashWarn = null;
+            if (req.Approve && tillCash && cashGuard is not null)
+            {
+                cashWarn = await cashGuard.PaymentAsync(tx, ctx.PropertyId, new Accounting.CashParty(Accounting.CashParty.Vendor, e.ExpenseId, e.Vendor), e.Amount.Value, date,
+                    transport: false, Payee(e), c).ConfigureAwait(false);
+                if (cashWarn.DeductionLost) await cashGuard.MarkDeductionLostAsync(tx, e.ExpenseId, c).ConfigureAwait(false);
+            }
+
             var now = UtcNow;
             // ACC-2 (contract §3): stamp the purchase fields at posting (RCM / capital from the category; TDS held back — acc2-tds lane).
             var stamp = (Rcm: e.Rcm, RcmBps: e.RcmBps, Capital: e.Capital);
@@ -319,7 +329,8 @@ public sealed class ExpenseCommands(ICommandRunner runner, IAccessPolicy policy,
                     u.Vendor, u.ExpenseId, ctx.PrincipalId, now), c).ConfigureAwait(false);
             }
             await tx.AuditAsync(req.Approve ? "EXPENSE_POSTED" : "EXPENSE_REJECTED", Target(u.ExpenseId),
-                $"{u.Description ?? u.Vendor} · {u.Amount} · {u.Method}{(reason is null ? string.Empty : " · " + reason)}{(over is null ? string.Empty : " · locked-month override: " + over)}", c)
+                $"{u.Description ?? u.Vendor} · {u.Amount} · {u.Method}{(reason is null ? string.Empty : " · " + reason)}{(over is null ? string.Empty : " · locked-month override: " + over)}"
+                + (cashWarn is { DeductionLost: true } ? " · " + cashWarn.Message : string.Empty), c)
                 .ConfigureAwait(false);
             string? alert = null;
             if (req.Approve && u.ReturnOf is not null)

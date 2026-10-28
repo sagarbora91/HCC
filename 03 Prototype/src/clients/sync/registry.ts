@@ -35,6 +35,7 @@ import {expensesVendor} from './expenses-vendor'; // acc2-purchase
 import {accountingManual} from './accounting-manual'; // ACC-2 acc2-manual lane
 import {accountingTds} from './accounting-tds'; // ACC-2 tds lane
 import {accountingGst} from './accounting-gst'; // ACC-2 gst lane
+import {accountingFlows} from './accounting-flows'; // acc2-flows
 // ACC-2 end
 
 // W4-8 POS:
@@ -93,6 +94,7 @@ export const AREAS:SyncArea[]=[
   accountingManual, // ACC-2 acc2-manual lane
   accountingTds, // ACC-2 tds lane
   accountingGst, // ACC-2 gst lane
+  accountingFlows, // acc2-flows
 // ACC-2 end
 
   pos, // W4-8

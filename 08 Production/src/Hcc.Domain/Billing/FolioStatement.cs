@@ -21,7 +21,8 @@ public static class FolioStatement
     {
         ArgumentNullException.ThrowIfNull(lines);
         ArgumentNullException.ThrowIfNull(receipts);
-        var t = FolioTotals.Compute(lines.Select(l => new FolioLine(l.Amount, l.TaxBps)), receipts.Select(r => new FolioReceipt(r.Kind, r.Amount)));
+        var t = FolioTotals.Compute(lines.Select(l => new FolioLine(l.Amount, l.TaxBps)),
+            receipts.Select(r => new FolioReceipt(r.Kind, r.Amount, r.Kind == ReceiptKind.DepositApply && r.Tender == FolioTotals.OpeningAdvanceTender))); // ACC-2 flows
         var storedTax = lines.Aggregate(Paise.Zero, (a, l) => a + l.Tax);
         if (storedTax != t.Tax)
             throw new InvalidOperationException($"Stored tax snapshots ({storedTax.Value}) disagree with the line rates ({t.Tax.Value}).");

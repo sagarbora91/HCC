@@ -133,6 +133,7 @@ public static class HccComposition
         api.MapAccountingManualEndpoints(); // ACC-2 acc2-manual (contract §2: manual vouchers, loans)
         api.MapAccountingTdsEndpoints(); // ACC-2 tds lane (contract §4 A9, §5)
         api.MapAccountingGstEndpoints(); // ACC-2 gst lane (contract §4 switch, §6)
+        api.MapOtaPayoutEndpoints(); // acc2-flows: ApplyDeposit, SettleFolioToOta, RecordOtaPayout, SetChannelItc, ReverseUdhaarPayment, SetCompanyActive, GET /ota/payouts
         // ACC-2 end
         api.MapComplianceEndpoints();    // W2-5
         api.MapPosEndpoints();           // W2-6

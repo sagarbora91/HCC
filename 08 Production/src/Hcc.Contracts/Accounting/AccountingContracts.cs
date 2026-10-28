@@ -49,6 +49,10 @@ public static class AccountingEvents
     // counting; a locked day's reversal comes as its own ManualVoucherApproved).
     public const string ManualVoucherApproved = "ManualVoucherApproved";
     public const string ManualVoucherVoided = "ManualVoucherVoided";
+    // ACC-2 flows (contract §4, §8): an OTA payout from the statement (A13) and a mistaken Udhaar payment reversed (A17b). Deposit applied (A6a) and
+    // the OTA credit at check-out are ReceiptRecorded events of kind deposit-apply / ota-credit (SourceRules.DepositApplied / OtaCredit).
+    public const string OtaPayoutRecorded = "OtaPayoutRecorded";
+    public const string UdhaarPaymentReversed = "UdhaarPaymentReversed";
 
     /// <summary>Published by accounting when a period is locked / unlocked.</summary>
     public const string AccountingPeriodLocked = "AccountingPeriodLocked";
@@ -63,6 +67,7 @@ public static class AccountingEvents
          UdhaarPaymentRecorded,                                                                  // DEC-130 (SCC decisions wave)
          UdhaarCreditRaised,                                                                     // ACC-1 (acc1-parties, DEC-144)
          ManualVoucherApproved, ManualVoucherVoided,                                             // ACC-2 (acc2-manual, contract §2)
+         OtaPayoutRecorded, UdhaarPaymentReversed,                                               // ACC-2 flows
          .. PurchaseEvents.All];                                                                 // ACC-2 acc2-purchase (contract §3)
 }
 

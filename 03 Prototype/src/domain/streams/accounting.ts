@@ -43,6 +43,9 @@ export const ACC_DEFAULT_MAP:Record<string,string>={
   'tax:gst-input-igst':'1330','tax:rcm-payable':'2140','tax:tds-payable':'2150','vendor:payable':'2200',
   // ACC-2 tds (contract §4 A9, §5): TDS a company deducted from the hotel → 1360 TDS receivable; TDS the hotel holds back on a bill → 2150 TDS payable.
   'tax:tds-receivable':'1360', // tax:tds-payable 2150 is in the acc2-purchase line above (one key)
+  // ACC-2 flows (contract §4, rulebook A13, DEC-150): the OTA's receivable (1115/<channel>), its commission (5070) and the TCS it collected
+  // (GST electronic cash ledger 1340), all from the payout statement.
+  'receipt:ota':'1115','receipt:ota-commission':'5070','tax:tcs':'1340',
 };
 const KEY_LABEL:Record<string,string>={line:'Folio line kind',folio:'Folio',method:'Receipt method (tender)',receipt:'Receipt kind (counter-ledger)',expense:'Expense category',funding:'Expense funding',closing:'Closing record',pos:'Outlet (POS) bill',tax:'GST input credit (ITC)',vendor:'Vendor payments (payables)'};
 export const accKeyGroup=(key:string)=>KEY_LABEL[key.split(':')[0]]??'Other';
@@ -231,6 +234,11 @@ const cr=(account:string,amount:number):ACCEntry=>amount>=0?{account,debit:0,cre
 const dr=(account:string,amount:number):ACCEntry=>cr(account,-amount);
 const RECEIPT_IN=['payment','deposit'];
 const ymd=(d:string)=>d.split('-').join('');
+/** ACC-2 flows (contract §4): the OTA channel id of a booking whose source is an OTA channel (by `otaChannel` name or id), else undefined. */
+export function accOtaChannelOf(s:State,b:Pick<Booking,'source'|'otaChannel'>):string|undefined{
+  const n=String(b.otaChannel??'').trim().toLowerCase();if(!n||!/^ota/i.test(String(b.source??'')))return undefined;
+  return s.channelsX?.channels.find(c=>c.id.toLowerCase()===n||c.name.toLowerCase()===n)?.id;
+}
 const PREFIX:Record<ACCVoucherType,string>={Sales:'SAL',Receipt:'RCT',Payment:'PMT',Journal:'JRN',Purchase:'PUR',Contra:'CTR'};
 
 /** All vouchers for a business date, derived live from the source records with the current mapping (pure). */
@@ -253,6 +261,11 @@ export function accLiveVouchers(s:State,date:string,mapping=accMapping(s)):ACCVo
   for(const b of s.bookings){
     for(const r of b.receipts.filter(r=>r.date===date&&r.amount!==0)){
       const miss:string[]=[],src={kind:'receipt' as const,id:`${b.id}/${r.id}`,sub:r.kind,booking:b.id},ctx:ACCPartyCtx={method:r.method,company:b.company?.account};
+      // ── ACC-2 flows (contract §4) · deposit applied at check-out (A6a): Journal Dr 2000 (receipt:deposit) · Cr 1100; the folio balance
+      // to the OTA (A13): Journal Dr 1115/<channel> (receipt:ota) · Cr 1100 — the channel is the booking's connected source. ──
+      if(r.kind==='deposit-apply'){push({date,type:'Journal',narration:`Deposit applied at check-out · ${r.reference} · ${b.guest}`,source:src},miss,[dr(map('receipt:deposit',miss),r.amount),cr(map('folio:guest',miss),r.amount)]);continue;}
+      if(r.kind==='ota-credit'){const ch=accOtaChannelOf(s,b);push({date,type:'Journal',narration:`OTA credit · ${b.otaChannel??ch??''} · ${r.reference} · ${b.guest}`,source:src},miss,[dr(pt(map('receipt:ota',miss),{channel:ch}),r.amount),cr(map('folio:guest',miss),r.amount)]);continue;}
+      // ── end ACC-2 flows ──
       const counter=pt(map('receipt:'+r.kind,miss),ctx);
       if(r.kind==='company-credit'){push({date,type:'Journal',narration:`Company credit · ${r.reference} · ${b.guest}`,source:src},miss,[dr(counter,r.amount),cr(map('folio:guest',miss),r.amount)]);continue;}
       const tender=pt(map('method:'+r.method,miss),ctx),inflow=RECEIPT_IN.includes(r.kind);
@@ -308,7 +321,7 @@ export function accLiveVouchers(s:State,date:string,mapping=accMapping(s)):ACCVo
   // DEC-130: an Udhaar payment taken as a desk receipt settles the customer's credit — Receipt, Dr the tender · Cr Udhaar receivables (never income).
   for(const {r,p} of expUdDeskReceipts(s,date)){
     if(!p.amount)continue;const miss:string[]=[],ctx={method:p.mode,udhaar:accUdhaarPartyId(r)};
-    push({date,type:'Receipt',narration:`Udhaar received · ${r.name} · ${p.mode}${p.reference?' · '+p.reference:''} · payment ${p.id}`,source:{kind:'receipt',id:'udhaar-payment:'+p.id,sub:'udhaar-payment'}},miss,
+    push({date,type:'Receipt',narration:`${p.reversalOf?'Udhaar payment reversed (A17b) · '+p.reversalOf+' · ':'Udhaar received · '}${r.name} · ${p.mode}${p.reference?' · '+p.reference:''} · payment ${p.id}`,source:{kind:'receipt',id:'udhaar-payment:'+p.id,sub:'udhaar-payment'}},miss,
       [dr(pt(map('method:'+p.mode,miss),ctx),p.amount),cr(pt(map('receipt:udhaar',miss),ctx),p.amount)]);
   }
   // ACC-1 (DEC-076, server SourceRules.CompanyPayment): money received from a company against its company-credit receivable — Receipt,
@@ -321,6 +334,15 @@ export function accLiveVouchers(s:State,date:string,mapping=accMapping(s)):ACCVo
     push({date,type:'Receipt',narration:`Company payment received · ${name} · ${p.method} · ${p.reference} · payment ${p.id}${tds?` · TDS ₹${(tds/100).toFixed(2)} deducted`:''}`,source:{kind:'receipt',id:'company-payment:'+p.id,sub:'company-payment'}},miss,
       [dr(pt(map('method:'+p.method,miss),ctx),p.amount),...(tds?[dr(map('tax:tds-receivable',miss),tds)]:[]),cr(pt(map('receipt:company-credit',miss),ctx),p.amount+tds)]);
   }
+  // ── ACC-2 flows (contract §4, rulebook A13, DEC-150) · OTA payout from the channel's statement: Receipt Dr 1030/<bank> net · Dr 5070
+  // commission (+ its GST unless the channel's ITC is allowed: then Dr 1310 / 1320 half each) · Dr 1340 TCS · Cr 1115/<channel> gross. ──
+  for(const p of s.channelsX?.payouts??[]){
+    if(p.date!==date||!p.gross)continue;const miss:string[]=[],c=s.channelsX?.channels.find(x=>x.id===p.channel),itc=c?.itcAllowed?p.commissionGst:0;
+    push({date,type:'Receipt',narration:`OTA payout · ${c?.name??p.channel} · statement ${p.statementRef} · ${p.bookings.length} booking(s) · payout ${p.id}`,source:{kind:'ota',id:'ota-payout:'+p.id,sub:'ota-payout'}},miss,
+      [dr(pt(map('method:Bank transfer',miss),{bank:p.bank}),p.net),dr(map('receipt:ota-commission',miss),p.commission+p.commissionGst-itc),...(itc?accItcSplit(itc).map(([k,v])=>dr(map(k,miss),v)):[]),
+        dr(map('tax:tcs',miss),p.tcs),cr(pt(map('receipt:ota',miss),{channel:p.channel}),p.gross)]);
+  }
+  // ── end ACC-2 flows ──
   // ── Wave B1 (DEC-073): cash leaving the drawer — same vouchers as the server projector (keys banking:{id}, banking:{id}/rejected, drawing:{id}) ──
   for(const r of cxSlice(s).records){
     const cash=(m:string[])=>pt(map('method:Cash',m),{method:'Cash',till:r.fromTill});
@@ -413,6 +435,7 @@ export function accDates(s:State):string[]{
   (grpSlice(s).payments??[]).forEach(p=>d.add(p.date)); // ACC-1: company payments (DEC-076)
   expVendorPayments(s).forEach(p=>{d.add(p.date);if(p.void&&p.voidAt)d.add(p.voidAt);}); // ACC-2 acc2-purchase: vendor payments and their voids
   accManualDates(s).forEach(x=>d.add(x)); // ACC-2: manual vouchers (contract §2)
+  (s.channelsX?.payouts??[]).forEach(p=>d.add(p.date)); // ACC-2 flows: OTA payouts (A13)
   return [...d].filter(x=>/^\d{4}-\d{2}-\d{2}$/.test(x)&&x<=s.date).sort().reverse();
 }
 /** Vouchers for every date up to and including `date` (cumulative trial balance). */
@@ -498,7 +521,9 @@ export function accMapRows(s:State):ACCMapRow[]{
   const sv=accSlice(s).server;if(sv)return sv.mapRows;
   const map=accMapping(s),uses:Record<string,number>={};
   const add=(k:string)=>{uses[k]=(uses[k]??0)+1;};
-  s.bookings.forEach(b=>{b.lines.forEach(l=>{add('line:'+l.kind);add('folio:guest');if(lineTax(l)){add('folio:cgst');add('folio:sgst');}});b.receipts.filter(r=>r.kind==='company-credit').forEach(()=>add('folio:guest'));b.receipts.forEach(r=>{add('receipt:'+r.kind);if(r.kind!=='company-credit')add('method:'+r.method);});});
+  s.bookings.forEach(b=>{b.lines.forEach(l=>{add('line:'+l.kind);add('folio:guest');if(lineTax(l)){add('folio:cgst');add('folio:sgst');}});b.receipts.filter(r=>r.kind==='company-credit').forEach(()=>add('folio:guest'));b.receipts.forEach(r=>{if(r.kind==='deposit-apply'){add('receipt:deposit');add('folio:guest');return;}if(r.kind==='ota-credit'){add('receipt:ota');add('folio:guest');return;} // ACC-2 flows
+    add('receipt:'+r.kind);if(r.kind!=='company-credit')add('method:'+r.method);});});
+  for(const p of s.channelsX?.payouts??[]){add('method:Bank transfer');add('receipt:ota-commission');add('tax:tcs');add('receipt:ota');if(p.commissionGst&&s.channelsX?.channels.find(c=>c.id===p.channel)?.itcAllowed){add('tax:gst-input');add('tax:gst-input-sgst');}} // ACC-2 flows: OTA payouts
   s.expenses.filter(expenseCounts).forEach(e=>{add('expense:'+e.category);add('funding:'+e.method);const p=expPurchaseLines(e);for(const [k] of [...p.itc,...p.rcmItc])add(k);if(p.tds)add(EXP_KEY_TDS);if(p.rcm)add(EXP_KEY_RCM);}); // ACC-2: IGST / RCM / TDS keys
   for(const p of expVendorPayments(s)){add(EXP_KEY_VENDOR);add('method:'+p.method);} // ACC-2 acc2-purchase: vendor payments
   for(const r of s.expensesX?.udhaar??[])for(const p of r.settlements??[])if(p.desk){add('receipt:udhaar');add('method:'+p.mode);} // DEC-130
@@ -535,6 +560,7 @@ export function accSourceOf(s:State,v:ACCVoucher):{booking?:Booking;line?:Line;r
   if(accSlice(s).server)return {}; // server source keys (charge:…, receipt:…, pos:…) are not prototype record ids
   if(v.source.kind==='pos')return {posReceipt:posSlice(s).receipts.find(r=>r.id===v.source.id)};
   if(v.source.kind==='manual')return {}; // ACC-2: a manual voucher is its own source (accountingX.manual)
+  if(v.source.kind==='ota')return {}; // ACC-2 flows: an OTA payout is not a folio record
   if(v.source.kind==='closing'||v.source.sub==='udhaar-payment'||v.source.sub==='udhaar-credit'||v.source.sub==='company-payment')return {}; // DEC-130 / ACC-1: not folio records
   const i=v.source.id.indexOf('/'),bid=v.source.id.slice(0,i),rid=v.source.id.slice(i+1),booking=s.bookings.find(b=>b.id===bid);
   return v.source.kind==='line'?{booking,line:booking?.lines.find(l=>l.id===rid)}:{booking,receipt:booking?.receipts.find(r=>r.id===rid)};

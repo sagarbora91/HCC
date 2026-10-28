@@ -43,9 +43,9 @@ public sealed record CompanyCreditView(long CompanyId, long CreditLimitPaise, lo
 public sealed record CompanyPaymentView(long PaymentId, long CompanyId, DateOnly BusinessDate, string Tender, string Reference, string? InvoiceNo, long AmountPaise,
     int RecordedBy, DateTime RecordedUtc, long TdsPaise = 0);
 
-/// <summary><see cref="Credit"/> is null for a caller without PERM-GRP-004 (money view).</summary>
+/// <summary><see cref="Credit"/> is null for a caller without PERM-GRP-004 (money view). <see cref="Active"/> (ACC-2 flows): false = retired.</summary>
 public sealed record CompanyView(long CompanyId, string Name, string? Gstin, string? Contact, string? Phone, string? Email, string? City,
-    IReadOnlyDictionary<string, long> Rates, long CreditLimitPaise, string Version, CompanyCreditView? Credit = null);
+    IReadOnlyDictionary<string, long> Rates, long CreditLimitPaise, string Version, CompanyCreditView? Credit = null, bool Active = true);
 
 public sealed record CompanyLimitRequestView(long RequestId, long CompanyId, long FromPaise, long ToPaise, string Reason, string Status, int RequestedBy,
     DateTime RequestedUtc, int? DecidedBy, string? Note);

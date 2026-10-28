@@ -8,6 +8,10 @@ import {money} from '../../../domain/money';
 import {resHoldActive,resCapacity} from '../../../domain/streams/reservations';
 import {chnEmpty,chnAcceptCheck,chnFreeRooms,chnPushPreview,chnRoomTypes,chnWebQuote,chnWebSearchError,chnPct,
   CHN_CODE,CHN_MAX_COMMISSION_BPS,CHN_MAX_MARKUP_BPS,CHN_WEB_SOURCE,type CHNState,type CHNChannel} from '../../../domain/streams/channels';
+import {chnPayoutProblem,chnOtaCredits,type CHNPayout,type CHNPayoutInput} from '../../../domain/streams/channels'; // ACC-2 flows (contract §4)
+import {accPartyBalance} from '../../../domain/streams/accounting';
+import {mnyAccounts} from '../../../domain/streams/money-master';
+import {can} from '../../../domain/selectors';
 
 const slice=(s:State):CHNState=>{const x=s.channelsX=s.channelsX??chnEmpty();x.channels??=[];x.messages??=[];x.pushes??=[];x.outbox??=[];x.webRequests??=[];return x;};
 /** Run another (stream A) handler on the same private clone with a different command. b() is rebound to the new command's id. */
@@ -44,9 +48,13 @@ export const handlers:Record<string,Handler>={
       assert(!Object.values(mapping).includes(code),`Channel code ${code} is used twice.`);
       mapping[type]=code;
     }
+    // ACC-2 flows (contract §4, rulebook §4.4): ITC on the commission invoice's GST is an Owner money setting (DEC-058 / DEC-143).
+    const itc=cmd.itcAllowed===undefined||cmd.itcAllowed===null?undefined:cmd.itcAllowed===true;
+    if(itc!==undefined&&itc!==!!c.itcAllowed)assert(k.user.role==='Owner','Only the Owner turns input tax credit on the commission GST on or off (DEC-058).','FORBIDDEN');
     const before=`${chnPct(c.commissionBps)} · markup ${chnPct(c.markupBps)} · ${Object.keys(c.mapping).length} mapped`;
     c.commissionBps=com;c.markupBps=mk;c.mapping=mapping;
-    return `${c.name} · ${before} → ${chnPct(com)} · markup ${chnPct(mk)} · ${Object.keys(mapping).length} mapped`;
+    if(itc!==undefined&&itc!==!!c.itcAllowed){if(itc)c.itcAllowed=true;else delete c.itcAllowed;}
+    return `${c.name} · ${before} → ${chnPct(com)} · markup ${chnPct(mk)} · ${Object.keys(mapping).length} mapped${itc===undefined?'':` · ITC on commission GST ${itc?'allowed':'not allowed'}`}`;
   },
   CHN_STOP_SELL:k=>{
     const {s,cmd,req,assert}=k;req('reservations');
@@ -159,4 +167,28 @@ export const handlers:Record<string,Handler>={
     w!.status='Declined';w!.reason=reason;w!.decidedBy=uid;
     return `${w!.id} declined · ${reason}${bk&&bk.status==='Cancelled'?' · hold released':''}`;
   },
+  // ── ACC-2 flows (contract §4, rulebook A13, DEC-150) · OTA payout from the channel's statement ──
+  // Owner / Manager / Accountant (PERM-OTA-004 holders; prototype: payments or reports + the role — the Accountant holds reports only).
+  // Posts a Receipt: Dr 1030/<bank> net · Dr 5070 commission (+ its GST unless the channel's ITC is allowed) · Dr 1340 TCS · Cr 1115/<channel>
+  // gross. Guards: gross = net + commission + commissionGst + tcs; gross ≤ the channel's open receivable (its 1115 ledger balance).
+  CHN_PAYOUT:k=>{
+    const {s,cmd,open,assert,fail,id,uid,user}=k;
+    if(!['Owner','Manager','Accountant'].includes(user.role)||!(can(s,uid,'payments')||can(s,uid,'reports')))fail('FORBIDDEN','Access denied: OTA payouts are entered by the Owner, a Manager or the Accountant (PERM-OTA-004).');
+    open();const c=channel(k,cmd.channel);
+    const problem=chnPayoutProblem(cmd as Partial<CHNPayoutInput>);assert(!problem,problem);
+    const bank=mnyAccounts(s).find(a=>a.kind==='bank'&&a.code===String(cmd.bank??''));
+    assert(bank,'Choose the bank account the payout reached (Master configuration › Bank accounts).');
+    assert(bank!.active,`${bank!.name} is retired — choose an active bank account.`,'INVALID_TRANSITION');
+    const st=slice(s),ref=String(cmd.statementRef).trim();
+    assert(!(st.payouts??[]).some(p=>p.channel===c.id&&p.statementRef.toLowerCase()===ref.toLowerCase()),`Statement ${ref} of ${c.name} is already recorded.`,'INVALID_TRANSITION');
+    const credited=new Set(chnOtaCredits(s,c.id).map(x=>x.booking)),bookings:string[]=Array.isArray(cmd.bookings)?[...new Set((cmd.bookings as unknown[]).map(String))]:[];
+    for(const b of bookings)assert(credited.has(b),`Booking ${b} has no OTA credit with ${c.name}.`);
+    const open1115=accPartyBalance(s,'1115/'+c.id);
+    assert(cmd.gross<=open1115,`The gross ${money(cmd.gross)} is more than ${c.name}'s open receivable ${money(Math.max(0,open1115))} (OTA credits at check-out less payouts).`,'INVALID_TRANSITION');
+    const p:CHNPayout={id:id('CHPO'),channel:c.id,date:s.date,statementRef:ref,gross:cmd.gross,commission:cmd.commission,commissionGst:cmd.commissionGst,tcs:cmd.tcs,net:cmd.net,
+      bank:bank!.code,bookings,by:uid,at:s.clock};
+    st.payouts=[...(st.payouts??[]),p];
+    return `${p.id} · ${c.name} statement ${ref} · gross ${money(p.gross)} = net ${money(p.net)} to ${bank!.name} + commission ${money(p.commission)} + GST ${money(p.commissionGst)}${c.itcAllowed?' (ITC)':''} + TCS ${money(p.tcs)} · receivable ${money(open1115)} → ${money(open1115-p.gross)}`;
+  },
+  // ── end ACC-2 flows ──
 };

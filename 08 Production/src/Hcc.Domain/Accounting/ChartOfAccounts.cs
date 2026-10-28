@@ -290,6 +290,9 @@ public static partial class ChartOfAccounts
         ["tax:output-cgst"] = "2110", ["tax:output-sgst"] = "2120", ["tax:output-igst"] = "2130", // tax:gst-input-igst 1330 and tax:rcm-payable 2140: acc2-purchase line above (one key each)
         ["tax:gst-cash"] = "1340", ["tax:advance-gst"] = "1350",
         // ACC-2 gst end
+        // ACC-2 flows (contract §4, rulebook A13, DEC-150): the OTA's receivable (1115/<channel>), its commission (5070) and the TCS it
+        // collected (GST electronic cash ledger 1340), from the payout statement.
+        ["receipt:ota"] = "1115", ["receipt:ota-commission"] = "5070", ["tax:tcs"] = "1340",
     };
 
     /// <summary>ACC-1: the SGST-half ITC key (contract §2).</summary>

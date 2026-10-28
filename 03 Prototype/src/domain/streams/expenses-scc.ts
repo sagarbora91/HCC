@@ -42,7 +42,10 @@ export type ExpRecTpl={id:string;name:string;amount:number;dueDay:number;categor
 export type ExpPettyEntry={id:string;amount:number;date:string;by:string;at:string;status:'Pending'|'Approved'|'Rejected';note?:string;decidedBy?:string;decidedAt?:string;reason?:string};
 /** `desk` (DEC-130): taken as a desk receipt — cash into the open shift's drawer, other modes to their own ledgers — and booked in Accounting
  *  (Dr the tender · Cr Udhaar receivables). Settlements recorded before DEC-130 have no `desk`: they never reached the drawer or the books. */
-export type ExpUdSettlement={id:string;amount:number;date:string;mode:string;by:string;at:string;desk?:true;reference?:string};
+export type ExpUdSettlement={id:string;amount:number;date:string;mode:string;by:string;at:string;desk?:true;reference?:string;
+  /** ACC-2 flows (rulebook A17b, EXP_UD_PAY_REVERSE): a reversal is a negative settlement dated the business date naming the payment it
+   *  reverses (`reversalOf`, the Owner's `reason`); the reversed payment carries `reversedBy`. */
+  reversalOf?:string;reason?:string;reversedBy?:string};
 /** ACC-1 (contract §4, rulebook A17, DEC-144): `kind` = what was sold on credit (restaurant bill, room folio or other — the screen asks) and
  *  `gstBps` = its GST rate. Raising the credit posts a Sales voucher the same day (Dr 1120/<customer> gross · Cr F&B / room / other revenue ·
  *  Cr CGST · Cr SGST). Rows raised before ACC-1 have neither: kind 'other' (4100), no GST lines (CA note in ACC1-PARTIES-DONE.md). */

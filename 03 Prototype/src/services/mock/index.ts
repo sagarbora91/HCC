@@ -45,6 +45,7 @@ export * from '../../domain/streams/accounting-assets'; export * from '../../dom
 export * from '../../domain/streams/accounting-manual'; // ACC-2 acc2-manual lane
 export * from '../../domain/streams/accounting-tds'; // ACC-2 tds lane (also re-exports domain/tds)
 export * from '../../domain/streams/accounting-gst'; // ACC-2 gst lane
+export * from '../../domain/streams/accounting-guards'; // acc2-flows (contract §7 cash guards)
 // ACC-2 end
 export * from '../../domain/streams/assistant';
 export * from '../../domain/streams/compliance';

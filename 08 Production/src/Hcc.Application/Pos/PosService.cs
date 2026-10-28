@@ -26,7 +26,7 @@ namespace Hcc.Application.Pos;
 /// </summary>
 public sealed class PosService(ICommandRunner runner, IPosStore store, IBillingStore billing, IAccessPolicy policy, IPosTaxRates taxRates,
     ICashDrawerPort drawer, IPosFolioPort folio, TimeProvider clock, Closing.IBusinessDayGuard? days = null, Configuration.ISettingsReader? settings = null,
-    IPosInvoicePort? invoices = null, MoneyMasters.IPaymentMethodSource? methods = null)
+    IPosInvoicePort? invoices = null, MoneyMasters.IPaymentMethodSource? methods = null, Accounting.CashGuardService? cashGuard = null)
 {
     private DateTime Now => clock.GetUtcNow().UtcDateTime;
 
@@ -420,6 +420,8 @@ public sealed class PosService(ICommandRunner runner, IPosStore store, IBillingS
                     var shift = await Application_Payments.CashDesk.RequireOpenShiftAsync(billing, tx, caller.PropertyId, req.TillId!.Value, date, ct2).ConfigureAwait(false);
                     await policy.RequireAsync(caller.PropertyId, caller.PrincipalId, PosPermissions.Settle, new AccessScope(PosPermissions.ShiftScope, shift.ShiftId), ct: ct2).ConfigureAwait(false);
                     shiftId = shift.ShiftId;
+                    if (cashGuard is not null) // ACC-2 flows (contract §7, B9): one outlet bill of ₹2,00,000 or more in cash is refused (CASH_LIMIT)
+                        await cashGuard.EnsureReceiptAsync(tx, caller.PropertyId, new Accounting.CashParty(Accounting.CashParty.Bill, o.OrderId), totals.Total.Value, date, "this outlet bill", ct2).ConfigureAwait(false);
                     moveId = await drawer.RecordMovementAsync(tx, req.TillId.Value, CashMovementKind.PosSale, "pos-bill", o.OrderId, totals.Total, $"{o.OutletName} · bill {billNo}",
                         "Outlet cash", ct2).ConfigureAwait(false);
                     movementId = moveId.Value;

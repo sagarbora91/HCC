@@ -146,12 +146,15 @@ export function register({test,M,assert}){
     assert.throws(()=>retire(t,'owner','4400'),e=>e.reason==='MASTER_IN_USE'&&/balance of ₹[\d,]+ Cr/.test(e.message));
     // A party balance (contract §3 id <control>/<party>) blocks retiring its control.
     t=M.loadScenario('ACC');
-    t={...t,accountingX:{...t.accountingX,locks:{...t.accountingX.locks,[Y]:{...t.accountingX.locks[Y],vouchers:[...t.accountingX.locks[Y].vouchers,
+    // ACC-2 flows: 1115 is now the default ledger of receipt:ota — map that key elsewhere so the party balance is what blocks.
+    t={...t,accountingX:{...t.accountingX,mapping:{...(t.accountingX.mapping??{}),'receipt:ota':'4960'},locks:{...t.accountingX.locks,[Y]:{...t.accountingX.locks[Y],vouchers:[...t.accountingX.locks[Y].vouchers,
       {no:'JRN/20261023/900',date:Y,type:'Journal',narration:'OTA receivable (fictional)',source:{kind:'closing',id:'test-ota',sub:'test'},unmapped:[],
         entries:[{account:'1115/CHN-GOIBIBO',debit:120000,credit:0},{account:'4960',debit:0,credit:120000}]}]}}}};
     assert.deepEqual(M.accLedgerBalances(t,'1115'),{balance:120000,own:0,parties:{'CHN-GOIBIBO':120000}});
     assert.throws(()=>retire(t,'owner','1115'),e=>e.reason==='MASTER_IN_USE'&&/CHN-GOIBIBO ₹1,200 Dr/.test(e.message));
-    assert.equal(M.accLedgerRetireBlocker(M.seed(),'1115'),'','no party balance, unmapped → retirable');
+    assert.match(M.accLedgerRetireBlocker(M.seed(),'1115'),/receipt:ota/,'ACC-2 flows: mapped by default (receipt:ota)');
+    const um=M.seed();um.accountingX={mapping:{'receipt:ota':'4960'}};
+    assert.equal(M.accLedgerRetireBlocker(um,'1115'),'','no party balance, unmapped → retirable');
   });
 
   test('[ACC1-CHART] §1 custom sub-groups: g-<slug> under any group, nature inherited; Tally’s 28 fixed; re-parent within the same nature, no loops; ledgers move into them',()=>{

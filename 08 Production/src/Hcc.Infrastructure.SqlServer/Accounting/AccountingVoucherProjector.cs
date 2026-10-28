@@ -130,8 +130,9 @@ public sealed class AccountingVoucherProjector(SqlConnectionFactory connections,
             {
                 var e = Parse<ReceiptRecordedPayload>(evt);
                 var company = e.Kind == "company-credit" ? await ReceiptCompanyAsync(connection, transaction, e.ReceiptId, ct).ConfigureAwait(false) : null;
+                var channel = e.Kind == "ota-credit" ? await FolioChannelAsync(connection, transaction, e.FolioId, ct).ConfigureAwait(false) : null; // ACC-2 flows (A13)
                 source = AccountingEventMapper.Receipt(e.FolioId, e.ReceiptId, e.Kind, e.Tender, e.BusinessDate, e.AmountPaise,
-                    new PartyContext(Tender: await TenderPartyAsync(connection, transaction, propertyId, e.Tender, ct).ConfigureAwait(false), Company: company));
+                    new PartyContext(Tender: await TenderPartyAsync(connection, transaction, propertyId, e.Tender, ct).ConfigureAwait(false), Company: company, Channel: channel));
                 break;
             }
 
@@ -253,6 +254,18 @@ public sealed class AccountingVoucherProjector(SqlConnectionFactory connections,
 
             case AccountingEvents.ManualVoucherVoided: // ACC-2: nothing to book (SourcesAsync leaves out the void voucher's source; a reversal has its own event)
                 break;
+            // ── ACC-2 flows (contract §4, §8): the OTA payout (A13) and a mistaken Udhaar payment reversed (A17b) ──
+            case AccountingEvents.OtaPayoutRecorded:
+                source = AccountingEventMapper.OtaPayout(Parse<OtaPayoutRecordedEvent>(evt));
+                break;
+            case AccountingEvents.UdhaarPaymentReversed:
+            {
+                var e = Parse<UdhaarPaymentReversedEvent>(evt);
+                source = AccountingEventMapper.UdhaarPaymentReversed(e, new PartyContext(Tender: await TenderPartyAsync(connection, transaction, propertyId, e.Tender, ct).ConfigureAwait(false),
+                    Udhaar: await UdhaarPartyAsync(connection, transaction, e.ReceivableId, e.Customer, ct).ConfigureAwait(false)));
+                break;
+            }
+            // ── end ACC-2 flows ──
         }
 
         if (source is not null && !source.IsZero)
@@ -518,6 +531,17 @@ public sealed class AccountingVoucherProjector(SqlConnectionFactory connections,
     }
 
     // ── end ACC-1 ──
+
+    /// <summary>ACC-2 flows (A13): the channel code of a folio's reservation (the New message that created it), the 1115 party of an OTA credit.</summary>
+    private static async Task<string?> FolioChannelAsync(SqlConnection c, SqlTransaction t, long folioId, CancellationToken ct)
+    {
+        await using var cmd = new SqlCommand("""
+            SELECT TOP (1) ch.code FROM bill.folio f JOIN ota.message m ON m.reservation_id = f.reservation_id AND m.kind = 'New'
+            JOIN ota.channel ch ON ch.channel_id = m.channel_id WHERE f.folio_id = @f ORDER BY m.message_id;
+            """, c, t);
+        cmd.Parameters.Set("@f", SqlDbType.BigInt, folioId);
+        return await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false) as string;
+    }
 
     private static async Task<int> TillOfAsync(SqlConnection c, SqlTransaction t, long shiftId, CancellationToken ct)
     {
