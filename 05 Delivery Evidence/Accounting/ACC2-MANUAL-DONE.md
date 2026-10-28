@@ -47,7 +47,7 @@ a21d5337 ACC-2 manual: coordinator rulings (voucherType / VoucherType, ACC_LOAN_
 
 ## Tests
 
-All through `E:\Projects\HCC\worktreescc2	ools\Invoke-Serialized.ps1 -Label acc2-manual` (exit 75 retried); full logs in `E:\Projects\HCC\worktreescc2-manual\.scratch\` (uncommitted: `tsc.log`, `npm-test.log`, `build.log`, `acctest.log`, `trx\`).
+All through `E:\Projects\HCC\worktrees\acc2\tools\Invoke-Serialized.ps1 -Label acc2-manual` (exit 75 retried); full logs in `E:\Projects\HCC\worktrees\acc2-manual\.scratch\` (uncommitted: `tsc.log`, `npm-test.log`, `build.log`, `acctest.log`, `trx\`).
 
 | suite | before (base b78cb069) | after |
 |---|---|---|
@@ -56,7 +56,7 @@ All through `E:\Projects\HCC\worktreescc2	ools\Invoke-Serialized.ps1 -Label acc
 | server `dotnet build Hcc.slnx` | 0 warnings | **0 warnings, 0 errors** |
 | server `dotnet test tests/Hcc.Accounting.Tests -maxcpucount:1 --logger trx` | 147 | **156 / 156** (+8 `ManualVoucherTests`, +1 `ManualVoucherSqlTests`) |
 
-Command lines: `-Command "& '…\.scratch\proto.ps1'"` (tsc then `npm test`, in `03 Prototype`) and `-Command "& '…\.scratchoth.ps1'"` (`dotnet build Hcc.slnx` then `dotnet test tests/Hcc.Accounting.Tests -maxcpucount:1 --logger trx`, in `08 Production`). `node tools/migrations-lock.mjs`: in step (100 migrations). FY26 pins and goldens untouched (no fixture carries a manual voucher). Other server test projects (e.g. `Hcc.Access.Tests` RBAC rows) not run — the integrator's.
+Command lines: `-Command "& '…\.scratch\proto.ps1'"` (tsc then `npm test`, in `03 Prototype`) and `-Command "& '…\.scratch\both.ps1'"` (`dotnet build Hcc.slnx` then `dotnet test tests/Hcc.Accounting.Tests -maxcpucount:1 --logger trx`, in `08 Production`). `node tools/migrations-lock.mjs`: in step (100 migrations). FY26 pins and goldens untouched (no fixture carries a manual voucher). Other server test projects (e.g. `Hcc.Access.Tests` RBAC rows) not run — the integrator's.
 
 ## Open items
 
