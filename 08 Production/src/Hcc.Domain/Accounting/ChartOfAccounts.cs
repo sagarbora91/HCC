@@ -280,6 +280,9 @@ public static partial class ChartOfAccounts
         // DEC-130 an Udhaar payment settles the customer's credit; ACC-1 (contract §2) the expense ITC splits half / half like output GST:
         // CGST half → 1310 (tax:gst-input), SGST half → 1320 (tax:gst-input-sgst); 1300 stays for locked snapshots only.
         ["receipt:udhaar"] = "1120", ["tax:gst-input"] = "1310", ["tax:gst-input-sgst"] = "1320",
+
+        // ACC-2 tds (contract §4 A9, §5): TDS a company deducted from the hotel → 1360; TDS the hotel holds back on a bill → 2150.
+        [TdsCalculator.ReceivableKey] = "1360", [TdsCalculator.PayableKey] = "2150",
     };
 
     /// <summary>ACC-1: the SGST-half ITC key (contract §2).</summary>

@@ -57,7 +57,8 @@ public static class AccountingEventMapper
         ArgumentNullException.ThrowIfNull(e);
         // ACC-1: the company is always named by the event (1110/CMP-<id>); the tender's account comes from the consumer.
         return SourceRules.WithParties(SourceRules.CompanyPayment(CompanyPaymentKey(e.PaymentId), e.Tender, e.BusinessDate, e.AmountPaise,
-            $"Company payment received · {e.Company} · {e.Tender} · {e.Reference} · payment {N(e.PaymentId)}"),
+            $"Company payment received · {e.Company} · {e.Tender} · {e.Reference} · payment {N(e.PaymentId)}"
+                + (e.TdsPaise != 0 ? $" · TDS ₹{SourceRules.Rupees(e.TdsPaise)} deducted" : ""), e.TdsPaise), // ACC-2 tds: Dr 1360
             (parties ?? PartyContext.None) with { Company = PartyLedgers.Company(e.CompanyId) });
     }
 
