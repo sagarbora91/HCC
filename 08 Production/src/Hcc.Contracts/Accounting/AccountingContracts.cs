@@ -56,7 +56,8 @@ public static class AccountingEvents
          CashBanked, CashBankingRejected, OwnerDrawingRecorded,                                  // Wave B1 (DEC-073)
          CompanyPaymentRecorded,                                                                 // DEC-076 (wave B5)
          UdhaarPaymentRecorded,                                                                  // DEC-130 (SCC decisions wave)
-         UdhaarCreditRaised];                                                                    // ACC-1 (acc1-parties, DEC-144)
+         UdhaarCreditRaised,                                                                     // ACC-1 (acc1-parties, DEC-144)
+         .. PurchaseEvents.All];                                                                 // ACC-2 acc2-purchase (contract §3)
 }
 
 /// <summary>Wave B1 (DEC-073): a bank deposit recorded (<see cref="AccountingEvents.CashBanked"/>) or rejected (<see cref="AccountingEvents.CashBankingRejected"/>).</summary>
@@ -102,7 +103,9 @@ public sealed record PosBillSettledEvent(long BillId, string Kind, DateOnly Busi
 /// ledger; absent (events published before) or "disallowed" = the whole amount to the category.
 /// </summary>
 public sealed record ExpensePostedEvent(long ExpenseId, DateOnly BusinessDate, string Category, string Funding, long AmountPaise, string Vendor, long? ReversalOf,
-    long? GstPaise = null, string? Itc = null);
+    long? GstPaise = null, string? Itc = null,
+    // ACC-2 (acc2-purchase, contract §3.1): IGST bill, TDS held back (signed like the amount), the funding is a credit method (Purchase voucher).
+    string? GstKind = null, long? TdsPaise = null, bool? Credit = null, string? TdsSection = null);
 
 /// <summary>
 /// W2-2 Payroll: a locked pay run. Gross = net + employee PF + employee ESIC + PT + advance recovery + other deductions.

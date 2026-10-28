@@ -1,4 +1,4 @@
-code,name,ledger,needsBill,approvalLimit,sortOrder,active
-GARDEN,Garden and landscaping,5020,yes,5000.00,100,yes
-SECURITY,Security services,5050,yes,,110,yes
-STAFFWEL,Staff welfare,5050,no,2000.00,120,yes
+code,name,ledger,needsBill,approvalLimit,itcBlocked,rcm,rcmBps,capital,sortOrder,active
+GARDEN,Garden and landscaping,5020,yes,5000.00,no,no,,no,100,yes
+SECURITY,Security services,5050,yes,,no,yes,18,no,110,yes
+STAFFWEL,Staff welfare,5050,no,2000.00,yes,no,,no,120,yes

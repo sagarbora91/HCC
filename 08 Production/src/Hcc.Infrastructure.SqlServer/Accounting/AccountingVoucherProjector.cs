@@ -222,6 +222,31 @@ public sealed class AccountingVoucherProjector(SqlConnectionFactory connections,
             case AccountingEvents.UdhaarCreditRaised: // ACC-1 (contract §4, A17)
                 source = AccountingEventMapper.UdhaarCredit(Parse<UdhaarCreditRaisedEvent>(evt));
                 break;
+
+            // ── ACC-2 acc2-purchase (contract §3): reverse charge, returns, vendor payments / voids ──
+            case PurchaseEvents.ExpenseRcmPosted:
+                source = AccountingEventMapper.Rcm(Parse<ExpenseRcmPostedEvent>(evt));
+                break;
+            case PurchaseEvents.ExpenseReturned:
+            {
+                var e = Parse<ExpenseReturnedEvent>(evt);
+                source = AccountingEventMapper.ExpenseReturn(e, new PartyContext(Tender: await TenderPartyAsync(connection, transaction, propertyId, e.Funding, ct).ConfigureAwait(false),
+                    Vendor: await VendorPartyAsync(connection, transaction, propertyId, e.Vendor, ct).ConfigureAwait(false)));
+                break;
+            }
+
+            case PurchaseEvents.VendorPaymentRecorded:
+            case PurchaseEvents.VendorPaymentVoided:
+            {
+                var e = Parse<VendorPaymentEvent>(evt);
+                var parties = new PartyContext(Tender: await TenderPartyAsync(connection, transaction, propertyId, e.Tender, ct).ConfigureAwait(false),
+                    Vendor: await VendorPartyAsync(connection, transaction, propertyId, e.Vendor, ct).ConfigureAwait(false));
+                if (evt.EventType == PurchaseEvents.VendorPaymentRecorded) source = AccountingEventMapper.VendorPayment(e, parties);
+                else if (AccountingEventMapper.VendorPaymentVoid(e, parties) is { } v) source = v;
+                else await DropSourceAsync(connection, transaction, propertyId, AccountingEventMapper.VendorPaymentKey(e.PaymentId), ct).ConfigureAwait(false); // same-day void: nothing posts
+                break;
+            }
+            // ── end ACC-2 acc2-purchase ──
         }
 
         if (source is not null && !source.IsZero)
@@ -531,4 +556,20 @@ public sealed class AccountingVoucherProjector(SqlConnectionFactory connections,
     }
 
     internal static string Iso(DateOnly d) => d.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+
+    /// <summary>
+    /// ACC-2 acc2-purchase: a vendor payment voided on its own business day books nothing (prototype parity) — its source is removed while its
+    /// date is not locked (a locked day keeps its snapshot; the void then cannot be same-day anyway).
+    /// </summary>
+    private static async Task DropSourceAsync(SqlConnection c, SqlTransaction t, int propertyId, string sourceKey, CancellationToken ct)
+    {
+        await using var cmd = new SqlCommand("""
+            DECLARE @id BIGINT = (SELECT s.source_id FROM acc.source s WITH (UPDLOCK, HOLDLOCK) WHERE s.property_id = @p AND s.source_key = @k
+              AND NOT EXISTS (SELECT 1 FROM acc.period_lock l WHERE l.property_id = s.property_id AND l.business_date = s.business_date));
+            IF @id IS NOT NULL BEGIN DELETE acc.source_entry WHERE source_id = @id; DELETE acc.source WHERE source_id = @id; END
+            """, c, t);
+        cmd.Parameters.Set("@p", SqlDbType.Int, propertyId);
+        cmd.Parameters.Set("@k", SqlDbType.VarChar, sourceKey, 80);
+        await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+    }
 }

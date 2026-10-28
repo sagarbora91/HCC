@@ -10,12 +10,13 @@ import {lineTax,gstSplit} from '../gst';
 import {mnyLedgerDefaults,mnyIsCredit} from './money-master';
 import {cxSlice} from './cashout';
 import {sysParkedAccounting,SYS_STUCK_TITLE,sysStuckDetail} from './syshealth';
-import {expItcPaise,expUdGst,expUdRevenueKey,expUdKind} from './expenses-scc';
+import {expUdGst,expUdRevenueKey,expUdKind} from './expenses-scc';
 import {accPost,accIsControl,accControlOf,accIsParty,accPartyIdOf,accPartyName,accUdhaarPartyId,type ACCPartyCtx} from './accounting-parties';
 import {grpSlice} from './groups';
 import {expUdDeskReceipts,expUdDeskDates} from './udhaar-desk';
 import {accOpeningLockBlocker,accOpeningPosted} from './accounting-opening'; // ACC-1 opening (contract §5)
 import {accChartIndex,accLedger,accLedgerLegacyGroup,accLedgerTallyName} from './accounting-chart'; // ACC-1 integration: Owner renames / Owner-added ledgers reach postings and names
+import {expPurchaseLines,expVendorPayments,expVendorName,expIsReturn,EXP_KEY_RCM,EXP_KEY_TDS,EXP_KEY_VENDOR} from './expenses-vendor'; // ACC-2 acc2-purchase (contract §3)
 
 // ── Mapping (source classification → ledger) ──
 export const ACC_DEFAULT_MAP:Record<string,string>={
@@ -35,11 +36,14 @@ export const ACC_DEFAULT_MAP:Record<string,string>={
   // ACC-1 (contract §2): the ITC splits half / half like output GST — CGST half to 1310 (tax:gst-input), SGST half to 1320 (tax:gst-input-sgst);
   // 1300 stays for locked snapshots only.
   'receipt:udhaar':'1120','tax:gst-input':'1310','tax:gst-input-sgst':'1320',
+  // ACC-2 (acc2-purchase, contract §3): IGST input credit (inter-state bills), RCM payable, TDS payable, and the vendor payable a vendor
+  // payment / advance debits (party = the vendor, 2200/<vendor>).
+  'tax:gst-input-igst':'1330','tax:rcm-payable':'2140','tax:tds-payable':'2150','vendor:payable':'2200',
 };
-const KEY_LABEL:Record<string,string>={line:'Folio line kind',folio:'Folio',method:'Receipt method (tender)',receipt:'Receipt kind (counter-ledger)',expense:'Expense category',funding:'Expense funding',closing:'Closing record',pos:'Outlet (POS) bill',tax:'GST input credit (ITC)'};
+const KEY_LABEL:Record<string,string>={line:'Folio line kind',folio:'Folio',method:'Receipt method (tender)',receipt:'Receipt kind (counter-ledger)',expense:'Expense category',funding:'Expense funding',closing:'Closing record',pos:'Outlet (POS) bill',tax:'GST input credit (ITC)',vendor:'Vendor payments (payables)'};
 export const accKeyGroup=(key:string)=>KEY_LABEL[key.split(':')[0]]??'Other';
 export const accKeyValue=(key:string)=>key.slice(key.indexOf(':')+1);
-export const ACC_KEY_PATTERN=/^(line|folio|method|receipt|expense|funding|closing|pos|tax):.+$/;
+export const ACC_KEY_PATTERN=/^(line|folio|method|receipt|expense|funding|closing|pos|tax|vendor):.+$/;
 /** ACC-1 (contract §2): the mapping key of an accepted cash difference (counted − expected) — a short (< 0) → closing:cash-difference (5900),
  *  an over (> 0) → closing:cash-over (4950). */
 export const accCashDiffKey=(diff:number)=>diff>0?'closing:cash-over':'closing:cash-difference';
@@ -262,10 +266,33 @@ export function accLiveVouchers(s:State,date:string,mapping=accMapping(s)):ACCVo
   for(const e of s.expenses.filter(e=>e.date===date&&expenseCounts(e)&&e.amount!==0)){
     // DEC-135: ITC allowed → the bill's GST goes to the GST input-credit ledger and the category takes the rest; disallowed → the whole bill
     // to the category (as before). A reversal record carries −amount and −GST, so it mirrors the split.
-    const miss:string[]=[],head=map('expense:'+e.category,miss),itc=expItcPaise(e),fund=pt(map('funding:'+e.method,miss),{method:e.method,vendor:e.vendor}); // ACC-1: vendor credit → 2200/<vendor>
-    push({date,type:mnyIsCredit(s,e.method)?'Journal':'Payment',narration:`${e.reversalOf?'Reversal of '+e.reversalOf+' · ':''}${e.vendor||e.description||'—'} · ${e.category} · ${e.method}`, // DEC-120: the vendor is optional
-      source:{kind:'expense',id:e.id,sub:e.reversalOf?'reversal':'expense'}},miss,[dr(head,e.amount-itc),...(itc?accItcSplit(itc).map(([k,p])=>dr(map(k,miss),p)):[]),cr(fund,e.amount)]);
+    // ── ACC-2 acc2-purchase (contract §3.1, §3.3–3.5; rulebook C1, C5, C8, C9, C10) ── a bill on a credit method is a Purchase voucher; an
+    // inter-state bill's ITC goes whole to 1330 (IGST); TDS held back credits 2150 and the funding side net; a capital category's ledger is
+    // its fixed-asset block; a return / reversal record is negative, so every line swaps (the ITC taken is reversed). The funding entry stays LAST.
+    const miss:string[]=[],head=map('expense:'+e.category,miss),p=expPurchaseLines(e),fund=pt(map('funding:'+e.method,miss),{method:e.method,vendor:e.vendor}); // ACC-1: vendor credit → 2200/<vendor>
+    const ret=expIsReturn(e)?'Return / vendor credit note of '+String(e.sourceRef).slice(4)+' · ':'';
+    push({date,type:mnyIsCredit(s,e.method)?'Purchase':'Payment',narration:`${e.reversalOf?'Reversal of '+e.reversalOf+' · ':''}${ret}${e.vendor||e.description||'—'} · ${e.category} · ${e.method}${e.gstKind==='inter'?' · IGST':''}${p.tds?' · TDS '+(e.tdsSection??''):''}`, // DEC-120: the vendor is optional
+      source:{kind:'expense',id:e.id,sub:e.reversalOf?'reversal':ret?'return':'expense'}},miss,
+      [dr(head,e.amount-p.itcTotal),...p.itc.map(([k,v])=>dr(map(k,miss),v)),...(p.tds?[cr(map(EXP_KEY_TDS,miss),p.tds)]:[]),cr(fund,e.amount-p.tds)]);
+    // C8 / DEC-145: a reverse-charge bill adds a second source — Dr the category (or the input-credit ledgers when ITC is allowed) · Cr 2140.
+    if(p.rcm){const m2:string[]=[];
+      push({date,type:'Journal',narration:`Reverse charge GST ${(e.rcmBps??0)/100} % · ${e.vendor||e.description||'—'} · ${e.category} · bill ${e.id}${e.reversalOf?' (reversal of '+e.reversalOf+')':''}`,
+        source:{kind:'tax',id:'rcm:'+e.id,sub:'rcm'}},m2,[...(p.rcmItc.length?p.rcmItc.map(([k,v])=>dr(map(k,m2),v)):[dr(map('expense:'+e.category,m2),p.rcm)]),cr(map(EXP_KEY_RCM,m2),p.rcm)]);}
   }
+  // ── ACC-2 acc2-purchase (contract §3.2; rulebook C3, C4): vendor payment / advance — Payment, Dr 2200/<vendor> · Cr the tender (party = the
+  // till / bank account it settles to). A void on the payment's own day posts nothing; a later void posts the reversal on the void date. ──
+  for(const vp of expVendorPayments(s)){
+    const sameDayVoid=!!vp.void&&vp.voidAt===vp.date,ctx={method:vp.method,vendor:vp.vendor},name=expVendorName(s,vp.vendor);
+    if(vp.date===date&&!sameDayVoid){const miss:string[]=[],adv=vp.amount-vp.allocations.reduce((a,x)=>a+x.amount,0);
+      push({date,type:'Payment',narration:`Vendor payment · ${name} · ${vp.method}${vp.reference?' · '+vp.reference:''}${adv>0?' · advance '+(adv/100).toFixed(2):''} · payment ${vp.id}`,
+        source:{kind:'vendor',id:'vendor-payment:'+vp.id,sub:adv===vp.amount?'vendor-advance':'vendor-payment'}},miss,
+        [dr(pt(map(EXP_KEY_VENDOR,miss),ctx),vp.amount),cr(pt(map('method:'+vp.method,miss),ctx),vp.amount)]);}
+    if(vp.void&&!sameDayVoid&&vp.voidAt===date){const miss:string[]=[];
+      push({date,type:'Payment',narration:`Vendor payment void · ${name} · ${vp.method}${vp.voidReason?' · '+vp.voidReason:''} · payment ${vp.id}`,
+        source:{kind:'vendor',id:'vendor-payment:'+vp.id+'/void',sub:'vendor-payment-void'}},miss,
+        [dr(pt(map(EXP_KEY_VENDOR,miss),ctx),-vp.amount),cr(pt(map('method:'+vp.method,miss),ctx),-vp.amount)]);}
+  }
+  // ── end ACC-2 acc2-purchase ──
   // ACC-1 (contract §4, rulebook A17, DEC-144): raising an Udhaar credit is a SALE booked the same day — Dr 1120/<customer> (gross) · Cr F&B,
   // room or other revenue (the credit's kind) · Cr CGST · Cr SGST (the GST inside the gross, expUdGst). Rows raised before ACC-1: other, no GST.
   // A credit later written off keeps this voucher (the write-off is the bad-debt journal A18, a later wave).
@@ -305,7 +332,7 @@ export function accLiveVouchers(s:State,date:string,mapping=accMapping(s)):ACCVo
     push({date,type:'Journal',narration:`Cash ${diff>0?'over':'short'} accepted at shift close · ${date}`,source:{kind:'closing',id:`CLOSE/${date}/cash-difference`,sub:'cash-difference'}},miss,
       diff>0?[dr(cash,diff),cr(acct,diff)]:[dr(acct,-diff),cr(cash,-diff)]);}
   const n:Record<string,number>={};
-  return (['Sales','Receipt','Payment','Journal'] as ACCVoucherType[]).flatMap(t=>out.filter(v=>v.type===t)).map(v=>{
+  return (['Sales','Receipt','Payment','Journal','Purchase','Contra'] as ACCVoucherType[]).flatMap(t=>out.filter(v=>v.type===t)).map(v=>{
     n[v.type]=(n[v.type]??0)+1;return {...v,no:`${PREFIX[v.type]}/${ymd(date)}/${String(n[v.type]).padStart(3,'0')}`};});
 }
 /** Accepted cash difference for a date (counted − expected) from its closing record, or the closed shift of the open day. */
@@ -369,6 +396,7 @@ export function accDates(s:State):string[]{
   expUdDeskDates(s).forEach(x=>d.add(x)); // DEC-130
   (s.expensesX?.udhaar??[]).forEach(r=>d.add(r.date)); // ACC-1: Udhaar credit raised (A17)
   (grpSlice(s).payments??[]).forEach(p=>d.add(p.date)); // ACC-1: company payments (DEC-076)
+  expVendorPayments(s).forEach(p=>{d.add(p.date);if(p.void&&p.voidAt)d.add(p.voidAt);}); // ACC-2 acc2-purchase: vendor payments and their voids
   return [...d].filter(x=>/^\d{4}-\d{2}-\d{2}$/.test(x)&&x<=s.date).sort().reverse();
 }
 /** Vouchers for every date up to and including `date` (cumulative trial balance). */
@@ -426,7 +454,9 @@ export function accReconcile(s:State,date:string):ACCCheck[]{
   const tenderMove=(kinds:string[])=>vs.filter(x=>x.source.kind==='receipt'&&kinds.includes(x.source.sub)).reduce((a,x)=>a+x.entries.filter(e=>isTender(e.account,map)).reduce((b,e)=>b+e.debit-e.credit,0),0);
   // Expense vouchers: the last entry is the funding side (Cr for an expense, Dr for a reversal record) = the whole bill, also when DEC-135 splits
   // the debit into the category and the GST input-credit ledger.
-  const expenseMove=vs.filter(x=>x.source.kind==='expense').reduce((a,x)=>{const f=x.entries[x.entries.length-1];return a+f.credit-f.debit;},0);
+  // ACC-2 (acc2-purchase): TDS held back on a bill (2150) is part of the bill — funding (net) + TDS = the report's amount.
+  const tdsCode=map[EXP_KEY_TDS];
+  const expenseMove=vs.filter(x=>x.source.kind==='expense').reduce((a,x)=>{const f=x.entries[x.entries.length-1];return a+f.credit-f.debit+x.entries.slice(0,-1).filter(e=>accControlOf(e.account)===tdsCode).reduce((b,e)=>b+e.credit-e.debit,0);},0);
   const c=(id:string,label:string,report:number,ledger:number,note:string):ACCCheck=>({id,label,report,ledger,ok:report===ledger,note});
   const checks=[
     c('room','Room revenue',v('revenue','room'),net(map['line:room'],lines('room')),'Reports › Revenue · room lines'),
@@ -453,7 +483,8 @@ export function accMapRows(s:State):ACCMapRow[]{
   const map=accMapping(s),uses:Record<string,number>={};
   const add=(k:string)=>{uses[k]=(uses[k]??0)+1;};
   s.bookings.forEach(b=>{b.lines.forEach(l=>{add('line:'+l.kind);add('folio:guest');if(lineTax(l)){add('folio:cgst');add('folio:sgst');}});b.receipts.filter(r=>r.kind==='company-credit').forEach(()=>add('folio:guest'));b.receipts.forEach(r=>{add('receipt:'+r.kind);if(r.kind!=='company-credit')add('method:'+r.method);});});
-  s.expenses.filter(expenseCounts).forEach(e=>{add('expense:'+e.category);add('funding:'+e.method);if(expItcPaise(e)){add('tax:gst-input');add('tax:gst-input-sgst');}});
+  s.expenses.filter(expenseCounts).forEach(e=>{add('expense:'+e.category);add('funding:'+e.method);const p=expPurchaseLines(e);for(const [k] of [...p.itc,...p.rcmItc])add(k);if(p.tds)add(EXP_KEY_TDS);if(p.rcm)add(EXP_KEY_RCM);}); // ACC-2: IGST / RCM / TDS keys
+  for(const p of expVendorPayments(s)){add(EXP_KEY_VENDOR);add('method:'+p.method);} // ACC-2 acc2-purchase: vendor payments
   for(const r of s.expensesX?.udhaar??[])for(const p of r.settlements??[])if(p.desk){add('receipt:udhaar');add('method:'+p.mode);} // DEC-130
   for(const r of s.expensesX?.udhaar??[]){add('receipt:udhaar');add(expUdRevenueKey(r));if(expUdGst(r).tax){add('folio:cgst');add('folio:sgst');}} // ACC-1: credit raised
   for(const p of grpSlice(s).payments??[]){add('receipt:company-credit');add('method:'+p.method);} // ACC-1: company payments
@@ -483,6 +514,8 @@ export function accDaySummary(s:State,date:string){
 /** Source record lookup for a voucher (dialog "trace to source"). */
 export function accSourceOf(s:State,v:ACCVoucher):{booking?:Booking;line?:Line;receipt?:Receipt;expense?:Expense;posReceipt?:POSReceipt}{
   if(v.source.kind==='expense')return {expense:s.expenses.find(e=>e.id===v.source.id||'expense:'+e.id===v.source.id)};
+  if(v.source.kind==='tax'&&v.source.sub==='rcm')return {expense:s.expenses.find(e=>'rcm:'+e.id===v.source.id)}; // ACC-2: the RCM source of a bill
+  if(v.source.kind==='vendor')return {}; // ACC-2: vendor payments are not folio records
   if(accSlice(s).server)return {}; // server source keys (charge:…, receipt:…, pos:…) are not prototype record ids
   if(v.source.kind==='pos')return {posReceipt:posSlice(s).receipts.find(r=>r.id===v.source.id)};
   if(v.source.kind==='closing'||v.source.sub==='udhaar-payment'||v.source.sub==='udhaar-credit'||v.source.sub==='company-payment')return {}; // DEC-130 / ACC-1: not folio records

@@ -89,7 +89,7 @@ public sealed class AccountingRulesTests
             ("2110", 2_500L, 0L), ("2120", 2_500L, 0L)], vs[1].Entries.Select(x => (x.Account, x.DebitPaise, x.CreditPaise)));
         Assert.Equal(0, VoucherBuilder.TrialBalance(vs).Sum(r => Math.Abs(r.BalancePaise)));
         var exp = VoucherBuilder.Build(D, [AccountingEventMapper.Expense(new ExpensePostedEvent(5, D, "Supplies", "Vendor credit", 40_000, "Demo Traders", null))], Map).Single();
-        Assert.Equal("JRN/20261024/001", exp.Number);
+        Assert.Equal("PUR/20261024/001", exp.Number); // ACC-2 contract §3.1: a bill on vendor credit is a Purchase voucher (was Journal)
         Assert.Equal([("5000", 40_000L, 0L), ("2200", 0L, 40_000L)], exp.Entries.Select(x => (x.Account, x.DebitPaise, x.CreditPaise)));
     }
 

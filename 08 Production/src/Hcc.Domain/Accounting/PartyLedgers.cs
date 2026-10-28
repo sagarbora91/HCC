@@ -121,6 +121,7 @@ public sealed record PartyContext(string? Tender = null, string? Company = null,
                 "receipt:ota" => Channel,
                 "payroll:advances" or "payroll:fnf-recoverable" => Staff,
                 "closing:bank-deposit" => Bank,
+                SourceRules.VendorPayableKey => Vendor, // ACC-2 acc2-purchase: vendor payment / advance (2200/<vendor>)
                 _ => null,
             },
         };

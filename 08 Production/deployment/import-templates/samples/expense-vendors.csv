@@ -1,4 +1,4 @@
-code,name,type,gstin,tds,contact,terms,sortOrder,active
-VND-LNDRY,Shree Laundry Services (fictional),laundry,,no,Mr Patil 9822000001,30 days,100,yes
-VND-POWER,State Power Utility (fictional),utility,,no,Customer care 1912,On bill,110,yes
-VND-LINEN,Latur Linen House (fictional),supplier,27ABCDE1234F1Z5,no,Mrs Shah 9822000002,15 days,120,yes
+code,name,type,gstin,tds,state,tdsSection,contact,terms,sortOrder,active
+VND-LNDRY,Shree Laundry Services (fictional),laundry,,no,MH,,Mr Patil 9822000001,30 days,100,yes
+VND-POWER,State Power Utility (fictional),utility,,no,MH,,Customer care 1912,On bill,110,yes
+VND-LINEN,Latur Linen House (fictional),supplier,27ABCDE1234F1Z5,no,MH,,Mrs Shah 9822000002,15 days,120,yes

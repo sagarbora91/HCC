@@ -203,7 +203,7 @@ export function expFeedStale(s:State,month:string):boolean{
 export type ExpBudgetRow={category:string;budget:number;actual:number;pct:number;status:'none'|'over'|'near'|'ok'};
 /** Σ counted expenses of a category in a month (SCC: Σ non-void expense rows; HCC counts after approval). */
 export function expCategorySpend(s:State,category:string,month:string):number{
-  let t=0;for(const e of s.expenses)if(counts(e)&&e.category===category&&expYm(e.date)===month)t+=e.amount;return t;
+  let t=0;for(const e of s.expenses)if(counts(e)&&!e.capital&&e.category===category&&expYm(e.date)===month)t+=e.amount;return t; // ACC-2: capital purchases never count against a budget (contract §3)
 }
 /** SCC's tab status: pct = round(actual ÷ budget × 100); "over" when pct > 100, "near limit" when pct ≥ 85, else ok; no budget → "no budget". */
 export function expBudgetRow(category:string,budget:number,actual:number):ExpBudgetRow{
@@ -212,7 +212,7 @@ export function expBudgetRow(category:string,budget:number,actual:number):ExpBud
 }
 export function expBudgetRows(s:State,month:string,categories:string[]):ExpBudgetRow[]{
   const bm=expSlice(s).budgets?.[month]??{},spend:Record<string,number>={};
-  for(const e of s.expenses)if(counts(e)&&expYm(e.date)===month)spend[e.category]=(spend[e.category]??0)+e.amount;
+  for(const e of s.expenses)if(counts(e)&&!e.capital&&expYm(e.date)===month)spend[e.category]=(spend[e.category]??0)+e.amount; // ACC-2: not capital purchases
   const cats=[...categories];for(const c of [...Object.keys(bm),...Object.keys(spend)])if(!cats.includes(c))cats.push(c);
   return cats.map(c=>expBudgetRow(c,Number(bm[c])||0,spend[c]??0));
 }

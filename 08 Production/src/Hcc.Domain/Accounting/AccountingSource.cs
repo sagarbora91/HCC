@@ -128,12 +128,79 @@ public static class SourceRules
     /// <paramref name="itcPaise"/> (the bill's GST marked ITC allowed; negative on a reversal) Dr category (amount − GST) · Dr GST input credit ·
     /// Cr funding (amount); the ITC line exists only when it is not zero (prototype <c>accLiveVouchers</c>).
     /// </summary>
-    public static AccountingSource Expense(string sourceKey, bool reversal, string category, string funding, DateOnly date, long amountPaise, string narration, long itcPaise = 0)
-        => new(sourceKey, SourceKinds.Expense, reversal ? "reversal" : "expense", date, funding == "Vendor credit" ? VoucherType.Journal : VoucherType.Payment, narration,
-            itcPaise == 0
-                ? [Dr("expense:" + category, amountPaise), Cr("funding:" + funding, amountPaise)]
-                : [Dr("expense:" + category, checked(amountPaise - itcPaise)), Dr(GstInputKey, ChartOfAccounts.ItcSplit(itcPaise).Cgst),
-                    Dr(ChartOfAccounts.GstInputSgstKey, ChartOfAccounts.ItcSplit(itcPaise).Sgst), Cr("funding:" + funding, amountPaise)]); // ACC-1: ITC CGST half 1310 · SGST half 1320
+    public static AccountingSource Expense(string sourceKey, bool reversal, string category, string funding, DateOnly date, long amountPaise, string narration, long itcPaise = 0,
+        PurchaseLines? purchase = null)
+    {
+        // ACC-2 (acc2-purchase, contract §3.1, §3.5; rulebook C1, C5, C9): a bill on a credit method is a Purchase voucher (was Journal); an
+        // inter-state bill's ITC goes whole to 1330 (IGST); TDS held back credits 2150 and the funding side net. The funding entry stays LAST.
+        var p = purchase ?? PurchaseLines.None;
+        var credit = p.Credit ?? funding == "Vendor credit";
+        var entries = new List<SourceEntry> { Dr("expense:" + category, checked(amountPaise - itcPaise)) };
+        entries.AddRange(ItcEntries(itcPaise, p.Inter));
+        if (p.TdsPaise != 0) entries.Add(Cr(TdsPayableKey, p.TdsPaise));
+        entries.Add(Cr("funding:" + funding, checked(amountPaise - p.TdsPaise)));
+        return new(sourceKey, SourceKinds.Expense, reversal ? "reversal" : p.Return ? "return" : "expense", date, credit ? VoucherType.Purchase : VoucherType.Payment, narration, entries);
+    }
+
+    // ── ACC-2 (acc2-purchase) · purchases: IGST, reverse charge, vendor payments, returns (contract §3) ──
+
+    /// <summary>ACC-2: mapping keys (prototype EXP_KEY_*): IGST input credit (1330), RCM payable (2140), TDS payable (2150), vendor payable (2200).</summary>
+    public const string GstInputIgstKey = "tax:gst-input-igst";
+
+    public const string RcmPayableKey = "tax:rcm-payable";
+
+    public const string TdsPayableKey = "tax:tds-payable";
+
+    public const string VendorPayableKey = "vendor:payable";
+
+    /// <summary>ITC entries of a bill: intra = CGST half 1310 · SGST half 1320 (<see cref="ChartOfAccounts.ItcSplit"/>), inter = the whole to 1330.
+    /// Zero ITC = none. A negative ITC (reversal / return) mirrors.</summary>
+    public static IReadOnlyList<SourceEntry> ItcEntries(long itcPaise, bool inter)
+    {
+        if (itcPaise == 0) return [];
+        if (inter) return [Dr(GstInputIgstKey, itcPaise)];
+        var (c, s) = ChartOfAccounts.ItcSplit(itcPaise);
+        return [Dr(GstInputKey, c), Dr(ChartOfAccounts.GstInputSgstKey, s)];
+    }
+
+    /// <summary>
+    /// C8 / DEC-145: the reverse-charge GST of a bill (second source, kind tax, sub rcm, Journal): Dr the category (or the input-credit
+    /// ledgers when ITC is allowed) · Cr 2140 RCM payable. Negative on a reversal / return record.
+    /// </summary>
+    public static AccountingSource Rcm(string sourceKey, string category, DateOnly date, long rcmPaise, bool itc, bool inter, string narration)
+    {
+        var debit = itc ? ItcEntries(rcmPaise, inter) : [Dr("expense:" + category, rcmPaise)];
+        return new(sourceKey, SourceKinds.Tax, "rcm", date, VoucherType.Journal, narration, [.. debit, Cr(RcmPayableKey, rcmPaise)]);
+    }
+
+    /// <summary>RCM GST of an amount at a rate in basis points, rounded half away from zero (prototype <c>expBpsOf</c>).</summary>
+    public static long BpsOf(long amountPaise, int bps)
+    {
+        var n = checked(Math.Abs(amountPaise) * Math.Max(0, bps));
+        var q = n / 10000;
+        var t = q + ((n - q * 10000) * 2 >= 10000 ? 1 : 0);
+        return amountPaise < 0 ? -t : t;
+    }
+
+    /// <summary>
+    /// C3 / C4: a vendor payment or advance = Payment, Dr vendor payable (2200, party = the vendor) · Cr the tender (party = its settles-to
+    /// account). Sub <c>vendor-advance</c> when nothing was allocated to a bill. A reversing void (a later business day) is the same with a
+    /// negative amount, sub <c>vendor-payment-void</c>.
+    /// </summary>
+    public static AccountingSource VendorPayment(string sourceKey, string tender, DateOnly date, long amountPaise, bool advance, string narration, bool voiding = false)
+        => new(sourceKey, SourceKinds.Vendor, voiding ? "vendor-payment-void" : advance ? "vendor-advance" : "vendor-payment", date, VoucherType.Payment, narration,
+            [Dr(VendorPayableKey, voiding ? -amountPaise : amountPaise), Cr("method:" + tender, voiding ? -amountPaise : amountPaise)]);
+
+    /// <summary>
+    /// C5: a goods return / vendor credit note = a negative Purchase through the credit method (Dr 2200/[vendor] · Cr the category · Cr the ITC
+    /// taken). <paramref name="amountPaise"/> / <paramref name="itcPaise"/> are the positive returned amounts; sub <c>return</c>.
+    /// </summary>
+    public static AccountingSource ExpenseReturn(string sourceKey, string category, string funding, DateOnly date, long amountPaise, long itcPaise, string narration,
+        PurchaseLines? purchase = null)
+        => Expense(sourceKey, false, category, funding, date, -amountPaise, narration, -itcPaise,
+            (purchase ?? PurchaseLines.None) with { Return = true, TdsPaise = -Math.Abs((purchase ?? PurchaseLines.None).TdsPaise), Credit = true });
+
+    // ── end ACC-2 (acc2-purchase) ──
 
     /// <summary>DEC-130: the Udhaar receivables ledger key (customer credit settled by a desk receipt).</summary>
     public const string UdhaarKey = "receipt:udhaar";
@@ -329,6 +396,16 @@ public static class SourceRules
         var a = Math.Abs(paise);
         return sign + (a / 100).ToString(CultureInfo.InvariantCulture) + "." + (a % 100).ToString("00", CultureInfo.InvariantCulture);
     }
+}
+
+/// <summary>
+/// ACC-2 (acc2-purchase): the purchase side of an expense source — <see cref="Inter"/> = IGST bill (ITC to 1330), <see cref="TdsPaise"/> =
+/// TDS held back (signed like the amount), <see cref="Credit"/> = the funding is a credit method (Purchase voucher; null = "Vendor credit"
+/// by name), <see cref="Return"/> = a return / vendor credit note record.
+/// </summary>
+public sealed record PurchaseLines(bool Inter = false, long TdsPaise = 0, bool? Credit = null, bool Return = false)
+{
+    public static readonly PurchaseLines None = new();
 }
 
 /// <summary>Pay-run figures as published by payroll (all paise, non-negative).</summary>

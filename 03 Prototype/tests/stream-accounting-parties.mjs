@@ -54,7 +54,7 @@ export function register({test,M,assert}){
     let s=execute(seed(),'reception',{type:'EXPENSE',description:'Linen on credit',vendor:'Morning Supplies',category:'Supplies',amount:59000,method:'Vendor credit'});
     const eid=s.expenses.at(-1).id;s=execute(s,'manager',{type:'EXPENSE_APPROVE',id:eid,approve:true});
     const code=M.mnyVendor(s,'Morning Supplies').code,v=M.accLiveVouchers(s,D).find(v=>v.source.id===eid);
-    assert.equal(v.type,'Journal');assert.deepEqual(ent(v),[['5000',59000,0],['2200/'+code,0,59000]]);
+    assert.equal(v.type,'Purchase');assert.deepEqual(ent(v),[['5000',59000,0],['2200/'+code,0,59000]]); // ACC-2 contract §3.1: Purchase (was Journal)
     assert.equal(M.accPartyBalance(s,'2200/'+code),-59000);
     assert.match(M.accPartyRetireBlocker(s,'2200',code),/Vendor payables · Morning Supplies has a ledger balance of ₹590\.00 Cr/);
     const row=M.mnyVendor(s,'Morning Supplies');
