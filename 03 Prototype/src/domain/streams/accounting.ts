@@ -19,6 +19,7 @@ import {accChartIndex,accLedger,accLedgerLegacyGroup,accLedgerTallyName} from '.
 import {expPurchaseLines,expVendorPayments,expVendorName,expIsReturn,EXP_KEY_RCM,EXP_KEY_TDS,EXP_KEY_VENDOR} from './expenses-vendor'; // ACC-2 acc2-purchase (contract §3)
 import {accManualVouchersOn,accManualDates} from './accounting-manual'; // ACC-2 manual vouchers (contract §2)
 import {accGstLiveVouchers} from './accounting-gst'; // ACC-2 gst lane (contract §4 advance GST, §6 set-off)
+import {accPayrollSources,accPayrollDates,accPayrollKeyUses,ACC_PAYROLL_MAP} from './accounting-payroll'; // ACC-2 parity (contract §8)
 
 // ── Mapping (source classification → ledger) ──
 export const ACC_DEFAULT_MAP:Record<string,string>={
@@ -46,11 +47,14 @@ export const ACC_DEFAULT_MAP:Record<string,string>={
   // ACC-2 flows (contract §4, rulebook A13, DEC-150): the OTA's receivable (1115/<channel>), its commission (5070) and the TCS it collected
   // (GST electronic cash ledger 1340), all from the payout statement.
   'receipt:ota':'1115','receipt:ota-commission':'5070','tax:tcs':'1340',
+  // ACC-2 parity (contract §8, rulebook A3): F&B charged to a folio (POS charge-to-folio, catalogue extras of GST category food) → 4200;
+  // the payroll keys of the server (ChartOfAccounts.DefaultMapping), now that the prototype books payroll too.
+  'line:food':'4200',...ACC_PAYROLL_MAP,
 };
-const KEY_LABEL:Record<string,string>={line:'Folio line kind',folio:'Folio',method:'Receipt method (tender)',receipt:'Receipt kind (counter-ledger)',expense:'Expense category',funding:'Expense funding',closing:'Closing record',pos:'Outlet (POS) bill',tax:'GST input credit (ITC)',vendor:'Vendor payments (payables)'};
+const KEY_LABEL:Record<string,string>={line:'Folio line kind',folio:'Folio',method:'Receipt method (tender)',receipt:'Receipt kind (counter-ledger)',expense:'Expense category',funding:'Expense funding',closing:'Closing record',pos:'Outlet (POS) bill',payroll:'Payroll',tax:'GST input credit (ITC)',vendor:'Vendor payments (payables)'}; // ACC-2: payroll (parity, server KeyGroups order), vendor (purchase)
 export const accKeyGroup=(key:string)=>KEY_LABEL[key.split(':')[0]]??'Other';
 export const accKeyValue=(key:string)=>key.slice(key.indexOf(':')+1);
-export const ACC_KEY_PATTERN=/^(line|folio|method|receipt|expense|funding|closing|pos|tax|vendor):.+$/;
+export const ACC_KEY_PATTERN=/^(line|folio|method|receipt|expense|funding|closing|pos|payroll|tax|vendor):.+$/; // ACC-2: payroll keys (parity) and the vendor payable (purchase) can be re-pointed
 /** ACC-1 (contract §2): the mapping key of an accepted cash difference (counted − expected) — a short (< 0) → closing:cash-difference (5900),
  *  an over (> 0) → closing:cash-over (4950). */
 export const accCashDiffKey=(diff:number)=>diff>0?'closing:cash-over':'closing:cash-difference';
@@ -359,6 +363,11 @@ export function accLiveVouchers(s:State,date:string,mapping=accMapping(s)):ACCVo
   for(const v of accGstLiveVouchers(s,date)){const miss:string[]=[];push({date,type:v.type,narration:v.narration,source:v.source},miss,
     v.entries.map(e=>known.get(e.account)?.active?e:(miss.push('ledger:'+e.account),{...e,account:ACC_SUSPENSE})));}
   // ── end ACC-2 gst lane ──
+  // ── ACC-2 parity (contract §8; lane acc2-parity): payroll — advance given, pay run at lock (advance recovered per staff 1200/<staff>), net pay
+  // paid by the bank file, the pay-run reversal at an unlock, full and final + its net pay. Same keys / sides as the server (accounting-payroll.ts).
+  for(const p of accPayrollSources(s,date)){const miss:string[]=[];
+    push({date,type:p.type,narration:p.narration,source:p.source},miss,p.lines.map(l=>{const a=pt(map(l.key,miss),{staff:l.staff,method:l.method});return {account:a,debit:l.debit,credit:l.credit};}));}
+  // ── end ACC-2 parity ──
   const diff=accCashDifference(s,date);
   if(diff){const miss:string[]=[],cash=pt(map('method:Cash',miss),{method:'Cash'}),acct=map(accCashDiffKey(diff),miss); // ACC-1: an over → closing:cash-over (4950), a short → 5900
     push({date,type:'Journal',narration:`Cash ${diff>0?'over':'short'} accepted at shift close · ${date}`,source:{kind:'closing',id:`CLOSE/${date}/cash-difference`,sub:'cash-difference'}},miss,
@@ -436,6 +445,7 @@ export function accDates(s:State):string[]{
   expVendorPayments(s).forEach(p=>{d.add(p.date);if(p.void&&p.voidAt)d.add(p.voidAt);}); // ACC-2 acc2-purchase: vendor payments and their voids
   accManualDates(s).forEach(x=>d.add(x)); // ACC-2: manual vouchers (contract §2)
   (s.channelsX?.payouts??[]).forEach(p=>d.add(p.date)); // ACC-2 flows: OTA payouts (A13)
+  accPayrollDates(s).forEach(x=>d.add(x)); // ACC-2 parity: payroll sources
   return [...d].filter(x=>/^\d{4}-\d{2}-\d{2}$/.test(x)&&x<=s.date).sort().reverse();
 }
 /** Vouchers for every date up to and including `date` (cumulative trial balance). */
@@ -499,7 +509,8 @@ export function accReconcile(s:State,date:string):ACCCheck[]{
   const c=(id:string,label:string,report:number,ledger:number,note:string):ACCCheck=>({id,label,report,ledger,ok:report===ledger,note});
   const checks=[
     c('room','Room revenue',v('revenue','room'),net(map['line:room'],lines('room')),'Reports › Revenue · room lines'),
-    c('service','Other revenue',v('revenue','service'),net(map['line:service'],lines('service')),'Reports › Revenue · service lines'),
+    // ACC-2 parity: the report's service revenue includes the F&B lines charged to folios (kind food → line:food, 4200)
+    c('service','Other revenue',v('revenue','service'),net(map['line:service'],lines('service'))+net(map['line:food'],lines('food')),'Reports › Revenue · service and F&B lines'),
     c('discount','Discounts (negative)',v('revenue','discount'),net(map['line:discount'],lines('discount')),'Reports › Revenue · discount lines'),
     c('adjustment','Adjustments & credit notes',v('revenue','adjustment'),net(map['line:adjustment'],lines('adjustment')),'Reports › Revenue · adjustment lines'),
     c('tax','GST (CGST + SGST)',v('revenue','tax'),[...new Set([map['folio:cgst'],map['folio:sgst']])].reduce((a,code)=>a+net(code,x=>x.source.kind==='line'),0),'Reports › Revenue · tax'),
@@ -530,6 +541,7 @@ export function accMapRows(s:State):ACCMapRow[]{
   for(const r of s.expensesX?.udhaar??[]){add('receipt:udhaar');add(expUdRevenueKey(r));if(expUdGst(r).tax){add('folio:cgst');add('folio:sgst');}} // ACC-1: credit raised
   for(const p of grpSlice(s).payments??[]){add('receipt:company-credit');add('method:'+p.method);if(p.tds)add('tax:tds-receivable');} // ACC-1: company payments; ACC-2 tds: 1360
   posSlice(s).receipts.forEach(r=>{add('pos:sales');if(r.tax){add('pos:cgst');add('pos:sgst');}add('method:'+r.method);});
+  accPayrollKeyUses(s).forEach(add); // ACC-2 parity: payroll sources
   const keys=[...new Set([...Object.keys(ACC_DEFAULT_MAP),...Object.keys(uses)])];
   const order=Object.keys(KEY_LABEL);
   return keys.sort((a,b)=>order.indexOf(a.split(':')[0])-order.indexOf(b.split(':')[0])).map(key=>{const account=map[key]??'';

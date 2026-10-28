@@ -165,5 +165,7 @@
     <File Path="database/migrations/4252_exp_udhaar_reversal.sql" />
     <File Path="database/migrations/4253_grp_company_active.sql" />
     <File Path="database/migrations/4254_exp_cash_deduction_lost.sql" />
+    <File Path="database/migrations/4257_acc_ledger_month_balance.sql" />
+    <File Path="database/migrations/4258_bill_charge_kind_food.sql" />
   </Folder>
 </Solution>

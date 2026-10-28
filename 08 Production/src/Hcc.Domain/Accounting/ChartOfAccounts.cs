@@ -293,6 +293,8 @@ public static partial class ChartOfAccounts
         // ACC-2 flows (contract §4, rulebook A13, DEC-150): the OTA's receivable (1115/<channel>), its commission (5070) and the TCS it
         // collected (GST electronic cash ledger 1340), from the payout statement.
         ["receipt:ota"] = "1115", ["receipt:ota-commission"] = "5070", ["tax:tcs"] = "1340",
+        // ACC-2 parity (contract §8, rulebook A3): an F&B line charged to a folio (prototype Line.kind food) → 4200 F&B revenue.
+        ["line:food"] = "4200",
     };
 
     /// <summary>ACC-1: the SGST-half ITC key (contract §2).</summary>

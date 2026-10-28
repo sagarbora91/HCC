@@ -40,11 +40,11 @@ public interface IReportPartyNames
 /// (<see cref="IReportOpeningSource"/>; an approved one supersedes the imported opening of <see cref="IOpeningBalanceSource"/>), an
 /// opening voucher dated on <c>from</c> counting as opening (the FY's opening journal is the opening balance of a report from the FY start).
 /// </summary>
+/// ACC-2 parity (contract §8): any range (no longest range any more); with <paramref name="months"/> the opening is the stored month rows
+/// (<see cref="ILedgerMonthBalanceStore"/>, acc.ledger_month_balance) + the vouchers of the days after the last stored month.
 public sealed class AccountingReportQueries(IAccountingStore store, IAccessPolicy policy, IOpeningBalanceSource? imported = null,
-    IReportOpeningSource? openingEntry = null, IReportPartyNames? partyNames = null)
+    IReportOpeningSource? openingEntry = null, IReportPartyNames? partyNames = null, ILedgerMonthBalanceStore? months = null, TimeProvider? clock = null)
 {
-    /// <summary>Longest report range (days), as the voucher CSV.</summary>
-    public const int MaxRangeDays = 366;
 
     public async Task<StatementView> StatementAsync(Caller caller, string account, DateOnly from, DateOnly to, CancellationToken ct = default)
     {
@@ -74,9 +74,20 @@ public sealed class AccountingReportQueries(IAccountingStore store, IAccessPolic
     {
         await policy.RequireAsync(caller.PropertyId, caller.PrincipalId, AccountingPermissions.View, ct: ct).ConfigureAwait(false);
         if (from > to) throw HccException.Validation("Choose a valid range: \"from\" on or before \"to\".");
-        if (to.DayNumber - from.DayNumber + 1 > MaxRangeDays) throw HccException.Validation($"Choose at most {MaxRangeDays} days.");
-        var days = await AccountingDays.RangeAsync(store, caller.PropertyId, DateOnly.MinValue, to, ct).ConfigureAwait(false);
+        // ACC-2 parity: the closed, fully locked months before the range come from their stored rows (one opening voucher); the days after
+        // the last stored month are read as before. Without the month store: every day since the first source.
+        var start = DateOnly.MinValue;
+        Voucher? carried = null;
+        if (months is not null && await store.BusinessDateAsync(null, caller.PropertyId, ct).ConfigureAwait(false) is { } bd)
+        {
+            var mo = await months.OpeningAsync(caller.PropertyId, from, bd, (clock ?? TimeProvider.System).GetUtcNow().UtcDateTime, ct).ConfigureAwait(false);
+            start = mo.Cut;
+            carried = LedgerMonthBalances.Voucher(mo);
+        }
+
+        var days = await AccountingDays.RangeAsync(store, caller.PropertyId, start, to, ct).ConfigureAwait(false);
         var all = days.SelectMany(d => d.Vouchers).ToList();
+        if (carried is not null) all.Add(carried);
         var entry = openingEntry is null ? null : await openingEntry.GetAsync(caller.PropertyId, ct).ConfigureAwait(false);
         var extra = new Dictionary<string, (string Name, string Group)>(StringComparer.Ordinal);
         if (entry?.Voucher is { } ov) all.Add(ov);

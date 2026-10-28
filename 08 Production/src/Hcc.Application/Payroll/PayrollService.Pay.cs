@@ -178,8 +178,12 @@ public sealed partial class PayrollService
             // Accounting (W2-3) books the salary journal from this (its PayrollPostedEvent contract); nothing is paid by HCC.
             var postedOn = (await db.PropertyAsync(ctx.PropertyId, c2).ConfigureAwait(false)).BusinessDate;
             var other = t.Gross - t.Net - t.Pf - t.Esic - t.Pt - t.Advance; // gross = net + employee deductions
+            // ACC-2 (coordinator ruling 2): the pay-run voucher is dated the pay period's last day when the lock is later; the lock date rides along.
             await tx.PublishAsync(Contracts.Accounting.AccountingEvents.PayrollPosted, run.RunId, new Contracts.Accounting.PayrollPostedEvent(run.RunId, run.Month.ToString(),
-                postedOn, t.Gross, t.PfEr, t.EsicEr, t.Pf, t.Esic, t.Pt, t.Advance, other, t.Net, lockSeq), c2).ConfigureAwait(false);
+                postedOn > run.Month.Last ? run.Month.Last : postedOn, t.Gross, t.PfEr, t.EsicEr, t.Pf, t.Esic, t.Pt, t.Advance, other, t.Net, lockSeq,
+                // ACC-2 (contract §8): the advance recovered per staff member → Cr 1200/STF-<id> (no more no-party warning on the 1200 control)
+                lines.Where(l => l.Advance > 0).GroupBy(l => l.StaffId).OrderBy(g => g.Key)
+                    .Select(g => new Contracts.Accounting.AdvanceRecoveryLine(g.Key, g.Sum(l => l.Advance))).ToList(), postedOn), c2).ConfigureAwait(false);
             return RunResult(run.RunId, run.Month, "Locked", lines, version, run.Warnings, text);
         }, ct).ConfigureAwait(false);
     }
@@ -242,8 +246,9 @@ public sealed partial class PayrollService
             {
                 // The first bank file of this lock is the salary payment Accounting books (PayrollPaidEvent); a re-issue is not a second payment.
                 var paidOn = (await db.PropertyAsync(ctx.PropertyId, c2).ConfigureAwait(false)).BusinessDate;
-                await tx.PublishAsync(Contracts.Accounting.AccountingEvents.PayrollPaid, run.RunId, new Contracts.Accounting.PayrollPaidEvent(run.RunId, paidOn, "Bank transfer", net,
-                    $"Bank file {issueNo} · {run.Month.Label}", run.LockSeq), c2).ConfigureAwait(false);
+                // ACC-2 (coordinator ruling 2): dated the pay period's last day when the file is generated later; the day it was rides along.
+                await tx.PublishAsync(Contracts.Accounting.AccountingEvents.PayrollPaid, run.RunId, new Contracts.Accounting.PayrollPaidEvent(run.RunId,
+                    paidOn > run.Month.Last ? run.Month.Last : paidOn, "Bank transfer", net, $"Bank file {issueNo} · {run.Month.Label}", run.LockSeq, paidOn), c2).ConfigureAwait(false);
             }
             var text = $"{run.Month.Label} bank transfer file {issueNo} · net {Rs(net)}{(prior.Count > 0 ? $" · REISSUE (earlier file {Rs(prior[^1].Net)})" : "")} (simulated — no money moves)";
             await tx.AuditAsync("HR_BANK_FILE", Target("hr.run", run.RunId), text, c2).ConfigureAwait(false);

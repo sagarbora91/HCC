@@ -79,7 +79,9 @@ export type HRAgenda={id:string;date:string;title:string;
 export type HRAdvance={id:string;staffId:string;amount:number;
   /** Monthly recovery; 0 = recover the full balance in the first month (SCC emi 0). */ installment:number;
   recovered:number;date:string;reason:string;by:string;recoveries:{runId:string;amount:number}[];
-  /** First month to recover from (YYYY-MM). Default: month of `date`. */ fromMonth?:string};
+  /** First month to recover from (YYYY-MM). Default: month of `date`. */ fromMonth?:string;
+  /** ACC-2 (coordinator ruling 1): the payment method it was paid by (Cash = the drawer → 1000/<till>; a bank method → 1030/<bank>). Absent on
+   *  advances given before ACC-2 — those were simulated bank transfers (ACC_PAYROLL_FUNDING). */ funding?:string};
 export type HRRounding='paise'|'rupee';
 /** Dated statutory rates (one version per effective-from date). bps = basis points (1% = 100); money in paise. */
 export type HRRates={from:string;
@@ -133,15 +135,19 @@ export type HRLine={staffId:string;name:string;dept:string;designation:string;pa
   /** F-07: ESIC coverage for this month under the contribution-period rule (absent when the month-by-month rule applied). */ esicCovered?:boolean;
   /** Employer cost = gross + PF employer + ESIC employer. */ ctc:number};
 export type HRSend={staffId:string;to:string;at:string;by:string};
-export type HRBankFile={at:string;by:string;net:number};
+export type HRBankFile={at:string;by:string;net:number;
+  /** ACC-2 (contract §8): the business date the file was generated (the net-pay payment voucher's date; absent on older files → `at`). */ on?:string};
 export type HRUnlock={at:string;by:string;reason:string;
   /** Payslips sent before this unlock — superseded. */ sent?:HRSend[];
   /** Bank files generated before this unlock (already given to the bank). */ bankFiles?:HRBankFile[];
-  /** Net pay per staff ID in the lock that was undone. */ nets?:Record<string,number>};
+  /** Net pay per staff ID in the lock that was undone. */ nets?:Record<string,number>;
+  /** ACC-2 (contract §8): business date of the unlock (the pay-run reversal voucher's date), the business date the undone lock was posted, and
+   *  the figures that lock booked (its PayRun voucher, reversed on `on`). Absent on unlocks recorded before ACC-2. */ on?:string;lockedOn?:string;book?:HRRunBook};
 /** Bank details as frozen in a locked run (F-02: the bank file pays where the checker approved, not the live staff master). */
 export type HRBank={bankName:string;accountNo:string;ifsc:string};
 export type HRRun={id:string;month:string;status:'Draft'|'Locked';rates:HRRates;lines:HRLine[];warnings:string[];
   preparedBy:string;preparedAt:string;lockedBy?:string;lockedAt?:string;
+  /** ACC-2 (contract §8): business date of the current lock (the PayRun voucher's date; absent on older runs → `lockedAt`). */ lockedOn?:string;
   /** Bank details per staff ID, copied at lock (F-02). Absent on runs locked before the snapshot existed. */ bank?:Record<string,HRBank>;
   /** Simulated WhatsApp payslip sends. */ sent?:HRSend[];
   /** Owner unlocks (SCC unlockRun): recoveries reversed, back to Draft. F-09: the payslip sends, bank files and net figures of the
@@ -155,7 +161,8 @@ export type HRFnf={id:string;staffId:string;name:string;lastDay:string;month:str
   advanceOutstanding:number;adjustments:HRFnfAdj[];earnings:number;recoveries:number;
   /** May be negative: recoverable from the employee. */ net:number;by:string;at:string;
   /** F-12 maker-checker: Draft until another payroll user confirms (absent = settled before the rule existed). */ status?:'Draft'|'Settled';
-  confirmedBy?:string;confirmedAt?:string};
+  confirmedBy?:string;confirmedAt?:string;
+  /** ACC-2 (contract §8): business date of the confirmation (the F&F vouchers' date; absent on older settlements → `confirmedAt` / `at`). */ confirmedOn?:string};
 /** F-12 limits (illustrative): each adjustment ≤ ₹2,00,000; additions above ₹1,00,000 in total need the Owner as checker. */
 export const HR_FNF_ADJ_MAX=20000000,HR_FNF_OWNER_ABOVE=10000000;
 export const hrFnfSettled=(f:HRFnf)=>f.status!=='Draft';
@@ -648,6 +655,16 @@ export function hrReverseRecoveries(x:HRState,runId:string){
 }
 /** F-09: bank files issued for this month so far (current lock and any lock undone since). */
 export const hrBankFilesIssued=(run:HRRun)=>[...(run.unlocks??[]).flatMap(u=>u.bankFiles??[]),...(run.bankFiles??[])];
+/** ACC-2 (contract §8): what a pay-run lock books (server PayRunFigures, paise): totals of the run lines, other deductions = gross − net − employee
+ *  PF − ESIC − PT − advance, and the advance recovered PER STAFF member (`[staffId, paise]`, run-line order; zero recoveries left out). */
+export type HRRunBook={gross:number;pfEr:number;esicEr:number;pf:number;esic:number;pt:number;advance:number;other:number;net:number;recoveries:[string,number][]};
+export function hrRunBook(run:{lines:HRLine[]}):HRRunBook{
+  const t=hrRunTotals(run);
+  return {gross:t.gross,pfEr:t.pfEr,esicEr:t.esicEr,pf:t.pf,esic:t.esic,pt:t.pt,advance:t.advance,other:t.gross-t.net-t.pf-t.esic-t.pt-t.advance,net:t.net,
+    recoveries:run.lines.filter(l=>Number.isFinite(l.advance)&&l.advance>0).map(l=>[l.staffId,l.advance] as [string,number])};
+}
+/** ACC-2: the business date of an operation stamped with the simulated clock (`YYYY-MM-DDTHH:MM`), when no business date was recorded. */
+export const hrOn=(on:string|undefined,at:string|undefined)=>on??(at?at.slice(0,10):undefined);
 /** F-09: payslip state per staff member after an unlock: 'sent' (this lock), 'resend' (sent before an unlock and the net changed or
  *  not yet re-sent — the staff member holds superseded figures), else ''. */
 export function hrPayslipMark(run:HRRun,staffId:string):'sent'|'resend'|'superseded'|''{

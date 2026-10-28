@@ -88,13 +88,13 @@ export async function register({test,assert,M}){
     assert.ok(bootGets.includes('/accounting/days'),bootGets.join(','));
     const q=srv.gets('/accounting/days')[0].query;assert.deepEqual([q.from,q.to],['2026-08-24',D],'62-day window ending on the business date');
     assert.equal(srv.gets('/accounting/trial-balance')[0].query.date,'2026-08-23');
-    assert.deepEqual(M.accDates(s),M.accDates(P));
-    for(const d of M.accDates(P)){
+    assert.deepEqual(M.accDates(s),M.accDates(P).filter(d=>d>=q.from)); // ACC-2 parity: the BASE advance of 10 Aug (payroll) is before the 62-day window
+    for(const d of M.accDates(P).filter(d=>d>=q.from)){ // ACC-2 parity: only the window's days come from the server
       assert.deepEqual(M.accVouchers(s,d),M.accVouchers(P,d).map(noBooking),d);
       assert.deepEqual(M.accReconcile(s,d),M.accReconcile(P,d),d);
       assert.deepEqual(M.accExceptions(s,d),M.accExceptions(P,d),d);
     }
-    assert.deepEqual(M.accTrialBalance(M.accVouchersUpTo(s,D)),M.accTrialBalance(M.accVouchersUpTo(P,D)));
+    assert.deepEqual(M.accTrialBalance(M.accVouchersUpTo(s,D)),M.accTrialBalance(M.accVouchersUpTo(P,D).filter(v=>v.date>=q.from))); // ACC-2 parity: the 10 Aug advance is before the window (the stub's opening is empty)
     assert.equal(M.accVouchers(s,D).length,13);
     assert.deepEqual(M.accTotals(M.accVouchers(s,D)),M.accTotals(M.accVouchers(P,D)));
     assert.equal(M.accDayStatus(s,D),M.accDayStatus(P,D));

@@ -25,6 +25,7 @@ public static class AccountingEventMapper
     {
         "room" => "Room night · " + serviceDate.ToString("dd MMM", CultureInfo.InvariantCulture),
         "service" => "Service charge",
+        "food" => "F&B charge", // ACC-2 parity
         "discount" => "Discount",
         "correction" => "Correction / reversal",
         _ => kind,
@@ -221,6 +222,10 @@ public static class AccountingEventMapper
     /// <summary>The reversal booked when that lock is unlocked (unique per lock → consumed exactly once).</summary>
     public static string PayRunReversalKey(long runId, int lockSeq) => $"payroll-unlock:{N(runId)}/lock{lockSeq.ToString(CultureInfo.InvariantCulture)}";
 
+    /// <summary>ACC-2 (coordinator ruling 2): " · locked 2026-05-02" when the voucher is dated the period's last day and the act was later.</summary>
+    private static string On(string what, DateOnly? on, DateOnly dated)
+        => on is { } d && d != dated ? $" · {what} {d.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)}" : "";
+
     private static string LockSuffix(int lockSeq) => lockSeq <= 1 ? "" : "/lock" + lockSeq.ToString(CultureInfo.InvariantCulture);
 
     public static AccountingSource PayRun(PayrollPostedEvent e)
@@ -228,15 +233,15 @@ public static class AccountingEventMapper
         ArgumentNullException.ThrowIfNull(e);
         return SourceRules.PayRun(PayRunKey(e.PayRunId, e.LockSeq), e.BusinessDate,
             new PayRunFigures(e.GrossPaise, e.EmployerPfPaise, e.EmployerEsicPaise, e.EmployeePfPaise, e.EmployeeEsicPaise, e.ProfessionalTaxPaise,
-                e.AdvanceRecoveryPaise, e.OtherDeductionsPaise, e.NetPayablePaise),
-            $"Pay run {e.Period} · run {N(e.PayRunId)}{(e.LockSeq > 1 ? $" · lock {e.LockSeq.ToString(CultureInfo.InvariantCulture)}" : "")}");
+                e.AdvanceRecoveryPaise, e.OtherDeductionsPaise, e.NetPayablePaise, e.AdvanceRecoveries?.Select(r => (r.StaffId, r.Paise)).ToList()), // ACC-2: per staff
+            $"Pay run {e.Period} · run {N(e.PayRunId)}{(e.LockSeq > 1 ? $" · lock {e.LockSeq.ToString(CultureInfo.InvariantCulture)}" : "")}{On("locked", e.LockedOn, e.BusinessDate)}");
     }
 
     public static AccountingSource PayRunPaid(PayrollPaidEvent e, PartyContext? parties = null)
     {
         ArgumentNullException.ThrowIfNull(e);
         return SourceRules.WithParties(SourceRules.PayRunPaid(PayRunPaidKey(e.PayRunId, e.LockSeq), e.Funding, e.BusinessDate, e.AmountPaise,
-            $"Net pay paid · {e.Funding} · {e.Reference} · run {N(e.PayRunId)}"), parties);
+            $"Net pay paid · {e.Funding} · {e.Reference} · run {N(e.PayRunId)}{On("paid", e.PaidOn, e.BusinessDate)}"), parties);
     }
 
     /// <summary>

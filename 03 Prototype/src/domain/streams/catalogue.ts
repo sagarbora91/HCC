@@ -236,7 +236,7 @@ export type CatSplitRow={key:string;label:string;count:number;amount:number};
 export function catChargeSplit(s:State,from:string,to:string){
   const cat=new Map<string,CatSplitRow>(),free=new Map<string,CatSplitRow>();let plans={count:0,amount:0};
   for(const b of s.bookings)for(const l of b.lines){
-    if(l.kind!=='service'||!inRange(l.date,from,to)||!live(b,l))continue;
+    if(l.kind!=='service'&&l.kind!=='food'||!inRange(l.date,from,to)||!live(b,l))continue; // ACC-2: F&B lines (kind food) are service charges here
     if(l.planCode){plans={count:plans.count+1,amount:plans.amount+l.amount};continue;}
     const m=l.extraId?cat:free,key=l.extraId??l.label.trim().toLowerCase();
     const x=catExtra(s,l.extraId??'');

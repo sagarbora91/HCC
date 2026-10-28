@@ -10,7 +10,7 @@
 // WHAT IS DRIVEN (and what is not): T1 T2 T3 T5a T5b T5c T7a T8 T9 T10 T12 T15a T15b. Not drivable in ACC-1 (see ACC1-TESTS-DONE.md):
 // T13a–c (the prototype books no payroll or salary-advance voucher), T16 (an Owner drawing is taken from the cash drawer; a drawing from the
 // bank is rulebook B6 "new"). Left out by the brief (need ACC-2): T4, T6, T7b, T11, T14, T17, T18, T19.
-import {R,OPENING,STEP,ALL,DRIVEN,SERVER,BRIEF,ACC2,RULEBOOK_TB_83,control,model,sum} from './_rulebook-month.mjs';
+import {R,OPENING,STEP,ALL,DRIVEN,SERVER,BRIEF,ACC2,RULEBOOK_TB_83,control,model,sum,PROTOTYPE} from './_rulebook-month.mjs'; // ACC-2 parity: PROTOTYPE = DRIVEN + T13a (the cash salary advance)
 export function register({test,M,assert}){
   const T='[ACC1-RULEBOOK] ';
   const FROM='2026-04-01',TO='2026-04-30';
@@ -112,21 +112,22 @@ export function register({test,M,assert}){
     assert.ok(n>=200,'vouchers in April: '+n);
   });
   test(T+'closing ledger balances at 30 April equal opening + the 13 driven steps, ledger by ledger (control level)',()=>{
-    const s=month(),got=engine(s).ctl,want=model(DRIVEN).ctl;
+    const s=month(),got=engine(s).ctl,want=model(PROTOTYPE).ctl;
     assert.deepEqual(diff(got,want),[]);
     // spot checks written out: the ledgers the brief names
-    assert.equal(got['1000'],R(45300));assert.equal(got['1030'],R(445000));assert.equal(got['1010'],R(181500));assert.equal(got['1020'],R(150000));
+    assert.equal(got['1000'],R(40300));assert.equal(got['1030'],R(445000)); // ACC-2 parity: T13a cash advanceassert.equal(got['1010'],R(181500));assert.equal(got['1020'],R(150000));
     assert.equal(got['1100']??0,0);assert.equal(got['2000']??0,0,'the ₹10,000 advance held since before HCC is applied (T5a); the May advance T6 is ACC-2');assert.equal(got['2110'],-R(14000));assert.equal(got['2120'],-R(14000));
     assert.equal(got['4000'],-R(410000));assert.equal(got['4200'],-R(160000));assert.equal(got['4900'],R(10000));assert.equal(got['5900'],R(200));
     assert.equal(got['9999']??0,0,'nothing in Suspense');assert.equal(got['1400']??0,0,'nothing in the opening difference');
   });
   test(T+'party balances (contract §3): Deccan Agro 63,000 Dr, Morning Supplies 84,000 Cr, Kaveri Textiles 42,000 Cr, HDFC 4,45,000 Dr; no balance left on a control itself',()=>{
-    lane('accPartyLedgers');const s=month(),got=engine(s).full,m=model(DRIVEN).full;
+    lane('accPartyLedgers');const s=month(),got=engine(s).full,m=model(PROTOTYPE).full;
     for(const sym of ['1110/Deccan','2200/Morning','2200/Kaveri','1030/HDFC'])assert.equal(got[partyId(s,sym)]??0,m[sym],sym);
     assert.equal(got[partyId(s,'1110/Deccan')],R(63000));assert.equal(got['2200/EV-MORNING'],-R(84000));assert.equal(got['2200/EV-KAVERI'],-R(42000));assert.equal(got['1030/BA-HDFC'],R(445000));
-    for(const sym of ['1115/Goibibo','1200/Staff-07'])assert.equal(got[partyId(s,sym)]??0,0,sym);
+    for(const sym of ['1115/Goibibo'])assert.equal(got[partyId(s,sym)]??0,0,sym);
+    assert.equal(got[partyId(s,'1200/Staff-07')],R(5000),'ACC-2 parity: the advance sits on the staff party until the pay run recovers it');
     for(const c of ['1030','1110','1115','1120','1200','2200'])assert.equal(got[c]??0,0,`control ${c} keeps no balance of its own`);
-    assert.equal(Object.entries(got).filter(([a])=>control(a)==='1000'&&a!=='1000').reduce((a,[,b])=>a+b,0),R(45300),'cash sits on the till party');
+    assert.equal(Object.entries(got).filter(([a])=>control(a)==='1000'&&a!=='1000').reduce((a,[,b])=>a+b,0),R(40300),'cash sits on the till party');
     assert.equal(got['1000']??0,0,'1000 itself holds nothing');
   });
   test(T+'step by step, on the dates of the rulebook: T7a (10 Apr), T8 (5 Apr), T9 (12 Apr), T10 (15 Apr), T15a (25 Apr), T15b (26 Apr) post their exact entries',()=>{
@@ -147,7 +148,7 @@ export function register({test,M,assert}){
   });
   test(T+'six-column trial balance, 1–30 April (contract §6): balanced, closing = the expectation ledger by ledger, opening columns carry the opening entry, detail rows tie to the controls',()=>{
     lane('accTrialBalance6','accPartyLedgers');const s=month();
-    const want=model(DRIVEN).ctl,dr=Object.values(want).filter(v=>v>0).reduce((a,v)=>a+v,0);
+    const want=model(PROTOTYPE).ctl,dr=Object.values(want).filter(v=>v>0).reduce((a,v)=>a+v,0);
     const net=r=>r.closingDebit-r.closingCredit;
     const sum6=M.accTrialBalance6(s,FROM,TO,false);
     assert.equal(sum6.balanced,true);assert.equal(sum6.openingPending,false);assert.equal(sum6.detail,false);assert.equal(sum6.from,FROM);assert.equal(sum6.to,TO);
@@ -220,7 +221,7 @@ export function register({test,M,assert}){
     // after a lock on/after asOf the opening cannot be reopened
     assert.throws(()=>M.execute(s,'owner',{type:'ACC_OPENING_REOPEN',reason:'Too late (fictional)'}),/lock/i);
     // the cumulative trial balance is unchanged by locking
-    assert.deepEqual(diff(engine(s).ctl,model(DRIVEN).ctl),[]);
+    assert.deepEqual(diff(engine(s).ctl,model(PROTOTYPE).ctl),[]);
   });
   test(T+'a Manager enters, only the Owner approves (contract §7): the approved opening is read-only',()=>{
     lane('accOpening');const s=month();

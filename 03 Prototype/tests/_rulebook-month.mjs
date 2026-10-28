@@ -44,6 +44,8 @@ export const ALL=Object.keys(STEP);
 export const DRIVEN=['T1','T2','T3','T5a','T5b','T5c','T7a','T8','T9','T10','T12','T15a','T15b'];
 /** Steps the SERVER books in ACC-1 from events: DRIVEN plus the salary advance and the pay run (the prototype posts no payroll voucher). */
 export const SERVER=[...DRIVEN,'T13a','T13b','T13c'];
+/** What the prototype scenario books since ACC-2 parity: DRIVEN plus T13a (HR_ADVANCE_ADD funding Cash by default, coordinator ruling 1). */
+export const PROTOTYPE=[...DRIVEN,'T13a'];
 /** The brief's subset: SERVER plus T16 (Owner drawing from the bank — rulebook B6 "new", not an ACC-1 command). The ACC-1 target once T16 exists. */
 export const BRIEF=[...SERVER,'T16'];
 /** What ACC-2 adds to the brief's subset. */

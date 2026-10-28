@@ -48,7 +48,7 @@ export type SrvGroupStatement={groupId:number;code:string;name:string;status:str
   pickup:{roomType:string;allotted:number;picked:number;released:number;remaining:number;ratePaise:number;pickedPercent:number}[];
   members:{reservationId:number;publicNo:string;guest:string;room:string|null;status:string;arrival:string;departure:string;folioId:number|null}[];version:string};
 
-const LINE_KIND:Record<string,Line['kind']>={room:'room',service:'service',discount:'discount',correction:'adjustment'};
+const LINE_KIND:Record<string,Line['kind']>={room:'room',service:'service',food:'food',discount:'discount',correction:'adjustment'}; // ACC-2: food (F&B on a folio) once the server sends it
 const RECEIPT_KIND=['payment','deposit','deposit-return','refund','company-credit'];
 
 export function lineFromServer(l:SrvFolioLine):Line{

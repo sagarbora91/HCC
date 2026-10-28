@@ -112,7 +112,7 @@ export function register({test,M,assert}){
     const one=M.accDayBook(s,D,D);assert.ok(one.rows.every(r=>r.date===D));assert.equal(one.debit,M.accTotals(M.accVouchers(s,D)).debit);
     assert.ok(one.rows.every(r=>r.ledger&&r.source));
     const csv=M.accDayBookCsv(one),lines=csv.split('\r\n');assert.equal(lines[0],M.ACC_DAYBOOK_CSV_HEADER.join(','));assert.equal(lines.length,one.rows.length+2);assert.match(lines.at(-1),/^Total,/);
-    assert.equal(M.accDayBook(s,'2026-09-01','2026-09-30').rows.length,0);
+    assert.equal(M.accDayBook(s,'2026-09-01','2026-09-30').rows.length,0); // ACC-2 parity: the BASE August pay run is dated 31 Aug (coordinator ruling 2)
   });
   test('[ACC1-STATEMENTS] contract §6 field sets are exact',()=>{
     const s=withParties(),st=M.accStatement(s,'1110','2026-10-01',D),tb=M.accTrialBalance6(s,'2026-10-01',D,true);

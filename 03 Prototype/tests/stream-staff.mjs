@@ -152,7 +152,9 @@ export function register({test,M,assert}){
     assert.throws(()=>execute(s,'owner',{type:'HR_ADVANCE_ADD',staffId:'HR-S05',amount:200000,installment:50000,reason:'x'}),code('INVALID_TRANSITION'));
     assert.throws(()=>execute(s,'owner',{type:'HR_ADVANCE_ADD',staffId:'HR-S09',amount:200000,installment:250000,reason:'x'}),code('VALIDATION'));
     const n=execute(s,'accountant',{type:'HR_ADVANCE_ADD',staffId:'HR-S09',amount:200000,installment:50000,reason:'Medical (fictional)'});
-    assert.equal(M.hrOpenAdvance(n,'HR-S09').amount,200000);assert.equal(M.drawer(n),M.drawer(s));
+    // ACC-2 (coordinator ruling 1): funding defaults to Cash — the advance leaves the drawer; a bank method leaves it alone
+    assert.equal(M.hrOpenAdvance(n,'HR-S09').amount,200000);assert.equal(M.drawer(n),M.drawer(s)-200000);
+    assert.equal(M.drawer(execute(s,'accountant',{type:'HR_ADVANCE_ADD',staffId:'HR-S09',amount:200000,installment:50000,reason:'Medical (fictional)',funding:'Bank transfer'})),M.drawer(s));
   });
   test('[HR] payroll register CSV: header, one row per staff, totals, disclaimer',()=>{
     const s=seed(),r=M.hrRunFor(s,'2026-08'),csv=M.hrRegisterCsv(s,r).trim().split('\n');

@@ -357,7 +357,7 @@ public sealed class SqlAccountingStore(SqlConnectionFactory connections) : IAcco
         => WithAsync(tx, async (c, t) =>
         {
             await using var cmd = Cmd("""
-                SELECT ISNULL(SUM(CASE WHEN c.kind = 'room' THEN c.amount_paise END), 0), ISNULL(SUM(CASE WHEN c.kind = 'service' THEN c.amount_paise END), 0),
+                SELECT ISNULL(SUM(CASE WHEN c.kind = 'room' THEN c.amount_paise END), 0), ISNULL(SUM(CASE WHEN c.kind IN ('service', 'food') THEN c.amount_paise END), 0),
                        ISNULL(SUM(CASE WHEN c.kind = 'discount' THEN c.amount_paise END), 0), ISNULL(SUM(CASE WHEN c.kind = 'correction' THEN c.amount_paise END), 0),
                        ISNULL(SUM(c.tax_paise), 0)
                 FROM bill.charge c JOIN bill.folio f ON f.folio_id = c.folio_id JOIN inv.reservation r ON r.reservation_id = f.reservation_id
