@@ -37,6 +37,8 @@ public static class VoucherBuilder
         VoucherType.Sales => "SAL",
         VoucherType.Receipt => "RCT",
         VoucherType.Payment => "PMT",
+        VoucherType.Purchase => "PUR", // ACC-2
+        VoucherType.Contra => "CTR",   // ACC-2
         _ => "JRN",
     };
 

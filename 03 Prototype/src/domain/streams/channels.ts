@@ -26,7 +26,9 @@ export type CHNPush={id:string;at:string;actor:string;channel:string;rows:number
 export type CHNWebRequest={id:string;booking:string;guest:string;phone:string;email:string;roomType:string;arrival:string;departure:string;
   adults:number;children:number;net:number;tax:number;total:number;createdAt:string;status:'Pending'|'Confirmed'|'Declined';reason?:string;decidedBy?:string;notes?:string};
 /** State slice for this module, stored at s.channelsX (optional; absent in old saves → treat as empty). */
-export type CHNState={channels:CHNChannel[];messages:CHNMessage[];pushes:CHNPush[];
+/** ACC-2 (contract §4, DEC-150): one OTA payout from the channel's statement — gross = net + commission + commissionGst + tcs; settles the channel's 1115 party ledger. */
+export type CHNPayout={id:string;channel:string;date:string;statementRef:string;gross:number;commission:number;commissionGst:number;tcs:number;net:number;bank:string;bookings:string[];by:string;at:string};
+export type CHNState={channels:CHNChannel[];messages:CHNMessage[];pushes:CHNPush[];/** ACC-2 */payouts?:CHNPayout[];
   /** Scripted inbound messages delivered one at a time by CHN_PULL (simulation). */ outbox:CHNMessage[];
   webRequests:CHNWebRequest[]};
 export const chnEmpty=():CHNState=>({channels:[],messages:[],pushes:[],outbox:[],webRequests:[]});

@@ -9,6 +9,8 @@ public enum VoucherType
     Receipt,
     Payment,
     Journal,
+    Purchase, // ACC-2 (Tally Purchase)
+    Contra,   // ACC-2 (Tally Contra)
 }
 
 /// <summary>
@@ -42,8 +44,14 @@ public static class SourceKinds
     public const string Expense = "expense";
     public const string Closing = "closing";
     public const string Payroll = "payroll";
+    // ACC-2 (contract §1): manual vouchers, purchases / vendor payments, tax entries (RCM, GST set-off, TDS), OTA payouts.
+    public const string Manual = "manual";
+    public const string Purchase = "purchase";
+    public const string Vendor = "vendor";
+    public const string Tax = "tax";
+    public const string Ota = "ota";
 
-    public static readonly IReadOnlyList<string> All = [Line, Receipt, Pos, Expense, Closing, Payroll];
+    public static readonly IReadOnlyList<string> All = [Line, Receipt, Pos, Expense, Closing, Payroll, Manual, Purchase, Vendor, Tax, Ota];
 }
 
 /// <summary>Intra-state GST split (prototype <c>gstSplit</c>): SGST = half rounded toward zero, CGST = the rest (takes the odd paisa).</summary>

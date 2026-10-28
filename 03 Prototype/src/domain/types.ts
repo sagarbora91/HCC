@@ -54,7 +54,7 @@ export type Room={id:string;floor:number;type:string;rate:number;hk:'Ready'|'Dir
   /** V14-5: business date the room was added through the rooms master (absent = an original room). Group holds take rooms that
    *  were there before (oldest first), so a room added today stays bookable while older free rooms can carry a block. */ addedOn?:string;
 };
-export type Line={id:string;label:string;amount:number;date:string;kind:'room'|'service'|'discount'|'adjustment';taxBps:number;
+export type Line={id:string;label:string;amount:number;date:string;kind:'room'|'service'|'food'|'discount'|'adjustment';taxBps:number; // ACC-2: 'food' = F&B charged to the folio → 4200 (contract §8)
   // ── Line · stream C fields (add below this line) ──
   /** Original line ID this line reverses (correction, WF-FOLIO-002). Posted lines are never edited. */
   reversalOf?:string;
@@ -178,6 +178,12 @@ export type Expense={id:string;vendor:string;category:string;amount:number;metho
   reversalOf?:string;
   /** On a reversed expense: its reversal record. */
   reversedBy?:string;
+  // ── Expense · ACC-2 purchase fields (contract §3; optional — older records have none) ──
+  /** inter = IGST on the bill (vendor outside Maharashtra): allowed ITC goes to 1330. */ gstKind?:'intra'|'inter';
+  /** Reverse charge (category flag at posting): no vendor GST; HCC posts the RCM GST to 2140 at rcmBps. */ rcm?:boolean;rcmBps?:number;
+  /** Fixed-asset purchase (category flag): the debit goes to the category's asset ledger; assetNo = register row. */ capital?:boolean;assetNo?:string;
+  /** TDS held back on this bill (DEC-146): the vendor is credited net; tdsSection = rate-table row. */ tdsPaise?:number;tdsSection?:string;
+  /** Cash guard B10 tripped (cash above ₹10,000 to one person in a day): the deduction is lost for income tax. */ cashDeductionLost?:boolean;
   // ── Expense · SCC features (DEC-120; optional — records saved before have none; helpers in domain/streams/expenses-scc.ts) ──
   /** What the expense is for (SCC: required; HCC: required once submitted for approval). Older records show the vendor. */
   description?:string;
@@ -333,4 +339,4 @@ export type State={
   shift?:import('./streams/closing').ShiftRecord;
 };
 export type Command={type:string;key?:string;[field:string]:any};
-export const SCHEMA=11; // 11 = ACC-1 (accounting chart as a master, party ledgers, opening balances; new optional fields on accountingX — v10 saves need nothing). 10 = SCC port wave (leave one record per date, SCC compliance slice, SCC expense registers; v9 saves migrate by shape). 9 = masters wave MA-1…MA-7 (new optional slices / fields; v8 saves migrate, masters seed lazily)
+export const SCHEMA=12; // 12 = ACC-2 (manual vouchers, purchases / vendor payments, TDS, GST month end, OTA payouts; new optional fields only — v11 saves need nothing). 11 = ACC-1 (accounting chart as a master, party ledgers, opening balances; new optional fields on accountingX — v10 saves need nothing). 10 = SCC port wave (leave one record per date, SCC compliance slice, SCC expense registers; v9 saves migrate by shape). 9 = masters wave MA-1…MA-7 (new optional slices / fields; v8 saves migrate, masters seed lazily)

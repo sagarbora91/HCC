@@ -33,9 +33,12 @@ export type MnyMethod=MasterRow&{kind:MnyKind;settlesTo?:string;
 export type MnyAccount=MasterRow&{kind:'till'|'bank';bank?:string;accountLast4?:string;ifsc?:string;/** Paise, setup only. */openingBalance?:number;
   /** Method kinds this account is the default "settles to" for (new methods). */defaultFor?:string[]};
 /** M17 · expense category (ledger = accounting default for "expense:<name>"; approvalLimit = Manager limit override, paise). */
-export type MnyCategory=MasterRow&{ledger?:string;needsBill:boolean;approvalLimit?:number};
+export type MnyCategory=MasterRow&{ledger?:string;needsBill:boolean;approvalLimit?:number;
+  /** ACC-2 (contract §3): reverse charge (DEC-145) and its rate; capital = fixed-asset purchases (ledger must be a fixed-assets ledger); itcBlocked = s.17(5) list, the ITC switch stays off (DEC-143). */
+  rcm?:boolean;rcmBps?:number;capital?:boolean;itcBlocked?:boolean};
 /** M18 · expense vendor (DEC-MA-6, separate from maintenance vendors). */
-export type MnyVendor=MasterRow&{type:string;gstin?:string;pan?:string;tds:boolean;contact?:string;terms?:string};
+export type MnyVendor=MasterRow&{type:string;gstin?:string;pan?:string;tds:boolean;contact?:string;terms?:string;
+  /** ACC-2 (contract §3, §5): two-letter GST state code (MH = intra-state) and the TDS rate-table row when `tds` is on. */ state?:string;tdsSection?:string};
 
 // ───────────────────────────── Seeds = the old constants (folio FOLIO_TENDERS, POS_TENDERS, closing EXPENSE_METHODS / TENDERS /
 // EXPENSE_CATEGORIES, accounting ACC_DEFAULT_MAP) + "Company credit" (receipts of authorised company credit) ─────────────────────────────

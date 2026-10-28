@@ -59,7 +59,11 @@ export type ExpMonthFeed={month:string;expense:number;count:number;byCategory:Re
   /** DEC-131: every Owner unlock of this month, oldest first (kept when the month is locked again). */
   unlocks?:ExpMonthUnlock[]};
 export type ExpMonthUnlock={at:string;by:string;reason:string};
+/** ACC-2 (contract §3.2): a payment to a vendor, allocated to open bills oldest-first by default; the unallocated rest is an advance (the party goes Dr). */
+export type ExpVendorPayment={id:string;vendor:string;date:string;amount:number;method:string;reference:string;by:string;at:string;allocations:{expense:string;amount:number}[];
+  void?:boolean;voidReason?:string;voidBy?:string;voidAt?:string};
 export type EXPState={
+  /** ACC-2 */ vendorPayments?:ExpVendorPayment[];
   /** SCC gm_budgets: month (YYYY-MM) → category → cap in paise (0 / absent = no budget). */
   budgets?:Record<string,Record<string,number>>;
   recurring?:ExpRecTpl[];

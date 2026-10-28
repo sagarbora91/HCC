@@ -49,8 +49,8 @@ export const accItcSplit=(itc:number):[string,number][]=>{const g=gstSplit(itc);
 
 // ── State slice ──
 export type ACCEntry={account:string;debit:number;credit:number};
-export type ACCVoucherType='Sales'|'Receipt'|'Payment'|'Journal';
-export type ACCSourceKind='line'|'receipt'|'expense'|'closing'|'pos'|'opening'; // ACC-1: 'opening' = the hand-entered opening entry (contract §5)
+export type ACCVoucherType='Sales'|'Receipt'|'Payment'|'Journal'|'Purchase'|'Contra'; // ACC-2: Tally's Purchase and Contra (contract §1)
+export type ACCSourceKind='line'|'receipt'|'expense'|'closing'|'pos'|'opening'|'manual'|'purchase'|'vendor'|'tax'|'ota'|'payroll'; // ACC-2 (contract §1) // ACC-1: 'opening' = the hand-entered opening entry (contract §5)
 export type ACCVoucher={no:string;date:string;type:ACCVoucherType;narration:string;
   source:{kind:ACCSourceKind;id:string;sub:string;booking?:string};entries:ACCEntry[];unmapped:string[]};
 export type ACCLock={date:string;lockedAt:string;lockedBy:string;vouchers:ACCVoucher[];debit:number;credit:number;count:number};
@@ -84,6 +84,18 @@ export type ACCChartChange={id:string;at:string;actor:string;kind:'ledger'|'grou
 export type ACCOpeningLine={account:string;debit:number;credit:number};
 export type ACCOpening={asOf:string;lines:ACCOpeningLine[];status:'draft'|'approved';by:string;at:string;approvedBy?:string;approvedAt?:string;note?:string};
 // ── end ACC-1 contract block ──
+// ── ACC-2 contract (02 Planning/agents/ACC2-POSTING-CONTRACT.md §2, §3.4, §6, §10) — shared by every ACC-2 lane; the coordinator owns this block ──
+export type ACCManualTemplate='journal'|'contra'|'capital-introduced'|'owner-drawing-bank'|'loan-received'|'loan-emi'|'bank-charges'|'interest-income'|'bad-debt'|'statutory-remittance'|'gst-payment'|'tds-remittance';
+/** One line of a manual voucher (contract §2): a ledger code or party ledger id; paise; one side only. */
+export type ACCManualLine={account:string;debit:number;credit:number;note?:string};
+/** A manual voucher (contract §2): the Accountant's are pending until the Owner decides; the Owner's own are approved at once. */
+export type ACCManualVoucher={id:string;date:string;type:'Journal'|'Contra'|'Payment'|'Receipt';narration:string;reference?:string;lines:ACCManualLine[];template?:ACCManualTemplate;
+  status:'pending'|'approved'|'rejected'|'void';by:string;at:string;decidedBy?:string;decidedAt?:string;reason?:string;voidOf?:string;voidedBy?:string;bookedOn?:string};
+/** Fixed-asset register row (contract §3.4): created when a capital purchase posts; no depreciation journal in HCC (DEC-140 / DEC-138). */
+export type ACCAsset={id:string;no:string;ledger:string;name:string;cost:number;date:string;vendor:string;expense:string;itc:number;putToUse?:string;disposed?:{date:string;amount:number;voucher:string}};
+/** Month lock (contract §6): every day of the month locked, the GST set-off posted, no pending manual voucher; mirrors the SCC expense month lock. */
+export type ACCMonthLock={lockedAt:string;lockedBy:string;setoff?:string;unlocks?:{at:string;by:string;reason:string}[]};
+// ── end ACC-2 contract block ──
 // ── Chart of accounts (ACC-1: rulebook §3.2, posting contract §2; the chart as a master lives in accounting-chart.ts) ──
 export type ACCGroup='Asset'|'Liability'|'Income'|'Expense'|'Suspense';
 /** A built-in ledger as the existing selectors read it. `group` = the legacy group, derived from `groupId` (contract §1), so every existing
@@ -193,6 +205,8 @@ export type ACCReexport={at:string;reason:string;reopen?:string};
 export type ACCState={mapping?:Record<string,string>;locks?:Record<string,ACCLock>;mapHistory?:ACCMapChange[];lockHistory?:ACCLockEvent[];server?:ACCServer;
   /** ACC-1 (SCHEMA 11): the chart as a master (Owner overrides of built-ins, Owner-added ledgers, custom sub-groups, history) and the hand-entered opening balances. */
   chart?:{ledgers:ACCLedger[];groups:ACCGroupDef[];history:ACCChartChange[]};opening?:ACCOpening;
+  /** ACC-2 (SCHEMA 12): manual vouchers, the fixed-asset register, month locks and the posted GST set-off per month (contract §2, §3.4, §6). */
+  manual?:ACCManualVoucher[];assets?:ACCAsset[];monthLocks?:Record<string,ACCMonthLock>;gstSetoffs?:Record<string,string>;
   tallyExports?:ACCTallyExport[];reexport?:Record<string,ACCReexport>};
 export const accEmpty=():ACCState=>({});
 export const accSlice=(s:State):ACCState=>s.accountingX??accEmpty();
@@ -209,7 +223,7 @@ const cr=(account:string,amount:number):ACCEntry=>amount>=0?{account,debit:0,cre
 const dr=(account:string,amount:number):ACCEntry=>cr(account,-amount);
 const RECEIPT_IN=['payment','deposit'];
 const ymd=(d:string)=>d.split('-').join('');
-const PREFIX:Record<ACCVoucherType,string>={Sales:'SAL',Receipt:'RCT',Payment:'PMT',Journal:'JRN'};
+const PREFIX:Record<ACCVoucherType,string>={Sales:'SAL',Receipt:'RCT',Payment:'PMT',Journal:'JRN',Purchase:'PUR',Contra:'CTR'};
 
 /** All vouchers for a business date, derived live from the source records with the current mapping (pure). */
 export function accLiveVouchers(s:State,date:string,mapping=accMapping(s)):ACCVoucher[]{
