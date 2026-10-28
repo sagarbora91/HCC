@@ -23,7 +23,8 @@ export type GRPCompany={id:string;name:string;
 /** The server's credit picture of a company (DEC-076; paise). Items: receivable | payment | stay | group with a booking / invoice / group reference. */
 export type GRPServerCredit={exposure:number;receivable:number;openStays:number;groupMasters:number;remaining:number;items:{kind:string;id:string;reference:string;amount:number}[]};
 /** Money received from a company against its company-credit receivable (DEC-076): non-cash, never more than it owes; frees credit. */
-export type GRPCompanyPayment={id:string;company:string;amount:number;method:string;reference:string;invoice?:string;date:string;actor:string;at:string};
+export type GRPCompanyPayment={id:string;company:string;amount:number;method:string;reference:string;invoice?:string;date:string;actor:string;at:string;
+  /** ACC-2 (contract §4 A9): TDS the company deducted (paise; absent = none). It settles the receivable with `amount` (Dr 1360 TDS receivable). */ tds?:number};
 export type GRPBlockStatus='Open'|'Released'|'Cancelled';
 export type GRPBlock={id:string;name:string;
   /** Company account ID (optional — e.g. a wedding party has none). */
@@ -160,7 +161,7 @@ export function grpAccountOf(s:State,b:Booking):GRPCompany|undefined{
   return blk?grpCompany(s,blk.company):undefined;
 }
 /** Money received from the company (DEC-076). */
-export const grpPaid=(s:State,c:GRPCompany)=>(grpSlice(s).payments??[]).filter(p=>p.company===c.id).reduce((a,p)=>a+p.amount,0);
+export const grpPaid=(s:State,c:GRPCompany)=>(grpSlice(s).payments??[]).filter(p=>p.company===c.id).reduce((a,p)=>a+p.amount+(p.tds??0),0); // ACC-2 tds: TDS deducted settles too (A9)
 /** Company-credit receivable: opening outstanding + company credit given at checkout on its bookings − payments received (never below 0). */
 export function grpReceivable(s:State,c:GRPCompany){
   const credit=grpCompanyBookings(s,c).reduce((a,b)=>a+b.receipts.filter(r=>r.kind==='company-credit').reduce((x,r)=>x+r.amount,0),0);

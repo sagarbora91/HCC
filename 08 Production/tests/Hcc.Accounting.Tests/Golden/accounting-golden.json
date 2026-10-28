@@ -39,7 +39,9 @@
   "line:attrition": "4300",
   "receipt:udhaar": "1120",
   "tax:gst-input": "1310",
-  "tax:gst-input-sgst": "1320"
+  "tax:gst-input-sgst": "1320",
+  "tax:tds-receivable": "1360",
+  "tax:tds-payable": "2150"
  },
  "days": [
   {

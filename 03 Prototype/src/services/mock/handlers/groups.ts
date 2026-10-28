@@ -19,6 +19,7 @@ import {grpPickupRooms,grpEnsure,grpSweep,grpRoomTypes,grpFreeRooms,grpHeldElsew
 import type {GRPBlock,GRPCompany} from '../../../domain/streams/groups';
 import {RES_PHONE} from '../../../domain/streams/reservations';
 import {rbacMoneyAdmin} from '../../../domain/streams/rbac';
+import {tdsReceivableProblem} from '../../../domain/tds'; // ACC-2 tds (A9)
 
 const DATE=/^\d{4}-\d{2}-\d{2}$/;
 const str=(v:unknown,max=120)=>String(v??'').trim().slice(0,max);
@@ -170,12 +171,14 @@ export const handlers:Record<string,Handler>={
     assert((GRP_PAY_METHODS as readonly string[]).includes(method),'A company pays by bank transfer, UPI or card (a cheque is recorded as a bank transfer). Take cash on a guest folio in a cashier shift.');
     const reference=str(cmd.reference,120);assert(reference.length>0,'Enter the transaction reference for a non-cash payment.');
     const invoice=str(cmd.invoice,16).toUpperCase();
+    // ACC-2 tds (contract §4 A9): `tds` = TDS the company deducted; amount + tds settle the receivable (Dr 1360 TDS receivable).
+    const tds=cmd.tds==null||cmd.tds===''?0:Number(cmd.tds);const tp=tdsReceivableProblem(cmd.amount as number,tds);assert(!tp,tp);
     const owed=grpReceivable(s,c);
     assert(owed>0,`${c.name} owes nothing on company credit.`,'INVALID_TRANSITION');
-    assert(cmd.amount<=owed,`Payment cannot exceed what ${c.name} owes on company credit (${money(owed)}).`);
-    const p={id:id('GCP'),company:c.id,amount:cmd.amount as number,method,reference,...(invoice?{invoice}:{}),date:s.date,actor:uid,at:s.clock};
+    assert(cmd.amount+tds<=owed,tds?`Payment ${money(cmd.amount)} + TDS ${money(tds)} cannot exceed what ${c.name} owes on company credit (${money(owed)}).`:`Payment cannot exceed what ${c.name} owes on company credit (${money(owed)}).`);
+    const p={id:id('GCP'),company:c.id,amount:cmd.amount as number,method,reference,...(invoice?{invoice}:{}),date:s.date,actor:uid,at:s.clock,...(tds?{tds}:{})};
     (x.payments??=[]).push(p);
-    return `${p.id} · ${c.name} · ${money(p.amount)} by ${method} · ref ${reference}${invoice?' · invoice '+invoice:''} · receivable ${money(owed)} → ${money(owed-p.amount)} · manual entry, not verified`;
+    return `${p.id} · ${c.name} · ${money(p.amount)} by ${method} · ref ${reference}${invoice?' · invoice '+invoice:''}${tds?` · TDS ${money(tds)} deducted (receivable 1360)`:''} · receivable ${money(owed)} → ${money(owed-p.amount-tds)} · manual entry, not verified`;
   },
   GRP_RELEASE:k=>{
     const {s,cmd,uid,req,open,assert}=k;req('reservations');open();begin(k);const blk=blockOf(k,cmd.id);

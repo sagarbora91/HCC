@@ -118,6 +118,7 @@ const CMDS={
   ACC_LEDGER_UPSERT:C('OWN','ACC-1 contract §7: chart of accounts = Owner-only money master (PERM-ACC-007, DEC-058)'),ACC_LEDGER_RETIRE:C('OWN','as ACC_LEDGER_UPSERT'),ACC_GROUP_UPSERT:C('OWN','as ACC_LEDGER_UPSERT'),
   // ACC-1 opening balances (contract §5/§7, DEC-148): enter = Owner / Manager / Accountant with reports (PERM-ACC-008); approve / reopen = Owner (PERM-ACC-009).
   ACC_OPENING_SAVE:C('OWN MGR ACC','ACC-1 contract §7 PERM-ACC-008'),ACC_OPENING_APPROVE:C('OWN','ACC-1 contract §7 PERM-ACC-009'),ACC_OPENING_REOPEN:C('OWN','ACC-1 contract §5 (Owner reopens)'),
+  ACC_TDS_SETTINGS:C('OWN','ACC-2 contract §4 firm-profile TDS switches (Owner-only money setting, DEC-058)'),ACC_TDS_REMIT:C('OWN ACC','ACC-2 contract §5 / §9 PERM-ACC-013 TDS remittance (E5)'),
   OWN_CREDENTIAL_CHANGE:C(ALL,'A02b-05: every signed-in user changes their own password / PIN (server ChangeOwnCredential)'),
   AI_ASK:C(ALL,'Module 26: any user, answer filtered'),AI_CLEAR:C(ALL,'Module 26: own history'),AI_SETTINGS:C('OWN MGR','Module 26 (approve)'),
   CB_LOCK:C('OWN MGR ACC','Wave 0.5: day locked by a checker'),CB_REOPEN:C('OWN','Wave 0.5: owner reopen'),

@@ -35,6 +35,8 @@ export const ACC_DEFAULT_MAP:Record<string,string>={
   // ACC-1 (contract §2): the ITC splits half / half like output GST — CGST half to 1310 (tax:gst-input), SGST half to 1320 (tax:gst-input-sgst);
   // 1300 stays for locked snapshots only.
   'receipt:udhaar':'1120','tax:gst-input':'1310','tax:gst-input-sgst':'1320',
+  // ACC-2 tds (contract §4 A9, §5): TDS a company deducted from the hotel → 1360 TDS receivable; TDS the hotel holds back on a bill → 2150 TDS payable.
+  'tax:tds-receivable':'1360','tax:tds-payable':'2150',
 };
 const KEY_LABEL:Record<string,string>={line:'Folio line kind',folio:'Folio',method:'Receipt method (tender)',receipt:'Receipt kind (counter-ledger)',expense:'Expense category',funding:'Expense funding',closing:'Closing record',pos:'Outlet (POS) bill',tax:'GST input credit (ITC)'};
 export const accKeyGroup=(key:string)=>KEY_LABEL[key.split(':')[0]]??'Other';
@@ -282,11 +284,13 @@ export function accLiveVouchers(s:State,date:string,mapping=accMapping(s)):ACCVo
   }
   // ACC-1 (DEC-076, server SourceRules.CompanyPayment): money received from a company against its company-credit receivable — Receipt,
   // Dr the tender · Cr 1110/<company>. Sub company-payment, so the daily company-credit and collections checks are unchanged.
+  // ACC-2 tds (contract §4 A9, rulebook T7b): a payment net of the TDS the company deducted — Dr tender (amount) · Dr 1360 TDS receivable (tds) ·
+  // Cr 1110/<company> (amount + tds); the 1360 line exists only when tds is not zero (server SourceRules.CompanyPayment).
   for(const p of grpSlice(s).payments??[]){
-    if(p.date!==date||!p.amount)continue;const miss:string[]=[],ctx={method:p.method,company:p.company};
+    if(p.date!==date||!p.amount)continue;const miss:string[]=[],ctx={method:p.method,company:p.company},tds=p.tds??0;
     const name=grpSlice(s).companies.find(c=>c.id===p.company)?.name??p.company;
-    push({date,type:'Receipt',narration:`Company payment received · ${name} · ${p.method} · ${p.reference} · payment ${p.id}`,source:{kind:'receipt',id:'company-payment:'+p.id,sub:'company-payment'}},miss,
-      [dr(pt(map('method:'+p.method,miss),ctx),p.amount),cr(pt(map('receipt:company-credit',miss),ctx),p.amount)]);
+    push({date,type:'Receipt',narration:`Company payment received · ${name} · ${p.method} · ${p.reference} · payment ${p.id}${tds?` · TDS ₹${(tds/100).toFixed(2)} deducted`:''}`,source:{kind:'receipt',id:'company-payment:'+p.id,sub:'company-payment'}},miss,
+      [dr(pt(map('method:'+p.method,miss),ctx),p.amount),...(tds?[dr(map('tax:tds-receivable',miss),tds)]:[]),cr(pt(map('receipt:company-credit',miss),ctx),p.amount+tds)]);
   }
   // ── Wave B1 (DEC-073): cash leaving the drawer — same vouchers as the server projector (keys banking:{id}, banking:{id}/rejected, drawing:{id}) ──
   for(const r of cxSlice(s).records){
@@ -456,7 +460,7 @@ export function accMapRows(s:State):ACCMapRow[]{
   s.expenses.filter(expenseCounts).forEach(e=>{add('expense:'+e.category);add('funding:'+e.method);if(expItcPaise(e)){add('tax:gst-input');add('tax:gst-input-sgst');}});
   for(const r of s.expensesX?.udhaar??[])for(const p of r.settlements??[])if(p.desk){add('receipt:udhaar');add('method:'+p.mode);} // DEC-130
   for(const r of s.expensesX?.udhaar??[]){add('receipt:udhaar');add(expUdRevenueKey(r));if(expUdGst(r).tax){add('folio:cgst');add('folio:sgst');}} // ACC-1: credit raised
-  for(const p of grpSlice(s).payments??[]){add('receipt:company-credit');add('method:'+p.method);} // ACC-1: company payments
+  for(const p of grpSlice(s).payments??[]){add('receipt:company-credit');add('method:'+p.method);if(p.tds)add('tax:tds-receivable');} // ACC-1: company payments; ACC-2 tds: 1360
   posSlice(s).receipts.forEach(r=>{add('pos:sales');if(r.tax){add('pos:cgst');add('pos:sgst');}add('method:'+r.method);});
   const keys=[...new Set([...Object.keys(ACC_DEFAULT_MAP),...Object.keys(uses)])];
   const order=Object.keys(KEY_LABEL);
