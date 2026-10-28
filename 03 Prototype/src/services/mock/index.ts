@@ -41,6 +41,7 @@ export * from '../../domain/streams/accounting-reports'; // acc1-statements
 export * from './rulebook-bind'; // acc1-tests: scenario ACC-RULEBOOK driver
 // ACC-1 end
 // ACC-2 lanes: add ONE `export * from '../../domain/streams/accounting-<lane>'` line below (append only).
+export * from '../../domain/streams/accounting-manual'; // ACC-2 acc2-manual lane
 // ACC-2 end
 export * from '../../domain/streams/assistant';
 export * from '../../domain/streams/compliance';

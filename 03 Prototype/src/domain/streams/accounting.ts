@@ -16,6 +16,7 @@ import {grpSlice} from './groups';
 import {expUdDeskReceipts,expUdDeskDates} from './udhaar-desk';
 import {accOpeningLockBlocker,accOpeningPosted} from './accounting-opening'; // ACC-1 opening (contract §5)
 import {accChartIndex,accLedger,accLedgerLegacyGroup,accLedgerTallyName} from './accounting-chart'; // ACC-1 integration: Owner renames / Owner-added ledgers reach postings and names
+import {accManualVouchersOn,accManualDates} from './accounting-manual'; // ACC-2 manual vouchers (contract §2)
 
 // ── Mapping (source classification → ledger) ──
 export const ACC_DEFAULT_MAP:Record<string,string>={
@@ -304,8 +305,13 @@ export function accLiveVouchers(s:State,date:string,mapping=accMapping(s)):ACCVo
   if(diff){const miss:string[]=[],cash=pt(map('method:Cash',miss),{method:'Cash'}),acct=map(accCashDiffKey(diff),miss); // ACC-1: an over → closing:cash-over (4950), a short → 5900
     push({date,type:'Journal',narration:`Cash ${diff>0?'over':'short'} accepted at shift close · ${date}`,source:{kind:'closing',id:`CLOSE/${date}/cash-difference`,sub:'cash-difference'}},miss,
       diff>0?[dr(cash,diff),cr(acct,diff)]:[dr(acct,-diff),cr(cash,-diff)]);}
+  // ── ACC-2 manual (acc2-manual, contract §2): approved manual vouchers (and a voided one that has a reversal) post on their date as
+  // entered — ledger codes / party ids, no mapping — source {kind:'manual', id, sub: template ?? 'journal'}. ──
+  out.push(...accManualVouchersOn(s,date));
+  // ── end ACC-2 manual ──
   const n:Record<string,number>={};
-  return (['Sales','Receipt','Payment','Journal'] as ACCVoucherType[]).flatMap(t=>out.filter(v=>v.type===t)).map(v=>{
+  // ACC-2 (contract §1): Purchase and Contra vouchers are numbered after the four ACC-1 types (server VoucherBuilder.TypeOrder, same order).
+  return (['Sales','Receipt','Payment','Journal','Purchase','Contra'] as ACCVoucherType[]).flatMap(t=>out.filter(v=>v.type===t)).map(v=>{
     n[v.type]=(n[v.type]??0)+1;return {...v,no:`${PREFIX[v.type]}/${ymd(date)}/${String(n[v.type]).padStart(3,'0')}`};});
 }
 /** Accepted cash difference for a date (counted − expected) from its closing record, or the closed shift of the open day. */
@@ -369,6 +375,7 @@ export function accDates(s:State):string[]{
   expUdDeskDates(s).forEach(x=>d.add(x)); // DEC-130
   (s.expensesX?.udhaar??[]).forEach(r=>d.add(r.date)); // ACC-1: Udhaar credit raised (A17)
   (grpSlice(s).payments??[]).forEach(p=>d.add(p.date)); // ACC-1: company payments (DEC-076)
+  accManualDates(s).forEach(x=>d.add(x)); // ACC-2: manual vouchers (contract §2)
   return [...d].filter(x=>/^\d{4}-\d{2}-\d{2}$/.test(x)&&x<=s.date).sort().reverse();
 }
 /** Vouchers for every date up to and including `date` (cumulative trial balance). */
@@ -485,6 +492,7 @@ export function accSourceOf(s:State,v:ACCVoucher):{booking?:Booking;line?:Line;r
   if(v.source.kind==='expense')return {expense:s.expenses.find(e=>e.id===v.source.id||'expense:'+e.id===v.source.id)};
   if(accSlice(s).server)return {}; // server source keys (charge:…, receipt:…, pos:…) are not prototype record ids
   if(v.source.kind==='pos')return {posReceipt:posSlice(s).receipts.find(r=>r.id===v.source.id)};
+  if(v.source.kind==='manual')return {}; // ACC-2: a manual voucher is its own source (accountingX.manual)
   if(v.source.kind==='closing'||v.source.sub==='udhaar-payment'||v.source.sub==='udhaar-credit'||v.source.sub==='company-payment')return {}; // DEC-130 / ACC-1: not folio records
   const i=v.source.id.indexOf('/'),bid=v.source.id.slice(0,i),rid=v.source.id.slice(i+1),booking=s.bookings.find(b=>b.id===bid);
   return v.source.kind==='line'?{booking,line:booking?.lines.find(l=>l.id===rid)}:{booking,receipt:booking?.receipts.find(r=>r.id===rid)};

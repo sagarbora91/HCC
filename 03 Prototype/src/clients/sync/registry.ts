@@ -31,6 +31,7 @@ import {accountingChart} from './accounting-chart'; // ACC-1 chart lane
 import {accountingOpening} from './accounting-opening';
 // ACC-1 end
 // ACC-2 lanes: ONE line below (append only).
+import {accountingManual} from './accounting-manual'; // ACC-2 acc2-manual lane
 // ACC-2 end
 
 // W4-8 POS:
@@ -85,6 +86,7 @@ export const AREAS:SyncArea[]=[
   accountingOpening, // ACC-1 opening balances
   // ACC-1 end
 // ACC-2 lanes: ONE line below (append only).
+  accountingManual, // ACC-2 acc2-manual lane
 // ACC-2 end
 
   pos, // W4-8
