@@ -16,7 +16,10 @@ namespace Hcc.Api.Endpoints;
 public static class AccountingReportEndpoints
 {
     private static AccountingReportQueries Queries(IServiceProvider sp) => new(sp.GetRequiredService<IAccountingStore>(), sp.GetRequiredService<IAccessPolicy>(),
-        sp.GetService<IOpeningBalanceSource>(), sp.GetService<IReportOpeningSource>(), sp.GetService<IReportPartyNames>());
+        sp.GetService<IOpeningBalanceSource>(), sp.GetService<IReportOpeningSource>(), sp.GetService<IReportPartyNames>(),
+        // ACC-2 parity (contract §8): the aggregated opening read over acc.ledger_month_balance (migration 4257); any range
+        sp.GetService<ILedgerMonthBalanceStore>() ?? new Hcc.Infrastructure.SqlServer.Accounting.SqlLedgerMonthBalanceStore(sp.GetRequiredService<Hcc.Infrastructure.SqlServer.SqlPlatform>().Connections),
+        sp.GetService<TimeProvider>());
 
     public static RouteGroupBuilder MapAccountingReportEndpoints(this RouteGroupBuilder api)
     {

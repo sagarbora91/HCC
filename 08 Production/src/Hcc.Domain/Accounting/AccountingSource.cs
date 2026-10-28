@@ -220,18 +220,32 @@ public static class SourceRules
     /// Pay run posted (W2-2 contract): Journal. Dr salaries (gross) · Dr employer PF · Dr employer ESIC ·
     /// Cr salaries payable (net) · Cr PF payable (employee + employer) · Cr ESIC payable (employee + employer) · Cr PT payable ·
     /// Cr staff advances (recovered) · Cr other deductions. Balanced when gross = net + employee deductions.
+    /// ACC-2 (contract §8): with <see cref="PayRunFigures.AdvanceRecoveries"/> the advance is credited PER STAFF member (party
+    /// <c>STF-&lt;id&gt;</c>, in staff-id order; prototype <c>accPayRunLines</c>); a part the list does not name stays on the control.
     /// </summary>
     public static AccountingSource PayRun(string sourceKey, DateOnly date, PayRunFigures f, string narration)
     {
         ArgumentNullException.ThrowIfNull(f);
-        return new(sourceKey, SourceKinds.Payroll, "payrun", date, VoucherType.Journal, narration,
-        [
+        var entries = new List<SourceEntry>
+        {
             Dr("payroll:salaries", f.GrossPaise), Dr("payroll:employer-pf", f.EmployerPfPaise), Dr("payroll:employer-esic", f.EmployerEsicPaise),
             Cr("payroll:net-payable", f.NetPayablePaise), Cr("payroll:pf-payable", checked(f.EmployeePfPaise + f.EmployerPfPaise)),
             Cr("payroll:esic-payable", checked(f.EmployeeEsicPaise + f.EmployerEsicPaise)), Cr("payroll:pt-payable", f.ProfessionalTaxPaise),
-            Cr("payroll:advances", f.AdvanceRecoveryPaise), Cr("payroll:other-deductions", f.OtherDeductionsPaise),
-        ]);
+        };
+        var named = 0L;
+        foreach (var (staffId, paise) in (f.AdvanceRecoveries ?? []).Where(r => r.Paise != 0).OrderBy(r => r.StaffId))
+        {
+            entries.Add(Cr(AdvancesKey, paise) with { Party = PartyLedgers.Staff(staffId) });
+            named = checked(named + paise);
+        }
+
+        entries.Add(Cr(AdvancesKey, checked(f.AdvanceRecoveryPaise - named)));
+        entries.Add(Cr("payroll:other-deductions", f.OtherDeductionsPaise));
+        return new(sourceKey, SourceKinds.Payroll, "payrun", date, VoucherType.Journal, narration, entries);
     }
+
+    /// <summary>The staff advances key (1200, party = the staff member).</summary>
+    public const string AdvancesKey = "payroll:advances";
 
     /// <summary>Net pay paid out (W2-2 contract): Payment, Dr salaries payable · Cr funding.</summary>
     public static AccountingSource PayRunPaid(string sourceKey, string funding, DateOnly date, long amountPaise, string narration)
@@ -246,7 +260,7 @@ public static class SourceRules
     {
         ArgumentNullException.ThrowIfNull(original);
         return new(sourceKey, SourceKinds.Payroll, "payrun-reversal", date, VoucherType.Journal, narration,
-            original.Select(e => new SourceEntry(e.MapKey, e.CreditPaise, e.DebitPaise)).ToList());
+            original.Select(e => e with { DebitPaise = e.CreditPaise, CreditPaise = e.DebitPaise }).ToList()); // ACC-2: the party stays (1200/STF-<id>)
     }
 
     // ── DEC-074 (wave B3) · group master folio, staff advances, full and final ──────────────────────────────────────────────────────
@@ -332,8 +346,10 @@ public static class SourceRules
 }
 
 /// <summary>Pay-run figures as published by payroll (all paise, non-negative).</summary>
+/// ACC-2 (contract §8): <see cref="AdvanceRecoveries"/> = the advance recovered per staff member (staff id, paise); null = not split (old events).
 public sealed record PayRunFigures(long GrossPaise, long EmployerPfPaise, long EmployerEsicPaise, long EmployeePfPaise, long EmployeeEsicPaise,
-    long ProfessionalTaxPaise, long AdvanceRecoveryPaise, long OtherDeductionsPaise, long NetPayablePaise);
+    long ProfessionalTaxPaise, long AdvanceRecoveryPaise, long OtherDeductionsPaise, long NetPayablePaise,
+    IReadOnlyList<(long StaffId, long Paise)>? AdvanceRecoveries = null);
 
 /// <summary>DEC-074 (wave B3): full-and-final figures as published by payroll (paise; all non-negative except <see cref="NetPaise"/>).</summary>
 public sealed record FnfBookFigures(long GrossPaise, long AdditionsPaise, long EmployerPfPaise, long EmployerEsicPaise, long EmployeePfPaise, long EmployeeEsicPaise,

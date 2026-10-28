@@ -149,7 +149,7 @@ public static class AccountingEventMapper
         ArgumentNullException.ThrowIfNull(e);
         return SourceRules.PayRun(PayRunKey(e.PayRunId, e.LockSeq), e.BusinessDate,
             new PayRunFigures(e.GrossPaise, e.EmployerPfPaise, e.EmployerEsicPaise, e.EmployeePfPaise, e.EmployeeEsicPaise, e.ProfessionalTaxPaise,
-                e.AdvanceRecoveryPaise, e.OtherDeductionsPaise, e.NetPayablePaise),
+                e.AdvanceRecoveryPaise, e.OtherDeductionsPaise, e.NetPayablePaise, e.AdvanceRecoveries?.Select(r => (r.StaffId, r.AmountPaise)).ToList()), // ACC-2: per staff
             $"Pay run {e.Period} · run {N(e.PayRunId)}{(e.LockSeq > 1 ? $" · lock {e.LockSeq.ToString(CultureInfo.InvariantCulture)}" : "")}");
     }
 

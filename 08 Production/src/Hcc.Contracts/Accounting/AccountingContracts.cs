@@ -107,9 +107,15 @@ public sealed record ExpensePostedEvent(long ExpenseId, DateOnly BusinessDate, s
 /// <summary>
 /// W2-2 Payroll: a locked pay run. Gross = net + employee PF + employee ESIC + PT + advance recovery + other deductions.
 /// <see cref="LockSeq"/> = which lock of the run (1 = first; a re-lock after an unlock is 2, …) — one voucher per lock.
+/// ACC-2 (contract §8): <see cref="AdvanceRecoveries"/> = the advance recovered per staff member (the voucher credits 1200/STF-&lt;id&gt; each);
+/// null on events published before ACC-2 (the recovery then stays on the 1200 control with a <c>no-party</c> warning).
 /// </summary>
 public sealed record PayrollPostedEvent(long PayRunId, string Period, DateOnly BusinessDate, long GrossPaise, long EmployerPfPaise, long EmployerEsicPaise,
-    long EmployeePfPaise, long EmployeeEsicPaise, long ProfessionalTaxPaise, long AdvanceRecoveryPaise, long OtherDeductionsPaise, long NetPayablePaise, int LockSeq = 1);
+    long EmployeePfPaise, long EmployeeEsicPaise, long ProfessionalTaxPaise, long AdvanceRecoveryPaise, long OtherDeductionsPaise, long NetPayablePaise, int LockSeq = 1,
+    IReadOnlyList<AdvanceRecoveryLine>? AdvanceRecoveries = null);
+
+/// <summary>ACC-2 (contract §8): one staff member's advance recovered in a pay run (paise).</summary>
+public sealed record AdvanceRecoveryLine(long StaffId, long AmountPaise);
 
 /// <summary>W2-2 Payroll: net pay paid out (first bank file of a lock). Funding as for expenses.</summary>
 public sealed record PayrollPaidEvent(long PayRunId, DateOnly BusinessDate, string Funding, long AmountPaise, string Reference, int LockSeq = 1);

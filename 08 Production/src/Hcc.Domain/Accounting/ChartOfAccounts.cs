@@ -280,6 +280,9 @@ public static partial class ChartOfAccounts
         // DEC-130 an Udhaar payment settles the customer's credit; ACC-1 (contract §2) the expense ITC splits half / half like output GST:
         // CGST half → 1310 (tax:gst-input), SGST half → 1320 (tax:gst-input-sgst); 1300 stays for locked snapshots only.
         ["receipt:udhaar"] = "1120", ["tax:gst-input"] = "1310", ["tax:gst-input-sgst"] = "1320",
+
+        // ACC-2 parity (contract §8, rulebook A3): an F&B line charged to a folio (prototype Line.kind food) → 4200 F&B revenue.
+        ["line:food"] = "4200",
     };
 
     /// <summary>ACC-1: the SGST-half ITC key (contract §2).</summary>

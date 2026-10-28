@@ -129,6 +129,7 @@ public static class HccComposition
         api.MapAccountingReportEndpoints(); // ACC-1 acc1-statements
         // ACC-1 end
         // ACC-2 lanes: add ONE api.MapAccounting<Lane>Endpoints(); (or services.Add…Module()) line below (append only).
+        api.MapAccountingParityEndpoints(); // acc2-parity: BackfillUdhaarCredits (contract §8)
         // ACC-2 end
         api.MapComplianceEndpoints();    // W2-5
         api.MapPosEndpoints();           // W2-6

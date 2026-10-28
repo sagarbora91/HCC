@@ -142,5 +142,6 @@
     <File Path="database/migrations/4215_exp_udhaar_kind_gst.sql" />
     <File Path="database/migrations/4220_acc_opening_entry.sql" />
     <File Path="database/migrations/4221_acc_opening_rbac_seed.sql" />
+    <File Path="database/migrations/4257_acc_ledger_month_balance.sql" />
   </Folder>
 </Solution>

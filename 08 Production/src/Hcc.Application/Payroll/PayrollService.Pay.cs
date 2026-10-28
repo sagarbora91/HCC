@@ -179,7 +179,10 @@ public sealed partial class PayrollService
             var postedOn = (await db.PropertyAsync(ctx.PropertyId, c2).ConfigureAwait(false)).BusinessDate;
             var other = t.Gross - t.Net - t.Pf - t.Esic - t.Pt - t.Advance; // gross = net + employee deductions
             await tx.PublishAsync(Contracts.Accounting.AccountingEvents.PayrollPosted, run.RunId, new Contracts.Accounting.PayrollPostedEvent(run.RunId, run.Month.ToString(),
-                postedOn, t.Gross, t.PfEr, t.EsicEr, t.Pf, t.Esic, t.Pt, t.Advance, other, t.Net, lockSeq), c2).ConfigureAwait(false);
+                postedOn, t.Gross, t.PfEr, t.EsicEr, t.Pf, t.Esic, t.Pt, t.Advance, other, t.Net, lockSeq,
+                // ACC-2 (contract §8): the advance recovered per staff member → Cr 1200/STF-<id> (no more no-party warning on the 1200 control)
+                lines.Where(l => l.Advance > 0).GroupBy(l => l.StaffId).OrderBy(g => g.Key)
+                    .Select(g => new Contracts.Accounting.AdvanceRecoveryLine(g.Key, g.Sum(l => l.Advance))).ToList()), c2).ConfigureAwait(false);
             return RunResult(run.RunId, run.Month, "Locked", lines, version, run.Warnings, text);
         }, ct).ConfigureAwait(false);
     }
