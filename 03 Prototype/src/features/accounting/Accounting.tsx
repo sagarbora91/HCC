@@ -12,8 +12,12 @@ import {TrialBalanceView,StatementView,DayBookView} from './books';
 import {ChartView,PartiesView} from './chart';
 import {OpeningView} from './opening';
 import {useAccRange} from './shared';
+import {ManualView} from './manual';
+import {GstMonthView} from './gst';
+import {TdsView,AssetsView} from './tds';
+import {accManualList} from './_contract-stubs-2';
 
-export type AccTab='vouchers'|'tb'|'statements'|'daybook'|'chart'|'parties'|'opening'|'exceptions'|'recon'|'mapping'|'tally';
+export type AccTab='vouchers'|'manual'|'gst'|'tds'|'assets'|'tb'|'statements'|'daybook'|'chart'|'parties'|'opening'|'exceptions'|'recon'|'mapping'|'tally';
 type Tab=AccTab;
 export function AccDatePicker({date,setDate,dates}:{date:string;setDate:(d:string)=>void;dates:string[]}){
   return <label className="acc-date">Business date<select value={date} onChange={e=>setDate(e.target.value)}>
@@ -32,7 +36,8 @@ export function AccountingPage(){
   const recon=useMemo(()=>accReconcile(s,date),[s,date]);
   const t=accTotals(vs),status=accDayStatus(s,date),lock=accLockOf(s,date),why=accLockBlocker(s,date);
   const errors=ex.filter(x=>x.severity==='error').length,reconOk=recon.every(c=>c.ok);
-  const tabs:[Tab,string,(number|string)?][]=[['vouchers','Vouchers',vs.length],['tb','Trial balance'],['statements','Statements'],['daybook','Day book'],['chart','Chart of accounts'],['parties','Parties'],['opening','Opening balances',accOpeningPending(s)?'pending':undefined],
+  const manualPending=accManualList(s).filter(v=>v.status==='pending').length;
+  const tabs:[Tab,string,(number|string)?][]=[['vouchers','Vouchers',vs.length],['manual','Manual vouchers',manualPending||undefined],['gst','GST month'],['tds','TDS'],['assets','Assets'],['tb','Trial balance'],['statements','Statements'],['daybook','Day book'],['chart','Chart of accounts'],['parties','Parties'],['opening','Opening balances',accOpeningPending(s)?'pending':undefined],
     ['exceptions','Exceptions',ex.filter(x=>x.severity!=='info').length],['recon','Reconciliation'],['mapping','Mapping'],...(tally?[['tally','Tally export'] as [Tab,string]]:[])];
   if(!rbacSeesBooks(s,uid)||!permission('reports'))return <div className="acc-page"><PageTitle title="Accounting" sub="The books"/><Empty title="Not available for your role" body="The books are for the Owner, Manager and Accountant. The Cashier’s collections are in Reports."/></div>;
   return <div className="acc-page">
@@ -55,6 +60,10 @@ export function AccountingPage(){
           <td className="acc-wrap">{v.narration}</td><td className="number"><small>{v.source.id}</small></td><td className="acc-num number"><strong>{money(accVoucherDebit(v))}</strong></td>
           <td>{v.unmapped.length?<span className="pill acc-sev-error">Suspense</span>:<span className="pill green">Balanced</span>}</td></tr>)}</tbody></table></div>
         :<Empty title="No vouchers for this date" body="Nothing was posted, received or spent on this business date."/>)}
+      {tab==='manual'&&<ManualView/>}
+      {tab==='gst'&&<GstMonthView/>}
+      {tab==='tds'&&<TdsView/>}
+      {tab==='assets'&&<AssetsView/>}
       {tab==='tb'&&<TrialBalanceView range={range} setRange={setRange} onStatement={goStatement}/>}
       {tab==='statements'&&<StatementView range={range} setRange={setRange} account={stmtAcc} setAccount={setStmtAcc}/>}
       {tab==='daybook'&&<DayBookView range={range} setRange={setRange}/>}

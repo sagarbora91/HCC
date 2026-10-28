@@ -45,6 +45,7 @@ export function ChartView({phone}:{phone?:boolean}){
   if(phone)return <>
     {note}{tools}
     {canChart&&<button type="button" className="btn full" onClick={()=>addGroup()}><Plus size={16}/> Add sub-group</button>}
+    {canChart&&<button type="button" className="btn full" onClick={()=>open({type:'acc-loan'})}><Plus size={16}/> Add loan</button>}
     {tree.map(({g,depth})=><section key={g.id} className="acc-m-group">
       <h2 className="m-group">{g.name.toUpperCase()}<small className="acc-nat"> {g.nature} · {g.side==='BS'?'Balance sheet':'P&L'}{g.custom?' · custom':''}</small></h2>
       {own(g.id).map(l=><ListCard key={l.code} title={`${l.code} · ${l.name}`} sub={`${natureOf(l)} balance${l.control?' · control ledger (parties)':''}`} meta={l.active?(l.system?'Built-in':'Owner-added'):'Retired'}
@@ -55,7 +56,7 @@ export function ChartView({phone}:{phone?:boolean}){
     {history}
     {canChart&&<div className="m-sticky-footer"><button type="button" className="btn primary" onClick={()=>addLedger()}><Plus size={16}/> Add ledger</button></div>}</>;
   return <div className="padded acc-chart">
-    <div className="acc-subbar acc-chart-tools">{tools}{canChart&&<span className="inline"><button type="button" className="btn" onClick={()=>addGroup()}><Plus size={16}/> Add sub-group</button><button type="button" className="btn primary" onClick={()=>addLedger()}><Plus size={16}/> Add ledger</button></span>}</div>
+    <div className="acc-subbar acc-chart-tools">{tools}{canChart&&<span className="inline"><button type="button" className="btn" onClick={()=>open({type:'acc-loan'})}><Plus size={16}/> Add loan</button><button type="button" className="btn" onClick={()=>addGroup()}><Plus size={16}/> Add sub-group</button><button type="button" className="btn primary" onClick={()=>addLedger()}><Plus size={16}/> Add ledger</button></span>}</div>
     {note}
     {rows.length||tree.length?<div className="table-wrap"><table className="acc-table"><thead><tr><th>Code</th><th>Ledger</th><th>Group</th><th>Nature</th><th>Control</th><th>Active</th><th/></tr></thead>
       <tbody>{tree.map(({g,depth})=><React.Fragment key={g.id}>
