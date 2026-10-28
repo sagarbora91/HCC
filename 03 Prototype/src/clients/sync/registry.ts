@@ -33,6 +33,7 @@ import {accountingOpening} from './accounting-opening';
 // ACC-2 lanes: ONE line below (append only).
 import {expensesVendor} from './expenses-vendor'; // acc2-purchase
 import {accountingManual} from './accounting-manual'; // ACC-2 acc2-manual lane
+import {accountingTds} from './accounting-tds'; // ACC-2 tds lane
 // ACC-2 end
 
 // W4-8 POS:
@@ -89,6 +90,7 @@ export const AREAS:SyncArea[]=[
 // ACC-2 lanes: ONE line below (append only).
   expensesVendor, // acc2-purchase (vendor payments, returns)
   accountingManual, // ACC-2 acc2-manual lane
+  accountingTds, // ACC-2 tds lane
 // ACC-2 end
 
   pos, // W4-8

@@ -284,6 +284,8 @@ public static partial class ChartOfAccounts
         // ACC-2 (acc2-purchase, contract §3): IGST input credit, RCM payable, TDS payable, and the vendor payable a vendor payment / advance
         // debits (party = the vendor, 2200/<vendor>).
         ["tax:gst-input-igst"] = "1330", ["tax:rcm-payable"] = "2140", ["tax:tds-payable"] = "2150", ["vendor:payable"] = "2200",
+        // ACC-2 tds (contract §4 A9, §5): TDS a company deducted from the hotel → 1360; TDS the hotel holds back on a bill → 2150.
+        [TdsCalculator.ReceivableKey] = "1360", // TdsCalculator.PayableKey ("tax:tds-payable") = 2150 is in the acc2-purchase line above (one key)
     };
 
     /// <summary>ACC-1: the SGST-half ITC key (contract §2).</summary>

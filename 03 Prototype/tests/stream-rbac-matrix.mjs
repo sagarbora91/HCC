@@ -121,6 +121,7 @@ const CMDS={
   EXP_VENDOR_PAY:C('OWN MGR ACC','ACC-2 contract §9 PERM-EXP-004'),EXP_VENDOR_PAY_VOID:C('OWN','ACC-2 contract §3.2 (Owner voids)'),EXP_VENDOR_RETURN:C('OWN MGR ACC','ACC-2 contract §3.5 + §9 PERM-EXP-004 (Owner approves)'),
   ACC_MANUAL_SAVE:C('OWN ACC','ACC-2 contract §9 PERM-ACC-010 (Accountant pending, Owner approved at once)'),ACC_MANUAL_DECIDE:C('OWN','ACC-2 contract §9 PERM-ACC-011'),ACC_MANUAL_VOID:C('OWN','ACC-2 contract §9 PERM-ACC-011 (approve and void)'),ACC_LOAN_ADD:C('OWN','ACC-2 contract §2 Add loan = chart edit (PERM-ACC-007)'),
   ACC_OPENING_SAVE:C('OWN MGR ACC','ACC-1 contract §7 PERM-ACC-008'),ACC_OPENING_APPROVE:C('OWN','ACC-1 contract §7 PERM-ACC-009'),ACC_OPENING_REOPEN:C('OWN','ACC-1 contract §5 (Owner reopens)'),
+  ACC_TDS_SETTINGS:C('OWN','ACC-2 contract §4 firm-profile TDS switches (Owner-only money setting, DEC-058)'),ACC_TDS_REMIT:C('OWN ACC','ACC-2 contract §5 / §9 PERM-ACC-013 TDS remittance (E5)'),
   OWN_CREDENTIAL_CHANGE:C(ALL,'A02b-05: every signed-in user changes their own password / PIN (server ChangeOwnCredential)'),
   AI_ASK:C(ALL,'Module 26: any user, answer filtered'),AI_CLEAR:C(ALL,'Module 26: own history'),AI_SETTINGS:C('OWN MGR','Module 26 (approve)'),
   CB_LOCK:C('OWN MGR ACC','Wave 0.5: day locked by a checker'),CB_REOPEN:C('OWN','Wave 0.5: owner reopen'),

@@ -109,9 +109,13 @@ public static class SourceRules
     /// <c>receipt:company-credit</c> ledger the checkout's company credit debited). Sub <c>company-payment</c>, so the daily company-credit
     /// reconciliation (Sub <c>company-credit</c>) is unchanged.
     /// </summary>
-    public static AccountingSource CompanyPayment(string sourceKey, string tender, DateOnly date, long amountPaise, string narration)
+    /// ACC-2 tds (contract §4 A9, rulebook T7b): <paramref name="tdsPaise"/> = TDS the company deducted — Dr tender (amount) · Dr
+    /// <c>tax:tds-receivable</c> 1360 (tds) · Cr company receivables (amount + tds); the 1360 line exists only when tds is not zero.
+    public static AccountingSource CompanyPayment(string sourceKey, string tender, DateOnly date, long amountPaise, string narration, long tdsPaise = 0)
         => new(sourceKey, SourceKinds.Receipt, "company-payment", date, VoucherType.Receipt, narration,
-            [Dr("method:" + tender, amountPaise), Cr("receipt:company-credit", amountPaise)]);
+            tdsPaise == 0
+                ? [Dr("method:" + tender, amountPaise), Cr("receipt:company-credit", amountPaise)]
+                : [Dr("method:" + tender, amountPaise), Dr(TdsCalculator.ReceivableKey, tdsPaise), Cr("receipt:company-credit", checked(amountPaise + tdsPaise))]);
 
     /// <summary>Outlet bill settled at the outlet (DEC-052): Sales, Dr tender total · Cr outlet revenue net · Cr CGST · Cr SGST. A void is negative.</summary>
     public static AccountingSource PosBill(string sourceKey, string kind, string tender, DateOnly date, long totalPaise, long netPaise, long cgst, long sgst, string narration)

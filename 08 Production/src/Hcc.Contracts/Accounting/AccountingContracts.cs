@@ -76,7 +76,9 @@ public sealed record OwnerDrawingEvent(long TransferId, int TillId, long ShiftId
 /// DEC-076: a payment received from a company account against its company-credit receivable (Groups <c>RecordCompanyPayment</c>; tender UPI | Card |
 /// Bank transfer). Booked as a Receipt voucher: Dr the tender · Cr company receivables (the <c>receipt:company-credit</c> ledger).
 /// </summary>
-public sealed record CompanyPaymentRecordedEvent(long CompanyId, long PaymentId, DateOnly BusinessDate, string Tender, long AmountPaise, string Reference, string Company);
+/// ACC-2 tds (contract §4 A9): <c>TdsPaise</c> = TDS the company deducted (0 / absent in older payloads) — booked Dr 1360 TDS receivable.
+public sealed record CompanyPaymentRecordedEvent(long CompanyId, long PaymentId, DateOnly BusinessDate, string Tender, long AmountPaise, string Reference, string Company,
+    long TdsPaise = 0);
 
 /// <summary>
 /// DEC-130: an Udhaar (customer credit) payment taken as a desk receipt (Expenses <c>PayUdhaar</c>; any front-desk tender, cash into the drawer).

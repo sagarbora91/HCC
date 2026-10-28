@@ -23,10 +23,12 @@ public sealed record CompanyResult(long CompanyId, string Version, string LimitS
 /// POST /commands/RecordCompanyPayment (DEC-076): money received from the company against its company-credit receivable (PERM-GRP-005; UPI, card or
 /// bank transfer with a reference; at most the receivable). <c>InvoiceNo</c> = the tax invoice the company says it pays (statement text).
 /// </summary>
-public sealed record RecordCompanyPaymentRequest(long CompanyId, string Tender, long AmountPaise, string Reference, string? InvoiceNo = null);
+/// ACC-2 tds (contract §4 A9): <c>TdsPaise</c> = TDS the company deducted; AmountPaise + TdsPaise settle the receivable (≤ it; TDS ≤ 20 % of the sum).
+public sealed record RecordCompanyPaymentRequest(long CompanyId, string Tender, long AmountPaise, string Reference, string? InvoiceNo = null, long TdsPaise = 0);
 
 /// <summary>After the payment: the receivable left, the exposure used and the credit remaining under the limit.</summary>
-public sealed record CompanyPaymentResult(long CompanyId, long PaymentId, long AmountPaise, DateOnly BusinessDate, long ReceivablePaise, long UsedPaise, long RemainingPaise);
+public sealed record CompanyPaymentResult(long CompanyId, long PaymentId, long AmountPaise, DateOnly BusinessDate, long ReceivablePaise, long UsedPaise, long RemainingPaise,
+    long TdsPaise = 0);
 
 /// <summary>One line of the exposure: kind receivable | payment (negative) | stay (Id = reservation) | group (Id = group); Reference = booking no, invoice or group code.</summary>
 public sealed record CompanyCreditItemView(string Kind, long Id, string Reference, long AmountPaise);
@@ -39,7 +41,7 @@ public sealed record CompanyCreditView(long CompanyId, long CreditLimitPaise, lo
     long RemainingPaise, IReadOnlyList<CompanyCreditItemView> Items);
 
 public sealed record CompanyPaymentView(long PaymentId, long CompanyId, DateOnly BusinessDate, string Tender, string Reference, string? InvoiceNo, long AmountPaise,
-    int RecordedBy, DateTime RecordedUtc);
+    int RecordedBy, DateTime RecordedUtc, long TdsPaise = 0);
 
 /// <summary><see cref="Credit"/> is null for a caller without PERM-GRP-004 (money view).</summary>
 public sealed record CompanyView(long CompanyId, string Name, string? Gstin, string? Contact, string? Phone, string? Email, string? City,

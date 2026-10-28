@@ -34,6 +34,8 @@ public partial class RbacV2MatrixTests(AccessDatabase db) : IClassFixture<Access
         ["PERM-ACC-007"] = ["A", "—", "—", "—", "—", "—", "—", "—", "—", "—"],
         ["PERM-ACC-008"] = ["A", "A", "A", "—", "—", "—", "—", "—", "—", "—"],
         ["PERM-ACC-009"] = ["A", "—", "—", "—", "—", "—", "—", "—", "—", "—"],
+        // ACC-2 (contract §9, migration 4245): accounting.tax (GST set-off, GST / TDS / statutory remittances, TDS report) = Owner, Accountant.
+        ["PERM-ACC-013"] = ["A", "—", "A", "—", "—", "—", "—", "—", "—", "—"],
     };
 
     /// <summary>L cells: the Manager's limit in paise (DEC-063 G1 Rs 1,000; GRP-003 Rs 10,000 as seeded by 2201).</summary>
