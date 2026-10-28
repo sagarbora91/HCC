@@ -12,6 +12,7 @@ Internal hotel-operations app for the owner's hotel business in India (owner: Sa
 3. `02 Planning/HCC_Mobile_Version_Plan_v1.md` — mobile design rules, decisions DEC-044…051; module specs 13–26 in `02 Planning/modules/`
 4. `02 Planning/HCC_Decision_Register.md`, `HCC_Prototype_Spec_v1.md`, `HCC_RBAC_Matrix_v1.md`, `HCC_Business_Workflow_Spec_v1.md`, `HCC_Fixture_and_Scenario_Catalog.md`, `HCC_Acceptance_Matrix.md`, `HCC_Implementation_Backlog.md`
 5. `03 Prototype/README.md` — commands, code layout, phone-over-Wi-Fi
+6. `02 Planning/HCC_Build_Plan_v2_2026-10-27.md` — remaining-work plan (waves W0–W9 + **W1a LG legacy data**); the old "Lodge" software's customer data and its mapping into HCC are in `02 Planning/HCC_Legacy_Data_Mapping_v1.md` (decided 28 Oct 2026, DEC-161…164; source MDBs under `E:\Projects\HCC\Existing Software`, never committed)
 
 ## Layout
 - `01 Research Stage/` original conversation + execution plan · `02 Planning/` specs (+ `modules/`) · `03 Prototype/` app · `04 Android/` Capacitor wrapper (README there: build env incl. Norton trust-store workaround) · `05 Delivery Evidence/` summaries/tests/evidence

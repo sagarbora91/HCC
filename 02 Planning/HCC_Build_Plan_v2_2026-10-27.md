@@ -1,6 +1,6 @@
 # HCC Build Plan v2 — multi-agent, multi-model (27 Oct 2026)
 
-Everything that remains after the SCC decisions wave, in execution order, with the agents and models that do it. Supersedes the "Next" lines of HANDOFF Sessions 13–13k and the audit's go-live plan §7 (`05 Delivery Evidence/Audit/HCC_Independent_Audit_2026-10-26.md`), which stay as history. Rulings behind this plan: DEC-140…150 (accounting), **DEC-151** (hall booking), **DEC-152** (split folio), **DEC-153** (report module on the ETP Reporting Engine), **DEC-154** (ETP lanes / briefs / gate workflow; gate + installer pipeline last).
+Everything that remains after the SCC decisions wave, in execution order, with the agents and models that do it. Supersedes the "Next" lines of HANDOFF Sessions 13–13k and the audit's go-live plan §7 (`05 Delivery Evidence/Audit/HCC_Independent_Audit_2026-10-26.md`), which stay as history. Rulings behind this plan: DEC-140…150 (accounting), **DEC-151** (hall booking), **DEC-152** (split folio), **DEC-153** (report module on the ETP Reporting Engine), **DEC-154** (ETP lanes / briefs / gate workflow; gate + installer pipeline last), **DEC-161…164** (legacy "Lodge" data → wave W1a, added 28 Oct 2026).
 
 ## 1. The way of working — borrowed from ETP
 
@@ -33,6 +33,7 @@ ETP shipped eleven releases in October with Claude agents by one method (`E:\ETP
 |---|---|---|---|---|---|---|
 | W0 | **APK v18** | `claude/apk18` | Sonnet 1 (+ Opus for any money defect) | 1 | — | emulator phone + tablet report; physical-tab prompt |
 | W1 | **ACC-1 Chart and parties** | `claude/acc1` | Fable design · Opus 4 · Sonnet 2 | 6 | 4200–4229 | rulebook §8 golden month (opening + ledgers + six-column TB) |
+| W1a | **LG Legacy data** (old "Lodge" software, DEC-161…164) | `claude/lg` | Fable design · Opus 2 · Sonnet 3 | 5 | 4600–4619 | dry run against the June 2026 backups reconciles per FY (bills, room GST, receipts); 20 known guests reviewed by the Owner |
 | W2 | **ACC-2 Purchases, manual vouchers, GST, TDS** | `claude/acc2` | Opus 5 · Sonnet 2 | 7 | 4230–4259 | golden month complete; oracle run in ERPNext / GNUKhata |
 | W3 | **ACC-3 P&L, ageing, exports, Tally XML** | `claude/acc3` | Fable (Tally format) · Opus 2 · Sonnet 3 | 5 | 4260–4279 | Tally import of the golden month into a fresh Tally company |
 | W4 | **ACC-4 Year lock, bank reconciliation** | `claude/acc4` | Opus 2 · Sonnet 1 | 3 | 4280–4299 | statement-import fixture reconciles to zero |
@@ -42,9 +43,9 @@ ETP shipped eleven releases in October with Claude agents by one method (`E:\ETP
 | W8 | **GL Go-live stand-ins** | `claude/golive` | Opus 4 · Sonnet 5 | 9 | 4500–4599 | ETP-reuse list closed; provider adapters behind switches; Form C and ECR files if chosen |
 | W9 | **FINAL Release pipeline** | `claude/release-1.0` | Fable · Opus 2 · Sonnet 2 · **Owner** | 4 + owner sessions | — | ETP gate chain → `HCC-Setup-1.0.0-x64.exe` with SQL bootstrap; VM stage; hotel PC |
 
-Rough wall-clock on this PC, one wave at a time: W0 1 day (after the tablet results) · W1–W4 5–6 days · W5 2 days (+ a day for the spec and your approval) · W6 1 day · W7 2 days · W8 3–4 days · W9 2–3 days plus the owner's sessions. About three to four working weeks of agent time if nothing waits on a decision.
+Rough wall-clock on this PC, one wave at a time: W0 1 day (after the tablet results) · W1–W4 5–6 days · W1a 2 days · W5 2 days (+ a day for the spec and your approval) · W6 1 day · W7 2 days · W8 3–4 days · W9 2–3 days plus the owner's sessions. About three to four working weeks of agent time if nothing waits on a decision.
 
-**What can overlap:** W0 is one lane and may run beside W1. The HB spec (W5, Fable only, no agents) is written while W2–W4 run, so your approval is in hand before its lanes start. Nothing else overlaps: one wave's batch at a time on this PC.
+**What can overlap:** W0 is one lane and may run beside W1. The HB spec (W5, Fable only, no agents) is written while W2–W4 run, so your approval is in hand before its lanes start. W1a may run any time after W1 and before W8 (its cut-over evening is an owner session in W9); its extractor lane only reads the compacted MDBs and may run beside an ACC wave when RAM allows. Nothing else overlaps: one wave's batch at a time on this PC.
 
 ## 3. Lane plans
 
@@ -60,6 +61,15 @@ Rulebook §3, §5 A17, §7.2–7.3, §G2. Contract first (Fable): `ACC1-POSTING-
 - **acc1-ui** (Sonnet): desktop and phone screens for the chart, parties, statements and trial balance per the existing Accounting page patterns; CSV export.
 - **acc1-tests** (Sonnet): `tests/stream-accounting-rulebook.mjs` and `Hcc.Accounting.Tests/RulebookMonthTests.cs` from rulebook §8 (opening, T1–T19, closing TB), fixture `ACC-RULEBOOK` scenario.
 - **tools lane** (Sonnet, first day): port `Invoke-Serialized.ps1`, `Run-Gate-` and `Start-Gate-` scripts from ETP to `tools\`; a HANDOFF line on how agents call them.
+
+### W1a — LG Legacy data (`claude/lg`) — DEC-161…164
+Source: `02 Planning/HCC_Legacy_Data_Mapping_v1.md` (decided §8) and the profile `E:\Projects\HCC\Existing Software\DB-PROFILE\` (compacted `LodgeYY-YY.mdb`, ten FYs, 251 MB; password hard-coded in the legacy `Forms\Forms\Module1.bas`; **MDBs are never committed**, extractions stay in scratch). Contract first (Fable): `LG-HISTORY-CONTRACT.md` — the `lgc.*` row shapes, the identity rules (phone key = last 10 digits, name fold, alias rule), the reconciliation totals per FY the importer must match.
+- **lg-extract** (Sonnet): `tools/legacy/extract.py` (ACE/ODBC, run with `-I`) → masters CSVs in the template layouts (`guests.csv` without ID numbers, `rooms.csv` 36 real rooms, `room-types.csv`, `id-types.csv`, `booking-sources.csv`, `companies.csv` for shared GSTINs), `lgc_*.csv` per FY, `cutover_*.csv/xlsx` (in-house list, unadjusted advances, receivables, `PaidOut` for the CA), the reconciliation totals file.
+- **lg-schema** (Opus): migration 4600 `lgc` schema + `gst.guest.legacy_guest_id` + `gst.guest.dob`; views for Customers 360; lock-file and `Hcc.slnx` entries.
+- **lg-import** (Opus): Owner-only dry-run legacy importer (server command, result JSON): guest part 2 (sealed ID numbers per DEC-068/070, `legacy_guest_id`, `dob`, photo / ID-scan copy into `doc.*`), `lgc.*` load keyed by `legacy_fy` (re-runnable until a business day is closed), reconciliation against the extractor totals, refuses any CSV with an ID-number column (DEC-MA-8b).
+- **lg-ui** (Sonnet): Customers 360 and the guest profile read `lgc` (stays, nights, lifetime, first / last stay, "legacy" badge, old bill numbers); phone-less legacy guests group under the name key.
+- **lg-tests** (Sonnet): extractor unit tests on a fixture CSV set shaped like the MDB tables, importer tests (identity, dedup, Title Case, OTA tags, GST 12 → 5 % split on 22 Sep 2025, FY-boundary de-dup), prototype stream tests for the legacy badge; the dry-run script for this PC.
+- **Owner:** rate card (OP-18) before the masters import; ask the CA about invoice continuity (OP-19); review the 20-guest sample and the companies list.
 
 ### W2 — ACC-2 Purchases, manual vouchers, GST, TDS (`claude/acc2`)
 Rulebook §4, §5 B5–B12, C1–C10, D5–D7, E1–E5, §6.
@@ -127,7 +137,7 @@ Borrowed whole from ETP: `scripts\build-windows-release.ps1` → `build-windows-
 - **rel-sql** (Opus): database packaging: `Initialize-HccDatabase.ps1` run by the installer, migration journal check, masters import step with the 39 templates, demo-data switch off in Production, schema-version guard.
 - **rel-gate** (Sonnet): HCC gate chain scripts in `tools\` with `$repo` = the release worktree; the elevated gate runs the integration suite, both builds, the e2e script, the secret scan, then builds and publishes `HCC-Setup-1.0.0-x64.exe` + `SHA256SUMS.txt` to `E:\Projects\HCC\Installers\`.
 - **rel-docs** (Sonnet): `INSTALL.md`, operator runbook, downtime procedure (DEC-081), restore-drill runbook, the APK v18 release-signed build with the real hotel CA.
-- **Owner sessions:** (1) run `Chain-Gate-Then-Installer-1.0.0.ps1` elevated; (2) the one-hour **keys session** on the hotel PC (DEC-087: release keystore, hotel CA, guest-ID and backup keys on two USBs, BitLocker); (3) VM stage, then the **hotel-PC install rehearsal** and **restore drill**; (4) physical-device tests and the **staff trial** with fictional data; (5) the **GitHub push** after the secret scan (make the repository private first, per DEC-087, or rule that public is intended).
+- **Owner sessions:** (1) run `Chain-Gate-Then-Installer-1.0.0.ps1` elevated; (2) the one-hour **keys session** on the hotel PC (DEC-087: release keystore, hotel CA, guest-ID and backup keys on two USBs, BitLocker); (3) VM stage, then the **hotel-PC install rehearsal** and **restore drill**; (4) physical-device tests and the **staff trial** with fictional data; (5) the **GitHub push** after the secret scan (make the repository private first, per DEC-087, or rule that public is intended); (6) the **legacy cut-over evening** on the hotel PC (DEC-164: live Lodge PC stopped after the last check-out → extractor → masters import → legacy importer → in-house guests re-entered → opening balances → number series → first day close).
 
 ## 4. Model policy in one line each
 
@@ -145,6 +155,8 @@ Borrowed whole from ETP: `scripts\build-windows-release.ps1` → `build-windows-
 | OP-15 | Providers for W8: WhatsApp / SMS gateway, ID OCR, channel manager — which vendors, and who signs the contracts | Owner |
 | OP-16 | GitHub repository **private** before the push (DEC-087 says private; `sagarbora91/HCC` is public today) | Owner |
 | OP-17 | Hall-booking spec approval (W5) — written while W2–W4 run | Owner |
+| OP-18 | **Rack-rate card** for the room types SUITE / PREMIUM / DELUXE / TWIN (single, double, extra person; GST-exclusive) — the legacy rates are not loaded (DEC-163) | Owner |
+| OP-19 | Ask the CA whether the HCC invoice series must **continue the legacy bill numbers** inside FY 2026-27 or may start fresh with its own prefix (DEC-163) | Owner → CA |
 
 ## 6. What you do, when
 
@@ -152,6 +164,7 @@ Borrowed whole from ETP: `scripts\build-windows-release.ps1` → `build-windows-
 |---|---|
 | Now | Run the v17 tablet test; give the go for W1 |
 | During W2–W4 | Read and approve the hall-booking spec (W5); answer OP-13…OP-16 |
+| Before W1a's dry run | Hand over the rate card (OP-18); ask the CA about invoice continuity (OP-19); then review the 20-guest sample and the companies list |
 | After W3 | Import the golden month's Tally XML into a fresh Tally company on your PC and confirm it opens cleanly |
 | Before W8 | Choose the three providers (OP-15) |
-| W9 | The elevated gate, the keys session, the install rehearsal, the staff trial, the push |
+| W9 | The elevated gate, the keys session, the install rehearsal, the legacy cut-over evening (DEC-164), the staff trial, the push |
