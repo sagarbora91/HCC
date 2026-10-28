@@ -10,10 +10,11 @@ using Hcc.Infrastructure.SqlServer.Billing;
 namespace Hcc.Accounting.Tests.Sql;
 
 /// <summary>
-/// ACC-1 (lane acc1-tests): the rulebook golden month through the real outbox → accounting consumer → vouchers → cumulative trial balance
-/// (PERM-ACC-001), on a disposable database with the real P1 policy. The events and the expectation are those of
-/// <c>Golden/rulebook-month.json</c> (rulebook §8, April 2026, fictional); the month's flow is checked first (<c>expected.flow</c>), then
-/// (ACC-1 integration) the §8.1 opening goes through the opening service and the cumulative trial balance equals <c>expected.closing</c>. Not driven: T16 (an Owner drawing from the bank, rulebook B6 — ACC-2) and T4 T6 T7b T11 T14 T17 T18 T19.
+/// ACC-1 (lane acc1-tests) + ACC-2 (lane acc2-tests): the rulebook golden month through the real outbox → accounting consumer → vouchers → cumulative trial balance
+/// (PERM-ACC-001), on a disposable database with the real P1 policy. The events and the expectation are those of <c>Golden/rulebook-month.json</c> (rulebook §8, April 2026,
+/// fictional): the month's flow is checked first (<c>expected.flow</c>), then the §8.1 opening goes through the opening service and the cumulative trial balance equals
+/// <c>expected.closing</c> (opening + the 19 event-driven steps; the HDFC loan is the party <c>2400/LN-HDFC</c>). The 7 steps with no server command yet (T11 T14a T14b T16
+/// T17 T18 T19) wait for their lanes — a skipped test says what each should do; the whole month (₹84,27,500) is <c>expected.full</c>.
 /// </summary>
 [Trait("Category", "Sql")]
 public sealed class RulebookMonthSqlTests(AccountingDb db) : IClassFixture<AccountingDb>
@@ -25,7 +26,7 @@ public sealed class RulebookMonthSqlTests(AccountingDb db) : IClassFixture<Accou
     private static JsonDocument Month => JsonDocument.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Golden", "rulebook-month.json")));
 
     [Fact]
-    [Trait("Lane", "acc1-chart")]
+    [Trait("Lane", "acc2")]
     public async Task The_months_events_become_balanced_vouchers_and_the_cumulative_trial_balance_equals_the_rulebook_flow()
     {
         using var month = Month;
@@ -39,7 +40,7 @@ public sealed class RulebookMonthSqlTests(AccountingDb db) : IClassFixture<Accou
         Assert.Equal(events.Count, await db.ProjectAsync());   // exactly one source per event
         Assert.Equal(0, await db.ProjectAsync());              // and exactly once
 
-        // ── the Owner's mapping of the month (Owner only, DEC-063 G11): the advance tender to 2000, folio restaurant lines to 4200 (F&B revenue: needs lane acc1-chart) ──
+        // ── the Owner's mapping of the month (Owner only, DEC-063 G11): none in ACC-2 (a folio restaurant line is `food` → 4200 by default, the opening advance is a deposit-apply receipt) ──
         foreach (var o in root.GetProperty("mappingOverrides").EnumerateObject().OrderBy(x => x.Name, StringComparer.Ordinal).Reverse())
             await db.Accounting.SetMappingAsync(db.As("OWN"), Key(), new SetLedgerMappingRequest(o.Name, o.Value.GetString()!), Ct);
 
@@ -117,5 +118,14 @@ public sealed class RulebookMonthSqlTests(AccountingDb db) : IClassFixture<Accou
         // a party row of the opening (2200/EV-MORNING) sits under its control in the detail view
         var detailTb = await reports.TrialBalanceAsync(db.As("ACC"), new DateOnly(2026, 4, 1), new DateOnly(2026, 4, 30), true, Ct);
         Assert.Contains(detailTb.Rows, r => r.Account == "2200/EV-MORNING" && r.Control == "2200");
+        // ACC-2: the HDFC term loan is a party under 2400 (the opening line `2400/LN-HDFC`), 19,60,000 Cr after the EMI once T17 exists — 20,00,000 Cr from the opening alone today
+        Assert.Contains(detailTb.Rows, r => r.Account == "2400/LN-HDFC" && r.Control == "2400" && r.OpeningCreditPaise == 200_000_000L);
+    }
+
+    [Fact(Skip = "waits for lanes acc2-purchase, acc2-manual, acc2-flows, acc2-gst: T11 (vendor payment), T14a T14b T16 T17 T18 (manual vouchers), T19 (OTA payout) and the GST set-off / challan through their real commands and outbox events, then the cumulative trial balance at 30 April equals expected.full (₹84,27,500 both sides), the six-column trial balance is balanced, the month lock for April is refused until the set-off is posted and then allowed, and a 2,00,000 cash receipt is refused (CashGuard). Intended payloads: rulebook-month.json waiting.events")]
+    [Trait("Lane", "acc2")]
+    public Task The_whole_month_through_the_real_commands()
+    {
+        return Task.CompletedTask;
     }
 }
