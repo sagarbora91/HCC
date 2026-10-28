@@ -5,7 +5,7 @@ import {Plus,Check,X,Ban,Info,AlertTriangle} from 'lucide-react';
 import {useHcc} from '../../app/context';
 import {money} from '../../services/mock';
 import type {State} from '../../services/mock';
-import {ListCard,ChipFilter} from '../../app/mobile/components';
+import {ListCard,ChipFilter,StickyFooter} from '../../app/mobile/components';
 import {Empty,dateLabel,shortDate} from '../../components/ui';
 import {usePaged,ShowMore,DESKTOP_PAGE,PHONE_PAGE} from '../../components/ShowMore';
 import {accManualList,accManualProblems,accCashGuard,type ACCManualVoucher,type ACCManualLine,type ACCManualTemplate,type AccManualSave,type AccManualDecide,type AccManualVoid} from './_contract-stubs-2';
@@ -51,6 +51,7 @@ export function ManualView({phone}:{phone?:boolean}){
     <ShowMore p={pg}/>
     {canManualEnter&&<div className="acc-m-tpls"><h3 className="m-group">GUIDED ENTRIES</h3>{MANUAL_TEMPLATES.filter(t=>t.id!=='journal'&&(!t.ownerOnly||canManualApprove)).map(t=>
       <ListCard key={t.id} title={t.label} sub={t.blurb} onClick={()=>open({type:'acc-manual',id:'new:'+t.id})}/>)}</div>}
+    {canManualEnter&&<StickyFooter><button type="button" className="btn primary" onClick={()=>open({type:'acc-manual',id:'new'})}><Plus size={18}/> New voucher</button></StickyFooter>}
   </>;
   return <div className="padded">
     {tools}{note}{queue}
