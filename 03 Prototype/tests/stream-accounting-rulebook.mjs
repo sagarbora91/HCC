@@ -520,7 +520,7 @@ export function register({test,M,assert}){
     const u=M.execute(l,'owner',{type:'ACC_MONTH_UNLOCK',month:'2026-04',reason:'Correct a bill (fictional)'});
     assert.ok(!u.accountingX.monthLocks?.['2026-04']||u.accountingX.monthLocks['2026-04'].unlocks?.length>=1);
   });
-  test(T2+'month lock also needs the days: an April day that is not closed blocks it (the scenario state with 30 April reopened)',()=>{
+  test(T2+'month lock: May cannot be locked yet (open days, no set-off); April has no blocker once its set-off is posted',()=>{
     lane('accMonthLockBlocker');let s=month();
     s=cmd(s,'owner',{type:'ACC_GST_SETOFF',month:'2026-04'},'acc2-gst');
     // May is not a closed month: locking it names the open days / the missing set-off
