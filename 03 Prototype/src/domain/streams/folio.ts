@@ -60,7 +60,8 @@ export function folioLineCorrectable(s:State,b:Booking,l:Line){
 /** Company credit applied to a folio (receivable). */
 export function folioCompanyCredit(b:Booking){return b.receipts.filter(r=>r.kind==='company-credit').reduce((a,r)=>a+r.amount,0);}
 /** Receipt kind labels for display. */
-export const folioReceiptLabel:Record<string,string>={payment:'Payment / advance',deposit:'Refundable deposit','deposit-return':'Deposit returned',refund:'Payment refund','company-credit':'Company credit (receivable)'};
+export const folioReceiptLabel:Record<string,string>={payment:'Payment / advance',deposit:'Refundable deposit','deposit-return':'Deposit returned',refund:'Payment refund','company-credit':'Company credit (receivable)',
+  'deposit-apply':'Deposit applied at check-out','ota-credit':'OTA credit (receivable)'}; // ACC-2 flows (contract §4)
 
 /** Company-credit request state for a folio (SCR-10). 'approved' = will be applied at checkout; 'stale' = approved but the folio changed. */
 export function folioCompanyCreditState(s:State,b:Booking,balance:number):{state:'none'|'pending'|'approved'|'stale';approval?:Approval}{

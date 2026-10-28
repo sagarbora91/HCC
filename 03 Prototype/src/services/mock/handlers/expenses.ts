@@ -28,6 +28,7 @@ import {EXP_VOID_REASONS,EXP_MAX_PAISE,EXP_PHOTO_MAX_BYTES,EXP_DESC_MAX,EXP_UD_D
   expMonthUnlockRefusal,type EXPState,type ExpRecTpl,type ExpEditLog} from '../../../domain/streams/expenses-scc';
 import {expUdGst,type ExpUdKind} from '../../../domain/streams/expenses-scc'; // ACC-1 (acc1-parties): Udhaar credit raised (contract §4)
 import {gstForFood,gstForRoomNight,gstForService} from '../../../domain/gst';
+import {accCashEnforce,accCashNote,accCashUdhaarParty} from '../../../domain/streams/accounting-guards'; // ACC-2 flows (contract §7)
 
 const limited=(role:string)=>!closingUnlimitedRoles.includes(role);
 /** Coarse gate of edit / void: an expense user (the record decides the rest: own draft / pending, or a decider). */
@@ -163,9 +164,14 @@ export const handlers:Record<string,Handler>={
     if(cmd.approve&&limited(user.role)&&e!.amount>lim)fail('FORBIDDEN',`Expenses above ${money(lim)} need Owner approval.`);
     if(cmd.approve&&mnyIsDrawer(s,e!.method))assert(s.shiftOpen,'Open cash shift required.','INVALID_TRANSITION');
     const date=liveDate(k,e!),over=cmd.approve?monthGate(k,date,cmd.override):'';
+    // ACC-2 flows (contract §7, rulebook B10): cash above ₹10,000 to one party in a day (₹35,000 transport) posts with a warning and the
+    // record is marked "deduction lost" (P&L notes).
+    const cg=cmd.approve?accCashEnforce(s,{kind:'payment',party:e!.vendor?'2200/'+(mnyVendor(s,e!.vendor)?.code??e!.vendor):'expense:'+e!.id,amount:e!.amount,date,method:e!.method,
+      transport:!!(mnyCategory(s,e!.category) as {transport?:boolean}|undefined)?.transport,name:e!.vendor||undefined}):undefined;
+    if(cg?.deductionLost)e!.cashDeductionLost=true;
     e!.status=cmd.approve?'Posted':'Rejected';e!.date=date;e!.approver=uid;e!.decidedAt=s.clock;
     if(!cmd.approve&&cmd.reason?.trim())e!.reason=String(cmd.reason).trim();
-    return e!.id+' · '+e!.status+over+(cmd.approve?alertText(k,e!.category,date):'');
+    return e!.id+' · '+e!.status+over+(cmd.approve?alertText(k,e!.category,date):'')+(cg?accCashNote(cg):'');
   },
   // PERM-EXP-003 expense.reverse: Posted → Reversed + negative Posted record on today's business date (an approved expense changes only this way)
   EXPENSE_REVERSE:k=>{
@@ -377,6 +383,7 @@ export const handlers:Record<string,Handler>={
       assert(!cbIsLocked(s,s.date),cbLockedMessage(s.date,'cash into the drawer'),'DAY_CLOSED');
     }else if(pm!.needsReference)assert(reference,`Enter the ${pm!.name} transaction reference.`);
     const p=expUdPayment(r!,typed);
+    if(cash)accCashEnforce(s,{kind:'receipt',party:accCashUdhaarParty(r!),scope:'udhaar:'+r!.id,amount:p.amount,name:r!.name}); // ACC-2 flows (contract §7, B9)
     x.udhaar=x.udhaar!.map(u=>u.id===r!.id?{...u,settlements:[...u.settlements,{id:id('UDP'),amount:p.amount,date:s.date,mode:pm!.name,by:uid,at:s.clock,desk:true as const,...(reference?{reference}:{})}]}:u);
     return `${r!.id} · ${r!.name} paid ${money(p.amount)}${p.capped?' (more than outstanding — capped)':''} · ${cash?'cash into the drawer (desk receipt)':pm!.name+' desk receipt'}`;
   },

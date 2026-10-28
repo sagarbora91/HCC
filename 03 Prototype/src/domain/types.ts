@@ -73,7 +73,7 @@ export type Line={id:string;label:string;amount:number;date:string;kind:'room'|'
   /** Discount reason code (CAT_DISCOUNT); absent on a free-text reason. */
   discountReason?:string;
 };
-export type Receipt={id:string;amount:number;method:string;date:string;kind:'payment'|'deposit'|'deposit-return'|'refund'|'company-credit';reference:string;actor:string;
+export type Receipt={id:string;amount:number;method:string;date:string;kind:'payment'|'deposit'|'deposit-return'|'refund'|'company-credit'|'deposit-apply'|'ota-credit';reference:string;actor:string; // ACC-2 flows (contract §4): deposit applied at check-out (A6a), folio balance to the OTA (A13)
   // ── Receipt · stream A fields (add below this line) ──
 
   // ── Receipt · stream B fields (add below this line) ──

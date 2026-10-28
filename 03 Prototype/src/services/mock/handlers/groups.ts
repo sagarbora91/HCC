@@ -19,6 +19,11 @@ import {grpPickupRooms,grpEnsure,grpSweep,grpRoomTypes,grpFreeRooms,grpHeldElsew
 import type {GRPBlock,GRPCompany} from '../../../domain/streams/groups';
 import {RES_PHONE} from '../../../domain/streams/reservations';
 import {rbacMoneyAdmin} from '../../../domain/streams/rbac';
+import {grpRetireBlocker,grpCompanyActive} from '../../../domain/streams/groups'; // ACC-2 flows (contract §8)
+import {accPartyRetireBlocker} from '../../../domain/streams/accounting';
+import {mstFail} from '../../../domain/streams/masters';
+import {mnyIsDrawer} from '../../../domain/streams/money-master';
+import {accCashEnforce} from '../../../domain/streams/accounting-guards'; // ACC-2 flows (contract §7)
 
 const DATE=/^\d{4}-\d{2}-\d{2}$/;
 const str=(v:unknown,max=120)=>String(v??'').trim().slice(0,max);
@@ -53,7 +58,14 @@ export const handlers:Record<string,Handler>={
     const email=str(cmd.email,80);assert(!email||/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email),'Enter a valid e-mail address (fictional).');
     const rates=rateMap(k,cmd.rates,grpRoomTypes(s));
     const fields={name,gstin,contact:str(cmd.contact,60),phone,email,city:str(cmd.city,40),rates};
-    if(cmd.id){const c=companyOf(k,cmd.id);Object.assign(c,fields);return `${c.id} · ${c.name} updated`;}
+    // ACC-2 flows (contract §8, DEC-157): `active` (default true). Retiring refuses a non-zero 1110/<company> balance (MASTER_IN_USE), open
+    // stays, open blocks and an open receivable; a retired company is hidden from pickers and takes no new booking, block or credit.
+    const active=cmd.active===undefined||cmd.active===null?undefined:cmd.active!==false;
+    if(cmd.id){const c=companyOf(k,cmd.id),was=grpCompanyActive(c);
+      if(active===false&&was){const why=grpRetireBlocker(s,c)||accPartyRetireBlocker(s,'1110',c.id);if(why)mstFail('MASTER_IN_USE',why);}
+      Object.assign(c,fields);if(active!==undefined&&active!==was){if(active)delete c.active;else c.active=false;}
+      return `${c.id} · ${c.name} ${active!==undefined&&active!==was?(active?'reactivated':'retired (hidden from pickers)'):'updated'}`;}
+    assert(active!==false,'A new company account starts active.');
     const c:GRPCompany={id:id('CO'),...fields,creditLimit:0,openingOutstanding:0,limitHistory:[]};
     x.companies.push(c);
     const limit=cmd.creditLimit===undefined||cmd.creditLimit===''?0:validLimit(k,cmd.creditLimit);
@@ -100,6 +112,7 @@ export const handlers:Record<string,Handler>={
     assert(DATE.test(cut)&&cut>=s.date&&cut<=a,'The cut-off date must be between today’s business date and the arrival date.');
     const billTo=cmd.billTo==='company'?'company':'guest';
     const c=cmd.company?companyOf(k,cmd.company):undefined;
+    if(c&&!grpCompanyActive(c))mstFail('MASTER_RETIRED',`${c.name} is retired — choose an active company account.`,'company'); // ACC-2 flows
     assert(billTo!=='company'||c,'Choose the company account to bill.');
     const types=grpRoomTypes(s),allot:Record<string,number>={};
     for(const [t,n] of Object.entries((cmd.allot||{}) as Record<string,unknown>)){
@@ -170,6 +183,7 @@ export const handlers:Record<string,Handler>={
     assert((GRP_PAY_METHODS as readonly string[]).includes(method),'A company pays by bank transfer, UPI or card (a cheque is recorded as a bank transfer). Take cash on a guest folio in a cashier shift.');
     const reference=str(cmd.reference,120);assert(reference.length>0,'Enter the transaction reference for a non-cash payment.');
     const invoice=str(cmd.invoice,16).toUpperCase();
+    if(mnyIsDrawer(s,method))accCashEnforce(s,{kind:'receipt',party:'1110/'+c.id,amount:cmd.amount,name:c.name}); // ACC-2 flows (contract §7, B9; companies pay non-cash today)
     const owed=grpReceivable(s,c);
     assert(owed>0,`${c.name} owes nothing on company credit.`,'INVALID_TRANSITION');
     assert(cmd.amount<=owed,`Payment cannot exceed what ${c.name} owes on company credit (${money(owed)}).`);

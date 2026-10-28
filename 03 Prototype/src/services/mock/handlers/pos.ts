@@ -12,6 +12,7 @@ import {fdmAllocate} from '../../../domain/streams/frontdesk-master';
 import {posEmpty,posOrderTotals,posLineValue,posActiveLines,posUnsent,posSpot,posNextKotStatus,posBuyerOf,
   POS_VOID_LIMIT,POS_APPROVAL_TTL_MINUTES,POS_RST_SAC} from '../../../domain/streams/pos';
 import {mnyMethod,mnyMethodFor,mnyIsDrawer,mnyNames} from '../../../domain/streams/money-master';
+import {accCashEnforce} from '../../../domain/streams/accounting-guards'; // ACC-2 flows
 import {mstFail} from '../../../domain/streams/masters';
 /** "Cash, UPI or Card" — the active POS methods (money masters, MA-3). */
 const orList=(xs:string[])=>xs.length>1?xs.slice(0,-1).join(', ')+' or '+xs[xs.length-1]:xs[0]??'a payment method';
@@ -153,6 +154,7 @@ const POS_SETTLE:Handler=k=>{
   const cash=mnyIsDrawer(s,pm!.name);
   // Shared till (DEC-052): outlet cash goes into the front-desk drawer, so it needs the open cash shift like folio cash.
   if(cash)assert(s.shiftOpen,'The cash shift is closed, so no more cash can be taken today. Settle by UPI or card, or charge the room.','INVALID_TRANSITION');
+  if(cash)accCashEnforce(s,{kind:'receipt',party:'pos:'+o.id,scope:'pos:'+o.id,amount:total,name:'this outlet bill'}); // ACC-2 flows (contract §7, B9)
   else if(pm!.needsReference)assert(reference,'Enter a demonstration transaction reference.');
   const rid=id('POSR');
   p.receipts.push({id:rid,order:o.id,outlet:o.outlet,method:method,amount:total,net,tax,taxBps,reference:reference||(cash?'Outlet cash':method),date:s.date,actor:uid,kind:'sale'});

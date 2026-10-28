@@ -21,6 +21,7 @@ import {hrDesignationOf,hrShiftChoices,hrLeaveName,HRM_DESIGNATIONS,HRM_LEAVE_TY
 import {mstRows,mstStored,mstByCode} from '../../../domain/streams/masters';
 import {addDays} from '../../../domain/money';
 import {clone} from '../../../domain/clone';
+import {accCashEnforce,accCashNote} from '../../../domain/streams/accounting-guards'; // ACC-2 flows (contract §7)
 
 const DATE=/^\d{4}-\d{2}-\d{2}$/;
 function staffOf(k:Kit,id:string):HRStaff{const st=hrEnsure(k.s).staff.find(x=>x.id===id);k.assert(st,'Staff member not found.','NOT_FOUND');return st!;}
@@ -494,9 +495,12 @@ export const handlers:Record<string,Handler>={
     assert(!x.advances.some(a=>a.staffId===st.id&&hrAdvanceBalance(a)>0),'This staff member already has an open advance.','INVALID_TRANSITION');
     assert(String(cmd.reason??'').trim(),'Give a reason.');
     const fromMonth=cmd.fromMonth??s.date.slice(0,7);assert(/^\d{4}-\d{2}$/.test(fromMonth)&&fromMonth>=s.date.slice(0,7),'Recovery starts this month or later.');
+    // ACC-2 flows (contract §7, B10): a salary advance paid in drawer cash (`funding`) above ₹10,000 a day to one person is warned (the
+    // prototype's advances are simulated bank transfers: no funding → no cash → no check).
+    const cg=accCashEnforce(s,{kind:'payment',party:'1200/'+st.id,amount:cmd.amount,method:cmd.funding===undefined?'':String(cmd.funding),name:st.name});
     const id=k.id('HR-ADV');
     x.advances.push({id,staffId:st.id,amount:cmd.amount,installment:cmd.installment,recovered:0,date:s.date,reason:String(cmd.reason).trim(),by:k.uid,recoveries:[],...(cmd.fromMonth?{fromMonth}:{})});
-    return `${id} · ${st.name} · advance ${money(cmd.amount)} · ${cmd.installment?money(cmd.installment)+'/month':'full recovery'} from ${hrMonthLabel(fromMonth)} (simulated bank transfer, not drawer cash)`;
+    return `${id} · ${st.name} · advance ${money(cmd.amount)} · ${cmd.installment?money(cmd.installment)+'/month':'full recovery'} from ${hrMonthLabel(fromMonth)} (simulated bank transfer, not drawer cash)${accCashNote(cg)}`;
   },
   /** New dated statutory rate version (effective from the 1st of a month after the last locked run). Owner. */
   HR_STAT_RATES_SET:k=>{
