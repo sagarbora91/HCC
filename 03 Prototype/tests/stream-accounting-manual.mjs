@@ -155,17 +155,21 @@ export function register({test,M,assert}){
     refused(()=>run(s,'owner',{type:'ACC_MANUAL_VOID',id:rev.id,reason:'Undo the undo'}),'INVALID_TRANSITION',/reversing voucher cannot be voided/);
     assert.match(s.audit[0].detail,/is locked: reversing voucher MV-\d+ dated 2026-10-25/);
   });
-  test('[ACC2-MANUAL] Add loan (Owner): 2400/LN-<code> party row in the chart (kind loan, lender, last 4); loan received and EMI templates post to it',()=>{
+  test('[ACC2-MANUAL] Add loan (Owner): 2400/<CODE> party row in the chart (kind loan, lender, last 4); loan received and EMI templates post to it',()=>{
     const s0=M.seed();
     for(const u of ['accountant','manager','techadmin'])refused(()=>run(s0,u,{type:'ACC_LOAN_ADD',name:'HDFC term loan',lender:'HDFC Bank (fictional)'}),'FORBIDDEN',/only the Owner adds a loan/);
     refused(()=>run(s0,'owner',{type:'ACC_LOAN_ADD',name:'HDFC term loan',lender:'HDFC Bank (fictional)',accountLast4:'12'}),'VALIDATION',/ends in 4 digits/);
-    let s=run(s0,'owner',{type:'ACC_LOAN_ADD',code:'hdfc term',name:'HDFC term loan',lender:'HDFC Bank (fictional)',accountLast4:'7788'});
+    // Coordinator ruling (28 Oct): ACC_LOAN_ADD {code, name, lender, accountLast4, kind:'secured'|'unsecured'} → party row 2400/<CODE>.
+    let s=run(s0,'owner',{type:'ACC_LOAN_ADD',code:'ln-hdfc',name:'HDFC term loan',lender:'HDFC Bank (fictional)',accountLast4:'7788',kind:'secured'});
     const loan=M.accLoans(s)[0];
     assert.deepEqual([loan.code,loan.name,loan.group,loan.kind,loan.lender,loan.accountLast4,loan.active,loan.system],
-      ['2400/LN-HDFC-TERM','HDFC term loan','secured-loans','loan','HDFC Bank (fictional)','7788',true,false]);
+      ['2400/LN-HDFC','HDFC term loan','secured-loans','loan','HDFC Bank (fictional)','7788',true,false]);
+    const u=run(s,'owner',{type:'ACC_LOAN_ADD',code:'LN-FAMILY',name:'Loan from a relative',lender:'A relative (fictional)',kind:'unsecured'});
+    assert.deepEqual(M.accLoans(u).map(l=>[l.code,l.group]),[['2400/LN-HDFC','secured-loans'],['2400/LN-FAMILY','unsecured-loans']]);
+    refused(()=>run(s,'owner',{type:'ACC_LOAN_ADD',code:'LN-X',name:'Odd loan',lender:'HDFC',kind:'overdraft'}),'VALIDATION',/secured or unsecured/);
     assert.equal(M.accChartHistory(s)[0].field,'created');
-    refused(()=>run(s,'owner',{type:'ACC_LOAN_ADD',code:'HDFC-TERM',name:'Another loan',lender:'HDFC'}),'INVALID_TRANSITION',/already exists/);
-    const L='2400/LN-HDFC-TERM';
+    refused(()=>run(s,'owner',{type:'ACC_LOAN_ADD',code:'LN-HDFC',name:'Another loan',lender:'HDFC'}),'INVALID_TRANSITION',/already exists/);
+    const L='2400/LN-HDFC';
     s=run(s,'owner',tpl('loan-received',{amount:R(500000),bank:BANK,loan:L},{narration:'Term loan disbursed'}));
     const emi=M.accManualTemplateLines('loan-emi',{principal:R(15000),interest:R(5000),bank:BANK,loan:L});
     assert.deepEqual(emi.lines,[{account:L,debit:R(15000),credit:0},{account:'5090',debit:R(5000),credit:0},{account:BANK,debit:0,credit:R(20000)}]);

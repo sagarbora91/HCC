@@ -33,8 +33,8 @@ public sealed record ManualVoucher(long Id, int PropertyId, DateOnly Date, strin
 public sealed record ManualVoucherDraft(DateOnly Date, string Type, string Narration, string? Reference, string? Template, string Status,
     IReadOnlyList<ManualLine> Lines, int EnteredBy, DateTime EnteredUtc, int? DecidedBy, DateTime? DecidedUtc, string? Reason, long? VoidOf, DateOnly? BookedOn);
 
-/// <summary>A loan party of 2400 (<c>acc.loan</c>): <see cref="PartyId"/> = <c>LN-&lt;code&gt;</c>.</summary>
-public sealed record LoanRow(string PartyId, string Name, string Lender, string? AccountLast4, string? Note, bool Active)
+/// <summary>A loan party of 2400 (<c>acc.loan</c>): <see cref="PartyId"/> = the code (e.g. <c>LN-HDFC</c>); <see cref="Kind"/> = secured | unsecured.</summary>
+public sealed record LoanRow(string PartyId, string Name, string Lender, string? AccountLast4, string? Note, bool Active, string Kind = "secured")
 {
     public string Account => ManualVoucherRules.LoanControl + "/" + PartyId;
 }
@@ -279,11 +279,11 @@ public static partial class ManualVoucherRules
         if (lender.Length < 2 || lender.Length > 60) return (null, HccException.Validation("Enter the lender (2–60 characters)."));
         if (last4.Length > 0 && !Last4Pattern().IsMatch(last4)) return (null, HccException.Validation("The loan account number ends in 4 digits (or leave it empty)."));
         if (note.Length > 200) return (null, HccException.Validation("Keep the note to 200 characters."));
-        var raw = T(req.Code).Length > 0 ? T(req.Code) : lender;
-        if (raw.StartsWith("LN-", StringComparison.OrdinalIgnoreCase)) raw = raw[3..];
-        var slug = PartyLedgers.Slug(raw);
-        if (slug.Length > 30) slug = slug[..30].TrimEnd('-');
-        var party = "LN-" + slug;
+        var kind = T(req.Kind).Length == 0 ? "secured" : T(req.Kind);
+        if (kind is not ("secured" or "unsecured")) return (null, HccException.Validation("Choose the loan kind: secured or unsecured."));
+        // Coordinator ruling (28 Oct): the code as given, upper-case (e.g. LN-HDFC); without one, LN-<lender>.
+        var party = T(req.Code).Length > 0 ? PartyLedgers.Slug(T(req.Code)) : "LN-" + PartyLedgers.Slug(lender);
+        if (party.Length > 36) party = party[..36].TrimEnd('-');
         var account = LoanControl + "/" + party;
         if (loans.Any(l => l.PartyId == party))
             return (null, new HccException(HccErrorCode.INVALID_TRANSITION, $"Loan {account} already exists — choose another code."));
@@ -293,7 +293,7 @@ public static partial class ManualVoucherRules
         foreach (var l in loans)
             if (string.Equals(l.Name, name, StringComparison.OrdinalIgnoreCase))
                 return (null, new HccException(HccErrorCode.INVALID_TRANSITION, $"{l.Account} is already called “{l.Name}”."));
-        return (new LoanRow(party, name, lender, last4.Length == 0 ? null : last4, note.Length == 0 ? null : note, true), null);
+        return (new LoanRow(party, name, lender, last4.Length == 0 ? null : last4, note.Length == 0 ? null : note, true, kind), null);
     }
 }
 
@@ -370,14 +370,14 @@ public sealed class ManualVoucherService(ICommandRunner runner, IManualVoucherSt
                     throw new HccException(HccErrorCode.FORBIDDEN, "Access denied: only the voucher’s maker or the Owner changes it.");
             }
 
-            await GuardAsync(tx, caller.PropertyId, req.Type, req.Template, req.Narration, req.Reference, req.Date, req.Lines, ct2).ConfigureAwait(false);
+            await GuardAsync(tx, caller.PropertyId, req.VoucherType, req.Template, req.Narration, req.Reference, req.Date, req.Lines, ct2).ConfigureAwait(false);
             var lines = ManualVoucherRules.Normalise(req.Lines!);
             var date = req.Date!.Value;
-            var (refused, warning) = ManualCashGuard.Check(req.Type!, date, lines);
+            var (refused, warning) = ManualCashGuard.Check(req.VoucherType!, date, lines);
             if (refused is not null) throw HccException.Validation(refused);
             var reference = (req.Reference ?? "").Trim();
             var status = owner ? ManualVoucherRules.Approved : ManualVoucherRules.Pending;
-            var draft = new ManualVoucherDraft(date, req.Type!, req.Narration!.Trim(), reference.Length == 0 ? null : reference, string.IsNullOrEmpty(req.Template) ? null : req.Template,
+            var draft = new ManualVoucherDraft(date, req.VoucherType!, req.Narration!.Trim(), reference.Length == 0 ? null : reference, string.IsNullOrEmpty(req.Template) ? null : req.Template,
                 status, lines, caller.PrincipalId, Now, owner ? caller.PrincipalId : null, owner ? Now : null, null, null, owner ? date : null);
             long id;
             string version;
@@ -489,7 +489,7 @@ public sealed class ManualVoucherService(ICommandRunner runner, IManualVoucherSt
             var (row, refusal) = ManualVoucherRules.LoanPlan(req, chart, loans);
             if (refusal is not null) throw refusal;
             await store.InsertLoanAsync(tx, caller.PropertyId, row!, caller.PrincipalId, Now, ct2).ConfigureAwait(false);
-            await tx.AuditAsync("ACC_LOAN_ADDED", "acc-loan:" + row!.Account, $"Loan {row.Account} {row.Name} added under 2400 Bank loans (secured) · lender {row.Lender}", ct2).ConfigureAwait(false);
+            await tx.AuditAsync("ACC_LOAN_ADDED", "acc-loan:" + row!.Account, $"Loan {row.Account} {row.Name} added under 2400 ({row.Kind}) · lender {row.Lender}", ct2).ConfigureAwait(false);
             return new LoanResult(row.Account, row.Name);
         }, ct).ConfigureAwait(false);
     }
@@ -511,6 +511,6 @@ public sealed class ManualVoucherQueries(IManualVoucherStore store, IAccountingS
         var vouchers = (await store.ListAsync(null, caller.PropertyId, ct).ConfigureAwait(false)).Select(v => new ManualVoucherView(v.Id, v.Date, v.Type, v.Narration, v.Reference,
             v.Template, v.Status, v.Lines.Select(l => new ManualLineView(l.Account, Name(l.Account), l.Debit, l.Credit, l.Note)).ToList(), v.EnteredBy, v.EnteredUtc,
             v.DecidedBy, v.DecidedUtc, v.Reason, v.VoidOf, v.VoidedBy, v.BookedOn, v.Version)).ToList();
-        return new ManualVouchersView(vouchers, loans.Select(l => new LoanView(l.Account, l.Name, l.Lender, l.AccountLast4, l.Active, l.Note)).ToList());
+        return new ManualVouchersView(vouchers, loans.Select(l => new LoanView(l.Account, l.Name, l.Lender, l.AccountLast4, l.Active, l.Note, l.Kind)).ToList());
     }
 }

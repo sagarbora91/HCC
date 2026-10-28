@@ -17,10 +17,10 @@ export async function register({test,assert}){
   const saved=await rt.run({type:'ACC_MANUAL_SAVE',date:'2026-10-24',voucherType:'Payment',narration:' Bank charges ',reference:'STMT-OCT',template:'bank-charges',lines,key:'mv-1'});
   const edited=await rt.run({type:'ACC_MANUAL_SAVE',id:'41',date:'2026-10-24',voucherType:'Payment',narration:'Bank charges',lines});
   const short=await rt.run({type:'ACC_MANUAL_SAVE',date:'2026-10-24',voucherType:'Journal',narration:'x',lines:[lines[0]]});
-  test('[ACC2-MANUAL-SYNC] ACC_MANUAL_SAVE → POST /commands/SaveManualVoucher {voucherId, date, type (from voucherType), narration, reference, template, lines in paise}',()=>{
+  test('[ACC2-MANUAL-SYNC] ACC_MANUAL_SAVE → POST /commands/SaveManualVoucher {voucherId, date, voucherType, narration, reference, template, lines in paise}',()=>{
     assert.ok(saved.ok,JSON.stringify(saved));assert.ok(edited.ok,JSON.stringify(edited));
     const sent=srv.commands('SaveManualVoucher');assert.equal(sent.length,2);
-    assert.deepEqual(sent[0].body,{voucherId:null,date:'2026-10-24',type:'Payment',narration:'Bank charges',reference:'STMT-OCT',template:'bank-charges',
+    assert.deepEqual(sent[0].body,{voucherId:null,date:'2026-10-24',voucherType:'Payment',narration:'Bank charges',reference:'STMT-OCT',template:'bank-charges',
       lines:[{account:'5080',debitPaise:59000,creditPaise:0,note:null},{account:'1030/BANK-1',debitPaise:0,creditPaise:59000,note:'October'}]});
     assert.equal(sent[0].key,'mv-1');assert.equal(sent[1].body.voucherId,41);
     assert.equal(short.ok,false);assert.match(short.text,/2 to 100 lines/);});

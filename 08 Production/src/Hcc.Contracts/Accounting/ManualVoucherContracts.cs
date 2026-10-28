@@ -8,9 +8,9 @@ public sealed record ManualLineRequest(string? Account, long DebitPaise, long Cr
 
 /// <summary>
 /// SaveManualVoucher (PERM-ACC-010: Owner → approved at once; Accountant → pending). <see cref="VoucherId"/> set = replace a pending / rejected
-/// voucher (its maker or the Owner). <see cref="Type"/> = Journal | Contra | Payment | Receipt.
+/// voucher (its maker or the Owner). <see cref="VoucherType"/> = Journal | Contra | Payment | Receipt (coordinator ruling 28 Oct: never <c>type</c>).
 /// </summary>
-public sealed record SaveManualVoucherRequest(long? VoucherId, DateOnly? Date, string? Type, string? Narration, string? Reference, string? Template,
+public sealed record SaveManualVoucherRequest(long? VoucherId, DateOnly? Date, string? VoucherType, string? Narration, string? Reference, string? Template,
     IReadOnlyList<ManualLineRequest>? Lines, string? ExpectedVersion = null);
 
 /// <summary>DecideManualVoucher (Owner, PERM-ACC-011): approve (every guard re-run) or reject with a reason.</summary>
@@ -22,8 +22,9 @@ public sealed record VoidManualVoucherRequest(long VoucherId, string? Reason, st
 /// <summary>The voucher after a command; <see cref="ReversalId"/> = the reversing voucher a void on a locked day created.</summary>
 public sealed record ManualVoucherResult(long VoucherId, string Status, DateOnly Date, long? ReversalId, string Version);
 
-/// <summary>AddLoan (Owner, PERM-ACC-007): a party of 2400 Bank loans (secured), account <c>2400/LN-&lt;code&gt;</c>.</summary>
-public sealed record AddLoanRequest(string? Code, string? Name, string? Lender, string? AccountLast4, string? Note);
+/// <summary>AddLoan (Owner, PERM-ACC-007): a party of control 2400, account <c>2400/&lt;CODE&gt;</c> (e.g. <c>2400/LN-HDFC</c>);
+/// <see cref="Kind"/> = secured | unsecured picks the group secured-loans / unsecured-loans (coordinator ruling 28 Oct; null = secured).</summary>
+public sealed record AddLoanRequest(string? Code, string? Name, string? Lender, string? AccountLast4, string? Note, string? Kind = null);
 
 public sealed record LoanResult(string Account, string Name);
 
@@ -33,7 +34,7 @@ public sealed record ManualVoucherView(long VoucherId, DateOnly Date, string Typ
     IReadOnlyList<ManualLineView> Lines, int EnteredBy, DateTime EnteredUtc, int? DecidedBy, DateTime? DecidedUtc, string? Reason, long? VoidOf, int? VoidedBy,
     DateOnly? BookedOn, string Version);
 
-public sealed record LoanView(string Account, string Name, string Lender, string? AccountLast4, bool Active, string? Note);
+public sealed record LoanView(string Account, string Name, string Lender, string? AccountLast4, bool Active, string? Note, string Kind);
 
 /// <summary>GET /accounting/manual: the property's manual vouchers (newest first) and its loan party ledgers.</summary>
 public sealed record ManualVouchersView(IReadOnlyList<ManualVoucherView> Vouchers, IReadOnlyList<LoanView> Loans);

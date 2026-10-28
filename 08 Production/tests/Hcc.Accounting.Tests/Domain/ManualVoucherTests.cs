@@ -1,4 +1,5 @@
 using Hcc.Application.Accounting;
+using Hcc.Contracts;
 using Hcc.Contracts.Accounting;
 using Hcc.Domain.Accounting;
 using Hcc.Domain.Errors;
@@ -133,14 +134,18 @@ public sealed class ManualVoucherTests
     }
 
     [Fact]
-    public void Loan_plan_makes_2400_LN_code_rows_and_refuses_duplicates()
+    public void Loan_plan_makes_2400_code_rows_with_the_kind_and_refuses_duplicates()
     {
-        var (row, refusal) = ManualVoucherRules.LoanPlan(new AddLoanRequest("hdfc term", "HDFC term loan", "HDFC Bank (fictional)", "7788", null), ChartOfAccounts.Builtin, []);
+        // Coordinator ruling (28 Oct): AddLoan {code, name, lender, accountLast4, kind} → 2400/<CODE>, kind = secured | unsecured.
+        var (row, refusal) = ManualVoucherRules.LoanPlan(new AddLoanRequest("ln-hdfc", "HDFC term loan", "HDFC Bank (fictional)", "7788", null, "secured"), ChartOfAccounts.Builtin, []);
         Assert.Null(refusal);
-        Assert.Equal(("LN-HDFC-TERM", "2400/LN-HDFC-TERM", "7788"), (row!.PartyId, row.Account, row.AccountLast4));
+        Assert.Equal(("LN-HDFC", "2400/LN-HDFC", "7788", "secured"), (row!.PartyId, row.Account, row.AccountLast4, row.Kind));
+        Assert.Equal("unsecured", ManualVoucherRules.LoanPlan(new AddLoanRequest("LN-FAMILY", "Loan from a relative", "A relative (fictional)", null, null, "unsecured"),
+            ChartOfAccounts.Builtin, []).Row!.Kind);
+        Assert.Equal(HccErrorCode.VALIDATION, ManualVoucherRules.LoanPlan(new AddLoanRequest("LN-X", "Odd loan", "HDFC", null, null, "overdraft"), ChartOfAccounts.Builtin, []).Refusal!.Code);
         var byLender = ManualVoucherRules.LoanPlan(new AddLoanRequest(null, "Car loan", "Axis Bank (fictional)", null, null), ChartOfAccounts.Builtin, []).Row!;
         Assert.Equal("LN-AXIS-BANK-FICTIONAL", byLender.PartyId);
-        Assert.Equal(HccErrorCode.INVALID_TRANSITION, ManualVoucherRules.LoanPlan(new AddLoanRequest("HDFC-TERM", "Another", "HDFC", null, null), ChartOfAccounts.Builtin, [row]).Refusal!.Code);
+        Assert.Equal(HccErrorCode.INVALID_TRANSITION, ManualVoucherRules.LoanPlan(new AddLoanRequest("LN-HDFC", "Another", "HDFC", null, null), ChartOfAccounts.Builtin, [row]).Refusal!.Code);
         Assert.Equal(HccErrorCode.INVALID_TRANSITION, ManualVoucherRules.LoanPlan(new AddLoanRequest("X", "Bank & card charges", "HDFC", null, null), ChartOfAccounts.Builtin, []).Refusal!.Code);
         Assert.Contains("4 digits", ManualVoucherRules.LoanPlan(new AddLoanRequest("X", "Some loan", "HDFC", "12", null), ChartOfAccounts.Builtin, []).Refusal!.Message, StringComparison.Ordinal);
         Assert.Equal(HccErrorCode.VALIDATION, ManualVoucherRules.LoanPlan(new AddLoanRequest("X", "ab", "HDFC", null, null), ChartOfAccounts.Builtin, []).Refusal!.Code);

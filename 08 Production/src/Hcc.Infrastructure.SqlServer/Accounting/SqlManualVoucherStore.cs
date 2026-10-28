@@ -2,6 +2,7 @@ using System.Data;
 using System.Globalization;
 using Hcc.Application.Accounting;
 using Hcc.Application.Commands;
+using Hcc.Contracts;
 using Hcc.Domain.Accounting;
 using Hcc.Domain.Errors;
 using Hcc.Infrastructure.SqlServer.Commands;
@@ -78,7 +79,7 @@ public sealed class SqlManualVoucherStore(SqlConnectionFactory connections) : IM
             WHERE v.property_id = @p AND (@id IS NULL OR v.voucher_id = @id) ORDER BY l.voucher_id, l.line_no;
             """, c, t);
         cmd.Parameters.Set("@p", SqlDbType.Int, propertyId);
-        cmd.Parameters.Add("@id", SqlDbType.BigInt).Value = voucherId is { } id ? id : DBNull.Value;
+        cmd.Parameters.Add("@id", SqlDbType.BigInt).Value = voucherId is { } one ? one : DBNull.Value;
         var heads = new List<(long Id, Func<IReadOnlyList<ManualLine>, ManualVoucher> Make)>();
         await using var rd = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
         while (await rd.ReadAsync(ct).ConfigureAwait(false))
@@ -263,12 +264,12 @@ public sealed class SqlManualVoucherStore(SqlConnectionFactory connections) : IM
     public Task<IReadOnlyList<LoanRow>> LoansAsync(ICommandTransaction? tx, int propertyId, CancellationToken ct)
         => WithAsync<IReadOnlyList<LoanRow>>(tx, async (c, t) =>
         {
-            await using var cmd = Cmd("SELECT party_id, name, lender, account_last4, note, active FROM acc.loan WHERE property_id = @p ORDER BY party_id;", c, t);
+            await using var cmd = Cmd("SELECT party_id, name, lender, account_last4, note, active, kind FROM acc.loan WHERE property_id = @p ORDER BY party_id;", c, t);
             cmd.Parameters.Set("@p", SqlDbType.Int, propertyId);
             var list = new List<LoanRow>();
             await using var rd = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
             while (await rd.ReadAsync(ct).ConfigureAwait(false))
-                list.Add(new LoanRow(rd.GetString(0), rd.GetString(1), rd.GetString(2), AccSql.StrOrNull(rd, 3), AccSql.StrOrNull(rd, 4), rd.GetBoolean(5)));
+                list.Add(new LoanRow(rd.GetString(0), rd.GetString(1), rd.GetString(2), AccSql.StrOrNull(rd, 3), AccSql.StrOrNull(rd, 4), rd.GetBoolean(5), rd.GetString(6)));
             return list;
         }, ct);
 
@@ -279,7 +280,7 @@ public sealed class SqlManualVoucherStore(SqlConnectionFactory connections) : IM
         return WithAsync(tx, async (c, t) =>
         {
             await using var cmd = Cmd("""
-                INSERT acc.loan(property_id, party_id, name, lender, account_last4, note, active, created_by, created_utc) VALUES (@p, @id, @n, @l, @a4, @note, 1, @u, @now);
+                INSERT acc.loan(property_id, party_id, name, lender, account_last4, note, kind, active, created_by, created_utc) VALUES (@p, @id, @n, @l, @a4, @note, @k, 1, @u, @now);
                 """, c, t);
             cmd.Parameters.Set("@p", SqlDbType.Int, propertyId);
             cmd.Parameters.Set("@id", SqlDbType.VarChar, loan.PartyId, 40);
@@ -287,6 +288,7 @@ public sealed class SqlManualVoucherStore(SqlConnectionFactory connections) : IM
             cmd.Parameters.Set("@l", SqlDbType.NVarChar, loan.Lender, 60);
             cmd.Parameters.Set("@a4", SqlDbType.Char, loan.AccountLast4, 4);
             cmd.Parameters.Set("@note", SqlDbType.NVarChar, loan.Note, 200);
+            cmd.Parameters.Set("@k", SqlDbType.VarChar, loan.Kind, 9);
             cmd.Parameters.Set("@u", SqlDbType.Int, actor);
             cmd.Parameters.Set("@now", SqlDbType.DateTime2, now);
             await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);

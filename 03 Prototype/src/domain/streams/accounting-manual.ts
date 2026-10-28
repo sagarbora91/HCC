@@ -11,8 +11,9 @@
 //             its locked snapshot and keeps posting there).
 //   posting   an approved voucher (and a voided one that has a reversal) is the source {kind:'manual', id, sub: template ?? 'journal'} on
 //             its date, numbered with the day's derived vouchers at lock (accounting.ts accLiveVouchers, ACC-2 manual section).
-//   loans     the chart's "Add loan" (ACC_LOAN_ADD): Owner-added party rows `2400/LN-<code>` kept in accountingX.chart.ledgers with
-//             kind 'loan', lender, accountLast4 (contract §2).
+//   loans     the chart's "Add loan" (ACC_LOAN_ADD {code, name, lender, accountLast4, kind:'secured'|'unsecured'}): Owner-added party rows
+//             `2400/<CODE>` (e.g. 2400/LN-HDFC) kept in accountingX.chart.ledgers with kind 'loan', lender, accountLast4; the command's kind
+//             picks the group secured-loans / unsecured-loans (contract §2 + coordinator ruling 28 Oct).
 //
 // Import-cycle safety: accounting.ts imports this file (the posting section), so NOTHING at the top level here may read a value imported
 // from './accounting' or './accounting-chart' — functions only.
@@ -36,8 +37,8 @@ export const ACC_MANUAL_MAX_PAISE=10_000_000_000;
 export const ACC_MANUAL_ACCOUNT=/^\d{4}(\/[A-Za-z0-9][A-Za-z0-9._-]{0,39})?$/;
 /** Ledgers never posted by hand (contract §2): Suspense and the opening-balance difference. */
 export const ACC_MANUAL_NEVER=['9999','1400'];
-/** Loan party id `LN-<code>` (contract §2 "Add loan"). */
-export const ACC_LOAN_ID=/^LN-[A-Z0-9]+(-[A-Z0-9]+)*$/;
+/** Loan party id (coordinator ruling 28 Oct: the code as given, upper-case, e.g. `LN-HDFC`; party row `2400/<code>`). */
+export const ACC_LOAN_ID=/^[A-Z0-9]+(-[A-Z0-9]+)*$/;
 export const ACC_LOAN_CONTROL='2400';
 
 /** Guard messages — the server (ManualVoucherRules) uses the same text, in the same order. */
@@ -92,7 +93,7 @@ export type ACCLoanLedger=ACCLedger&{kind:'loan';lender:string;accountLast4?:str
 export const accIsLoanRow=(l:ACCLedger):l is ACCLoanLedger=>(l as Partial<ACCLoanLedger>).kind==='loan';
 /** Owner-added loan party rows (`2400/LN-<code>`), as stored in accountingX.chart.ledgers. */
 export const accLoans=(s:State):ACCLoanLedger[]=>accChartSlice(s).ledgers.filter(accIsLoanRow);
-export type ACCLoanInput={code?:unknown;name?:unknown;lender?:unknown;accountLast4?:unknown;note?:unknown};
+export type ACCLoanInput={code?:unknown;name?:unknown;lender?:unknown;accountLast4?:unknown;kind?:unknown;note?:unknown};
 /** Plan of ACC_LOAN_ADD: the new row or the refusal message. */
 export function accLoanAddPlan(s:State,input:ACCLoanInput):{ok:true;row:ACCLoanLedger}|{ok:false;message:string;field?:string}{
   const t=(v:unknown)=>v==null?'':String(v).trim();
@@ -101,14 +102,16 @@ export function accLoanAddPlan(s:State,input:ACCLoanInput):{ok:true;row:ACCLoanL
   if(lender.length<2||lender.length>60)return {ok:false,message:'Enter the lender (2–60 characters).',field:'lender'};
   if(last4&&!/^\d{4}$/.test(last4))return {ok:false,message:'The loan account number ends in 4 digits (or leave it empty).',field:'accountLast4'};
   if(note.length>200)return {ok:false,message:'Keep the note to 200 characters.',field:'note'};
-  const raw=t(input.code)||lender;
-  const code='LN-'+accPartySlug(raw.replace(/^LN-/i,'')).slice(0,30).replace(/-+$/,'');
-  if(!ACC_LOAN_ID.test(code))return {ok:false,message:'The loan code is letters and digits (e.g. HDFC-TERM).',field:'code'};
+  const kind=t(input.kind)||'secured';
+  if(kind!=='secured'&&kind!=='unsecured')return {ok:false,message:'Choose the loan kind: secured or unsecured.',field:'kind'};
+  // The code as given, upper-case (e.g. LN-HDFC); without one, LN-<lender>.
+  const code=(t(input.code)?accPartySlug(t(input.code)):'LN-'+accPartySlug(lender)).slice(0,36).replace(/-+$/,'');
+  if(!ACC_LOAN_ID.test(code))return {ok:false,message:'The loan code is letters and digits (e.g. LN-HDFC).',field:'code'};
   const id=`${ACC_LOAN_CONTROL}/${code}`,chart=accChartIndex(s);
   if(chart.has(id))return {ok:false,message:`Loan ${id} already exists — choose another code.`,field:'code'};
   for(const l of chart.values())if(l.name.toLowerCase()===name.toLowerCase()||(l.tallyName||'').toLowerCase()===name.toLowerCase())
     return {ok:false,message:`${l.code} is already called “${l.name}”.`,field:'name'};
-  const row:ACCLoanLedger={code:id,name,group:'secured-loans',system:false,gst:'none',active:true,kind:'loan',lender,...(last4?{accountLast4:last4}:{}),...(note?{note}:{})};
+  const row:ACCLoanLedger={code:id,name,group:kind==='unsecured'?'unsecured-loans':'secured-loans',system:false,gst:'none',active:true,kind:'loan',lender,...(last4?{accountLast4:last4}:{}),...(note?{note}:{})};
   return {ok:true,row};
 }
 

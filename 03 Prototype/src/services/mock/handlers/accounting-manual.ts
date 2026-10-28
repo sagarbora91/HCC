@@ -6,7 +6,8 @@
 //                                                                                 a rejection needs a reason.
 //   ACC_MANUAL_VOID   {id, reason}                                                 Owner (PERM-ACC-011): unlocked day → void, posts nothing; locked day →
 //                                                                                 a reversing voucher (lines swapped, voidOf) approved, dated the business date.
-//   ACC_LOAN_ADD      {code?, name, lender, accountLast4?, note?}                  Owner (chart edit, PERM-ACC-007): a loan party row 2400/LN-<code>.
+//   ACC_LOAN_ADD      {code, name, lender, accountLast4?, kind:'secured'|'unsecured', note?}   Owner (chart edit, PERM-ACC-007): party row 2400/<CODE>
+//                                                                                 (e.g. 2400/LN-HDFC), group secured-loans / unsecured-loans.
 // accManualSave(k, {date, type, narration, reference?, lines, template?}) = the manual-voucher API other ACC-2 handlers call (tds / gst lanes'
 // remittances replace their local `accManualSave` stub with this export).
 // Cash guards (contract §7) run through accManualCashCheck — a LOCAL STUB until acc2-flows merges (see the DONE file).
@@ -99,6 +100,6 @@ export const handlers:Record<string,Handler>={
     const change:ACCChartChange={id:k.id('ACCC'),at:k.s.clock,actor:k.uid,kind:'ledger',code:row.code,field:'created',before:'',
       after:`${row.code} ${row.name} · loan from ${row.lender}${row.accountLast4?' · a/c …'+row.accountLast4:''}`};
     x.chart={ledgers:[...c.ledgers,row].sort((a,b)=>a.code<b.code?-1:1),groups:[...c.groups],history:[...c.history,change]};k.s.accountingX=x;
-    return `Loan ${row.code} ${row.name} added under 2400 Bank loans (secured) · lender ${row.lender}`;
+    return `Loan ${row.code} ${row.name} added under 2400 (${row.group==='unsecured-loans'?'unsecured':'secured'}) · lender ${row.lender}`;
   },
 };

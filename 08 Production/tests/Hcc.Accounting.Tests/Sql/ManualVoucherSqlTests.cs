@@ -6,6 +6,7 @@ using Hcc.Contracts.Accounting;
 using Hcc.Domain.Errors;
 using Hcc.Infrastructure.SqlServer.Access;
 using Hcc.Infrastructure.SqlServer.Accounting;
+using Hcc.Infrastructure.SqlServer.Billing;
 using static Hcc.Accounting.Tests.Harness.Assertions;
 
 namespace Hcc.Accounting.Tests.Sql;
@@ -42,7 +43,8 @@ public sealed class ManualVoucherSqlTests(AccountingDb db) : IClassFixture<Accou
     {
         foreach (var (code, kind) in new[] { ("BANK-1", "bank"), ("TILL", "till") })
             await db.ScalarAsync("""
-                INSERT mst.bank_account(property_id, code, name, sort_order, kind, updated_by, updated_utc) VALUES (@p, @c, @n, 10, @k, @u, '2026-10-01');
+                INSERT mst.bank_account(property_id, code, name, sort_order, kind, bank, updated_by, updated_utc)
+                VALUES (@p, @c, @n, 10, @k, CASE @k WHEN 'bank' THEN N'Demo Bank (fictional)' END, @u, '2026-10-01');
                 """, ("@p", SqlDbType.Int, db.PropertyId), ("@c", SqlDbType.VarChar, code), ("@n", SqlDbType.NVarChar, "Fictional " + code), ("@k", SqlDbType.VarChar, kind),
                 ("@u", SqlDbType.Int, db.Users["OWN"]));
         var policy = new SqlAccessPolicy(db.Platform.Connections, db.Clock, [new SqlShiftScopeResolver(db.Platform.Connections)]);
@@ -65,7 +67,7 @@ public sealed class ManualVoucherSqlTests(AccountingDb db) : IClassFixture<Accou
         Assert.Equal(ManualVoucherRules.MsgLineUnknown(2, "1030/BANK-9"), (await Fails(HccErrorCode.VALIDATION, () => svc.SaveAsync(db.As("ACC"), Key(),
             Charges(D) with { Lines = [L("5080", R(590), 0), L("1030/BANK-9", 0, R(590))] }, Ct))).Message);
         Assert.Equal(ManualVoucherRules.MsgContra, (await Fails(HccErrorCode.VALIDATION, () => svc.SaveAsync(db.As("OWN"), Key(),
-            Charges(D) with { Type = "Contra" }, Ct))).Message);
+            Charges(D) with { VoucherType = "Contra" }, Ct))).Message);
 
         // ── the Accountant's voucher is pending (nothing booked); the Owner approves ──
         var key = Key();
@@ -130,9 +132,9 @@ public sealed class ManualVoucherSqlTests(AccountingDb db) : IClassFixture<Accou
 
         // ── Add loan (Owner) and the loan received / EMI to the loan party ──
         await Fails(HccErrorCode.FORBIDDEN, () => svc.AddLoanAsync(db.As("ACC"), Key(), new AddLoanRequest("HDFC", "HDFC term loan", "HDFC Bank (fictional)", null, null), Ct));
-        var loan = (await svc.AddLoanAsync(db.As("OWN"), Key(), new AddLoanRequest("hdfc term", "HDFC term loan", "HDFC Bank (fictional)", "7788", null), Ct)).Value;
-        Assert.Equal("2400/LN-HDFC-TERM", loan.Account);
-        await Fails(HccErrorCode.INVALID_TRANSITION, () => svc.AddLoanAsync(db.As("OWN"), Key(), new AddLoanRequest("HDFC-TERM", "Second loan", "HDFC", null, null), Ct));
+        var loan = (await svc.AddLoanAsync(db.As("OWN"), Key(), new AddLoanRequest("LN-HDFC", "HDFC term loan", "HDFC Bank (fictional)", "7788", null, "secured"), Ct)).Value;
+        Assert.Equal("2400/LN-HDFC", loan.Account);
+        await Fails(HccErrorCode.INVALID_TRANSITION, () => svc.AddLoanAsync(db.As("OWN"), Key(), new AddLoanRequest("LN-HDFC", "Second loan", "HDFC", null, null), Ct));
         var b = D.AddDays(1);
         await svc.SaveAsync(db.As("OWN"), Key(), new SaveManualVoucherRequest(null, b, "Receipt", "Term loan disbursed", null, "loan-received",
             [L(Bank, R(5_00_000), 0), L(loan.Account, 0, R(5_00_000))]), Ct);
@@ -148,7 +150,7 @@ public sealed class ManualVoucherSqlTests(AccountingDb db) : IClassFixture<Accou
         Assert.Equal(["approved", "approved", "approved", "void", "rejected", "void"], view.Vouchers.Select(v => v.Status));
         Assert.Equal(reversed.ReversalId, view.Vouchers.Single(v => v.VoidOf == pending.VoucherId).VoucherId);
         Assert.Equal("Bank loans (secured) · HDFC term loan", view.Vouchers[0].Lines[0].Name);
-        Assert.Equal(("2400/LN-HDFC-TERM", "HDFC Bank (fictional)", "7788"), (view.Loans.Single().Account, view.Loans.Single().Lender, view.Loans.Single().AccountLast4));
+        Assert.Equal(("2400/LN-HDFC", "HDFC Bank (fictional)", "7788", "secured"), (view.Loans.Single().Account, view.Loans.Single().Lender, view.Loans.Single().AccountLast4, view.Loans.Single().Kind));
         await Fails(HccErrorCode.FORBIDDEN, () => reads.GetAsync(db.As("CSH"), Ct));
 
         // ── audit rows; the mapping table never lists manual lines ──

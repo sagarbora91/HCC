@@ -1,11 +1,11 @@
 // ACC-2 lane acc2-manual · manual vouchers and loan party ledgers on the server (Hcc.Api AccountingManualEndpoints; posting contract §2, §9).
 // Plain object literals and functions only (no top-level calls).
 //
-//   POST /commands/SaveManualVoucher   {voucherId, date, type, narration, reference, template, lines:[{account, debitPaise, creditPaise, note}]}
+//   POST /commands/SaveManualVoucher   {voucherId, date, voucherType, narration, reference, template, lines:[{account, debitPaise, creditPaise, note}]}
 //                                                                                    ← ACC_MANUAL_SAVE (PERM-ACC-010: Owner approved at once, Accountant pending)
 //   POST /commands/DecideManualVoucher {voucherId, approve, reason, expectedVersion}  ← ACC_MANUAL_DECIDE (PERM-ACC-011)
 //   POST /commands/VoidManualVoucher   {voucherId, reason, expectedVersion}           ← ACC_MANUAL_VOID (PERM-ACC-011)
-//   POST /commands/AddLoan             {code, name, lender, accountLast4, note}       ← ACC_LOAN_ADD (PERM-ACC-007, Owner)
+//   POST /commands/AddLoan             {code, name, lender, accountLast4, kind, note}  ← ACC_LOAN_ADD (PERM-ACC-007, Owner)
 //   GET  /accounting/manual            (PERM-ACC-001) → vouchers (newest first) + loans
 // accountingX.manual (and the loan rows of accountingX.chart.ledgers): ACC_MANUAL_LOADER below — NOT registered in the area yet: the
 // integrator adds it with the READS line in sync/reads.ts and the route in tests/_role-reads.json (as ACC-1 did for the opening loader).
@@ -21,7 +21,7 @@ export type SrvManualLine={account:string;name:string;debitPaise:number;creditPa
 export type SrvManualVoucher={voucherId:number;date:string;type:string;narration:string;reference?:string|null;template?:string|null;status:string;
   lines:SrvManualLine[];enteredBy:number;enteredUtc:string;decidedBy?:number|null;decidedUtc?:string|null;reason?:string|null;voidOf?:number|null;
   voidedBy?:number|null;bookedOn?:string|null;version:string};
-export type SrvLoan={account:string;name:string;lender:string;accountLast4?:string|null;active:boolean;note?:string|null};
+export type SrvLoan={account:string;name:string;lender:string;kind?:string;accountLast4?:string|null;active:boolean;note?:string|null};
 export type SrvManualState={vouchers:SrvManualVoucher[];loans:SrvLoan[]};
 
 const txt=(v:unknown)=>v==null?'':String(v).trim();
@@ -41,14 +41,14 @@ export function manualFromServer(v:SrvManualVoucher):ACCManualVoucher{
   return o;
 }
 /** Server loan → the chart row the prototype keeps (contract §2: `2400/LN-<code>`, kind loan). */
-export const loanFromServer=(l:SrvLoan):ACCLoanLedger=>({code:l.account,name:l.name,group:'secured-loans',system:false,gst:'none',active:l.active,kind:'loan',lender:l.lender,
+export const loanFromServer=(l:SrvLoan):ACCLoanLedger=>({code:l.account,name:l.name,group:l.kind==='unsecured'?'unsecured-loans':'secured-loans',system:false,gst:'none',active:l.active,kind:'loan',lender:l.lender,
   ...(l.accountLast4?{accountLast4:l.accountLast4}:{}),...(l.note?{note:l.note}:{})});
 
 /** SaveManualVoucher body (the voucher type travels as `voucherType` in the prototype command: its `type` is the command name). */
 export function manualSaveBody(cmd:Wire){
   if(!Array.isArray(cmd.lines)||cmd.lines.length<2)throw new HccClientError('VALIDATION','Enter 2 to 100 lines.');
   const id=cmd.id==null||cmd.id===''?null:serverId(cmd.id as string,'Manual voucher');
-  return {voucherId:id,date:txt(cmd.date),type:txt(cmd.voucherType),narration:txt(cmd.narration),reference:txt(cmd.reference)||null,template:txt(cmd.template)||null,
+  return {voucherId:id,date:txt(cmd.date),voucherType:txt(cmd.voucherType),narration:txt(cmd.narration),reference:txt(cmd.reference)||null,template:txt(cmd.template)||null,
     lines:(cmd.lines as Partial<ACCManualLine>[]).map(l=>({account:txt(l?.account),debitPaise:Number(l?.debit??0),creditPaise:Number(l?.credit??0),note:txt(l?.note)||null}))};
 }
 const version=(c:CommandCtx,id:string)=>c.ids.version('accManual',id)??null;
@@ -79,5 +79,5 @@ export const accountingManual:SyncArea={id:'accounting-manual',
         await c.api.command('VoidManualVoucher',{voucherId:serverId(id,'Manual voucher'),reason:txt(c.cmd.reason),expectedVersion:version(c,id)});}},
     {type:'ACC_LOAN_ADD',reload:['accountingX'],precheck:(_cmd,_s,me)=>me.permIds.includes('PERM-ACC-007')?undefined:'Only the Owner adds a loan to the chart of accounts.',
       async send(c){const x=c.cmd as Wire;
-        await c.api.command('AddLoan',{code:txt(x.code)||null,name:txt(x.name),lender:txt(x.lender),accountLast4:txt(x.accountLast4)||null,note:txt(x.note)||null});}},
+        await c.api.command('AddLoan',{code:txt(x.code)||null,name:txt(x.name),lender:txt(x.lender),accountLast4:txt(x.accountLast4)||null,kind:txt(x.kind)||'secured',note:txt(x.note)||null});}},
   ]};
