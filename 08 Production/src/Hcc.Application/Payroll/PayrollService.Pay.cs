@@ -15,6 +15,9 @@ public sealed partial class PayrollService
     /// <summary>Advances and full-and-final net pay are paid by bank transfer (simulated; never drawer cash) — the funding Accounting credits.</summary>
     public const string AdvanceFunding = "Bank transfer";
 
+    /// <summary>ACC-2 integration (ruling 5): pay.cash_movement source type of a salary advance paid in drawer cash (kind expense, negative).</summary>
+    public const string AdvanceDrawerSource = "staff-advance";
+
     // ── Advances ──
 
     public async Task<CommandResult<AdvanceResult>> GiveAdvanceAsync(CommandContext ctx, GiveAdvanceRequest req, CancellationToken ct = default)
@@ -40,13 +43,41 @@ public sealed partial class PayrollService
             if (from < current) throw HccException.Validation("Recovery starts this month or later.");
             var advances = await db.AdvancesAsync(ctx.PropertyId, c2).ConfigureAwait(false);
             if (advances.Any(a => a.StaffId == st.StaffId && a.Balance > 0)) throw Invalid("This staff member already has an open advance.");
+            // ACC-2 integration (ruling 5): the funding method; drawer cash needs the till of the open shift and passes the B10 cash guard first.
+            var funding = AdvanceFunding;
+            int? till = null;
+            Hcc.Domain.Accounting.CashGuardResult? cashWarn = null;
+            if (!string.IsNullOrWhiteSpace(req.Funding))
+            {
+                var ms = methods is null ? null : await methods.MethodsAsync(tx, ctx.PropertyId, c2).ConfigureAwait(false);
+                var m = Hcc.Domain.MoneyMasters.PaymentMethodBook.Pick(ms, req.Funding, Hcc.Domain.MoneyMasters.MoneyMasterValues.Expenses, null, requireReference: false);
+                if (m.IsCredit) throw HccException.Validation("An advance is paid in money: choose cash, UPI or a bank transfer — not a credit method.");
+                funding = m.Name;
+                if (m.SettlesToTill)
+                {
+                    if (drawer is null) throw HccException.Validation("Cash advances need the shared cash drawer on this server.");
+                    till = req.TillId ?? throw HccException.Validation("Choose the till that pays this cash advance (open cash shift required).");
+                    if (cashGuard is not null)
+                        cashWarn = await cashGuard.PaymentAsync(tx, ctx.PropertyId, new Accounting.CashParty(Accounting.CashParty.Ledger, 0, "1200/STF-" + st.StaffId.ToString(CultureInfo.InvariantCulture)),
+                            req.AmountPaise, clockInfo.BusinessDate, transport: false, st.Profile.Name, c2).ConfigureAwait(false);
+                }
+            }
+
             var id = await db.InsertAdvanceAsync(ctx.PropertyId, st.StaffId, req.AmountPaise, req.InstallmentPaise, clockInfo.BusinessDate, from, reason, ctx.PrincipalId, Now, c2)
                 .ConfigureAwait(false);
-            var text = $"{st.Profile.Name} · advance {Rs(req.AmountPaise)} · {(req.InstallmentPaise > 0 ? Rs(req.InstallmentPaise) + "/month" : "full recovery")} from {from.Label} (simulated bank transfer, not drawer cash)";
+            long? movement = null;
+            if (till is { } t)
+                movement = await drawer!.RecordMovementAsync(tx, t, Hcc.Domain.Payments.CashMovementKind.Expense, AdvanceDrawerSource, id, new Hcc.Domain.Money.Paise(-req.AmountPaise),
+                    $"Salary advance · {st.Profile.Name}", reason, c2).ConfigureAwait(false);
+            if (!string.IsNullOrWhiteSpace(req.Funding))
+                await db.SetAdvanceFundingAsync(id, funding, till, movement, cashWarn?.DeductionLost == true, c2).ConfigureAwait(false);
+            var how = string.IsNullOrWhiteSpace(req.Funding) ? "simulated bank transfer, not drawer cash" : till is null ? funding + ", simulated — no money moves" : "cash from the drawer";
+            var text = $"{st.Profile.Name} · advance {Rs(req.AmountPaise)} · {(req.InstallmentPaise > 0 ? Rs(req.InstallmentPaise) + "/month" : "full recovery")} from {from.Label} ({how})"
+                + (cashWarn is { DeductionLost: true } ? " · " + cashWarn.Message : "");
             await tx.AuditAsync("HR_ADVANCE_GIVEN", Target("hr.advance", id), text, c2).ConfigureAwait(false);
             // DEC-074: Accounting books the advance (Dr staff advances · Cr bank) from this, so the pay-run recoveries have something to clear.
             await tx.PublishAsync(Contracts.Accounting.AccountingEvents.AdvanceGiven, id, new Contracts.Accounting.AdvanceGivenEvent(id, st.StaffId, req.AmountPaise, req.InstallmentPaise,
-                clockInfo.BusinessDate, AdvanceFunding), c2).ConfigureAwait(false);
+                clockInfo.BusinessDate, funding), c2).ConfigureAwait(false);
             return new AdvanceResult(id, st.StaffId, req.AmountPaise, req.InstallmentPaise, from.ToString(), text);
         }, ct).ConfigureAwait(false);
     }

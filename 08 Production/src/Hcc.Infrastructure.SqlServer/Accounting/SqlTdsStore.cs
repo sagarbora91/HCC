@@ -207,10 +207,10 @@ public sealed class SqlTdsStore(SqlConnectionFactory connections) : ITdsStore
 
     private const string VendorSql = """
         IF COL_LENGTH('ops.expense_vendor', 'tds_section') IS NOT NULL
-          EXEC sp_executesql N'SELECT TOP (1) name, tds, tds_section FROM ops.expense_vendor WHERE property_id = @p AND (name = @n OR code = @n) ORDER BY active DESC, expense_vendor_id;',
+          EXEC sp_executesql N'SELECT TOP (1) name, tds, tds_section, payee_type FROM ops.expense_vendor WHERE property_id = @p AND (name = @n OR code = @n) ORDER BY active DESC, expense_vendor_id;',
             N'@p INT, @n NVARCHAR(120)', @p = @p, @n = @n;
         ELSE
-          SELECT TOP (1) name, tds, CAST(NULL AS VARCHAR(30)) FROM ops.expense_vendor WHERE property_id = @p AND (name = @n OR code = @n) ORDER BY active DESC, expense_vendor_id;
+          SELECT TOP (1) name, tds, CAST(NULL AS VARCHAR(30)), CAST(NULL AS VARCHAR(10)) FROM ops.expense_vendor WHERE property_id = @p AND (name = @n OR code = @n) ORDER BY active DESC, expense_vendor_id;
         """;
 
     public Task<TdsVendor?> VendorAsync(ICommandTransaction? tx, int propertyId, string vendor, CancellationToken ct)
@@ -221,7 +221,8 @@ public sealed class SqlTdsStore(SqlConnectionFactory connections) : ITdsStore
             cmd.Parameters.Set("@n", SqlDbType.NVarChar, (vendor ?? "").Trim(), 120);
             await using var rd = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
             if (!await rd.ReadAsync(ct).ConfigureAwait(false)) return (TdsVendor?)null;
-            return new TdsVendor(rd.GetString(0), rd.GetBoolean(1), rd.IsDBNull(2) ? null : Convert.ToString(rd.GetValue(2), CultureInfo.InvariantCulture));
+            return new TdsVendor(rd.GetString(0), rd.GetBoolean(1), rd.IsDBNull(2) ? null : Convert.ToString(rd.GetValue(2), CultureInfo.InvariantCulture),
+                !rd.IsDBNull(3) && rd.GetString(3) == "individual" ? TdsColumn.Individual : TdsColumn.Other); // ACC-2 integration (ruling 9): the payee's column
         }, ct);
 
     private const string VendorBillsSql = """

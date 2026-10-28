@@ -37,6 +37,13 @@ public static class HccComposition
         services.AddExpensesModule();                   // W2-4 expenses and petty cash
         services.AddAccountingModule();                  // W2-3 accounting & Tally (outbox consumer)
         services.AddAccountingOpeningModule();           // ACC-1 opening balances (IOpeningEntryStore: lock guard, cumulative TB, report opening)
+        // ACC-2 integration: the lanes' services (endpoint lines in the ACC-2 block below).
+        services.AddAccountingManualModule();            // acc2-manual: manual vouchers + the IGstManualVouchers / ITdsRemittancePoster ports over them
+        services.AddAccountingTdsModule();               // acc2-tds: TdsService (TDS held back at expense approval, remittance → TDS compliance card)
+        services.AddAccountingGstModule();               // acc2-gst: GST month, set-off, month locks (pending manual vouchers through the manual port)
+        services.AddAccountingFlowsModule();             // acc2-flows: SqlFlowsStore ports, CashGuardService (+ settings provider) → BillingService / PosService / ExpenseCommands / ExpenseRegisterCommands / vendor payments / manual vouchers / advances
+        services.AddSingleton<Hcc.Application.Accounting.ILedgerMonthBalanceStore>(sp =>  // acc2-parity: acc.ledger_month_balance (report opening read)
+            new Hcc.Infrastructure.SqlServer.Accounting.SqlLedgerMonthBalanceStore(sp.GetRequiredService<SqlPlatform>().Connections));
         services.AddHccCompliance();                     // W2-5 compliance calendar
         services.AddPosModule();                         // W2-6 restaurant POS
         services.AddHccMaintenance();                    // W2-7

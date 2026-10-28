@@ -30,6 +30,7 @@ public sealed class SqlManualVoucherStore(SqlConnectionFactory connections) : IM
         UNION ALL SELECT '1115', code, NULL, NULL FROM ota.channel WHERE property_id = @p
         UNION ALL SELECT '1120', NULL, customer_name, mobile FROM ops.udhaar_receivable WHERE property_id = @p
         UNION ALL SELECT '1200', CONCAT('STF-', staff_id), NULL, NULL FROM hr.staff WHERE property_id = @p
+        UNION ALL SELECT '1210', CONCAT('STF-', staff_id), NULL, NULL FROM hr.staff WHERE property_id = @p
         UNION ALL SELECT '2200', code, NULL, NULL FROM ops.expense_vendor WHERE property_id = @p
         UNION ALL SELECT '2400', party_id, NULL, NULL FROM acc.loan WHERE property_id = @p AND active = 1;
         """;
@@ -242,6 +243,18 @@ public sealed class SqlManualVoucherStore(SqlConnectionFactory connections) : IM
             return await VersionAsync(c, t, voucherId, ct).ConfigureAwait(false);
         }, ct);
     }
+
+    public Task<string?> TenderPartyAsync(ICommandTransaction tx, int propertyId, string method, CancellationToken ct)
+        => WithAsync(tx, async (c, t) =>
+        {
+            await using var cmd = Cmd("""
+                SELECT TOP (1) b.code FROM mst.payment_method m JOIN mst.bank_account b ON b.bank_account_id = m.settles_to_id
+                WHERE m.property_id = @p AND (m.name = @n OR m.code = @n) ORDER BY CASE WHEN m.name = @n THEN 0 ELSE 1 END, m.payment_method_id;
+                """, c, t);
+            cmd.Parameters.Set("@p", SqlDbType.Int, propertyId);
+            cmd.Parameters.Set("@n", SqlDbType.NVarChar, method.Trim(), 60);
+            return await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false) as string;
+        }, ct);
 
     public Task<IReadOnlySet<string>> PartyIdsAsync(ICommandTransaction? tx, int propertyId, CancellationToken ct)
         => WithAsync<IReadOnlySet<string>>(tx, async (c, t) =>

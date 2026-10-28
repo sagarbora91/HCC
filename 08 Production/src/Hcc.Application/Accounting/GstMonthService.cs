@@ -70,7 +70,8 @@ public interface IGstMonthStore
 }
 
 /// <summary>A manual voucher this lane asks the manual-voucher module (acc2-manual, contract §2) to save.</summary>
-public sealed record GstManualVoucherDraft(DateOnly Date, string Type, string Narration, string Reference, string Template, IReadOnlyList<(string Account, long DebitPaise, long CreditPaise)> Lines);
+public sealed record GstManualVoucherDraft(DateOnly Date, string Type, string Narration, string Reference, string Template, IReadOnlyList<(string Account, long DebitPaise, long CreditPaise)> Lines,
+    string? Tender = null); // ACC-2 integration: the payment method, so the tender line posts on the party it settles to (1030/<bank>)
 
 public sealed record GstManualVoucherRef(string Id, string Status);
 
@@ -445,7 +446,7 @@ public sealed class GstMonthService(ICommandRunner runner, IAccountingStore acco
             }
 
             var v = await manualVouchers.SaveAsync(tx, caller, new GstManualVoucherDraft(f.Date, "Payment", $"GST paid for {f.Month} · challan {f.Challan}{(rcm > 0 ? " · RCM " + Rs(rcm) : "")}",
-                f.Challan, "gst-payment", lines), ct2).ConfigureAwait(false);
+                f.Challan, "gst-payment", lines, f.Method), ct2).ConfigureAwait(false);
             await tx.AuditAsync("ACC_GST_PAYMENT", "acc-gst:" + f.Month,
                 $"GST payment {f.Month} · {Rs(f.Amount)} · {f.Method} · challan {f.Challan}{(rcm > 0 ? " · RCM " + Rs(rcm) : "")} · manual voucher {v.Id} ({v.Status})", ct2).ConfigureAwait(false);
             return new GstRemittanceResult(f.Month, "gst-payment", v.Id, v.Status, null, "");
@@ -469,7 +470,7 @@ public sealed class GstMonthService(ICommandRunner runner, IAccountingStore acco
         {
             var (tender, f) = await PrepareAsync(tx, caller, req.Month, req.AmountPaise, req.Method, req.Challan, req.Date, ct2).ConfigureAwait(false);
             var v = await manualVouchers.SaveAsync(tx, caller, new GstManualVoucherDraft(f.Date, "Payment", $"{k.Label} remitted for {f.Month} · challan {f.Challan}", f.Challan,
-                "statutory-remittance", [(k.Ledger, f.Amount, 0), (tender, 0, f.Amount)]), ct2).ConfigureAwait(false);
+                "statutory-remittance", [(k.Ledger, f.Amount, 0), (tender, 0, f.Amount)], f.Method), ct2).ConfigureAwait(false);
             var (item, note) = cards is null ? ((string?)null, "compliance card not marked (the compliance module is not composed)")
                 : await cards.MarkFiledAsync(tx, caller.PropertyId, k.Card, f.Month, f.Date, f.Challan, $"{k.Label} {Rs(f.Amount)} remitted · {f.Method} · manual voucher {v.Id}",
                     caller.PrincipalId, Now, ct2).ConfigureAwait(false);

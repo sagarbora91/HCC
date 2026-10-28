@@ -105,7 +105,10 @@ public sealed record ClearLeaveRequest(string Confirm);
 
 public sealed record ClearLeaveResult(int Cancelled, int Kept, int Agendas, string Notes);
 
-public sealed record GiveAdvanceRequest(long StaffId, long AmountPaise, long InstallmentPaise, string Reason, string? FromMonth = null);
+public sealed record GiveAdvanceRequest(long StaffId, long AmountPaise, long InstallmentPaise, string Reason, string? FromMonth = null,
+    // ACC-2 integration (ruling 5): the payment method that pays the advance (the client sends it, default Cash; null = the bank transfer of
+    // records before ACC-2) and, for drawer cash, the till of the open shift it leaves.
+    string? Funding = null, int? TillId = null);
 
 public sealed record AdvanceResult(long AdvanceId, long StaffId, long AmountPaise, long InstallmentPaise, string FromMonth, string Notes);
 

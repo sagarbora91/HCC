@@ -53,6 +53,9 @@ public interface IVendorPaymentStore
 
     Task SetCashMovementAsync(ICommandTransaction tx, long paymentId, long movementId, CancellationToken ct = default);
 
+    /// <summary>ACC-2 integration (contract §7 B10): the payment took the vendor's cash of the day above the limit — the deduction is lost.</summary>
+    Task MarkCashDeductionLostAsync(ICommandTransaction tx, long paymentId, CancellationToken ct = default);
+
     Task<VendorPaymentRecord?> LockAsync(ICommandTransaction tx, int propertyId, long paymentId, CancellationToken ct = default);
 
     Task VoidAsync(ICommandTransaction tx, long paymentId, string reason, int by, DateOnly date, DateTime nowUtc, CancellationToken ct = default);
@@ -93,7 +96,8 @@ public interface IFixedAssetStore
 /// </summary>
 public sealed class VendorPaymentCommands(ICommandRunner runner, IAccessPolicy policy, IVendorPaymentStore payments, IExpenseStore expenses, ICashDrawerPort drawer,
     TimeProvider clock, Hcc.Application.Closing.IBusinessDayGuard? days = null, MoneyMasters.IPaymentMethodSource? methods = null, IExpenseMasterSource? masters = null,
-    IExpenseRegisterStore? registers = null)
+    IExpenseRegisterStore? registers = null,
+    Accounting.CashGuardService? cashGuard = null) // ACC-2 integration: the flows lane's B10 cash guard (contract §7)
 {
     public const string OpPay = "RecordVendorPayment";
     public const string OpVoid = "VoidVendorPayment";
@@ -156,7 +160,11 @@ public sealed class VendorPaymentCommands(ICommandRunner runner, IAccessPolicy p
             await ExpenseCommands.DateGateAsync(days, tx, ctx.PropertyId, bd, date, m.SettlesToTill, c).ConfigureAwait(false);
             int? till = null;
             if (m.SettlesToTill) till = req.TillId ?? throw HccException.Validation("Choose the till that pays this vendor in cash (open cash shift required).");
-            // acc2-flows lane: the B10 cash guard (accCashGuard / CashGuard.cs) warns above ₹10,000 to one person in a day — wired at integration.
+            // ACC-2 integration (contract §7 B10): cash above ₹10,000 to one vendor in a day posts with a warning and "deduction lost" (flows lane's guard).
+            Hcc.Domain.Accounting.CashGuardResult? cashWarn = null;
+            if (till is not null && cashGuard is not null)
+                cashWarn = await cashGuard.PaymentAsync(tx, ctx.PropertyId, new Accounting.CashParty(Accounting.CashParty.Vendor, 0, v.Name), req.AmountPaise, date, transport: false, v.Name, c)
+                    .ConfigureAwait(false);
 
             var rows = await payments.BillsAsync(tx, ctx.PropertyId, v.Name, v.Code, c).ConfigureAwait(false);
             var pays = await payments.ListAsync(tx, ctx.PropertyId, v.Code, c).ConfigureAwait(false);
@@ -185,9 +193,11 @@ public sealed class VendorPaymentCommands(ICommandRunner runner, IAccessPolicy p
                 await payments.SetCashMovementAsync(tx, id, movement.Value, c).ConfigureAwait(false);
             }
 
+            if (cashWarn is { DeductionLost: true }) await payments.MarkCashDeductionLostAsync(tx, id, c).ConfigureAwait(false);
+
             var allocated = allocations.Sum(a => a.AmountPaise);
             await tx.AuditAsync("VENDOR_PAYMENT", Target(id), $"{v.Name} · {new Paise(req.AmountPaise)} · {m.Name}{(reference is null ? "" : " · " + reference)}"
-                + (req.AmountPaise > allocated ? " · advance " + new Paise(req.AmountPaise - allocated) : string.Empty), c).ConfigureAwait(false);
+                + (req.AmountPaise > allocated ? " · advance " + new Paise(req.AmountPaise - allocated) : string.Empty) + (cashWarn is { DeductionLost: true } ? " · " + cashWarn.Message : string.Empty), c).ConfigureAwait(false);
             await tx.PublishAsync(PurchaseEvents.VendorPaymentRecorded, id, new
             {
                 paymentId = id, businessDate = StayDates.ToWire(date), vendorCode = v.Code, vendor = v.Name, tender = m.Name, amountPaise = req.AmountPaise,

@@ -11,7 +11,8 @@ namespace Hcc.Application.Accounting;
 /// <summary>
 /// The person a cash movement is from / to, as the guard totals it: <c>folio</c> (a guest's booking; Id = folio id — receipts of that booking on the
 /// day and over the stay), <c>udhaar</c> (Id = the credit — its cash settlements), <c>vendor</c> (Text = the expense's vendor — Posted drawer-cash
-/// expenses of the day), <c>bill</c> (an outlet bill on its own: nothing earlier counts).
+/// expenses of the day), <c>bill</c> (an outlet bill on its own: nothing earlier counts), <c>ledger</c> (ACC-2 integration: Text = a party ledger
+/// id such as <c>2200/&lt;vendor&gt;</c>, <c>1200/STF-&lt;id&gt;</c> or <c>1110/CMP-&lt;id&gt;</c> — manual vouchers, vendor payments and cash staff advances).
 /// </summary>
 public sealed record CashParty(string Kind, long Id, string? Text = null)
 {
@@ -19,6 +20,7 @@ public sealed record CashParty(string Kind, long Id, string? Text = null)
     public const string Udhaar = "udhaar";
     public const string Vendor = "vendor";
     public const string Bill = "bill";
+    public const string Ledger = "ledger";
 }
 
 /// <summary>Cash already recorded for a party (paise, signed; the record being checked is not in it). SQL adapter: SqlFlowsStore.</summary>

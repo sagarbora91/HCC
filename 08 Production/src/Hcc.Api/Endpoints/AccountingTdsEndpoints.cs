@@ -14,10 +14,24 @@ namespace Hcc.Api.Endpoints;
 /// </summary>
 public static class AccountingTdsEndpoints
 {
-    private static TdsService Service(IServiceProvider sp)
-        => sp.GetService<TdsService>() ?? new TdsService(sp.GetRequiredService<SqlPlatform>().Commands,
-            sp.GetService<ITdsStore>() ?? new SqlTdsStore(sp.GetRequiredService<SqlPlatform>().Connections),
-            sp.GetRequiredService<Hcc.Application.Access.IAccessPolicy>(), sp.GetRequiredService<TimeProvider>(), sp.GetService<ITdsRemittancePoster>());
+    /// <summary>ACC-2 integration: TdsService as a singleton — ExpenseCommands holds TDS back at approval (TdsCalculator.ForBill), the remittance posts
+    /// its tds-remittance voucher through the manual lane (ITdsRemittancePoster) and marks the month's TDS compliance card (ruling 9).</summary>
+    public static IServiceCollection AddAccountingTdsModule(this IServiceCollection services)
+    {
+        services.AddSingleton<ITdsStore>(sp => new SqlTdsStore(sp.GetRequiredService<SqlPlatform>().Connections));
+        services.AddSingleton(Build);
+        return services;
+    }
+
+    private static TdsService Build(IServiceProvider sp)
+    {
+        var platform = sp.GetRequiredService<SqlPlatform>();
+        return new TdsService(platform.Commands, sp.GetService<ITdsStore>() ?? new SqlTdsStore(platform.Connections),
+            sp.GetRequiredService<Hcc.Application.Access.IAccessPolicy>(), sp.GetRequiredService<TimeProvider>(), sp.GetService<ITdsRemittancePoster>(),
+            new ComplianceCardHook(new Hcc.Infrastructure.SqlServer.Compliance.SqlComplianceStore(platform.Connections)));
+    }
+
+    private static TdsService Service(IServiceProvider sp) => sp.GetService<TdsService>() ?? Build(sp);
 
     public static RouteGroupBuilder MapAccountingTdsEndpoints(this RouteGroupBuilder api)
     {

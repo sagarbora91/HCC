@@ -77,13 +77,15 @@ public sealed record ReorderBankAccountsRequest(IReadOnlyList<int> BankAccountId
 /// <summary>One expense category. <c>ApprovalLimitPaise</c> null = the hotel limit (Manager ₹5,000).</summary>
 public sealed record ExpenseCategoryView(int ExpenseCategoryId, string Code, string Name, int SortOrder, bool Active, string? RetiredOn, string Ledger, bool NeedsBill,
     long? ApprovalLimitPaise, int UsageCount, string UpdatedUtc, string Version,
-    bool Rcm = false, int? RcmBps = null, bool Capital = false, bool ItcBlocked = false); // ACC-2 acc2-purchase (contract §3; migration 4231)
+    bool Rcm = false, int? RcmBps = null, bool Capital = false, bool ItcBlocked = false, // ACC-2 acc2-purchase (contract §3; migration 4231)
+    bool Transport = false); // ACC-2 integration (ruling 10; migration 4256): goods transport — the ₹35,000 cash-payment limit
 
 public sealed record ExpenseCategoryList(int Page, int PageSize, int Total, IReadOnlyList<ExpenseCategoryView> Items);
 
 public sealed record SaveExpenseCategoryRequest(int? ExpenseCategoryId, string Code, string Name, string Ledger, bool NeedsBill = false, long? ApprovalLimitPaise = null,
     int? SortOrder = null, string? ExpectedVersion = null,
-    bool Rcm = false, int? RcmBps = null, bool Capital = false, bool ItcBlocked = false); // ACC-2 acc2-purchase
+    bool Rcm = false, int? RcmBps = null, bool Capital = false, bool ItcBlocked = false, // ACC-2 acc2-purchase
+    bool Transport = false); // ACC-2 integration (ruling 10)
 
 public sealed record ExpenseCategoryIdRequest(int ExpenseCategoryId, string ExpectedVersion);
 
@@ -94,13 +96,15 @@ public sealed record ReorderExpenseCategoriesRequest(IReadOnlyList<int> ExpenseC
 /// <summary>One expense vendor. <c>Pan</c> is null for callers without PERM-MST-002.</summary>
 public sealed record ExpenseVendorView(int ExpenseVendorId, string Code, string Name, int SortOrder, bool Active, string? RetiredOn, string Type, string? Gstin, string? Pan,
     bool Tds, string? Contact, string? Terms, int UsageCount, string UpdatedUtc, string Version,
-    string? State = null, string? TdsSection = null); // ACC-2 acc2-purchase
+    string? State = null, string? TdsSection = null, // ACC-2 acc2-purchase
+    string? PayeeType = null); // ACC-2 integration (ruling 9; migration 4256): 'individual' | 'other' (null = other) — the TDS rate column
 
 public sealed record ExpenseVendorList(int Page, int PageSize, int Total, IReadOnlyList<ExpenseVendorView> Items);
 
 public sealed record SaveExpenseVendorRequest(int? ExpenseVendorId, string Code, string Name, string Type, string? Gstin = null, string? Pan = null, bool Tds = false,
     string? Contact = null, string? Terms = null, int? SortOrder = null, string? ExpectedVersion = null,
-    string? State = null, string? TdsSection = null); // ACC-2 acc2-purchase (two-letter GST state; TDS rate-table row)
+    string? State = null, string? TdsSection = null, // ACC-2 acc2-purchase (two-letter GST state; TDS rate-table row)
+    string? PayeeType = null); // ACC-2 integration (ruling 9): empty = from the PAN's 4th letter (P / H individual), else other
 
 public sealed record ExpenseVendorIdRequest(int ExpenseVendorId, string ExpectedVersion);
 

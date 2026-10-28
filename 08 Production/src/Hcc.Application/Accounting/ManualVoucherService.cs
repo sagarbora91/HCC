@@ -66,6 +66,9 @@ public interface IManualVoucherStore
     /// <summary>Party ledger ids that exist for the property (contract §3: tills, banks, companies, OTAs, Udhaar customers, staff, vendors) + its active loans.</summary>
     Task<IReadOnlySet<string>> PartyIdsAsync(ICommandTransaction? tx, int propertyId, CancellationToken ct);
 
+    /// <summary>ACC-2 integration: the till / bank account code a payment method settles to (the tender party of a remittance), null when none.</summary>
+    Task<string?> TenderPartyAsync(ICommandTransaction tx, int propertyId, string method, CancellationToken ct);
+
     Task<IReadOnlyList<LoanRow>> LoansAsync(ICommandTransaction? tx, int propertyId, CancellationToken ct);
 
     Task InsertLoanAsync(ICommandTransaction tx, int propertyId, LoanRow loan, int actor, DateTime now, CancellationToken ct);
@@ -298,22 +301,31 @@ public static partial class ManualVoucherRules
 }
 
 /// <summary>
-/// Cash guards of contract §7 for a manual Payment / Receipt that moves cash (1000 / 1005) with a party on the other side. LOCAL STUB until the
-/// acc2-flows lane merges its <c>CashGuard</c> (receipt ≥ ₹2,00,000 refused, payment &gt; ₹10,000 warned): allows everything. The integrator
-/// replaces <see cref="Check"/>'s body with the call (ACC2-MANUAL-DONE.md "Integration needed").
+/// Cash guards of contract §7 for a manual Payment / Receipt that moves cash (1000 / 1005) with a party on the other side (prototype
+/// accManualCashCheck). ACC-2 integration: the local stub is gone — <see cref="ManualVoucherService"/> sends what <see cref="Cash"/> finds to the
+/// flows lane's <see cref="CashGuardService"/> (receipt ≥ ₹2,00,000 refused, payment &gt; ₹10,000 warned) as a <see cref="CashParty.Ledger"/>.
 /// </summary>
 public static class ManualCashGuard
 {
-    public static (string? Refused, string? Warning) Check(string type, DateOnly date, IReadOnlyList<ManualLine> lines)
+    /// <summary>The cash the voucher moves and the party it names (null = no guard: not a Payment / Receipt, no cash line or no party line).</summary>
+    public static (bool Receipt, string Party, long AmountPaise)? Cash(string type, IReadOnlyList<ManualLine> lines)
     {
         ArgumentNullException.ThrowIfNull(lines);
-        _ = (type, date);
-        return (null, null);
+        if (type is not ("Payment" or "Receipt")) return null;
+        static bool IsCash(string a) => PartyLedgers.ControlOf(a) is "1000" or "1005";
+        var cash = lines.Where(l => IsCash(l.Account)).ToList();
+        if (cash.Count == 0) return null;
+        var party = lines.FirstOrDefault(l => !IsCash(l.Account) && l.Account.Contains('/', StringComparison.Ordinal));
+        if (party is null) return null;
+        var receipt = type == "Receipt";
+        var amount = cash.Sum(l => receipt ? l.Debit : l.Credit);
+        return amount > 0 ? (receipt, party.Account, amount) : null;
     }
 }
 
 /// <summary>SaveManualVoucher / DecideManualVoucher / VoidManualVoucher / AddLoan (prototype ACC_MANUAL_SAVE / _DECIDE / _VOID, ACC_LOAN_ADD).</summary>
-public sealed class ManualVoucherService(ICommandRunner runner, IManualVoucherStore store, IAccountingStore accounting, IAccessPolicy policy, TimeProvider clock)
+public sealed class ManualVoucherService(ICommandRunner runner, IManualVoucherStore store, IAccountingStore accounting, IAccessPolicy policy, TimeProvider clock,
+    CashGuardService? cashGuard = null) // ACC-2 integration: the flows lane's cash guard (contract §7)
 {
     public const string OpSave = "SaveManualVoucher";
     public const string OpDecide = "DecideManualVoucher";
@@ -357,7 +369,41 @@ public sealed class ManualVoucherService(ICommandRunner runner, IManualVoucherSt
         var owner = await policy.HasAsync(caller.PropertyId, caller.PrincipalId, AccountingManualPermissions.Approve, ct: ct).ConfigureAwait(false);
         if (ManualVoucherRules.IsBadDebt(req.Template, req.Lines) && !owner) throw new HccException(HccErrorCode.FORBIDDEN, ManualVoucherRules.MsgBadDebt);
         if (req.ExpectedVersion is not null) VersionToken.Validate(req.ExpectedVersion);
-        return await runner.RunAsync(Ctx(caller, OpSave, idempotencyKey), req, async (tx, ct2) =>
+        return await runner.RunAsync(Ctx(caller, OpSave, idempotencyKey), req, async (tx, ct2) => await SaveCoreAsync(tx, caller, owner, req, ct2).ConfigureAwait(false), ct)
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// ACC-2 integration: the GST / TDS / statutory remittances (contract §5, §6) save their template voucher through this, inside the caller's own
+    /// command transaction — every §2 guard, the cash guard, Owner approved at once / Accountant pending, ManualVoucherApproved when approved.
+    /// </summary>
+    public async Task<ManualVoucherResult> SaveInTransactionAsync(ICommandTransaction tx, Caller caller, SaveManualVoucherRequest req, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(tx);
+        ArgumentNullException.ThrowIfNull(caller);
+        ArgumentNullException.ThrowIfNull(req);
+        var owner = await policy.HasAsync(caller.PropertyId, caller.PrincipalId, AccountingManualPermissions.Approve, ct: ct).ConfigureAwait(false);
+        if (ManualVoucherRules.IsBadDebt(req.Template, req.Lines) && !owner) throw new HccException(HccErrorCode.FORBIDDEN, ManualVoucherRules.MsgBadDebt);
+        return await SaveCoreAsync(tx, caller, owner, req, ct).ConfigureAwait(false);
+    }
+
+    /// <summary>The cash guard of a manual Payment / Receipt: a refused receipt throws CASH_LIMIT; a payment above the limit returns the warning.</summary>
+    private async Task<string?> CashCheckAsync(ICommandTransaction tx, int propertyId, string type, DateOnly date, IReadOnlyList<ManualLine> lines, CancellationToken ct)
+    {
+        if (cashGuard is null || ManualCashGuard.Cash(type, lines) is not { } c) return null;
+        var party = new CashParty(CashParty.Ledger, 0, c.Party);
+        if (c.Receipt)
+        {
+            await cashGuard.EnsureReceiptAsync(tx, propertyId, party, c.AmountPaise, date, c.Party, ct).ConfigureAwait(false);
+            return null;
+        }
+
+        var w = await cashGuard.PaymentAsync(tx, propertyId, party, c.AmountPaise, date, transport: false, c.Party, ct).ConfigureAwait(false);
+        return w.DeductionLost ? w.Message : null;
+    }
+
+    private async Task<ManualVoucherResult> SaveCoreAsync(ICommandTransaction tx, Caller caller, bool owner, SaveManualVoucherRequest req, CancellationToken ct2)
+    {
         {
             await store.SerializeAsync(tx, caller.PropertyId, ct2).ConfigureAwait(false);
             if (req.VoucherId is { } vid)
@@ -373,8 +419,7 @@ public sealed class ManualVoucherService(ICommandRunner runner, IManualVoucherSt
             await GuardAsync(tx, caller.PropertyId, req.VoucherType, req.Template, req.Narration, req.Reference, req.Date, req.Lines, ct2).ConfigureAwait(false);
             var lines = ManualVoucherRules.Normalise(req.Lines!);
             var date = req.Date!.Value;
-            var (refused, warning) = ManualCashGuard.Check(req.VoucherType!, date, lines);
-            if (refused is not null) throw HccException.Validation(refused);
+            var warning = await CashCheckAsync(tx, caller.PropertyId, req.VoucherType!, date, lines, ct2).ConfigureAwait(false);
             var reference = (req.Reference ?? "").Trim();
             var status = owner ? ManualVoucherRules.Approved : ManualVoucherRules.Pending;
             var draft = new ManualVoucherDraft(date, req.VoucherType!, req.Narration!.Trim(), reference.Length == 0 ? null : reference, string.IsNullOrEmpty(req.Template) ? null : req.Template,
@@ -397,7 +442,7 @@ public sealed class ManualVoucherService(ICommandRunner runner, IManualVoucherSt
                 + (owner ? "approved (Owner)" : "pending the Owner’s approval") + (warning is null ? "" : " · " + warning), ct2).ConfigureAwait(false);
             if (owner) await tx.PublishAsync(AccountingEvents.ManualVoucherApproved, id, ManualVoucherRules.ApprovedEvent(id, draft), ct2).ConfigureAwait(false);
             return Result(id, status, date, null, version);
-        }, ct).ConfigureAwait(false);
+        }
     }
 
     public async Task<CommandResult<ManualVoucherResult>> DecideAsync(Caller caller, string idempotencyKey, DecideManualVoucherRequest req, CancellationToken ct = default)
@@ -416,8 +461,9 @@ public sealed class ManualVoucherService(ICommandRunner runner, IManualVoucherSt
             if (req.Approve)
             {
                 await GuardAsync(tx, caller.PropertyId, v.Type, v.Template, v.Narration, v.Reference, v.Date, ManualVoucherRules.AsRequests(v.Lines), ct2).ConfigureAwait(false);
+                var cashWarning = await CashCheckAsync(tx, caller.PropertyId, v.Type, v.Date, v.Lines, ct2).ConfigureAwait(false); // ACC-2 integration: counts once approved
                 var version = await store.DecideAsync(tx, caller.PropertyId, v.Id, req.ExpectedVersion, true, null, caller.PrincipalId, Now, ct2).ConfigureAwait(false);
-                await tx.AuditAsync("ACC_MANUAL_APPROVED", key, $"Manual {v.Type} {v.Id.ToString(CultureInfo.InvariantCulture)} dated {ManualVoucherRules.Iso(v.Date)} approved · {Rs(v.Lines.Sum(l => l.Debit))}", ct2).ConfigureAwait(false);
+                await tx.AuditAsync("ACC_MANUAL_APPROVED", key, $"Manual {v.Type} {v.Id.ToString(CultureInfo.InvariantCulture)} dated {ManualVoucherRules.Iso(v.Date)} approved · {Rs(v.Lines.Sum(l => l.Debit))}" + (cashWarning is null ? "" : " · " + cashWarning), ct2).ConfigureAwait(false);
                 var draft = new ManualVoucherDraft(v.Date, v.Type, v.Narration, v.Reference, v.Template, ManualVoucherRules.Approved, v.Lines, v.EnteredBy, v.EnteredUtc,
                     caller.PrincipalId, Now, null, null, v.Date);
                 await tx.PublishAsync(AccountingEvents.ManualVoucherApproved, v.Id, ManualVoucherRules.ApprovedEvent(v.Id, draft), ct2).ConfigureAwait(false);

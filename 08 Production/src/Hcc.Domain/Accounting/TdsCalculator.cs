@@ -13,8 +13,9 @@ public sealed record TdsSettings(bool HotelDeductsTds, TdsColumn Column)
     public static readonly TdsSettings Default = new(true, TdsColumn.Other);
 }
 
-/// <summary>The vendor master facts TDS needs: flagged <c>tds</c> and its section code (<c>rent</c>, <c>rent:plant</c>, <c>contractor</c> …).</summary>
-public sealed record TdsVendor(string Name, bool Tds, string? Section);
+/// <summary>The vendor master facts TDS needs: flagged <c>tds</c>, its section code (<c>rent</c>, <c>rent:plant</c>, <c>contractor</c> …) and — ACC-2
+/// integration, ruling 9 — the payee type that picks the rate column (individual / HUF or other; default other).</summary>
+public sealed record TdsVendor(string Name, bool Tds, string? Section, TdsColumn PayeeType = TdsColumn.Other);
 
 /// <summary>The bill being posted: amount incl. GST, the GST on it, its business date.</summary>
 public sealed record TdsBill(long AmountPaise, long GstPaise, DateOnly Date);
@@ -49,6 +50,13 @@ public static class TdsCalculator
         return p < 0 ? -t : t;
     }
 
+    /// <summary>ACC-2 integration (ruling 9, contract §5 amended): base × bps rounded to the nearest RUPEE (half up; old s.288B), in paise.</summary>
+    public static long RoundRupee(long basePaise, int bps)
+    {
+        if (basePaise <= 0 || bps <= 0) return 0;
+        return checked(basePaise * bps + 500_000) / 1_000_000 * 100;
+    }
+
     private static string Rs(long paise) => new Paise(paise).ToString();
 
     /// <summary>
@@ -72,7 +80,7 @@ public static class TdsCalculator
         var taxable = Taxable(bill.AmountPaise, bill.GstPaise);
         if (taxable <= 0) return None("Nothing taxable on the bill.", code, taxable);
         var row = TdsRates.Row(b)!;
-        var bps = TdsRates.RateBps(code, bill.Date, set.Column, overrides);
+        var bps = TdsRates.RateBps(code, bill.Date, vendor.PayeeType, overrides); // ruling 9: the payee's column (settings.Column is kept, unused)
         var th = TdsRates.ValueOn($"tds.{b}.threshold", bill.Date, overrides);
         var fy = TdsRates.Fy(bill.Date);
         var (from, to) = row.Basis == TdsBasis.Month
@@ -101,7 +109,7 @@ public static class TdsCalculator
 
         if (deductBase == 0)
             return new(0, code, taxable, 0, bps, $"{Rs(total)} to {vendor.Name} {period} — within the {Rs(row.Basis == TdsBasis.SingleAndYear ? th : yearTh)} threshold");
-        var paise = Math.Min(bill.AmountPaise, Round(deductBase, bps));
+        var paise = Math.Min(bill.AmountPaise, RoundRupee(deductBase, bps)); // ruling 9: whole rupees
         return new(paise, code, taxable, deductBase, bps, $"{row.Label} {TdsRates.Pct(bps)} on {Rs(deductBase)} · {reason}");
     }
 
@@ -114,7 +122,7 @@ public static class TdsCalculator
         var threshold = TdsRates.ValueOn("tds.rent.threshold", date, overrides);
         var bps = checked((int)TdsRates.ValueOn("tds.rent.bpsOther", date, overrides));
         var month = monthTaxablePaise ?? taxablePaise;
-        return (month > threshold && taxablePaise > 0 ? Round(taxablePaise, bps) : 0, bps, threshold);
+        return (month > threshold && taxablePaise > 0 ? RoundRupee(taxablePaise, bps) : 0, bps, threshold); // ruling 9: whole rupees
     }
 
     /// <summary>Why a company payment's TDS is refused (null = fine): not negative, at most 20 % of what it settles (amount + tds). Prototype tdsReceivableProblem.</summary>

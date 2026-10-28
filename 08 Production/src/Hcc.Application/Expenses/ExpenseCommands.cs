@@ -26,7 +26,8 @@ namespace Hcc.Application.Expenses;
 public sealed class ExpenseCommands(ICommandRunner runner, IAccessPolicy policy, IExpenseStore store, ICashDrawerPort drawer, TimeProvider clock, Hcc.Application.Closing.IBusinessDayGuard? days = null,
     MoneyMasters.IPaymentMethodSource? methods = null, IExpenseMasterSource? masters = null, IExpenseRegisterStore? registers = null,
     IFixedAssetStore? assets = null, // ACC-2 acc2-purchase: the fixed-asset register (contract §3.4)
-    Accounting.CashGuardService? cashGuard = null) // ACC-2 acc2-flows: the B10 cash guard (contract §7)
+    Accounting.CashGuardService? cashGuard = null, // ACC-2 acc2-flows: the B10 cash guard (contract §7)
+    Accounting.TdsService? tdsService = null) // ACC-2 integration: the tds lane's TdsCalculator.ForBill at approval (contract §5)
 {
     private async Task<IReadOnlyList<Hcc.Domain.MoneyMasters.TenderMethod>?> MethodsAsync(ICommandTransaction? tx, int propertyId, CancellationToken ct) =>
         methods is null ? null : await methods.MethodsAsync(tx, propertyId, ct).ConfigureAwait(false);
@@ -291,7 +292,7 @@ public sealed class ExpenseCommands(ICommandRunner runner, IAccessPolicy policy,
             if (req.Approve && tillCash && cashGuard is not null)
             {
                 cashWarn = await cashGuard.PaymentAsync(tx, ctx.PropertyId, new Accounting.CashParty(Accounting.CashParty.Vendor, e.ExpenseId, e.Vendor), e.Amount.Value, date,
-                    transport: false, Payee(e), c).ConfigureAwait(false);
+                    transport: ExpenseMasters.FindCategory(await CategoriesAsync(tx, ctx.PropertyId, c).ConfigureAwait(false), e.Category)?.Transport == true, Payee(e), c).ConfigureAwait(false); // ruling 10
                 if (cashWarn.DeductionLost) await cashGuard.MarkDeductionLostAsync(tx, e.ExpenseId, c).ConfigureAwait(false);
             }
 
@@ -299,11 +300,16 @@ public sealed class ExpenseCommands(ICommandRunner runner, IAccessPolicy policy,
             // ACC-2 (contract §3): stamp the purchase fields at posting (RCM / capital from the category; TDS held back — acc2-tds lane).
             var stamp = (Rcm: e.Rcm, RcmBps: e.RcmBps, Capital: e.Capital);
             string? assetNo = null;
-            long? tds = null; // acc2-tds lane: TdsCalculator.ForBill(...) — no TDS is held until it merges (prototype stub tdsForBill = 0)
+            long? tds = null;string? tdsSection = null; // ACC-2 integration: TDS held back at approval (TdsCalculator.ForBill, contract §5; prototype tdsForBill)
             var catRow = ExpenseMasters.FindCategory(await CategoriesAsync(tx, ctx.PropertyId, c).ConfigureAwait(false), e.Category);
             if (req.Approve && e.ReturnOf is null)
             {
                 stamp = ExpensePurchase.Stamp(catRow, e.GstPaise, e.RcmBps, e.ItcAllowed);
+                if (tdsService is not null && !string.IsNullOrWhiteSpace(e.Vendor) && e.Amount.Value > 0)
+                {
+                    var t = await tdsService.ForBillAsync(tx, ctx.PropertyId, e.Vendor, e.Amount.Value, e.GstPaise ?? 0, date, e.ExpenseId, c).ConfigureAwait(false);
+                    if (t.Paise > 0) (tds, tdsSection) = (t.Paise, t.Section);
+                }
                 if (stamp.Capital)
                 {
                     if (!ExpensePurchase.IsAssetLedger(catRow?.Ledger))
@@ -320,7 +326,7 @@ public sealed class ExpenseCommands(ICommandRunner runner, IAccessPolicy policy,
                 DecidedUtc = now,
                 Reason = req.Approve ? e.Reason : reason,
                 TillId = till,
-                Rcm = stamp.Rcm, RcmBps = stamp.RcmBps, Capital = stamp.Capital, AssetNo = assetNo ?? e.AssetNo, TdsPaise = tds ?? e.TdsPaise,
+                Rcm = stamp.Rcm, RcmBps = stamp.RcmBps, Capital = stamp.Capital, AssetNo = assetNo ?? e.AssetNo, TdsPaise = tds ?? e.TdsPaise, TdsSection = tdsSection ?? e.TdsSection,
             }, expected, now, c).ConfigureAwait(false);
             if (assetNo is not null)
             {

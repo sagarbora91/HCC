@@ -82,7 +82,8 @@ public interface ITdsRemittancePoster
     Task<string?> PostAsync(ICommandTransaction tx, Caller caller, TdsRemittanceVoucher voucher, CancellationToken ct);
 }
 
-public sealed partial class TdsService(ICommandRunner runner, ITdsStore store, IAccessPolicy policy, TimeProvider clock, ITdsRemittancePoster? poster = null)
+public sealed partial class TdsService(ICommandRunner runner, ITdsStore store, IAccessPolicy policy, TimeProvider clock, ITdsRemittancePoster? poster = null,
+    IComplianceCardHook? cards = null) // ACC-2 integration (ruling 9): the remittance marks the month's TDS compliance card filed with the challan
 {
     public const string OpSettings = "SetTdsSettings";
     public const string OpRate = "SetTdsRate";
@@ -199,8 +200,10 @@ public sealed partial class TdsService(ICommandRunner runner, ITdsStore store, I
                 if (voucher is not null) await store.LinkVoucherAsync(tx, id, voucher, c).ConfigureAwait(false);
             }
 
+            var card = cards is null ? "" : " · " + (await cards.MarkFiledAsync(tx, caller.PropertyId, "TDS", month, date, challan,
+                $"TDS {TdsRates.Row(section)!.Label} {amount} remitted · {req.Tender}" + (voucher is null ? "" : " · manual voucher " + voucher), caller.PrincipalId, Now, c).ConfigureAwait(false)).Note;
             await tx.AuditAsync("TDS_REMITTED", "tds-remit:" + id.ToString(CultureInfo.InvariantCulture),
-                $"TDS remittance · {TdsRates.Row(section)!.Label} · {month} · {amount} by {req.Tender} · challan {challan}" + (voucher is null ? " · voucher pending (manual-voucher service)" : " · voucher " + voucher), c)
+                $"TDS remittance · {TdsRates.Row(section)!.Label} · {month} · {amount} by {req.Tender} · challan {challan}" + (voucher is null ? " · voucher pending (manual-voucher service)" : " · voucher " + voucher) + card, c)
                 .ConfigureAwait(false);
             return new TdsRemittanceResult(id, month, section, amount.Value, date, voucher, out0 - amount.Value);
         }, ct).ConfigureAwait(false);

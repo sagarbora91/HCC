@@ -19,7 +19,12 @@ public static class AccountingManualEndpoints
     {
         services.AddSingleton<IManualVoucherStore>(sp => new SqlManualVoucherStore(sp.GetRequiredService<SqlPlatform>().Connections));
         services.AddSingleton(sp => new ManualVoucherService(sp.GetRequiredService<SqlPlatform>().Commands, sp.GetRequiredService<IManualVoucherStore>(),
-            sp.GetRequiredService<IAccountingStore>(), sp.GetRequiredService<Hcc.Application.Access.IAccessPolicy>(), sp.GetRequiredService<TimeProvider>()));
+            sp.GetRequiredService<IAccountingStore>(), sp.GetRequiredService<Hcc.Application.Access.IAccessPolicy>(), sp.GetRequiredService<TimeProvider>(),
+            sp.GetService<CashGuardService>()));
+        // ACC-2 integration: the GST / statutory payments (acc2-gst) and the TDS remittance (acc2-tds) save their template vouchers here.
+        services.AddSingleton(sp => new ManualVoucherPorts(sp.GetRequiredService<ManualVoucherService>(), sp.GetRequiredService<IManualVoucherStore>()));
+        services.AddSingleton<IGstManualVouchers>(sp => sp.GetRequiredService<ManualVoucherPorts>());
+        services.AddSingleton<ITdsRemittancePoster>(sp => sp.GetRequiredService<ManualVoucherPorts>());
         services.AddSingleton(sp => new ManualVoucherQueries(sp.GetRequiredService<IManualVoucherStore>(), sp.GetRequiredService<IAccountingStore>(),
             sp.GetRequiredService<Hcc.Application.Access.IAccessPolicy>()));
         return services;
@@ -30,7 +35,8 @@ public static class AccountingManualEndpoints
 
     private static ManualVoucherService Service(IServiceProvider sp)
         => sp.GetService<ManualVoucherService>() ?? new ManualVoucherService(sp.GetRequiredService<SqlPlatform>().Commands, Store(sp),
-            sp.GetRequiredService<IAccountingStore>(), sp.GetRequiredService<Hcc.Application.Access.IAccessPolicy>(), sp.GetRequiredService<TimeProvider>());
+            sp.GetRequiredService<IAccountingStore>(), sp.GetRequiredService<Hcc.Application.Access.IAccessPolicy>(), sp.GetRequiredService<TimeProvider>(),
+            sp.GetService<CashGuardService>());
 
     private static ManualVoucherQueries Queries(IServiceProvider sp)
         => sp.GetService<ManualVoucherQueries>() ?? new ManualVoucherQueries(Store(sp), sp.GetRequiredService<IAccountingStore>(),

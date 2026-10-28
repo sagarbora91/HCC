@@ -22,7 +22,9 @@ public sealed class SqlReportPartyNames(SqlConnectionFactory connections) : IRep
         UNION ALL SELECT '1115', code, name, NULL FROM ota.channel WHERE property_id = @p
         UNION ALL SELECT '1120', NULL, customer_name, mobile FROM ops.udhaar_receivable WHERE property_id = @p
         UNION ALL SELECT '1200', CONCAT('STF-', staff_id), name, NULL FROM hr.staff WHERE property_id = @p
-        UNION ALL SELECT '2200', code, name, NULL FROM ops.expense_vendor WHERE property_id = @p;
+        UNION ALL SELECT '1210', CONCAT('STF-', staff_id), name, NULL FROM hr.staff WHERE property_id = @p -- ACC-2 integration (ruling 7): recoverable from a leaver
+        UNION ALL SELECT '2200', code, name, NULL FROM ops.expense_vendor WHERE property_id = @p
+        UNION ALL SELECT '2400', party_id, name, NULL FROM acc.loan WHERE property_id = @p; -- ACC-2 integration (ruling 2): loan parties 2400/<CODE>
         """;
 
     public async Task<IReadOnlyDictionary<string, string>> GetAsync(int propertyId, CancellationToken ct = default)

@@ -48,10 +48,18 @@ public sealed class SqlFlowsStore(SqlConnectionFactory connections) : ICashFlowR
                 FROM ops.udhaar_settlement s JOIN ops.udhaar_receivable u ON u.receivable_id = s.receivable_id
                 WHERE s.receivable_id = @id AND u.property_id = @p AND s.till_id IS NOT NULL;
                 """,
+            // ACC-2 integration: a party ledger — the cash side of approved manual Receipt vouchers that name it (no scope beyond the day).
+            CashParty.Ledger => """
+                SELECT ISNULL(SUM(c.debit_paise), 0), ISNULL(SUM(c.debit_paise), 0)
+                FROM acc.manual_voucher v JOIN acc.manual_line c ON c.voucher_id = v.voucher_id AND (c.account LIKE '1000%' OR c.account LIKE '1005%')
+                WHERE v.property_id = @p AND v.status = 'approved' AND v.voucher_type = 'Receipt' AND ISNULL(v.booked_on, v.voucher_date) = @d
+                  AND EXISTS (SELECT 1 FROM acc.manual_line x WHERE x.voucher_id = v.voucher_id AND x.account = @t);
+                """,
             _ => null,
         };
         if (sql is null) return (0, 0);
         await using var cmd = Cmd(tx, sql);
+        cmd.Parameters.Set("@t", SqlDbType.VarChar, party.Text ?? "", 45);
         cmd.Parameters.Set("@id", SqlDbType.BigInt, party.Id);
         cmd.Parameters.Set("@p", SqlDbType.Int, propertyId);
         cmd.Parameters.Set("@d", SqlDbType.Date, date.ToDateTime(TimeOnly.MinValue));
@@ -62,11 +70,29 @@ public sealed class SqlFlowsStore(SqlConnectionFactory connections) : ICashFlowR
     public async Task<long> PaymentDayTotalAsync(ICommandTransaction tx, int propertyId, CashParty party, DateOnly date, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(party);
-        if (party.Kind != CashParty.Vendor || string.IsNullOrWhiteSpace(party.Text)) return 0;
-        // Posted drawer-cash expenses to the same vendor on the date (reversal records are negative and posted).
-        await using var cmd = Cmd(tx, """
-            SELECT ISNULL(SUM(amount_paise), 0) FROM ops.expense
-            WHERE property_id = @p AND business_date = @d AND status IN ('Posted','Reversed') AND till_id IS NOT NULL AND vendor = @v;
+        if (party.Kind is not (CashParty.Vendor or CashParty.Ledger) || string.IsNullOrWhiteSpace(party.Text)) return 0;
+        // Posted drawer-cash expenses to the same vendor on the date (reversal records are negative and posted); ACC-2 integration: plus the vendor's
+        // cash vendor payments not voided, cash salary advances to a staff member (1200/STF-<id>) and approved manual cash Payments naming the party.
+        await using var cmd = Cmd(tx, party.Kind == CashParty.Vendor ? """
+            SELECT ISNULL((SELECT SUM(amount_paise) FROM ops.expense
+                WHERE property_id = @p AND business_date = @d AND status IN ('Posted','Reversed') AND till_id IS NOT NULL AND vendor = @v), 0)
+              + ISNULL((SELECT SUM(amount_paise) FROM ops.vendor_payment
+                WHERE property_id = @p AND business_date = @d AND till_id IS NOT NULL AND voided = 0 AND vendor_name = @v), 0);
+            """ : """
+            SELECT ISNULL((SELECT SUM(c.credit_paise)
+                FROM acc.manual_voucher mv JOIN acc.manual_line c ON c.voucher_id = mv.voucher_id AND (c.account LIKE '1000%' OR c.account LIKE '1005%')
+                WHERE mv.property_id = @p AND mv.status = 'approved' AND mv.voucher_type = 'Payment' AND ISNULL(mv.booked_on, mv.voucher_date) = @d
+                  AND EXISTS (SELECT 1 FROM acc.manual_line x WHERE x.voucher_id = mv.voucher_id AND x.account = @v)), 0)
+              + CASE WHEN @v LIKE '2200/%' THEN
+                  ISNULL((SELECT SUM(amount_paise) FROM ops.vendor_payment
+                    WHERE property_id = @p AND business_date = @d AND till_id IS NOT NULL AND voided = 0 AND vendor_code = SUBSTRING(@v, 6, 40)), 0)
+                + ISNULL((SELECT SUM(e.amount_paise) FROM ops.expense e JOIN ops.expense_vendor ev ON ev.property_id = e.property_id AND ev.name = e.vendor
+                    WHERE e.property_id = @p AND e.business_date = @d AND e.status IN ('Posted','Reversed') AND e.till_id IS NOT NULL AND ev.code = SUBSTRING(@v, 6, 40)), 0)
+                ELSE 0 END
+              + CASE WHEN @v LIKE '1200/STF-%' THEN
+                  ISNULL((SELECT SUM(amount_paise) FROM hr.advance
+                    WHERE property_id = @p AND advance_date = @d AND till_id IS NOT NULL AND CONCAT('1200/STF-', staff_id) = @v), 0)
+                ELSE 0 END;
             """);
         cmd.Parameters.Set("@p", SqlDbType.Int, propertyId);
         cmd.Parameters.Set("@d", SqlDbType.Date, date.ToDateTime(TimeOnly.MinValue));

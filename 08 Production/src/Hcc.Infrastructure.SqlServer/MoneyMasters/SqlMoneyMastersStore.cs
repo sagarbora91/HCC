@@ -28,9 +28,9 @@ internal static class MnySql
         MoneyMasterIds.BankAccounts => new("mst.bank_account", "bank_account_id", "m",
             Fmt("m", "bank_account_id") + ", m.kind, m.bank, m.account_last4, m.ifsc, m.opening_balance_paise, m.default_for", ""),
         MoneyMasterIds.ExpenseCategories => new("ops.expense_category", "expense_category_id", "m",
-            Fmt("m", "expense_category_id") + ", m.ledger, m.needs_bill, m.approval_limit_paise, m.itc_blocked, m.rcm, m.rcm_bps, m.capital", ""), // ACC-2 (4231)
+            Fmt("m", "expense_category_id") + ", m.ledger, m.needs_bill, m.approval_limit_paise, m.itc_blocked, m.rcm, m.rcm_bps, m.capital, m.transport", ""), // ACC-2 (4231; transport 4256)
         MoneyMasterIds.ExpenseVendors => new("ops.expense_vendor", "expense_vendor_id", "m",
-            Fmt("m", "expense_vendor_id") + ", m.vendor_type, m.gstin, m.pan, m.tds, m.contact, m.terms, m.gst_state, m.tds_section", ""), // ACC-2 (4231)
+            Fmt("m", "expense_vendor_id") + ", m.vendor_type, m.gstin, m.pan, m.tds, m.contact, m.terms, m.gst_state, m.tds_section, m.payee_type", ""), // ACC-2 (4231; payee_type 4256)
         _ => throw new ArgumentOutOfRangeException(nameof(master), master, "Unknown money master."),
     };
 
@@ -75,6 +75,7 @@ internal static class MnySql
                 f[R.Rcm] = rd.GetBoolean(12);
                 f[R.RcmBps] = rd.IsDBNull(13) ? null : rd.GetInt32(13);
                 f[R.Capital] = rd.GetBoolean(14);
+                f[R.Transport] = rd.GetBoolean(15); // ACC-2 integration (ruling 10)
                 break;
             default:
                 f[R.Type] = rd.GetString(8);
@@ -83,6 +84,7 @@ internal static class MnySql
                 f[R.Tds] = rd.GetBoolean(11);
                 f[R.State] = S(rd, 14);
                 f[R.TdsSection] = S(rd, 15);
+                f[R.PayeeType] = S(rd, 16); // ACC-2 integration (ruling 9)
                 f[R.Contact] = S(rd, 12);
                 f[R.Terms] = S(rd, 13);
                 break;
@@ -107,10 +109,10 @@ internal static class MnySql
             ["@f_kind", "(SELECT bank_account_id FROM mst.bank_account WHERE property_id = @p AND code = @f_settles)", "@f_ref", "@f_fd", "@f_pos", "@f_exp", "@f_bps", "@f_ledger"]),
         MoneyMasterIds.BankAccounts => (["kind", "bank", "account_last4", "ifsc", "opening_balance_paise", "default_for"],
             ["@f_kind", "@f_bank", "@f_last4", "@f_ifsc", "@f_opening", "@f_default"]),
-        MoneyMasterIds.ExpenseCategories => (["ledger", "needs_bill", "approval_limit_paise", "itc_blocked", "rcm", "rcm_bps", "capital"],
-            ["@f_ledger", "@f_bill", "@f_limit", "@f_itcb", "@f_rcm", "@f_rbps", "@f_cap"]),
-        _ => (["vendor_type", "gstin", "pan", "tds", "contact", "terms", "gst_state", "tds_section"],
-            ["@f_type", "@f_gstin", "@f_pan", "@f_tds", "@f_contact", "@f_terms", "@f_state", "@f_tsec"]),
+        MoneyMasterIds.ExpenseCategories => (["ledger", "needs_bill", "approval_limit_paise", "itc_blocked", "rcm", "rcm_bps", "capital", "transport"],
+            ["@f_ledger", "@f_bill", "@f_limit", "@f_itcb", "@f_rcm", "@f_rbps", "@f_cap", "@f_trans"]),
+        _ => (["vendor_type", "gstin", "pan", "tds", "contact", "terms", "gst_state", "tds_section", "payee_type"],
+            ["@f_type", "@f_gstin", "@f_pan", "@f_tds", "@f_contact", "@f_terms", "@f_state", "@f_tsec", "@f_payee"]),
     };
 
     public static void FieldParams(string master, SqlCommand cmd, IReadOnlyDictionary<string, object?> v)
@@ -146,6 +148,7 @@ internal static class MnySql
                 cmd.P("@f_rcm", SqlDbType.Bit, B(R.Rcm));
                 cmd.P("@f_rbps", SqlDbType.Int, v.GetValueOrDefault(R.RcmBps) as int?);
                 cmd.P("@f_cap", SqlDbType.Bit, B(R.Capital));
+                cmd.P("@f_trans", SqlDbType.Bit, B(R.Transport));
                 break;
             default:
                 cmd.P("@f_type", SqlDbType.VarChar, T(R.Type), 8);
@@ -156,6 +159,7 @@ internal static class MnySql
                 cmd.P("@f_terms", SqlDbType.NVarChar, T(R.Terms), 60);
                 cmd.P("@f_state", SqlDbType.Char, T(R.State), 2);
                 cmd.P("@f_tsec", SqlDbType.VarChar, T(R.TdsSection), 20);
+                cmd.P("@f_payee", SqlDbType.VarChar, T(R.PayeeType), 10);
                 break;
         }
     }

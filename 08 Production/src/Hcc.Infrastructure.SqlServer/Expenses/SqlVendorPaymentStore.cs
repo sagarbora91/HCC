@@ -72,6 +72,13 @@ public sealed class SqlVendorPaymentStore(SqlConnectionFactory connections) : IV
         await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
     }
 
+    public async Task MarkCashDeductionLostAsync(ICommandTransaction tx, long paymentId, CancellationToken ct = default)
+    {
+        await using var cmd = Sql(tx).Command("UPDATE ops.vendor_payment SET cash_deduction_lost = 1 WHERE vendor_payment_id = @id;");
+        Add(cmd, "@id", SqlDbType.BigInt, paymentId);
+        await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+    }
+
     private static async Task<Dictionary<long, List<VendorAllocationDto>>> AllocationsAsync(SqlCommand cmd, CancellationToken ct)
     {
         var m = new Dictionary<long, List<VendorAllocationDto>>();

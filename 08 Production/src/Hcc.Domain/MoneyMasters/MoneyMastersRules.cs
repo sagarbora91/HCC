@@ -59,6 +59,9 @@ public static partial class MoneyMastersRules
     public const string ItcBlocked = "itcBlocked";
     public const string State = "state";
     public const string TdsSection = "tdsSection";
+    // ACC-2 integration (ruling 9 / ruling 10; migration 4256): the TDS payee type (rate column) and the goods-transport cash limit flag.
+    public const string PayeeType = "payeeType";
+    public const string Transport = "transport";
 
     public const int MaxSurchargeBps = 1000;
     public const long MaxMoneyPaise = 10_000_000_000;
@@ -90,8 +93,8 @@ public static partial class MoneyMastersRules
     {
         MoneyMasterIds.PaymentMethods => [Kind, SettlesTo, NeedsReference, UsableAt, SurchargePct, Ledger],
         MoneyMasterIds.BankAccounts => [Kind, Bank, AccountLast4, Ifsc, OpeningBalance, DefaultFor],
-        MoneyMasterIds.ExpenseCategories => [Ledger, NeedsBill, ApprovalLimit, ItcBlocked, Rcm, RcmBps, Capital],
-        MoneyMasterIds.ExpenseVendors => [Type, Gstin, Pan, Tds, State, TdsSection, Contact, Terms],
+        MoneyMasterIds.ExpenseCategories => [Ledger, NeedsBill, ApprovalLimit, ItcBlocked, Rcm, RcmBps, Capital, Transport],
+        MoneyMasterIds.ExpenseVendors => [Type, Gstin, Pan, Tds, State, TdsSection, PayeeType, Contact, Terms],
         _ => throw new ArgumentOutOfRangeException(nameof(master), master, "Unknown money master."),
     };
 
@@ -253,7 +256,7 @@ public static partial class MoneyMastersRules
         {
             [Ledger] = asset ? ledgerCode : LedgerOf(r.Ledger, true, [AccountGroup.Expense]), [NeedsBill] = r.NeedsBill, [ApprovalLimit] = r.ApprovalLimitPaise,
             [ItcBlocked] = r.ItcBlocked || (r.Capital && Hcc.Domain.Expenses.ExpensePurchase.ItcBlockedAssetLedgers.Contains(ledgerCode)), [Rcm] = r.Rcm,
-            [RcmBps] = r.Rcm ? r.RcmBps : null, [Capital] = r.Capital,
+            [RcmBps] = r.Rcm ? r.RcmBps : null, [Capital] = r.Capital, [Transport] = r.Transport,
         };
         return new MoneyDraft(row, fields);
     }
@@ -275,12 +278,18 @@ public static partial class MoneyMastersRules
         var sec = string.IsNullOrWhiteSpace(r.TdsSection) ? null : r.TdsSection.Trim().ToLowerInvariant();
         if (sec is not null && !Hcc.Domain.Expenses.ExpensePurchase.TdsSections.Contains(sec)) throw MastersRules.Fail(MasterReasons.Invalid, "Choose a TDS section from the list.", TdsSection);
         if (sec is not null && !r.Tds) throw MastersRules.Fail(MasterReasons.Invalid, "Turn on “TDS applies” to choose a TDS section.", TdsSection);
+        // ACC-2 integration (ruling 9): the payee type picks the TDS rate column; left empty it follows the PAN (4th letter P / H = individual), else other.
+        var payee = string.IsNullOrWhiteSpace(r.PayeeType) ? PayeeHint(p) : r.PayeeType.Trim().ToLowerInvariant();
+        if (payee is not (null or "individual" or "other")) throw MastersRules.Fail(MasterReasons.Invalid, "Choose the TDS payee type from the list.", PayeeType);
         var fields = new Dictionary<string, object?>
         {
-            [Type] = type, [Gstin] = g, [Pan] = p, [Tds] = r.Tds, [State] = st, [TdsSection] = sec, [Contact] = Opt(r.Contact, 100, "Contact", Contact), [Terms] = Opt(r.Terms, 60, "Payment terms", Terms),
+            [Type] = type, [Gstin] = g, [Pan] = p, [Tds] = r.Tds, [State] = st, [TdsSection] = sec, [PayeeType] = payee, [Contact] = Opt(r.Contact, 100, "Contact", Contact), [Terms] = Opt(r.Terms, 60, "Payment terms", Terms),
         };
         return new MoneyDraft(row, fields);
     }
+
+    /// <summary>ACC-2 integration (ruling 9): a PAN whose 4th letter is P (individual) or H (HUF) suggests the individual column; null = no PAN.</summary>
+    public static string? PayeeHint(string? pan) => pan is { Length: 10 } p && PanPattern().IsMatch(p) ? (p[3] is 'P' or 'H' ? "individual" : "other") : null;
 
     // ── Resolution of stored record values (pay.receipt.method, pos.bill.tender, ops.expense.method / category / vendor) ──
 
