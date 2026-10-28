@@ -44,6 +44,7 @@ export * from './rulebook-bind'; // acc1-tests: scenario ACC-RULEBOOK driver
 export * from '../../domain/streams/accounting-assets'; export * from '../../domain/streams/expenses-vendor'; // acc2-purchase (contract §3)
 export * from '../../domain/streams/accounting-manual'; // ACC-2 acc2-manual lane
 export * from '../../domain/streams/accounting-tds'; // ACC-2 tds lane (also re-exports domain/tds)
+export * from '../../domain/streams/accounting-gst'; // ACC-2 gst lane
 // ACC-2 end
 export * from '../../domain/streams/assistant';
 export * from '../../domain/streams/compliance';

@@ -286,6 +286,10 @@ public static partial class ChartOfAccounts
         ["tax:gst-input-igst"] = "1330", ["tax:rcm-payable"] = "2140", ["tax:tds-payable"] = "2150", ["vendor:payable"] = "2200",
         // ACC-2 tds (contract §4 A9, §5): TDS a company deducted from the hotel → 1360; TDS the hotel holds back on a bill → 2150.
         [TdsCalculator.ReceivableKey] = "1360", // TdsCalculator.PayableKey ("tax:tds-payable") = 2150 is in the acc2-purchase line above (one key)
+        // ACC-2 gst lane (contract §4, §6): the tax ledgers the GST set-off journal, the advance-GST lines and the RCM / cash-ledger entries post to.
+        ["tax:output-cgst"] = "2110", ["tax:output-sgst"] = "2120", ["tax:output-igst"] = "2130", // tax:gst-input-igst 1330 and tax:rcm-payable 2140: acc2-purchase line above (one key each)
+        ["tax:gst-cash"] = "1340", ["tax:advance-gst"] = "1350",
+        // ACC-2 gst end
     };
 
     /// <summary>ACC-1: the SGST-half ITC key (contract §2).</summary>

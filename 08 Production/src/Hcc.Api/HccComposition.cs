@@ -132,6 +132,7 @@ public static class HccComposition
         api.MapExpenseVendorEndpoints(); // acc2-purchase (vendor payments, returns, ageing, asset register)
         api.MapAccountingManualEndpoints(); // ACC-2 acc2-manual (contract §2: manual vouchers, loans)
         api.MapAccountingTdsEndpoints(); // ACC-2 tds lane (contract §4 A9, §5)
+        api.MapAccountingGstEndpoints(); // ACC-2 gst lane (contract §4 switch, §6)
         // ACC-2 end
         api.MapComplianceEndpoints();    // W2-5
         api.MapPosEndpoints();           // W2-6

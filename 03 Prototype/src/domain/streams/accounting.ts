@@ -18,6 +18,7 @@ import {accOpeningLockBlocker,accOpeningPosted} from './accounting-opening'; // 
 import {accChartIndex,accLedger,accLedgerLegacyGroup,accLedgerTallyName} from './accounting-chart'; // ACC-1 integration: Owner renames / Owner-added ledgers reach postings and names
 import {expPurchaseLines,expVendorPayments,expVendorName,expIsReturn,EXP_KEY_RCM,EXP_KEY_TDS,EXP_KEY_VENDOR} from './expenses-vendor'; // ACC-2 acc2-purchase (contract §3)
 import {accManualVouchersOn,accManualDates} from './accounting-manual'; // ACC-2 manual vouchers (contract §2)
+import {accGstLiveVouchers} from './accounting-gst'; // ACC-2 gst lane (contract §4 advance GST, §6 set-off)
 
 // ── Mapping (source classification → ledger) ──
 export const ACC_DEFAULT_MAP:Record<string,string>={
@@ -332,6 +333,10 @@ export function accLiveVouchers(s:State,date:string,mapping=accMapping(s)):ACCVo
       [dr(map('closing:owner-drawing',miss),r.amount),cr(cash(miss),r.amount)]);}
   }
   // ── end Wave B1 ──
+  // ── ACC-2 gst lane (contract §4, §6): GST on booking advances (switch on only, DEC-142) and the month's GST set-off journal on the date it posted ──
+  for(const v of accGstLiveVouchers(s,date)){const miss:string[]=[];push({date,type:v.type,narration:v.narration,source:v.source},miss,
+    v.entries.map(e=>known.get(e.account)?.active?e:(miss.push('ledger:'+e.account),{...e,account:ACC_SUSPENSE})));}
+  // ── end ACC-2 gst lane ──
   const diff=accCashDifference(s,date);
   if(diff){const miss:string[]=[],cash=pt(map('method:Cash',miss),{method:'Cash'}),acct=map(accCashDiffKey(diff),miss); // ACC-1: an over → closing:cash-over (4950), a short → 5900
     push({date,type:'Journal',narration:`Cash ${diff>0?'over':'short'} accepted at shift close · ${date}`,source:{kind:'closing',id:`CLOSE/${date}/cash-difference`,sub:'cash-difference'}},miss,

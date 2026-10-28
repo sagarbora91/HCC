@@ -156,5 +156,9 @@
     <File Path="database/migrations/4243_acc_tds_rate.sql" />
     <File Path="database/migrations/4244_acc_tds_remit.sql" />
     <File Path="database/migrations/4245_acc_tds_rbac_seed.sql" />
+    <File Path="database/migrations/4246_acc_month_lock.sql" />
+    <File Path="database/migrations/4247_acc_gst_setoff.sql" />
+    <File Path="database/migrations/4248_cmp_profile_gst_on_advances.sql" />
+    <File Path="database/migrations/4249_acc_gst_rbac_seed.sql" />
   </Folder>
 </Solution>
