@@ -262,4 +262,22 @@ public static class AccountingEventMapper
     }
 
     // ── end DEC-074 (wave B3) ──
+
+    // ── ACC-2 (acc2-manual, contract §2) · manual vouchers ──
+
+    /// <summary>
+    /// An approved manual voucher (prototype <c>accManualVouchersOn</c>): the source <c>manual:&lt;id&gt;</c> on its date, its lines as entered
+    /// (<see cref="SourceRules.Manual"/>). Narration: the voucher's narration · reference · "manual &lt;id&gt;" (or "reversal of &lt;id&gt;").
+    /// </summary>
+    public static AccountingSource ManualVoucher(ManualVoucherApprovedEvent e)
+    {
+        ArgumentNullException.ThrowIfNull(e);
+        var type = Enum.Parse<VoucherType>(e.Type);
+        var narration = e.Narration + (string.IsNullOrEmpty(e.Reference) ? "" : " · " + e.Reference)
+            + (e.VoidOf is { } of ? " · reversal of " + N(of) : " · manual " + N(e.VoucherId));
+        return SourceRules.Manual(SourceRules.ManualKey(e.VoucherId), e.Date, type, e.Template, narration,
+            (e.Lines ?? []).Select(l => (l.Account, l.DebitPaise, l.CreditPaise)));
+    }
+
+    // ── end ACC-2 manual ──
 }

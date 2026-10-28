@@ -71,6 +71,9 @@ public sealed class SqlAccountingStore(SqlConnectionFactory connections) : IAcco
                 SELECT s.source_id, s.source_key, s.source_kind, s.sub, s.voucher_type, s.business_date, s.narration, e.map_key, e.debit_paise, e.credit_paise, e.party_id
                 FROM acc.source s JOIN acc.source_entry e ON e.source_id = s.source_id
                 WHERE s.property_id = @p AND s.business_date BETWEEN @f AND @t
+                  -- ACC-2 (acc2-manual, contract §2): a manual voucher voided on an unlocked day posts nothing (sources are append-only).
+                  AND NOT (s.source_kind = 'manual' AND EXISTS (SELECT 1 FROM acc.manual_voucher mv WHERE mv.property_id = s.property_id AND mv.source_key = s.source_key
+                           AND mv.status = 'void' AND NOT EXISTS (SELECT 1 FROM acc.manual_voucher r WHERE r.void_of = mv.voucher_id)))
                 ORDER BY s.business_date, s.source_id, e.line_no;
                 """, c, t);
             cmd.Parameters.Set("@p", SqlDbType.Int, propertyId);
@@ -129,7 +132,7 @@ public sealed class SqlAccountingStore(SqlConnectionFactory connections) : IAcco
         {
             await using var cmd = Cmd("""
                 SELECT e.map_key, COUNT(DISTINCT e.source_id) FROM acc.source_entry e JOIN acc.source s ON s.source_id = e.source_id
-                WHERE s.property_id = @p GROUP BY e.map_key;
+                WHERE s.property_id = @p AND e.map_key NOT LIKE 'ledger:%' GROUP BY e.map_key; -- ACC-2: manual lines name their ledger (no mapping key)
                 """, c, t);
             cmd.Parameters.Set("@p", SqlDbType.Int, propertyId);
             var d = new Dictionary<string, int>(StringComparer.Ordinal);

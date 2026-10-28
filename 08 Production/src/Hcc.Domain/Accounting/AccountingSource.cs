@@ -323,6 +323,29 @@ public static class SourceRules
 
     // ── end DEC-074 (wave B3) ──
 
+    // ── ACC-2 (acc2-manual, contract §2) · manual vouchers ──
+
+    /// <summary>Map-key prefix of a manual voucher line: the ledger is named directly (<c>ledger:5080</c>), never through the mapping
+    /// (<see cref="ChartOfAccounts.Resolve"/>); the party of a party ledger id travels in <see cref="SourceEntry.Party"/>.</summary>
+    public const string LedgerKeyPrefix = "ledger:";
+
+    /// <summary>The source key of a manual voucher (prototype <c>accManualSource</c> id).</summary>
+    public static string ManualKey(long voucherId) => "manual:" + voucherId.ToString(CultureInfo.InvariantCulture);
+
+    /// <summary>
+    /// An approved manual voucher (or the reversing voucher of a void on a locked day) = one source of kind <c>manual</c>, sub = the template
+    /// (<c>journal</c> when none), dated the voucher date, its lines as entered: <c>ledger:&lt;code&gt;</c> + the party of a party ledger id.
+    /// </summary>
+    public static AccountingSource Manual(string sourceKey, DateOnly date, VoucherType type, string? template, string narration,
+        IEnumerable<(string Account, long DebitPaise, long CreditPaise)> lines)
+    {
+        ArgumentNullException.ThrowIfNull(lines);
+        return new(sourceKey, SourceKinds.Manual, string.IsNullOrEmpty(template) ? "journal" : template, date, type, narration,
+            lines.Select(l => new SourceEntry(LedgerKeyPrefix + PartyLedgers.ControlOf(l.Account), l.DebitPaise, l.CreditPaise, PartyLedgers.PartyOf(l.Account))).ToList());
+    }
+
+    // ── end ACC-2 manual ──
+
     public static string Rupees(long paise)
     {
         var sign = paise < 0 ? "-" : "";

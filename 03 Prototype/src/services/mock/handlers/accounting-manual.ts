@@ -7,6 +7,8 @@
 //   ACC_MANUAL_VOID   {id, reason}                                                 Owner (PERM-ACC-011): unlocked day → void, posts nothing; locked day →
 //                                                                                 a reversing voucher (lines swapped, voidOf) approved, dated the business date.
 //   ACC_LOAN_ADD      {code?, name, lender, accountLast4?, note?}                  Owner (chart edit, PERM-ACC-007): a loan party row 2400/LN-<code>.
+// accManualSave(k, {date, type, narration, reference?, lines, template?}) = the manual-voucher API other ACC-2 handlers call (tds / gst lanes'
+// remittances replace their local `accManualSave` stub with this export).
 // Cash guards (contract §7) run through accManualCashCheck — a LOCAL STUB until acc2-flows merges (see the DONE file).
 // The audit row of each command is written by execute() from the returned detail text. Production: clients/sync/accounting-manual.ts.
 import type {Handler,Kit} from '../commands';
@@ -24,28 +26,38 @@ const reasonOf=(k:Kit)=>{const r=String(k.cmd.reason??'').trim();k.assert(r.leng
 const refuse=(k:Kit,problems:string[])=>{if(problems.length)k.fail(/unlock the day first/.test(problems[0])?'INVALID_TRANSITION':'VALIDATION',problems[0]);};
 const total=(lines:ACCManualLine[])=>money(accManualTotals(lines).debit);
 
+/** The input of the manual-voucher API (contract §2 shape: `type` is the voucher type). */
+export type ACCManualSaveInput={id?:string;date:string;type:string;narration:string;reference?:string;lines:ACCManualLine[];template?:ACCManualTemplate};
+/**
+ * The manual-voucher API for other ACC-2 handlers (ACC_TDS_REMIT, ACC_GST_PAY, ACC_STAT_REMIT — contract §5, §6): runs every guard of contract
+ * §2 (and the cash guard), then stores the voucher — approved at once when the acting user is the Owner, pending for the Accountant. The caller
+ * checks its own permission first (this checks only the bad-debt rule). Returns the stored voucher and the audit text.
+ */
+export function accManualSave(k:Kit,x:ACCManualSaveInput):{voucher:ACCManualVoucher;detail:string}{
+  const {s,uid,user}=k;
+  if(accManualIsBadDebt(x)&&user.role!=='Owner')k.fail('FORBIDDEN',ACC_MANUAL_MSG.badDebt);
+  const id=x.id==null||x.id===''?'':String(x.id);
+  const old=id?accManualById(s,id):undefined;
+  if(id){
+    k.assert(old,'This manual voucher was not found.','NOT_FOUND');
+    k.assert(old!.status==='pending'||old!.status==='rejected','Only a pending or rejected voucher can be changed — void an approved one instead.','INVALID_TRANSITION');
+    if(old!.by!==uid&&user.role!=='Owner')k.fail('FORBIDDEN','Access denied: only the voucher’s maker or the Owner changes it.');
+  }
+  refuse(k,accManualProblems(s,x));
+  const lines=accManualNormalise(x.lines),type=String(x.type) as ACCManualType,date=String(x.date);
+  const cash=accManualCashCheck(s,{type,date,lines});
+  if(cash.refused)k.fail('VALIDATION',cash.refused);
+  const approved=user.role==='Owner',reference=String(x.reference??'').trim(),template=x.template?String(x.template) as ACCManualTemplate:undefined;
+  const v:ACCManualVoucher={id:id||k.id('MV'),date,type,narration:String(x.narration).trim(),...(reference?{reference}:{}),lines,...(template?{template}:{}),
+    status:approved?'approved':'pending',by:uid,at:s.clock,...(approved?{decidedBy:uid,decidedAt:s.clock,bookedOn:date}:{})};
+  const list=manual(k),i=list.findIndex(x=>x.id===v.id);if(i<0)list.push(v);else list[i]=v;
+  return {voucher:v,detail:`Manual ${type} ${v.id} dated ${date} ${id?'changed':'saved'} · ${total(lines)} · ${approved?'approved (Owner)':'pending the Owner’s approval'}${cash.warning?' · '+cash.warning:''}`};
+}
+
 export const handlers:Record<string,Handler>={
-  ACC_MANUAL_SAVE:k=>{
-    enter(k);const {s,cmd,uid,user}=k;
-    if(accManualIsBadDebt(cmd as {template?:unknown;lines?:unknown})&&user.role!=='Owner')k.fail('FORBIDDEN',ACC_MANUAL_MSG.badDebt);
-    const id=cmd.id==null||cmd.id===''?'':String(cmd.id);
-    const old=id?accManualById(s,id):undefined;
-    if(id){
-      k.assert(old,'This manual voucher was not found.','NOT_FOUND');
-      k.assert(old!.status==='pending'||old!.status==='rejected','Only a pending or rejected voucher can be changed — void an approved one instead.','INVALID_TRANSITION');
-      if(old!.by!==uid&&user.role!=='Owner')k.fail('FORBIDDEN','Access denied: only the voucher’s maker or the Owner changes it.');
-    }
-    // Contract §2 names the voucher type `type`; a prototype command's `type` is the command name, so the payload carries `voucherType`.
-    refuse(k,accManualProblems(s,{...cmd,type:cmd.voucherType}));
-    const lines=accManualNormalise(cmd.lines as ACCManualLine[]),type=String(cmd.voucherType) as ACCManualType,date=String(cmd.date);
-    const cash=accManualCashCheck(s,{type,date,lines});
-    if(cash.refused)k.fail('VALIDATION',cash.refused);
-    const approved=user.role==='Owner',reference=String(cmd.reference??'').trim(),template=cmd.template?String(cmd.template) as ACCManualTemplate:undefined;
-    const v:ACCManualVoucher={id:id||k.id('MV'),date,type,narration:String(cmd.narration).trim(),...(reference?{reference}:{}),lines,...(template?{template}:{}),
-      status:approved?'approved':'pending',by:uid,at:s.clock,...(approved?{decidedBy:uid,decidedAt:s.clock,bookedOn:date}:{})};
-    const list=manual(k),i=list.findIndex(x=>x.id===v.id);if(i<0)list.push(v);else list[i]=v;
-    return `Manual ${type} ${v.id} dated ${date} ${id?'changed':'saved'} · ${total(lines)} · ${approved?'approved (Owner)':'pending the Owner’s approval'}${cash.warning?' · '+cash.warning:''}`;
-  },
+  // Contract §2 names the voucher type `type`; a prototype command's `type` is the command name, so the payload carries `voucherType`.
+  ACC_MANUAL_SAVE:k=>{enter(k);const c=k.cmd;
+    return accManualSave(k,{id:c.id,date:c.date,type:c.voucherType,narration:c.narration,reference:c.reference,lines:c.lines,template:c.template}).detail;},
   ACC_MANUAL_DECIDE:k=>{
     owner(k,'approves or rejects');const {s,cmd,uid}=k;
     const v=accManualById(s,String(cmd.id??''));k.assert(v,'This manual voucher was not found.','NOT_FOUND');

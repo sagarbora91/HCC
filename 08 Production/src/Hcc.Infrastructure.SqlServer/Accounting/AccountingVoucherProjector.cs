@@ -222,6 +222,13 @@ public sealed class AccountingVoucherProjector(SqlConnectionFactory connections,
             case AccountingEvents.UdhaarCreditRaised: // ACC-1 (contract §4, A17)
                 source = AccountingEventMapper.UdhaarCredit(Parse<UdhaarCreditRaisedEvent>(evt));
                 break;
+
+            case AccountingEvents.ManualVoucherApproved: // ACC-2 (acc2-manual, contract §2)
+                source = AccountingEventMapper.ManualVoucher(Parse<ManualVoucherApprovedEvent>(evt));
+                break;
+
+            case AccountingEvents.ManualVoucherVoided: // ACC-2: nothing to book (SourcesAsync leaves out the void voucher's source; a reversal has its own event)
+                break;
         }
 
         if (source is not null && !source.IsZero)
