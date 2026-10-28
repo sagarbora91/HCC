@@ -25,12 +25,12 @@ export function blockedDuring(room:Room,a:string,d:string):boolean{
 export function totals(b:Booking){
   const net=b.lines.reduce((s,l)=>s+l.amount,0);
   const tax=b.lines.reduce((s,l)=>s+lineTax(l),0);
-  const paid=b.receipts.reduce((s,r)=>s+(r.kind==='payment'?r.amount:r.kind==='refund'?-r.amount:0),0);
-  // ACC-2 flows (contract §4, A6a): a deposit applied at check-out leaves the deposit held and settles the folio balance.
-  const deposit=b.receipts.reduce((s,r)=>s+(r.kind==='deposit'?r.amount:r.kind==='deposit-return'||r.kind==='deposit-apply'?-r.amount:0),0);
-  // Company credit moves the balance to a receivable (Financial Rulebook §2); it is not a cash/net receipt. ACC-2 (A13): so does an
-  // OTA credit (the OTA's receivable) and a deposit applied (the deposit held).
-  const credit=b.receipts.reduce((s,r)=>s+(r.kind==='company-credit'||r.kind==='ota-credit'||r.kind==='deposit-apply'?r.amount:0),0);
+  // ACC-2 flows (contract §4, A6a; coordinator ruling 28 Oct): a deposit applied at check-out counts as paid; one applied from the deposit
+  // receipts held on the folio also leaves the deposit (an advance carried in the opening balance, depositSource 'opening', has none here).
+  const paid=b.receipts.reduce((s,r)=>s+(r.kind==='payment'||r.kind==='deposit-apply'?r.amount:r.kind==='refund'?-r.amount:0),0);
+  const deposit=b.receipts.reduce((s,r)=>s+(r.kind==='deposit'?r.amount:r.kind==='deposit-return'||(r.kind==='deposit-apply'&&r.depositSource!=='opening')?-r.amount:0),0);
+  // Company credit moves the balance to a receivable (Financial Rulebook §2); it is not a cash/net receipt. ACC-2 (A13): so does an OTA credit.
+  const credit=b.receipts.reduce((s,r)=>s+(r.kind==='company-credit'||r.kind==='ota-credit'?r.amount:0),0);
   return {net,tax,total:net+tax,paid,deposit,balance:net+tax-paid-credit};
 }
 /** Coarse module gate. Disabled users and users whose assignment expired (expiresOn < business date) are denied. Owner: stream E. */

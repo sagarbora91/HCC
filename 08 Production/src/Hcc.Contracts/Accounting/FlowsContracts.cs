@@ -3,8 +3,10 @@ namespace Hcc.Contracts.Accounting;
 // ACC-2 flows (02 Planning/agents/ACC2-POSTING-CONTRACT.md §4, §7, §8): requests, results and events of the commands
 // ApplyDeposit, SettleFolioToOta, RecordOtaPayout, ReverseUdhaarPayment and SetCompanyActive (Hcc.Api OtaPayoutEndpoints).
 
-/// <summary>A6a: apply the deposit held to the folio at check-out (PERM-PAY-001 on the till's open shift). <c>ExpectedVersion</c> = the folio version seen.</summary>
-public sealed record ApplyDepositRequest(long FolioId, long AmountPaise, int TillId, string? ExpectedVersion = null);
+/// <summary>A6a: apply an advance to the folio at check-out (PERM-PAY-001 on the till's open shift). <c>Source</c> = receipts (default: the deposit receipts
+/// held on the folio) or opening (Manager / Owner — PERM-ACC-008 as well: an advance carried in the opening balance, ≤ the 2000 credit balance; rulebook T5a).
+/// <c>ExpectedVersion</c> = the folio version seen.</summary>
+public sealed record ApplyDepositRequest(long FolioId, long AmountPaise, int TillId, string? ExpectedVersion = null, string? Source = null);
 
 /// <summary>A13: move the in-house folio's whole balance to the OTA's receivable (receipt kind ota-credit) before CheckoutStay; the stay's
 /// reservation must come from a connected channel (ota.message New → reservation).</summary>
@@ -41,3 +43,6 @@ public sealed record OtaPayoutRecordedEvent(long PayoutId, int ChannelId, string
 /// <c>AmountPaise</c> is the positive amount reversed.</summary>
 public sealed record UdhaarPaymentReversedEvent(long ReceivableId, long SettlementId, long ReversalOf, DateOnly BusinessDate, string Tender, long AmountPaise, string Customer,
     string Reason, long? CashMovementId = null);
+
+/// <summary>Owner money setting (PERM-MST-002; rulebook §4.4 / DEC-143): the GST on the channel's commission invoice is input tax credit.</summary>
+public sealed record SetChannelItcRequest(int ChannelId, bool ItcAllowed);

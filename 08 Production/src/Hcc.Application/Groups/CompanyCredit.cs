@@ -191,6 +191,7 @@ public static class CompanyCreditCheck
     {
         ArgumentNullException.ThrowIfNull(guard);
         ArgumentNullException.ThrowIfNull(company);
+        if (!company.Active) throw Hcc.Domain.Masters.MastersRules.Fail(Hcc.Contracts.Masters.MasterReasons.Retired, $"{company.Name} is retired — choose an active company account."); // ACC-2 flows (contract §8)
         var after = await guard.ExposureAsync(tx, company.PropertyId, company.CompanyId, ct).ConfigureAwait(false);
         var subject = after.Of(kind, subjectId);
         CompanyCreditRules.Ensure(company.CompanyId, company.Name, new Paise(company.CreditLimitPaise), after.Total - subject, subject, what);

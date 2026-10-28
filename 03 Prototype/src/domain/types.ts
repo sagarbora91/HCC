@@ -91,6 +91,10 @@ export type Receipt={id:string;amount:number;method:string;date:string;kind:'pay
   // ── Receipt · stream E fields (add below this line) ──
 
   // ── Receipt · stream F fields (add below this line) ──
+
+  // ── Receipt · ACC-2 flows (contract §4; coordinator ruling 28 Oct: DEPOSIT_APPLY source) ──
+  /** A `deposit-apply` receipt that applies an advance carried in the opening balance (no deposit receipt on the folio, rulebook T5a). */
+  depositSource?:'opening';
 };
 export type BookingStatus='Held'|'Expired'|'Confirmed'|'In house'|'Departed'|'Cancelled'|'No show';
 export type Booking={id:string;guest:string;email:string;people:number;room:string;arrival:string;departure:string;rate:number;source:string;status:BookingStatus;registered:boolean;lines:Line[];receipts:Receipt[];version:number;notes:string;

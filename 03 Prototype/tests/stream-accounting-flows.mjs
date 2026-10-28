@@ -26,7 +26,7 @@ export function register({test,M,assert}){
     s=execute(s,'cashier',{type:'DEPOSIT_APPLY',booking:id,amount:R(1000)});
     const r=bk(s,id).receipts.at(-1),t=totals(bk(s,id));
     assert.deepEqual([r.kind,r.amount,r.method,r.date],['deposit-apply',R(1000),'Deposit applied',D]);
-    assert.deepEqual([t.deposit,t.balance,t.paid],[0,t0.balance-R(1000),0]);
+    assert.deepEqual([t.deposit,t.balance,t.paid],[0,t0.balance-R(1000),R(1000)],'coordinator ruling: a deposit-apply receipt counts as paid');
     const v=M.accLiveVouchers(s,D).find(v=>v.source.id===`${id}/${r.id}`);
     assert.deepEqual([v.type,v.source.sub,ent(v)],['Journal','deposit-apply',[['2000',R(1000),0],['1100',0,R(1000)]]]);
     assert.ok(balanced(M.accLiveVouchers(s,D)));
@@ -53,6 +53,24 @@ export function register({test,M,assert}){
     assert.deepEqual([totals(bk(p,id)).deposit,totals(bk(p,id)).balance],[R(400),0]);
     const closed=execute(s,'owner',{type:'SHIFT_CLOSE',counted:M.drawer(s)});
     assert.throws(()=>execute(closed,'cashier',{type:'DEPOSIT_APPLY',booking:id,amount:R(100)}),/shift is closed/);
+  });
+
+  test('[ACC2-FLOWS] DEPOSIT_APPLY source opening (Manager / Owner, rulebook T5a): an advance carried in the opening balance, ≤ the 2000 credit balance',()=>{
+    let s=execute(seed(),'manager',{type:'ACC_OPENING_SAVE',asOf:'2026-04-01',lines:[{account:'1030/BANK-1',debit:R(5000),credit:0},{account:'2000',debit:0,credit:R(5000)}]});
+    s=execute(s,'owner',{type:'ACC_OPENING_APPROVE'});
+    let id;[s,id]=stay({},s);const t0=totals(bk(s,id));
+    assert.throws(()=>execute(s,'cashier',{type:'DEPOSIT_APPLY',booking:id,amount:R(1000),source:'opening'}),code('FORBIDDEN'));
+    assert.throws(()=>execute(s,'manager',{type:'DEPOSIT_APPLY',booking:id,amount:R(1000)}),/no refundable deposit/);
+    assert.throws(()=>execute(s,'manager',{type:'DEPOSIT_APPLY',booking:id,amount:R(1000),source:'bank'}),/Choose where the advance comes from/);
+    assert.throws(()=>execute(seed(),'owner',{type:'DEPOSIT_APPLY',booking:'HCC-1041',amount:R(10),source:'opening'}),/No advance is held/);
+    s=execute(s,'manager',{type:'DEPOSIT_APPLY',booking:id,amount:R(2000),source:'opening'});
+    const r=bk(s,id).receipts.at(-1),t=totals(bk(s,id));
+    assert.deepEqual([r.kind,r.depositSource,r.method],['deposit-apply','opening','Opening advance applied']);
+    assert.deepEqual([t.paid,t.deposit,t.balance],[R(2000),0,t0.balance-R(2000)]);
+    const v=M.accLiveVouchers(s,D).find(v=>v.source.id===`${id}/${r.id}`);
+    assert.deepEqual([v.type,ent(v)],['Journal',[['2000',R(2000),0],['1100',0,R(2000)]]]);
+    assert.equal(M.accLedgerBalanceMap(s).get('2000'),-R(3000));
+    assert.throws(()=>execute(s,'owner',{type:'DEPOSIT_APPLY',booking:id,amount:R(3500),source:'opening'}),/at most the advances held in 2000 Advance deposits \(₹3,000\)/);
   });
 
   // ── A13 · OTA credit at check-out and the payout from the statement ──
