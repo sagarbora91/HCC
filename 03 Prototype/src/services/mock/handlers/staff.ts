@@ -11,7 +11,7 @@ import {money} from '../../../domain/money';
 import {
   hrEnsure,hrCanManage,hrCanPay,hrCanRates,hrStaffOfUser,hrShiftFor,hrKey,hrCheckinStatus,hrApprovedLeaveOn,
   HR_ATT_MARKS,hrComputeRun,hrMonthComplete,hrApplyRecoveries,hrReverseRecoveries,hrAdvanceBalance,hrMonday,hrWeek,hrMonthLabel,hrRatesFor,hrRunErrors,
-  hrGenderOf,hrFnfSettled,HR_FNF_ADJ_MAX,HR_FNF_OWNER_ABOVE,hrBankFilesIssued,hrRatesDefaultFrom,hrRatesPastMonths,hrBankSnapshot,hrCanLink,hrLockedPayslipCount,hrMaskAccount,hrLastLockedMonth,hrFnfCompute,hrWaNumber,hrLeavePolicy,hrDefaultRates,HR_ATT_LABEL,HR_LEAVE_TYPES,HR_TRACKED,
+  hrGenderOf,hrFnfSettled,HR_FNF_ADJ_MAX,HR_FNF_OWNER_ABOVE,hrBankFilesIssued,hrRatesDefaultFrom,hrRatesPastMonths,hrBankSnapshot,hrCanLink,hrLockedPayslipCount,hrMaskAccount,hrLastLockedMonth,hrFnfCompute,hrWaNumber,hrRunBook,hrOn,hrLeavePolicy,hrDefaultRates,HR_ATT_LABEL,HR_LEAVE_TYPES,HR_TRACKED,
   hrParseEntry,hrPlanCorrection,hrCorrectionDateRefusal,hrEntryLabel,hrSameEntry,hrPendingRequests,hrLeaveActive,hrIsDuplicate,hrCanAddLeave,hrIsWeekOff,hrBlackoutHits,
   hrApproverChoices,hrRunFor,HR_ENT_DEFAULTS,hrKindLabel,
   type HRStaff,type HRShiftCode,type HRAttStatus,type HRLeaveType,type HRRates,type HRFnfAdj,type HRDayEntry,type HRRequest,type HRBank,type HRLeave,type HRHalf,type HREnt,
@@ -537,7 +537,7 @@ export const handlers:Record<string,Handler>={
     assert(!waiting,`${waiting} attendance correction${waiting===1?'':'s'} for ${hrMonthLabel(run!.month)} ${waiting===1?'waits':'wait'} for the Owner — approve or reject ${waiting===1?'it':'them'} before locking.`,'INVALID_TRANSITION');
     const fresh=hrComputeRun(s,run!.month);
     assert(JSON.stringify(fresh.lines)===JSON.stringify(run!.lines)&&JSON.stringify(hrRatesFor(s,run!.month))===JSON.stringify(run!.rates),'Attendance, leave, advances or rates changed after this draft. Recalculate before locking.','STALE_VERSION');
-    run!.status='Locked';run!.lockedBy=k.uid;run!.lockedAt=s.clock;hrApplyRecoveries(x,run!);hrBankSnapshot(x,run!);
+    run!.status='Locked';run!.lockedBy=k.uid;run!.lockedAt=s.clock;run!.lockedOn=s.date;hrApplyRecoveries(x,run!);hrBankSnapshot(x,run!);
     return `${run!.id} · ${hrMonthLabel(run!.month)} locked · bank details frozen · payslips released`;
   },
   /** SCC unlockRun: Owner only, latest locked run only, with a reason; advance recoveries are reversed and the run returns to Draft. */
@@ -552,9 +552,11 @@ export const handlers:Record<string,Handler>={
     const files=run!.bankFiles??[],sent=run!.sent??[];
     if(files.length&&!cmd.confirmBankFile)k.fail('INVALID_TRANSITION',`A bank transfer file for ${hrMonthLabel(run!.month)} was already generated (${files.length}×, last ${files[files.length-1].at}). Unlocking may lead to paying twice — confirm to unlock.`);
     hrReverseRecoveries(x,run!.id);
+    // ACC-2 (contract §8): the unlock keeps what the undone lock booked (its PayRun voucher) and dates its reversal (server PayRunReversal).
+    const lockedOn=hrOn(run!.lockedOn,run!.lockedAt);
     run!.unlocks=[...(run!.unlocks??[]),{at:s.clock,by:k.uid,reason:String(cmd.reason).trim(),...(sent.length?{sent}:{}),...(files.length?{bankFiles:files}:{}),
-      nets:Object.fromEntries(run!.lines.map(l=>[l.staffId,l.net]))}];
-    run!.status='Draft';delete run!.lockedBy;delete run!.lockedAt;delete run!.bank;delete run!.sent;delete run!.bankFiles;
+      nets:Object.fromEntries(run!.lines.map(l=>[l.staffId,l.net])),on:s.date,...(lockedOn?{lockedOn}:{}),book:hrRunBook(run!)}];
+    run!.status='Draft';delete run!.lockedBy;delete run!.lockedAt;delete run!.lockedOn;delete run!.bank;delete run!.sent;delete run!.bankFiles;
     return `${run!.id} · ${hrMonthLabel(run!.month)} unlocked · advance recoveries reversed · payslips withdrawn${sent.length?` · ${sent.length} sent payslip${sent.length===1?'':'s'} marked superseded`:''}${files.length?' · bank file already issued — next file must not pay twice':''}`;
   },
   /** F-09: record (and allow) a bank transfer file for a locked run; a repeat — including after an unlock — needs confirmReissue. */
@@ -564,7 +566,7 @@ export const handlers:Record<string,Handler>={
     const prior=hrBankFilesIssued(run!);
     if(prior.length&&!cmd.confirmReissue)fail('INVALID_TRANSITION',`A bank file for ${hrMonthLabel(run!.month)} was already generated on ${prior[prior.length-1].at} (net ${money(prior[prior.length-1].net)}). Paying this file in full again may pay twice — confirm to generate it again.`);
     const net=run!.lines.reduce((n,l)=>n+l.net,0);
-    run!.bankFiles=[...(run!.bankFiles??[]),{at:s.clock,by:k.uid,net}];
+    run!.bankFiles=[...(run!.bankFiles??[]),{at:s.clock,by:k.uid,net,on:s.date}]; // ACC-2: the first file of a lock = the net-pay payment voucher
     return `${run!.id} · ${hrMonthLabel(run!.month)} bank transfer file · net ${money(net)}${prior.length?` · REISSUE (earlier file ${money(prior[prior.length-1].net)})`:''} (simulated — no money moves)`;
   },
   /** DEC-056: simulated WhatsApp send of a locked payslip (nothing leaves the device). */
@@ -608,7 +610,7 @@ export const handlers:Record<string,Handler>={
     // DEC-074 / A04-06: only the part of the advance the settlement covers is recovered (oldest advance first); the rest stays open.
     let left=c.advanceRecovered;
     for(const a of x.advances.filter(a=>a.staffId===st.id&&hrAdvanceBalance(a)>0)){const b=Math.min(left,hrAdvanceBalance(a));if(b<=0)break;a.recovered+=b;a.recoveries.push({runId:f!.id,amount:b});left-=b;}
-    f!.status='Settled';f!.confirmedBy=k.uid;f!.confirmedAt=s.clock;
+    f!.status='Settled';f!.confirmedBy=k.uid;f!.confirmedAt=s.clock;f!.confirmedOn=s.date; // ACC-2: the F&F vouchers' date
     return `${f!.id} · ${f!.name} · full and final confirmed · ${f!.net<0?'recoverable from employee '+money(-f!.net):'net payable '+money(f!.net)} (simulated transfer)`
       +(c.advanceOutstanding>0?` · advance ${money(c.advanceRecovered)} recovered${c.advanceLeftOpen>0?`, ${money(c.advanceLeftOpen)} left open (still owed)`:''}`:'');
   },

@@ -67,7 +67,7 @@ export function register({test,M,assert}){
   test('[ACC1-PARTIES] a bank account with a ledger balance cannot be retired (methods moved away first); a till likewise',()=>{
     let s=seed();const id=s.bookings.find(b=>b.status==='In house').id;
     s=execute(s,'cashier',{type:'PAYMENT',id,amount:20000,method:'Bank transfer',kind:'payment',reference:'NEFT-2'});
-    assert.ok(M.accPartyBalance(s,'1030/BANK-1')>=20000);
+    assert.ok(M.accPartyBalance(s,'1030/BANK-1')!==0); // ACC-2 parity: the BASE salary advance HR-ADV-1 (bank transfer) also moves 1030/BANK-1
     assert.match(M.accPartyRetireBlocker(s,'1030','BANK-1'),/Bank accounts · Hotel current account has a ledger balance/);
     assert.match(M.accPartyRetireBlocker(s,'1000','TILL'),/Front-desk cash drawer has a ledger balance/);
     assert.equal(M.accPartyRetireBlocker(s,'1030','NO-SUCH'),'');

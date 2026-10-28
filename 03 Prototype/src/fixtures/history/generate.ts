@@ -98,7 +98,7 @@ export function buildHistory(base:State,opts:Partial<HistoryOptions>={}):State{
       const date=addDays(b.arrival,rng.int(0,len-1)),hh=rng.pick(['08:10','13:20','20:30','21:40']);
       const lines=picks.map((m,i)=>({id:oid+'-L'+(i+1),item:m.id,name:m.name,price:m.price,qty:rng.int(1,2),kot:oid+'-K1'}));
       const net=lines.reduce((a,l)=>a+l.price*l.qty,0),taxBps=gstForFood(s,date).bps,tax=gstLineTax(net,taxBps);
-      const line:Line={id:'posline:'+oid,label:'Room service',amount:net,date,kind:'service',taxBps};b.lines.push(line);
+      const line:Line={id:'posline:'+oid,label:'Room service',amount:net,date,kind:'food',taxBps};b.lines.push(line); // ACC-2: kind food, as POS_SETTLE mode folio (F&B line → 4200)
       const order:POSOrder={id:oid,outlet:'room-service',room:b.room,booking:b.id,guest:b.guest,covers:1,date,openedAt:date+'T'+hh,openedBy:'reception',status:'Settled',version:4,lines,
         kots:[{id:oid+'-K1',no:1,at:date+'T'+hh,by:'reception',status:'Served',readyAt:date+'T'+hh,servedAt:date+'T'+hh}],
         settlement:{mode:'folio',billNo:'',net,taxBps,tax,total:net+tax,date,at:date+'T'+hh,by:'reception',booking:b.id,folioLineId:line.id}};

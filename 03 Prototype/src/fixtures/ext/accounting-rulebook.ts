@@ -99,9 +99,8 @@ export function accRulebookMonth(s0:State,exec:Exec=need(engine)):State{
   // ── the opening entry (contract §5): entered by the Manager, approved by the Owner ──
   run(MANAGER,{type:'ACC_OPENING_SAVE',asOf:ACC_RB.asOf,lines:accRulebookOpeningLines(till,company.id),note:'Rulebook §8.1 opening balances, 1 April 2026 (fictional)'});
   run(OWNER,{type:'ACC_OPENING_APPROVE'});
-  // A folio restaurant / room-service charge is a 'service' line (kind has no class of its own), so rulebook A3 (restaurant on a folio → 4200)
-  // needs the Owner's mapping override; this month has no other service line (no laundry, no banquet).
-  run(OWNER,{type:'ACC_MAP_SET',source:'line:service',account:'4200'});
+  // ACC-2 parity (contract §8): a folio restaurant / room-service charge is a 'food' line → line:food → 4200 by default (rulebook A3); the
+  // Owner's line:service → 4200 override of ACC-1 is gone.
   // ── 1 April: arrivals ──
   const stays:{id:string;room:string;nights:number;company?:boolean}[]=[];
   const book=(room:string,nights:number,guest:string,onCompany:boolean)=>{

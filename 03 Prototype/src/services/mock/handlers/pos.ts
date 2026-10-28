@@ -134,8 +134,8 @@ const POS_SETTLE:Handler=k=>{
     financial(x!);assert(x!.status==='In house','Only an in-house guest’s folio can take a room charge.','INVALID_TRANSITION');
     const lid='posline:'+o.id;assert(!x!.lines.some(l=>l.id===lid),'This check is already on the folio.','INVALID_TRANSITION');
     const n=posActiveLines(o).reduce((a,l)=>a+l.qty,0);
-    // Same line shape as CHARGE (kind 'service', tax snapshot on the line).
-    x!.lines.push({id:lid,label:`${outletName(k,o)} · bill ${billNo} · ${n} item${n===1?'':'s'}`,amount:net,date:s.date,kind:'service',taxBps});x!.version++;
+    // Same line shape as CHARGE (tax snapshot on the line); ACC-2 (contract §8, rulebook A3): kind 'food' → line:food → 4200 F&B revenue.
+    x!.lines.push({id:lid,label:`${outletName(k,o)} · bill ${billNo} · ${n} item${n===1?'':'s'}`,amount:net,date:s.date,kind:'food',taxBps});x!.version++;
     o.settlement={mode:'folio',billNo,net,taxBps,tax,total,date:s.date,at:s.clock,by:uid,booking:x!.id,folioLineId:lid};
     if(!o.booking){o.booking=x!.id;o.guest??=x!.guest;}
     p.billSeq++;o.status='Settled';o.version++;

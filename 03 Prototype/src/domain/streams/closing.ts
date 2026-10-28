@@ -330,7 +330,8 @@ export function reportPack(s:State,from:string,to:string):ReportPack{
   const lines=reportLines(s,from,to),rec=reportReceipts(s,from,to),exp=reportExpenses(s,from,to);
   // Rows and per-date sums are built once per selection (the day tables used to rebuild them for every date).
   const memoRows=<K,V>(f:(k:K)=>V)=>{const c=new Map<K,V>();return (k:K)=>{let v=c.get(k);if(v===undefined){v=f(k);c.set(k,v);}return v;};};
-  const Lk=memoRows((k:string)=>lines.filter(x=>!k||x.l.kind===k).map(x=>lineRow(x.b,x.l,x.l.amount)));
+  // ACC-2 parity: F&B charged to a folio (kind 'food') stays in the report's service revenue, as on the server (a folio charge, not room revenue).
+  const Lk=memoRows((k:string)=>lines.filter(x=>!k||x.l.kind===k||k==='service'&&x.l.kind==='food').map(x=>lineRow(x.b,x.l,x.l.amount)));
   const L=(k?:Line['kind'])=>Lk(k??'');
   const taxRows=lines.map(x=>lineRow(x.b,x.l,lineTax(x.l)));
   const Rk=memoRows((key:string)=>{const [kinds,method]=key.split('|');const ks=kinds.split(',');return rec.filter(x=>ks.includes(x.r.kind)&&(!method||x.r.method===method)).map(x=>receiptRow(x.b,x.r));});

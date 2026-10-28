@@ -184,7 +184,7 @@ export function register({test,M,assert}){
     const ids=M.accChartProblems(bad).map(p=>p.id).sort();
     assert.deepEqual(ids,['dup:6000','group:g-orphan','ledger-group:6000','map:expense:Laundry','map:line:service']);
     assert.ok(M.accChartProblems(bad).every(p=>p.severity==='error'));
-    assert.deepEqual(M.accChartRows(s).find(r=>r.code==='4200').mappedBy,['pos:sales']);
+    assert.deepEqual(M.accChartRows(s).find(r=>r.code==='4200').mappedBy,['line:food','pos:sales']); // ACC-2 parity: line:food → 4200
     assert.deepEqual(M.accChartRows(s).find(r=>r.code==='1310').mappedBy,['tax:gst-input']);
   });
 }
