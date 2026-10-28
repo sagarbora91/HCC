@@ -130,6 +130,7 @@ public static class HccComposition
         // ACC-1 end
         // ACC-2 lanes: add ONE api.MapAccounting<Lane>Endpoints(); (or services.Add…Module()) line below (append only).
         api.MapExpenseVendorEndpoints(); // acc2-purchase (vendor payments, returns, ageing, asset register)
+        api.MapAccountingManualEndpoints(); // ACC-2 acc2-manual (contract §2: manual vouchers, loans)
         // ACC-2 end
         api.MapComplianceEndpoints();    // W2-5
         api.MapPosEndpoints();           // W2-6

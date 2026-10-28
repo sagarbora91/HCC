@@ -355,6 +355,10 @@ public static partial class ChartOfAccounts
     public static string? Resolve(IReadOnlyDictionary<string, string> mapping, string key, EffectiveChart? chart = null)
     {
         ArgumentNullException.ThrowIfNull(mapping);
+        ArgumentNullException.ThrowIfNull(key);
+        // ACC-2 (acc2-manual): a manual voucher line names its ledger (ledger:<code>) — an active ledger of the chart, never Suspense.
+        if (key.StartsWith(SourceRules.LedgerKeyPrefix, StringComparison.Ordinal))
+            return key[SourceRules.LedgerKeyPrefix.Length..] is var code && (chart ?? Builtin).Find(code) is { Active: true } && code != Suspense ? code : null;
         return mapping.TryGetValue(key, out var a) && (chart ?? Builtin).Find(a) is { Active: true } && a != Suspense ? a : null;
     }
 }

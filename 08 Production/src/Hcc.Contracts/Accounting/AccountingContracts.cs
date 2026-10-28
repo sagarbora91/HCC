@@ -45,6 +45,11 @@ public static class AccountingEvents
     // ACC-1 (contract §4, rulebook A17, DEC-144): an Udhaar credit raised is a sale booked the same day (Dr 1120/<customer> · Cr revenue · Cr CGST · Cr SGST).
     public const string UdhaarCreditRaised = "UdhaarCreditRaised";
 
+    // ACC-2 (acc2-manual, contract §2): a manual voucher approved (booked as manual:<id>) / voided (books nothing: an unlocked day's source stops
+    // counting; a locked day's reversal comes as its own ManualVoucherApproved).
+    public const string ManualVoucherApproved = "ManualVoucherApproved";
+    public const string ManualVoucherVoided = "ManualVoucherVoided";
+
     /// <summary>Published by accounting when a period is locked / unlocked.</summary>
     public const string AccountingPeriodLocked = "AccountingPeriodLocked";
 
@@ -57,6 +62,7 @@ public static class AccountingEvents
          CompanyPaymentRecorded,                                                                 // DEC-076 (wave B5)
          UdhaarPaymentRecorded,                                                                  // DEC-130 (SCC decisions wave)
          UdhaarCreditRaised,                                                                     // ACC-1 (acc1-parties, DEC-144)
+         ManualVoucherApproved, ManualVoucherVoided,                                             // ACC-2 (acc2-manual, contract §2)
          .. PurchaseEvents.All];                                                                 // ACC-2 acc2-purchase (contract §3)
 }
 
