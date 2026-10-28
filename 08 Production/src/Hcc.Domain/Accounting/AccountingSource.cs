@@ -95,6 +95,8 @@ public static class SourceRules
     /// </summary>
     public static AccountingSource FolioReceipt(string sourceKey, string kind, string tender, DateOnly date, long amountPaise, string narration)
     {
+        if (kind == "deposit-apply") return DepositApplied(sourceKey, date, amountPaise, narration);       // ACC-2 flows (contract §4, A6a)
+        if (kind == "ota-credit") return OtaCredit(sourceKey, date, amountPaise, null, narration);          // ACC-2 flows (contract §4, A13)
         var counter = "receipt:" + kind;
         if (kind == "company-credit")
             return new(sourceKey, SourceKinds.Receipt, kind, date, VoucherType.Journal, narration, [Dr(counter, amountPaise), Cr("folio:guest", amountPaise)]);
@@ -195,6 +197,51 @@ public static class SourceRules
     }
 
     // ── end ACC-1 ──
+
+    // ── ACC-2 flows (02 Planning/agents/ACC2-POSTING-CONTRACT.md §4, §8; rulebook A6a, A13, A17b, DEC-150) ──
+
+    /// <summary>The OTA receivable key (1115, party = the channel), its commission (5070) and the GST TCS it collected (1340).</summary>
+    public const string OtaKey = "receipt:ota";
+
+    public const string OtaCommissionKey = "receipt:ota-commission";
+
+    public const string TcsKey = "tax:tcs";
+
+    /// <summary>A6a · deposit applied to the folio at check-out (receipt kind <c>deposit-apply</c>): Journal Dr advance deposits (<c>receipt:deposit</c>, 2000) · Cr guest ledger.</summary>
+    public static AccountingSource DepositApplied(string sourceKey, DateOnly date, long amountPaise, string narration)
+        => new(sourceKey, SourceKinds.Receipt, "deposit-apply", date, VoucherType.Journal, narration, [Dr("receipt:deposit", amountPaise), Cr("folio:guest", amountPaise)]);
+
+    /// <summary>A13 · the folio balance of an OTA-paid stay moved to the channel at check-out (receipt kind <c>ota-credit</c>): Journal Dr 1115/&lt;channel&gt; · Cr guest ledger.</summary>
+    public static AccountingSource OtaCredit(string sourceKey, DateOnly date, long amountPaise, string? channelParty, string narration)
+        => new(sourceKey, SourceKinds.Receipt, "ota-credit", date, VoucherType.Journal, narration,
+            [Dr(OtaKey, amountPaise) with { Party = PartyLedgers.Clip(channelParty) }, Cr("folio:guest", amountPaise)]);
+
+    /// <summary>
+    /// A13 / DEC-150 · OTA payout from the channel's statement (kind <c>ota</c>, sub <c>ota-payout</c>): Receipt Dr bank (<c>method:Bank transfer</c>, party
+    /// = the bank account) net · Dr 5070 commission (+ its GST unless <paramref name="itcAllowed"/>: then Dr 1310 / 1320 half each) · Dr 1340 TCS ·
+    /// Cr 1115/&lt;channel&gt; gross. Zero lines are dropped by the voucher builder. gross = net + commission + commissionGst + tcs (checked by the command).
+    /// </summary>
+    public static AccountingSource OtaPayout(string sourceKey, DateOnly date, long grossPaise, long commissionPaise, long commissionGstPaise, long tcsPaise, long netPaise,
+        bool itcAllowed, string? bankParty, string? channelParty, string narration)
+    {
+        var itc = itcAllowed ? commissionGstPaise : 0;
+        var (cgst, sgst) = ChartOfAccounts.ItcSplit(itc);
+        List<SourceEntry> e =
+        [
+            Dr("method:Bank transfer", netPaise) with { Party = PartyLedgers.Clip(bankParty) },
+            Dr(OtaCommissionKey, checked(commissionPaise + commissionGstPaise - itc)),
+        ];
+        if (itc != 0) e.AddRange([Dr(GstInputKey, cgst), Dr(ChartOfAccounts.GstInputSgstKey, sgst)]);
+        e.Add(Dr(TcsKey, tcsPaise));
+        e.Add(Cr(OtaKey, grossPaise) with { Party = PartyLedgers.Clip(channelParty) });
+        return new(sourceKey, SourceKinds.Ota, "ota-payout", date, VoucherType.Receipt, narration, e);
+    }
+
+    /// <summary>A17b · a mistaken Udhaar desk payment reversed (Owner): the negative of <see cref="UdhaarPayment"/> — Receipt Dr Udhaar receivables · Cr tender.</summary>
+    public static AccountingSource UdhaarPaymentReversal(string sourceKey, string tender, DateOnly date, long amountPaise, string narration)
+        => UdhaarPayment(sourceKey, tender, date, -Math.Abs(amountPaise), narration);
+
+    // ── end ACC-2 flows ──
 
     /// <summary>Accepted cash difference (counted − expected): short = Dr over/short · Cr cash; over = Dr cash · Cr over/short (Journal).</summary>
     public static AccountingSource CashDifference(string sourceKey, DateOnly date, long differencePaise, string narration)

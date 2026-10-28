@@ -45,6 +45,11 @@ public static class AccountingEvents
     // ACC-1 (contract §4, rulebook A17, DEC-144): an Udhaar credit raised is a sale booked the same day (Dr 1120/<customer> · Cr revenue · Cr CGST · Cr SGST).
     public const string UdhaarCreditRaised = "UdhaarCreditRaised";
 
+    // ACC-2 flows (contract §4, §8): an OTA payout from the statement (A13) and a mistaken Udhaar payment reversed (A17b). Deposit applied (A6a) and
+    // the OTA credit at check-out are ReceiptRecorded events of kind deposit-apply / ota-credit (SourceRules.DepositApplied / OtaCredit).
+    public const string OtaPayoutRecorded = "OtaPayoutRecorded";
+    public const string UdhaarPaymentReversed = "UdhaarPaymentReversed";
+
     /// <summary>Published by accounting when a period is locked / unlocked.</summary>
     public const string AccountingPeriodLocked = "AccountingPeriodLocked";
 
@@ -56,7 +61,8 @@ public static class AccountingEvents
          CashBanked, CashBankingRejected, OwnerDrawingRecorded,                                  // Wave B1 (DEC-073)
          CompanyPaymentRecorded,                                                                 // DEC-076 (wave B5)
          UdhaarPaymentRecorded,                                                                  // DEC-130 (SCC decisions wave)
-         UdhaarCreditRaised];                                                                    // ACC-1 (acc1-parties, DEC-144)
+         UdhaarCreditRaised,                                                                     // ACC-1 (acc1-parties, DEC-144)
+         OtaPayoutRecorded, UdhaarPaymentReversed];                                              // ACC-2 flows
 }
 
 /// <summary>Wave B1 (DEC-073): a bank deposit recorded (<see cref="AccountingEvents.CashBanked"/>) or rejected (<see cref="AccountingEvents.CashBankingRejected"/>).</summary>

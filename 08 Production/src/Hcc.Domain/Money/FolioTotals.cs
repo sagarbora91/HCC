@@ -8,6 +8,8 @@ public enum ReceiptKind
     DepositReturn,
     Refund,
     CompanyCredit,
+    DepositApply, // ACC-2 flows (contract §4, A6a): the deposit held applied to the folio at check-out
+    OtaCredit,    // ACC-2 flows (contract §4, A13): the folio balance moved to the OTA's receivable at check-out
 }
 
 public sealed record FolioLine(Paise Amount, int TaxBps);
@@ -46,6 +48,8 @@ public static class FolioTotals
                 case ReceiptKind.Deposit: deposit += r.Amount; break;
                 case ReceiptKind.DepositReturn: deposit -= r.Amount; break;
                 case ReceiptKind.CompanyCredit: credit += r.Amount; break;
+                case ReceiptKind.OtaCredit: credit += r.Amount; break;                          // ACC-2 flows: like company credit
+                case ReceiptKind.DepositApply: deposit -= r.Amount; credit += r.Amount; break;  // ACC-2 flows: leaves the deposit, settles the balance
                 default: throw new ArgumentOutOfRangeException(nameof(receipts), r.Kind, "Unknown receipt kind.");
             }
         }
@@ -62,6 +66,8 @@ public static class FolioTotals
         "deposit-return" => ReceiptKind.DepositReturn,
         "refund" => ReceiptKind.Refund,
         "company-credit" => ReceiptKind.CompanyCredit,
+        "deposit-apply" => ReceiptKind.DepositApply,
+        "ota-credit" => ReceiptKind.OtaCredit,
         _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown receipt kind."),
     };
 
@@ -73,6 +79,8 @@ public static class FolioTotals
         ReceiptKind.DepositReturn => "deposit-return",
         ReceiptKind.Refund => "refund",
         ReceiptKind.CompanyCredit => "company-credit",
+        ReceiptKind.DepositApply => "deposit-apply",
+        ReceiptKind.OtaCredit => "ota-credit",
         _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown receipt kind."),
     };
 }

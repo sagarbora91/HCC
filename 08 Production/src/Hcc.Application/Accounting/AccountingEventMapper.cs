@@ -43,9 +43,11 @@ public static class AccountingEventMapper
             "refund" => "Payment refunded",
             "deposit-return" => "Deposit returned",
             "company-credit" => "Company credit",
+            "deposit-apply" => "Deposit applied at check-out", // ACC-2 flows (A6a)
+            "ota-credit" => "OTA credit",                      // ACC-2 flows (A13)
             _ => kind,
         };
-        var narration = kind == "company-credit" ? $"{label} · folio {N(folioId)} · receipt {N(receiptId)}" : $"{label} · {tender} · folio {N(folioId)} · receipt {N(receiptId)}";
+        var narration = kind is "company-credit" or "deposit-apply" or "ota-credit" ? $"{label} · folio {N(folioId)} · receipt {N(receiptId)}" : $"{label} · {tender} · folio {N(folioId)} · receipt {N(receiptId)}";
         return SourceRules.WithParties(SourceRules.FolioReceipt(ReceiptKey(receiptId), kind, tender, businessDate, amountPaise, narration), parties);
     }
 
@@ -111,6 +113,28 @@ public static class AccountingEventMapper
         return SourceRules.UdhaarCredit(UdhaarCreditKey(e.ReceivableId), e.BusinessDate, kind, e.AmountPaise, e.GstBps, PartyLedgers.Udhaar(e.Customer, e.Mobile),
             $"Udhaar credit · {e.Customer} · {kind}{gst} · credit UD-{N(e.ReceivableId)}");
     }
+
+    // ── ACC-2 flows (contract §4, §8; rulebook A13, A17b; DEC-150) ──
+
+    public static string OtaPayoutKey(long payoutId) => "ota-payout:" + N(payoutId);
+
+    /// <summary>A13: the OTA payout from the statement — SourceRules.OtaPayout (bank party = the bank account code, channel party = the channel code).</summary>
+    public static AccountingSource OtaPayout(OtaPayoutRecordedEvent e)
+    {
+        ArgumentNullException.ThrowIfNull(e);
+        return SourceRules.OtaPayout(OtaPayoutKey(e.PayoutId), e.BusinessDate, e.GrossPaise, e.CommissionPaise, e.CommissionGstPaise, e.TcsPaise, e.NetPaise, e.ItcAllowed,
+            e.BankAccount, e.ChannelCode, $"OTA payout · {e.Channel} · statement {e.StatementRef} · {e.Bookings.ToString(CultureInfo.InvariantCulture)} booking(s) · payout {N(e.PayoutId)}");
+    }
+
+    /// <summary>A17b: a mistaken Udhaar payment reversed — the negative Receipt keyed by the reversal row (as the payment it reverses: udhaar-payment:&lt;id&gt;).</summary>
+    public static AccountingSource UdhaarPaymentReversed(UdhaarPaymentReversedEvent e, PartyContext? parties = null)
+    {
+        ArgumentNullException.ThrowIfNull(e);
+        return SourceRules.WithParties(SourceRules.UdhaarPaymentReversal(UdhaarPaymentKey(e.SettlementId), e.Tender, e.BusinessDate, e.AmountPaise,
+            $"Udhaar payment reversed (A17b) · {N(e.ReversalOf)} · {e.Customer} · {e.Tender} · {e.Reason} · payment {N(e.SettlementId)}"), parties);
+    }
+
+    // ── end ACC-2 flows ──
 
     // ── Wave B1 (DEC-073, A03b-01): cash leaving the drawer. Keys banking:{id}, banking:{id}/rejected, drawing:{id} (one source per record). ──
 

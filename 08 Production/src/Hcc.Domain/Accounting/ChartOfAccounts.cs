@@ -280,6 +280,10 @@ public static partial class ChartOfAccounts
         // DEC-130 an Udhaar payment settles the customer's credit; ACC-1 (contract §2) the expense ITC splits half / half like output GST:
         // CGST half → 1310 (tax:gst-input), SGST half → 1320 (tax:gst-input-sgst); 1300 stays for locked snapshots only.
         ["receipt:udhaar"] = "1120", ["tax:gst-input"] = "1310", ["tax:gst-input-sgst"] = "1320",
+
+        // ACC-2 flows (contract §4, rulebook A13, DEC-150): the OTA's receivable (1115/<channel>), its commission (5070) and the TCS it
+        // collected (GST electronic cash ledger 1340), from the payout statement.
+        ["receipt:ota"] = "1115", ["receipt:ota-commission"] = "5070", ["tax:tcs"] = "1340",
     };
 
     /// <summary>ACC-1: the SGST-half ITC key (contract §2).</summary>
