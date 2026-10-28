@@ -7,7 +7,13 @@ Contract: `02 Planning/agents/ACC2-POSTING-CONTRACT.md` §1 (source kinds, CHECK
 
 ## Commits
 
-COMMITS
+```
+24dc1914 ACC-2 manual: loan list order in the test (rows sorted by code)
+a21d5337 ACC-2 manual: coordinator rulings (voucherType / VoucherType, ACC_LOAN_ADD 2400/<CODE> with kind secured | unsecured, acc.loan.kind), server build fixes, DONE draft
+219df468 ACC-2 manual (server WIP): migrations 4238-4241, ManualVoucherService / SqlManualVoucherStore, SourceRules.Manual + mapper + projector, endpoints, tests; prototype accManualSave API
+8344992a ACC-2 manual (prototype): manual vouchers (guards, templates, Owner approve / Accountant pending, void + locked-day reversal), loan party rows, posting section, sync mappers, tests
+```
+(+ the commit that adds this file's final counts.)
 
 ## Files
 
@@ -41,7 +47,16 @@ COMMITS
 
 ## Tests
 
-COUNTS
+All through `E:\Projects\HCC\worktreescc2	ools\Invoke-Serialized.ps1 -Label acc2-manual` (exit 75 retried); full logs in `E:\Projects\HCC\worktreescc2-manual\.scratch\` (uncommitted: `tsc.log`, `npm-test.log`, `build.log`, `acctest.log`, `trx\`).
+
+| suite | before (base b78cb069) | after |
+|---|---|---|
+| prototype `npx tsc --noEmit` | 0 errors | **0 errors** |
+| prototype `npm test` (whole suite) | 1948 | **1962 / 1962** (+11 `[ACC2-MANUAL]`, +3 `[ACC2-MANUAL-SYNC]`) |
+| server `dotnet build Hcc.slnx` | 0 warnings | **0 warnings, 0 errors** |
+| server `dotnet test tests/Hcc.Accounting.Tests -maxcpucount:1 --logger trx` | 147 | **156 / 156** (+8 `ManualVoucherTests`, +1 `ManualVoucherSqlTests`) |
+
+Command lines: `-Command "& '…\.scratch\proto.ps1'"` (tsc then `npm test`, in `03 Prototype`) and `-Command "& '…\.scratchoth.ps1'"` (`dotnet build Hcc.slnx` then `dotnet test tests/Hcc.Accounting.Tests -maxcpucount:1 --logger trx`, in `08 Production`). `node tools/migrations-lock.mjs`: in step (100 migrations). FY26 pins and goldens untouched (no fixture carries a manual voucher). Other server test projects (e.g. `Hcc.Access.Tests` RBAC rows) not run — the integrator's.
 
 ## Open items
 
