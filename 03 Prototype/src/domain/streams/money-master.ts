@@ -208,9 +208,12 @@ export function mnySettlement(s:State,from:string,to:string):MnySettleGroup[]{
     l.in+=amtIn;l.out+=amtOut;l.count++;g.in+=amtIn;g.out+=amtOut;g.net=g.in-g.out;
   };
   for(const b of s.bookings)for(const r of b.receipts){if(!inR(r.date))continue;
-    if(r.kind==='payment'||r.kind==='deposit'||r.kind==='company-credit')add(r.method,r.amount,0);else add(r.method,0,r.amount);}
+    // ACC-2 integration (flows item 10): an OTA credit settles like company credit; a deposit applied moves no money (the deposit was counted when taken).
+    if(r.kind==='payment'||r.kind==='deposit'||r.kind==='company-credit'||r.kind==='ota-credit')add(r.method,r.amount,0);else if(r.kind!=='deposit-apply')add(r.method,0,r.amount);}
   for(const r of s.posX?.receipts??[])if(inR(r.date)){if(r.amount>=0)add(r.method,r.amount,0);else add(r.method,0,-r.amount);}
   for(const e of s.expenses as Expense[])if(inR(e.date)&&(e.status==='Posted'||e.status==='Reversed')){if(e.amount>=0)add(e.method,0,e.amount);else add(e.method,-e.amount,0);}
+  // ACC-2 integration: vendor payments (purchase lane) leave through their method; a void on a later day brings the money back that day.
+  for(const p of s.expensesX?.vendorPayments??[]){if(inR(p.date)&&!(p.void&&p.voidAt===p.date))add(p.method,0,p.amount);if(p.void&&p.voidAt&&p.voidAt!==p.date&&inR(p.voidAt))add(p.method,p.amount,0);}
   const order=(g:MnySettleGroup)=>g.kind==='till'?0:g.kind==='bank'?1:2;
   const accOrder=(g:MnySettleGroup)=>idx.accounts.rows.findIndex(a=>a.code===g.account);
   return [...groups.values()].sort((a,b)=>order(a)-order(b)||accOrder(a)-accOrder(b)).map(g=>({...g,lines:g.lines.sort((a,b)=>{

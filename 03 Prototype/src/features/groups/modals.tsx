@@ -3,7 +3,7 @@
 import {printDocument} from '../../app/native';
 import React,{useState} from 'react';
 import {Check,Plus,Trash2,AlertTriangle,Info,Printer,Banknote} from 'lucide-react';
-import {GRP_BLOCKS_REFUSAL,grpBlocksOnServer,money,nights,grpSlice,grpCompany,grpBlock,grpRoomTypes,grpLines,grpRemaining,grpFreeRooms,grpCredit,grpStayValue,grpHeldElsewhere,grpPickupReport,grpCreditLevel,grpCreditRefusal,GRP_CREDIT_LABEL,rbacMoneyAdmin} from '../../services/mock';
+import {grpActiveCompanies,GRP_BLOCKS_REFUSAL,grpBlocksOnServer,money,nights,grpSlice,grpCompany,grpBlock,grpRoomTypes,grpLines,grpRemaining,grpFreeRooms,grpCredit,grpStayValue,grpHeldElsewhere,grpPickupReport,grpCreditLevel,grpCreditRefusal,GRP_CREDIT_LABEL,rbacMoneyAdmin} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {Empty,field,submit,shortDate,dateLabel} from '../../components/ui';
 import {NumberStepper} from '../../app/mobile/components';
@@ -85,7 +85,7 @@ export function BlockModal(){
       const rates:Record<string,number>={};types.forEach(t=>{const v=grpPaise(f.get('rate-'+t));if(v!==undefined&&allot[t])rates[t]=v;});
       run({type:'GRP_BLOCK_CREATE',name:field(f,'name'),company:co||undefined,billTo:bill,arrival:a,departure:dep,cutoff:field(f,'cutoff'),allot,rates,contact:field(f,'contact'),notes:field(f,'notes'),key:modal!.key},'Group block created',{close:true});})}>
       <label>Group name<input name="name" required minLength={3} maxLength={80} placeholder="e.g. Rotary district meet" enterKeyHint="next"/></label>
-      <div className="form-row"><label>Company account<select value={co} onChange={e=>{setCo(e.target.value);if(!e.target.value)setBill('guest');}}><option value="">None (private group)</option>{x.companies.filter(grpActive).map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
+      <div className="form-row"><label>Company account<select value={co} onChange={e=>{setCo(e.target.value);if(!e.target.value)setBill('guest');}}><option value="">None (private group)</option>{grpActiveCompanies(s,co).map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
         <label>Billing<select value={bill} onChange={e=>setBill(e.target.value as 'company'|'guest')}><option value="guest">Guests pay own folios</option><option value="company" disabled={!co}>Bill to company</option></select></label></div>
       <div className="form-row"><label>Arrival<input type="date" required min={s.date} value={a} onChange={e=>setA(e.target.value)}/></label><label>Departure<input type="date" required min={a} value={dep} onChange={e=>setD(e.target.value)}/></label>
         <label>Cut-off (pickup until)<input name="cutoff" type="date" required min={s.date} max={a} defaultValue={a&&a>s.date?new Date(Date.parse(a+'T12:00:00Z')-3*86400000).toISOString().slice(0,10)<s.date?s.date:new Date(Date.parse(a+'T12:00:00Z')-3*86400000).toISOString().slice(0,10):s.date}/></label></div>

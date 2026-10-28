@@ -3,11 +3,11 @@
 // and the company-payment dialog ('grp-payment', id = company). The commands decide; these screens repeat the same figures and wording.
 import React,{useState} from 'react';
 import {Building2,AlertTriangle,Check,Info} from 'lucide-react';
-import {money,totals,grpSlice,grpCompany,grpCredit,grpCreditPreview,grpCreditRefusal,folioCompanyCreditState,FOLIO_MANAGER_CREDIT_LIMIT,GRP_PAY_METHODS} from '../../services/mock';
+import {grpActiveCompanies,money,totals,grpSlice,grpCompany,grpCredit,grpCreditPreview,grpCreditRefusal,folioCompanyCreditState,FOLIO_MANAGER_CREDIT_LIMIT,GRP_PAY_METHODS} from '../../services/mock';
 import type {Booking,GRPCompany} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {Empty,field,submit} from '../../components/ui';
-import {grpPaise,grpActive} from './parts';
+import {grpPaise} from './parts';
 
 /** "₹4,300 used of ₹1,50,000 · ₹1,45,700 left" — the account's credit in one line. */
 export function grpCreditLine(c:GRPCompany,k:{exposure:number;available:number}){return `${money(k.exposure)} used of ${money(c.creditLimit)}${c.creditLimit===0?' (no credit)':''} · ${money(k.available)} left`;}
@@ -18,7 +18,7 @@ export function CompanyCreditPanel({b,mobile}:{b:Booking;mobile?:boolean}){
   const [pick,setPick]=useState('');
   const t=totals(b);
   if(t.balance<=0||b.status!=='In house')return null;
-  const cc=folioCompanyCreditState(s,b,t.balance),p=grpCreditPreview(s,b,t.balance),accounts=grpSlice(s).companies.filter(grpActive);
+  const cc=folioCompanyCreditState(s,b,t.balance),p=grpCreditPreview(s,b,t.balance),accounts=grpActiveCompanies(s,b.company?.account); // ACC-2 integration: the flows lane's picker filter (retired hidden, the chosen one kept)
   const cls='info-note folio-credit'+(mobile?' mm-cc':'');
   if(!p.c){
     if(!b.company&&!(permission('reservations')&&accounts.length))return null;
@@ -52,7 +52,7 @@ export function CompanyCreditPanel({b,mobile}:{b:Booking;mobile?:boolean}){
  * remaining credit and, for the estimated stay value (`stay`: agreed nights + GST), the refusal the booking would get.
  */
 export function CompanyAccountPicker({value,onChange,stay,mobile}:{value:string;onChange:(id:string)=>void;stay:number;mobile?:boolean}){
-  const {s}=useHcc();const accounts=grpSlice(s).companies.filter(grpActive);
+  const {s}=useHcc();const accounts=grpActiveCompanies(s); // ACC-2 integration
   if(!accounts.length)return null;
   const c=grpCompany(s,value),k=c?grpCredit(s,c):undefined,refusal=c&&k&&stay>0?grpCreditRefusal(c,k.exposure,stay,'booking'):undefined;
   return <div className={'grp-acct'+(mobile?' grp-acct-m':'')}>
