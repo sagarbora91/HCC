@@ -7,13 +7,13 @@ import {useHcc} from '../../app/context';
 import {money,chnSlice,chnChannelName} from '../../services/mock';
 import {ListCard} from '../../app/mobile/components';
 import {Empty,dateLabel,shortDate} from '../../components/ui';
-import {chnPayouts,chnOpenReceivable,type ChnPayoutCmd} from '../accounting/_contract-stubs-2';
+import {chnPayoutList,chnOpenReceivable,type ChnPayoutCmd} from '../accounting/acc2-views';
 import {useAccPerms,accUserName} from '../accounting/parts';
 import {toPaise,fromPaise,bankOptions} from '../accounting/shared';
 
 /** Payouts tab of the OTA channels page (desktop table, phone cards). */
 export function PayoutsTab({phone}:{phone?:boolean}){
-  const {s,open}=useHcc();const {canVendorPay}=useAccPerms();const rows=chnPayouts(s);
+  const {s,open}=useHcc();const {canVendorPay}=useAccPerms();const rows=chnPayoutList(s);
   const add=canVendorPay?<button type="button" className={'btn primary'+(phone?' full':'')} onClick={()=>open({type:'chn-payout'})}><Plus size={16}/> Record a payout</button>:<p className="muted">Payouts are recorded by the Owner, Manager or Accountant.</p>;
   if(phone)return <>{add}
     {rows.map(p=><ListCard key={p.id} title={`${chnChannelName(s,p.channel)} · ${money(p.net)} received`} sub={`Statement ${p.statementRef} · ${shortDate(p.date)}`}

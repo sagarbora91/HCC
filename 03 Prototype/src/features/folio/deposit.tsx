@@ -7,7 +7,7 @@ import {money,totals,cmpSlice,chnSlice} from '../../services/mock';
 import type {Booking} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {toPaise,fromPaise} from '../accounting/shared';
-import type {DepositApply} from '../accounting/_contract-stubs-2';
+import type {DepositApply} from '../accounting/acc2-views';
 
 /** OTA-paid stay (contract §4, DEC-150): at check-out the folio balance can move to the channel's receivable — `CHECKOUT {otaCredit:true}`, allowed only for a
  *  booking from a connected channel. Returns the checkbox panel and whether it is ticked (call it before any early return; the check-out button adds the flag). */

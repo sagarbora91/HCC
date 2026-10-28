@@ -8,8 +8,8 @@ import {money,mnyIsDrawer,rbacCanExportVouchers} from '../../services/mock';
 import {ListCard,KpiCard,ChipFilter} from '../../app/mobile/components';
 import {Empty,dateLabel,shortDate} from '../../components/ui';
 import {downloadCsv} from '../reports/Reports';
-import {expVendorOpenBills,expVendorAdvance,expVendorAllocate,expVendorAgeing,expVendorAgeingCsv,expVendorPayments,accCashGuard,EXP_AGEING_BUCKETS,
-  type ExpVendorPay,type ExpVendorPayVoid,type ExpVendorReturn} from '../accounting/_contract-stubs-2';
+import {expOpenBillRows,expVendorAdvance,expVendorAllocate,expVendorAgeingRows,expVendorAgeingCsv,expVendorPaymentList,accCashVerdict,EXP_AGEING_BUCKETS,
+  type ExpVendorPay,type ExpVendorPayVoid,type ExpVendorReturn} from '../accounting/acc2-views';
 import {useAccPerms,accUserName} from '../accounting/parts';
 import {toPaise,fromPaise,payMethods} from '../accounting/shared';
 import {CashGuardNote,cashGuardToast} from '../accounting/cashguard';
@@ -17,10 +17,10 @@ import {CashGuardNote,cashGuardToast} from '../accounting/cashguard';
 type View='bills'|'ageing'|'payments';
 export function ExpVendors({phone=false}:{phone?:boolean}){
   const {s,uid,open,toast}=useHcc();const {canVendorPay}=useAccPerms();
-  const ageing=useMemo(()=>expVendorAgeing(s),[s]);const pays=expVendorPayments(s);
+  const ageing=useMemo(()=>expVendorAgeingRows(s),[s]);const pays=expVendorPaymentList(s);
   const [view,setView]=useState<View>('bills');
   const [vendor,setVendor]=useState(ageing[0]?.vendor??'');const v=ageing.some(a=>a.vendor===vendor)?vendor:ageing[0]?.vendor??'';
-  const bills=v?expVendorOpenBills(s,v):[],adv=v?expVendorAdvance(s,v):0,open$=bills.reduce((a,b)=>a+b.open,0);
+  const bills=v?expOpenBillRows(s,v):[],adv=v?expVendorAdvance(s,v):0,open$=bills.reduce((a,b)=>a+b.open,0);
   const tot=ageing.reduce((a,r)=>({b0:a.b0+r.b0,b31:a.b31+r.b31,b61:a.b61+r.b61,b90:a.b90+r.b90,total:a.total+r.total,advance:a.advance+r.advance}),{b0:0,b31:0,b61:0,b90:0,total:0,advance:0});
   const exportOk=rbacCanExportVouchers(s,uid);
   const csvBtn=exportOk&&<button type="button" className="btn" disabled={!ageing.length} onClick={()=>{downloadCsv('HCC-Demo-vendor-ageing.csv',expVendorAgeingCsv(ageing));toast('CSV downloaded');}}><Download size={16}/> Ageing CSV</button>;
@@ -60,7 +60,7 @@ export function ExpVendors({phone=false}:{phone?:boolean}){
 /** 'exp-vendor-pay' · id = vendor name. Allocation editor: oldest open bill first by default; Σ allocations ≤ amount; the rest is an advance. */
 export function VendorPayModal({id}:{id?:string}){
   const {s,run,closeModal,busy,modal,toast}=useHcc();const {canVendorPay}=useAccPerms();const vendor=id??'';
-  const bills=expVendorOpenBills(s,vendor),adv=expVendorAdvance(s,vendor),methods=payMethods(s);
+  const bills=expOpenBillRows(s,vendor),adv=expVendorAdvance(s,vendor),methods=payMethods(s);
   const totalOpen=bills.reduce((a,b)=>a+b.open,0);
   const [amount,setAmount]=useState(fromPaise(totalOpen));const [method,setMethod]=useState(methods.find(m=>!m[2])?.[0]??methods[0]?.[0]??'');
   const [reference,setReference]=useState('');const [date,setDate]=useState(s.date);
@@ -70,7 +70,7 @@ export function VendorPayModal({id}:{id?:string}){
   const used=alloc.reduce((a,x)=>a+x.amount,0),over=bills.find(b=>(alloc.find(a=>a.expense===b.expense)?.amount??0)>b.open);
   const problem=!canVendorPay?'Vendor payments are made by the Owner, Manager or Accountant.':paise<=0?'Enter an amount greater than zero.':used>paise?`Allocations ${money(used)} are more than the payment ${money(paise)}.`
     :over?`${over.bill}: allocating more than the ${money(over.open)} still open.`:!drawer&&reference.trim().length<3?'A bank or UPI payment needs a reference (UTR / transaction number).':drawer&&!s.shiftOpen?'Drawer cash needs an open cash shift.':'';
-  const guard=drawer&&paise>0?accCashGuard(s,{kind:'payment',party:vendor,amount:paise,date}):undefined;
+  const guard=drawer&&paise>0?accCashVerdict(s,{kind:'payment',party:vendor,amount:paise,date}):undefined;
   const reset=()=>setEdit(null);
   return <form className="form" onSubmit={e=>{e.preventDefault();if(problem)return;void run({type:'EXP_VENDOR_PAY',vendor,amount:paise,method,reference:reference.trim(),...(date!==s.date?{date}:{}),allocations:alloc,key:modal?.key} satisfies ExpVendorPay,
       'Vendor payment recorded',{close:true,after:()=>{const w=cashGuardToast(guard);if(w)toast(w);}});}}>

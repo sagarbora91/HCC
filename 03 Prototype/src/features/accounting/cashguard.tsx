@@ -3,7 +3,7 @@
 // command's own error toast, a warning as a toast after saving); the expense card carries the badge. Wording comes from the guard, never repeated here.
 import React from 'react';
 import {AlertTriangle,Ban} from 'lucide-react';
-import type {ACCCashGuardVerdict} from './_contract-stubs-2';
+import type {ACCCashGuardVerdict} from './acc2-views';
 
 /** Inline note under a form: the guard's refusal (blocks) or warning (allows). Nothing when the guard says nothing. */
 export function CashGuardNote({verdict}:{verdict?:ACCCashGuardVerdict}){

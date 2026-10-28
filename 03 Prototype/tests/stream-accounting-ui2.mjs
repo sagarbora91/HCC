@@ -1,7 +1,8 @@
 // ACC-2 · acc2-ui — the ACC-2 screens (desktop and phone), rendered server-side over the mock state: page / modal registration, permission gating per
 // role (Cashier, housekeeping, maintenance and reception never see the books; Owner-only switches and approvals), the Manual vouchers tab and its guided
 // templates, GST month with the month lock, TDS, Assets, Add loan, purchase fields, Vendor payments, OTA payouts, company payment TDS / retire, Apply deposit,
-// the cash-guard messages and the firm-profile switches. Everything the screens need from other lanes comes from the stubs file. Names prefixed [ACC2-UI].
+// the cash-guard messages and the firm-profile switches. ACC-2 integration: the stubs file is gone — the screens read the lanes' real selectors through the
+// thin view adapters of src/features/accounting/acc2-views.ts (`views` below). Names prefixed [ACC2-UI].
 import {build} from 'esbuild';
 import {writeFile,readFile,readdir} from 'node:fs/promises';
 export async function register({test,M,assert}){
@@ -20,7 +21,7 @@ import {TdsView,AssetsView,TdsRemitModal,LoanModal} from '../../src/features/acc
 import {ChartView} from '../../src/features/accounting/chart';
 import {CashGuardNote,CashDeductionBadge} from '../../src/features/accounting/cashguard';
 import {MANUAL_TEMPLATES} from '../../src/features/accounting/manual-templates';
-import * as stubs from '../../src/features/accounting/_contract-stubs-2';
+import * as views from '../../src/features/accounting/acc2-views';
 import {ExpensePurchaseFields} from '../../src/features/expenses/purchase';
 import {ExpVendors,VendorPayModal,VendorVoidModal,VendorReturnModal} from '../../src/features/expenses/vendors';
 import {expSectionsFor,ExpRowExtras} from '../../src/features/expenses/Scc';
@@ -34,7 +35,7 @@ import {HRAdvanceModal} from '../../src/features/staff/modals';
 import {CmpProfileModal} from '../../src/features/compliance/modals';
 import {navRoleOk,PAGE_CATEGORY,PAGE_KEYWORDS} from '../../src/app/navmap';
 function OtaCreditProbe({b,mobile}:{b:any;mobile?:boolean}){const o=useOtaCredit(b,mobile);return <>{o.node}</>;}
-export {accReg,closingReg,chnReg,navRoleOk,PAGE_CATEGORY,PAGE_KEYWORDS,MANUAL_TEMPLATES,stubs,expSectionsFor};
+export {accReg,closingReg,chnReg,navRoleOk,PAGE_CATEGORY,PAGE_KEYWORDS,MANUAL_TEMPLATES,views,expSectionsFor};
 const C:any={AccountingPage,AccountingMobile,ManualView,ManualModal,ManualDecideModal,ManualVoidModal,GstMonthView,GstPayModal,StatRemitModal,MonthLockModal,MonthUnlockModal,
   TdsView,AssetsView,TdsRemitModal,LoanModal,ChartView,CashGuardNote,CashDeductionBadge,ExpensePurchaseFields,ExpVendors,VendorPayModal,VendorVoidModal,VendorReturnModal,
   ExpRowExtras,PayoutsTab,PayoutModal,ChannelsPage,CompanyPaymentModal,CompanyModal,GroupsPage,CompaniesTab,ApplyDepositPanel,OtaCreditProbe,HRAdvanceModal,CmpProfileModal};
@@ -139,11 +140,11 @@ export function render(name:string,props:any,s:any,uid:string,mobile=false,extra
   test('[ACC2-UI] month lock: blocker list, Owner locks, Accountant requests, locked month shows who and the unlock with a reason',()=>{
     const s=withAcc({manual:[mv({date:'2026-10-05'})]});
     const o=render('GstMonthView',{},s,'owner'),t=text(o);
-    assert.match(t,/Month lock/);assert.match(t,/cannot be locked yet/);assert.match(t,/set-off for 2026-10 is not posted/);assert.match(t,/manual voucher is pending approval/);
+    assert.match(t,/Month lock/);assert.match(t,/cannot be locked yet/);assert.match(t,/The month 2026-10 is not over/); // ACC-2 integration: the gst lane's accMonthLockBlocker names the first blocker
     assert.match(o,/<button[^>]*disabled=""[^>]*>[^<]*(<[^>]*>)*\s*Lock month/,'Lock month disabled while something blocks it');
     assert.match(text(render('GstMonthView',{},s,'accountant')),/Request month lock/);assert.doesNotMatch(text(render('GstMonthView',{},s,'accountant')),/>Lock month/);
     assert.match(text(render('MonthLockModal',{id:'2026-10'},s,'owner')),/Lock October 2026\?/);
-    const lk=withAcc({monthLocks:{'2026-10':{lockedAt:'2026-10-28T10:00',lockedBy:'owner',setoff:'JRN-1',unlocks:[{at:'2026-10-29T10:00',by:'owner',reason:'Fix challan'}]}}});
+    const lk=withAcc({monthLocks:{'2026-10':{lockedAt:'2026-10-28T10:00',lockedBy:'owner',setoff:'JRN-1',unlocks:[{at:'2026-10-27T10:00',by:'owner',reason:'Fix challan'}]}}}); // ACC-2 integration: an earlier unlock, then locked again (accMonthLockOf: an unlock after the lock lifts it)
     const l=text(render('GstMonthView',{},lk,'owner'));assert.match(l,/Month locked/);assert.match(l,/Unlock month…/);assert.match(l,/Fix challan/);assert.doesNotMatch(l,/>Lock month/);
     assert.match(text(render('MonthUnlockModal',{id:'2026-10'},lk,'owner')),/Reason \(required\)/);assert.match(text(render('MonthUnlockModal',{id:'2026-10'},lk,'accountant')),/Only the Owner can unlock a month/);
     assert.match(text(render('MonthUnlockModal',{id:'2026-10'},s,'owner')),/not locked/);
@@ -172,7 +173,7 @@ export function render(name:string,props:any,s:any,uid:string,mobile=false,extra
     const t=text(render('AssetsView',{},s,'owner'));for(const x of ['FA-2026-001','Lobby sofa set','₹85,000','Export CSV','depreciation'])assert.match(t,new RegExp(x),x);
     assert.match(text(render('AssetsView',{},M.seed(),'owner')),/No fixed assets yet/);
     assert.doesNotMatch(render('AssetsView',{phone:true},s,'owner',true),/<table/);
-    assert.match(X.stubs.accAssetsCsv(s.accountingX.assets),/FA-2026-001,1510,Lobby sofa set \(fictional\),Sample Furnishings,2026-10-02,85000.00/);
+    assert.match(M.accAssetsCsv(s),/FA-2026-001,.*,1510,Lobby sofa set \(fictional\),85000\.00,0\.00,2026-10-02,,Sample Furnishings,EXP-9/); // ACC-2 integration: the purchase lane's register CSV
   });
   test('[ACC2-UI] chart screen: Add loan for the Owner only; the loan dialog',()=>{
     const s=M.seed();
@@ -191,7 +192,7 @@ export function render(name:string,props:any,s:any,uid:string,mobile=false,extra
     const cap=text(render('ExpensePurchaseFields',{f:f(b),setF:()=>{},paise:100000,gst:0},s,'owner'));assert.match(cap,/Fixed-asset purchase/);assert.match(cap,/1510/);assert.match(cap,/register row/);
     const kind=text(render('ExpensePurchaseFields',{f:f(names[3]??a,{gstKind:'inter'}),setF:()=>{},paise:100000,gst:18000},s,'owner'));
     assert.match(kind,/Outside Maharashtra — IGST/);assert.match(kind,/Input IGST \(1330\)/);
-    const blk=text(render('ExpensePurchaseFields',{f:f(c,{itc:'allowed'}),setF:()=>{},paise:100000,gst:18000},s,'owner'));assert.match(blk,/blocked-credit list \(section 17\(5\)\)/);assert.match(blk,/DEC-143/);
+    const blk=text(render('ExpensePurchaseFields',{f:f(c,{itc:'allowed'}),setF:()=>{},paise:100000,gst:18000},s,'owner'));assert.match(blk,/marked blocked \(CGST s\.17\(5\)\)/); /* ACC-2 integration: the purchase lane's expItcBlockRefusal wording */assert.match(blk,/DEC-143/);
     const ok=text(render('ExpensePurchaseFields',{f:f(c),setF:()=>{},paise:100000,gst:18000},s,'owner'));assert.doesNotMatch(ok,/ITC cannot be allowed/);
     assert.equal(text(render('ExpensePurchaseFields',{f:f(names[3]??a),setF:()=>{},paise:100000,gst:0},s0,'owner')).trim(),'','an ordinary expense shows nothing extra');
     const cash=text(render('ExpensePurchaseFields',{f:f(names[3]??a,{vendor:'Morning Supplies',method:'Cash'}),setF:()=>{},paise:2000000,gst:0},s0,'owner'));assert.match(cash,/Allowed, with a warning/);
@@ -212,11 +213,11 @@ export function render(name:string,props:any,s:any,uid:string,mobile=false,extra
     const s=vend();
     const o=render('ExpVendors',{},s,'owner'),t=text(o);
     assert.match(t,/Open bills/);assert.match(t,/Ageing/);assert.match(t,/Payments/);assert.match(t,/Pay Kaveri Traders…|Pay Morning Supplies…/);assert.match(t,/Owed to vendors/);
-    assert.deepEqual(X.stubs.expVendorOpenBills(s,'Morning Supplies').map(b=>[b.expense,b.open]),[['EXP-V3',700000],['EXP-V1',2400000]],'oldest first, net of the allocation');
-    const ag=X.stubs.expVendorAgeing(s),ms=ag.find(r=>r.vendor==='Morning Supplies'),kt=ag.find(r=>r.vendor==='Kaveri Traders');
+    assert.deepEqual(X.views.expOpenBillRows(s,'Morning Supplies').map(b=>[b.expense,b.open]),[['EXP-V3',700000],['EXP-V1',2400000]],'oldest first, net of the allocation');
+    const ag=X.views.expVendorAgeingRows(s),ms=ag.find(r=>r.vendor==='Morning Supplies'),kt=ag.find(r=>r.vendor==='Kaveri Traders');
     assert.equal(ms.b0,2400000);assert.equal(ms.b31,700000);assert.equal(kt.b90,4200000);assert.equal(ms.total,3100000);
-    assert.deepEqual(X.stubs.expVendorAllocate(s,'Morning Supplies',1000000),[{expense:'EXP-V3',amount:700000},{expense:'EXP-V1',amount:300000}],'the default allocation is oldest first');
-    assert.equal(X.stubs.expVendorAdvance(s,'Morning Supplies'),0);
+    assert.deepEqual(M.expVendorAllocate(s,'Morning Supplies',1000000),[{expense:'EXP-V3',amount:700000},{expense:'EXP-V1',amount:300000}],'the default allocation is oldest first');
+    assert.equal(M.expVendorAdvance(s,'Morning Supplies'),0);
     assert.match(text(render('ExpVendors',{},s,'manager')),/Pay (Kaveri|Morning)/);
     assert.doesNotMatch(text(render('ExpVendors',{},s,'accountant')),/-₹/);
     assert.doesNotMatch(render('ExpVendors',{phone:true},s,'owner',true),/<table/);
@@ -269,8 +270,8 @@ export function render(name:string,props:any,s:any,uid:string,mobile=false,extra
     assert.match(text(render('ApplyDepositPanel',{b},s,'manager')),/Opening balance carried in \(Manager \/ Owner\)/);assert.doesNotMatch(text(render('ApplyDepositPanel',{b},s,'reception')),/Opening balance carried in/);
     const adv=text(render('HRAdvanceModal',{},s,'owner'));assert.match(adv,/Paid from/);assert.match(adv,/Paid in cash from the drawer/);
     const v=vend();v.accountingX={...(v.accountingX??{}),opening:{asOf:'2026-04-01',lines:[{account:'2200/'+M.mnyVendor(v,'Morning Supplies').code,debit:0,credit:500000}],status:'approved',by:'owner',at:'2026-04-01T09:00'}};
-    const bills=X.stubs.expVendorOpenBills(v,'Morning Supplies');assert.equal(bills[0].expense,'opening');assert.equal(bills[0].open,500000);
-    assert.deepEqual(X.stubs.expVendorAllocate(v,'Morning Supplies',600000),[{expense:'opening',amount:500000},{expense:'EXP-V3',amount:100000}],'the opening balance is the oldest bill');
+    const bills=X.views.expOpenBillRows(v,'Morning Supplies');assert.equal(bills[0].expense,'opening');assert.equal(bills[0].open,500000);
+    assert.deepEqual(M.expVendorAllocate(v,'Morning Supplies',600000),[{expense:'opening',amount:500000},{expense:'EXP-V3',amount:100000}],'the opening balance is the oldest bill');
     assert.match(text(render('VendorPayModal',{id:'Morning Supplies'},v,'owner')),/Opening balance/);
   });
   test('[ACC2-UI] firm profile: the three accounting switches, Owner only (the Accountant sees them disabled)',()=>{
@@ -282,7 +283,7 @@ export function render(name:string,props:any,s:any,uid:string,mobile=false,extra
     assert.match(o,/<input type="checkbox" checked=""[^>]*\/>The hotel deducts TDS/,'DEC-146 default: the hotel deducts TDS');
   });
   test('[ACC2-UI] cash guards: refusal / warning wording and thresholds (₹2,00,000 cash receipt refused; ₹12,000 cash payment warned)',()=>{
-    const g=X.stubs.accCashGuard,s=M.seed();
+    const g=X.views.accCashVerdict,s=M.seed(); // ACC-2 integration: the flows lane's accCashGuard through the form's verdict adapter
     const r=g(s,{kind:'receipt',party:'1110/CO-1',amount:20000000,date:s.date});assert.equal(r.ok,false);assert.equal(r.code,'CASH_LIMIT');assert.match(r.refusal,/s\.186/);
     assert.equal(g(s,{kind:'receipt',party:'x',amount:19999900,date:s.date}).ok,true);
     const w=g(s,{kind:'payment',party:'Kaveri',amount:1200000,date:s.date});assert.equal(w.ok,true);assert.equal(w.deductionLost,true);assert.match(w.warning,/₹10,000/);
@@ -292,17 +293,19 @@ export function render(name:string,props:any,s:any,uid:string,mobile=false,extra
     assert.match(text(render('CashGuardNote',{verdict:w},s,'owner')),/Allowed, with a warning/);assert.equal(render('CashGuardNote',{verdict:{ok:true}},s,'owner'),'');
   });
 
-  test('[ACC2-UI] source discipline: contract names come from _contract-stubs-2 only; no hex colours; phone targets 48 px; ACC-1 files unchanged in their contract',async()=>{
-    const dir='src/features/accounting/';assert.ok((await readdir(dir)).includes('_contract-stubs-2.ts'));
-    const stubSrc=await readFile(dir+'_contract-stubs-2.ts','utf8');assert.ok(!/from '\.\.\/\.\.\/domain\/streams\/accounting-/.test(stubSrc),'stubs import lane files directly');
-    const names=['accManualList','accManualProblems','accLoans','expVendorOpenBills','expVendorAgeing','expVendorAllocate','expVendorAdvance','expVendorPayments','accAssetsList','accGstMonth','accMonthLockBlocker','accMonthLockOf',
-      'tdsRateRows','tdsDeducteeReport','tdsReceivableReport','tdsForBill','accCashGuard','accPartyRetireBlocker','chnPayouts','chnOpenReceivable','expPurchaseItcGuard'];
-    for(const n of names)assert.ok(new RegExp('export (function|const) '+n+'\\b').test(stubSrc),n+' is stubbed');
+  test('[ACC2-UI] source discipline (ACC-2 integration): the stubs file is deleted; the screens take the lanes\' real selectors through acc2-views (thin adapters, no lane file imported); no hex colours; phone targets 48 px',async()=>{
+    const dir='src/features/accounting/';assert.ok(!(await readdir(dir)).includes('_contract-stubs-2.ts'),'the stubs file is deleted at integration');
+    const stubSrc=await readFile(dir+'acc2-views.ts','utf8');assert.ok(!/from '\.\.\/\.\.\/domain\/streams\/accounting-/.test(stubSrc),'the adapters import lane files directly');
+    // every contract selector the screens use is a real export of the mock barrel; the invented names are thin adapters in acc2-views
+    for(const n of ['accManualProblems','accLoans','expVendorOpenBills','expVendorAgeing','expVendorAllocate','expVendorAdvance','expVendorPayments','accAssetRegister','accGstMonth','accMonthLockBlocker','accMonthLockOf',
+      'tdsTable','tdsDeducteeReport','tdsReceivableReport','tdsForBill','accCashGuard','accPartyRetireBlocker','chnPayouts','expItcBlockRefusal'])assert.equal(typeof M[n],'function',n+' is exported by the barrel');
+    for(const n of ['accManualList','accManualCheck','accLoanRows','expOpenBillRows','expVendorAgeingRows','expVendorPaymentList','accAssetsList','accGstMonthView','tdsRateRows','tdsDeducteeRows','tdsReceivableRows',
+      'tdsForBillPaise','accCashVerdict','accPartyRetireReason','chnPayoutList','chnOpenReceivable','expPurchaseItcGuard'])assert.equal(typeof X.views[n],'function',n+' adapter');
     for(const c of ['ACC_MANUAL_SAVE','ACC_MANUAL_DECIDE','ACC_MANUAL_VOID','ACC_LOAN_ADD','EXP_VENDOR_PAY','EXP_VENDOR_PAY_VOID','EXP_VENDOR_RETURN','CHN_PAYOUT','DEPOSIT_APPLY','ACC_TDS_REMIT','ACC_GST_SETOFF','ACC_GST_PAY','ACC_STAT_REMIT','ACC_MONTH_LOCK','ACC_MONTH_LOCK_REQUEST','ACC_MONTH_UNLOCK'])
       assert.ok(stubSrc.includes(`'${c}'`),c+' payload type');
     const screens=[[dir,['manual.tsx','gst.tsx','tds.tsx','cashguard.tsx']],['src/features/expenses/',['purchase.tsx','vendors.tsx']],['src/features/channels/',['payout.tsx']],['src/features/folio/',['deposit.tsx']]];
     for(const [d,fs] of screens)for(const f of fs){const src=await readFile(d+f,'utf8');
-      for(const imp of src.match(/import[^;]*from '\.\.\/\.\.\/services\/mock';/g)??[])for(const n of names)assert.ok(!new RegExp('\\b'+n+'\\b').test(imp),f+' imports '+n+' from the mock barrel instead of the stubs');
+      assert.ok(!/_contract-stubs/.test(src),f+' still imports the stubs');
       assert.ok(!/from '\.\.\/\.\.\/domain\/streams\/accounting-/.test(src),f+' imports a lane file directly');}
     const css=await readFile('src/styles/m-accounting2.css','utf8').then(c=>c.replace(/\/\*[\s\S]*?\*\//g,''));assert.ok(!/#[0-9a-fA-F]{3,8}\b/.test(css.replace(/var\(--[^)]*\)/g,'')),'hex colour in m-accounting2.css');
     assert.match(css,/\.acc-m \.acc-man-q \.btn[^{]*\{min-height:48px;font-size:16px\}/);assert.match(css,/\.m-sheet \.acc-line select/);

@@ -15,7 +15,7 @@ import {useAccRange} from './shared';
 import {ManualView} from './manual';
 import {GstMonthView} from './gst';
 import {TdsView,AssetsView} from './tds';
-import {accManualList} from './_contract-stubs-2';
+import {accManualList} from './acc2-views';
 
 export type AccTab='vouchers'|'manual'|'gst'|'tds'|'assets'|'tb'|'statements'|'daybook'|'chart'|'parties'|'opening'|'exceptions'|'recon'|'mapping'|'tally';
 type Tab=AccTab;

@@ -51,7 +51,7 @@ export const toPaise=(v:string)=>{const n=Number(v.replace(/,/g,''));return Numb
 export const fromPaise=(p:number)=>p?String(p/100):'';
 
 // ── ACC-2 pickers (cash / bank, banks, loans, debtors) ──
-import {accLoans} from './_contract-stubs-2';
+import {accLoanRows} from './acc2-views';
 const byId=(a:LedgerOpt,b:LedgerOpt)=>a.id<b.id?-1:a.id>b.id?1:0;
 /** Cash and bank ledgers that take entries: tills (1000/…), petty cash, UPI / card clearing, bank accounts (1030/…). */
 export function tenderOptions(s:State):LedgerOpt[]{
@@ -63,7 +63,7 @@ export function tenderOptions(s:State):LedgerOpt[]{
 /** Bank accounts only (1030/<bank>). */
 export const bankOptions=(s:State):LedgerOpt[]=>accPartyLedgers(s).filter(p=>p.active&&p.control==='1030').map(p=>({id:p.id,control:p.control,label:`${p.name} (${p.id})`})).sort(byId);
 /** Owner-added loans (2400/<LN-code>). */
-export const loanOptions=(s:State):LedgerOpt[]=>accLoans(s).filter(l=>l.active).map(l=>({id:l.id,control:'2400',label:`${l.name}${l.lender?' · '+l.lender:''} (${l.id})`}));
+export const loanOptions=(s:State):LedgerOpt[]=>accLoanRows(s).filter(l=>l.active).map(l=>({id:l.id,control:'2400',label:`${l.name}${l.lender?' · '+l.lender:''} (${l.id})`}));
 /** Receivables a bad debt can be written off against: company (1110/…) and Udhaar customer (1120/…) party ledgers. */
 export const debtorOptions=(s:State):LedgerOpt[]=>accPartyLedgers(s).filter(p=>p.control==='1110'||p.control==='1120').map(p=>({id:p.id,control:p.control,label:`${p.name} (${p.id})`})).sort(byId);
 /** Month list for the month pickers: the business month and the eleven before it, newest first. */

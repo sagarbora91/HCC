@@ -8,7 +8,7 @@ import type {State} from '../../services/mock';
 import {ListCard,ChipFilter,StickyFooter} from '../../app/mobile/components';
 import {Empty,dateLabel,shortDate} from '../../components/ui';
 import {usePaged,ShowMore,DESKTOP_PAGE,PHONE_PAGE} from '../../components/ShowMore';
-import {accManualList,accManualProblems,accCashGuard,type ACCManualVoucher,type ACCManualLine,type ACCManualTemplate,type AccManualSave,type AccManualDecide,type AccManualVoid} from './_contract-stubs-2';
+import {accManualList,accManualCheck,accCashVerdict,type ACCManualVoucher,type ACCManualLine,type ACCManualTemplate,type AccManualSave,type AccManualDecide,type AccManualVoid} from './acc2-views';
 import {MANUAL_TEMPLATES,TEMPLATE_LABEL,tplOf,type Tpl,type TplAnswers} from './manual-templates';
 import {useAccPerms,accUserName} from './parts';
 import {ledgerOptions,tenderOptions,bankOptions,loanOptions,debtorOptions,toPaise,fromPaise,type LedgerOpt} from './shared';
@@ -86,12 +86,12 @@ export function ManualModal({id}:{id?:string}){
   const n=(k:string)=>toPaise(ans[k]??'');
   const lines:ACCManualLine[]=guided?tpl.build(ans,n):free.filter(l=>l.account||l.debit||l.credit);
   const type=guided?tpl.type:vtype;
-  const problems=editable?accManualProblems(s,{date,voucherType:type,lines}):[];
+  const problems=editable?accManualCheck(s,{date,voucherType:type,lines}):[];
   const dr=lines.reduce((a,l)=>a+l.debit,0),cr=lines.reduce((a,l)=>a+l.credit,0);
   // §7 guard preview for Payment / Receipt lines on cash with a party (one party day-total in the real guard)
   const cashLine=lines.find(l=>/^1000\//.test(l.account)||l.account==='1005');
   const guardParty=(type==='Payment'||type==='Receipt')&&cashLine?(lines.find(l=>l!==cashLine&&/^(1110|1120|2200|1200|2400)\//.test(l.account))?.account??''):'';
-  const guard=cashLine&&guardParty?accCashGuard(s,{kind:type==='Receipt'?'receipt':'payment',party:guardParty,amount:Math.max(cashLine.debit,cashLine.credit),date}):undefined;
+  const guard=cashLine&&guardParty?accCashVerdict(s,{kind:type==='Receipt'?'receipt':'payment',party:guardParty,amount:Math.max(cashLine.debit,cashLine.credit),date}):undefined;
   const ownerOnlyBlock=tpl.ownerOnly&&!canManualApprove?'Bad debt write-offs are entered by the Owner only.':'';
   const setLine=(i:number,p:Partial<ACCManualLine>)=>setFree(free.map((l,j)=>j===i?{...l,...p}:l));
   const all=useMemo(()=>ledgerOptions(s,true),[s]);

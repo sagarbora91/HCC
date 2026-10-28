@@ -207,14 +207,14 @@ export function HRHolidayModal({id}:{id?:string}){
 }
 
 import {payMethods} from '../accounting/shared';
-import {accCashGuard} from '../accounting/_contract-stubs-2';
+import {accCashVerdict} from '../accounting/acc2-views';
 import {CashGuardNote} from '../accounting/cashguard';
 /** 'hr-advance': salary advance with monthly recovery (0 = full balance next payroll, SCC). */
 export function HRAdvanceModal(){
   const {s,uid,run,closeModal,busy}=useHcc();const x=hrSlice(s);
   const eligible=x.staff.filter(t=>t.active&&t.userId!==uid);// F-10: never your own advance
   const methods=payMethods(s);const [f,setF]=useState({staffId:eligible[0]?.id??'',amount:'',installment:'',fromMonth:s.date.slice(0,7),reason:'',funding:methods.find(m=>m[2])?.[0]??methods[0]?.[0]??'Cash'});
-  const drawer=!!methods.find(m=>m[0]===f.funding)?.[2];const guard=drawer&&rs(f.amount)>0?accCashGuard(s,{kind:'payment',party:'1200/'+f.staffId,amount:rs(f.amount),date:s.date}):undefined; // ACC-2: funding method (HR_ADVANCE_ADD.funding) and the §7 cash guard
+  const drawer=!!methods.find(m=>m[0]===f.funding)?.[2];const guard=drawer&&rs(f.amount)>0?accCashVerdict(s,{kind:'payment',party:'1200/'+f.staffId,amount:rs(f.amount),date:s.date}):undefined; // ACC-2: funding method (HR_ADVANCE_ADD.funding) and the §7 cash guard
   const set=(k:keyof typeof f)=>(e:React.ChangeEvent<HTMLInputElement|HTMLSelectElement>)=>setF({...f,[k]:e.target.value});
   const months=[s.date.slice(0,7),hrNextMonth(s.date.slice(0,7)),hrNextMonth(hrNextMonth(s.date.slice(0,7)))];
   return <><div className="modal-heading"><h2>Salary advance</h2><p>Recovered from net pay when payroll is locked (never more than net pay). {drawer?'Paid in cash from the drawer.':'Paid from the chosen account — no effect on the cash drawer.'}</p></div>

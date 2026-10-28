@@ -8,7 +8,7 @@ import {money,rbacCanExportVouchers,cmpSlice} from '../../services/mock';
 import {ListCard} from '../../app/mobile/components';
 import {Empty,dateLabel} from '../../components/ui';
 import {downloadCsv} from '../reports/Reports';
-import {tdsRateRows,tdsDeducteeReport,tdsDeducteeCsv,tdsReceivableReport,accAssetsList,accAssetsCsv,accLoans,type AccTdsRemit,type AccLoanAdd} from './_contract-stubs-2';
+import {tdsRateRows,tdsDeducteeRows,tdsDeducteeCsvOf,tdsReceivableRows,accAssetsList,accAssetsCsv,accLoanRows,type AccTdsRemit,type AccLoanAdd} from './acc2-views';
 import {useAccPerms} from './parts';
 import {monthChoices,monthLabel,toPaise,fromPaise,bankMethods,fyStart} from './shared';
 
@@ -23,13 +23,13 @@ export function TdsView({phone}:{phone?:boolean}){
   const months=useMemo(()=>monthChoices(s.date),[s.date]);const fy='FY'+fyStart(s.date).slice(0,4);
   const [period,setPeriod]=useState(months[0]);
   const prof=cmpSlice(s).profile,deducts=prof?.hotelDeductsTds!==false,other=prof?.tdsDeductorType==='other';
-  const rates=tdsRateRows(s,s.date),rows=useMemo(()=>tdsDeducteeReport(s,period),[s,period]),recv=tdsReceivableReport(s,fy);
+  const rates=tdsRateRows(s,s.date),rows=useMemo(()=>tdsDeducteeRows(s,period),[s,period]),recv=tdsReceivableRows(s,fy);
   const tot=rows.reduce((a,r)=>({taxable:a.taxable+r.taxable,tds:a.tds+r.tds,remitted:a.remitted+r.remitted}),{taxable:0,tds:0,remitted:0});
   const label=(p:string)=>p.length===7?monthLabel(p):p;
   const picker=<label className="acc-date">Period<select value={period} onChange={e=>setPeriod(e.target.value)}><option value={fy}>Financial year {fy.slice(2)}–{String(+fy.slice(2)+1).slice(2)}</option>{months.map(m=><option key={m} value={m}>{monthLabel(m)}</option>)}</select></label>;
   const head=<>
     {!deducts&&<div className="info-note f-warn" role="status"><Info size={16}/>The firm profile says the hotel does <strong>not</strong> deduct TDS from vendors; the Owner can switch this on in Compliance › Firm profile.</div>}
-    <p className="muted">Deductor type: <strong>{other?'Other than individual / HUF':'Individual / HUF'}</strong> (sets the rate column). Rates are dated, Owner-editable in Master configuration › Money and tax, and marked <em>CA to confirm</em>.</p></>;
+    <p className="muted">The rate column follows each vendor’s <strong>TDS payee type</strong> (individual / HUF or other — Master configuration › Expense vendors; ruling 9); TDS is rounded to the nearest rupee. Rates are dated, Owner-editable in Master configuration › Money and tax, and marked <em>CA to confirm</em>.</p></>;
   const remitBtn=canTax?<button type="button" className="btn primary" onClick={()=>open({type:'acc-tds-remit',id:period.length===7?period:s.date.slice(0,7)})}>Remit TDS…</button>:null;
   const rateList=phone?rates.map(r=><ListCard key={r.section} title={`${r.label}`} sub={`Old section ${r.oldSection} · threshold ${r.threshold}`} meta={`From ${dateLabel(r.from)} · ${r.source}`}
       right={<><strong className="number">{pct(other?r.rateOther:r.rateIndividual)}</strong><br/><span className="pill orange">CA to confirm</span></>}/>)
@@ -47,18 +47,18 @@ export function TdsView({phone}:{phone?:boolean}){
   return <div className={phone?undefined:'padded'}>
     {head}
     <h3 className="acc-h3">Rate table</h3>{rateList}
-    <div className="acc-tds-bar"><h3 className="acc-h3">Deductee report</h3>{picker}{!phone&&<Csv name={`HCC-Demo-tds-deductees-${period}.csv`} csv={()=>tdsDeducteeCsv(rows,period)} disabled={!rows.length}/>}{!phone&&remitBtn}</div>
+    <div className="acc-tds-bar"><h3 className="acc-h3">Deductee report</h3>{picker}{!phone&&<Csv name={`HCC-Demo-tds-deductees-${period}.csv`} csv={()=>tdsDeducteeCsvOf(s,period)} disabled={!rows.length}/>}{!phone&&remitBtn}</div>
     {deductee}
     {tot.tds>tot.remitted&&<p className="muted">{money(tot.tds-tot.remitted)} deducted and not yet remitted (Dr TDS payable 2150 · Cr bank when you remit).</p>}
     {form168}
-    {phone&&<div className="acc-tds-phone-actions"><Csv name={`HCC-Demo-tds-deductees-${period}.csv`} csv={()=>tdsDeducteeCsv(rows,period)} disabled={!rows.length}/>{remitBtn}</div>}
+    {phone&&<div className="acc-tds-phone-actions"><Csv name={`HCC-Demo-tds-deductees-${period}.csv`} csv={()=>tdsDeducteeCsvOf(s,period)} disabled={!rows.length}/>{remitBtn}</div>}
   </div>;
 }
 
 /** 'acc-tds-remit' · id = YYYY-MM: remit TDS (template tds-remittance: Dr 2150 · Cr bank). */
 export function TdsRemitModal({id}:{id?:string}){
   const {s,run,closeModal,busy}=useHcc();const {canTax}=useAccPerms();const month=id||s.date.slice(0,7);
-  const rows=tdsDeducteeReport(s,month),sections=[...new Set(rows.map(r=>r.section).filter(Boolean))],methods=bankMethods(s);
+  const rows=tdsDeducteeRows(s,month),sections=[...new Set(rows.map(r=>r.section).filter(Boolean))],methods=bankMethods(s);
   const [section,setSection]=useState(sections[0]??'');
   const due=rows.filter(r=>!section||r.section===section).reduce((a,r)=>a+r.tds-r.remitted,0);
   const [amount,setAmount]=useState(fromPaise(Math.max(due,0)));const [method,setMethod]=useState(methods[0]?.[0]??'');const [challan,setChallan]=useState('');const [date,setDate]=useState(s.date);
@@ -84,9 +84,9 @@ export function AssetsView({phone}:{phone?:boolean}){
       meta={`${a.putToUse?'Put to use '+dateLabel(a.putToUse):'Not marked as put to use'}${a.disposed?` · disposed ${dateLabel(a.disposed.date)} for ${money(a.disposed.amount)}`:''}`} right={<strong className="number">{money(a.cost)}</strong>}
       onClick={()=>open({type:'exp-text',id:a.expense})}/>)}
     {!rows.length&&<Empty title="No fixed assets yet" body="A purchase in a capital category creates a register row."/>}
-    <Csv name="HCC-Demo-fixed-assets.csv" csv={()=>accAssetsCsv(rows)} disabled={!rows.length}/></>;
+    <Csv name="HCC-Demo-fixed-assets.csv" csv={()=>accAssetsCsv(s)} disabled={!rows.length}/></>;
   return <div className="padded">{note}
-    <div className="inline acc-assets-bar"><strong>{rows.length} asset{rows.length===1?'':'s'} · cost {money(cost)}</strong><Csv name="HCC-Demo-fixed-assets.csv" csv={()=>accAssetsCsv(rows)} disabled={!rows.length}/></div>
+    <div className="inline acc-assets-bar"><strong>{rows.length} asset{rows.length===1?'':'s'} · cost {money(cost)}</strong><Csv name="HCC-Demo-fixed-assets.csv" csv={()=>accAssetsCsv(s)} disabled={!rows.length}/></div>
     {rows.length?<div className="table-wrap"><table className="acc-table"><thead><tr><th>Asset no</th><th>Name</th><th>Ledger</th><th>Vendor</th><th>Bought</th><th className="acc-num">Cost</th><th className="acc-num">ITC taken</th><th>Put to use</th><th>Disposal</th></tr></thead><tbody>
       {rows.map(a=><tr key={a.id}><td className="number">{a.no}</td><td>{a.name}<small>{a.expense}</small></td><td>{a.ledger}</td><td>{a.vendor||'—'}</td><td>{dateLabel(a.date)}</td><td className="acc-num number">{money(a.cost)}</td><td className="acc-num number">{a.itc?money(a.itc):'—'}</td>
         <td>{a.putToUse?dateLabel(a.putToUse):'—'}</td><td>{a.disposed?`${dateLabel(a.disposed.date)} · ${money(a.disposed.amount)}`:'—'}</td></tr>)}</tbody></table></div>
@@ -97,7 +97,7 @@ export function AssetsView({phone}:{phone?:boolean}){
 /** 'acc-loan' (Owner): adds a loan party row under the 2400 control ledger (`2400/<LN-code>`). */
 export function LoanModal(){
   const {s,run,closeModal,busy}=useHcc();const {canChart}=useAccPerms();const [code,setCode]=useState('');const [kind,setKind]=useState<'secured'|'unsecured'>('secured');const [name,setName]=useState('');const [lender,setLender]=useState('');const [last4,setLast4]=useState('');const [note,setNote]=useState('');
-  const loans=accLoans(s),codeBad=code&&(!/^[A-Z0-9-]{2,12}$/.test(code)?'Use 2–12 capitals, digits or dashes, e.g. LN-001.':loans.some(l=>l.code===code)?'This loan code is already used.':''),ok=canChart&&!codeBad&&code.length>=2&&name.trim().length>=2&&lender.trim().length>=2&&(!last4||/^\d{4}$/.test(last4));
+  const loans=accLoanRows(s),codeBad=code&&(!/^[A-Z0-9-]{2,12}$/.test(code)?'Use 2–12 capitals, digits or dashes, e.g. LN-001.':loans.some(l=>l.code===code)?'This loan code is already used.':''),ok=canChart&&!codeBad&&code.length>=2&&name.trim().length>=2&&lender.trim().length>=2&&(!last4||/^\d{4}$/.test(last4));
   return <form className="form" onSubmit={e=>{e.preventDefault();if(ok)void run({type:'ACC_LOAN_ADD',code,kind,name:name.trim(),lender:lender.trim(),...(last4?{accountLast4:last4}:{}),...(note.trim()?{note:note.trim()}:{}),key:'accloan:'+name.trim()} satisfies AccLoanAdd,'Loan added',{close:true});}}>
     <div className="modal-heading"><p className="eyebrow">CHART OF ACCOUNTS</p><h2>Add loan</h2><p>A loan is a party row under Secured loans or Unsecured loans (Bank loans 2400 for secured). Loan received, EMIs and interest are then entered as guided manual vouchers. Fictional names only.</p></div>
     <label>Loan code<input value={code} maxLength={12} autoCapitalize="characters" onChange={e=>setCode(e.target.value.toUpperCase())} placeholder="e.g. LN-001"/></label>

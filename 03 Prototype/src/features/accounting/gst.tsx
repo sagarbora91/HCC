@@ -6,8 +6,8 @@ import {useHcc} from '../../app/context';
 import {money} from '../../services/mock';
 import {ListCard,KpiCard,ChipFilter} from '../../app/mobile/components';
 import {Empty,dateLabel} from '../../components/ui';
-import {accGstMonth,accGstHeads,accMonthLockBlocker,accMonthLockOf,accManualList,type ACCGstHead,
-  type AccGstSetoff,type AccGstPay,type AccStatRemit,type AccMonthLockCmd,type AccMonthLockRequest,type AccMonthUnlockCmd} from './_contract-stubs-2';
+import {accGstMonthView,accGstHeads,accMonthLockBlocker,accMonthLockOf,accManualList,type ACCGstHead,
+  type AccGstSetoff,type AccGstPay,type AccStatRemit,type AccMonthLockCmd,type AccMonthLockRequest,type AccMonthUnlockCmd} from './acc2-views';
 import {useAccPerms,accUserName} from './parts';
 import {monthChoices,monthLabel,toPaise,fromPaise,bankMethods} from './shared';
 import {TEMPLATE_LABEL} from './manual-templates';
@@ -20,7 +20,7 @@ const sum3=(r:Record<ACCGstHead,number>)=>r.igst+r.cgst+r.sgst;
 export function GstMonthView({phone}:{phone?:boolean}){
   const {s,open,run,busy,toast}=useHcc();const {canTax,canMonthLock,canMonthRequest}=useAccPerms();
   const months=useMemo(()=>monthChoices(s.date),[s.date]);const [month,setMonth]=useState(months[0]);
-  const g=useMemo(()=>accGstMonth(s,month),[s,month]);const lock=accMonthLockOf(s,month),blockers=blockersOf(accMonthLockBlocker(s,month));
+  const g=useMemo(()=>accGstMonthView(s,month),[s,month]);const lock=accMonthLockOf(s,month),blockers=blockersOf(accMonthLockBlocker(s,month));
   const remits=accManualList(s).filter(v=>v.date.startsWith(month)&&(v.template==='gst-payment'||v.template==='statutory-remittance')&&v.status!=='void'&&v.status!=='rejected');
   const stepsTo=(h:ACCGstHead)=>g.setoff.filter(x=>x.against===h);
   const used=(h:ACCGstHead)=>g.setoff.filter(x=>x.credit===h).reduce((a,x)=>a+x.amount,0);
@@ -83,9 +83,9 @@ function useRemitFields(defaultAmount:number){
 }
 /** 'acc-gst-pay' · id = YYYY-MM, room = 'rcm' (pay the reverse-charge GST from 2140 instead of the set-off balance). Dr 1340 · Cr bank. */
 export function GstPayModal({id,room}:{id?:string;room?:string}){
-  const {s,run,closeModal,busy}=useHcc();const {canTax}=useAccPerms();const month=id||s.date.slice(0,7),rcm=room==='rcm',g=accGstMonth(s,month);
-  const f=useRemitFields(rcm?Math.max(g.rcm,0):g.payableTotal);
-  return <form className="form" onSubmit={e=>{e.preventDefault();if(!f.ok)return;void run({type:'ACC_GST_PAY',month,amount:f.paise,method:f.method,challan:f.challan,date:f.date,...(rcm?{rcm:true as const}:{}),key:`accgst-pay:${month}:${rcm?'rcm':'tax'}:${f.challan}`} satisfies AccGstPay,'GST payment recorded',{close:true});}}>
+  const {s,run,closeModal,busy}=useHcc();const {canTax}=useAccPerms();const month=id||s.date.slice(0,7),rcm=room==='rcm',g=accGstMonthView(s,month);
+  const f=useRemitFields(rcm?Math.max(g.rcm,0):g.challan); // ACC-2 integration: the challan = payable less the cash already in 1340
+  return <form className="form" onSubmit={e=>{e.preventDefault();if(!f.ok)return;void run({type:'ACC_GST_PAY',month,amount:f.paise,method:f.method,challan:f.challan,date:f.date,...(rcm?{rcm:f.paise}:{}),key:`accgst-pay:${month}:${rcm?'rcm':'tax'}:${f.challan}`} satisfies AccGstPay,'GST payment recorded',{close:true});}}>
     <div className="modal-heading"><p className="eyebrow">GST · {monthLabel(month).toUpperCase()}</p><h2>{rcm?'Pay reverse-charge GST':'Pay GST'}</h2>
       <p>{rcm?`Reverse-charge GST is paid in cash, never by set-off: Dr GST payable under reverse charge (2140) · Cr bank. Payable now ${money(Math.max(g.rcm,0))}.`:`Challan deposit into the electronic cash ledger: Dr 1340 · Cr bank. The set-off leaves ${money(g.payableTotal)} to pay (IGST ${money(g.payable.igst)}, CGST ${money(g.payable.cgst)}, SGST ${money(g.payable.sgst)}).`}</p></div>
     {f.fields}

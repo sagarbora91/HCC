@@ -6,7 +6,7 @@ import {Info,Landmark,Repeat} from 'lucide-react';
 import {money,mnyCategory,mnyVendor,mnyIsDrawer,accLedgerName} from '../../services/mock';
 import type {State} from '../../services/mock';
 import {useHcc} from '../../app/context';
-import {expPurchaseItcGuard,tdsForBill,accCashGuard} from '../accounting/_contract-stubs-2';
+import {expPurchaseItcGuard,tdsForBillPaise,accCashVerdict} from '../accounting/acc2-views';
 import {CashGuardNote} from '../accounting/cashguard';
 
 export type PurchaseForm={category:string;vendor:string;method:string;date:string;itc:'allowed'|'disallowed';gstKind:'intra'|'inter';rcmBps:string};
@@ -28,8 +28,8 @@ export function ExpensePurchaseFields({f,setF,paise,gst}:{f:PurchaseForm&Record<
   const {s}=useHcc();const c=mnyCategory(s,f.category),v=f.vendor?mnyVendor(s,f.vendor):undefined;
   const set=(p:Partial<PurchaseForm>)=>setF({...f,...p} as never);
   const hasGst=Number.isFinite(gst)&&gst>0;
-  const tds=v?.tds&&paise>0?tdsForBill(s,{vendor:f.vendor,amount:paise,gstPaise:hasGst?gst:0,date:f.date}):0;
-  const guard=f.vendor.trim()&&mnyIsDrawer(s,f.method)&&paise>0?accCashGuard(s,{kind:'payment',party:f.vendor.trim(),amount:paise,date:f.date}):undefined;
+  const tds=v?.tds&&paise>0?tdsForBillPaise(s,{vendor:f.vendor,amount:paise,gstPaise:hasGst?gst:0,date:f.date}):0;
+  const guard=f.vendor.trim()&&mnyIsDrawer(s,f.method)&&paise>0?accCashVerdict(s,{kind:'payment',party:f.vendor.trim(),amount:paise,date:f.date}):undefined;
   const itcMsg=hasGst?expPurchaseItcGuard(s,{category:f.category,itc:f.itc,gstBps:undefined}):'';
   return <>
     {c?.rcm&&<div className="info-note exp-purchase" role="status"><Repeat size={16} aria-hidden/><div><strong>Reverse charge (category “{f.category}”).</strong>

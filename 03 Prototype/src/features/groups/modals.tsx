@@ -8,7 +8,7 @@ import {useHcc} from '../../app/context';
 import {Empty,field,submit,shortDate,dateLabel} from '../../components/ui';
 import {NumberStepper} from '../../app/mobile/components';
 import {GrpCreditPill,grpRupees,grpPaise,grpSimNote,grpUserName,grpActive} from './parts';
-import {accPartyRetireBlocker} from '../accounting/_contract-stubs-2'; // ACC-2
+import {accPartyRetireReason} from '../accounting/acc2-views'; // ACC-2
 import type {GRPCompany} from '../../services/mock';
 import {MasterFolio,PickupTable} from './Groups';
 import {RestrictionNotice} from '../reservations/RestrictionNotice';
@@ -19,7 +19,7 @@ const Head=({eyebrow,title,sub}:{eyebrow:string;title:string;sub:string})=><div 
 /** ACC-2 (contract §8): the active flag of a company. Retiring is refused while 1110/<company> has a balance or the company has open stays / blocks. */
 function RetireField({c}:{c:GRPCompany}){
   const {s}=useHcc();const [on,setOn]=useState(grpActive(c));
-  const blocker=accPartyRetireBlocker(s,'1110/'+c.id),canRetire=!blocker;
+  const blocker=accPartyRetireReason(s,'1110/'+c.id),canRetire=!blocker;
   return <fieldset className="grp-fieldset grp-retire"><legend>Account status</legend>
     <label className="checkbox-line"><input type="checkbox" name="active" checked={on} aria-describedby={blocker?'grp-retire-why':undefined} onChange={e=>setOn(e.target.checked||!canRetire)}/> Active — can be picked for new bookings, blocks and company credit</label>
     {!on&&<small className="muted">Retired: hidden from the pickers; its past stays, invoices and statement stay as they were. Save to apply.</small>}

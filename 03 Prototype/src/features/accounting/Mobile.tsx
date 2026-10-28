@@ -13,7 +13,7 @@ import {useAccRange} from './shared';
 import {ManualView} from './manual';
 import {GstMonthView} from './gst';
 import {TdsView,AssetsView} from './tds';
-import {accManualList} from './_contract-stubs-2';
+import {accManualList} from './acc2-views';
 import {TallyExport} from './Accounting';
 import {AccStatusPill,AccSeverity,AccLockButton,AccExportButton,accUserName,useAccPerms,accVoucherDebit} from './parts';
 

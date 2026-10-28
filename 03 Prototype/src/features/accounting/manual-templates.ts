@@ -1,6 +1,6 @@
 // ACC-2 · acc2-ui — the guided templates of contract §2: each one is a short form whose answers fill the voucher lines (the UI lane fills the
 // lines; the guards and the posting are the manual lane's). Pure display wiring: a template says which fields it asks and which lines they make.
-import type {ACCManualLine,ACCManualTemplate,ACCManualVoucher} from './_contract-stubs-2';
+import type {ACCManualLine,ACCManualTemplate,ACCManualVoucher} from './acc2-views';
 
 export type TplFieldKind='amount'|'bank'|'tender'|'loan'|'debtor';
 export type TplField={key:string;label:string;kind:TplFieldKind;help?:string};
