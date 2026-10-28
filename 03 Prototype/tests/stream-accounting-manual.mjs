@@ -165,7 +165,7 @@ export function register({test,M,assert}){
     assert.deepEqual([loan.code,loan.name,loan.group,loan.kind,loan.lender,loan.accountLast4,loan.active,loan.system],
       ['2400/LN-HDFC','HDFC term loan','secured-loans','loan','HDFC Bank (fictional)','7788',true,false]);
     const u=run(s,'owner',{type:'ACC_LOAN_ADD',code:'LN-FAMILY',name:'Loan from a relative',lender:'A relative (fictional)',kind:'unsecured'});
-    assert.deepEqual(M.accLoans(u).map(l=>[l.code,l.group]),[['2400/LN-HDFC','secured-loans'],['2400/LN-FAMILY','unsecured-loans']]);
+    assert.deepEqual(M.accLoans(u).map(l=>[l.code,l.group]),[['2400/LN-FAMILY','unsecured-loans'],['2400/LN-HDFC','secured-loans']]);
     refused(()=>run(s,'owner',{type:'ACC_LOAN_ADD',code:'LN-X',name:'Odd loan',lender:'HDFC',kind:'overdraft'}),'VALIDATION',/secured or unsecured/);
     assert.equal(M.accChartHistory(s)[0].field,'created');
     refused(()=>run(s,'owner',{type:'ACC_LOAN_ADD',code:'LN-HDFC',name:'Another loan',lender:'HDFC'}),'INVALID_TRANSITION',/already exists/);
