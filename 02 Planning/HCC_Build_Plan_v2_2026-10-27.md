@@ -140,7 +140,7 @@ Borrowed whole from ETP: `scripts\build-windows-release.ps1` → `build-windows-
 
 | # | Point | Need |
 |---|---|---|
-| OP-13 | The **Excel-like calculation engine** for the report module: where is it (not in ETP's current `Etp.Reporting.Reporting`), and is it ready to borrow or still being built? | Owner |
+| OP-13 | The **Excel-like calculation engine** for the report module | **Answered 27 Oct:** still being built, about 7 days (≈ 3 Nov 2026); W7 keeps the computed-column hook and takes the engine when it lands | Owner |
 | OP-14 | **Form C** for foreign guests and **PF ECR / ESIC files** in W8: build or leave? | Owner |
 | OP-15 | Providers for W8: WhatsApp / SMS gateway, ID OCR, channel manager — which vendors, and who signs the contracts | Owner |
 | OP-16 | GitHub repository **private** before the push (DEC-087 says private; `sagarbora91/HCC` is public today) | Owner |
