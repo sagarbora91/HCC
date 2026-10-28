@@ -218,9 +218,11 @@ export function register({test,M,assert}){
     // T7b (30 Apr): Receipt Dr 1030/HDFC 57,000 · Dr 1360 6,000 · Cr 1110/Deccan 63,000
     const t7b=only(s,TO,v=>v.source.sub==='company-payment','T7b');assert.equal(t7b.type,'Receipt');sameStep(s,t7b,'T7b');
     sameStep(s,only(s,'2026-04-10',v=>v.source.sub==='company-payment','T7a'),'T7a');
-    sameStep(s,only(s,'2026-04-05',v=>v.source.kind==='expense','T8'),'T8');
-    sameStep(s,only(s,'2026-04-12',v=>v.source.kind==='expense','T9'),'T9');
-    sameStep(s,only(s,'2026-04-15',v=>v.source.kind==='expense','T10'),'T10');
+    const bill=v=>v.source.kind==='expense'||v.source.kind==='purchase'; // a vendor bill on credit is a Purchase voucher (type) from ACC-2
+    sameStep(s,only(s,'2026-04-05',bill,'T8'),'T8');
+    assert.equal(only(s,'2026-04-05',bill,'T8').type,'Purchase');
+    sameStep(s,only(s,'2026-04-12',bill,'T9'),'T9');assert.equal(only(s,'2026-04-12',bill,'T9').type,'Purchase');
+    sameStep(s,only(s,'2026-04-15',bill,'T10'),'T10');
     // T11 (18 Apr): Payment Dr 2200/Morning 60,000 · Cr 1030/HDFC (source kind "vendor")
     const t11=only(s,'2026-04-18',v=>v.source.kind==='vendor','T11');assert.equal(t11.type,'Payment');sameStep(s,t11,'T11');
     // T13a (8 Apr): the salary advance — Dr 1200/Staff-07 · Cr 1000 (cash, as the rulebook has it)

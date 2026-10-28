@@ -6,14 +6,15 @@ using Hcc.Domain.Accounting;
 namespace Hcc.Accounting.Tests.Golden;
 
 /// <summary>
-/// ACC-1 (lane acc1-tests): the rulebook golden month, ACC-1 subset — 02 Planning/HCC_Accounting_Rulebook_v1.md §8, April 2026, fictional.
+/// ACC-1 (lane acc1-tests) + ACC-2 (lane acc2-tests): the rulebook golden month, the WHOLE of §8.2 — 02 Planning/HCC_Accounting_Rulebook_v1.md §8, April 2026, fictional.
 /// <c>rulebook-month.json</c> (written by <c>build-rulebook-month.mjs</c> from 03 Prototype/tests/_rulebook-month.mjs, the same data the prototype's
-/// tests/stream-accounting-rulebook.mjs uses) holds the opening balances (§8.1), the 26 entries of §8.2, the server events for the steps ACC-1
-/// books (T1 T2 T3 T5a T5b T5c T7a T8 T9 T10 T12 T13a T13b T13c T15a T15b), and the expectation worked out from the rulebook: the closing trial
-/// balance by control ledger and by party. Events go through the production <see cref="AccountingEventMapper"/> and <see cref="VoucherBuilder"/>.
-/// Not driven: T16 (an Owner drawing from the BANK is rulebook B6, a manual voucher — ACC-2) and T4 T6 T7b T11 T14 T17 T18 T19 (ACC-2).
-/// Tests marked <c>Lane</c> need that lane merged into claude/acc1 (the chart's 4200 F&amp;B revenue ledger, party sub-ledgers, the opening endpoint,
-/// the statements); they fail with a plain reason until then. Money = integer paise.
+/// tests/stream-accounting-rulebook.mjs uses) holds the opening balances (§8.1), the 26 entries of §8.2, the server events for the 19 steps that have events
+/// (T1 T2 T3 T4 T5a T5b T5c T6 T7a T7b T8 T9 T10 T12 T13a T13b T13c T15a T15b — ACC-2 adds receipt kinds <c>ota-credit</c> / <c>deposit-apply</c> / <c>deposit</c>, a TDS
+/// amount on a company payment, charge kind <c>food</c> and per-staff advance recovery), and the expectation worked out from the rulebook: the closing trial balance
+/// by control ledger and by party. Events go through the production <see cref="AccountingEventMapper"/> and <see cref="VoucherBuilder"/>.
+/// The 7 steps with no server command / event yet — T11 vendor payment (acc2-purchase), T14a T14b T16 T17 T18 manual vouchers (acc2-manual), T19 OTA payout (acc2-flows) —
+/// have their intended payloads in the json (<c>waiting.events</c>) and a skipped test each with the reason. Tests fail today where an ACC-2 lane has not landed
+/// (marked <c>Lane</c>); they pass once <c>claude/acc2</c> is merged. Money = integer paise.
 /// </summary>
 public sealed class RulebookMonthTests
 {
@@ -134,41 +135,63 @@ public sealed class RulebookMonthTests
         Assert.Equal(Root.GetProperty("expected").GetProperty("rulebookTrialBalance83").EnumerateObject().ToDictionary(p => p.Name, p => p.Value.GetInt64()).OrderBy(x => x.Key, StringComparer.Ordinal), all);
         Assert.Equal(842_750_000, all.Values.Where(v => v > 0).Sum());
         Assert.Equal(-842_750_000, all.Values.Where(v => v < 0).Sum());
-        // the brief's subset (driven steps + T16) and the whole month are in the file for the later waves
+        // the whole month is in the file
         Assert.Equal(all.Keys, Root.GetProperty("expected").GetProperty("fullMonthControl").EnumerateObject().Select(p => p.Name).Order(StringComparer.Ordinal));
-        Assert.Equal(16, Root.GetProperty("driven").GetArrayLength());
+        Assert.Equal(19, Root.GetProperty("driven").GetArrayLength());
+        Assert.Equal(7, Root.GetProperty("waiting").GetProperty("steps").GetArrayLength());
+        Assert.Equal(["T11", "T14a", "T14b", "T16", "T17", "T18", "T19"], Root.GetProperty("waiting").GetProperty("steps").EnumerateArray().Select(x => x.GetString()!));
+        // §8.4 profit ₹1,40,400 from the P&L ledgers only (4xxx / 5xxx), §8.5 totals ₹79,27,900, §8.6 challan ₹28,900 — worked out from the 26 entries
+        var pl = all.Where(x => x.Key[0] is '4' or '5').Sum(x => -x.Value);
+        Assert.Equal(14_040_000, pl);
+        Assert.Equal(14_040_000, Root.GetProperty("expected").GetProperty("profitAndLoss84").GetProperty("profit").GetInt64());
+        var assets = all.Where(x => x.Key[0] == '1').Sum(x => x.Value);
+        Assert.Equal(792_790_000, assets);
+        Assert.Equal(792_790_000, -all["3100"] + pl - all["3000"] - all["2400"] - all["2200"] - all["2110"] - all["2120"] - all["2310"] - all["2320"] - all["2330"] - all["2000"]);
+        Assert.Equal(2_890_000, -all["2110"] - all["2120"] - all["1340"]);   // output 29,000 less the TCS credit 100
+        Assert.Equal(2_890_000, Root.GetProperty("expected").GetProperty("gst86").GetProperty("challan").GetInt64());
     }
 
     [Fact]
     public void Every_driven_step_has_events_and_the_events_cover_the_driven_steps_exactly()
     {
         var driven = Root.GetProperty("driven").EnumerateArray().Select(x => x.GetString()!).Order(StringComparer.Ordinal).ToList();
+        var waiting = Root.GetProperty("waiting").GetProperty("steps").EnumerateArray().Select(x => x.GetString()!).Order(StringComparer.Ordinal).ToList();
         Assert.Equal(driven, Sources().Select(x => x.Step).Distinct().Order(StringComparer.Ordinal));
-        Assert.DoesNotContain("T16", driven);
+        Assert.Equal(26, driven.Count + waiting.Count);
+        Assert.Empty(driven.Intersect(waiting));
+        Assert.Equal(waiting, Root.GetProperty("waiting").GetProperty("events").EnumerateArray().Select(x => S(x, "step")).Order(StringComparer.Ordinal));   // intended payloads for every waiting step
         Assert.All(Sources(), x => Assert.True(x.Source.Debit == x.Source.Credit && x.Source.Debit > 0, x.Source.SourceKey));
         Assert.Equal(Sources().Count, Sources().Select(x => x.Source.SourceKey).Distinct().Count());   // one stable key per operational record
     }
 
     // ───────── the events, through the production mapper and VoucherBuilder ─────────
 
-    [Fact]
-    [Trait("Lane", "acc1-chart")]
-    public void Each_driven_step_posts_the_rulebook_entries_on_the_control_ledgers()
+    public static TheoryData<string> DrivenSteps()
+    {
+        var d = new TheoryData<string>();
+        foreach (var k in Root.GetProperty("driven").EnumerateArray().Select(x => x.GetString()!)) d.Add(k);
+        return d;
+    }
+
+    /// <summary>
+    /// One step's event(s) through the production mapper + builder = the rulebook's entries on the control ledgers. Passing today: T1 T3 T5b T5c T6 T7a T8 T9 T10 T12 T13a-c
+    /// T15a-b. Waiting for a lane (the failure says which): T2 (<c>line:food</c> → 4200: acc2-parity), T4 (receipt kind <c>ota-credit</c>: acc2-flows), T5a (kind
+    /// <c>deposit-apply</c>: acc2-flows), T7b (TDS on a company payment: acc2-tds).
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(DrivenSteps))]
+    public void Each_driven_step_posts_the_rulebook_entries_on_the_control_ledgers(string step)
     {
         var mapping = ChartOfAccounts.Effective(MappingOverrides());
-        var problems = new List<string>();
-        foreach (var step in Root.GetProperty("driven").EnumerateArray().Select(x => x.GetString()!))
-        {
-            var mine = Sources().Where(x => x.Step == step).Select(x => x.Source).ToList();
-            var got = Balances(mine.SelectMany(s => VoucherBuilder.Build(s.BusinessDate, [s], mapping)));
-            var want = new SortedDictionary<string, long>(StringComparer.Ordinal);
-            foreach (var x in Root.GetProperty("steps").GetProperty(step).EnumerateArray())
-                want[S(x, "account")] = want.GetValueOrDefault(S(x, "account")) + L(x, "debitPaise") - L(x, "creditPaise");
-            foreach (var k in want.Where(x => x.Value == 0).Select(x => x.Key).ToList()) want.Remove(k);
-            if (!got.SequenceEqual(want)) problems.Add($"{step}: engine {string.Join(" ", got.Select(x => x.Key + "=" + x.Value))} ≠ rulebook {string.Join(" ", want.Select(x => x.Key + "=" + x.Value))}");
-        }
-
-        Assert.True(problems.Count == 0, string.Join(Environment.NewLine, problems) + (problems.Any(p => p.Contains("9999", StringComparison.Ordinal)) ? Environment.NewLine + "(9999: F&B revenue 4200 is not in the server chart yet — waits for lane acc1-chart)" : ""));
+        var mine = Sources().Where(x => x.Step == step).Select(x => x.Source).ToList();
+        var got = Balances(mine.SelectMany(s => VoucherBuilder.Build(s.BusinessDate, [s], mapping)));
+        var want = new SortedDictionary<string, long>(StringComparer.Ordinal);
+        foreach (var x in Root.GetProperty("steps").GetProperty(step).EnumerateArray())
+            want[S(x, "account")] = want.GetValueOrDefault(S(x, "account")) + L(x, "debitPaise") - L(x, "creditPaise");
+        foreach (var k in want.Where(x => x.Value == 0).Select(x => x.Key).ToList()) want.Remove(k);
+        var lane = step switch { "T2" => "acc2-parity (line:food → 4200)", "T4" or "T5a" => "acc2-flows (receipt kind ota-credit / deposit-apply)", "T7b" => "acc2-tds (TDS line on a company payment)", _ => "" };
+        Assert.True(got.SequenceEqual(want), $"{step}: engine {string.Join(" ", got.Select(x => x.Key + "=" + x.Value))} ≠ rulebook {string.Join(" ", want.Select(x => x.Key + "=" + x.Value))}"
+            + (lane.Length > 0 ? Environment.NewLine + "(waits for lane " + lane + ")" : ""));
     }
 
     [Theory]
@@ -216,7 +239,7 @@ public sealed class RulebookMonthTests
             if (delta != 0) trace.Add(trace[^1] + delta);
         }
 
-        Assert.Equal([4_000_000L, 10_300_000L, 6_300_000L], trace);   // 40,000 → 1,03,000 (T5b) → 63,000 (T7a)
+        Assert.Equal([4_000_000L, 10_300_000L, 6_300_000L, 0L], trace);   // 40,000 → 1,03,000 (T5b) → 63,000 (T7a) → nil (T7b: 57,000 + TDS 6,000, waits for acc2-tds)
     }
 
     // ───────── ACC-1 integration: the lanes' tests, un-skipped once chart, parties, opening and statements were merged ─────────
@@ -278,22 +301,30 @@ public sealed class RulebookMonthTests
     }
 
     [Fact]
-    [Trait("Lane", "acc1-parties")]
+    [Trait("Lane", "acc2")]
     public void Party_ledgers_hold_the_party_balances()
     {
         var vouchers = PartyVouchers();
         var by = new SortedDictionary<string, long>(StringComparer.Ordinal);
         foreach (var e in vouchers.SelectMany(v => v.Entries)) by[e.Account] = by.GetValueOrDefault(e.Account) + e.DebitPaise - e.CreditPaise;
-        foreach (var (ledger, want) in Expected("closing", "party"))
+        // 1115/Goibibo needs the OTA party on the receipt (acc2-flows adds it to PartyContext): its own skipped test below.
+        foreach (var (ledger, want) in Expected("closing", "party").Where(x => !x.Key.StartsWith("1115/", StringComparison.Ordinal)))
             Assert.True(want == by.GetValueOrDefault(ServerLedger(ledger)), $"{ServerLedger(ledger)}: {by.GetValueOrDefault(ServerLedger(ledger))} ≠ {want}");
-        // Deccan 63,000 Dr; Morning 84,000 Cr; Kaveri 42,000 Cr; HDFC 2,31,500 Dr (3,00,000 + 40,000 − 45,000 + 1,50,000 − 2,13,500 T13c).
-        Assert.Equal(6_300_000, by[PartyLedgers.Compose("1110", PartyLedgers.Company(7))]);
-        // Staff 7's advance sits on the party; the server's pay run recovers it on the 1200 CONTROL (one total, no party:
-        // per-staff recovery is ACC-2, coordinator ruling 10), so the two cancel only at control level.
-        Assert.Equal(500_000, by[PartyLedgers.Compose("1200", PartyLedgers.Staff(7))]);
-        Assert.Equal(-500_000, by["1200"]);
+        // Deccan Agro: 40,000 opening + 63,000 (T5b) − 40,000 (T7a) − 63,000 (T7b: 57,000 received + 6,000 TDS, waits for acc2-tds) = nil.
+        Assert.Equal(0, by.GetValueOrDefault(PartyLedgers.Compose("1110", PartyLedgers.Company(7))));
+        // Morning 84,000 Cr (T11 waits); HDFC 2,88,500 Dr (3,00,000 + 40,000 + 57,000 − 45,000 + 1,50,000 − 2,13,500; T11 T14 T16-T19 wait); the loan party 20,00,000 Cr from the opening.
+        Assert.Equal(-2_000_000_00L, by[PartyLedgers.Compose("2400", "LN-HDFC")]);
+        // ACC-2 (acc2-parity): the pay run recovers the advance PER STAFF — 1200/STF-7 nets to nil and nothing is left on the 1200 control (ACC-1 left 5,000 on the party and −5,000 on the control).
+        Assert.Equal(0, by[PartyLedgers.Compose("1200", PartyLedgers.Staff(7))]);
+        Assert.Equal(0, by.GetValueOrDefault("1200"));
         // The control-level totals are unchanged by the parties (same figures as the control test).
         Assert.Equal(Expected("closing", "control"), Balances(vouchers));
+    }
+
+    [Fact(Skip = "waits for lane acc2-flows: the OTA party on a receipt (PartyContext gets the channel) so T4's ota-credit posts 1115/<channel> — intended: 1115/CHN-GOIBIBO 21,000 Dr after T4 (2,100,000 paise), nil after T19")]
+    [Trait("Lane", "acc2-flows")]
+    public void Ota_receivable_is_a_party_ledger_per_channel()
+    {
     }
 
     [Fact]
@@ -348,16 +379,69 @@ public sealed class RulebookMonthTests
             Assert.Equal(want, r.ClosingDebitPaise - r.ClosingCreditPaise);
         }
 
-        // Statement of the company party from 2 April: opening 40,000 Dr, T5b +63,000 → 1,03,000 Dr, T7a −40,000 → 63,000 Dr.
+        // Statement of the company party from 2 April: opening 40,000 Dr, T5b +63,000 → 1,03,000 Dr, T7a −40,000 → 63,000 Dr, T7b −63,000 (57,000 received + 6,000 TDS: acc2-tds) → nil.
         var deccan = PartyLedgers.Compose("1110", PartyLedgers.Company(7));
         var (o2, p2) = AccountingReports.Split(all, new DateOnly(2026, 4, 2), to);
         var st = AccountingReports.Statement(deccan, new DateOnly(2026, 4, 2), to, o2, p2);
         Assert.Equal(4_000_000, st.OpeningPaise);
-        Assert.Equal([10_300_000L, 6_300_000L], st.Rows.Select(r => r.RunningPaise));
-        Assert.Equal((6_300_000L, 4_000_000L, 6_300_000L), (st.DebitPaise, st.CreditPaise, st.ClosingPaise));
+        Assert.Equal([10_300_000L, 6_300_000L, 0L], st.Rows.Select(r => r.RunningPaise));
+        Assert.Equal((6_300_000L, 10_300_000L, 0L), (st.DebitPaise, st.CreditPaise, st.ClosingPaise));
         // Day book: every period voucher, date then number order, balanced.
         var book = AccountingReports.DayBook(from, to, period);
         Assert.True(book.Balanced);
         Assert.Equal(period.Count, book.Vouchers);
+    }
+
+    // ───────── ACC-2: the whole month — the steps that wait for a server command, and the full closing trial balance ─────────
+
+    /// <summary>The 19 event-driven steps through the engine plus the rulebook's own entries for the 7 waiting steps, over the opening journal: ₹84,27,500 exactly, ledger by ledger.
+    /// It proves the pieces compose to §8.3; each waiting step is replaced by its real command as the lane lands (see the skipped tests).</summary>
+    [Fact]
+    [Trait("Lane", "acc2")]
+    public void The_engine_vouchers_plus_the_rulebook_entries_of_the_waiting_steps_close_to_84_27_500()
+    {
+        var vouchers = Vouchers().ToList();
+        foreach (var step in Root.GetProperty("waiting").GetProperty("steps").EnumerateArray().Select(x => x.GetString()!))
+        {
+            var entries = Root.GetProperty("steps").GetProperty(step).EnumerateArray().Select(x => new VoucherEntry(S(x, "account"), L(x, "debitPaise"), L(x, "creditPaise"))).ToList();
+            vouchers.Add(new Voucher("", Date("2026-04-30"), VoucherType.Journal, "Rulebook entry " + step + " (stand-in)", "standin:" + step, "manual", step, entries, []));
+        }
+
+        var got = Balances(vouchers);
+        Assert.Equal(Root.GetProperty("expected").GetProperty("rulebookTrialBalance83").EnumerateObject().OrderBy(p => p.Name, StringComparer.Ordinal).Select(p => (p.Name, p.Value.GetInt64())),
+            got.Select(x => (x.Key, x.Value)));
+        Assert.Equal(842_750_000, got.Values.Where(v => v > 0).Sum());
+        Assert.Equal(-842_750_000, got.Values.Where(v => v < 0).Sum());
+        Assert.False(got.ContainsKey(ChartOfAccounts.Suspense));
+    }
+
+    [Fact(Skip = "waits for lane acc2-purchase: VendorPaymentRecorded → SourceRules.VendorPayment (exp.vendor_payment + _alloc, migrations 4230–4237), source kind 'vendor'. Intended (rulebook T11, 18 Apr): Payment Dr 2200/EV-MORNING 60,00,000 paise · Cr 1030/BA-HDFC; allocation oldest first = the 25,000 opening then 35,000 of bill 501; 2200/EV-MORNING closes 2,400,000 Cr; ageing 0–30: Morning 24,000, Kaveri 42,000")]
+    [Trait("Lane", "acc2-purchase")]
+    public void T11_vendor_payment_allocated_oldest_first()
+    {
+    }
+
+    [Fact(Skip = "waits for lane acc2-manual: ManualVoucherApproved → SourceRules.Manual (acc.manual_voucher / acc.manual_line, migrations 4238–4241). Intended: T14a Contra (CTR/20260427/001, sub contra) Dr 1030/BA-HDFC 21,300,000 · Cr 1010; T14b Journal Dr 1030/BA-HDFC 14,823,000 · Dr 5080 177,000 · Cr 1020 15,000,000 (the MDR line is not a cash / bank ledger, so not a Contra); T16 Payment (owner-drawing-bank) Dr 3000 5,000,000 · Cr 1030/BA-HDFC; T17 Payment (loan-emi) Dr 2400/LN-HDFC 4,000,000 · Dr 5090 1,500,000 · Cr 1030/BA-HDFC 5,500,000; T18 Payment (bank-charges) Dr 5080 59,000 · Cr 1030/BA-HDFC; a pending Accountant voucher posts nothing until the Owner approves; a locked day takes a reversing voucher")]
+    [Trait("Lane", "acc2-manual")]
+    public void T14_T16_T17_T18_manual_vouchers_post_their_template_entries()
+    {
+    }
+
+    [Fact(Skip = "waits for lane acc2-flows: OtaPayoutRecorded → SourceRules.OtaPayout (ota.payout, migrations 4250–4254), source kind 'ota'. Intended (rulebook T19, 29 Apr): Receipt Dr 1030/BA-HDFC 1,736,000 · Dr 5070 354,000 · Dr 1340 10,000 · Cr 1115/CHN-GOIBIBO 2,100,000 (gross = net + commission + GST + TCS); refused when it does not add up or exceeds the open receivable")]
+    [Trait("Lane", "acc2-flows")]
+    public void T19_ota_payout_from_the_statement()
+    {
+    }
+
+    [Fact(Skip = "waits for lanes acc2-gst + acc2-manual: GstSetOff (six hand-worked cases incl. the §8.6 month), acc.gst_setoff / acc.month_lock (migrations 4246–4249), template gst-payment. Intended (rulebook §8.6, in May): set-off Journal Dr 2110 1,450,000 · Dr 2120 1,450,000 · Cr 1340 2,900,000, then Dr 1340 2,890,000 · Cr 1030/BA-HDFC 2,890,000 (challan ₹28,900); month lock refused until the set-off is posted and no manual voucher is pending")]
+    [Trait("Lane", "acc2-gst")]
+    public void GST_set_off_and_the_month_lock_for_April()
+    {
+    }
+
+    [Fact(Skip = "waits for the lanes above: the full month from the engine only — every one of the 26 steps through events / commands, cumulative trial balance at 30 April = expected.full (₹84,27,500 both sides, 1360 TDS receivable 6,000, 1340 GST cash ledger 100, 2400/LN-HDFC 19,60,000 Cr, 1030/BA-HDFC 5,01,500 Dr, Morning 24,000 Cr, Kaveri 42,000 Cr), profit ₹1,40,400, six-column TB balanced. Replaces the stand-in test above once T11 T14 T16-T19 exist")]
+    [Trait("Lane", "acc2")]
+    public void The_full_month_from_the_engine_only()
+    {
     }
 }
