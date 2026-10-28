@@ -61,7 +61,8 @@ public sealed class CompanyPaymentTdsSqlTests : IAsyncLifetime
         await Expect.Fails(HccErrorCode.INVALID_TRANSITION, () => _w.Credit.RecordPaymentAsync(_w.Ctx("cashier"), pay with { Reference = "NEFT-DEMO-0431" })); // owes nothing
 
         // The books: Dr tender 90 · Dr 1360 10 · Cr 1110/CMP-<id> 100.
-        Assert.Equal(0, await Projector.RunOnceAsync(ct: Ct));
+        Assert.True(await Projector.RunOnceAsync(ct: Ct) > 0);
+        Assert.Equal(0, await Projector.RunOnceAsync(ct: Ct)); // everything consumed, nothing parked
         var day = await Books.DayAsync(_w.Caller("owner"), Today, Ct);
         var v = day.Vouchers.Single(x => x.SourceKey == "company-payment:" + paid.PaymentId);
         Assert.Equal(("Receipt", "company-payment", true), (v.Type, v.Sub, v.Balanced));
