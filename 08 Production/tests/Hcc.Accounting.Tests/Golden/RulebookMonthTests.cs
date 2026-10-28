@@ -203,7 +203,7 @@ public sealed class RulebookMonthTests
         // T8 5 Apr (vendor credit = Journal), T7a 10 Apr (Receipt), T9 12 Apr, T10 15 Apr (Payment), T15a 25 Apr (contra Journal), T15b 26 Apr (Journal)
         Assert.Equal("PUR/20260405/001", by[Date("2026-04-05")].Single(v => v.SourceKey == "expense:501").Number); // ACC-2 contract §3.1: Purchase (was Journal)
         Assert.Equal(VoucherType.Receipt, by[Date("2026-04-10")].Single(v => v.Sub == "company-payment").Type);
-        Assert.Equal(VoucherType.Journal, by[Date("2026-04-12")].Single(v => v.SourceKey == "expense:502").Type);
+        Assert.Equal(VoucherType.Purchase, by[Date("2026-04-12")].Single(v => v.SourceKey == "expense:502").Type); // ACC-2 contract §3.1 (was Journal)
         Assert.Equal(VoucherType.Payment, by[Date("2026-04-15")].Single(v => v.SourceKey == "expense:503").Type);
         Assert.Equal("bank-deposit", by[Date("2026-04-25")].Single().Sub);
         Assert.Equal("cash-difference", by[Date("2026-04-26")].Single().Sub);

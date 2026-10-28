@@ -64,8 +64,8 @@ export async function register({test,M,assert}){
   test('[MNY-SYNC] edits carry the server id and the loaded version (bank account: IFSC in capitals, opening balance in paise)',()=>{
     assert.ok(edit.r.ok);assert.deepEqual([edit.cmds[0].path,edit.cmds[0].body],['/commands/SaveBankAccount',{code:'BANK-1',name:'Main account',sortOrder:20,kind:'bank',bank:'Demo Bank (fictional)',
       accountLast4:'4321',ifsc:'DEMO0001234',openingBalancePaise:2500000,defaultFor:['upi'],bankAccountId:2,expectedVersion:'B2'}]);
-    assert.deepEqual([cat.cmds[0].path,cat.cmds[0].body],['/commands/SaveExpenseCategory',{code:'GAS',name:'Kitchen gas',sortOrder:60,ledger:'5050',needsBill:true,approvalLimitPaise:null,expenseCategoryId:4,expectedVersion:'E4'}]);
-    assert.deepEqual([ven.cmds[0].path,ven.cmds[0].body],['/commands/SaveExpenseVendor',{code:'V-NEW',name:'New Traders',type:'supplier',gstin:null,pan:'ABCDE1234F',tds:true,contact:null,terms:null}]);});
+    assert.deepEqual([cat.cmds[0].path,cat.cmds[0].body],['/commands/SaveExpenseCategory',{code:'GAS',name:'Kitchen gas',sortOrder:60,ledger:'5050',needsBill:true,approvalLimitPaise:null,itcBlocked:false,rcm:false,rcmBps:null,capital:false,expenseCategoryId:4,expectedVersion:'E4'}]); // ACC-2: purchase flags
+    assert.deepEqual([ven.cmds[0].path,ven.cmds[0].body],['/commands/SaveExpenseVendor',{code:'V-NEW',name:'New Traders',type:'supplier',gstin:null,pan:'ABCDE1234F',tds:true,contact:null,terms:null,state:null,tdsSection:null}]);}); // ACC-2: state, TDS section
   test('[MNY-SYNC] retire / reactivate / delete / reorder → the money-master commands with their id fields',()=>{
     assert.deepEqual([ret.cmds[0].path,ret.cmds[0].body],['/commands/RetirePaymentMethod',{paymentMethodId:7,expectedVersion:'P7'}]);
     assert.deepEqual([back.cmds[0].path,back.cmds[0].body],['/commands/ReactivatePaymentMethod',{paymentMethodId:5,expectedVersion:'P5'}]);
