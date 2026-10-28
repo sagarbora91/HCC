@@ -206,19 +206,25 @@ export function HRHolidayModal({id}:{id?:string}){
     </form></>;
 }
 
+import {payMethods} from '../accounting/shared';
+import {accCashGuard} from '../accounting/_contract-stubs-2';
+import {CashGuardNote} from '../accounting/cashguard';
 /** 'hr-advance': salary advance with monthly recovery (0 = full balance next payroll, SCC). */
 export function HRAdvanceModal(){
   const {s,uid,run,closeModal,busy}=useHcc();const x=hrSlice(s);
   const eligible=x.staff.filter(t=>t.active&&t.userId!==uid);// F-10: never your own advance
-  const [f,setF]=useState({staffId:eligible[0]?.id??'',amount:'',installment:'',fromMonth:s.date.slice(0,7),reason:''});
+  const methods=payMethods(s);const [f,setF]=useState({staffId:eligible[0]?.id??'',amount:'',installment:'',fromMonth:s.date.slice(0,7),reason:'',funding:methods.find(m=>m[2])?.[0]??methods[0]?.[0]??'Cash'});
+  const drawer=!!methods.find(m=>m[0]===f.funding)?.[2];const guard=drawer&&rs(f.amount)>0?accCashGuard(s,{kind:'payment',party:'1200/'+f.staffId,amount:rs(f.amount),date:s.date}):undefined; // ACC-2: funding method (HR_ADVANCE_ADD.funding) and the §7 cash guard
   const set=(k:keyof typeof f)=>(e:React.ChangeEvent<HTMLInputElement|HTMLSelectElement>)=>setF({...f,[k]:e.target.value});
   const months=[s.date.slice(0,7),hrNextMonth(s.date.slice(0,7)),hrNextMonth(hrNextMonth(s.date.slice(0,7)))];
-  return <><div className="modal-heading"><h2>Salary advance</h2><p>Recovered from net pay when payroll is locked (never more than net pay). Paid by simulated bank transfer — no effect on the cash drawer.</p></div>
-    <form className="form" onSubmit={e=>{e.preventDefault();run({type:'HR_ADVANCE_ADD',staffId:f.staffId,amount:rs(f.amount),installment:rs(f.installment||'0'),fromMonth:f.fromMonth,reason:f.reason},'Advance recorded',{close:true});}}>
+  return <><div className="modal-heading"><h2>Salary advance</h2><p>Recovered from net pay when payroll is locked (never more than net pay). {drawer?'Paid in cash from the drawer.':'Paid from the chosen account — no effect on the cash drawer.'}</p></div>
+    <form className="form" onSubmit={e=>{e.preventDefault();run({type:'HR_ADVANCE_ADD',staffId:f.staffId,amount:rs(f.amount),installment:rs(f.installment||'0'),fromMonth:f.fromMonth,reason:f.reason,funding:f.funding},'Advance recorded',{close:true});}}>
       <label>Staff member<select value={f.staffId} onChange={set('staffId')}>{eligible.map(t=><option key={t.id} value={t.id}>{t.name}</option>)}</select></label>
       <div className="form-row"><label>Amount (₹)<input required type="number" inputMode="decimal" min="1" max="1000000" step="0.01" value={f.amount} onChange={set('amount')}/></label>
         <label>Monthly recovery (₹, blank = all at once)<input type="number" inputMode="decimal" min="0" step="0.01" value={f.installment} onChange={set('installment')}/></label></div>
       <label>Recover from<select value={f.fromMonth} onChange={set('fromMonth')}>{months.map(m=><option key={m} value={m}>{hrMonthLabel(m)} payroll</option>)}</select></label>
+      <label>Paid from<select value={f.funding} onChange={set('funding')}>{methods.map(([v,l])=><option key={v} value={v}>{l}</option>)}</select></label>
+      <CashGuardNote verdict={guard}/>
       <label>Reason<input required maxLength={120} value={f.reason} onChange={set('reason')} enterKeyHint="done"/></label>
       <div className="modal-actions"><button type="button" className="btn" onClick={closeModal}>Cancel</button><button className="btn primary" disabled={busy}>Record advance</button></div>
     </form></>;

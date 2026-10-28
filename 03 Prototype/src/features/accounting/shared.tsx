@@ -49,3 +49,33 @@ export function LedgerPicker({options,value,onChange,label='Ledger or party',dis
 /** Plain amount entry (rupees) → paise; empty → 0. */
 export const toPaise=(v:string)=>{const n=Number(v.replace(/,/g,''));return Number.isFinite(n)&&n>0?Math.round(n*100):0;};
 export const fromPaise=(p:number)=>p?String(p/100):'';
+
+// ── ACC-2 pickers (cash / bank, banks, loans, debtors) ──
+import {accLoans} from './_contract-stubs-2';
+const byId=(a:LedgerOpt,b:LedgerOpt)=>a.id<b.id?-1:a.id>b.id?1:0;
+/** Cash and bank ledgers that take entries: tills (1000/…), petty cash, UPI / card clearing, bank accounts (1030/…). */
+export function tenderOptions(s:State):LedgerOpt[]{
+  const chart=accChart(s),ctl=new Map(chart.map(l=>[l.code,l]));
+  const lead=chart.filter(l=>l.active&&!l.control&&(l.group==='cash'||l.group==='bank')).map(l=>({id:l.code,label:`${l.code} · ${l.name}`}));
+  const ps=accPartyLedgers(s).filter(p=>p.active&&(p.control==='1000'||p.control==='1030')).map(p=>({id:p.id,control:p.control,label:`${p.id} · ${p.name} (${ctl.get(p.control)?.name??p.control})`}));
+  return [...lead,...ps].sort(byId);
+}
+/** Bank accounts only (1030/<bank>). */
+export const bankOptions=(s:State):LedgerOpt[]=>accPartyLedgers(s).filter(p=>p.active&&p.control==='1030').map(p=>({id:p.id,control:p.control,label:`${p.name} (${p.id})`})).sort(byId);
+/** Owner-added loans (2400/<LN-code>). */
+export const loanOptions=(s:State):LedgerOpt[]=>accLoans(s).filter(l=>l.active).map(l=>({id:l.id,control:'2400',label:`${l.name}${l.lender?' · '+l.lender:''} (${l.id})`}));
+/** Receivables a bad debt can be written off against: company (1110/…) and Udhaar customer (1120/…) party ledgers. */
+export const debtorOptions=(s:State):LedgerOpt[]=>accPartyLedgers(s).filter(p=>p.control==='1110'||p.control==='1120').map(p=>({id:p.id,control:p.control,label:`${p.name} (${p.id})`})).sort(byId);
+/** Month list for the month pickers: the business month and the eleven before it, newest first. */
+export function monthChoices(date:string,n=12):string[]{
+  const out:string[]=[];let y=+date.slice(0,4),m=+date.slice(5,7);
+  for(let i=0;i<n;i++){out.push(`${y}-${String(m).padStart(2,'0')}`);m--;if(m===0){m=12;y--;}}return out;
+}
+export const monthLabel=(ym:string)=>new Date(ym+'-15T12:00:00').toLocaleDateString('en-IN',{month:'long',year:'numeric'});
+import {mnyNames,mnyIsCredit,mnyIsDrawer} from '../../services/mock';
+/** Payment methods a remittance / vendor payment can be made with: not "pay later" credit. [value, label, isDrawerCash]. */
+export const payMethods=(s:State):[string,string,boolean][]=>mnyNames(s,'expenses').filter(m=>!mnyIsCredit(s,m)).map(m=>[m,mnyIsDrawer(s,m)?'Drawer cash':m,mnyIsDrawer(s,m)]);
+/** Bank-type methods only (challans and bank remittances need a reference). */
+export const bankMethods=(s:State)=>payMethods(s).filter(m=>!m[2]);
+/** Roles that see vendor balances, ageing and OTA payouts: Owner, Manager, Accountant (not the Cashier, reception, housekeeping or maintenance). */
+export const seesVendorBooks=(s:State,uid:string)=>['Owner','Manager','Accountant'].includes(s.users.find(x=>x.id===uid)?.role??'');

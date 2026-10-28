@@ -7,6 +7,7 @@ import {Cashier} from './Cashier';
 import {ClosingReportModal} from './ClosingReport';
 import {ExpenseReasonModal} from '../expenses/ExpenseModal';
 import {ExpEditModal,ExpVoidModal,ExpPhotoModal,ExpTextModal,ExpOverrideModal,ExpRecModal,ExpRecPostModal,ExpUdPayModal,ExpUdVoidModal,ExpMonthLockModal,ExpMonthUnlockModal} from '../expenses/Scc';
+import {VendorPayModal,VendorVoidModal,VendorReturnModal} from '../expenses/vendors'; // ACC-2
 import {ReportPrintModal} from '../reports/Reports';
 import {CashBankModal,TillTransferModal,OwnerDrawingModal,CashDecideModal} from './CashOut';
 export const registration:FeatureRegistration={
@@ -25,6 +26,10 @@ export const registration:FeatureRegistration={
     'exp-ud-pay':p=><ExpUdPayModal id={p.id}/>,'exp-ud-void':p=><ExpUdVoidModal id={p.id}/>,
     'exp-month-lock':p=><ExpMonthLockModal room={p.room}/>,               // room = YYYY-MM
     'exp-month-unlock':p=><ExpMonthUnlockModal room={p.room}/>,           // room = YYYY-MM (DEC-131 Owner unlock with a reason)
+    // ACC-2 (acc2-ui, contract §3.2 / §3.5): vendor payments, void, returns (desktop and phone use the same dialogs)
+    'exp-vendor-pay':p=><VendorPayModal id={p.id}/>,       // id = vendor name
+    'exp-vendor-void':p=><VendorVoidModal id={p.id}/>,     // id = vendor payment id (Owner)
+    'exp-return':p=><VendorReturnModal id={p.id}/>,        // id = expense id
     // Wave B1 (DEC-073): cash leaving the drawer (desktop and phone use the same dialogs; phone layout via display.isMobile)
     'cash-bank':CashBankModal,'till-transfer':TillTransferModal,'owner-drawing':OwnerDrawingModal,
     'cash-decide':p=><CashDecideModal id={p.id}/>,       // id = cash-out record
