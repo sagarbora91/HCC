@@ -77,3 +77,5 @@ import {mnyNames,mnyIsCredit,mnyIsDrawer} from '../../services/mock';
 export const payMethods=(s:State):[string,string,boolean][]=>mnyNames(s,'expenses').filter(m=>!mnyIsCredit(s,m)).map(m=>[m,mnyIsDrawer(s,m)?'Drawer cash':m,mnyIsDrawer(s,m)]);
 /** Bank-type methods only (challans and bank remittances need a reference). */
 export const bankMethods=(s:State)=>payMethods(s).filter(m=>!m[2]);
+/** Roles that see vendor balances, ageing and OTA payouts: Owner, Manager, Accountant (not the Cashier, reception, housekeeping or maintenance). */
+export const seesVendorBooks=(s:State,uid:string)=>['Owner','Manager','Accountant'].includes(s.users.find(x=>x.id===uid)?.role??'');

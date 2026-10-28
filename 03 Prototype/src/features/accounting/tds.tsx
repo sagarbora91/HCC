@@ -96,10 +96,13 @@ export function AssetsView({phone}:{phone?:boolean}){
 // ── Add loan (chart of accounts) ──
 /** 'acc-loan' (Owner): adds a loan party row under the 2400 control ledger (`2400/<LN-code>`). */
 export function LoanModal(){
-  const {s,run,closeModal,busy}=useHcc();const {canChart}=useAccPerms();const [name,setName]=useState('');const [lender,setLender]=useState('');const [last4,setLast4]=useState('');const [note,setNote]=useState('');
-  const loans=accLoans(s),ok=canChart&&name.trim().length>=2&&lender.trim().length>=2&&(!last4||/^\d{4}$/.test(last4));
-  return <form className="form" onSubmit={e=>{e.preventDefault();if(ok)void run({type:'ACC_LOAN_ADD',name:name.trim(),lender:lender.trim(),...(last4?{accountLast4:last4}:{}),...(note.trim()?{note:note.trim()}:{}),key:'accloan:'+name.trim()} satisfies AccLoanAdd,'Loan added',{close:true});}}>
-    <div className="modal-heading"><p className="eyebrow">CHART OF ACCOUNTS</p><h2>Add loan</h2><p>A loan is a party row under Bank loans (2400). Loan received, EMIs and interest are then entered as guided manual vouchers. Fictional names only.</p></div>
+  const {s,run,closeModal,busy}=useHcc();const {canChart}=useAccPerms();const [code,setCode]=useState('');const [kind,setKind]=useState<'secured'|'unsecured'>('secured');const [name,setName]=useState('');const [lender,setLender]=useState('');const [last4,setLast4]=useState('');const [note,setNote]=useState('');
+  const loans=accLoans(s),codeBad=code&&(!/^[A-Z0-9-]{2,12}$/.test(code)?'Use 2–12 capitals, digits or dashes, e.g. LN-001.':loans.some(l=>l.code===code)?'This loan code is already used.':''),ok=canChart&&!codeBad&&code.length>=2&&name.trim().length>=2&&lender.trim().length>=2&&(!last4||/^\d{4}$/.test(last4));
+  return <form className="form" onSubmit={e=>{e.preventDefault();if(ok)void run({type:'ACC_LOAN_ADD',code,kind,name:name.trim(),lender:lender.trim(),...(last4?{accountLast4:last4}:{}),...(note.trim()?{note:note.trim()}:{}),key:'accloan:'+name.trim()} satisfies AccLoanAdd,'Loan added',{close:true});}}>
+    <div className="modal-heading"><p className="eyebrow">CHART OF ACCOUNTS</p><h2>Add loan</h2><p>A loan is a party row under Secured loans or Unsecured loans (Bank loans 2400 for secured). Loan received, EMIs and interest are then entered as guided manual vouchers. Fictional names only.</p></div>
+    <label>Loan code<input value={code} maxLength={12} autoCapitalize="characters" onChange={e=>setCode(e.target.value.toUpperCase())} placeholder="e.g. LN-001"/></label>
+    {codeBad&&<p className="f-why" role="alert">{codeBad}</p>}
+    <label>Kind<select value={kind} onChange={e=>setKind(e.target.value==='unsecured'?'unsecured':'secured')}><option value="secured">Secured (bank loan)</option><option value="unsecured">Unsecured</option></select></label>
     <label>Loan name<input value={name} maxLength={60} onChange={e=>setName(e.target.value)} placeholder="e.g. Term loan — extension (fictional)"/></label>
     <label>Lender<input value={lender} maxLength={60} onChange={e=>setLender(e.target.value)} placeholder="e.g. Sample Bank"/></label>
     <label>Loan account — last 4 digits (optional)<input value={last4} inputMode="numeric" maxLength={4} onChange={e=>setLast4(e.target.value.replace(/\D/g,''))}/><small className="muted">Only the last four digits are kept.</small></label>

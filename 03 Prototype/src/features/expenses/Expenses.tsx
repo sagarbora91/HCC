@@ -4,12 +4,13 @@
 // limit; never your own nor one you changed; the Cashier never reverses or voids).
 import React,{useState} from 'react';
 import {Paperclip,Download} from 'lucide-react';
-import {money,expenseCounts,approvalKindLabel,EXPENSE_MANAGER_LIMIT,closingUnlimitedRoles,Expense,rbacCanSubmitExpense,rbacCanDecideExpense,rbacSeesBooks,rbacCanDecideCash,cbIsLocked,cbLockedMessage,
+import {money,expenseCounts,approvalKindLabel,EXPENSE_MANAGER_LIMIT,closingUnlimitedRoles,Expense,rbacCanSubmitExpense,rbacCanDecideExpense,rbacCanDecideCash,cbIsLocked,cbLockedMessage,
   mnyIsDrawer,mnyApprovalLimit,mnyVendor,mnyNames,expLedgerFilter,expDescription,expMonthLocked,expGstPaid,expYm,EXP_LEDGER_CAP} from '../../services/mock';
 import {MstLink} from '../masters/MasterList';
 import {useHcc} from '../../app/context';
 import {PageTitle,Pill,Empty,shortDate} from '../../components/ui';
 import {ExpVendors} from './vendors';
+import {seesVendorBooks} from '../accounting/shared';
 import {usePaged,ShowMore,DESKTOP_PAGE} from '../../components/ShowMore';
 import {expSectionsFor,type ExpSection,ExpBanners,ExpRecurring,ExpPetty,ExpBudgets,ExpUdhaar,ExpMonth,ExpRowExtras,ExpRowActions,useExpCsv} from './Scc';
 const tabs=['All','Draft','Pending','Posted','Rejected','Reversed','Void'] as const;
@@ -79,6 +80,6 @@ export function Expenses(){
   return <><PageTitle title="Expenses & approvals" sub="Every expense accounted for. Every adjustment traceable." action={canSubmit?<button className="btn primary" disabled={busy} onClick={()=>open({type:'expense'})}>+ Add expense</button>:null}/>
     <div className="small-stats"><div><span>Posted today (net)</span><strong>{money(today.reduce((a,e)=>a+e.amount,0))}</strong></div><div><span>Drawer cash today</span><strong>{money(today.filter(e=>mnyIsDrawer(s,e.method)).reduce((a,e)=>a+e.amount,0))}</strong></div><div><span>Pending approval</span><strong>{s.expenses.filter(e=>e.status==='Pending').length}</strong></div><div><span>Drafts</span><strong>{s.expenses.filter(e=>e.status==='Draft').length}</strong></div><div><span>GST paid this month</span><strong>{money(expGstPaid(s,expYm(s.date)))}</strong></div></div>
     <ExpBanners onSection={setSection}/>
-    <div className="tabs exp-sections" role="tablist" aria-label="Expense sections">{expSectionsFor(rbacSeesBooks(s,uid)).map(([id,label])=><button key={id} role="tab" aria-selected={id===section} className={id===section?'active':''} onClick={()=>setSection(id)}>{label}</button>)}</div>
-    {section==='register'?register:section==='recurring'?<ExpRecurring/>:section==='petty'?<ExpPetty/>:section==='budgets'?<ExpBudgets/>:section==='udhaar'?<ExpUdhaar/>:section==='vendors'&&rbacSeesBooks(s,uid)?<ExpVendors/>:<ExpMonth/>}</>;
+    <div className="tabs exp-sections" role="tablist" aria-label="Expense sections">{expSectionsFor(seesVendorBooks(s,uid)).map(([id,label])=><button key={id} role="tab" aria-selected={id===section} className={id===section?'active':''} onClick={()=>setSection(id)}>{label}</button>)}</div>
+    {section==='register'?register:section==='recurring'?<ExpRecurring/>:section==='petty'?<ExpPetty/>:section==='budgets'?<ExpBudgets/>:section==='udhaar'?<ExpUdhaar/>:section==='vendors'&&seesVendorBooks(s,uid)?<ExpVendors/>:<ExpMonth/>}</>;
 }

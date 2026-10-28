@@ -2,17 +2,18 @@
 import React from 'react';
 import {bookingRef} from '../../domain/bookingRef';
 import {RefreshCw,Send,Printer} from 'lucide-react';
-import {money,chnSlice,chnPending,chnAcceptCheck,chnPushPreview,chnCommissionReport,chnRoomTypes,chnChannelName,chnPct,chnRate,chnCommissionHidden,CHN_PUSH_DAYS,rmsTypeName,rbacSeesBooks} from '../../services/mock';
+import {money,chnSlice,chnPending,chnAcceptCheck,chnPushPreview,chnCommissionReport,chnRoomTypes,chnChannelName,chnPct,chnRate,chnCommissionHidden,CHN_PUSH_DAYS,rmsTypeName} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {Empty,shortDate,clockTime} from '../../components/ui';
 import {ListCard,KpiCard,ChipFilter,StickyFooter} from '../../app/mobile/components';
 import {ChnPill,ChnSimulated,stay,party} from './shared';
 import {PayoutsTab} from './payout';
+import {seesVendorBooks} from '../accounting/shared';
 import {chnTabFor,usePushChannel,StopSellToggle,type ChnTab} from './Channels';
 
 const pl=(n:number,w:string)=>`${n} ${w}${n===1?'':'s'}`;
 export function ChannelsMobile(){
-  const {s,uid,tab,setTab,run,busy,open,permission}=useHcc();const hidden=chnCommissionHidden(s);const po=rbacSeesBooks(s,uid);const t=chnTabFor(tab,hidden,po);
+  const {s,uid,tab,setTab,run,busy,open,permission}=useHcc();const hidden=chnCommissionHidden(s);const po=seesVendorBooks(s,uid);const t=chnTabFor(tab,hidden,po);
   const st=chnSlice(s),pend=chnPending(s),rep=chnCommissionReport(s);
   const [ch,setCh]=usePushChannel();const pc=st.channels.find(c=>c.id===ch);
   return <div className="chn-m">

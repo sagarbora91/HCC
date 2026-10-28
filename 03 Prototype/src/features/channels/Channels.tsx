@@ -2,11 +2,12 @@
 import React,{useState} from 'react';
 import {RefreshCw,Send,Printer,PlugZap,Pause,Unplug,Settings2,Check,X,Plus} from 'lucide-react';
 import {money,chnSlice,chnPending,chnAcceptCheck,chnPushPreview,chnCommissionReport,chnRoomTypes,chnChannelName,chnPct,chnRate,chnCommissionHidden,CHN_PUSH_DAYS,
-  type CHNMessage,type CHNChannel,rmsTypeName,rbacSeesBooks} from '../../services/mock';
+  type CHNMessage,type CHNChannel,rmsTypeName} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {PageTitle,Empty,shortDate,clockTime} from '../../components/ui';
 import {ChnPill,ChnSimulated,stay,party,firstName} from './shared';
 import {PayoutsTab} from './payout';
+import {seesVendorBooks} from '../accounting/shared';
 
 export type ChnTab='inbox'|'channels'|'push'|'commission'|'payouts';
 export const CHN_TABS:{id:ChnTab;label:string}[]=[{id:'inbox',label:'Inbox'},{id:'channels',label:'Channels & mapping'},{id:'push',label:'Rate & availability push'},{id:'commission',label:'Commission report'}];
@@ -18,7 +19,7 @@ export const chnTabsFor=(hidden:boolean,payouts=false)=>[...(hidden?CHN_TABS.fil
 export const chnTabFor=(t:string,hidden:boolean,payouts=false):ChnTab=>{const x=chnTabOf(t);return (hidden&&x==='commission')||(x==='payouts'&&!payouts)?'inbox':x;};
 
 export function ChannelsPage(){
-  const {s,uid,tab,setTab,run,busy}=useHcc();const hidden=chnCommissionHidden(s);const po=rbacSeesBooks(s,uid);const t=chnTabFor(tab,hidden,po);
+  const {s,uid,tab,setTab,run,busy}=useHcc();const hidden=chnCommissionHidden(s);const po=seesVendorBooks(s,uid);const t=chnTabFor(tab,hidden,po);
   const st=chnSlice(s),pend=chnPending(s),rep=chnCommissionReport(s);
   return <><PageTitle title="OTA channels" sub="Module 21 · channel manager preview — connections, room mapping, rate & availability push, inbound reservations and commission. Simulated."
     action={<button className="btn primary" disabled={busy} onClick={()=>run({type:'CHN_PULL'},'Checked channels (simulated)')}><RefreshCw size={15}/> Check for new messages</button>}/>

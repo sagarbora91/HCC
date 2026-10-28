@@ -67,7 +67,7 @@ export function BlockCard({blk,showFolio}:{blk:GRPBlock;showFolio?:(id:string)=>
   </article>;
 }
 
-function CompaniesTab(){
+export function CompaniesTab(){
   const {s,open,permission}=useHcc();const x=grpSlice(s);
   if(!x.companies.length)return <Empty title="No company accounts"/>;
   return <><div className="info-note grp-gap"><Info size={16}/><span><b>Credit limits are enforced (DEC-076).</b> Used = what the company owes on company credit + the stays billed to it (estimated: agreed nights + GST − what the guest paid).

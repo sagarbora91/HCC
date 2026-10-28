@@ -24,8 +24,7 @@ export function useExpenseForm(){
   const problem=(draft:boolean)=>!(paise>0)?'Enter an amount greater than zero.':paise>EXP_MAX_PAISE?'Amount is too large (maximum ₹10,00,00,000).'
     :!draft&&!f.description.trim()?'Description is required':Number.isNaN(rate)?'Enter a GST rate between 0 and 100 %.':Number.isNaN(gst)?'Enter the GST on the bill in rupees.'
     :gst>paise&&!f.confirmGst?expGstOverMessage(gst,paise):gst>0&&expItcRefusal(f.itc,gst,paise)?expItcRefusal(f.itc,gst,paise)
-    :purchaseProblem(s,f,Number.isNaN(gst)?0:gst,Number.isNaN(rate)?0:rate)
-    :dups.length&&!f.confirmDuplicate?expDuplicateMessage(f.date,paise,f.description.trim()):ov.blocked;
+    :purchaseProblem(s,f,Number.isNaN(gst)?0:gst,Number.isNaN(rate)?0:rate)||(dups.length&&!f.confirmDuplicate?expDuplicateMessage(f.date,paise,f.description.trim()):ov.blocked);
   const command=(draft:boolean,key:string)=>({type:'EXPENSE',vendor:f.vendor,description:f.description.trim(),category:f.category,method:f.method,amount:paise,receipt:f.receipt,notes:f.notes,draft,
     ...(f.date!==s.date?{date:f.date}:{}),...(rate?{gstRateBps:rate}:{}),...(gst?{gstPaise:gst,itc:f.itc}:{}),...(f.photo?{billPhoto:f.photo}:{}),
     ...(f.confirmDuplicate?{confirmDuplicate:true}:{}),...purchaseCommand(s,f,Number.isNaN(gst)?0:gst),...(f.confirmGst?{confirmGst:true}:{}),...(ov.override?{override:ov.override}:{}),key:key+(draft?':draft':':submit')});

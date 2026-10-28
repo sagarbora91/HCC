@@ -9,6 +9,7 @@ import {Empty,field,submit,shortDate,dateLabel} from '../../components/ui';
 import {NumberStepper} from '../../app/mobile/components';
 import {GrpCreditPill,grpRupees,grpPaise,grpSimNote,grpUserName,grpActive} from './parts';
 import {accPartyRetireBlocker} from '../accounting/_contract-stubs-2'; // ACC-2
+import type {GRPCompany} from '../../services/mock';
 import {MasterFolio,PickupTable} from './Groups';
 import {RestrictionNotice} from '../reservations/RestrictionNotice';
 import {rstState} from '../reservations/restriction';

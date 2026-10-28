@@ -8,7 +8,6 @@ import type {Booking,GRPCompany} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {Empty,field,submit} from '../../components/ui';
 import {grpPaise,grpActive} from './parts';
-import {accPartyRetireBlocker} from '../accounting/_contract-stubs-2';
 
 /** "₹4,300 used of ₹1,50,000 · ₹1,45,700 left" — the account's credit in one line. */
 export function grpCreditLine(c:GRPCompany,k:{exposure:number;available:number}){return `${money(k.exposure)} used of ${money(c.creditLimit)}${c.creditLimit===0?' (no credit)':''} · ${money(k.available)} left`;}

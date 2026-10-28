@@ -2,7 +2,7 @@
 // gst, flows, parity), named exactly as 02 Planning/agents/ACC2-POSTING-CONTRACT.md names them where it names them, with plausible bodies so
 // `npx tsc --noEmit` passes and the screens render. NOT rules: the integrator deletes this file and points the screens at the real exports
 // (`from '../../services/mock'`). Screens import contract names ONLY from here. Money = integer paise.
-import {accTrialBalance6,mnyCategory,money,addDays} from '../../services/mock';
+import {accTrialBalance6,mnyCategory,mnyVendor,money,addDays} from '../../services/mock';
 import type {State,ACCManualVoucher,ACCManualLine,ACCManualTemplate,ACCAsset,ACCMonthLock,ExpVendorPayment,CHNPayout,Expense} from '../../services/mock';
 import {csvMinimal} from '../../domain/csv';
 
@@ -31,11 +31,11 @@ export type AccManualSave={type:'ACC_MANUAL_SAVE';id?:string;date:string;
   voucherType:ACCManualVoucher['type'];narration:string;reference?:string;lines:ACCManualLine[];template?:ACCManualTemplate;key?:string};
 export type AccManualDecide={type:'ACC_MANUAL_DECIDE';id:string;approve:boolean;reason?:string;key?:string};
 export type AccManualVoid={type:'ACC_MANUAL_VOID';id:string;reason:string;key?:string};
-export type AccLoanAdd={type:'ACC_LOAN_ADD';name:string;lender:string;accountLast4?:string;note?:string;key?:string};
+export type AccLoanAdd={type:'ACC_LOAN_ADD';code:string;name:string;lender:string;accountLast4?:string;kind:'secured'|'unsecured';note?:string;key?:string};
 /** Owner-added loan rows under the 2400 control (contract §2): `2400/<LN-code>`. Stub reads `chart.ledgers` rows with `kind:'loan'`. */
-export type ACCLoan={id:string;code:string;name:string;lender:string;accountLast4?:string;active:boolean};
-export const accLoans=(s:State):ACCLoan[]=>((s.accountingX?.chart?.ledgers??[]) as unknown as {code:string;name:string;kind?:string;lender?:string;accountLast4?:string;active:boolean}[])
-  .filter(l=>l.kind==='loan').map(l=>({id:'2400/'+l.code,code:l.code,name:l.name,lender:l.lender??'',accountLast4:l.accountLast4,active:l.active}));
+export type ACCLoan={id:string;code:string;name:string;lender:string;accountLast4?:string;kind:'secured'|'unsecured';active:boolean};
+export const accLoans=(s:State):ACCLoan[]=>((s.accountingX?.chart?.ledgers??[]) as unknown as {code:string;name:string;kind?:string;loanKind?:'secured'|'unsecured';lender?:string;accountLast4?:string;active:boolean}[])
+  .filter(l=>l.kind==='loan').map(l=>({id:(l.loanKind==='unsecured'?'2410/':'2400/')+l.code,code:l.code,name:l.name,lender:l.lender??'',accountLast4:l.accountLast4,kind:l.loanKind==='unsecured'?'unsecured' as const:'secured' as const,active:l.active}));
 
 // ───────────────────────────── §3 purchases, vendor payments, assets ─────────────────────────────
 export type ExpOpenBill={expense:string;date:string;bill:string;amount:number;paid:number;open:number;ageDays:number};
@@ -46,9 +46,12 @@ const days=(a:string,b:string)=>Math.round((Date.parse(b+'T12:00:00')-Date.parse
 export function expVendorOpenBills(s:State,vendor:string):ExpOpenBill[]{
   const pay=(s.expensesX?.vendorPayments??[]).filter(p=>!p.void&&p.vendor===vendor);
   const paid=new Map<string,number>();for(const p of pay)for(const a of p.allocations)paid.set(a.expense,(paid.get(a.expense)??0)+a.amount);
-  return s.expenses.filter(e=>e.vendor===vendor&&e.status==='Posted'&&e.method==='Vendor credit'&&!e.reversalOf&&!e.reversedBy)
+  const code=mnyVendor(s,vendor)?.code,op=s.accountingX?.opening,ol=code?op?.lines.find(l=>l.account==='2200/'+code&&l.credit>0):undefined;
+  const openRow:ExpOpenBill[]=ol&&op?[{expense:'opening',date:op.asOf,bill:'Opening balance',amount:ol.credit,paid:paid.get('opening')??0,open:Math.max(0,ol.credit-(paid.get('opening')??0)),ageDays:days(op.asOf,s.date)}].filter(b=>b.open>0):[];
+  const rows=s.expenses.filter(e=>e.vendor===vendor&&e.status==='Posted'&&e.method==='Vendor credit'&&!e.reversalOf&&!e.reversedBy)
     .map(e=>{const net=e.amount-(e.tdsPaise??0),p=paid.get(e.id)??0;return {expense:e.id,date:e.date,bill:e.receipt||e.id,amount:net,paid:p,open:Math.max(0,net-p),ageDays:days(e.date,s.date)};})
-    .filter(b=>b.open>0).sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:a.expense<b.expense?-1:1);
+    .filter(b=>b.open>0);
+  return [...openRow,...rows].sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:a.expense<b.expense?-1:1);
 }
 /** Advance paid to a vendor (payments minus allocations; the party ledger is Dr). */
 export const expVendorAdvance=(s:State,vendor:string)=>(s.expensesX?.vendorPayments??[]).filter(p=>!p.void&&p.vendor===vendor).reduce((a,p)=>a+p.amount-p.allocations.reduce((x,y)=>x+y.amount,0),0);
@@ -66,7 +69,7 @@ export function expVendorAgeing(s:State):ExpAgeingRow[]{
 }
 export const expVendorPayments=(s:State):ExpVendorPayment[]=>[...(s.expensesX?.vendorPayments??[])].sort((a,b)=>a.at<b.at?1:a.at>b.at?-1:0);
 export const expVendorAgeingCsv=(rows:ExpAgeingRow[])=>csv([['Vendor','0-30','31-60','61-90','90+','Open total','Advance'],...rows.map(r=>[r.vendor,rs(r.b0),rs(r.b31),rs(r.b61),rs(r.b90),rs(r.total),rs(r.advance)])]);
-export type ExpVendorPay={type:'EXP_VENDOR_PAY';vendor:string;amount:number;method:string;reference:string;date?:string;allocations?:{expense:string;amount:number}[];key?:string};
+export type ExpVendorPay={type:'EXP_VENDOR_PAY';vendor:string;amount:number;method:string;reference:string;date?:string;/** `allocations` may include `{expense:'opening', amount}` for the vendor's opening balance (coordinator ruling). */allocations?:{expense:string;amount:number}[];key?:string};
 export type ExpVendorPayVoid={type:'EXP_VENDOR_PAY_VOID';id:string;reason:string;key?:string};
 export type ExpVendorReturn={type:'EXP_VENDOR_RETURN';expense:string;amount:number;gstPaise:number;reason:string;key?:string};
 export const accAssetsList=(s:State):ACCAsset[]=>[...(s.accountingX?.assets??[])].sort((a,b)=>a.no<b.no?-1:1);
@@ -81,7 +84,10 @@ export function chnOpenReceivable(s:State,channel:string):number{
   const r=accTrialBalance6(s,fy,s.date,true).rows.find(x=>x.account==='1115/'+channel);return r?Math.max(0,r.closingDebit-r.closingCredit):0;
 }
 export type ChnPayoutCmd={type:'CHN_PAYOUT';channel:string;date:string;statementRef:string;gross:number;commission:number;commissionGst:number;tcs:number;net:number;bank:string;bookings:string[];key?:string};
-export type DepositApply={type:'DEPOSIT_APPLY';booking:string;amount:number;key?:string};
+/** `source: 'opening'` takes a carried-in opening deposit (Manager / Owner only); the default is the stay's own receipts. */
+export type DepositApply={type:'DEPOSIT_APPLY';booking:string;amount:number;source?:'receipts'|'opening';key?:string};
+/** OTA-paid stay: the check-out moves the folio balance to the channel receivable — no separate command, `CHECKOUT {otaCredit:true}` (coordinator ruling). */
+export type CheckoutOtaCredit={otaCredit?:true};
 /** Extension of CMP_PROFILE_SET (Owner-only money settings, §4): the three switches ride along the existing payload. */
 export type CmpProfileSwitches={gstOnAdvances:boolean;hotelDeductsTds:boolean;tdsDeductorType:'individual'|'other'};
 /** GRP_COMPANY_PAYMENT gains `tds` (§4, A9); GRP_COMPANY_SAVE gains `active` (§8). */
