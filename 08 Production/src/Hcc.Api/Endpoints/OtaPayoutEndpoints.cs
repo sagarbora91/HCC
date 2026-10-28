@@ -31,7 +31,8 @@ public static class OtaPayoutEndpoints
         services.AddSingleton<IUdhaarReversalStore>(sp => sp.GetRequiredService<SqlFlowsStore>());
         services.AddSingleton<ICompanyRetireStore>(sp => sp.GetRequiredService<SqlFlowsStore>());
         services.AddSingleton<ISettingsProvider>(CashGuardSettings.Provider); // cash.receiptLimit / paymentLimit / transportLimit in Master configuration › Money and tax
-        services.AddSingleton(sp => new CashGuardService(sp.GetRequiredService<ICashFlowReader>(), sp.GetService<ISettingsReader>()));
+        services.AddSingleton<ICashDeductionMarker>(sp => sp.GetRequiredService<SqlFlowsStore>());
+        services.AddSingleton(sp => new CashGuardService(sp.GetRequiredService<ICashFlowReader>(), sp.GetService<ISettingsReader>(), sp.GetService<ICashDeductionMarker>()));
         services.AddSingleton(Deposits);
         services.AddSingleton(Payouts);
         services.AddSingleton(Reversals);

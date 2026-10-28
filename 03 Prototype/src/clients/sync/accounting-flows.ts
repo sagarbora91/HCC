@@ -1,7 +1,7 @@
 // ACC-2 lane acc2-flows · production sync (server: Hcc.Api/Endpoints/OtaPayoutEndpoints.cs; contract §4, §8). Plain object literals and
 // functions only (no top-level calls).
 //
-//   commands  DEPOSIT_APPLY {booking, amount}                 → ApplyDeposit {folioId, amountPaise, tillId}         (PERM-PAY-001, open shift)
+//   commands  DEPOSIT_APPLY {booking, amount, source?}        → ApplyDeposit {folioId, amountPaise, tillId, source?} (PERM-PAY-001, open shift; opening: + PERM-ACC-008)
 //             CHN_PAYOUT {channel, statementRef, gross, …}    → RecordOtaPayout {channelId, statementRef, grossPaise, commissionPaise,
 //                                                                commissionGstPaise, tcsPaise, netPaise, bankAccount, reservationIds}
 //                                                                (PERM-OTA-004)
@@ -59,7 +59,9 @@ export const accountingFlows:SyncArea={
       async send(c){
         const id=txt(c.cmd.booking??c.cmd.id),folioId=c.ids.server('folio',id);
         if(folioId===undefined)throw new HccClientError('INVALID_TRANSITION','This booking has no folio on the server yet — it opens at check-in. Refresh and try again.');
-        await c.api.command('ApplyDeposit',{folioId,amountPaise:c.cmd.amount,expectedVersion:c.ids.version('folio',id)??null});}},
+        const tillId=c.ids.server('till','desk');if(tillId===undefined)throw new HccClientError('INVALID_TRANSITION','The cash shift is closed. Open a cashier shift first.');
+        const source=txt(c.cmd.source)==='opening'?'opening':null; // coordinator ruling 28 Oct: receipts (default) | opening
+        await c.api.command('ApplyDeposit',{folioId,amountPaise:c.cmd.amount,tillId,expectedVersion:c.ids.version('folio',id)??null,...(source?{source}:{})});}},
     // channelsX is owned by the W4-11 channels area (absent when the OTA module's area is left out): the reload is returned, not declared.
     {type:'CHN_PAYOUT',reload:[],
       async send(c){await c.api.command('RecordOtaPayout',payoutBody(c.cmd));return {reload:['channelsX']};}},

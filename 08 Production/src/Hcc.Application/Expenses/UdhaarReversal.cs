@@ -1,3 +1,4 @@
+using Hcc.Contracts;
 using System.Globalization;
 using Hcc.Application.Access;
 using Hcc.Application.Commands;

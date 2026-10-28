@@ -1,3 +1,4 @@
+using Hcc.Contracts;
 using System.Globalization;
 using System.Text.Json;
 using Hcc.Domain.Errors;

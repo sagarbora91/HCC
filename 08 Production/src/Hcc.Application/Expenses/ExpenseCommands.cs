@@ -24,7 +24,8 @@ namespace Hcc.Application.Expenses;
 /// GST to the GST input-credit ledger. DEC-131: a month the Owner unlocked takes writes without the override.
 /// </summary>
 public sealed class ExpenseCommands(ICommandRunner runner, IAccessPolicy policy, IExpenseStore store, ICashDrawerPort drawer, TimeProvider clock, Hcc.Application.Closing.IBusinessDayGuard? days = null,
-    MoneyMasters.IPaymentMethodSource? methods = null, IExpenseMasterSource? masters = null, IExpenseRegisterStore? registers = null)
+    MoneyMasters.IPaymentMethodSource? methods = null, IExpenseMasterSource? masters = null, IExpenseRegisterStore? registers = null,
+    Accounting.CashGuardService? cashGuard = null)
 {
     private async Task<IReadOnlyList<Hcc.Domain.MoneyMasters.TenderMethod>?> MethodsAsync(ICommandTransaction? tx, int propertyId, CancellationToken ct) =>
         methods is null ? null : await methods.MethodsAsync(tx, propertyId, ct).ConfigureAwait(false);
@@ -279,6 +280,15 @@ public sealed class ExpenseCommands(ICommandRunner runner, IAccessPolicy policy,
                     $"Cash expense · {Payee(e)}", e.Category, c).ConfigureAwait(false);
             }
 
+            // ACC-2 flows (contract §7, B10): drawer cash above Rs 10,000 to one payee in a day posts with a warning and "deduction lost".
+            Hcc.Domain.Accounting.CashGuardResult? cashWarn = null;
+            if (req.Approve && tillCash && cashGuard is not null)
+            {
+                cashWarn = await cashGuard.PaymentAsync(tx, ctx.PropertyId, new Accounting.CashParty(Accounting.CashParty.Vendor, e.ExpenseId, e.Vendor), e.Amount.Value, date,
+                    transport: false, Payee(e), c).ConfigureAwait(false);
+                if (cashWarn.DeductionLost) await cashGuard.MarkDeductionLostAsync(tx, e.ExpenseId, c).ConfigureAwait(false);
+            }
+
             var now = UtcNow;
             var u = await store.UpdateAsync(tx, e with
             {
@@ -290,7 +300,8 @@ public sealed class ExpenseCommands(ICommandRunner runner, IAccessPolicy policy,
                 TillId = till,
             }, expected, now, c).ConfigureAwait(false);
             await tx.AuditAsync(req.Approve ? "EXPENSE_POSTED" : "EXPENSE_REJECTED", Target(u.ExpenseId),
-                $"{u.Description ?? u.Vendor} · {u.Amount} · {u.Method}{(reason is null ? string.Empty : " · " + reason)}{(over is null ? string.Empty : " · locked-month override: " + over)}", c)
+                $"{u.Description ?? u.Vendor} · {u.Amount} · {u.Method}{(reason is null ? string.Empty : " · " + reason)}{(over is null ? string.Empty : " · locked-month override: " + over)}"
+                + (cashWarn is { DeductionLost: true } ? " · " + cashWarn.Message : string.Empty), c)
                 .ConfigureAwait(false);
             string? alert = null;
             if (req.Approve)

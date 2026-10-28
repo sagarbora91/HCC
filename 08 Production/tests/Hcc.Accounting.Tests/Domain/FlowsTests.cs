@@ -1,3 +1,4 @@
+using Hcc.Contracts;
 using Hcc.Application.Accounting;
 using Hcc.Contracts.Accounting;
 using Hcc.Domain.Accounting;

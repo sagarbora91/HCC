@@ -31,6 +31,12 @@ public interface ICashFlowReader
     Task<long> PaymentDayTotalAsync(ICommandTransaction tx, int propertyId, CashParty party, DateOnly date, CancellationToken ct = default);
 }
 
+/// <summary>Marks a posted expense "deduction lost" (B10; ops.expense.cash_deduction_lost, migration 4254). SQL adapter: SqlFlowsStore.</summary>
+public interface ICashDeductionMarker
+{
+    Task MarkDeductionLostAsync(ICommandTransaction tx, long expenseId, CancellationToken ct = default);
+}
+
 /// <summary>The three dated limits in Master configuration › Money and tax (Owner-only money settings, DEC-058; "VERIFY section numbers").</summary>
 public static class CashGuardSettings
 {
@@ -57,8 +63,12 @@ public static class CashGuardSettings
 /// totals from <see cref="ICashFlowReader"/>, decision by <see cref="CashGuard"/>. A refused receipt throws VALIDATION with
 /// <c>details.reason</c> CASH_LIMIT; a payment above the limit returns <see cref="CashGuardResult.DeductionLost"/> and the warning.
 /// </summary>
-public sealed class CashGuardService(ICashFlowReader reader, ISettingsReader? settings = null)
+public sealed class CashGuardService(ICashFlowReader reader, ISettingsReader? settings = null, ICashDeductionMarker? marker = null)
 {
+    /// <summary>B10: flag the expense "deduction lost" (no-op without the marker).</summary>
+    public Task MarkDeductionLostAsync(ICommandTransaction tx, long expenseId, CancellationToken ct = default)
+        => marker is null ? Task.CompletedTask : marker.MarkDeductionLostAsync(tx, expenseId, ct);
+
     public async Task<CashGuardLimits> LimitsAsync(ICommandTransaction tx, int propertyId, DateOnly date, CancellationToken ct = default)
     {
         if (settings is null) return CashGuardLimits.Seed;

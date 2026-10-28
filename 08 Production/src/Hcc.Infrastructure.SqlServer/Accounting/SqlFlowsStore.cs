@@ -17,7 +17,7 @@ namespace Hcc.Infrastructure.SqlServer.Accounting;
 /// paid to a party), the OTA channel of a folio, OTA payouts (migration 4251), Udhaar payment reversals (4252) and company retire (4253). Writers take
 /// the command transaction; readers run inside it (or on their own connection for the payout list).
 /// </summary>
-public sealed class SqlFlowsStore(SqlConnectionFactory connections) : ICashFlowReader, IFolioChannelSource, IOtaPayoutStore, IUdhaarReversalStore, ICompanyRetireStore
+public sealed class SqlFlowsStore(SqlConnectionFactory connections) : ICashFlowReader, ICashDeductionMarker, IFolioChannelSource, IOtaPayoutStore, IUdhaarReversalStore, ICompanyRetireStore
 {
     private static SqlCommandTransaction Tx(ICommandTransaction tx)
         => tx as SqlCommandTransaction ?? throw new InvalidOperationException("The ACC-2 flows store needs a SQL command transaction.");
@@ -72,6 +72,13 @@ public sealed class SqlFlowsStore(SqlConnectionFactory connections) : ICashFlowR
         cmd.Parameters.Set("@d", SqlDbType.Date, date.ToDateTime(TimeOnly.MinValue));
         cmd.Parameters.Set("@v", SqlDbType.NVarChar, party.Text.Trim(), 120);
         return await LongAsync(cmd, ct).ConfigureAwait(false);
+    }
+
+    public async Task MarkDeductionLostAsync(ICommandTransaction tx, long expenseId, CancellationToken ct = default)
+    {
+        await using var cmd = Cmd(tx, "UPDATE ops.expense SET cash_deduction_lost = 1 WHERE expense_id = @e;");
+        cmd.Parameters.Set("@e", SqlDbType.BigInt, expenseId);
+        await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
     }
 
     // ── IFolioChannelSource (A13) ──
