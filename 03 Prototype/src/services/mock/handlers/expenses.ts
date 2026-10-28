@@ -187,6 +187,7 @@ export const handlers:Record<string,Handler>={
     const {s,cmd,open,assert,id,uid}=k;need(k,rbacCanDecideExpense,'approve permission or the Accountant role is required (not the Cashier, DEC-063)');open();
     const e=findExpense(k);
     assert(e.status==='Posted'&&!e.reversalOf,'Only a posted expense can be reversed.','INVALID_TRANSITION');
+    assert(!expIsReturn(e),'A posted vendor return cannot be reversed — record the goods again as a new bill.','INVALID_TRANSITION'); // ACC-2 (server CK_expense_sign)
     assert(!cbIsLocked(s,e.date),cbLockedMessage(e.date,'reversing this expense'),'DAY_CLOSED'); // DEC-065
     assert(cmd.reason?.trim(),'A reason is required to reverse an expense.');
     if(mnyIsDrawer(s,e.method))assert(s.shiftOpen,'Open cash shift required.','INVALID_TRANSITION');
@@ -195,10 +196,10 @@ export const handlers:Record<string,Handler>={
     const r:Expense={id:rid,vendor:e.vendor,category:e.category,amount:-e.amount,method:e.method,date:s.date,status:'Posted',actor:uid,reversalOf:e.id,reason:cmd.reason.trim(),approver:uid,decidedAt:s.clock,createdAt:s.clock};
     if(e.description)r.description=e.description;if(e.gstPaise)r.gstPaise=-e.gstPaise;if(e.gstRateBps)r.gstRateBps=e.gstRateBps;if(e.source)r.source=e.source;
     if(e.gstPaise)r.itc=e.itc==='allowed'?'allowed':'disallowed'; // DEC-135: the reversal mirrors the original's ITC split
-    // ACC-2 (contract §3): the reversal mirrors the purchase lines too (IGST, RCM, TDS); a reversed return stays linked to its bill;
+    // ACC-2 (contract §3): the reversal mirrors the purchase lines too (IGST, RCM, TDS);
     // a reversed capital purchase marks its asset register row disposed at 0 (never deleted).
     if(e.gstKind)r.gstKind=e.gstKind;if(e.rcm){r.rcm=true;r.rcmBps=e.rcmBps??0;if(e.itc)r.itc=e.itc;}if(e.capital)r.capital=true;
-    if(e.tdsPaise){r.tdsPaise=-e.tdsPaise;if(e.tdsSection)r.tdsSection=e.tdsSection;}if(expIsReturn(e))r.sourceRef=e.sourceRef;
+    if(e.tdsPaise){r.tdsPaise=-e.tdsPaise;if(e.tdsSection)r.tdsSection=e.tdsSection;}
     if(e.assetNo){const x={...accSlice(s)};s.accountingX=x;x.assets=(x.assets??[]).map(a=>a.no===e.assetNo&&!a.disposed?{...a,disposed:{date:s.date,amount:0,voucher:rid}}:a);}
     s.expenses.push(r);
     e.status='Reversed';e.reversedBy=rid;e.reason=cmd.reason.trim();

@@ -82,9 +82,63 @@ public static class AccountingEventMapper
         var reversal = e.ReversalOf is not null;
         // DEC-135: the GST of a bill marked ITC allowed goes to the GST input-credit ledger (an event without the fields books as before).
         var itc = string.Equals(e.Itc, "allowed", StringComparison.Ordinal) ? e.GstPaise ?? 0 : 0;
+        // ACC-2 (acc2-purchase, contract §3.1): IGST bill → 1330, TDS held back → 2150 (vendor credited net), a credit method → Purchase voucher.
+        var inter = string.Equals(e.GstKind, "inter", StringComparison.Ordinal);
+        var tds = e.TdsPaise ?? 0;
         return SourceRules.WithParties(SourceRules.Expense("expense:" + N(e.ExpenseId), reversal, e.Category, e.Funding, e.BusinessDate, e.AmountPaise,
-            $"{(reversal ? $"Reversal of {N(e.ReversalOf!.Value)} · " : "")}{e.Vendor} · {e.Category} · {e.Funding}", itc), parties);
+            $"{(reversal ? $"Reversal of {N(e.ReversalOf!.Value)} · " : "")}{e.Vendor} · {e.Category} · {e.Funding}{(inter ? " · IGST" : "")}{(tds != 0 ? " · TDS " + e.TdsSection : "")}", itc,
+            new PurchaseLines(inter, tds, e.Credit)), parties);
     }
+
+    // ── ACC-2 (acc2-purchase) · purchases: RCM, returns, vendor payments (contract §3) ──
+
+    public static string RcmKey(long expenseId) => "rcm:" + N(expenseId);
+
+    public static string VendorPaymentKey(long paymentId) => "vendor-payment:" + N(paymentId);
+
+    public static string VendorPaymentVoidKey(long paymentId) => "vendor-payment:" + N(paymentId) + "/void";
+
+    /// <summary>C8 / DEC-145: the reverse-charge GST of a bill / reversal / return record (prototype source <c>rcm:&lt;expense&gt;</c>).</summary>
+    public static AccountingSource Rcm(ExpenseRcmPostedEvent e)
+    {
+        ArgumentNullException.ThrowIfNull(e);
+        var rcm = SourceRules.BpsOf(e.AmountPaise, e.RcmBps);
+        var pct = (e.RcmBps / 100m).ToString("0.##", CultureInfo.InvariantCulture);
+        return SourceRules.Rcm(RcmKey(e.ExpenseId), e.Category, e.BusinessDate, rcm, e.ItcAllowed, string.Equals(e.GstKind, "inter", StringComparison.Ordinal),
+            $"Reverse charge GST {pct} % · {e.Vendor} · {e.Category} · bill {N(e.ExpenseId)}{(e.ReversalOf is { } r ? $" (reversal of {N(r)})" : "")}");
+    }
+
+    /// <summary>C5: a posted return / vendor credit note (negative Purchase; the ITC taken reversed).</summary>
+    public static AccountingSource ExpenseReturn(ExpenseReturnedEvent e, PartyContext? parties = null)
+    {
+        ArgumentNullException.ThrowIfNull(e);
+        var itc = string.Equals(e.Itc, "allowed", StringComparison.Ordinal) ? e.GstPaise ?? 0 : 0;
+        var inter = string.Equals(e.GstKind, "inter", StringComparison.Ordinal);
+        return SourceRules.WithParties(SourceRules.ExpenseReturn("expense:" + N(e.ExpenseId), e.Category, e.Funding, e.BusinessDate, e.AmountPaise, itc,
+            $"Return / vendor credit note of {N(e.ReturnOf)} · {e.Vendor} · {e.Category} · {e.Funding}{(inter ? " · IGST" : "")}", new PurchaseLines(inter, e.TdsPaise ?? 0)), parties);
+    }
+
+    /// <summary>C3 / C4: a vendor payment / advance (Payment, Dr 2200/[vendor] · Cr the tender).</summary>
+    public static AccountingSource VendorPayment(VendorPaymentEvent e, PartyContext? parties = null)
+    {
+        ArgumentNullException.ThrowIfNull(e);
+        var adv = e.AmountPaise - e.AllocatedPaise;
+        return SourceRules.WithParties(SourceRules.VendorPayment(VendorPaymentKey(e.PaymentId), e.Tender, e.BusinessDate, e.AmountPaise, e.AllocatedPaise == 0,
+            $"Vendor payment · {e.Vendor} · {e.Tender}{(string.IsNullOrWhiteSpace(e.Reference) ? "" : " · " + e.Reference)}{(adv > 0 ? " · advance " + SourceRules.Rupees(adv) : "")} · payment {N(e.PaymentId)}"),
+            parties);
+    }
+
+    /// <summary>A vendor payment voided on a later business day: the reversal on the void date. A same-day void books nothing (null) — the
+    /// original's own source then has to be dropped by the consumer (it is not booked twice: see the projector).</summary>
+    public static AccountingSource? VendorPaymentVoid(VendorPaymentEvent e, PartyContext? parties = null)
+    {
+        ArgumentNullException.ThrowIfNull(e);
+        if (e.VoidDate is not { } d || Hcc.Domain.Expenses.ExpensePurchase.SameDayVoid(e.BusinessDate, d)) return null;
+        return SourceRules.WithParties(SourceRules.VendorPayment(VendorPaymentVoidKey(e.PaymentId), e.Tender, d, e.AmountPaise, false,
+            $"Vendor payment void · {e.Vendor} · {e.Tender}{(string.IsNullOrWhiteSpace(e.VoidReason) ? "" : " · " + e.VoidReason)} · payment {N(e.PaymentId)}", voiding: true), parties);
+    }
+
+    // ── end ACC-2 (acc2-purchase) ──
 
     public static string UdhaarPaymentKey(long settlementId) => "udhaar-payment:" + N(settlementId);
 

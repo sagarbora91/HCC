@@ -280,6 +280,10 @@ public static partial class ChartOfAccounts
         // DEC-130 an Udhaar payment settles the customer's credit; ACC-1 (contract §2) the expense ITC splits half / half like output GST:
         // CGST half → 1310 (tax:gst-input), SGST half → 1320 (tax:gst-input-sgst); 1300 stays for locked snapshots only.
         ["receipt:udhaar"] = "1120", ["tax:gst-input"] = "1310", ["tax:gst-input-sgst"] = "1320",
+
+        // ACC-2 (acc2-purchase, contract §3): IGST input credit, RCM payable, TDS payable, and the vendor payable a vendor payment / advance
+        // debits (party = the vendor, 2200/<vendor>).
+        ["tax:gst-input-igst"] = "1330", ["tax:rcm-payable"] = "2140", ["tax:tds-payable"] = "2150", ["vendor:payable"] = "2200",
     };
 
     /// <summary>ACC-1: the SGST-half ITC key (contract §2).</summary>
@@ -297,10 +301,10 @@ public static partial class ChartOfAccounts
     [
         ("line", "Folio line kind"), ("folio", "Folio"), ("method", "Receipt method (tender)"), ("receipt", "Receipt kind (counter-ledger)"),
         ("expense", "Expense category"), ("funding", "Expense funding"), ("closing", "Closing record"), ("pos", "Outlet (POS) bill"),
-        ("payroll", "Payroll"), ("tax", "GST input credit (ITC)"),
+        ("payroll", "Payroll"), ("tax", "GST input credit (ITC)"), ("vendor", "Vendor payments (payables)"), // ACC-2 acc2-purchase
     ];
 
-    [GeneratedRegex(@"^(line|folio|method|receipt|expense|funding|closing|pos|payroll|tax):.{1,72}$")]
+    [GeneratedRegex(@"^(line|folio|method|receipt|expense|funding|closing|pos|payroll|tax|vendor):.{1,72}$")]
     private static partial Regex KeyPattern();
 
     public static bool IsValidKey(string? key) => key is not null && KeyPattern().IsMatch(key);

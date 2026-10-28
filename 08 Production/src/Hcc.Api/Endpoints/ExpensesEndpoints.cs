@@ -24,6 +24,7 @@ public static class ExpensesEndpoints
         services.AddSingleton<ExpenseQueries>();
         services.AddSingleton<ExpenseRegisterCommands>();
         services.AddSingleton<ExpenseRegisterQueries>();
+        services.AddExpenseVendorModule(); // ACC-2 acc2-purchase: vendor payments, returns, the asset register (ExpenseCommands takes IFixedAssetStore)
         return services;
     }
 

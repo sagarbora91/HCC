@@ -24,7 +24,8 @@ namespace Hcc.Application.Expenses;
 /// GST to the GST input-credit ledger. DEC-131: a month the Owner unlocked takes writes without the override.
 /// </summary>
 public sealed class ExpenseCommands(ICommandRunner runner, IAccessPolicy policy, IExpenseStore store, ICashDrawerPort drawer, TimeProvider clock, Hcc.Application.Closing.IBusinessDayGuard? days = null,
-    MoneyMasters.IPaymentMethodSource? methods = null, IExpenseMasterSource? masters = null, IExpenseRegisterStore? registers = null)
+    MoneyMasters.IPaymentMethodSource? methods = null, IExpenseMasterSource? masters = null, IExpenseRegisterStore? registers = null,
+    IFixedAssetStore? assets = null) // ACC-2 acc2-purchase: the fixed-asset register (contract §3.4)
 {
     private async Task<IReadOnlyList<Hcc.Domain.MoneyMasters.TenderMethod>?> MethodsAsync(ICommandTransaction? tx, int propertyId, CancellationToken ct) =>
         methods is null ? null : await methods.MethodsAsync(tx, propertyId, ct).ConfigureAwait(false);
@@ -155,8 +156,10 @@ public sealed class ExpenseCommands(ICommandRunner runner, IAccessPolicy policy,
             var over = await MonthGateAsync(registers, tx, ctx.PropertyId, date, owner, req.OverrideReason, UtcNow, c).ConfigureAwait(false);
             var status = req.Draft ? ExpenseState.Draft : ExpenseState.Pending;
             if (ven.Item2 && masters is not null) await masters.AddVendorAsync(tx, ctx.PropertyId, ven.Item1, ctx.PrincipalId, UtcNow, c).ConfigureAwait(false);
+            // ACC-2 (contract §3): GST kind (sent, else the vendor's state), RCM rate, the ITC guard (DEC-143) and no vendor GST on an RCM bill.
+            var pe = ExpensePurchase.Entry(cat, VendorRow(vendors, ven.Item1), req.GstKind, req.RcmBps, gst.Paise, itc, req.Itc);
             var e = await store.InsertAsync(tx, new NewExpense(ctx.PropertyId, ven.Item1, cat.Name, n.Amount, n.Method, date, status, ctx.PrincipalId,
-                n.Notes, n.Receipt, null, null, null, null, UtcNow, description, gst.RateBps, gst.Paise, ItcAllowed: itc), c).ConfigureAwait(false);
+                n.Notes, n.Receipt, null, null, null, null, UtcNow, description, gst.RateBps, gst.Paise, ItcAllowed: pe.ItcAllowed, GstKind: pe.GstKind, RcmBps: pe.RcmBps), c).ConfigureAwait(false);
             if (photo is { } p) await store.PutBillPhotoAsync(tx, e.ExpenseId, p.ContentType, p.Bytes, ctx.PrincipalId, UtcNow, c).ConfigureAwait(false);
             var dupOf = ExpenseScc.Duplicates(await store.FactsOnAsync(tx, ctx.PropertyId, date, c).ConfigureAwait(false), description, n.Amount, date, e.ExpenseId);
             var alert = await BudgetAlertAsync(registers, store, tx, ctx.PropertyId, cat.Name, date, bd, n.Amount.Value, c).ConfigureAwait(false);
@@ -248,6 +251,9 @@ public sealed class ExpenseCommands(ICommandRunner runner, IAccessPolicy policy,
 
         if (req.Approve) await policy.RequireAsync(ctx.PropertyId, ctx.PrincipalId, ExpensePermissions.PostReverse, null, null, ct).ConfigureAwait(false);
         if (peek is null) throw new HccException(HccErrorCode.NOT_FOUND, "Expense not found.");
+        // ACC-2 (contract §3.5): a vendor return is a credit note — only the Owner approves it.
+        if (req.Approve && peek.ReturnOf is not null && !await IsOwnerAsync(ctx, ct).ConfigureAwait(false))
+            throw new HccException(HccErrorCode.FORBIDDEN, "Only the Owner approves a vendor return (credit note).");
         var reason = ExpenseRules.OptionalReason(req.Reason);
         var owner = await IsOwnerAsync(ctx, ct).ConfigureAwait(false);
 
@@ -280,6 +286,22 @@ public sealed class ExpenseCommands(ICommandRunner runner, IAccessPolicy policy,
             }
 
             var now = UtcNow;
+            // ACC-2 (contract §3): stamp the purchase fields at posting (RCM / capital from the category; TDS held back — acc2-tds lane).
+            var stamp = (Rcm: e.Rcm, RcmBps: e.RcmBps, Capital: e.Capital);
+            string? assetNo = null;
+            long? tds = null; // acc2-tds lane: TdsCalculator.ForBill(...) — no TDS is held until it merges (prototype stub tdsForBill = 0)
+            var catRow = ExpenseMasters.FindCategory(await CategoriesAsync(tx, ctx.PropertyId, c).ConfigureAwait(false), e.Category);
+            if (req.Approve && e.ReturnOf is null)
+            {
+                stamp = ExpensePurchase.Stamp(catRow, e.GstPaise, e.RcmBps, e.ItcAllowed);
+                if (stamp.Capital)
+                {
+                    if (!ExpensePurchase.IsAssetLedger(catRow?.Ledger))
+                        throw HccException.Validation($"{e.Category} is a capital category but maps to {catRow?.Ledger ?? "no ledger"} — map it to a fixed-asset block (15x0) first.");
+                    if (assets is not null) assetNo = ExpensePurchase.NextAssetNo(date, await assets.NumbersAsync(tx, ctx.PropertyId, c).ConfigureAwait(false));
+                }
+            }
+
             var u = await store.UpdateAsync(tx, e with
             {
                 Status = req.Approve ? ExpenseState.Posted : ExpenseState.Rejected,
@@ -288,13 +310,25 @@ public sealed class ExpenseCommands(ICommandRunner runner, IAccessPolicy policy,
                 DecidedUtc = now,
                 Reason = req.Approve ? e.Reason : reason,
                 TillId = till,
+                Rcm = stamp.Rcm, RcmBps = stamp.RcmBps, Capital = stamp.Capital, AssetNo = assetNo ?? e.AssetNo, TdsPaise = tds ?? e.TdsPaise,
             }, expected, now, c).ConfigureAwait(false);
+            if (assetNo is not null)
+            {
+                var (itcTaken, _, _) = ExpensePurchase.Lines(u.Amount.Value, u.GstPaise, u.ItcAllowed, u.Rcm, u.RcmBps);
+                await assets!.InsertAsync(tx, new NewFixedAsset(ctx.PropertyId, assetNo, catRow!.Ledger!, u.Description ?? u.Category, u.Amount.Value - itcTaken, itcTaken, u.BusinessDate,
+                    u.Vendor, u.ExpenseId, ctx.PrincipalId, now), c).ConfigureAwait(false);
+            }
             await tx.AuditAsync(req.Approve ? "EXPENSE_POSTED" : "EXPENSE_REJECTED", Target(u.ExpenseId),
                 $"{u.Description ?? u.Vendor} · {u.Amount} · {u.Method}{(reason is null ? string.Empty : " · " + reason)}{(over is null ? string.Empty : " · locked-month override: " + over)}", c)
                 .ConfigureAwait(false);
             string? alert = null;
-            if (req.Approve)
+            if (req.Approve && u.ReturnOf is not null)
             {
+                await PublishReturnAsync(tx, u, ctx.PrincipalId, c).ConfigureAwait(false); // ACC-2 (contract §3.5)
+            }
+            else if (req.Approve)
+            {
+                var credit = Hcc.Domain.MoneyMasters.PaymentMethodBook.KindOf(await MethodsAsync(tx, ctx.PropertyId, c).ConfigureAwait(false), u.Method) == Hcc.Contracts.MoneyMasters.MoneyMasterValues.Credit;
                 await tx.PublishAsync(ExpenseEvents.Posted, u.ExpenseId, new
                 {
                     expenseId = u.ExpenseId,
@@ -311,7 +345,9 @@ public sealed class ExpenseCommands(ICommandRunner runner, IAccessPolicy policy,
                     cashMovementId = movementId,
                     gstPaise = u.GstPaise,                             // DEC-135: Accounting books ITC-allowed GST to the input-credit ledger
                     itc = ExpenseScc.ItcText(u.GstPaise, u.ItcAllowed),
+                    gstKind = u.GstKind, tdsPaise = u.TdsPaise, credit, tdsSection = u.TdsSection, // ACC-2 (contract §3.1): IGST, TDS, Purchase voucher
                 }, c).ConfigureAwait(false);
+                await PublishRcmAsync(tx, u, c).ConfigureAwait(false); // ACC-2 (contract §3.3)
                 alert = await BudgetAlertAsync(registers, store, tx, ctx.PropertyId, u.Category, u.BusinessDate, bd, 0, c).ConfigureAwait(false);
             }
 
@@ -333,6 +369,7 @@ public sealed class ExpenseCommands(ICommandRunner runner, IAccessPolicy policy,
             var e = await store.LockAsync(tx, ctx.PropertyId, req.ExpenseId, c).ConfigureAwait(false)
                 ?? throw new HccException(HccErrorCode.NOT_FOUND, "Expense not found.");
             ExpenseRules.EnsureCanReverse(e.Status, e.IsReversal);
+            if (e.ReturnOf is not null) throw new HccException(HccErrorCode.INVALID_TRANSITION, ExpensePurchase.ReturnNotReversible); // ACC-2
             VersionToken.EnsureMatches(e.Version, expected, "This expense");
             var bd = await store.BusinessDateAsync(tx, ctx.PropertyId, c).ConfigureAwait(false);
             // P6: the reversal posts on the open business date; the original's cash-book day must not be locked (DEC-065, like Billing corrections).
@@ -347,8 +384,11 @@ public sealed class ExpenseCommands(ICommandRunner runner, IAccessPolicy policy,
             var now = UtcNow;
             // The reversal row first (it points at the original), then the original flips to Reversed (CK_expense_reversed). DEC-120: it carries the
             // description, −GST and the source, so the month's GST paid on purchases and the petty-cash totals net to zero.
+            // ACC-2 (contract §3): the reversal mirrors the purchase lines too (IGST, RCM, TDS).
             var rev = await store.InsertAsync(tx, new NewExpense(ctx.PropertyId, e.Vendor, e.Category, -e.Amount, e.Method, bd, ExpenseState.Posted, ctx.PrincipalId,
-                null, null, reason, ctx.PrincipalId, till, e.ExpenseId, now, e.Description, e.GstRateBps, e.GstPaise is { } g ? -g : null, e.Source, ItcAllowed: e.ItcAllowed), c).ConfigureAwait(false);
+                null, null, reason, ctx.PrincipalId, till, e.ExpenseId, now, e.Description, e.GstRateBps, e.GstPaise is { } g ? -g : null, e.Source, ItcAllowed: e.ItcAllowed,
+                GstKind: e.GstKind, Rcm: e.Rcm, RcmBps: e.RcmBps, Capital: e.Capital, TdsPaise: e.TdsPaise is { } t ? -t : null, TdsSection: e.TdsSection), c).ConfigureAwait(false);
+            if (e.AssetNo is not null && assets is not null) await assets.DisposeByExpenseAsync(tx, e.ExpenseId, bd, 0, "expense:" + rev.ExpenseId.ToString(CultureInfo.InvariantCulture), c).ConfigureAwait(false);
             long? movementId = null;
             if (needsDrawer is { } move)
             {
@@ -381,7 +421,10 @@ public sealed class ExpenseCommands(ICommandRunner runner, IAccessPolicy policy,
                 cashMovementId = movementId,
                 gstPaise = rev.GstPaise,                               // DEC-135: −GST, so the reversal mirrors the ITC split
                 itc = ExpenseScc.ItcText(rev.GstPaise, rev.ItcAllowed),
+                gstKind = rev.GstKind, tdsPaise = rev.TdsPaise, tdsSection = rev.TdsSection, // ACC-2
+                credit = Hcc.Domain.MoneyMasters.PaymentMethodBook.KindOf(await MethodsAsync(tx, ctx.PropertyId, c).ConfigureAwait(false), e.Method) == Hcc.Contracts.MoneyMasters.MoneyMasterValues.Credit,
             }, c).ConfigureAwait(false);
+            await PublishRcmAsync(tx, rev, c).ConfigureAwait(false); // ACC-2: the RCM GST reverses too
             return new ExpenseReversalResult(ExpenseMapping.ToView(orig), ExpenseMapping.ToView(rev), movementId);
         }, ct).ConfigureAwait(false);
     }
@@ -414,6 +457,7 @@ public sealed class ExpenseCommands(ICommandRunner runner, IAccessPolicy policy,
                 throw new HccException(HccErrorCode.INVALID_TRANSITION, "Approved entry is locked — a posted expense changes only by a reversal and a new entry.");
             if (e.Status == ExpenseState.Rejected) throw new HccException(HccErrorCode.INVALID_TRANSITION, "A rejected expense cannot be changed — enter it again.");
             if (e.Status == ExpenseState.Void) throw new HccException(HccErrorCode.INVALID_TRANSITION, "This expense is void.");
+            if (e.ReturnOf is not null) throw new HccException(HccErrorCode.INVALID_TRANSITION, "A vendor return changes only by voiding it and recording it again."); // ACC-2
             if (e.SubmittedBy != peek.SubmittedBy || e.Status != peek.Status) throw new HccException(HccErrorCode.STALE_VERSION, "This expense was changed by someone else. Reload and try again.");
             VersionToken.EnsureMatches(e.Version, expected, "This expense");
             var cat = ExpenseMasters.Category(await CategoriesAsync(tx, ctx.PropertyId, c).ConfigureAwait(false), n.Category, e.Category);
@@ -446,10 +490,13 @@ public sealed class ExpenseCommands(ICommandRunner runner, IAccessPolicy policy,
             var itcNow = ExpenseScc.ItcText(gst.Paise, itc) ?? string.Empty;
             if (itcWas != itcNow && (itcWas == ExpenseScc.ItcAllowed || itcNow == ExpenseScc.ItcAllowed)) { oldMap["itc"] = itcWas; newMap["itc"] = itcNow; }
             var now = UtcNow;
+            // ACC-2 (contract §3): GST kind / RCM rate kept while not sent; the ITC guard (DEC-143) and no vendor GST on an RCM bill.
+            var vrow = masters is null ? null : VendorRow(await masters.VendorsAsync(tx, ctx.PropertyId, c).ConfigureAwait(false), e.Vendor);
+            var pe = ExpensePurchase.Entry(cat, vrow, req.GstKind ?? e.GstKind, req.RcmBps ?? e.RcmBps, gst.Paise, itc, req.Itc ?? (e.ItcAllowed ? ExpenseScc.ItcAllowed : null));
             var u = await store.UpdateAsync(tx, e with
             {
                 Amount = n.Amount, Category = cat.Name, Method = n.Method, Description = description, GstRateBps = gst.RateBps, GstPaise = gst.Paise, Receipt = n.Receipt,
-                BusinessDate = date, ItcAllowed = itc,
+                BusinessDate = date, ItcAllowed = pe.ItcAllowed, GstKind = pe.GstKind, RcmBps = pe.RcmBps,
             }, expected, now, c).ConfigureAwait(false);
             if (photo is { } p) await store.PutBillPhotoAsync(tx, e.ExpenseId, p.ContentType, p.Bytes, ctx.PrincipalId, now, c).ConfigureAwait(false);
             await store.InsertEditAsync(tx, e.ExpenseId, ctx.PrincipalId, now, reason, JsonSerializer.Serialize(oldMap), JsonSerializer.Serialize(newMap), c).ConfigureAwait(false);
@@ -505,6 +552,36 @@ public sealed class ExpenseCommands(ICommandRunner runner, IAccessPolicy policy,
 
     internal static string Target(long id) => "expense:" + id.ToString(CultureInfo.InvariantCulture);
 
+    // ── ACC-2 acc2-purchase helpers ──
+
+    /// <summary>The vendor master row of a stored vendor name (null = not in the list).</summary>
+    internal static Hcc.Domain.Expenses.ExpenseVendorRow? VendorRow(IReadOnlyList<Hcc.Domain.Expenses.ExpenseVendorRow>? rows, string? vendor) =>
+        string.IsNullOrWhiteSpace(vendor) || rows is null ? null
+            : rows.FirstOrDefault(r => string.Equals(r.Name, vendor.Trim(), StringComparison.OrdinalIgnoreCase)) ?? rows.FirstOrDefault(r => string.Equals(r.Code, vendor.Trim(), StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>C8 / DEC-145: the RCM GST of a posted bill / reversal / return record (nothing for an ordinary bill).</summary>
+    internal static async Task PublishRcmAsync(ICommandTransaction tx, ExpenseRecord r, CancellationToken c)
+    {
+        if (!r.Rcm) return;
+        await tx.PublishAsync(ExpenseEvents.RcmPosted, r.ExpenseId, new
+        {
+            expenseId = r.ExpenseId, businessDate = StayDates.ToWire(r.BusinessDate), category = r.Category, vendor = Payee(r), amountPaise = r.Amount.Value,
+            rcmBps = r.RcmBps ?? 0, itcAllowed = r.ItcAllowed, gstKind = r.GstKind, reversalOf = r.ReversalOf, returnOf = r.ReturnOf,
+        }, c).ConfigureAwait(false);
+    }
+
+    /// <summary>C5: a posted return record (amounts published positive: returned amount, GST reversed) and its RCM GST.</summary>
+    internal static async Task PublishReturnAsync(ICommandTransaction tx, ExpenseRecord r, int by, CancellationToken c)
+    {
+        await tx.PublishAsync(ExpenseEvents.Returned, r.ExpenseId, new
+        {
+            expenseId = r.ExpenseId, returnOf = r.ReturnOf, businessDate = StayDates.ToWire(r.BusinessDate), category = r.Category, funding = r.Method, vendor = Payee(r),
+            amountPaise = -r.Amount.Value, gstPaise = r.GstPaise is { } g ? -g : (long?)null, itc = ExpenseScc.ItcText(r.GstPaise, r.ItcAllowed), gstKind = r.GstKind,
+            tdsPaise = r.TdsPaise is { } t ? -t : (long?)null, approvedBy = by,
+        }, c).ConfigureAwait(false);
+        await PublishRcmAsync(tx, r, c).ConfigureAwait(false);
+    }
+
     /// <summary>Who was paid, for the accounting narration: the vendor, else (DEC-120: optional vendor) the description, else "—".</summary>
     internal static string Payee(ExpenseRecord e) => e.Vendor.Length > 0 ? e.Vendor : e.Description ?? "—";
 }
@@ -521,7 +598,8 @@ public static class ExpenseMapping
         return new ExpenseView(e.ExpenseId, Ref(e.ExpenseId), e.Vendor, e.Category, e.Amount.Value, e.Method, StayDates.ToWire(e.BusinessDate), e.Status,
             e.SubmittedBy, e.Notes, e.Receipt, e.Reason, e.DecidedBy, Wire(e.DecidedUtc), e.ReversalOf, e.ReversedBy, VersionToken.ToWire(e.Version),
             e.Description, e.GstRateBps, e.GstPaise, e.Source, e.SourceRef, e.VoidReason, e.VoidedBy, Wire(e.VoidedUtc), e.HasBillPhoto, Wire(e.CreatedUtc),
-            edits?.Select(ToView).ToList(), ExpenseScc.ItcText(e.GstPaise, e.ItcAllowed));
+            edits?.Select(ToView).ToList(), e.Rcm ? (e.ItcAllowed ? ExpenseScc.ItcAllowed : ExpenseScc.ItcDisallowed) : ExpenseScc.ItcText(e.GstPaise, e.ItcAllowed),
+            e.GstKind, e.Rcm, e.RcmBps, e.Capital, e.AssetNo, e.TdsPaise, e.TdsSection, e.ReturnOf); // ACC-2
     }
 
     public static ExpenseEditView ToView(ExpenseEditRecord x)

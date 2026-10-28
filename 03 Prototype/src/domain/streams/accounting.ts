@@ -40,7 +40,7 @@ export const ACC_DEFAULT_MAP:Record<string,string>={
   // payment / advance debits (party = the vendor, 2200/<vendor>).
   'tax:gst-input-igst':'1330','tax:rcm-payable':'2140','tax:tds-payable':'2150','vendor:payable':'2200',
 };
-const KEY_LABEL:Record<string,string>={line:'Folio line kind',folio:'Folio',method:'Receipt method (tender)',receipt:'Receipt kind (counter-ledger)',expense:'Expense category',funding:'Expense funding',closing:'Closing record',pos:'Outlet (POS) bill',tax:'GST input credit (ITC), RCM and TDS',vendor:'Vendor payments (payables)'};
+const KEY_LABEL:Record<string,string>={line:'Folio line kind',folio:'Folio',method:'Receipt method (tender)',receipt:'Receipt kind (counter-ledger)',expense:'Expense category',funding:'Expense funding',closing:'Closing record',pos:'Outlet (POS) bill',tax:'GST input credit (ITC)',vendor:'Vendor payments (payables)'};
 export const accKeyGroup=(key:string)=>KEY_LABEL[key.split(':')[0]]??'Other';
 export const accKeyValue=(key:string)=>key.slice(key.indexOf(':')+1);
 export const ACC_KEY_PATTERN=/^(line|folio|method|receipt|expense|funding|closing|pos|tax|vendor):.+$/;

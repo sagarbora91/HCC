@@ -23,7 +23,7 @@ import {CASH_SLICES} from './money';
 const txt=(v:unknown)=>typeof v==='string'?v.trim():'';
 
 /** GET /expenses/vendor-payments (Hcc.Contracts.Expenses.VendorPaymentView). */
-export type SrvVendorPayment={paymentId:number;vendor:string;businessDate:string;amountPaise:number;method:string;reference:string;recordedBy:number;recordedUtc:string;
+export type SrvVendorPayment={paymentId:number;vendorCode:string;vendor:string;businessDate:string;amountPaise:number;method:string;reference:string;recordedBy:number;recordedUtc:string;
   allocations:{expenseId:number;amountPaise:number}[];voided:boolean;voidReason?:string|null;voidedBy?:number|null;voidedDate?:string|null};
 /** GET /accounting/assets (Hcc.Contracts.Accounting.FixedAssetView). */
 export type SrvFixedAsset={assetId:number;assetNo:string;ledger:string;name:string;costPaise:number;itcPaise:number;purchaseDate:string;vendor:string;expenseId:number;
@@ -31,7 +31,7 @@ export type SrvFixedAsset={assetId:number;assetNo:string;ledger:string;name:stri
 
 /** Server payment → the prototype's ExpVendorPayment (ids as strings; voidAt = the business date of the void, as the prototype keeps it). */
 export function vendorPaymentFromServer(p:SrvVendorPayment):ExpVendorPayment{
-  const v:ExpVendorPayment={id:String(p.paymentId),vendor:p.vendor,date:isoDate(p.businessDate,'businessDate'),amount:paise(p.amountPaise,'amountPaise'),method:p.method,
+  const v:ExpVendorPayment={id:String(p.paymentId),vendor:p.vendorCode||p.vendor,date:isoDate(p.businessDate,'businessDate'),amount:paise(p.amountPaise,'amountPaise'),method:p.method,
     reference:p.reference??'',by:protoUserId(p.recordedBy),at:utcToClock(p.recordedUtc),
     allocations:(p.allocations??[]).map(a=>({expense:String(a.expenseId),amount:paise(a.amountPaise,'amountPaise')}))};
   if(p.voided){v.void=true;if(p.voidReason)v.voidReason=p.voidReason;if(p.voidedBy!=null)v.voidBy=protoUserId(p.voidedBy);if(p.voidedDate)v.voidAt=isoDate(p.voidedDate,'voidedDate');}

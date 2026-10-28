@@ -116,7 +116,6 @@ export function register({test,M,assert}){
     const ka={code:'V',name:'V',type:'supplier',tds:false,state:' ka '};assert.equal(vv(ka),undefined);assert.equal(ka.state,'KA');
     assert.match(vv({code:'V',name:'V',type:'supplier',tds:false,state:'Karnataka'}),/two letters/);
     assert.match(vv({code:'V',name:'V',type:'supplier',tds:false,tdsSection:'rent'}),/TDS applies/);
-    assert.match(vv({code:'V',name:'V',type:'supplier',tds:true,pan:'ABCDE1234F'}),/Choose the TDS section/);
     assert.equal(vv({code:'V',name:'V',type:'supplier',tds:true,pan:'ABCDE1234F',tdsSection:'contractor'}),undefined);
     assert.equal(M.expGstKindOf(s,'Kaveri Kitchen Equipment (fictional)'),'inter');assert.equal(M.expGstKindOf(s,'Morning Supplies'),'intra');
   });
@@ -196,6 +195,7 @@ export function register({test,M,assert}){
     const v=vOf(s,r.id);assert.equal(v.type,'Purchase');assert.equal(v.source.sub,'return');
     assert.deepEqual(ent(v),[['5000',0,50000],['1310',0,4500],['1320',0,4500],['2200/V-DECCAN',59000,0]]);
     assert.equal(M.expVendorOpenBills(s,'V-DECCAN')[0].open,59000);assert.deepEqual(M.expReturned(s,id),{amount:59000,gst:9000});
+    assert.throws(()=>execute(s,'owner',{type:'EXPENSE_REVERSE',id:r.id,reason:'oops'}),/vendor return cannot be reversed/);
     // The Owner's own return posts at once; a cash-paid bill's return leaves a vendor credit (advance).
     let [t,c]=bill(s,{vendor:'Deccan Agro Traders (fictional)',category:'Banquet supplies',amount:40000,method:'UPI'});
     t=execute(t,'owner',{type:'EXP_VENDOR_RETURN',expense:c,amount:10000,reason:'Short supply'});

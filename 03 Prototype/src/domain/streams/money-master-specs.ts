@@ -119,6 +119,7 @@ export const MNY_EC_SPEC:MasterSpec<MnyCategory>={
     if(!row.capital&&asset)return 'A fixed-asset block is the ledger of a capital category only — turn on “Capital purchase” or choose an expense ledger.';
     if(row.rcm&&!(Number(row.rcmBps)>0))return 'Enter the reverse-charge GST rate (e.g. 18 %; GTA 5 %).';
     if(!row.rcm&&row.rcmBps)row.rcmBps=undefined; // a rate without the flag is not kept
+    for(const f of ['rcm','capital','itcBlocked'] as const)if(!row[f])delete row[f]; // off = absent (rows before ACC-2 have none)
     if(row.capital&&EXP_ITC_BLOCKED_ASSET_LEDGERS.includes(String(row.ledger))&&!row.itcBlocked)row.itcBlocked=true; // vehicles / buildings: blocked (rulebook §4.5)
     return undefined;
   },
@@ -151,7 +152,6 @@ export const MNY_EV_SPEC:MasterSpec<MnyVendor>={
     if(st&&!MNY_STATE.test(st))return 'GST state: two letters (e.g. MH, KA, GJ).';
     if(row.tdsSection&&!MNY_TDS_SECTIONS.some(x=>x.value===row.tdsSection))return 'Choose a TDS section from the list.';
     if(row.tdsSection&&!row.tds)return 'Turn on “TDS applies” to choose a TDS section.';
-    if(row.tds&&!row.tdsSection)return 'Choose the TDS section this vendor is deducted under.';
     return undefined;
   },
   // ACC-1 (contract §3, rulebook §3.3.1): a vendor whose party ledger 2200/<code> has a non-zero balance cannot be retired.
