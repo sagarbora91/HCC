@@ -5,15 +5,16 @@ import {build} from 'esbuild';
 import {writeFile} from 'node:fs/promises';
 export async function register({test,M,assert}){
   await writeFile('tests/.generated/lg-ui-entry.tsx',`
+import '../../src/app/App';
 import React from 'react';import {renderToStaticMarkup} from 'react-dom/server';
 import {HccContext} from '../../src/app/context';
 import {can,metrics} from '../../src/services/mock';
+import {registration as adminReg} from '../../src/features/admin/register';
+import {registration as mobileReg} from '../../src/mobile/admin/register';
 import {customerIndex,legacyCounts} from '../../src/domain/streams/customers';
 import {legacyProfileRead} from '../../src/services/mock/handlers/customers-legacy';
 import {LEGACY_SAMPLE} from '../../src/fixtures/ext/legacy-sample';
-import {CustomersPage} from '../../src/features/customers/Customers';
-import {registration as adminReg} from '../../src/features/admin/register';
-import {registration as mobileReg} from '../../src/mobile/admin/register';
+import {CustomersPage,CustomerPanel} from '../../src/features/customers/Customers';
 import {LegacyImport,LegacyResultView} from '../../src/features/admin/LegacyImport';
 import {MaLegacyImport} from '../../src/mobile/admin/LegacyImport';
 import {demoLegacyResult,legacyRunBlock} from '../../src/features/admin/legacyImportModel';
@@ -21,7 +22,7 @@ import {legacyStayFromServer,legacyStaysFromProfile} from '../../src/clients/syn
 import {legacyRunFromServer} from '../../src/clients/sync/legacy-import';
 import {navRoleOk,PAGE_CATEGORY,PAGE_KEYWORDS} from '../../src/app/navmap';
 export {customerIndex,legacyCounts,legacyProfileRead,LEGACY_SAMPLE,adminReg,mobileReg,demoLegacyResult,legacyRunBlock,legacyStayFromServer,legacyStaysFromProfile,legacyRunFromServer,navRoleOk,PAGE_CATEGORY,PAGE_KEYWORDS};
-const C:any={CustomersPage,LegacyImport,LegacyResultView,MaLegacyImport};
+const C:any={CustomersPage,CustomerPanel,LegacyImport,LegacyResultView,MaLegacyImport};
 export function render(name:string,props:any,s:any,uid:string,mobile=false,search=''){
   const noop=()=>{};const user=s.users.find((u:any)=>u.id===uid);
   const ctx:any={s,uid,user,m:metrics(s),page:'x',go:noop,modal:{type:'x',key:'k1'},open:noop,closeModal:noop,booking:noop,error:'',busy:false,run:async()=>false,toast:noop,search,setSearch:noop,
@@ -87,7 +88,7 @@ export function render(name:string,props:any,s:any,uid:string,mobile=false,searc
     assert.ok(!/6,900/.test(hk),'a role without billing never sees the amount');
   });
   test('[LG-UI] Customers 360 phone renders the legacy rows too',()=>{
-    const t=text(X.render('CustomersPage',{},s,'owner',true,'Vikram Shah'));
+    const c=pick(withL,V);const t=text(X.render('CustomerPanel',{c,onBack(){},onLegacy(){}},s,'owner',true));
     assert.ok(/Legacy/.test(t));assert.ok(/Old bill no\. 1876/.test(t));assert.ok(/2 rooms/.test(t));
   });
   test('[LG-UI] Legacy import: registered under Admin & Setup, Owner only, nav + keywords + phone page',()=>{

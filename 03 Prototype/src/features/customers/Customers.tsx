@@ -42,7 +42,7 @@ export function CustomersPage(){
     <p className="footnote">All customer records are fictional. Customers are matched by mobile number; the same person with two different numbers appears twice.</p></>;
 }
 
-function CustomerPanel({c,onBack,onLegacy}:{c:Customer;onBack:()=>void;onLegacy:()=>void}){
+export function CustomerPanel({c,onBack,onLegacy}:{c:Customer;onBack:()=>void;onLegacy:()=>void}){
   const {s,uid,permission,open}=useHcc();
   const [tab,setTab]=useState<Tab>('history');
   useEffect(()=>{let live=true;void ensureLegacy(c.key).then(ch=>{if(live&&ch)onLegacy();});return ()=>{live=false;};},[c.key]); // eslint-disable-line react-hooks/exhaustive-deps
