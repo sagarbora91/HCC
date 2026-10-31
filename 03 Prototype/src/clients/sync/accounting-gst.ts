@@ -9,8 +9,8 @@
 //             ACC_GST_ADVANCES_SET {on}                              → SetGstOnAdvances {on}
 //             each reloads accountingX (the server's day evaluation then carries the set-off journal and the day locks) and the remittance
 //             also complianceX (the card it marks filed) and expensesX (the expense month lock).
-//   loader    accountingGstLoader (patch on accountingX ← GET /accounting/gst/locks, PERM-ACC-001) fills monthLocks and gstSetoffs. NOT in the
-//             area's loaders yet: the integrator adds it with the READS line and regenerates tests/_role-reads.json (ACC2-GST-DONE.md).
+//   loader    accountingGstLoader (patch on accountingX ← GET /accounting/gst/locks, PERM-ACC-001) fills monthLocks and gstSetoffs; registered
+//             at the ACC-2 integration (READS line, tests/_role-reads.json).
 import type {ACCState,ACCMonthLock} from '../../domain/streams/accounting';
 import type {SyncArea,LoaderCtx,SliceLoader} from './types';
 import {protoUserId,utcToClock} from './map';
@@ -45,7 +45,7 @@ async function loadGst(c:LoaderCtx):Promise<ACCState>{
   return cur;
 }
 /** Patch loader for accountingX — registered by the integrator (READS 'GET /accounting/gst/locks' + tests/_role-reads.json), see the header. */
-export const accountingGstLoader:SliceLoader={slice:'accountingX',kind:'patch',requires:'reports',reads:['GET /accounting/gst/locks' as never],load:loadGst};
+export const accountingGstLoader:SliceLoader={slice:'accountingX',kind:'patch',requires:'reports',reads:['GET /accounting/gst/locks'],load:loadGst};
 
 const paise=(v:unknown)=>Math.round(Number(v??0));
 const txt=(v:unknown)=>String(v??'').trim();
@@ -53,7 +53,7 @@ const date=(v:unknown)=>{const d=txt(v);return d||null;};
 
 export const accountingGst:SyncArea={
   id:'accounting-gst',
-  loaders:[],
+  loaders:[accountingGstLoader], // ACC-2 integration: READS 'GET /accounting/gst/locks'
   commands:[
     {type:'ACC_GST_SETOFF',reload:['accountingX'],precheck:month,
       async send(c){await c.api.command('PostGstSetoff',{month:txt(c.cmd.month)});}},

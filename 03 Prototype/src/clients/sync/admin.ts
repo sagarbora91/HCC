@@ -28,6 +28,7 @@ import type {SyncArea,LoaderCtx,CommandCtx,SyncMe} from './types';
 import {serverId,protoId,utcToClock,clockToUtc,utcToDate} from './map';
 import {ROLE_MAP,permissionsFromGrants} from './capabilities';
 import {gstinProblem} from '../../domain/gstin';
+import {isTdsKey} from '../../domain/tds'; // ACC-2 tds: dated TDS rate overrides
 import {OWN_CREDENTIAL_CHANGE,ownCredentialProblem,type CredKind} from '../../domain/credentials';
 
 // ───────────── Server DTOs (Hcc.Contracts.Access / Configuration) ─────────────
@@ -338,6 +339,8 @@ export const admin:SyncArea={
       async send(c){const cmd=c.cmd,key=String(cmd.setting);const reason=String(cmd.reason??'').trim();
         // GST master: the server keeps gst.* out of SetSetting (GstSettings, Editable = false) — dated versions through SetGstSetting.
         if(isGstKey(key)){await c.api.command('SetGstSetting',{key,value:gstToServer(key,cmd.value),effectiveFrom:cmd.effectiveFrom||null,reason});return;}
+        // ACC-2 tds: the TDS table (tds.*) is dated money configuration on its own command (acc.tds_rate; Owner, PERM-CFG-003).
+        if(isTdsKey(key)){await c.api.command('SetTdsRate',{key,value:Number(cmd.value),effectiveFrom:cmd.effectiveFrom||null,reason:reason||'Owner change'});return;}
         // expectedVersion = the setting's row version from the last load (null before its first save); the reload refreshes it.
         await c.api.command('SetSetting',{key,value:cmd.value??null,...(cmd.effectiveFrom?{effectiveFrom:cmd.effectiveFrom}:{}),...(reason?{reason}:{}),
           expectedVersion:c.ids.version('setting',key)??null});}},

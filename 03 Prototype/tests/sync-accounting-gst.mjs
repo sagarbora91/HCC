@@ -49,6 +49,6 @@ export async function register({test,assert}){
     assert.ok(sw.ok,JSON.stringify(sw));assert.deepEqual(srv.commands('SetGstOnAdvances').map(c=>c.body),[{on:true}]);
     const area=S.AREAS.find(a=>a.id==='accounting-gst');
     assert.deepEqual(area.commands.map(c=>c.type),['ACC_GST_SETOFF','ACC_GST_PAY','ACC_STAT_REMIT','ACC_MONTH_LOCK','ACC_MONTH_LOCK_REQUEST','ACC_MONTH_UNLOCK','ACC_GST_ADVANCES_SET']);
-    assert.equal(area.loaders.length,0,'the GET /accounting/gst/locks loader is registered at integration (READS + _role-reads.json)');
+    assert.equal(area.loaders.length,1,'the GET /accounting/gst/locks loader is registered (ACC-2 integration)');assert.deepEqual([...area.loaders[0].reads],['GET /accounting/gst/locks']);
   });
 }

@@ -45,6 +45,6 @@ export async function register({test,assert}){
     assert.equal(refused.ok,false);assert.equal(loan.ok,false);assert.match(loan.text,/Only the Owner adds a loan/);assert.equal(srv.commands('AddLoan').length,0);
     const area=S.AREAS.find(a=>a.id==='accounting-manual');
     assert.deepEqual(area.commands.map(c=>c.type),['ACC_MANUAL_SAVE','ACC_MANUAL_DECIDE','ACC_MANUAL_VOID','ACC_LOAN_ADD']);
-    assert.deepEqual(area.loaders,[]); // ACC_MANUAL_LOADER is registered at the ACC-2 integration (READS + _role-reads.json)
+    assert.equal(area.loaders.length,1);assert.deepEqual([...area.loaders[0].reads],['GET /accounting/manual']);assert.equal(area.loaders[0].kind,'patch'); // ACC-2 integration
   });
 }

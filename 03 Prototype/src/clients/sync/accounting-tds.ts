@@ -4,9 +4,8 @@
 //             reloads complianceX (the profile screens show the switches).
 //             ACC_TDS_REMIT {month, section, amount, method, challan, date?} → RecordTdsRemittance {month, section, amountPaise, tender, challan,
 //             date} (PERM-ACC-013 Owner / Accountant); reloads accountingX.
-//   loader    accountingTdsLoader (patch on complianceX ← GET /accounting/tds, PERM-ACC-013): the two switches onto the profile. NOT in this
-//             area's `loaders` yet — the integrator registers it with its READS line and tests/_role-reads.json (as ACC-1 did for the opening
-//             loader; ACC2-TDS-DONE.md "Integration needed"). The dated rate overrides travel through Master configuration (SETTING_SET on
+//   loader    accountingTdsLoader (patch on complianceX ← GET /accounting/tds, PERM-ACC-013): the two switches onto the profile; registered
+//             at the ACC-2 integration (READS line, tests/_role-reads.json). The dated rate overrides travel through Master configuration (SETTING_SET on
 //             tds.* → SetTdsRate, an admin.ts edit listed in the DONE file).
 import type {CMPState} from '../../domain/streams/compliance';
 import {tdsBaseSection} from '../../domain/tds';
@@ -35,11 +34,11 @@ async function loadTds(c:LoaderCtx):Promise<CMPState|undefined>{
   return {...cur,profile:{...cur.profile,hotelDeductsTds:r.hotelDeductsTds,tdsDeductorType:r.deductorType}};
 }
 /** Patch loader for complianceX (registered at the ACC-2 integration with READS 'GET /accounting/tds'). */
-export const accountingTdsLoader:SliceLoader={slice:'complianceX',kind:'patch',requires:'reports',load:loadTds};
+export const accountingTdsLoader:SliceLoader={slice:'complianceX',kind:'patch',requires:'reports',reads:['GET /accounting/tds'],load:loadTds};
 
 export const accountingTds:SyncArea={
   id:'accounting-tds',
-  loaders:[],
+  loaders:[accountingTdsLoader], // ACC-2 integration: READS 'GET /accounting/tds' (PERM-ACC-013)
   commands:[
     {type:'ACC_TDS_SETTINGS',reload:['complianceX'],
       precheck:cmd=>typeof cmd.hotelDeductsTds!=='boolean'&&cmd.tdsDeductorType!=='individual'&&cmd.tdsDeductorType!=='other'?'Choose “hotel deducts TDS” or the rate column.':undefined,

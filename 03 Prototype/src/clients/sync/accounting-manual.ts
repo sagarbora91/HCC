@@ -7,13 +7,12 @@
 //   POST /commands/VoidManualVoucher   {voucherId, reason, expectedVersion}           ← ACC_MANUAL_VOID (PERM-ACC-011)
 //   POST /commands/AddLoan             {code, name, lender, accountLast4, kind, note}  ← ACC_LOAN_ADD (PERM-ACC-007, Owner)
 //   GET  /accounting/manual            (PERM-ACC-001) → vouchers (newest first) + loans
-// accountingX.manual (and the loan rows of accountingX.chart.ledgers): ACC_MANUAL_LOADER below — NOT registered in the area yet: the
-// integrator adds it with the READS line in sync/reads.ts and the route in tests/_role-reads.json (as ACC-1 did for the opening loader).
+// accountingX.manual (and the loan rows of accountingX.chart.ledgers): ACC_MANUAL_LOADER below, registered at the ACC-2 integration (READS
+// 'GET /accounting/manual', tests/_role-reads.json); it runs after the chart loader (area order), which replaces `chart`.
 import type {ACCManualVoucher,ACCManualLine,ACCManualTemplate,ACCState} from '../../domain/streams/accounting';
 import type {ACCLoanLedger} from '../../domain/streams/accounting-manual';
 import {HccClientError} from '../errors';
 import type {SyncArea,SliceLoader,LoaderCtx,CommandCtx} from './types';
-import type {ReadRoute} from './reads';
 import {protoId,protoUserId,serverId,utcToClock,paise,isoDate} from './map';
 
 type Wire=Record<string,unknown>;
@@ -61,13 +60,13 @@ async function loadManual(c:LoaderCtx):Promise<ACCState>{
   cur.chart={...chart,ledgers:[...chart.ledgers.filter(l=>(l as Partial<ACCLoanLedger>).kind!=='loan'),...r.loans.map(loanFromServer)]};
   return cur;
 }
-/** Patch loader for accountingX.manual + the loan rows (to be registered at the ACC-2 integration: READS + tests/_role-reads.json). */
-export const ACC_MANUAL_LOADER:SliceLoader={slice:'accountingX',kind:'patch',requires:'reports',reads:['GET /accounting/manual' as unknown as ReadRoute],load:loadManual}; // the route joins READS at the integration (cast until then)
+/** Patch loader for accountingX.manual + the loan rows (READS 'GET /accounting/manual', PERM-ACC-001). */
+export const ACC_MANUAL_LOADER:SliceLoader={slice:'accountingX',kind:'patch',requires:'reports',reads:['GET /accounting/manual'],load:loadManual};
 
 const reason=(cmd:Wire)=>{const r=txt(cmd.reason);return r.length>=3&&r.length<=200?undefined:'Enter a reason (3–200 characters).';};
 
 export const accountingManual:SyncArea={id:'accounting-manual',
-  loaders:[],
+  loaders:[ACC_MANUAL_LOADER],
   commands:[
     {type:'ACC_MANUAL_SAVE',reload:['accountingX'],precheck:cmd=>Array.isArray((cmd as Wire).lines)&&((cmd as Wire).lines as unknown[]).length>=2?undefined:'Enter 2 to 100 lines.',
       async send(c){await c.api.command('SaveManualVoucher',manualSaveBody(c.cmd as Wire));}},

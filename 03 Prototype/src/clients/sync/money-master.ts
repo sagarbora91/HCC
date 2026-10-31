@@ -55,22 +55,26 @@ export function ecFromServer(x:Wire):MasterRow{
   if(x.approvalLimitPaise!==undefined&&x.approvalLimitPaise!==null)r.approvalLimit=Number(x.approvalLimitPaise);
   // ACC-2 acc2-purchase (contract §3): purchase flags (absent when off, as the prototype rows keep them).
   if(x.itcBlocked)r.itcBlocked=true;if(x.rcm){r.rcm=true;if(x.rcmBps!=null)r.rcmBps=Number(x.rcmBps);}if(x.capital)r.capital=true;
+  if(x.transport)r.transport=true; // ACC-2 integration (ruling 10): goods transport, ₹35,000 cash limit
   return r;
 }
 export function ecToServer(row:Wire):Wire{
   const lim=row.approvalLimit;
   return {ledger:str(row.ledger),needsBill:!!row.needsBill,approvalLimitPaise:lim===undefined||lim===null||lim===''?null:Number(lim),
-    itcBlocked:!!row.itcBlocked,rcm:!!row.rcm,rcmBps:row.rcm&&row.rcmBps!=null&&row.rcmBps!==''?Number(row.rcmBps):null,capital:!!row.capital}; // ACC-2
+    itcBlocked:!!row.itcBlocked,rcm:!!row.rcm,rcmBps:row.rcm&&row.rcmBps!=null&&row.rcmBps!==''?Number(row.rcmBps):null,capital:!!row.capital,
+    transport:!!row.transport}; // ACC-2 (+ integration ruling 10)
 }
 export function evFromServer(x:Wire):MasterRow{
   const r=baseRow(x,'expenseVendorId');
   r.type=String(x.type??'other');put(r,'gstin',x.gstin);put(r,'pan',x.pan);r.tds=!!x.tds;put(r,'contact',x.contact);put(r,'terms',x.terms);
   put(r,'state',x.state);put(r,'tdsSection',x.tdsSection); // ACC-2 acc2-purchase
+  if(x.payeeType==='individual'||x.payeeType==='other')r.payeeType=x.payeeType; // ACC-2 integration (ruling 9): the TDS rate column
   return r;
 }
 export function evToServer(row:Wire):Wire{
   return {type:str(row.type)||'other',gstin:str(row.gstin).toUpperCase()||null,pan:str(row.pan).toUpperCase()||null,tds:!!row.tds,
-    contact:str(row.contact)||null,terms:str(row.terms)||null,state:str(row.state).toUpperCase()||null,tdsSection:str(row.tdsSection)||null}; // ACC-2
+    contact:str(row.contact)||null,terms:str(row.terms)||null,state:str(row.state).toUpperCase()||null,tdsSection:str(row.tdsSection)||null, // ACC-2
+    payeeType:row.payeeType==='individual'||row.payeeType==='other'?row.payeeType:null}; // ACC-2 integration (ruling 9)
 }
 
 /** The four money masters in MST_SERVER (sync/masters.ts spreads this object; ownLoader = rows come from the patch loader below). */

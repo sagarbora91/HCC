@@ -8,9 +8,9 @@
 //             EXP_UD_PAY_REVERSE {receivable, settlement, reason} → ReverseUdhaarPayment {receivableId, settlementId, reason, tillId?}
 //                                                                (Owner)
 //   loader    OTA_PAYOUTS_LOADER (patch on channelsX ← GET /ota/payouts, PERM-OTA-004) fills `channelsX.payouts`; registered at the ACC-2
-//             integration (READS line in sync/reads.ts, routes in tests/_role-reads.json — see ACC2-FLOWS-DONE.md "Integration needed").
-//   CHECKOUT {otaCredit} and GRP_COMPANY_SAVE {active} belong to the front-desk / money mappers (W4-1 CheckoutStay, W4-3 SaveCompanyAccount):
-//   the body fields are listed in the DONE file.
+//             integration (READS line in sync/reads.ts, routes in tests/_role-reads.json).
+//   CHECKOUT {otaCredit} (SettleFolioToOta before CheckoutStay, frontdesk.ts) and GRP_COMPANY_SAVE {active} (SetCompanyActive, money.ts) live in
+//   the front-desk / money mappers since the ACC-2 integration.
 import type {CHNPayout,CHNState} from '../../domain/streams/channels';
 import {mnyIsDrawer} from '../../domain/streams/money-master';
 import {HccClientError} from '../errors';
@@ -48,11 +48,11 @@ async function loadPayouts(c:LoaderCtx):Promise<CHNState>{
   return {...cur,payouts:rows.slice().sort((a,b)=>a.payoutId-b.payoutId).map(payoutFromServer)};
 }
 /** Patch loader for channelsX.payouts (registered at the ACC-2 integration with its READS line). */
-export const OTA_PAYOUTS_LOADER:SliceLoader={slice:'channelsX',kind:'patch',requires:['payments','reports'],load:loadPayouts};
+export const OTA_PAYOUTS_LOADER:SliceLoader={slice:'channelsX',kind:'patch',requires:['payments','reports'],reads:['GET /ota/payouts'],load:loadPayouts};
 
 export const accountingFlows:SyncArea={
   id:'accounting-flows',
-  loaders:[],
+  loaders:[OTA_PAYOUTS_LOADER], // ACC-2 integration: READS 'GET /ota/payouts' (PERM-OTA-004)
   commands:[
     {type:'DEPOSIT_APPLY',reload:['bookings'],
       precheck:cmd=>Number.isSafeInteger(cmd.amount)&&(cmd.amount as number)>0?undefined:'Enter an amount greater than zero.',

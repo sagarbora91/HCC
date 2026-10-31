@@ -70,7 +70,11 @@ export function fakeServer(routes={}){
     ...mstDefaults,'GET /masters/rooms':()=>({items:[]}),
     // ACC-1 (integration): the chart master / history and the opening entry are patch loaders of accountingX (empty = built-ins, no entry).
     'GET /accounting/chart/master':()=>({groups:[],ledgers:[],problems:[],canEdit:false}),'GET /accounting/chart/history':()=>[],
-    'GET /accounting/opening':()=>({fyStart:'2026-04-01',pending:true,entry:null,lockedFrom:null}),...Object.fromEntries(['room-types','amenities','occupancy-charges'].map(x=>[`GET /masters/${x}`,()=>({page:1,pageSize:200,total:0,items:[]})])),...routes};
+    'GET /accounting/opening':()=>({fyStart:'2026-04-01',pending:true,entry:null,lockedFrom:null}),
+    // ACC-2 (integration): the lanes' patch loaders (empty = nothing booked yet).
+    'GET /accounting/manual':()=>({vouchers:[],loans:[]}),'GET /accounting/gst/locks':()=>({locks:[],requested:[],setoffs:[],gstOnAdvances:false}),
+    'GET /accounting/tds':()=>({hotelDeductsTds:false,deductorType:'other',rates:[],remittances:[]}),
+    'GET /expenses/vendor-payments':()=>({items:[]}),'GET /accounting/assets':()=>({items:[]}),'GET /ota/payouts':()=>[],...Object.fromEntries(['room-types','amenities','occupancy-charges'].map(x=>[`GET /masters/${x}`,()=>({page:1,pageSize:200,total:0,items:[]})])),...routes};
   const calls=[],unrouted=[];
   const compiled=()=>Object.entries(table).map(([spec,h])=>{const [m,p]=spec.split(' ');const names=[];
     const re=new RegExp('^'+p.replace(/:[A-Za-z]+/g,x=>{names.push(x.slice(1));return '([^/]+)';})+'$');return {m,re,names,h};});

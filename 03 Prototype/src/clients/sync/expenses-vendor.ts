@@ -9,8 +9,7 @@
 //   wire      EXPENSE / EXP_EDIT carry gstKind and rcmBps (accounting.ts sync spreads `expPurchaseWire`); expenseFromServer maps the purchase
 //             fields back (gstKind, rcm, rcmBps, capital, assetNo, tdsPaise, tdsSection).
 //   loaders   expenseVendorLoader (patch on expensesX ← GET /expenses/vendor-payments) and accountingAssetsLoader (patch on accountingX ←
-//             GET /accounting/assets) are exported but NOT in the area yet: their reads need READS lines and tests/_role-reads.json from
-//             the real server (integrator — ACC2-PURCHASE-DONE.md "Integration needed").
+//             GET /accounting/assets), registered at the ACC-2 integration (READS lines; tests/_role-reads.json from the real server).
 import type {Command,Expense} from '../../services/mock';
 import type {EXPState,ExpVendorPayment} from '../../domain/streams/expenses-scc';
 import type {ACCState,ACCAsset} from '../../domain/streams/accounting';
@@ -79,13 +78,13 @@ async function loadAssets(c:LoaderCtx):Promise<ACCState>{
   const cur:ACCState={...(c.current('accountingX')??{})};
   const r=await c.api.get<{items:SrvFixedAsset[]}>('/accounting/assets');cur.assets=r.items.map(assetFromServer);return cur;
 }
-/** Not registered yet (see the header): add to `loaders` with the READS lines at integration. */
-export const expenseVendorLoader:SliceLoader={slice:'expensesX',kind:'patch',requires:'expenses',load:loadVendorPayments};
-export const accountingAssetsLoader:SliceLoader={slice:'accountingX',kind:'patch',requires:'reports',load:loadAssets};
+/** Registered at the ACC-2 integration with their READS lines (PERM-EXP-004 or PERM-ACC-001). */
+export const expenseVendorLoader:SliceLoader={slice:'expensesX',kind:'patch',requires:'expenses',reads:['GET /expenses/vendor-payments'],load:loadVendorPayments};
+export const accountingAssetsLoader:SliceLoader={slice:'accountingX',kind:'patch',requires:'reports',reads:['GET /accounting/assets'],load:loadAssets};
 
 export const expensesVendor:SyncArea={
   id:'expenses-vendor',
-  loaders:[],
+  loaders:[expenseVendorLoader,accountingAssetsLoader],
   commands:[
     {type:'EXP_VENDOR_PAY',reload:['expenses','expensesX'],
       precheck:cmd=>!txt(cmd.vendor)?'Choose a vendor.':!(Number.isSafeInteger(cmd.amount)&&cmd.amount>0)?'Enter the amount paid.':!txt(cmd.method)?'Choose how the vendor was paid.':undefined,

@@ -81,7 +81,9 @@ export type SrvExpense={expenseId:number;ref:string;vendor:string;category:strin
   /** ACC-2 (contract §3): purchase fields (ExpenseView). */
   gstKind?:string|null;rcm?:boolean|null;rcmBps?:number|null;capital?:boolean|null;assetNo?:string|null;tdsPaise?:number|null;tdsSection?:string|null;
   /** DEC-135: 'allowed' | 'disallowed' when the bill has GST. */
-  itc?:string|null};
+  itc?:string|null;
+  /** ACC-2 flows (B10): the cash guard tripped — "deduction lost". */
+  cashDeductionLost?:boolean|null};
 type SrvExpenseEdit={editId:number;by:number;atUtc:string;reason:string;old:Record<string,string|number>;new:Record<string,string|number>};
 /** GET /expenses/registers (ExpenseRegistersView). */
 type SrvRegisters={businessDate:string;budgets:{month:string;category:string;amountPaise:number}[];
@@ -188,6 +190,7 @@ export function expenseFromServer(e:SrvExpense):Expense{
   if(e.source==='petty'||e.source==='recurring')x.source=e.source;if(e.sourceRef)x.sourceRef=e.sourceRef;
   if(e.voidReason)x.voidReason=e.voidReason;if(e.voidedBy!=null)x.voidedBy=protoUserId(e.voidedBy);if(e.voidedUtc)x.voidedAt=clock(e.voidedUtc);
   if(e.hasBillPhoto)x.hasBillPhoto=true;if(e.createdUtc)x.createdAt=clock(e.createdUtc);
+  if(e.cashDeductionLost)x.cashDeductionLost=true; // ACC-2 integration (flows item 8)
   if(e.gstPaise)x.itc=e.itc==='allowed'?'allowed':'disallowed'; // DEC-135 (a bill without the flag = disallowed)
   Object.assign(x,purchaseFieldsFromServer(e));if(e.rcm&&!e.gstPaise&&(e.itc==='allowed'||e.itc==='disallowed'))x.itc=e.itc; // ACC-2: an RCM bill's ITC is on the RCM GST
   if(e.edits?.length){

@@ -389,7 +389,10 @@ export const money:SyncArea={
           city:text(m.city)||null,rates:rates};
         if(id===undefined)return {result:await c.api.command('SaveCompany',{...body,companyId:null,creditLimitPaise:Number(m.creditLimit)>0?Number(m.creditLimit):0})};
         const v=c.ids.version('company',id);if(v===undefined)throw new HccClientError('NOT_FOUND','Company account not found. Refresh and try again.');
-        return {result:await c.api.command('SaveCompany',{...body,companyId:serverId(id,'Company'),creditLimitPaise:0},{expectedVersion:v})};
+        const result=await c.api.command('SaveCompany',{...body,companyId:serverId(id,'Company'),creditLimitPaise:0},{expectedVersion:v});
+        // ACC-2 flows (ruling 12): retiring / re-activating a company account is its own command (PERM-GRP-002).
+        if(m.active!==undefined&&m.active!==null)await c.api.command('SetCompanyActive',{companyId:serverId(id,'Company'),active:m.active!==false},{step:'active'});
+        return {result};
       }},
     {type:'GRP_LIMIT_SET',reload:['groupsX'],
       precheck:cmd=>!Number.isSafeInteger(cmd.limit)||(cmd.limit as number)<0?'Enter a credit limit of 0 or more.':undefined,
@@ -403,7 +406,8 @@ export const money:SyncArea={
       precheck:cmd=>!positive(cmd.amount)?'Enter an amount greater than zero.':cmd.method==='Cash'?'A company pays by bank transfer, UPI or card (a cheque is recorded as a bank transfer). Take cash on a guest folio in a cashier shift.'
         :!text(cmd.reference)?'Enter the transaction reference for a non-cash payment.':undefined,
       async send(c){const m=c.cmd;
-        return {result:await c.api.command('RecordCompanyPayment',{companyId:serverId(m.company,'Company'),tender:m.method,amountPaise:m.amount,reference:text(m.reference),invoiceNo:text(m.invoice)||null})};}},
+        return {result:await c.api.command('RecordCompanyPayment',{companyId:serverId(m.company,'Company'),tender:m.method,amountPaise:m.amount,reference:text(m.reference),invoiceNo:text(m.invoice)||null,
+          tdsPaise:Number(m.tds??0)})};}}, // ACC-2 tds: TDS the company deducted
   ],
   unmapped:{
     GRP_BLOCK_ALLOT:'no server command changes a block’s allotment (inventory backlog)',
