@@ -86,6 +86,12 @@ public interface IGstManualVouchers
 
     /// <summary>Manual vouchers pending approval dated in [from, to] (the month lock waits for them).</summary>
     Task<int> PendingAsync(ICommandTransaction? tx, int propertyId, DateOnly from, DateOnly to, CancellationToken ct);
+
+    /// <summary>
+    /// ACC-2 integration (rulebook §8.6 test): the GST payments already entered for <paramref name="month"/> (template gst-payment, approved or pending,
+    /// not voided): their debit to 1340. Prototype <c>accGstPaidFor</c>.
+    /// </summary>
+    Task<long> PaidForAsync(ICommandTransaction tx, int propertyId, string month, CancellationToken ct) => Task.FromResult(0L);
 }
 
 /// <summary>Stand-in until acc2-manual is merged (ACC2-GST-DONE.md "Integration needed").</summary>
@@ -123,6 +129,31 @@ public sealed class ExpenseMonthLockAdapter(IExpenseStore store, IExpenseRegiste
         if (await registers.MonthLockAsync(tx, propertyId, month, ct).ConfigureAwait(false) is not { Unlocked: false }) return false;
         await registers.UnlockMonthAsync(tx, propertyId, month, by, now, reason, ct).ConfigureAwait(false);
         return true;
+    }
+}
+
+/// <summary>
+/// ACC-2 integration (coordinator ruling 6): the month lock waits for the month's pay run — locked, and paid (the first bank file of its current
+/// lock made) — because both its vouchers belong to the month (prototype <c>accMonthLockBlocker</c>). Null = nothing blocks.
+/// </summary>
+public interface IPayRunMonthCheck
+{
+    Task<string?> BlockerAsync(ICommandTransaction tx, int propertyId, string month, CancellationToken ct);
+}
+
+/// <summary><see cref="IPayRunMonthCheck"/> over the payroll store (no staff on the property = no pay run to wait for, as in the prototype).</summary>
+public sealed class PayRunMonthCheck(Payroll.IPayrollStore payroll) : IPayRunMonthCheck
+{
+    public async Task<string?> BlockerAsync(ICommandTransaction tx, int propertyId, string month, CancellationToken ct)
+    {
+        var db = payroll.In(tx);
+        if ((await db.AllStaffAsync(propertyId, ct).ConfigureAwait(false)).Count == 0) return null;
+        var m = Hcc.Domain.Payroll.PayMonth.Parse(month);
+        var run = (await db.RunsAsync(propertyId, ct).ConfigureAwait(false)).FirstOrDefault(r => r.Month == m);
+        if (run is null || !run.Locked) return $"The pay run for {month} must be locked first (Staff › Payroll) — its voucher belongs to the month.";
+        if (!(await db.BankFilesAsync(run.RunId, ct).ConfigureAwait(false)).Any(f => f.LockSeq == run.LockSeq))
+            return $"The pay run for {month} must be paid first (generate its bank file) — the net-pay voucher belongs to the month.";
+        return null;
     }
 }
 
@@ -248,7 +279,8 @@ public static class GstMonthRules
 
 /// <summary>Commands and the month query of the lane (prototype handlers/accounting-gst.ts).</summary>
 public sealed class GstMonthService(ICommandRunner runner, IAccountingStore accounting, IGstMonthStore store, IAccessPolicy policy, TimeProvider clock,
-    IGstManualVouchers? manual = null, IExpenseMonthLockPort? expenseMonths = null, IComplianceCardHook? cards = null, IOpeningEntryStore? openingEntries = null)
+    IGstManualVouchers? manual = null, IExpenseMonthLockPort? expenseMonths = null, IComplianceCardHook? cards = null, IOpeningEntryStore? openingEntries = null,
+    IPayRunMonthCheck? payRuns = null) // ACC-2 integration (ruling 6)
 {
     public const string OpSetoff = "PostGstSetoff";
     public const string OpPay = "RecordGstPayment";
@@ -292,7 +324,7 @@ public sealed class GstMonthService(ICommandRunner runner, IAccountingStore acco
 
     private static MonthLockRow? Current(IEnumerable<MonthLockRow> rows, string month) => rows.LastOrDefault(r => r.Month == month && r.UnlockedUtc is null);
 
-    private static string LockedMessage(string month) => $"Month {month} is locked (GST set-off posted, books closed) — the Owner unlocks the month first (DEC-131).";
+    internal static string LockedMessage(string month) => $"Month {month} is locked (GST set-off posted, books closed) — the Owner unlocks the month first (DEC-131).";
 
     // ── Query ──
 
@@ -438,6 +470,13 @@ public sealed class GstMonthService(ICommandRunner runner, IAccountingStore acco
         return await runner.RunAsync(Ctx(caller, OpPay, idempotencyKey), req, async (tx, ct2) =>
         {
             var (tender, f) = await PrepareAsync(tx, caller, req.Month, req.AmountPaise, req.Method, req.Challan, req.Date, ct2).ConfigureAwait(false);
+            // ACC-2 integration (rulebook §8.6 test): the challan cannot exceed what the month still owes — its challan (payable less the cash already
+            // in 1340) plus the RCM still on 2140, less the GST payments already entered for the month (approved or pending). Prototype ACC_GST_PAY.
+            var g = await FiguresAsync(tx, caller.PropertyId, f.Month, await store.SetoffsAsync(tx, caller.PropertyId, ct2).ConfigureAwait(false), ct2).ConfigureAwait(false);
+            var due = Math.Max(0, g.Setoff.Challan + Math.Max(0, g.RcmBalance));
+            var paid = await manualVouchers.PaidForAsync(tx, caller.PropertyId, f.Month, ct2).ConfigureAwait(false);
+            if (f.Amount > due - paid)
+                throw HccException.Validation($"The challan for {f.Month} cannot exceed what the electronic cash ledger (1340) still needs: {Rs(Math.Max(0, due - paid))} (challan {Rs(due)}, already entered {Rs(paid)}).");
             var lines = new List<(string, long, long)> { (GstSetOff.LedgerCash, f.Amount, 0), (tender, 0, f.Amount) };
             if (rcm > 0)
             {
@@ -493,6 +532,7 @@ public sealed class GstMonthService(ICommandRunner runner, IAccountingStore acco
         if (setoff is null) return ($"Post the GST set-off for {month} first (rulebook E1).", [], null);
         var pending = await manualVouchers.PendingAsync(tx, propertyId, from, to, ct).ConfigureAwait(false);
         if (pending > 0) return ($"{pending} manual voucher{(pending == 1 ? " is" : "s are")} pending approval in {month} — the Owner decides {(pending == 1 ? "it" : "them")} first.", [], null);
+        if (payRuns is not null && await payRuns.BlockerAsync(tx, propertyId, month, ct).ConfigureAwait(false) is { } payWhy) return (payWhy, [], null); // ruling 6
         var toLock = new List<DateOnly>();
         for (var d = from; d <= to; d = d.AddDays(1))
         {

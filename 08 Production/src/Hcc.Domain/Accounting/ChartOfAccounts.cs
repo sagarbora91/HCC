@@ -124,7 +124,7 @@ public static partial class ChartOfAccounts
         L("1115", "OTA receivables", "debtors", "One party per OTA channel (ACC-2 posts it)", control: true),
         L("1120", "Udhaar receivables (customer credit)", "debtors", "DEC-130 / DEC-144: one party per Udhaar customer", control: true),
         L("1200", "Staff advances", "loans-advances", "Salary advances recovered through payroll; one party per staff member", control: true),
-        L("1210", "Recoverable from leavers (F&F)", "loans-advances"),
+        L("1210", "Recoverable from leavers (F&F)", "loans-advances", "ACC-2 (ruling 7): one party per staff member — a full and final that leaves the leaver owing (D4)", control: true),
         L("1300", "GST input credit (legacy, locked snapshots only)", "duties-taxes", "DEC-135 one-ledger ITC before ACC-1; new ITC goes to 1310 / 1320", gst: LedgerGst.Input),
         L("1310", "Input CGST", "duties-taxes", "ITC marked allowed, CGST half", gst: LedgerGst.Input),
         L("1320", "Input SGST", "duties-taxes", "ITC marked allowed, SGST half", gst: LedgerGst.Input),
@@ -275,7 +275,7 @@ public static partial class ChartOfAccounts
         // DEC-074 (wave B3): group attrition and deposits; full-and-final additions, deductions and an amount the leaver owes (illustrative — CA to confirm).
         // ACC-1 (contract §2): attrition / retention charges move to 4300.
         ["line:attrition"] = "4300", ["receipt:group-deposit"] = "2000",
-        ["payroll:fnf-additions"] = "5100", ["payroll:fnf-deductions"] = "2340", ["payroll:fnf-recoverable"] = "1200",
+        ["payroll:fnf-additions"] = "5100", ["payroll:fnf-deductions"] = "2340", ["payroll:fnf-recoverable"] = "1210", // ACC-2 integration (ruling 7, rulebook D4): 1210/<leaver>
 
         // DEC-130 an Udhaar payment settles the customer's credit; ACC-1 (contract §2) the expense ITC splits half / half like output GST:
         // CGST half → 1310 (tax:gst-input), SGST half → 1320 (tax:gst-input-sgst); 1300 stays for locked snapshots only.

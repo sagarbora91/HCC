@@ -37,6 +37,12 @@ public sealed class ManualVoucherPorts(ManualVoucherService manual, IManualVouch
     public async Task<int> PendingAsync(ICommandTransaction? tx, int propertyId, DateOnly from, DateOnly to, CancellationToken ct)
         => (await store.ListAsync(tx, propertyId, ct).ConfigureAwait(false)).Count(v => v.Status == ManualVoucherRules.Pending && v.Date >= from && v.Date <= to);
 
+    public async Task<long> PaidForAsync(ICommandTransaction tx, int propertyId, string month, CancellationToken ct)
+        => (await store.ListAsync(tx, propertyId, ct).ConfigureAwait(false))
+            .Where(v => v.Template == "gst-payment" && v.Status is ManualVoucherRules.Approved or ManualVoucherRules.Pending && v.VoidOf is null && v.VoidedBy is null
+                && v.Narration.StartsWith("GST paid for " + month + " ", StringComparison.Ordinal))
+            .Sum(v => v.Lines.Where(l => l.Account == GstSetOff.LedgerCash).Sum(l => l.Debit));
+
     public async Task<string?> PostAsync(ICommandTransaction tx, Caller caller, TdsRemittanceVoucher voucher, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(caller);

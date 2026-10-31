@@ -18,7 +18,9 @@ namespace Hcc.Application.Payroll;
 /// </summary>
 public sealed partial class PayrollService(ICommandRunner runner, IPayrollStore store, IAccessPolicy policy, TimeProvider clock, Hcc.Application.Closing.IBusinessDayGuard? dayGuard = null,
     // ACC-2 integration (ruling 5): a cash advance leaves the till of the open shift through the shared drawer and the contract §7 cash guard.
-    MoneyMasters.IPaymentMethodSource? methods = null, Billing.ICashDrawerPort? drawer = null, Accounting.CashGuardService? cashGuard = null)
+    MoneyMasters.IPaymentMethodSource? methods = null, Billing.ICashDrawerPort? drawer = null, Accounting.CashGuardService? cashGuard = null,
+    // ACC-2 integration (ruling 6): the pay-run / net-pay voucher is dated the period's last day only while that day is not period-locked.
+    Accounting.IAccountingDayHooks? accountingDays = null)
 {
     public const string OpSaveDepartment = "SaveDepartment";
     public const string OpSaveStaff = "SaveStaff";

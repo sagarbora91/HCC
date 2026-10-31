@@ -169,5 +169,6 @@
     <File Path="database/migrations/4256_mst_payee_type_transport.sql" />
     <File Path="database/migrations/4257_acc_ledger_month_balance.sql" />
     <File Path="database/migrations/4258_bill_charge_kind_food.sql" />
+    <File Path="database/migrations/4259_acc_ledger_1210_control.sql" />
   </Folder>
 </Solution>
