@@ -35,13 +35,14 @@ public sealed class SqlOtaStore(SqlConnectionFactory connections) : IOtaStore
     public Task<IReadOnlyList<ChannelRecord>> ListChannelsAsync(int propertyId, ICommandTransaction? tx = null, CancellationToken ct = default)
         => RunAsync<IReadOnlyList<ChannelRecord>>(tx, async s =>
         {
-            var heads = new List<(int Id, string Code, string Name, string Status, int Com, int Mk, DateTime? Sync, string Note, DateTime? Dirty, byte[] Ver)>();
-            await using (var q = s.Command("SELECT channel_id, code, name, status, commission_bps, markup_bps, last_sync_utc, status_note, ari_dirty_utc, row_ver FROM ota.channel WHERE property_id = @p ORDER BY name, channel_id;"))
+            var heads = new List<(int Id, string Code, string Name, string Status, int Com, int Mk, DateTime? Sync, string Note, DateTime? Dirty, byte[] Ver, bool Itc)>();
+            await using (var q = s.Command("SELECT channel_id, code, name, status, commission_bps, markup_bps, last_sync_utc, status_note, ari_dirty_utc, row_ver, itc_allowed FROM ota.channel WHERE property_id = @p ORDER BY name, channel_id;"))
             {
                 q.Parameters.Int("@p", propertyId);
                 await using var rd = await q.ExecuteReaderAsync(ct).ConfigureAwait(false);
                 while (await rd.ReadAsync(ct).ConfigureAwait(false))
-                    heads.Add((rd.GetInt32(0), rd.GetString(1), rd.GetString(2), rd.GetString(3), rd.GetInt32(4), rd.GetInt32(5), rd.GetUtcOrNull(6), rd.GetString(7), rd.GetUtcOrNull(8), (byte[])rd["row_ver"]));
+                    heads.Add((rd.GetInt32(0), rd.GetString(1), rd.GetString(2), rd.GetString(3), rd.GetInt32(4), rd.GetInt32(5), rd.GetUtcOrNull(6), rd.GetString(7), rd.GetUtcOrNull(8), (byte[])rd["row_ver"],
+                        rd.GetBoolean(10))); // ACC-2 integration: itc_allowed (4251)
             }
 
             var maps = new Dictionary<int, List<ChannelMap>>();
@@ -61,7 +62,7 @@ public sealed class SqlOtaStore(SqlConnectionFactory connections) : IOtaStore
             }
 
             return heads.Select(h => new ChannelRecord(h.Id, propertyId, h.Code, h.Name, h.Status, h.Com, h.Mk, h.Sync, h.Note, h.Dirty, h.Ver,
-                maps.TryGetValue(h.Id, out var m) ? m : [])).ToList();
+                maps.TryGetValue(h.Id, out var m) ? m : [], h.Itc)).ToList();
         }, ct);
 
     public async Task<ChannelRecord?> GetChannelAsync(int propertyId, int channelId, ICommandTransaction? tx = null, bool forUpdate = false, CancellationToken ct = default)

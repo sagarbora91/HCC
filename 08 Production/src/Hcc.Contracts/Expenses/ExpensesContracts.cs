@@ -132,7 +132,9 @@ public sealed record ExpenseView(
     string? AssetNo = null,
     long? TdsPaise = null,
     string? TdsSection = null,
-    long? ReturnOf = null);
+    long? ReturnOf = null,
+    // ACC-2 integration (flows item 8): the B10 cash guard tripped (cash above the day's limit to one payee) — "deduction lost".
+    bool CashDeductionLost = false);
 
 /// <summary>One logged change (SCC editLog): who, when, why, and the changed fields old → new (amounts in paise, rates in basis points).</summary>
 public sealed record ExpenseEditView(long EditId, int By, string AtUtc, string Reason, IReadOnlyDictionary<string, System.Text.Json.JsonElement> Old,

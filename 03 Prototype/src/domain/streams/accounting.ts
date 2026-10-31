@@ -4,7 +4,7 @@
 import {csvMinimal} from '../csv';
 import type {State,Booking,Line,Receipt,Expense} from '../types';
 import {drawer} from '../selectors';
-import {reportPack,expenseCounts,closingOutlet,closingReopened} from './closing';
+import {reportPack,expenseCounts,closingOutlet,closingReopened,expCapitalIds} from './closing';
 import {posSlice,type POSReceipt} from './pos';
 import {lineTax,gstSplit} from '../gst';
 import {mnyLedgerDefaults,mnyIsCredit} from './money-master';
@@ -506,7 +506,8 @@ export function accReconcile(s:State,date:string):ACCCheck[]{
   // the debit into the category and the GST input-credit ledger.
   // ACC-2 (acc2-purchase): TDS held back on a bill (2150) is part of the bill — funding (net) + TDS = the report's amount.
   const tdsCode=map[EXP_KEY_TDS];
-  const expenseMove=vs.filter(x=>x.source.kind==='expense').reduce((a,x)=>{const f=x.entries[x.entries.length-1];return a+f.credit-f.debit+x.entries.slice(0,-1).filter(e=>accControlOf(e.account)===tdsCode).reduce((b,e)=>b+e.credit-e.debit,0);},0);
+  const cap=expCapitalIds(s); // ACC-2 integration: capital purchases are not report expenses (contract §3.4)
+  const expenseMove=vs.filter(x=>x.source.kind==='expense'&&!cap.has(String(x.source.id))).reduce((a,x)=>{const f=x.entries[x.entries.length-1];return a+f.credit-f.debit+x.entries.slice(0,-1).filter(e=>accControlOf(e.account)===tdsCode).reduce((b,e)=>b+e.credit-e.debit,0);},0);
   const c=(id:string,label:string,report:number,ledger:number,note:string):ACCCheck=>({id,label,report,ledger,ok:report===ledger,note});
   const checks=[
     c('room','Room revenue',v('revenue','room'),net(map['line:room'],lines('room')),'Reports › Revenue · room lines'),

@@ -40,7 +40,9 @@ public sealed record ExpenseRecord(long ExpenseId, int PropertyId, string Vendor
     string? VoidReason = null, int? VoidedBy = null, DateTime? VoidedUtc = null, DateTime? CreatedUtc = null, bool HasBillPhoto = false, bool ItcAllowed = false,
     // ACC-2 (acc2-purchase, contract §3; migration 4230): IGST bill, reverse charge + rate, capital purchase + register no, TDS held back, return of a bill.
     string? GstKind = null, bool Rcm = false, int? RcmBps = null, bool Capital = false, string? AssetNo = null, long? TdsPaise = null, string? TdsSection = null,
-    long? ReturnOf = null)
+    long? ReturnOf = null,
+    // ACC-2 integration (flows item 8; migrations 4230 / 4254): the B10 cash guard tripped on this cash expense ("deduction lost").
+    bool CashDeductionLost = false)
 {
     public bool IsReversal => ReversalOf is not null;
 

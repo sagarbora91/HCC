@@ -296,7 +296,11 @@ export function reportLines(s:State,from:string,to:string){
 export function reportReceipts(s:State,from:string,to:string){
   return s.bookings.flatMap(b=>b.receipts.filter(r=>inRange(r.date,from,to)).map(r=>({b,r})));
 }
-export function reportExpenses(s:State,from:string,to:string){return s.expenses.filter(e=>expenseCounts(e)&&inRange(e.date,from,to));}
+/** ACC-2 integration (contract §3.4, purchase DONE item 7): a capital purchase (fixed asset) is never an expense in the reports — it sits on the
+ *  asset register; the drawer movement of a cash capital bill still counts (cash summaries above). A reversal record of one follows it. */
+export function reportExpenses(s:State,from:string,to:string){const cap=expCapitalIds(s);return s.expenses.filter(e=>expenseCounts(e)&&inRange(e.date,from,to)&&!cap.has(e.id));}
+/** Ids of capital purchases and their reversal records (ACC-2 integration). */
+export function expCapitalIds(s:State):Set<string>{const cap=new Set(s.expenses.filter(e=>e.capital).map(e=>e.id));for(const e of s.expenses)if(e.reversalOf&&cap.has(e.reversalOf))cap.add(e.id);return cap;}
 /** Stays occupying a room on date d (from the stay interval [arrival, departure)). */
 export function reportStaysOn(s:State,d:string){return s.bookings.filter(b=>(b.status==='In house'||b.status==='Departed')&&b.arrival<=d&&d<b.departure);}
 export function reportSellableOn(s:State,d:string){return s.rooms.filter(r=>!blockedDuring(r,d,addDays(d,1)));}

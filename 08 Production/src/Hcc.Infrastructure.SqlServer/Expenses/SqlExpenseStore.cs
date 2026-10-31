@@ -21,7 +21,7 @@ public sealed class SqlExpenseStore(SqlConnectionFactory connections) : IExpense
         e.decided_by, e.decided_utc, e.till_id, e.reversal_of, e.reversed_by, e.row_ver, e.description, e.gst_rate_bps, e.gst_paise, e.source, e.source_ref,
         e.void_reason, e.voided_by, e.voided_utc, e.created_utc,
         CAST(CASE WHEN EXISTS (SELECT 1 FROM ops.expense_bill_photo bp WHERE bp.expense_id = e.expense_id) THEN 1 ELSE 0 END AS BIT), e.itc_allowed,
-        e.gst_kind, e.rcm, e.rcm_bps, e.capital, e.asset_no, e.tds_paise, e.tds_section, e.return_of
+        e.gst_kind, e.rcm, e.rcm_bps, e.capital, e.asset_no, e.tds_paise, e.tds_section, e.return_of, e.cash_deduction_lost
         """;
 
     private static SqlCommandTransaction Sql(ICommandTransaction tx) =>
@@ -45,7 +45,8 @@ public sealed class SqlExpenseStore(SqlConnectionFactory connections) : IExpense
         Str(rd, 18), rd.IsDBNull(19) ? null : rd.GetInt32(19), rd.IsDBNull(20) ? null : rd.GetInt64(20), Str(rd, 21), Str(rd, 22),
         Str(rd, 23), rd.IsDBNull(24) ? null : rd.GetInt32(24), Utc(rd, 25), Utc(rd, 26), rd.GetBoolean(27), rd.GetBoolean(28),
         Str(rd, 29), rd.GetBoolean(30), rd.IsDBNull(31) ? null : rd.GetInt32(31), rd.GetBoolean(32), Str(rd, 33), rd.IsDBNull(34) ? null : rd.GetInt64(34), Str(rd, 35),
-        rd.IsDBNull(36) ? null : rd.GetInt64(36)); // ACC-2 acc2-purchase (migration 4230)
+        rd.IsDBNull(36) ? null : rd.GetInt64(36), // ACC-2 acc2-purchase (migration 4230)
+        rd.GetBoolean(37)); // ACC-2 integration: cash_deduction_lost (B10)
 
     public async Task<DateOnly> BusinessDateAsync(ICommandTransaction tx, int propertyId, CancellationToken ct = default)
     {
@@ -253,7 +254,8 @@ public sealed class SqlExpenseStore(SqlConnectionFactory connections) : IExpense
     private const string LedgerSql = """
         SELECT e.expense_id, e.business_date, e.category, e.method, e.vendor, e.description, e.amount_paise, e.source, e.source_ref, e.status, e.void_reason,
                COALESCE(u.display_name, CONCAT('user ', e.submitted_by)), e.gst_paise, e.gst_rate_bps, CAST(CASE WHEN e.reversal_of IS NULL THEN 0 ELSE 1 END AS BIT),
-               e.created_utc, e.decided_utc, e.itc_allowed
+               e.created_utc, e.decided_utc, e.itc_allowed,
+               CAST(CASE WHEN e.capital = 1 OR EXISTS (SELECT 1 FROM ops.expense o WHERE o.expense_id = e.reversal_of AND o.capital = 1) THEN 1 ELSE 0 END AS BIT)
         FROM ops.expense e LEFT JOIN plat.app_user u ON u.user_id = e.submitted_by
         WHERE e.property_id = @p AND (@from IS NULL OR e.business_date >= @from) AND (@to IS NULL OR e.business_date <= @to)
         ORDER BY e.business_date, e.expense_id;
@@ -282,7 +284,7 @@ public sealed class SqlExpenseStore(SqlConnectionFactory connections) : IExpense
         while (await rd.ReadAsync(ct).ConfigureAwait(false))
             list.Add(new LedgerRow(rd.GetInt64(0), DateOnly.FromDateTime(rd.GetDateTime(1)), rd.GetString(2), rd.GetString(3), rd.GetString(4), Str(rd, 5), rd.GetInt64(6),
                 Str(rd, 7), Str(rd, 8), rd.GetString(9), Str(rd, 10), rd.GetString(11), rd.IsDBNull(12) ? null : rd.GetInt64(12), rd.IsDBNull(13) ? null : rd.GetInt32(13),
-                rd.GetBoolean(14), DateTime.SpecifyKind(rd.GetDateTime(15), DateTimeKind.Utc), Utc(rd, 16), rd.GetBoolean(17)));
+                rd.GetBoolean(14), DateTime.SpecifyKind(rd.GetDateTime(15), DateTimeKind.Utc), Utc(rd, 16), rd.GetBoolean(17), rd.GetBoolean(18)));
         return list;
     }
 

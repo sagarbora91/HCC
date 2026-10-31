@@ -371,7 +371,8 @@ public static class ExpenseScc
 /// <summary>One expense record as the SCC registers read it (ledger CSV, month summary, budgets, stale rule).</summary>
 public sealed record LedgerRow(long ExpenseId, DateOnly Date, string Category, string Method, string Vendor, string? Description, long Amount, string? Source,
     string? SourceRef, string Status, string? VoidReason, string CreatedBy, long? GstPaise, int? GstRateBps, bool IsReversal, DateTime CreatedUtc, DateTime? PostedUtc,
-    bool ItcAllowed = false)
+    bool ItcAllowed = false,
+    bool Capital = false) // ACC-2 integration (contract §3.4): a capital purchase never counts against a budget
 {
     /// <summary>Posted / Reversed originals and reversal records (prototype <c>expenseCounts</c>).</summary>
     public bool Counts => ExpenseRules.Counts(Status);

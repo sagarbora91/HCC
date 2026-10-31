@@ -112,7 +112,7 @@ public sealed class ExpenseCommands(ICommandRunner runner, IAccessPolicy policy,
         if (!budgets.TryGetValue(category, out var budget) || budget <= 0) return null;
         var first = new DateOnly(date.Year, date.Month, 1);
         var spend = (await store.LedgerAsync(tx, propertyId, first, first.AddMonths(1).AddDays(-1), ct).ConfigureAwait(false))
-            .Where(r => r.Counts && r.Category == category).Sum(r => r.Amount);
+            .Where(r => r.Counts && !r.Capital && r.Category == category).Sum(r => r.Amount); // ACC-2 integration: capital purchases never count (contract §3.4)
         return ExpenseScc.Alert(category, date, businessDate, budget, spend, extra)?.Message;
     }
 
@@ -616,7 +616,7 @@ public static class ExpenseMapping
             e.SubmittedBy, e.Notes, e.Receipt, e.Reason, e.DecidedBy, Wire(e.DecidedUtc), e.ReversalOf, e.ReversedBy, VersionToken.ToWire(e.Version),
             e.Description, e.GstRateBps, e.GstPaise, e.Source, e.SourceRef, e.VoidReason, e.VoidedBy, Wire(e.VoidedUtc), e.HasBillPhoto, Wire(e.CreatedUtc),
             edits?.Select(ToView).ToList(), e.Rcm ? (e.ItcAllowed ? ExpenseScc.ItcAllowed : ExpenseScc.ItcDisallowed) : ExpenseScc.ItcText(e.GstPaise, e.ItcAllowed),
-            e.GstKind, e.Rcm, e.RcmBps, e.Capital, e.AssetNo, e.TdsPaise, e.TdsSection, e.ReturnOf); // ACC-2
+            e.GstKind, e.Rcm, e.RcmBps, e.Capital, e.AssetNo, e.TdsPaise, e.TdsSection, e.ReturnOf, e.CashDeductionLost); // ACC-2
     }
 
     public static ExpenseEditView ToView(ExpenseEditRecord x)
