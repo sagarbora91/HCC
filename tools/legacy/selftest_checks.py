@@ -51,6 +51,9 @@ def rules_tests():
     eq(R.name_fold("  M/S.  Mehta-Traders "), "m s mehta traders", "name_fold")
     eq(R.customer_key("-", "Chitra  Demo"), "n:chitra demo", "customer_key name fallback")
     eq(R.customer_key("0240-2200007", "x"), "2402200007", "landline keeps its digits")
+    k90 = R.customer_key("-", "ABCDEFGHIJ " * 9)
+    ok(len(k90) <= 80 and k90.startswith("n:"), "name-form customer_key capped at 80 (90-char name)")
+    eq(len(R.cap("x" * 120, 100)), 100, "cap")
     eq(R.title_case("M/S NORTHWIND TRADERS"), "M/S. Northwind Traders", "title M/S.")
     eq(R.title_case("DR. MEERA S.K. IYER"), "Dr. Meera S.K. Iyer", "title Dr. and initials")
     eq(R.title_case("McDonald TESTSON"), "McDonald Testson", "mixed-case word kept")
@@ -142,6 +145,8 @@ def main_tests(here: Path, run, tmp: Path):
     eq(by["Dr. Meera S.K. Iyer"]["notes"], "Legacy GuestID 14; Remark: needs quiet room; Vehicle: MH00AB0000; Anniversary: 2010-02-14", "notes")
     eq(by["M/S. Northwind Traders"]["company"], "M/S. Northwind Traders", "M/S. guest is a company")
     eq(by["M/S. Northwind Traders"]["gstin"], "27AAAAA0000A1Z5", "gstin")
+    eq(rows(out / "guests-1.csv"), gu, "guests-1.csv is the single part")
+    ok(all(r["company"] for r in gu if r["gstin"]), "every GSTIN row carries a company")
     co = rows(out / "companies.csv")
     eq([(c["name"], c["gstin"]) for c in co], [("Skylark Ltd", "27BBBBB1111B1Z5")], "company from a GSTIN shared by 3 guests (single-guest GSTIN skipped)")
     gm = {r["legacy_guest_id"]: r for r in rows(out / "lgc_guest_map.csv")}
@@ -195,6 +200,8 @@ def main_tests(here: Path, run, tmp: Path):
     eq(bl[("2025-26", "5")]["net_paise"], "444300", "multi-component net")
     eq((bl[("2025-26", "5")]["laundry_paise"], bl[("2025-26", "5")]["other_paise"], bl[("2025-26", "5")]["extra_paise"]), ("10000", "5000", "30000"), "laundry / others / extra")
     eq((bl[("2026-27", "10")]["other_paise"], bl[("2026-27", "10")]["fb_gst_paise"], bl[("2026-27", "10")]["net_paise"]), ("1235", "750", "436985"), "half-away rounding of 12.345 and 7.5")
+    b9 = bl[("2025-26", "9")]
+    ok(len(b9["room_no"]) <= 20 and b9["notes"].startswith("RoomNo: 102,102,102") and len(b9["notes"]) <= 500, "103-char bill RoomNo cut to 20, full text at the front of the notes")
     eq(bl[("2025-26", "16")]["out_of_fy"], "1", "bill departing outside its file's FY, no twin")
     eq(bl[("2025-26", "6")]["data_flag"], "P", "pending flag")
     eq(bl[("2025-26", "1")]["bill_utc"], "2025-05-04T04:42:00Z", "bill UTC")

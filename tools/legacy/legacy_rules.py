@@ -150,9 +150,15 @@ def name_fold(n) -> str:
     return re.sub(r" +", " ", s).strip()
 
 
+def cap(s, n: int) -> str:
+    """Cut a text to the length of the bounded column it is written to (contract section 3)."""
+    s = "" if s is None else str(s)
+    return s if len(s) <= n else s[:n].rstrip()
+
+
 def customer_key(phone, name) -> str:
     k = phone_key(phone)
-    return k if k else "n:" + name_fold(name)
+    return k if k else cap("n:" + name_fold(name), 80)
 
 
 _FIXED_TITLES = {
