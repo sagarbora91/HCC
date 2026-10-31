@@ -38,6 +38,9 @@ export function CfgDataPanel(){
       <div className="cfg-actions"><button type="button" className="btn" onClick={()=>void doExport()}><Download size={16}/> Export configuration</button>
         <button type="button" className="btn" disabled={role!=='Owner'&&role!=='Tech admin'} onClick={()=>open({type:'cfg-import'})}><Upload size={16}/> Import…</button></div></section>
     <MstIoPanel/>
+    {role==='Owner'&&<section className="cfg-box"><h3>Legacy import</h3>
+      <p className="muted">Load guests, stay history and opening balances extracted from the old Lodge software. Start with a dry run (Owner only).</p>
+      <div className="cfg-actions"><button type="button" className="btn" onClick={()=>go('legacy-import')}><ExternalLink size={16}/> Open Legacy import</button></div></section>}
     <DisplaySection display={display}/>
     <section className="cfg-box"><h3>Appearance &amp; display (this device only)</h3>
       <p className="muted">Text size, reduce motion, density, start page, list size and alert timing — personal, saved on this device, never hotel data (CP-1).</p>
