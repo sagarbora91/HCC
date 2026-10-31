@@ -117,8 +117,8 @@ write("guests.csv", ["name", "phone", "email", "address", "nationality", "compan
         GSTIN if i in (3, 4, 5) else "", "Legacy GuestID %d" % i) for i, n, p in GUESTS])
 write("companies.csv", ["name", "gstin", "contact", "phone", "email", "city", "creditLimit", "negotiatedRates"],
       [("Fictional Traders Pvt Ltd", GSTIN, "", "", "", "Testville", 0, "")])
-write("lgc_guest_map.csv", ["legacy_guest_id", "guest_id", "customer_key", "phone_key", "phone_valid", "name_snapshot", "name_fold", "deleted", "source_fy"],
-      [(i, "", p, p, 1, n, n.lower(), 0, "2026-27") for i, n, p in GUESTS])
+write("lgc_guest_map.csv", ["legacy_guest_id", "guest_id", "customer_key", "phone_key", "phone_valid", "name_snapshot", "name_fold", "deleted", "source_fy", "guest_name", "guest_phone", "is_primary", "dob"],
+      [(i, "", p, p, 1, n, n.lower(), 0, "2026-27", n, p, 1, "") for i, n, p in GUESTS])
 write("lgc_tags.csv", ["customer_key", "tag"], [(key(4), "OTA:AGODA")])
 
 stay_rows, seg_rows = [], []
@@ -152,7 +152,7 @@ write("lgc_bill.csv", ["legacy_fy", "legacy_bill_no", "legacy_transaction_id", "
 
 rrow = []
 for (fy, src, rid, sid, bno, g, d, kind, meth, amt, ref, bank) in R:
-    rrow.append((fy, src, rid, "%s|%d" % (fy, sid), "%s|%d" % (fy, bno), g, key(g), d, utc(d, "12:00"), kind, meth, amt * P, ref, bank, None))
+    rrow.append((fy, src, -rid if kind == "security" else rid, "%s|%d" % (fy, sid), "%s|%d" % (fy, bno), g, key(g), d, utc(d, "12:00"), kind, meth, amt * P, ref, bank, None))
 write("lgc_receipt.csv", ["legacy_fy", "legacy_source", "legacy_row_id", "stay_ref", "bill_ref", "legacy_guest_id", "customer_key", "received_date",
                           "received_utc", "kind", "method", "amount_paise", "reference", "bank_name", "notes"], rrow)
 
@@ -161,6 +161,6 @@ for fy in ("2025-26", "2026-27"):
     bs = [b for b in B if b[0] == fy]
     print(fy, "bills", len(bs), "net", sum(b[6] + b[7] + b[8] + b[9] + b[10] + b[13] + b[14] - b[11] for b in bs),
           "roomgst", sum(b[13] for b in bs), "fb", sum(b[8] for b in bs))
-    rs = [r for r in R if r[0] == fy and r[7] != "refund"]
+    rs = [r for r in R if r[0] == fy and r[7] in ("advance", "payment")]
     rf = [r for r in R if r[0] == fy and r[7] == "refund"]
     print(fy, "receipts", len(rs), sum(r[9] for r in rs), "refunds", len(rf), sum(r[9] for r in rf))

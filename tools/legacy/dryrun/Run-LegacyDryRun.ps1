@@ -3,9 +3,7 @@
   Cut-over dry run on THIS PC (run by the coordinator, never by a lane): extractor over the ten compacted files -> importer dry run ->
   05 Delivery Evidence\Legacy\LG-DryRun-<date>.md (section 6 comparison + 20-guest review list with names and phones MASKED).
 .NOTES
-  Importer call: the host command  dotnet run --project src/Hcc.Api -- legacy-import --folder <run> --dry-run  is tried FIRST (LG-IMPORT-DONE.md
-  says whether it exists; at the time this script was written it did not, so the flags --parts and --out are assumptions); if it fails the script
-  falls back to the HTTP command POST /commands/legacy.import against a local server (-ApiBase, -Token = an Owner bearer token).
+  Importer call: POST /api/v1/commands/legacy.import (dryRun true) against a local server only; start it first and pass -Token (Owner bearer token).
   The result JSON is saved in the run folder. Only the masked report is written into the repository.
   The Access password is never handled here (extract.py reads Module1.bas).
 #>
@@ -17,8 +15,7 @@ param(
     [string]$RateCard = '',
     [string]$ApiBase = 'http://127.0.0.1:5080',
     [string]$Token = '',
-    [string[]]$Parts = @('guests', 'history', 'cutover'),
-    [switch]$UseHttp
+    [string[]]$Parts = @('guests', 'history', 'cutover')
 )
 $ErrorActionPreference = 'Stop'
 $stamp = Get-Date -Format 'yyyyMMdd-HHmm'
@@ -46,20 +43,12 @@ try {
     & $py @exArgs
     if ($LASTEXITCODE -ne 0) { throw "extract.py exited $LASTEXITCODE (2 = reconciliation self-check failed)" }
 
-    # 2. Importer dry run: host command first, HTTP fallback
-    $done = $false
-    if (-not $UseHttp) {
-        $cmd = 'dotnet run --project src/Hcc.Api -- legacy-import --folder "{0}" --parts {1} --dry-run --out "{2}"' -f $run, ($Parts -join ','), $resultFile
-        & pwsh -NoProfile -File (Join-Path $Repo 'tools\Invoke-Serialized.ps1') -WorkingDirectory (Join-Path $Repo '08 Production') -Label lg-dryrun -Command $cmd
-        if ($LASTEXITCODE -eq 0 -and (Test-Path -LiteralPath $resultFile)) { $done = $true }
-        else { Write-Warning "Host command failed or missing (exit $LASTEXITCODE); falling back to HTTP." }
-    }
-    if (-not $done) {
-        if (-not $Token) { throw 'HTTP fallback needs -Token (Owner bearer token) and a running local server at -ApiBase.' }
-        $body = @{ folder = $run; parts = $Parts; dryRun = $true; expectedTotals = (Get-Content -Raw -LiteralPath (Join-Path $run 'totals.json')) } | ConvertTo-Json -Depth 6
-        Invoke-RestMethod -Method Post -Uri "$ApiBase/commands/legacy.import" -Headers @{ Authorization = "Bearer $Token" } -ContentType 'application/json' -Body $body |
-            ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $resultFile -Encoding UTF8
-    }
+    # 2. Importer dry run: HTTP command against a LOCAL server only (there is no host command)
+    if ($ApiBase -notmatch '^https?://(127\.0\.0\.1|localhost|\[::1\])(:\d+)?$') { throw "ApiBase must be a local server, got $ApiBase" }
+    if (-not $Token) { throw 'Needs -Token (Owner bearer token) and a running local server at -ApiBase (dotnet run --project src/Hcc.Api).' }
+    $body = @{ folder = $run; parts = $Parts; dryRun = $true; expectedTotals = (Get-Content -Raw -LiteralPath (Join-Path $run 'totals.json')) } | ConvertTo-Json -Depth 6
+    Invoke-RestMethod -Method Post -Uri "$ApiBase/api/v1/commands/legacy.import" -Headers @{ Authorization = "Bearer $Token"; 'Idempotency-Key' = "lg-dryrun-$stamp" } -ContentType 'application/json' -Body $body |
+        ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $resultFile -Encoding UTF8
 }
 finally { Pop-Location }
 

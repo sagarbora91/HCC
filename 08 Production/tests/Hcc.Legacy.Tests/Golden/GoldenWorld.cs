@@ -1,21 +1,37 @@
 using Hcc.Contracts.Legacy;
+using Hcc.Legacy.Tests.Import;
 
 namespace Hcc.Legacy.Tests.Golden;
 
-/// <summary>
-/// The single place that runs the importer for the golden tests. NOT COMPILED YET: lg-import's LegacyImportService / contract records had not
-/// landed when this lane ran. Wire after merging claude/lg-import and claude/lg-schema: build a disposable HccTest_* database (copy the
-/// pattern of Hcc.Import.Tests ImportWorld), seed the 12 guests (Fixtures/run-golden/guests.csv) and call the service as the Owner.
-/// </summary>
+/// <summary>Runs the importer on a copy of Fixtures/run-golden over lg-import's disposable database (LegacyImportWorld).</summary>
 public sealed class GoldenWorld : IAsyncDisposable
 {
-    public static Task<GoldenWorld> CreateAsync() => throw new NotImplementedException("WIRE after lg-import lands (see class summary).");
+    private readonly LegacyImportWorld _w;
 
-    /// <summary>parts e.g. ["history"]; totalsJson is the text of totals.json (the contract's expectedTotals).</summary>
-    public Task<LegacyImportResult> RunAsync(string folder, string[] parts, bool dryRun, string totalsJson) => throw new NotImplementedException();
+    private GoldenWorld(LegacyImportWorld w) => _w = w;
 
-    /// <summary>Row counts in lgc.stay / lgc.bill / lgc.receipt for a legacy_fy (to prove a rollback or a commit).</summary>
-    public Task<(int Stays, int Bills, int Receipts)> CountsAsync(string fy) => throw new NotImplementedException();
+    public static async Task<GoldenWorld> CreateAsync() => new(await LegacyImportWorld.CreateAsync(TestContext.Current.CancellationToken));
 
-    public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+    /// <summary>Copies the golden folder to a temp folder (the importer may write into it) and returns the path.</summary>
+    public static string CopyRunFolder()
+    {
+        var src = Path.Combine(AppContext.BaseDirectory, "Golden", "Fixtures", "run-golden");
+        var dst = Path.Combine(Path.GetTempPath(), "lg-golden-" + Guid.NewGuid().ToString("N")[..8], "run-golden");
+        Directory.CreateDirectory(dst);
+        foreach (var f in Directory.GetFiles(src, "*.csv")) File.Copy(f, Path.Combine(dst, Path.GetFileName(f)));
+        return dst;
+    }
+
+    public async Task<LegacyImportResult> RunAsync(string folder, string[] parts, bool dryRun, string totalsJson)
+    {
+        await File.WriteAllTextAsync(Path.Combine(folder, "totals.json"), totalsJson, TestContext.Current.CancellationToken);
+        return (await _w.Service.ImportAsync(_w.Ctx("owner"), new LegacyImportRequest(folder, parts, dryRun, totalsJson), TestContext.Current.CancellationToken)).Value;
+    }
+
+    public async Task<(int Stays, int Bills, int Receipts)> CountsAsync(string fy) => (
+        (int)await _w.CountAsync($"SELECT COUNT(*) FROM lgc.stay WHERE property_id = {_w.PropertyId} AND legacy_fy = '{fy}'"),
+        (int)await _w.CountAsync($"SELECT COUNT(*) FROM lgc.bill WHERE property_id = {_w.PropertyId} AND legacy_fy = '{fy}'"),
+        (int)await _w.CountAsync($"SELECT COUNT(*) FROM lgc.receipt WHERE property_id = {_w.PropertyId} AND legacy_fy = '{fy}'"));
+
+    public ValueTask DisposeAsync() => _w.DisposeAsync();
 }

@@ -1,6 +1,6 @@
 # LG-TESTS DONE
 
-Lane lg-tests / Sonnet / branch `claude/lg-tests` / worktree `E:\Projects\HCC\worktrees\lg-tests` / base ced9861e. **Stopped early: lg-import and lg-schema had not landed** (no DONE files, no commits in their worktrees), so the C# tests are written but NOT compiled or run.
+Lane lg-tests / Sonnet / branch `claude/lg-tests` / worktree `E:\Projects\HCC\worktrees\lg-tests` / base ced9861e. **Completed after lg-import landed.**
 
 ## Commits
 See `git log --oneline ced9861e..HEAD` (golden fixture + tests; dry-run script + checklist; this file).
@@ -18,13 +18,12 @@ See `git log --oneline ced9861e..HEAD` (golden fixture + tests; dry-run script +
 - Dry-run script: host command tried first (`legacy-import --folder --parts --dry-run --out`; flags are my assumption), HTTP fallback `POST /commands/legacy.import` with `-Token`. Parse-checked only; not run.
 
 ## Tests
-Nothing run through the lock (project `Hcc.Legacy.Tests` does not exist on this branch). `node` smoke of the prototype test file: 4 ran OK (not through `npm test`).
+Merged `claude/lg-import` (contains lg-schema). Wired `GoldenWorld` over lg-import's `LegacyImportWorld` (writes the test's own hand-built totals.json into a temp copy of `run-golden`, layout `fy.<fy>.afterDedup`). Fixture adapted to the facts: guest_map helper columns, security receipt row ids negative, receiptsCount = advance + payment only (2026-27: 9 / 38,145).
+Command (through the lock): `dotnet test tests/Hcc.Legacy.Tests -maxcpucount:1` -> **Passed 33, Failed 0** (31 from lg-schema/lg-import + my 2 golden tests; first run 31/2 failed on a missing totals.json, fixed). Prototype golden test: 4 pass under a plain node harness (not `npm test`; `legacy-sample.ts` not available, contract-shaped fallback).
 
 ## Open items
-1. After merging `claude/lg-schema` and `claude/lg-import`: wire `GoldenWorld` (disposable HccTest_* db like `Hcc.Import.Tests` ImportWorld, seed the 12 guests from guests.csv, call the service as Owner), add the csproj item in the fragment file, compile, run `dotnet test tests/Hcc.Legacy.Tests -maxcpucount:1` through the lock.
-2. Assumptions to check against the real code: totals.json shape (`perFy` keyed by FY with the reconciliation figure names; `dedup`), receipts = all kinds except refund, `duplicatesDropped` = count of `Duplicate` stays in that FY, `segments`/`receipts` counts on `PerFy`, CSV `guest_id` empty in `lgc_guest_map.csv` and `stay_ref`/`bill_ref` columns in place of ids, `GoldenWorld` result property names (`History.PerFy[].Reconciliation.Differences`).
-3. `stream-legacy-golden.mjs` should be pointed at the real `legacy-sample.ts` rollups once lg-ui lands.
-4. The dry-run script needs a real run by the coordinator; flags of the importer host command to confirm from LG-IMPORT-DONE.md.
+1. `stream-legacy-golden.mjs` should use lg-ui's real `legacy-sample.ts` rollups once merged (it checks `M.LEGACY_SAMPLE` only if exported).
+2. `Run-LegacyDryRun.ps1` is HTTP-only (`POST /api/v1/commands/legacy.import`, local server, `-Token`), parse-checked, never run; the `Idempotency-Key` header name is a guess (no match found in src) - coordinator to confirm on first run.
 
 ## Integration needed
 - `Hcc.Legacy.Tests.csproj`: add `<None Include="Golden\Fixtures\run-golden\*.csv" CopyToOutputDirectory="PreserveNewest" />`.
