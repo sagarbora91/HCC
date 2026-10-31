@@ -16,15 +16,49 @@ internal static class CustomerViews
     public static CustomerStayView Stay(CrmStay s, bool money) =>
         new(s.ReservationId, s.PublicNo, s.Status, CustomerRules.Date(s.Arrival), CustomerRules.Date(s.Departure), s.Nights, s.Room, money ? s.TotalPaise : null);
 
-    public static CustomerSummary Summary(Customer c, bool contact, bool money, IReadOnlyList<string> tags) =>
-        new(c.Key, c.Name, contact ? c.Phone : CustomerRules.MaskPhone(c.Phone), contact ? c.Email : (c.Email is null ? null : CustomerRules.MaskEmail(c.Email)), !contact,
-            c.Stays.Count, c.Completed.Count, c.Nights, money ? c.LifetimePaise : null, c.LastStay is { } d ? CustomerRules.Date(d) : null, c.Current is not null, tags);
+    public static CustomerSummary Summary(Customer c, bool contact, bool money, IReadOnlyList<string> tags, LegacyRoll? legacy = null)
+    {
+        var l = legacy ?? LegacyRoll.None;
+        DateOnly? first = c.FirstStay is { } f && l.First is { } lf ? (f < lf ? f : lf) : c.FirstStay ?? l.First;
+        return new(c.Key, c.Name, contact ? c.Phone : CustomerRules.MaskPhone(c.Phone), contact ? c.Email : (c.Email is null ? null : CustomerRules.MaskEmail(c.Email)), !contact,
+            c.Stays.Count, c.Completed.Count, c.Nights + l.Nights, money ? c.LifetimePaise + l.NetPaise : null, c.LastStay is { } d ? CustomerRules.Date(d) : null, c.Current is not null, tags,
+            l.Stays, first is { } fs ? CustomerRules.Date(fs) : null);
+    }
+
+    public static LegacyStayView Legacy(CrmLegacyStay s, bool money) =>
+        new(s.StayId, s.LegacyFy, s.LegacyBookingId, s.LegacyBillNo, CustomerRules.Date(s.Arrival), s.Departure is { } d ? CustomerRules.Date(d) : null, s.Nights, s.Room, s.RoomCount, s.Status,
+            money ? s.NetPaise : null);
 
     public static MergeView Merge(CrmMerge m) =>
         new(m.MergeId, m.SourceKey, m.TargetKey, m.SourceName, m.TargetName, m.Reason, m.Status, m.ProposedBy, Iso(m.ProposedUtc), m.DecidedBy,
             m.DecidedUtc is { } u ? Iso(u) : null, m.DecisionNote, VersionToken.ToWire(m.RowVer));
 
     public static CustomerNoteView Note(CrmNote n) => new(n.NoteId, n.Body, n.AuthorId, Iso(n.CreatedUtc));
+}
+
+/// <summary>Legacy (W1a LG) rollup of one customer, summed over its key and the keys merged into it.</summary>
+internal sealed record LegacyRoll(int Stays, int Nights, long NetPaise, DateOnly? First)
+{
+    public static readonly LegacyRoll None = new(0, 0, 0, null);
+
+    /// <summary>Rolls the store's per-key rows up to each live customer key (an alias key counts for its target).</summary>
+    public static async Task<IReadOnlyDictionary<string, LegacyRoll>> ForAsync(ICustomerReadStore reads, int propertyId, IReadOnlyCollection<string> customerKeys, IReadOnlyDictionary<string, string> aliases, CancellationToken ct)
+    {
+        var wanted = new HashSet<string>(customerKeys, StringComparer.Ordinal);
+        var lookup = customerKeys.ToList();
+        lookup.AddRange(aliases.Where(a => wanted.Contains(CustomerRules.Resolve(a.Key, aliases))).Select(a => a.Key));
+        var rows = await reads.LegacyRollupAsync(propertyId, lookup, ct).ConfigureAwait(false);
+        var result = new Dictionary<string, LegacyRoll>(StringComparer.Ordinal);
+        foreach (var (key, r) in rows)
+        {
+            var target = CustomerRules.Resolve(key, aliases);
+            if (!wanted.Contains(target)) continue;
+            var cur = result.GetValueOrDefault(target) ?? None;
+            result[target] = new LegacyRoll(cur.Stays + r.Stays, cur.Nights + r.Nights, cur.NetPaise + r.NetPaise, cur.First is { } f && f < r.First ? f : r.First);
+        }
+
+        return result;
+    }
 }
 
 /// <summary>Customer 360 reads. Contact details are masked unless the reader holds PERM-GST-002; money only with PERM-FOL-001; never any ID data (DEC-068).</summary>
@@ -53,7 +87,9 @@ public sealed class CustomerQueries(IAccessPolicy policy, ICustomerReadStore rea
             found = found.Where(c => tags.TryGetValue(c.Key, out var ts) && ts.Contains(t)).ToList();
         }
 
-        var rows = found.Skip((page - 1) * pageSize).Take(pageSize).Select(c => CustomerViews.Summary(c, contact, money, tags.GetValueOrDefault(c.Key) ?? [])).ToList();
+        var pageRows = found.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+        var legacy = await LegacyRoll.ForAsync(reads, propertyId, pageRows.Select(c => c.Key).ToList(), src.Aliases, ct).ConfigureAwait(false);
+        var rows = pageRows.Select(c => CustomerViews.Summary(c, contact, money, tags.GetValueOrDefault(c.Key) ?? [], legacy.GetValueOrDefault(c.Key))).ToList();
         return new CustomerList(rows, found.Count, page, pageSize);
     }
 
@@ -80,11 +116,18 @@ public sealed class CustomerQueries(IAccessPolicy policy, ICustomerReadStore rea
 
             return new CustomerConsentView(wa, sms, em, opt);
         }, ct).ConfigureAwait(false);
-        var summary = CustomerViews.Summary(c, contact, money, o.Tags);
+        var legacyStays = new List<CrmLegacyStay>();
+        foreach (var lk in new[] { c.Key }.Concat(src.Aliases.Where(a => CustomerRules.Resolve(a.Key, src.Aliases) == c.Key).Select(a => a.Key)).Distinct(StringComparer.Ordinal))
+            legacyStays.AddRange(await reads.LegacyStaysAsync(propertyId, lk, ct).ConfigureAwait(false));
+        legacyStays = legacyStays.OrderByDescending(s => s.Arrival).ThenByDescending(s => s.StayId).ToList();
+        var roll = legacyStays.Count == 0 ? LegacyRoll.None
+            : new LegacyRoll(legacyStays.Count, legacyStays.Sum(s => s.Nights), legacyStays.Sum(s => s.NetPaise ?? 0), legacyStays.Min(s => s.Arrival));
+        var summary = CustomerViews.Summary(c, contact, money, o.Tags, roll);
         return new CustomerProfile(c.Key, summary.Name, summary.Phone, summary.Email, !contact, c.GuestIds, c.Stays.Select(s => CustomerViews.Stay(s, money)).ToList(),
-            c.Completed.Count, c.Nights, money ? c.LifetimePaise : null, money ? c.AvgRatePaise : null, c.FirstStay is { } f ? CustomerRules.Date(f) : null, summary.LastStay,
+            c.Completed.Count, summary.Nights, summary.LifetimePaise, money ? c.AvgRatePaise : null, summary.FirstStay, summary.LastStay,
             c.Current is null ? null : CustomerViews.Stay(c.Current, money), c.Upcoming.Select(s => CustomerViews.Stay(s, money)).ToList(), c.Cancelled, c.TopRooms,
-            prefs.Length == 0 ? null : prefs, o.Pref is null ? null : VersionToken.ToWire(o.Pref.RowVer), o.Tags, o.Notes.Select(CustomerViews.Note).ToList(), consent, o.MergedFrom);
+            prefs.Length == 0 ? null : prefs, o.Pref is null ? null : VersionToken.ToWire(o.Pref.RowVer), o.Tags, o.Notes.Select(CustomerViews.Note).ToList(), consent, o.MergedFrom,
+            legacyStays.Select(s => CustomerViews.Legacy(s, money)).ToList(), money ? roll.NetPaise : null);
     }
 
     private async Task MergeAccessAsync(int propertyId, int principalId, CancellationToken ct)
@@ -101,11 +144,12 @@ public sealed class CustomerQueries(IAccessPolicy policy, ICustomerReadStore rea
         var src = await reads.LoadAsync(propertyId, ct).ConfigureAwait(false);
         var index = src.Index();
         var byKey = index.ToDictionary(c => c.Key);
+        var legacy = await LegacyRoll.ForAsync(reads, propertyId, byKey.Keys, src.Aliases, ct).ConfigureAwait(false);
         var groups = new List<DuplicateCandidate>();
         foreach (var g in CustomerRules.FindDuplicates(index))
         {
             var members = g.Keys.Select(k => byKey[k]).ToList();
-            groups.Add(new DuplicateCandidate(g.Reason, members.Select(c => CustomerViews.Summary(c, contact, money, [])).ToList(),
+            groups.Add(new DuplicateCandidate(g.Reason, members.Select(c => CustomerViews.Summary(c, contact, money, [], legacy.GetValueOrDefault(c.Key))).ToList(),
                 members.Skip(1).Aggregate(members[0].Key, (best, c) => CustomerRules.SuggestSurvivor(byKey[best], c))));
         }
 

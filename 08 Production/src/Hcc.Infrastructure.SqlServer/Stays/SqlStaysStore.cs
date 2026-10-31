@@ -92,9 +92,9 @@ public sealed class SqlStaysStore : IStaysStore
         ArgumentNullException.ThrowIfNull(clean);
         var sql = P3Sql.Sql(tx);
         await using var cmd = sql.Command("""
-            INSERT gst.guest(property_id, full_name, phone, email, address, nationality, id_type, id_last4, company, gstin, preferences, notes, verified, origin, created_utc)
+            INSERT gst.guest(property_id, full_name, phone, email, address, nationality, id_type, id_last4, company, gstin, preferences, notes, dob, verified, origin, created_utc)
             OUTPUT INSERTED.guest_id
-            VALUES (@p, @name, @phone, @email, @address, @nat, @idt, @id4, @company, @gstin, @pref, @notes, @verified, @origin, @utc);
+            VALUES (@p, @name, @phone, @email, @address, @nat, @idt, @id4, @company, @gstin, @pref, @notes, @dob, @verified, @origin, @utc);
             """);
         cmd.Add("@p", SqlDbType.Int, propertyId);
         AddGuestFields(cmd, clean, verified);
@@ -111,7 +111,7 @@ public sealed class SqlStaysStore : IStaysStore
         var sql = P3Sql.Sql(tx);
         await using var cmd = sql.Command("""
             UPDATE gst.guest SET full_name = @name, phone = @phone, email = @email, address = @address, nationality = @nat, id_type = @idt,
-              id_last4 = @id4, company = @company, gstin = @gstin, preferences = @pref, notes = @notes, verified = @verified,
+              id_last4 = @id4, company = @company, gstin = @gstin, preferences = @pref, notes = @notes, dob = @dob, verified = @verified,
               origin = 'manual'
             WHERE guest_id = @g AND row_ver = @v;
             """);
@@ -262,6 +262,7 @@ public sealed class SqlStaysStore : IStaysStore
         cmd.Add("@gstin", SqlDbType.VarChar, d.Gstin, 15);
         cmd.Add("@pref", SqlDbType.NVarChar, d.Preferences, 500);
         cmd.Add("@notes", SqlDbType.NVarChar, d.Notes, 1000);
+        cmd.Add("@dob", SqlDbType.Date, d.Dob is { Length: > 0 } dob ? DateOnly.ParseExact(dob, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture).ToDateTime(TimeOnly.MinValue) : null);
         cmd.Add("@verified", SqlDbType.Bit, verified);
     }
 
@@ -285,7 +286,8 @@ public sealed class SqlStaysReadStore(SqlConnectionFactory connections) : IStays
 {
     internal static string GuestSql(string hint) => $"""
         SELECT guest_id, property_id, full_name, phone, email, address, nationality, id_type, id_last4, company, gstin, preferences, notes, verified, origin, row_ver,
-               CASE WHEN EXISTS (SELECT 1 FROM gst.guest_id_secret s WHERE s.guest_id = gst.guest.guest_id) THEN 1 ELSE 0 END -- DEC-068: on file? (never the number)
+               CASE WHEN EXISTS (SELECT 1 FROM gst.guest_id_secret s WHERE s.guest_id = gst.guest.guest_id) THEN 1 ELSE 0 END, -- DEC-068: on file? (never the number)
+               CONVERT(CHAR(10), dob, 23), legacy_guest_id
         FROM gst.guest {hint} WHERE guest_id = @g AND property_id = @p;
         SELECT name, age_band, relation FROM gst.guest_party WHERE guest_id = @g ORDER BY seq;
         """;
@@ -304,7 +306,8 @@ public sealed class SqlStaysReadStore(SqlConnectionFactory connections) : IStays
             CREATE TABLE #g(ord INT IDENTITY PRIMARY KEY, guest_id BIGINT NOT NULL);
             INSERT #g(guest_id) SELECT guest_id FROM gst.guest WHERE property_id = @p{filter} ORDER BY guest_id DESC OFFSET @skip ROWS FETCH NEXT @take ROWS ONLY;
             SELECT g.guest_id, g.property_id, g.full_name, g.phone, g.email, g.address, g.nationality, g.id_type, g.id_last4, g.company, g.gstin, g.preferences, g.notes, g.verified, g.origin, g.row_ver,
-                   CASE WHEN EXISTS (SELECT 1 FROM gst.guest_id_secret s WHERE s.guest_id = g.guest_id) THEN 1 ELSE 0 END
+                   CASE WHEN EXISTS (SELECT 1 FROM gst.guest_id_secret s WHERE s.guest_id = g.guest_id) THEN 1 ELSE 0 END,
+                   CONVERT(CHAR(10), g.dob, 23), g.legacy_guest_id
             FROM #g x JOIN gst.guest g ON g.guest_id = x.guest_id ORDER BY x.ord;
             SELECT p.guest_id, p.name, p.age_band, p.relation FROM #g x JOIN gst.guest_party p ON p.guest_id = x.guest_id ORDER BY x.ord, p.seq;
             DROP TABLE #g;
@@ -320,10 +323,11 @@ public sealed class SqlStaysReadStore(SqlConnectionFactory connections) : IStays
         await rd.ReadAsync(ct).ConfigureAwait(false);
         var total = rd.GetInt32(0);
         await rd.NextResultAsync(ct).ConfigureAwait(false);
-        var heads = new List<(long Id, int Prop, GuestDraft Draft, bool Verified, string Origin, byte[] Ver, bool IdOnFile)>();
+        var heads = new List<(long Id, int Prop, GuestDraft Draft, bool Verified, string Origin, byte[] Ver, bool IdOnFile, long? Legacy)>();
         while (await rd.ReadAsync(ct).ConfigureAwait(false))
             heads.Add((rd.GetInt64(0), rd.GetInt32(1), new GuestDraft(rd.GetString(2), rd.GetString(3), P3Sql.StrOrNull(rd, 4), P3Sql.StrOrNull(rd, 5), rd.GetString(6), P3Sql.StrOrNull(rd, 7),
-                P3Sql.StrOrNull(rd, 8), P3Sql.StrOrNull(rd, 9), P3Sql.StrOrNull(rd, 10), P3Sql.StrOrNull(rd, 11), P3Sql.StrOrNull(rd, 12), []), rd.GetBoolean(13), rd.GetString(14), (byte[])rd[15], rd.GetInt32(16) == 1));
+                P3Sql.StrOrNull(rd, 8), P3Sql.StrOrNull(rd, 9), P3Sql.StrOrNull(rd, 10), P3Sql.StrOrNull(rd, 11), P3Sql.StrOrNull(rd, 12), [], Dob: P3Sql.StrOrNull(rd, 17)), rd.GetBoolean(13), rd.GetString(14), (byte[])rd[15], rd.GetInt32(16) == 1,
+                rd.IsDBNull(18) ? null : rd.GetInt64(18)));
         await rd.NextResultAsync(ct).ConfigureAwait(false);
         var parties = new Dictionary<long, List<GuestPartyMember>>();
         while (await rd.ReadAsync(ct).ConfigureAwait(false))
@@ -332,7 +336,7 @@ public sealed class SqlStaysReadStore(SqlConnectionFactory connections) : IStays
             if (!parties.TryGetValue(id, out var list)) parties[id] = list = [];
             list.Add(new GuestPartyMember(rd.GetString(1), rd.GetString(2), P3Sql.StrOrNull(rd, 3)));
         }
-        IReadOnlyList<GuestRecord> items = heads.Select(h => new GuestRecord(h.Id, h.Prop, h.Draft with { Party = parties.TryGetValue(h.Id, out var p) ? p : [] }, h.Verified, h.Origin, h.Ver, h.IdOnFile)).ToList();
+        IReadOnlyList<GuestRecord> items = heads.Select(h => new GuestRecord(h.Id, h.Prop, h.Draft with { Party = parties.TryGetValue(h.Id, out var p) ? p : [] }, h.Verified, h.Origin, h.Ver, h.IdOnFile, h.Legacy)).ToList();
         return (total, items);
     }
 
@@ -360,9 +364,11 @@ public sealed class SqlStaysReadStore(SqlConnectionFactory connections) : IStays
         var origin = rd.GetString(14);
         var ver = (byte[])rd[15];
         var idOnFile = rd.GetInt32(16) == 1;
+        var dob = P3Sql.StrOrNull(rd, 17);
+        long? legacy = rd.IsDBNull(18) ? null : rd.GetInt64(18);
         var party = new List<GuestPartyMember>();
         await rd.NextResultAsync(ct).ConfigureAwait(false);
         while (await rd.ReadAsync(ct).ConfigureAwait(false)) party.Add(new GuestPartyMember(rd.GetString(0), rd.GetString(1), P3Sql.StrOrNull(rd, 2)));
-        return new GuestRecord(id, prop, new GuestDraft(name, phone, email, address, nat, idt, id4, company, gstin, pref, notes, party), verified, origin, ver, idOnFile);
+        return new GuestRecord(id, prop, new GuestDraft(name, phone, email, address, nat, idt, id4, company, gstin, pref, notes, party, Dob: dob), verified, origin, ver, idOnFile, legacy);
     }
 }
