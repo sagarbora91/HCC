@@ -82,6 +82,7 @@ def main_tests(here: Path, run, tmp: Path):
     for k in ("Photo", "IDProof"):
         (support / k).mkdir(parents=True)
         (support / k / "1.jpg").write_bytes(b"\xff\xd8fictional\xff\xd9")
+    (support / "Photo" / "2.jpg").write_bytes(b"jpegdata")
     out = tmp / "run"
     a = SimpleNamespace(out=str(out), mdb_dir=None, raw_dir=str(fx), rate_card=None, cutover_date=None, latest_only=False,
                         fy=None, keep_raw=True, paidout_all=False, support_dir=[str(support)], today="2026-10-31")
@@ -126,11 +127,12 @@ def main_tests(here: Path, run, tmp: Path):
     # guests
     gu = rows(out / "guests.csv")
     eq(list(gu[0].keys()), ["name", "phone", "email", "address", "nationality", "company", "gstin", "notes"], "guests.csv header")
-    eq(len(gu), 15, "guests.csv rows (20 legacy - 4 no valid phone - 1 merged)")
-    eq(len({r["phone"] for r in gu}), len(gu), "one guest per phone key")
+    eq(len(gu), 15, "guests.csv rows (20 legacy - 4 no valid phone - 1 merged by name prefix)")
+    eq(len({(r["phone"], r["name"]) for r in gu}), len(gu), "one row per phone + name")
+    eq(sorted(r["name"] for r in gu if r["phone"] == "9000000019"), ["Quinn Short", "Raj Unused"], "same phone, different name = separate rows")
     names = {r["name"] for r in gu}
     ok("Dr. Meera S.K. Iyer" in names and "M/S. Northwind Traders" in names and "McDonald Testson" in names, "title-cased names")
-    ok("Bharat S Sample" in names and "Bharat Sample" not in names, "higher GuestID wins the profile")
+    ok("Bharat Sample K" in names and "Bharat Sample" not in names, "prefix names merge, higher GuestID wins the profile")
     by = {r["name"]: r for r in gu}
     eq(by["Mohan Gone"]["notes"], "Legacy: marked deleted; Legacy GuestID 13", "deleted guest note")
     eq(by["Oscar Swiss"]["nationality"], "Swiss", "nationality spelling")
@@ -147,7 +149,7 @@ def main_tests(here: Path, run, tmp: Path):
     eq(gm["6"]["customer_key"], "0000000312", "12-digit phone keeps last 10 as key")
     eq(gm["7"]["customer_key"], "2402200007", "landline key")
     eq((gm["2"]["customer_key"], gm["8"]["customer_key"]), ("9000000002", "9000000002"), "duplicate phone shares a key")
-    eq((gm["2"]["is_primary"], gm["8"]["is_primary"], gm["2"]["guest_name"]), ("0", "1", "Bharat S Sample"), "duplicate phone maps to the winner")
+    eq((gm["2"]["is_primary"], gm["8"]["is_primary"], gm["2"]["guest_name"]), ("0", "1", "Bharat Sample K"), "duplicate phone maps to the winner")
     eq(gm["5"]["phone_valid"], "1", "91-prefixed 12 digits valid")
     eq(gm["13"]["deleted"], "1", "deleted flag")
     eq(gm["1"]["dob"], "1985-03-12", "dob")
@@ -221,7 +223,7 @@ def main_tests(here: Path, run, tmp: Path):
     eq(sorted(r["legacy_booking_id"] for r in inh), ["3", "4"], "in-house list")
     eq(next(r for r in inh if r["legacy_booking_id"] == "3")["advance_paise"], "100000", "in-house advance")
     adv = rows(out / "cutover_advances.csv")
-    eq([(r["amount_paise"], r["phone_key"]) for r in adv], [("200000", "9000000020")], "unadjusted advance")
+    eq([(r["amount_paise"], r["phone_key"]) for r in adv], [("200000", "9000000019")], "unadjusted advance")
     rv = rows(out / "cutover_receivables.csv")
     eq([(r["legacy_bill_no"], r["balance_paise"], r["gstin"], r["company"]) for r in rv], [("4", "525000", "27BBBBB1111B1Z5", "Skylark Ltd")], "receivables")
     op = rows(out / "cutover_customer_opening.csv")
@@ -231,7 +233,9 @@ def main_tests(here: Path, run, tmp: Path):
     ok("2026-27: last BillNo 11" in (out / "cutover_number_series.md").read_text(encoding="utf-8"), "number series file")
     # secret
     sj = [json.loads(x) for x in (out / "secret" / "guest_ids.jsonl").read_text(encoding="utf-8").splitlines()]
-    eq(sorted(s["legacyGuestId"] for s in sj), [1, 2, 17], "secret rows: real ID numbers only")
+    eq(sorted(s["legacyGuestId"] for s in sj), [1, 2, 17, 18], "secret rows: real ID, or image, or DOB")
+    s18 = next(s for s in sj if s["legacyGuestId"] == 18)
+    eq((s18["idNumber"], s18["photoFile"]), (None, "2.jpg"), "image without an ID number is kept")
     s1 = next(s for s in sj if s["legacyGuestId"] == 1)
     eq((s1["idType"], s1["idNumber"], s1["dob"], s1["photoFile"], s1["idProofFile"]), ("AADHAAR", "100000000001", "1985-03-12", "1.jpg", "1.jpg"), "secret row shape")
     ok((out / "secret" / "images" / "photo" / "1.jpg").is_file() and (out / "secret" / "images" / "idproof" / "1.jpg").is_file(), "images copied")

@@ -166,10 +166,26 @@ def build_guests(ci: list[dict], lk: dict, latest_fy: str, today: date, warnings
         if x["valid"]:
             by_pk[x["pk"]].append(x)
     winner_of: dict[int, dict] = {}
+    clusters: list[list[dict]] = []
+
+    def compatible(a: str, b: str) -> bool:
+        return a == b or (a != "" and b != "" and (a.startswith(b) or b.startswith(a)))
+
     for pk, grpx in by_pk.items():
-        w = max(grpx, key=lambda x: x["gid"])
-        for x in grpx:
-            winner_of[x["gid"]] = w
+        cl: list[list[dict]] = []
+        for x in grpx:  # ascending GuestID
+            f = R.name_fold(x["name"])
+            for c in cl:
+                if any(compatible(f, R.name_fold(m["name"])) for m in c):
+                    c.append(x)
+                    break
+            else:
+                cl.append([x])
+        for c in cl:
+            w = max(c, key=lambda x: x["gid"])
+            for x in c:
+                winner_of[x["gid"]] = w
+            clusters.append(c)
 
     def guest_csv_row(w: dict) -> dict:
         r = w["r"]
@@ -201,7 +217,7 @@ def build_guests(ci: list[dict], lk: dict, latest_fy: str, today: date, warnings
         }
 
     guest_rows = []
-    for pk, grpx in sorted(by_pk.items(), key=lambda kv: kv[1][0]["gid"]):
+    for grpx in sorted(clusters, key=lambda c: c[0]["gid"]):
         w = max(grpx, key=lambda x: x["gid"])
         guest_rows.append(guest_csv_row(w) | {"_gids": [x["gid"] for x in grpx], "_group_gid": min(x["gid"] for x in grpx),
                                                "_winner": w["gid"]})
@@ -230,9 +246,8 @@ def build_guests(ci: list[dict], lk: dict, latest_fy: str, today: date, warnings
         # secret: real ID number only
         idc = R.to_int(g(r, "IDCode"))
         num = R.real_id_number(idc, g(r, "IDNumber"))
-        if num:
-            secret.append({"legacyGuestId": gid, "idType": R.id_type_for(idc) or "OTHER", "idNumber": num,
-                           "dob": dob or None, "_photo": g(r, "Photpath"), "_idproof": g(r, "IDProofPath")})
+        secret.append({"legacyGuestId": gid, "idType": (R.id_type_for(idc) or "OTHER") if num else R.id_type_for(idc),
+                       "idNumber": num or None, "dob": dob or None, "_photo": g(r, "Photpath"), "_idproof": g(r, "IDProofPath")})
     return gm, guest_rows, sorted(tags), secret, rows
 
 
@@ -707,9 +722,9 @@ def self_check(fys: list[Fy], gm: dict, guest_rows: list[dict], out_files: dict)
             if s["legacy_guest_id"] not in gm:
                 bad.append(f"{f.fy}: stay {s['legacy_booking_id']} guest not in guest_map")
                 break
-    phones = [r["phone"] for r in guest_rows]
-    if len(phones) != len(set(phones)):
-        bad.append("guests.csv has a repeated phone")
+    pn = [(r["phone"], r["name"]) for r in guest_rows]
+    if len(pn) != len(set(pn)):
+        bad.append("guests.csv has a repeated phone + name")
     for name, hdr in out_files.items():
         for h in hdr:
             if FORBIDDEN_COLS.search(h):
@@ -1001,10 +1016,13 @@ def write_secret(out: Path, secret: list[dict], support_dirs, log) -> dict:
                 return p
         return None
 
-    n_photo = n_proof = 0
+    n_photo = n_proof = kept = 0
     with open(sd / "guest_ids.jsonl", "w", encoding="utf-8", newline="") as f:
         for s in secret:
             ph, ip = find("Photo", s.pop("_photo")), find("IDProof", s.pop("_idproof"))
+            if not (s["idNumber"] or s["dob"] or ph or ip):
+                continue
+            kept += 1
             if ph:
                 shutil.copyfile(ph, sd / "images" / "photo" / ph.name); n_photo += 1
             if ip:
@@ -1013,7 +1031,7 @@ def write_secret(out: Path, secret: list[dict], support_dirs, log) -> dict:
             s["idProofFile"] = ip.name if ip else None
             f.write(json.dumps({k: s[k] for k in ("legacyGuestId", "idType", "idNumber", "dob", "photoFile", "idProofFile")},
                                ensure_ascii=False) + "\n")
-    return {"rows": len(secret), "photos": n_photo, "idProofs": n_proof}
+    return {"rows": kept, "photos": n_photo, "idProofs": n_proof}
 
 
 def write_report(out, totals, dd, warnings, comp_review, room_rows, sec, fys):
