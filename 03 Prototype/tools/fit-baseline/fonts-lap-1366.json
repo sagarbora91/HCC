@@ -1,0 +1,58 @@
+{
+ "select": [
+  "11px"
+ ],
+ "label": [
+  "11px"
+ ],
+ "p": [
+  "12px",
+  "14px"
+ ],
+ "td": [
+  "11px"
+ ],
+ "th": [
+  "10px",
+  "9px"
+ ],
+ "button.btn": [
+  "10px",
+  "11px",
+  "14px",
+  "16px"
+ ],
+ ".pill": [
+  "11px",
+  "8px",
+  "9px"
+ ],
+ ".tabs button, .fit-tabs-bar button": [
+  "11px",
+  "12px"
+ ],
+ ".stat-label": [
+  "11px"
+ ],
+ ".money-stat": [
+  "30px"
+ ],
+ "input": [
+  "11px",
+  "12px",
+  "13px",
+  "14px",
+  "15px",
+  "16px"
+ ],
+ ".muted": [
+  "10px",
+  "11px"
+ ],
+ ".drawer a": [
+  "16px"
+ ],
+ ".modal h2": [
+  "25px"
+ ]
+}
