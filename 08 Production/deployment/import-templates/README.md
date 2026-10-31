@@ -454,6 +454,7 @@ Credit methods (vendor credit, company credit) settle to no account and are neve
 | rcm | optional | yes for a reverse-charge category (security agency, goods transport, advocate, hired vehicle — DEC-145): the bill carries no GST; HCC posts the GST to 2140. |
 | rcmBps | optional | Reverse-charge GST percent without % (e.g. 18; required when rcm is yes). |
 | capital | optional | yes for a fixed-asset category: the ledger is then a fixed-asset block 1500 to 1540 and each bill enters the asset register. |
+| transport | optional | yes for hire of goods carriages: cash paid to one transporter in a day may reach ₹35,000 (not ₹10,000) before the income-tax deduction is lost. |
 | sortOrder | optional | Order on screens (10, 20 …). Blank keeps the row's order, or puts a new row last. |
 | active | optional | yes or no (blank keeps the row's state, a new row is active). A file cannot retire an active row — retire it on its list, where its use is checked. |
 
@@ -469,6 +470,7 @@ The ledger must be an expense account of the chart of accounts (5000 to 5900), o
 | tds | optional | yes when TDS is deducted from the vendor's bills. A PAN is an ID number and is never put in a file: type it on the vendor's row in HCC first (Master configuration › Expense vendors); a vendor without a PAN there cannot be set to yes. |
 | state | optional | Two-letter GST state code (MH = the hotel's state, CGST + SGST bills; any other state = IGST bills). Blank = MH. |
 | tdsSection | optional | rent, contractor, professional or commission — the TDS rate-table row (required when tds is yes). |
+| payeeType | optional | individual (individual / HUF) or other — the TDS rate column (blank = from the PAN in HCC, else other). |
 | contact | optional | Contact person and phone, up to 100 characters. |
 | terms | optional | Payment terms, up to 60 characters. |
 | sortOrder | optional | Order on screens (10, 20 …). Blank keeps the row's order, or puts a new row last. |

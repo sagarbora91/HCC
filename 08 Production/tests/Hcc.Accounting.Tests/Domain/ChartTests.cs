@@ -82,7 +82,7 @@ public sealed partial class ChartTests
             Assert.Equal(ChartOfAccounts.Builtin.LegacyOf(a.GroupId), a.Group);
         }
 
-        Assert.Equal(["1000", "1030", "1110", "1115", "1120", "1200", "2200", "2400"], ChartOfAccounts.All.Where(a => a.Control).Select(a => a.Code));
+        Assert.Equal(["1000", "1030", "1110", "1115", "1120", "1200", "1210", "2200", "2400"], ChartOfAccounts.All.Where(a => a.Control).Select(a => a.Code));
         Assert.Equal((AccountGroup.Suspense, AccountGroup.Income, AccountGroup.Liability), (ChartOfAccounts.Find("1400")!.Group, ChartOfAccounts.Find("4950")!.Group, ChartOfAccounts.Find("1310")!.Group));
         Assert.Equal(("Food & beverage revenue", "Cash short", "Cash over"), (ChartOfAccounts.NameOf("4200"), ChartOfAccounts.NameOf("5900"), ChartOfAccounts.NameOf("4950")));
     }

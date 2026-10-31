@@ -240,9 +240,7 @@ public sealed class RulebookFullMonthSqlTests(AccountingDb db) : IClassFixture<A
             Assert.Equal((774_000_000L, 774_000_000L), (tb6.Totals.OpeningDebitPaise, tb6.Totals.OpeningCreditPaise));
         }
 
-        var detailTb = await reports.TrialBalanceAsync(db.As("ACC"), new DateOnly(2026, 4, 1), new DateOnly(2026, 4, 30), true, Ct);
-        Assert.Contains(detailTb.Rows, r => r.Account == "2400/LN-HDFC" && r.ClosingCreditPaise - r.ClosingDebitPaise == 196_000_000L);   // after the T17 EMI principal
-        Assert.Contains(detailTb.Rows, r => r.Account == "1115/CHN-GOIBIBO" && r.ClosingDebitPaise == r.ClosingCreditPaise);             // T19 settled the T4 credit
+        // (party-level figures of the full month: RulebookMonthTests.The_full_month_from_the_engine_only; here the masters that name the parties are not seeded)
 
         // ── §8.6 GST month: challan ₹28,900; the month lock is refused until the set-off is posted, then every April day locks ──
         var gst = new GstMonthService(db.Platform.Commands, db.Store, new SqlGstMonthStore(db.Platform.Connections), policy, db.Clock, new FakeGstManualVouchers(),

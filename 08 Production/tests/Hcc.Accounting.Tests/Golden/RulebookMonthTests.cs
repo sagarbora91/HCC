@@ -545,9 +545,10 @@ public sealed class RulebookMonthTests
         var challan = SourceRules.Manual(SourceRules.ManualKey(90), Date("2026-05-10"), VoucherType.Payment, "gst-payment", "GST paid for 2026-04 · challan CIN-DEMO",
             [("1340", april.Setoff.Challan, 0L), ("1030/BA-HDFC", 0L, april.Setoff.Challan)]);
         var withChallan = full.Concat(Build([challan])).ToList();
-        var after = GstMonthRules.Compute("2026-04", withChallan, []);
-        Assert.Equal(0, after.Setoff.Challan);
-        var journal = SourceRules.GstSetoff("gst-setoff:2026-04@2026-05-10", Date("2026-05-10"), after.Setoff, "GST set-off 2026-04");
+        // the set-off (posted in May) uses April's credit and the 1340 cash including the challan deposited in May
+        var after = GstSetOff.Compute(april.Output, april.Credit, april.CashBalance + april.Setoff.Challan);
+        Assert.Equal(0, after.Challan);
+        var journal = SourceRules.GstSetoff("gst-setoff:2026-04@2026-05-10", Date("2026-05-10"), after, "GST set-off 2026-04");
         var jv = Assert.Single(Build([journal]));
         Assert.Equal(VoucherType.Journal, jv.Type);
         Assert.Equal([("1340", 0L, L(gst, "cashLedgerAfterSetoff")), ("2110", L(gst, "cgst"), 0L), ("2120", L(gst, "sgst"), 0L)],
