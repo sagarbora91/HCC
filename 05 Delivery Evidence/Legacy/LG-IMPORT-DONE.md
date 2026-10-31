@@ -8,7 +8,7 @@ Lane lg-import / Opus / branch `claude/lg-import` / worktree `E:\Projects\HCC\wo
 - 37062a6c merge claude/lg-schema (kept its 4600/4601 and csproj), stub dropped, 4605 locked
 - 34ce26eb merge claude/lg-schema (DONE head 25d1f8b5)
 - 2bb0b0b3 DONE file
-- (this commit) LG-R10: shred the whole secret\ folder; DONE file updated for LG-R7…R10
+- 48e47956 LG-R10: shred the whole secret\ folder; DONE file updated for LG-R7…R10
 
 ## Files
 Server: `src/Hcc.Contracts/Legacy/LegacyContracts.cs`, `src/Hcc.Domain/Legacy/LegacyRules.cs`, `src/Hcc.Application/Legacy/{LegacyImportService,LegacyImportPorts,LegacyCsv}.cs`, `src/Hcc.Infrastructure.SqlServer/Legacy/SqlLegacyStore.cs`, `src/Hcc.Api/Endpoints/LegacyEndpoints.cs`, `src/Hcc.Api/HccComposition.cs` (two lines, each in a `// LG` block: `services.AddLegacyModule()` and `api.MapLegacyEndpoints()`).
@@ -30,7 +30,7 @@ Tests: `tests/Hcc.Legacy.Tests/Import/{LegacyImportWorld,LegacyImportTests}.cs`,
 Not run: Hcc.Platform.Tests (migration lock test) — `migrations-lock.mjs` check says the lock is in step (99).
 
 ## Open items
-1. **Cut-over target — ACCEPTED by the coordinator as built (ruling LG-R7).** Was: §5 rule 3 names `imp.opening_set` / `imp.opening_balance` but also says "nothing approved by the importer; the Owner approves in the ACC-1 opening screen". `imp.opening_set` has no approval step (it is effective at once, needs an `imp.batch` row and a balanced set, and would replace the Owner's imported trial balance). Built: the lines go into the **ACC-1 opening entry as a draft** (`acc.opening_entry` / `acc.opening_line` via `IOpeningEntryStore.SaveDraftAsync`, as of 1 April of the business FY, 1400 balancing line recomputed). Receivables → `1110/CMP-<id>` when the bill's GSTIN matches a company account, else `1120/UD-<phone or name slug>`; customer openings → `1120/UD-…` (+ Dr / − Cr); advances → `2000` Cr total. Existing draft lines on other accounts are kept; an approved entry is not touched (warning). Coordinator to confirm or amend the contract.
+1. **Cut-over target — ACCEPTED by the coordinator as built (ruling LG-R7).** Was: §5 rule 3 names `imp.opening_set` / `imp.opening_balance` but also says "nothing approved by the importer; the Owner approves in the ACC-1 opening screen". `imp.opening_set` has no approval step (it is effective at once, needs an `imp.batch` row and a balanced set, and would replace the Owner's imported trial balance). Built: the lines go into the **ACC-1 opening entry as a draft** (`acc.opening_entry` / `acc.opening_line` via `IOpeningEntryStore.SaveDraftAsync`, as of 1 April of the business FY, 1400 balancing line recomputed). Receivables → `1110/CMP-<id>` when the bill's GSTIN matches a company account, else `1120/UD-<phone or name slug>`; customer openings → `1120/UD-…` (+ Dr / − Cr); advances → `2000` Cr total. Existing draft lines on other accounts are kept; an approved entry is not touched (warning). (Accepted, LG-R7.)
 2. (Integrator, LG-R8) 756 customer openings will exceed the opening screen's 500-line edit limit (warning only).
 3. `discountAmtOnlyPaise` is not a reconciled figure (not in the §5 result shape); lgc.bill.discount_paise is loaded as the CSV gives it.
 4. Legacy captures follow DEC-071 like any capture (ruling LG-R9): the manual purge treats them as normal.
