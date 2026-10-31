@@ -97,7 +97,7 @@ Extractor `claude/lg-extract` @ dffdb2b9 run from its worktree over all ten comp
 
 ### 2.1 Deviation: `guest_ids.jsonl` stricter than contract §4
 
-Contract §4: an `IDNumber` is "no ID" only when a placeholder or fewer than 4 characters. `legacy_rules.real_id_number` also drops an Aadhaar (`IDCode` 8) that is not 12 digits and any value longer than 20 characters: 425 guests (12,356 expected → 11,931 written; every sampled one is `IDCode` 8, 2 have `deleteflag = Y`). Either the contract gains that rule (owner call: a mis-typed Aadhaar is probably worth keeping as `OTHER`) or the extractor writes them. Ids in `LG-AUDIT-DONE.md`-referenced phase-2 id list (kept off git).
+Contract §4: an `IDNumber` is "no ID" only when a placeholder or fewer than 4 characters. `legacy_rules.real_id_number` also drops an Aadhaar (`IDCode` 8) that is not 12 digits and any value longer than 20 characters: 425 guests (12,356 expected → 11,931 written; every sampled one is `IDCode` 8, 2 have `deleteflag = Y`). Either the contract gains that rule (owner call: a mis-typed Aadhaar is probably worth keeping as `OTHER`) or the extractor writes them. The guest ids are in the audit's off-git id list; regenerate with `audit_phase2.py`.
 
 ## 3. Phase 3 — importer invariants
 
