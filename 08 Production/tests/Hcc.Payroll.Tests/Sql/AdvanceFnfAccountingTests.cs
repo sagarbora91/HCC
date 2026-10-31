@@ -146,12 +146,12 @@ public sealed class AdvanceFnfAccountingTests(PayrollDb db) : IClassFixture<Payr
         Assert.Equal((181_608L, 0L, -1_100_000L, -Advance), (B(tb, "1200"), B(tb, "2300"), B(tb, "2340"), B(tb, "1030")));   // 1200 = the register balance
 
         // A negative settlement (₹13,000 damage, 816.08 beyond the settlement): no advance recovered, ₹3,000 stays open, the ₹816.08 the leaver owes
-        // is Dr 1200 (recoverable): 1200 = 3,000 + 816.08.
+        // is Dr 1210 Recoverable from leavers (ACC-2 coordinator ruling 7): 1200 = the open 3,000, 1210 = 816.08.
         var (h2, ravi2, neg) = await LeaverAsync(1_300_000);
         Assert.Equal(-81_608, neg.NetPaise);
         Assert.Equal(Advance, await RegisterBalanceAsync(h2, ravi2));
         Assert.Equal(0, await db.LongAsync("SELECT COUNT(*) FROM hr.advance_recovery WHERE fnf_id = @f;", ("@f", neg.FnfId)));
         var tb2 = await BalancesAsync(h2, new DateOnly(2026, 8, 31));
-        Assert.Equal((Advance + 81_608, -1_300_000L), (B(tb2, "1200"), B(tb2, "2340")));
+        Assert.Equal((Advance, 81_608L, -1_300_000L), (B(tb2, "1200"), B(tb2, "1210"), B(tb2, "2340")));
     }
 }

@@ -62,7 +62,11 @@ public sealed class TdsTests
         Assert.Equal((R(1_000), "contractor", R(50_000), R(50_000), 200), (r.Paise, r.Section, r.TaxablePaise, r.BasePaise, r.Bps));
         Assert.Equal(R(58_000), R(59_000) - r.Paise);
         Assert.Equal(0, TdsCalculator.ForBill(new TdsBill(R(20_000), 0, D), Contractor, []).Paise);
-        Assert.Equal(30_001, TdsCalculator.ForBill(new TdsBill(3_000_050, 0, D), Contractor, [], new TdsSettings(true, TdsColumn.Individual)).Paise); // half away from zero
+        // ACC-2 integration (ruling 9): the column follows the PAYEE (vendor PayeeType), not the firm setting; TDS rounds to the nearest rupee.
+        var individual = Contractor with { PayeeType = TdsColumn.Individual };
+        Assert.Equal(30_000, TdsCalculator.ForBill(new TdsBill(3_000_050, 0, D), individual, []).Paise);   // 1 % of ₹30,000.50 = ₹300.0050 → ₹300
+        Assert.Equal(R(301), TdsCalculator.ForBill(new TdsBill(R(30_050), 0, D), individual, []).Paise);    // ₹300.50 → ₹301 (half away from zero)
+        Assert.Equal(R(1_000), TdsCalculator.ForBill(new TdsBill(R(59_000), R(9_000), D), Contractor, [], new TdsSettings(true, TdsColumn.Individual)).Paise); // the firm column is not read
         Assert.Equal(0, TdsCalculator.ForBill(new TdsBill(R(59_000), 0, D), Contractor, [], new TdsSettings(false, TdsColumn.Other)).Paise);
         Assert.Equal(0, TdsCalculator.ForBill(new TdsBill(R(59_000), 0, D), Contractor with { Tds = false }, []).Paise);
         Assert.Equal(0, TdsCalculator.ForBill(new TdsBill(R(59_000), 0, D), Contractor with { Section = null }, []).Paise);
@@ -87,7 +91,7 @@ public sealed class TdsTests
         Assert.Equal(R(1_200), TdsCalculator.ForBill(new TdsBill(R(60_000), 0, D), landlord with { Section = "rent:plant" }, []).Paise);
         var ca = new TdsVendor("Audit Partners (fictional)", true, "professional");
         Assert.Equal(0, TdsCalculator.ForBill(new TdsBill(R(11_800), R(1_800), D), ca, [B("2026-06-01", 40_000)]).Paise);
-        Assert.Equal(500_010, TdsCalculator.ForBill(new TdsBill(R(10_001), 0, D), ca, [B("2026-06-01", 40_000)]).Paise);
+        Assert.Equal(R(5_000), TdsCalculator.ForBill(new TdsBill(R(10_001), 0, D), ca, [B("2026-06-01", 40_000)]).Paise); // 10 % of ₹50,001 = ₹5,000.10 → ₹5,000 (ruling 9: whole rupees)
     }
 
     [Fact]

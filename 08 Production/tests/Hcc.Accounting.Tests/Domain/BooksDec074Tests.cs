@@ -160,12 +160,14 @@ public sealed class BooksDec074Tests
         Assert.False(ByAccount(j).ContainsKey("2300"));
         Assert.Contains("advance 1888.96 left open", j.Narration, StringComparison.Ordinal);
 
-        // ₹13,000 deduction: covered 12,111.04 − 13,000 = −888.96 → no advance recovered, net −888.96 recoverable: Dr 1200 888.96 (what the leaver owes).
+        // ₹13,000 deduction: covered 12,111.04 − 13,000 = −888.96 → no advance recovered, net −888.96 recoverable: Dr 1210 888.96 (what the leaver owes;
+        // ACC-2 coordinator ruling 7: 1210 Recoverable from leavers is a control ledger with the leaver as party).
         // Dr 13,173.38 + 1,231.68 + 888.96 = 15,294.02 = Cr 1,605.85 + 488.17 + 200 + 13,000.
         var neg = One(Assert.Single(AccountingEventMapper.Fnf(Ravi(1_300_000, 0, -88_896, 300_000), new DateOnly(2026, 8, 31))));
         Assert.True(neg.Balanced);
         Assert.Equal(1_529_402, neg.Debit);
-        Assert.Equal((88_896L, 0L), ByAccount(neg)["1200/STF-5"]);
+        Assert.Equal((88_896L, 0L), ByAccount(neg)["1210/STF-5"]);
+        Assert.False(ByAccount(neg).ContainsKey("1200/STF-5"));
         Assert.Contains("recoverable from the leaver 888.96", neg.Narration, StringComparison.Ordinal);
     }
 

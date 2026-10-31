@@ -2,6 +2,7 @@ using System.Text.Json;
 using Hcc.Application.Accounting;
 using Hcc.Contracts.Accounting;
 using Hcc.Domain.Accounting;
+using Hcc.Domain.Expenses;
 
 namespace Hcc.Accounting.Tests.Golden;
 
@@ -13,8 +14,8 @@ namespace Hcc.Accounting.Tests.Golden;
 /// amount on a company payment, charge kind <c>food</c> and per-staff advance recovery), and the expectation worked out from the rulebook: the closing trial balance
 /// by control ledger and by party. Events go through the production <see cref="AccountingEventMapper"/> and <see cref="VoucherBuilder"/>.
 /// The 7 steps with no server command / event yet — T11 vendor payment (acc2-purchase), T14a T14b T16 T17 T18 manual vouchers (acc2-manual), T19 OTA payout (acc2-flows) —
-/// have their intended payloads in the json (<c>waiting.events</c>) and a skipped test each with the reason. Tests fail today where an ACC-2 lane has not landed
-/// (marked <c>Lane</c>); they pass once <c>claude/acc2</c> is merged. Money = integer paise.
+/// have their payloads in the json (<c>waiting.events</c>); since the ACC-2 integration each goes through its lane's production mapper (T11 VendorPayment, T14–T18
+/// ManualVoucher, T19 OtaPayout) and the full month closes to <c>expected.full</c> from the engine only (no stand-in left). Money = integer paise.
 /// </summary>
 public sealed class RulebookMonthTests
 {
@@ -250,6 +251,9 @@ public sealed class RulebookMonthTests
         .Replace("CMP-0007", PartyLedgers.Company(7), StringComparison.Ordinal)
         .Replace("STF-007", PartyLedgers.Staff(7), StringComparison.Ordinal);
 
+    /// <summary>The month's OTA channel party (server: the channel code, <c>ota.channel.code</c>).</summary>
+    internal const string Goibibo = "CHN-GOIBIBO";
+
     private static string? Tender(string tender) => tender switch { "Cash" => "TILL", "Bank transfer" => "BA-HDFC", _ => null };
 
     private static string? Vendor(string vendor) => vendor switch { "Morning Supplies" => "EV-MORNING", "Kaveri Textiles" => "EV-KAVERI", _ => null };
@@ -266,7 +270,8 @@ public sealed class RulebookMonthTests
             {
                 AccountingEvents.ChargePosted => ChargeOf(p),
                 AccountingEvents.ReceiptRecorded => AccountingEventMapper.Receipt(L(p, "folioId"), L(p, "receiptId"), S(p, "kind"), S(p, "tender"), Date(S(p, "businessDate")), L(p, "amountPaise"),
-                    new PartyContext(Tender: Tender(S(p, "tender")), Company: S(p, "kind") == "company-credit" ? PartyLedgers.Company(7) : null)),
+                    new PartyContext(Tender: Tender(S(p, "tender")), Company: S(p, "kind") == "company-credit" ? PartyLedgers.Company(7) : null,
+                        Channel: S(p, "kind") == "ota-credit" ? Goibibo : null)), // ACC-2 flows: the OTA channel (projector: the booking's channel code)
                 AccountingEvents.PosBillSettled => AccountingEventMapper.PosBill(p.Deserialize<PosBillSettledEvent>(Web)!, new PartyContext(Tender: Tender(S(p, "tender")))),
                 AccountingEvents.CompanyPaymentRecorded => AccountingEventMapper.CompanyPayment(p.Deserialize<CompanyPaymentRecordedEvent>(Web)!, new PartyContext(Tender: Tender(S(p, "tender")))),
                 AccountingEvents.ExpensePosted => AccountingEventMapper.Expense(p.Deserialize<ExpensePostedEvent>(Web)!, new PartyContext(Tender: Tender(S(p, "funding")), Vendor: Vendor(S(p, "vendor")))),
@@ -307,8 +312,8 @@ public sealed class RulebookMonthTests
         var vouchers = PartyVouchers();
         var by = new SortedDictionary<string, long>(StringComparer.Ordinal);
         foreach (var e in vouchers.SelectMany(v => v.Entries)) by[e.Account] = by.GetValueOrDefault(e.Account) + e.DebitPaise - e.CreditPaise;
-        // 1115/Goibibo needs the OTA party on the receipt (acc2-flows adds it to PartyContext): its own skipped test below.
-        foreach (var (ledger, want) in Expected("closing", "party").Where(x => !x.Key.StartsWith("1115/", StringComparison.Ordinal)))
+        // ACC-2 integration: 1115/CHN-GOIBIBO carries the OTA party of the T4 receipt (acc2-flows PartyContext.Channel).
+        foreach (var (ledger, want) in Expected("closing", "party"))
             Assert.True(want == by.GetValueOrDefault(ServerLedger(ledger)), $"{ServerLedger(ledger)}: {by.GetValueOrDefault(ServerLedger(ledger))} ≠ {want}");
         // Deccan Agro: 40,000 opening + 63,000 (T5b) − 40,000 (T7a) − 63,000 (T7b: 57,000 received + 6,000 TDS, waits for acc2-tds) = nil.
         Assert.Equal(0, by.GetValueOrDefault(PartyLedgers.Compose("1110", PartyLedgers.Company(7))));
@@ -321,10 +326,26 @@ public sealed class RulebookMonthTests
         Assert.Equal(Expected("closing", "control"), Balances(vouchers));
     }
 
-    [Fact(Skip = "waits for lane acc2-flows: the OTA party on a receipt (PartyContext gets the channel) so T4's ota-credit posts 1115/<channel> — intended: 1115/CHN-GOIBIBO 21,000 Dr after T4 (2,100,000 paise), nil after T19")]
+    [Fact]
     [Trait("Lane", "acc2-flows")]
     public void Ota_receivable_is_a_party_ledger_per_channel()
     {
+        // T4: the folio balance moves to the channel at check-out (receipt kind ota-credit) → 1115/CHN-GOIBIBO 21,000 Dr; T19's payout clears it.
+        var mapping = ChartOfAccounts.Effective(MappingOverrides());
+        var t4 = Root.GetProperty("events").EnumerateArray().Single(e => S(e, "step") == "T4" && S(e, "type") == AccountingEvents.ReceiptRecorded).GetProperty("payload");
+        var credit = AccountingEventMapper.Receipt(L(t4, "folioId"), L(t4, "receiptId"), S(t4, "kind"), S(t4, "tender"), Date(S(t4, "businessDate")), L(t4, "amountPaise"),
+            new PartyContext(Channel: Goibibo));
+        var cv = Assert.Single(VoucherBuilder.Build(credit.BusinessDate, [credit], mapping));
+        Assert.Equal(VoucherType.Journal, cv.Type);
+        Assert.Equal([("1115/CHN-GOIBIBO", 2_100_000L, 0L), ("1100", 0L, 2_100_000L)], cv.Entries.Select(e => (e.Account, e.DebitPaise, e.CreditPaise)));
+        var payout = Waiting("T19").Single();
+        var pv = Assert.Single(VoucherBuilder.Build(payout.BusinessDate, [payout], mapping));
+        var net = new SortedDictionary<string, long>(StringComparer.Ordinal);
+        foreach (var e in cv.Entries.Concat(pv.Entries)) net[e.Account] = net.GetValueOrDefault(e.Account) + e.DebitPaise - e.CreditPaise;
+        Assert.Equal(0, net["1115/CHN-GOIBIBO"]);
+        // without a channel the receivable stays on the control (a no-party warning, never a block)
+        var bare = AccountingEventMapper.Receipt(L(t4, "folioId"), L(t4, "receiptId"), S(t4, "kind"), S(t4, "tender"), Date(S(t4, "businessDate")), L(t4, "amountPaise"));
+        Assert.Contains(VoucherBuilder.Build(bare.BusinessDate, [bare], mapping).Single().Entries, e => e.Account == "1115");
     }
 
     [Fact]
@@ -415,33 +436,158 @@ public sealed class RulebookMonthTests
         Assert.False(got.ContainsKey(ChartOfAccounts.Suspense));
     }
 
-    [Fact(Skip = "waits for lane acc2-purchase: VendorPaymentRecorded → SourceRules.VendorPayment (exp.vendor_payment + _alloc, migrations 4230–4237), source kind 'vendor'. Intended (rulebook T11, 18 Apr): Payment Dr 2200/EV-MORNING 60,00,000 paise · Cr 1030/BA-HDFC; allocation oldest first = the 25,000 opening then 35,000 of bill 501; 2200/EV-MORNING closes 2,400,000 Cr; ageing 0–30: Morning 24,000, Kaveri 42,000")]
+    // ───────── ACC-2 integration: the 7 waiting steps through the lanes' production mappers (payloads = rulebook-month.json waiting.events) ─────────
+
+    private static JsonElement WaitingPayload(string step) => Root.GetProperty("waiting").GetProperty("events").EnumerateArray().Single(e => S(e, "step") == step).GetProperty("payload");
+
+    /// <summary>One waiting step as the server books it: T11 VendorPaymentRecorded, T14a T14b T16 T17 T18 ManualVoucherApproved, T19 OtaPayoutRecorded, with the
+    /// parties the projector reads (tender → BA-HDFC, vendor → EV-MORNING; a manual line names its party ledger; the payout names bank and channel).</summary>
+    internal static IReadOnlyList<AccountingSource> Waiting(string step)
+    {
+        var p = WaitingPayload(step);
+        return step switch
+        {
+            "T11" => [AccountingEventMapper.VendorPayment(new VendorPaymentEvent(L(p, "paymentId"), Date(S(p, "businessDate")), S(p, "vendorCode"), S(p, "vendor"), S(p, "tender"),
+                L(p, "amountPaise"), p.GetProperty("allocations").EnumerateArray().Sum(a => L(a, "amountPaise")), S(p, "reference")),
+                new PartyContext(Tender: Tender(S(p, "tender")), Vendor: S(p, "vendorCode")))],
+            "T19" => [AccountingEventMapper.OtaPayout(new OtaPayoutRecordedEvent(L(p, "payoutId"), 3, Goibibo, "Goibibo", Date(S(p, "businessDate")), S(p, "statementRef"),
+                L(p, "grossPaise"), L(p, "commissionPaise"), L(p, "commissionGstPaise"), L(p, "tcsPaise"), L(p, "netPaise"), "BA-HDFC", ItcAllowed: false, Bookings: 1))],
+            _ => [AccountingEventMapper.ManualVoucher(new ManualVoucherApprovedEvent(L(p, "voucherId"), Date(S(p, "businessDate")), S(p, "voucherType"), S(p, "narration"), null,
+                S(p, "template"), p.GetProperty("lines").EnumerateArray().Select(l => new ManualLinePayload(S(l, "ledger"), L(l, "debitPaise"), L(l, "creditPaise"))).ToList()))],
+        };
+    }
+
+    /// <summary>A waiting step's vouchers = the rulebook entries on the party ledgers (the step's own entries, <c>ledger</c> column).</summary>
+    private static void AssertStepEntries(string step, IReadOnlyList<Voucher> vouchers)
+    {
+        var got = new SortedDictionary<string, long>(StringComparer.Ordinal);
+        foreach (var e in vouchers.SelectMany(v => v.Entries)) got[e.Account] = got.GetValueOrDefault(e.Account) + e.DebitPaise - e.CreditPaise;
+        var want = new SortedDictionary<string, long>(StringComparer.Ordinal);
+        foreach (var x in Root.GetProperty("steps").GetProperty(step).EnumerateArray()) want[S(x, "ledger")] = want.GetValueOrDefault(S(x, "ledger")) + L(x, "debitPaise") - L(x, "creditPaise");
+        Assert.True(got.SequenceEqual(want), $"{step}: engine {string.Join(" ", got.Select(x => x.Key + "=" + x.Value))} ≠ rulebook {string.Join(" ", want.Select(x => x.Key + "=" + x.Value))}");
+        Assert.All(vouchers, v => Assert.True(v.Balanced && v.Unmapped.Count == 0, v.Number));
+    }
+
+    private static IReadOnlyList<Voucher> Build(IReadOnlyList<AccountingSource> sources)
+    {
+        var mapping = ChartOfAccounts.Effective(MappingOverrides());
+        return sources.Select(s => s.BusinessDate).Distinct().Order().SelectMany(d => VoucherBuilder.Build(d, sources, mapping)).ToList();
+    }
+
+    [Fact]
     [Trait("Lane", "acc2-purchase")]
     public void T11_vendor_payment_allocated_oldest_first()
     {
+        // Rulebook T11, 18 Apr: Payment Dr 2200/EV-MORNING 60,000 · Cr 1030/BA-HDFC; allocation oldest first = the 25,000 opening then 35,000 of bill 501.
+        var v = Assert.Single(Build(Waiting("T11")));
+        Assert.Equal((VoucherType.Payment, "vendor-payment", "vendor-payment:901"), (v.Type, v.Sub, v.SourceKey));
+        AssertStepEntries("T11", [v]);
+        var alloc = ExpensePurchase.Allocate([new ExpensePurchase.OpenBill(0, Date("2026-03-31"), 2_500_000, 0, 0), new ExpensePurchase.OpenBill(501, Date("2026-04-05"), 5_900_000, 0, 0)],
+            L(WaitingPayload("T11"), "amountPaise"));
+        Assert.Equal(WaitingPayload("T11").GetProperty("allocations").EnumerateArray()
+            .Select(a => (a.GetProperty("expenseId").ValueKind == JsonValueKind.Null ? 0L : L(a, "expenseId"), L(a, "amountPaise"))), alloc);
+        // 2200/EV-MORNING: 84,000 Cr after the driven steps (opening 25,000 + bill 501 59,000) → 24,000 Cr after the payment.
+        var morning = PartyVouchers().Concat([v]).SelectMany(x => x.Entries).Where(e => e.Account == "2200/EV-MORNING").Sum(e => e.DebitPaise - e.CreditPaise);
+        Assert.Equal(-2_400_000, morning);
     }
 
-    [Fact(Skip = "waits for lane acc2-manual: ManualVoucherApproved → SourceRules.Manual (acc.manual_voucher / acc.manual_line, migrations 4238–4241). Intended: T14a Contra (CTR/20260427/001, sub contra) Dr 1030/BA-HDFC 21,300,000 · Cr 1010; T14b Journal Dr 1030/BA-HDFC 14,823,000 · Dr 5080 177,000 · Cr 1020 15,000,000 (the MDR line is not a cash / bank ledger, so not a Contra); T16 Payment (owner-drawing-bank) Dr 3000 5,000,000 · Cr 1030/BA-HDFC; T17 Payment (loan-emi) Dr 2400/LN-HDFC 4,000,000 · Dr 5090 1,500,000 · Cr 1030/BA-HDFC 5,500,000; T18 Payment (bank-charges) Dr 5080 59,000 · Cr 1030/BA-HDFC; a pending Accountant voucher posts nothing until the Owner approves; a locked day takes a reversing voucher")]
+    [Fact]
     [Trait("Lane", "acc2-manual")]
     public void T14_T16_T17_T18_manual_vouchers_post_their_template_entries()
     {
+        // T14a Contra (CTR/20260427/001, sub contra); T14b Journal (the MDR line is not a cash / bank ledger: coordinator ruling 1, rulebook B8 amended);
+        // T16 owner drawing, T17 loan EMI (2400/LN-HDFC), T18 bank charges = Payments. (Pending / approval / void on a locked day: ManualVoucherSqlTests.)
+        var both = Build([.. Waiting("T14a"), .. Waiting("T14b")]);
+        var contra = both.Single(v => v.SourceKey == "manual:1");
+        var mdr = both.Single(v => v.SourceKey == "manual:2");
+        Assert.Equal(("CTR/20260427/001", VoucherType.Contra, "contra"), (contra.Number, contra.Type, contra.Sub));
+        Assert.Equal((VoucherType.Journal, "journal"), (mdr.Type, mdr.Sub));
+        AssertStepEntries("T14a", [contra]);
+        AssertStepEntries("T14b", [mdr]);
+        foreach (var (step, template) in new[] { ("T16", "owner-drawing-bank"), ("T17", "loan-emi"), ("T18", "bank-charges") })
+        {
+            var v = Assert.Single(Build(Waiting(step)));
+            Assert.Equal((VoucherType.Payment, template), (v.Type, v.Sub));
+            AssertStepEntries(step, [v]);
+        }
+
+        // the HDFC loan after the EMI principal: 20,00,000 − 40,000 = 19,60,000 Cr
+        Assert.Equal(-196_000_000L, PartyVouchers().Concat(Build(Waiting("T17"))).SelectMany(v => v.Entries).Where(e => e.Account == "2400/LN-HDFC").Sum(e => e.DebitPaise - e.CreditPaise));
     }
 
-    [Fact(Skip = "waits for lane acc2-flows: OtaPayoutRecorded → SourceRules.OtaPayout (ota.payout, migrations 4250–4254), source kind 'ota'. Intended (rulebook T19, 29 Apr): Receipt Dr 1030/BA-HDFC 1,736,000 · Dr 5070 354,000 · Dr 1340 10,000 · Cr 1115/CHN-GOIBIBO 2,100,000 (gross = net + commission + GST + TCS); refused when it does not add up or exceeds the open receivable")]
+    [Fact]
     [Trait("Lane", "acc2-flows")]
     public void T19_ota_payout_from_the_statement()
     {
+        // Rulebook T19, 29 Apr: Receipt Dr 1030/BA-HDFC 17,360 · Dr 5070 3,540 · Dr 1340 100 · Cr 1115/CHN-GOIBIBO 21,000.
+        var v = Assert.Single(Build(Waiting("T19")));
+        Assert.Equal((VoucherType.Receipt, "ota-payout", "ota-payout:1"), (v.Type, v.Sub, v.SourceKey));
+        AssertStepEntries("T19", [v]);
+        var p = WaitingPayload("T19");
+        Assert.Null(Hcc.Domain.Ota.OtaPayoutRules.Problem(S(p, "statementRef"), L(p, "grossPaise"), L(p, "commissionPaise"), L(p, "commissionGstPaise"), L(p, "tcsPaise"), L(p, "netPaise")));
+        Assert.StartsWith("Gross ", Hcc.Domain.Ota.OtaPayoutRules.Problem(S(p, "statementRef"), L(p, "grossPaise"), L(p, "commissionPaise"), L(p, "commissionGstPaise"),
+            L(p, "tcsPaise"), L(p, "netPaise") - 100), StringComparison.Ordinal);   // does not add up
+        Assert.Contains("open receivable", Hcc.Domain.Ota.OtaPayoutRules.OverReceivable("Goibibo", 2_100_000, 1_000_000), StringComparison.Ordinal);
     }
 
-    [Fact(Skip = "waits for lanes acc2-gst + acc2-manual: GstSetOff (six hand-worked cases incl. the §8.6 month), acc.gst_setoff / acc.month_lock (migrations 4246–4249), template gst-payment. Intended (rulebook §8.6, in May): set-off Journal Dr 2110 1,450,000 · Dr 2120 1,450,000 · Cr 1340 2,900,000, then Dr 1340 2,890,000 · Cr 1030/BA-HDFC 2,890,000 (challan ₹28,900); month lock refused until the set-off is posted and no manual voucher is pending")]
+    [Fact]
     [Trait("Lane", "acc2-gst")]
     public void GST_set_off_and_the_month_lock_for_April()
     {
+        // Rulebook §8.6 (in May): April's output 14,500 + 14,500, the TCS 100 in 1340 → challan ₹28,900; after the challan (Dr 1340 28,900) the set-off
+        // Journal Dr 2110 14,500 · Dr 2120 14,500 · Cr 1340 29,000. (Month lock refused until the set-off is posted / no pending voucher: GstMonthSqlTests.)
+        var full = FullMonthVouchers();
+        var april = GstMonthRules.Compute("2026-04", full, []);
+        var gst = Root.GetProperty("expected").GetProperty("gst86");
+        Assert.Equal((L(gst, "cgst"), L(gst, "sgst"), L(gst, "igst")), (april.Output.Cgst, april.Output.Sgst, april.Output.Igst));
+        Assert.Equal((L(gst, "tcs"), L(gst, "challan")), (april.Tcs, april.Setoff.Challan));
+        // the challan paid in May (template gst-payment: Dr 1340 · Cr 1030/BA-HDFC), then the set-off uses the whole 1340 balance
+        var challan = SourceRules.Manual(SourceRules.ManualKey(90), Date("2026-05-10"), VoucherType.Payment, "gst-payment", "GST paid for 2026-04 · challan CIN-DEMO",
+            [("1340", april.Setoff.Challan, 0L), ("1030/BA-HDFC", 0L, april.Setoff.Challan)]);
+        var withChallan = full.Concat(Build([challan])).ToList();
+        var after = GstMonthRules.Compute("2026-04", withChallan, []);
+        Assert.Equal(0, after.Setoff.Challan);
+        var journal = SourceRules.GstSetoff("gst-setoff:2026-04@2026-05-10", Date("2026-05-10"), after.Setoff, "GST set-off 2026-04");
+        var jv = Assert.Single(Build([journal]));
+        Assert.Equal(VoucherType.Journal, jv.Type);
+        Assert.Equal([("1340", 0L, L(gst, "cashLedgerAfterSetoff")), ("2110", L(gst, "cgst"), 0L), ("2120", L(gst, "sgst"), 0L)],
+            jv.Entries.Select(e => (e.Account, e.DebitPaise, e.CreditPaise)).OrderBy(x => x.Account, StringComparer.Ordinal));
+        // after the set-off 2110 / 2120 / 1340 are nil
+        var bal = Balances(withChallan.Concat([jv]));
+        Assert.False(bal.ContainsKey("2110") || bal.ContainsKey("2120") || bal.ContainsKey("1340"));
     }
 
-    [Fact(Skip = "waits for the lanes above: the full month from the engine only — every one of the 26 steps through events / commands, cumulative trial balance at 30 April = expected.full (₹84,27,500 both sides, 1360 TDS receivable 6,000, 1340 GST cash ledger 100, 2400/LN-HDFC 19,60,000 Cr, 1030/BA-HDFC 5,01,500 Dr, Morning 24,000 Cr, Kaveri 42,000 Cr), profit ₹1,40,400, six-column TB balanced. Replaces the stand-in test above once T11 T14 T16-T19 exist")]
+    /// <summary>The whole month through the engine: the §8.1 opening, the 19 driven steps and the 7 waiting steps, all on party ledgers.</summary>
+    internal static IReadOnlyList<Voucher> FullMonthVouchers()
+    {
+        var sources = PartySources().Concat(Root.GetProperty("waiting").GetProperty("steps").EnumerateArray().SelectMany(s => Waiting(s.GetString()!))).ToList();
+        return [PartyOpeningVoucher(), .. Build(sources)];
+    }
+
+    [Fact]
     [Trait("Lane", "acc2")]
     public void The_full_month_from_the_engine_only()
     {
+        // Every one of the 26 steps through the production mappers: the trial balance at 30 April = expected.full (₹84,27,500 both sides, 1360 TDS receivable 6,000,
+        // 1340 GST cash ledger 100, 2400/LN-HDFC 19,60,000 Cr, 1030/BA-HDFC 5,01,500 Dr, Morning 24,000 Cr, Kaveri 42,000 Cr), profit ₹1,40,400, six-column TB balanced.
+        var vouchers = FullMonthVouchers();
+        Assert.All(vouchers, v => Assert.True(v.Balanced, v.Number));
+        Assert.Empty(vouchers.SelectMany(v => v.Unmapped));
+        var got = Balances(vouchers);
+        Assert.Equal(Expected("full", "control"), got);
+        Assert.Equal(842_750_000, got.Values.Where(v => v > 0).Sum());
+        Assert.False(got.ContainsKey(ChartOfAccounts.Suspense));
+        var by = new SortedDictionary<string, long>(StringComparer.Ordinal);
+        foreach (var e in vouchers.SelectMany(v => v.Entries)) by[e.Account] = by.GetValueOrDefault(e.Account) + e.DebitPaise - e.CreditPaise;
+        foreach (var (ledger, want) in Expected("full", "party")) Assert.True(want == by.GetValueOrDefault(ServerLedger(ledger)), $"{ledger}: {by.GetValueOrDefault(ServerLedger(ledger))} ≠ {want}");
+        Assert.Equal(14_040_000, -got.Where(x => x.Key[0] is '4' or '5').Sum(x => x.Value));   // §8.4 profit ₹1,40,400
+        var (from, to) = (new DateOnly(2026, 4, 1), new DateOnly(2026, 4, 30));
+        var (opening, period) = AccountingReports.Split(vouchers, from, to);
+        foreach (var detail in new[] { false, true })
+        {
+            var tb = AccountingReports.TrialBalance6(from, to, detail, opening, period, openingPending: false);
+            Assert.True(tb.Balanced, "detail " + detail);
+            Assert.Equal(tb.Totals.ClosingDebitPaise, tb.Totals.ClosingCreditPaise);
+        }
     }
 }

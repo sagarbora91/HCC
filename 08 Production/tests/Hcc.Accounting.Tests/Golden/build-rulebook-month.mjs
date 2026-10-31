@@ -2,7 +2,7 @@
 // as the server's events plus the expectations worked out from the rulebook (shared with the prototype: 03 Prototype/tests/_rulebook-month.mjs).
 // 19 steps have events today (existing event types; ACC-2 adds kinds / fields: receipt kinds `ota-credit` `deposit-apply` `deposit`, `tdsPaise` on a company payment,
 // charge kind `food`, per-staff `advanceRecoveries` on the pay run); 7 steps (T11 T14a T14b T16 T17 T18 T19) wait for a server command / event of an ACC-2 lane and are
-// listed in `waiting` with the intended event payloads in `acc2Events` (data only: the C# tests skip them with a reason).
+// listed in `waiting` with their event payloads (since the ACC-2 integration the C# tests drive them through the lanes' production mappers / outbox consumer).
 // Run: node "08 Production/tests/Hcc.Accounting.Tests/Golden/build-rulebook-month.mjs"   (no build needed; money in paise)
 import {writeFileSync} from 'node:fs';
 import {fileURLToPath,pathToFileURL} from 'node:url';
