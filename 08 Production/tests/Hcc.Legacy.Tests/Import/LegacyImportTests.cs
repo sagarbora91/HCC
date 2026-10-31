@@ -205,6 +205,42 @@ public sealed class LegacyImportSqlTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Over_long_soft_text_is_truncated_and_counted_key_text_is_refused()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var bills = Path.Combine(_w.Folder, "lgc_bill.csv");
+        var text = await File.ReadAllTextAsync(bills, ct);
+        var longRoom = new string('R', 103);
+        await File.WriteAllTextAsync(bills, text.Replace("2025-06-03T05:30:00Z,101,", "2025-06-03T05:30:00Z," + longRoom + ",", StringComparison.Ordinal), ct);
+        var r = (await _w.RunAsync(_w.Request(false, null, "history"))).Value;
+        Assert.Contains("lgc_bill.csv: 1 room_no value truncated", r.Warnings);
+        Assert.All(r.History!.PerFy, y => Assert.True(y.Reconciliation.Match));
+        Assert.Equal(new string('R', 20), await _w.ScalarAsync($"SELECT room_no FROM lgc.bill WHERE property_id = {P} AND legacy_fy = '2025-26' AND legacy_bill_no = 1"));
+
+        var stays = Path.Combine(_w.Folder, "lgc_stay.csv");
+        var st = await File.ReadAllTextAsync(stays, ct);
+        await File.WriteAllTextAsync(stays, st.Replace("2025-26,2,103,9876500002,", "2025-26,2,103," + new string('9', 96) + ",", StringComparison.Ordinal), ct);
+        var ex = await Assert.ThrowsAsync<HccException>(() => _w.RunAsync(_w.Request(true, null, "history")));
+        Assert.Equal(HccErrorCode.VALIDATION, ex.Code);
+        Assert.Contains("lgc_stay.csv row 3: 'customer_key' is 96 characters", ex.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_database_length_error_becomes_a_validation_naming_the_table()
+    {
+        var store = new Hcc.Infrastructure.SqlServer.Legacy.SqlLegacyStore(_w.Platform.Connections);
+        var row = new LgcGuestMapRow(1, null, new string('9', 96), null, false, "X", "x", false, "2026-27");
+        var ex = await Assert.ThrowsAsync<HccException>(() => _w.Platform.Commands.RunAsync(_w.Ctx("owner"), new { t = 1 }, async (tx, c) =>
+        {
+            await store.ReplaceGuestMapAsync(tx, _w.PropertyId, [row], c);
+            await tx.AuditAsync("t", "t", "t", c);
+            return new { ok = true };
+        }, TestContext.Current.CancellationToken));
+        Assert.Equal(HccErrorCode.VALIDATION, ex.Code);
+        Assert.Contains("lgc.guest_map (guest map)", ex.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task Unc_folder_is_refused()
     {
         var ex = await Assert.ThrowsAsync<HccException>(() => _w.RunAsync(new Hcc.Contracts.Legacy.LegacyImportRequest(@"\\pc\share\run", ["history"], true)));

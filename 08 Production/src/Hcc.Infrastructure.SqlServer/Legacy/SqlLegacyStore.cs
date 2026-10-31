@@ -95,7 +95,7 @@ public sealed class SqlLegacyStore(SqlConnectionFactory connections) : ILegacySt
         return (int)(await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false))! == 1;
     }
 
-    private static async Task BulkAsync(ICommandTransaction tx, string table, DataTable data, CancellationToken ct)
+    private static async Task BulkAsync(ICommandTransaction tx, string table, string batch, DataTable data, CancellationToken ct)
     {
         if (data.Rows.Count == 0) return;
         var t = Sql(tx);
@@ -106,7 +106,15 @@ public sealed class SqlLegacyStore(SqlConnectionFactory connections) : ILegacySt
             BatchSize = 5000,
         };
         foreach (DataColumn c in data.Columns) bulk.ColumnMappings.Add(c.ColumnName, c.ColumnName);
-        await bulk.WriteToServerAsync(data, ct).ConfigureAwait(false);
+        try
+        {
+            await bulk.WriteToServerAsync(data, ct).ConfigureAwait(false);
+        }
+        catch (SqlException e) when (e.Number is 4815 or 8152 or 2628)
+        {
+            // LG-R15: a value longer than its column is a data problem of the run folder, not an outage.
+            throw HccException.Validation($"{table} ({batch}): the database refused a value longer than its column (SQL {e.Number.ToString(CultureInfo.InvariantCulture)}). Fix the extractor output; nothing was imported.");
+        }
     }
 
     private static DataTable Table(params (string Name, Type Type)[] columns)
@@ -129,7 +137,7 @@ public sealed class SqlLegacyStore(SqlConnectionFactory connections) : ILegacySt
             ("phone_valid", typeof(bool)), ("name_snapshot", typeof(string)), ("name_fold", typeof(string)), ("deleted", typeof(bool)), ("source_fy", typeof(string)));
         foreach (var r in rows)
             t.Rows.Add(propertyId, r.LegacyGuestId, Db(r.GuestId), r.CustomerKey, Db(r.PhoneKey), r.PhoneValid, r.NameSnapshot, r.NameFold, r.Deleted, r.SourceFy);
-        await BulkAsync(tx, "lgc.guest_map", t, ct).ConfigureAwait(false);
+        await BulkAsync(tx, "lgc.guest_map", "guest map", t, ct).ConfigureAwait(false);
     }
 
     private static void CheckName(string name)
@@ -177,7 +185,7 @@ public sealed class SqlLegacyStore(SqlConnectionFactory connections) : ILegacySt
             st.Rows.Add(propertyId, s.Fy, s.LegacyBookingId, s.LegacyGuestId, s.CustomerKey, s.GuestNameSnapshot, s.ArrivalDate.ToDateTime(TimeOnly.MinValue), s.ArrivalUtc,
                 Db(s.DepartureDate), Db(s.DepartureUtc), Db(s.ExpectedDepartureDate), s.Nights, s.Adults, s.Children, s.RoomNo, s.RoomCount, Db(s.MealPlan), Db(s.GrcNo),
                 Db(s.Purpose), Db(s.SourceTag), s.Status, Db(s.PaidFlag), Db(s.LegacyBillNo), Db(s.Notes));
-        await BulkAsync(tx, "lgc.stay", st, ct).ConfigureAwait(false);
+        await BulkAsync(tx, "lgc.stay", "FY " + data.Fy, st, ct).ConfigureAwait(false);
         var stayIds = await IdsAsync(tx, "SELECT legacy_booking_id, stay_id FROM lgc.stay WHERE property_id = @p AND legacy_fy = @fy;", propertyId, data.Fy, ct).ConfigureAwait(false);
 
         var unresolvedStay = 0;
@@ -194,7 +202,7 @@ public sealed class SqlLegacyStore(SqlConnectionFactory connections) : ILegacySt
             sg.Rows.Add(sid, checked((short)g.Seq), g.RoomNo, Db(g.RoomTypeCode), Db(g.FromDate), Db(g.ToDate), Db(g.Adults), Db(g.Children), Db(g.RatePaise), Db(g.ExtraPaise), g.Kind);
         }
 
-        await BulkAsync(tx, "lgc.room_segment", sg, ct).ConfigureAwait(false);
+        await BulkAsync(tx, "lgc.room_segment", "FY " + data.Fy, sg, ct).ConfigureAwait(false);
 
         object StayRef(long? booking)
         {
@@ -214,7 +222,7 @@ public sealed class SqlLegacyStore(SqlConnectionFactory connections) : ILegacySt
             bl.Rows.Add(propertyId, b.Fy, b.LegacyBillNo, b.LegacyTransactionId, StayRef(b.StayBookingId), Db(b.LegacyGuestId), Db(b.CustomerKey), b.BillDate.ToDateTime(TimeOnly.MinValue),
                 b.BillUtc, b.RoomNo, Db(b.Nights), b.RoomChargePaise, b.ExtraPaise, b.FbPaise, b.LaundryPaise, b.OtherPaise, b.DiscountPaise, b.RoomGstBps, b.RoomGstPaise, b.FbGstPaise,
                 b.LaundryGstPaise, b.OtherGstPaise, b.AdvancePaise, b.NetPaise, b.BalancePaise, b.RefundPaise, b.DataFlag, b.PaidFlag, Db(b.GstinSnapshot), b.B2b, b.OutOfFy, Db(b.Notes));
-        await BulkAsync(tx, "lgc.bill", bl, ct).ConfigureAwait(false);
+        await BulkAsync(tx, "lgc.bill", "FY " + data.Fy, bl, ct).ConfigureAwait(false);
         var billIds = await IdsAsync(tx, "SELECT legacy_bill_no, bill_id FROM lgc.bill WHERE property_id = @p AND legacy_fy = @fy;", propertyId, data.Fy, ct).ConfigureAwait(false);
 
         var unresolvedBill = 0;
@@ -234,7 +242,7 @@ public sealed class SqlLegacyStore(SqlConnectionFactory connections) : ILegacySt
                 r.ReceivedUtc, r.Kind, r.Method, r.AmountPaise, Db(r.Reference), Db(r.BankName), Db(r.Notes));
         }
 
-        await BulkAsync(tx, "lgc.receipt", rc, ct).ConfigureAwait(false);
+        await BulkAsync(tx, "lgc.receipt", "FY " + data.Fy, rc, ct).ConfigureAwait(false);
         return new LgcFyWritten(st.Rows.Count, sg.Rows.Count, bl.Rows.Count, rc.Rows.Count, unresolvedStay, unresolvedBill);
     }
 

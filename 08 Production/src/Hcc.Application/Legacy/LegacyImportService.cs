@@ -235,7 +235,7 @@ public sealed class LegacyImportService(
         LegacyCsv Required(string name) => Optional(name) ?? throw HccException.Validation($"The run folder has no {name}.");
 
         var needMap = parts.Contains(LegacyRules.Guests) || parts.Contains(LegacyRules.History);
-        var map = needMap ? ReadGuestMap(Required("lgc_guest_map.csv")) : [];
+        var map = needMap ? ReadGuestMap(Bounded(Required("lgc_guest_map.csv"), warnings)) : [];
         var tags = new List<(string, string)>();
         var secrets = new Dictionary<long, SecretEntry>();
         string? secretPath = null;
@@ -256,7 +256,8 @@ public sealed class LegacyImportService(
         }
 
         var years = new List<LgcFyData>();
-        if (parts.Contains(LegacyRules.History)) years = ReadYears(Required("lgc_stay.csv"), Required("lgc_room_segment.csv"), Required("lgc_bill.csv"), Required("lgc_receipt.csv"));
+        if (parts.Contains(LegacyRules.History)) years = ReadYears(Bounded(Required("lgc_stay.csv"), warnings), Bounded(Required("lgc_room_segment.csv"), warnings),
+                Bounded(Required("lgc_bill.csv"), warnings), Bounded(Required("lgc_receipt.csv"), warnings));
 
         LegacyCsv? receivables = null, opening = null, advances = null;
         var inhouse = 0;
@@ -269,6 +270,58 @@ public sealed class LegacyImportService(
         }
 
         return new Prepared(folder, parts, totals, version, sha, map, tags, secrets, secretPath, years, receivables, opening, advances, inhouse, warnings);
+    }
+
+    /// <summary>
+    /// LG-R15: the bounded text columns of each lgc_* file with the contract §3 lengths. Soft = free text that is cut to the column length (counted in
+    /// warnings); otherwise a key column, where a longer value is a VALIDATION error naming file, row and column (nothing is written).
+    /// </summary>
+    public static readonly IReadOnlyDictionary<string, IReadOnlyDictionary<string, (int Max, bool Soft)>> Bounds = new Dictionary<string, IReadOnlyDictionary<string, (int, bool)>>(StringComparer.OrdinalIgnoreCase)
+    {
+        ["lgc_guest_map.csv"] = new Dictionary<string, (int, bool)> { ["customer_key"] = (80, false), ["phone_key"] = (10, false), ["source_fy"] = (7, false), ["name_snapshot"] = (200, true), ["name_fold"] = (200, true) },
+        ["lgc_stay.csv"] = new Dictionary<string, (int, bool)>
+        {
+            ["legacy_fy"] = (7, false), ["customer_key"] = (80, false), ["room_no"] = (20, false), ["meal_plan"] = (4, false), ["source_tag"] = (30, false), ["status"] = (16, false),
+            ["paid_flag"] = (1, false), ["guest_name_snapshot"] = (200, true), ["purpose"] = (100, true), ["notes"] = (1000, true),
+        },
+        ["lgc_room_segment.csv"] = new Dictionary<string, (int, bool)> { ["room_no"] = (20, false), ["room_type_code"] = (10, false), ["kind"] = (8, false) },
+        ["lgc_bill.csv"] = new Dictionary<string, (int, bool)>
+        {
+            ["legacy_fy"] = (7, false), ["customer_key"] = (80, false), ["data_flag"] = (1, false), ["paid_flag"] = (1, false), ["room_no"] = (20, true), ["gstin_snapshot"] = (15, true),
+            ["notes"] = (500, true),
+        },
+        ["lgc_receipt.csv"] = new Dictionary<string, (int, bool)>
+        {
+            ["legacy_fy"] = (7, false), ["legacy_source"] = (8, false), ["customer_key"] = (80, false), ["kind"] = (8, false), ["method"] = (6, false), ["reference"] = (100, true),
+            ["bank_name"] = (100, true), ["notes"] = (300, true),
+        },
+    };
+
+    /// <summary>LG-R15: checks / truncates the bounded columns of a file in place (see <see cref="Bounds"/>), before any row is converted or written.</summary>
+    public static LegacyCsv Bounded(LegacyCsv f, List<string> warnings)
+    {
+        ArgumentNullException.ThrowIfNull(f);
+        ArgumentNullException.ThrowIfNull(warnings);
+        if (!Bounds.TryGetValue(f.Name, out var spec)) return f;
+        var cut = new SortedDictionary<string, int>(StringComparer.Ordinal);
+        for (var c = 0; c < f.Header.Count; c++)
+        {
+            if (!spec.TryGetValue(f.Header[c], out var b)) continue;
+            for (var i = 0; i < f.Rows.Count; i++)
+            {
+                var row = f.Rows[i];
+                if (c >= row.Length) continue;
+                var v = row[c].Trim();
+                if (v.Length <= b.Max) continue;
+                if (!b.Soft)
+                    throw HccException.Validation($"{f.Name} row {(i + 2).ToString(CultureInfo.InvariantCulture)}: '{f.Header[c]}' is {v.Length} characters, longer than its column ({b.Max}). Fix the extractor output; nothing was imported.");
+                row[c] = v[..b.Max];
+                cut[f.Header[c]] = cut.GetValueOrDefault(f.Header[c]) + 1;
+            }
+        }
+
+        foreach (var (col, n) in cut) warnings.Add($"{f.Name}: {n} {col} value{(n == 1 ? "" : "s")} truncated");
+        return f;
     }
 
     private static List<LgcGuestMapRow> ReadGuestMap(LegacyCsv f)
