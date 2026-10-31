@@ -125,13 +125,13 @@ public sealed class LegacyImportService(
             throw;
         }
 
-        if (!done.Replayed && prep.Parts.Contains(LegacyRules.Guests) && prep.SecretPath is { } secret && File.Exists(secret))
+        if (!done.Replayed && prep.Parts.Contains(LegacyRules.Guests) && prep.SecretPath is { } secret && Path.GetDirectoryName(secret) is { } secretDir && Directory.Exists(secretDir))
         {
-            Shred(secret);
+            var files = ShredFolder(secretDir);
             await runner.RunAsync(ctx with { Operation = OpImport + ".shred", IdempotencyKey = key + "-shred" }, new { key }, async (tx, c) =>
             {
                 await tx.AuditAsync("legacy.secret_shredded", "lgc-run:" + done.Value.RunId.ToString(CultureInfo.InvariantCulture),
-                    $"secret\\{SecretFile} overwritten with zeros and deleted after the committed guests part ({prep.Secrets.Count} entries)", c).ConfigureAwait(false);
+                    $"secret\\ folder ({files} files: {SecretFile} with {prep.Secrets.Count} entries and the images) overwritten with zeros and deleted after the committed guests part (LG-R10)", c).ConfigureAwait(false);
                 return new { shredded = true };
             }, ct).ConfigureAwait(false);
         }
@@ -146,6 +146,20 @@ public sealed class LegacyImportService(
         return new LegacyRunList(rows.Select(r => new LegacyRunView(r.RunId, r.SourceFolder, r.ExtractorVersion, r.DryRun, r.Parts, Iso(r.StartedUtc),
             r.FinishedUtc is { } f ? Iso(f) : null, r.Status, r.RunBy,
             r.ResultJson is { } j ? JsonSerializer.Deserialize<LegacyImportResult>(j, CanonicalJson.SerializerOptions) : null)).ToList());
+    }
+
+    /// <summary>LG-R10: overwrites every file under <paramref name="folder"/> with zeros, deletes it, then deletes the folder. Returns the file count.</summary>
+    public static int ShredFolder(string folder)
+    {
+        var files = Directory.GetFiles(folder, "*", SearchOption.AllDirectories);
+        foreach (var f in files)
+        {
+            File.SetAttributes(f, FileAttributes.Normal);
+            Shred(f);
+        }
+
+        Directory.Delete(folder, true);
+        return files.Length;
     }
 
     /// <summary>Overwrites a file with zeros (same length), flushes it to disk, then deletes it.</summary>

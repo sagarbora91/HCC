@@ -130,6 +130,7 @@ public sealed class LegacyImportSqlTests : IAsyncLifetime
         Assert.Equal(1, await _w.CountAsync($"SELECT COUNT(*) FROM crm.customer_tag WHERE property_id = {P} AND tag = 'OTA:AGODA'"));
 
         Assert.False(File.Exists(_w.SecretPath));
+        Assert.False(Directory.Exists(Path.Combine(_w.Folder, "secret")), "LG-R10: the whole secret folder (images too) is shredded");
         Assert.Equal(1, await _w.CountAsync("SELECT COUNT(*) FROM plat.audit_event WHERE action = 'legacy.secret_shredded'"));
         Assert.Equal(1, await _w.CountAsync($"SELECT COUNT(*) FROM plat.audit_event WHERE action = 'legacy.import' AND target = 'lgc-run:{r.RunId}'"));
         Assert.Equal("Done", await _w.ScalarAsync($"SELECT status FROM lgc.import_run WHERE run_id = {r.RunId}"));
