@@ -266,6 +266,8 @@ export type State={
     /** ID document type, metadata only. */ idType:string;
     /** Last 4 characters of the ID number (derived from idNumber when present). */ idLast4:string;
     /** Full ID number (DEC-068, normalised upper-case, no spaces). Optional: profiles saved earlier have only idLast4. */ idNumber?:string;
+    /** W1a LG (DEC-162 Q4): date of birth yyyy-mm-dd, optional (no SCHEMA bump). */ dob?:string;
+    /** W1a LG: the old "Lodge" program's GuestID that produced this profile (set by the legacy importer only). */ legacyGuestId?:number;
     company?:string;gstin?:string;preferences:string;notes:string;
     party:{name:string;ageBand:string;relation:string}[];verified:boolean;
     /** seed = fixture, manual = GUEST_SAVE/REGISTER with details, auto = minimal demo profile from REGISTER {id}. */

@@ -55,7 +55,7 @@ public sealed class StaysCommands(ICommandRunner runner, IAccessPolicy policy, I
             if (req.Guest is not null)
             {
                 var draft = ToDraft(req.Guest);
-                var errors = GuestRules.Validate(draft, registration: true);
+                var errors = GuestRules.Validate(draft, registration: true, IstToday);
                 if (errors.Count > 0) throw HccException.Validation(GuestRules.Summary(errors));
                 var clean = GuestRules.Clean(draft);
                 var target = req.GuestId ?? linked;
@@ -82,7 +82,7 @@ public sealed class StaysCommands(ICommandRunner runner, IAccessPolicy policy, I
                 if (existing is null) throw HccException.Validation("Enter the guest’s registration details.");
                 var g = await store.LockGuestAsync(tx, ctx.PropertyId, existing.Value, c).ConfigureAwait(false)
                     ?? throw new HccException(HccErrorCode.NOT_FOUND, "Guest profile not found.");
-                var errors = GuestRules.Validate(g.Draft, registration: true);
+                var errors = GuestRules.Validate(g.Draft, registration: true, IstToday);
                 if (errors.Count > 0) throw HccException.Validation(GuestRules.Summary(errors));
                 if (!g.Verified) await store.UpdateGuestAsync(tx, g.GuestId, g.Version, g.Draft, verified: true, c).ConfigureAwait(false);
                 guestId = g.GuestId;
@@ -115,7 +115,7 @@ public sealed class StaysCommands(ICommandRunner runner, IAccessPolicy policy, I
         return await runner.RunAsync(ctx with { Operation = OpSaveGuestProfile }, hashed, async (tx, c) =>
         {
             var draft = ToDraft(req.Guest);
-            var errors = GuestRules.Validate(draft, registration: req.Verified);
+            var errors = GuestRules.Validate(draft, registration: req.Verified, IstToday);
             if (errors.Count > 0) throw HccException.Validation(GuestRules.Summary(errors));
             var clean = GuestRules.Clean(draft);
             long guestId;
@@ -215,7 +215,10 @@ public sealed class StaysCommands(ICommandRunner runner, IAccessPolicy policy, I
     }
 
     internal static GuestDraft ToDraft(GuestDraftDto d) => new(d.Name, d.Phone, d.Email, d.Address, d.Nationality, d.IdType, d.IdLast4,
-        d.Company, d.Gstin, d.Preferences, d.Notes, d.Party?.Select(p => new GuestPartyMember(p.Name, p.AgeBand, p.Relation)).ToList(), d.IdNumber);
+        d.Company, d.Gstin, d.Preferences, d.Notes, d.Party?.Select(p => new GuestPartyMember(p.Name, p.AgeBand, p.Relation)).ToList(), d.IdNumber, d.Dob);
+
+    /// <summary>The hotel's calendar date now (IST, fixed +05:30) for the date-of-birth check.</summary>
+    private DateOnly IstToday => DateOnly.FromDateTime(UtcNow.AddHours(5.5));
 
     private static string Target(string kind, long id) => kind + "-" + id.ToString(CultureInfo.InvariantCulture);
 }
@@ -264,6 +267,6 @@ public sealed class StaysQueries(IAccessPolicy policy, IStaysReadStore reads)
             (d.Party ?? []).Select(p => new GuestPartyDto(p.Name, p.AgeBand, p.Relation)).ToList(),
             g.Verified, !idDetails, VersionToken.ToWire(g.Version),
             idDetails ? Domain.GuestIds.GuestIdRules.Mask(d.IdLast4) : GuestRules.Restricted,
-            g.IdOnFile, idDetails && g.IdOnFile, d.Preferences, d.Notes, g.Origin);
+            g.IdOnFile, idDetails && g.IdOnFile, d.Preferences, d.Notes, g.Origin, contact ? d.Dob : null, g.LegacyGuestId);
     }
 }

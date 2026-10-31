@@ -32,6 +32,9 @@ public sealed record CrmMerge(long MergeId, string SourceKey, string TargetKey, 
 /// <summary>Per-customer data owned by this module.</summary>
 public sealed record CrmOverlay(IReadOnlyList<string> Tags, IReadOnlyList<CrmNote> Notes, CrmPref? Pref, IReadOnlyList<string> MergedFrom);
 
+/// <summary>One row of lgc.v_customer_stay (W1a LG, contract §9): an old-program stay, never a Duplicate copy.</summary>
+public sealed record CrmLegacyStay(long StayId, string LegacyFy, long LegacyBookingId, int? LegacyBillNo, DateOnly Arrival, DateOnly? Departure, int Nights, string Room, int RoomCount, string Status, long? NetPaise);
+
 public interface ICustomerReadStore
 {
     Task<CrmSource> LoadAsync(int propertyId, CancellationToken ct = default);
@@ -42,6 +45,12 @@ public interface ICustomerReadStore
     Task<IReadOnlyDictionary<string, IReadOnlyList<string>>> TagsAsync(int propertyId, CancellationToken ct = default);
 
     Task<IReadOnlyList<CrmMerge>> MergesAsync(int propertyId, string? status, CancellationToken ct = default);
+
+    /// <summary>LG §9: the legacy stays of one customer key (lgc.v_customer_stay), newest arrival first.</summary>
+    Task<IReadOnlyList<CrmLegacyStay>> LegacyStaysAsync(int propertyId, string customerKey, CancellationToken ct = default);
+
+    /// <summary>LG §9: per customer key of <paramref name="keys"/> that has legacy stays: count, nights, Σ net paise, first and last arrival.</summary>
+    Task<IReadOnlyDictionary<string, (int Stays, int Nights, long NetPaise, DateOnly First, DateOnly Last)>> LegacyRollupAsync(int propertyId, IEnumerable<string> keys, CancellationToken ct = default);
 }
 
 /// <summary>Write side, inside the command transaction (locked check-then-insert).</summary>
