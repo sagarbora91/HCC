@@ -97,8 +97,6 @@ public sealed partial class LegacyImportWorld : IAsyncDisposable
         try
         {
             await w.Platform.Migrations.MigrateAsync(ct);
-            if (await w.ScalarAsync("SELECT SCHEMA_ID('lgc');") is DBNull or null)
-                foreach (var batch in ContractSchemaStub.Batches) await w.ExecAsync(batch);
             await w.SeedAsync(ct);
             return w;
         }

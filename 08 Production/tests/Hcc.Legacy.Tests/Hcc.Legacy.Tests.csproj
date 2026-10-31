@@ -1,6 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <!-- W1a LG legacy data tests. PROVISIONAL project file written by lane lg-import while lg-schema's had not landed: on merge keep lg-schema's
-       csproj and add the Fixtures item below to it. Folders: Sql/ (lg-schema), Import/ (lg-import), Golden/ (lg-tests), Audit/ (lg-audit). -->
+  <!-- W1a LG legacy data tests (LG-HISTORY-CONTRACT §11): Sql/ (lg-schema), Import/ (lg-import), Golden/ (lg-tests), Audit/ (lg-audit); disposable HccTest_* databases. -->
   <PropertyGroup>
     <RootNamespace>Hcc.Legacy.Tests</RootNamespace>
     <OutputType>Exe</OutputType>
