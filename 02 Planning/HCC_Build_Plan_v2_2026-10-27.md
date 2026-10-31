@@ -35,6 +35,7 @@ ETP shipped eleven releases in October with Claude agents by one method (`E:\ETP
 | W1 | **ACC-1 Chart and parties** | `claude/acc1` | Fable design · Opus 4 · Sonnet 2 | 6 | 4200–4229 | rulebook §8 golden month (opening + ledgers + six-column TB) |
 | W1a | **LG Legacy data** (old "Lodge" software, DEC-161…164) | `claude/lg` | Fable design · Opus 2 · Sonnet 3 | 5 | 4600–4619 | dry run against the June 2026 backups reconciles per FY (bills, room GST, receipts); 20 known guests reviewed by the Owner |
 | W2 | **ACC-2 Purchases, manual vouchers, GST, TDS** | `claude/acc2` | Opus 5 · Sonnet 2 | 7 | 4230–4259 | golden month complete; oracle run in ERPNext / GNUKhata |
+| W2a | **FIT Fit-to-screen desktop / tablet layout** (DEC-165…167, added 1 Nov 2026) | `claude/fit` | Opus 3 (shell, people lane, integrator) · Sonnet 7 | 2 + 7 | — | `tools/fit-screen-check.mjs`: no page scroll at five viewports × nine roles × every page and sub-screen; fonts equal the baseline except the 22 px heading; phone layout unchanged |
 | W3 | **ACC-3 P&L, ageing, exports, Tally XML** | `claude/acc3` | Fable (Tally format) · Opus 2 · Sonnet 3 | 5 | 4260–4279 | Tally import of the golden month into a fresh Tally company |
 | W4 | **ACC-4 Year lock, bank reconciliation** | `claude/acc4` | Opus 2 · Sonnet 1 | 3 | 4280–4299 | statement-import fixture reconciles to zero |
 | W5 | **HB Hall booking (module 27)** | `claude/hb` | Fable spec → owner approval → Opus 3 · Sonnet 3 | 6 | 4300–4349 | banquet golden event: enquiry → quote → advance → event bill → accounting |
@@ -44,6 +45,8 @@ ETP shipped eleven releases in October with Claude agents by one method (`E:\ETP
 | W9 | **FINAL Release pipeline** | `claude/release-1.0` | Fable · Opus 2 · Sonnet 2 · **Owner** | 4 + owner sessions | — | ETP gate chain → `HCC-Setup-1.0.0-x64.exe` with SQL bootstrap; VM stage; hotel PC |
 
 Rough wall-clock on this PC, one wave at a time: W0 1 day (after the tablet results) · W1–W4 5–6 days · W1a 2 days · W5 2 days (+ a day for the spec and your approval) · W6 1 day · W7 2 days · W8 3–4 days · W9 2–3 days plus the owner's sessions. About three to four working weeks of agent time if nothing waits on a decision.
+
+**W2a FIT (1 Nov 2026):** runs after W2 ACC-2 and W1a LG are on `main` (it touches every desktop page) and **before W0 APK v18**, so the tablet test sees the new layout. Contract `02 Planning/agents/FIT-LAYOUT-CONTRACT.md`, briefs `FIT_Briefs.md`; the "before" measurement is `05 Delivery Evidence/Fit/fit-check-before-*.md`. About two days on this PC.
 
 **What can overlap:** W0 is one lane and may run beside W1. The HB spec (W5, Fable only, no agents) is written while W2–W4 run, so your approval is in hand before its lanes start. W1a may run any time after W1 and before W8 (its cut-over evening is an owner session in W9); its extractor lane only reads the compacted MDBs and may run beside an ACC wave when RAM allows. Nothing else overlaps: one wave's batch at a time on this PC.
 
