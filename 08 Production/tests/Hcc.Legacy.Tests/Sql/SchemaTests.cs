@@ -23,8 +23,8 @@ public class SchemaTests : IAsyncLifetime
     private string Stay(string fy, long booking, string key, string arrival, string? departure, int nights, string status, int? billNo = null) => $"""
         INSERT lgc.stay(property_id, legacy_fy, legacy_booking_id, legacy_guest_id, customer_key, guest_name_snapshot, arrival_date, arrival_utc, departure_date, departure_utc,
                         nights, adults, children, room_no, room_count, status, legacy_bill_no)
-        VALUES ({P}, '{fy}', {booking}, 7001, '{key}', N'Test Guest', '{arrival}', DATEADD(MINUTE, -330, CAST('{arrival}T12:00' AS DATETIME2(0))),
-                {(departure is null ? "NULL, NULL" : $"'{departure}', DATEADD(MINUTE, -330, CAST('{departure}T10:00' AS DATETIME2(0)))")},
+        VALUES ({P}, '{fy}', {booking}, 7001, '{key}', N'Test Guest', '{arrival}', DATEADD(MINUTE, -330, CAST('{arrival}T12:00:00' AS DATETIME2(0))),
+                {(departure is null ? "NULL, NULL" : $"'{departure}', DATEADD(MINUTE, -330, CAST('{departure}T10:00:00' AS DATETIME2(0)))")},
                 {nights}, 2, 0, '101', 1, '{status}', {(billNo is null ? "NULL" : billNo.Value.ToString(System.Globalization.CultureInfo.InvariantCulture))});
         """;
 
