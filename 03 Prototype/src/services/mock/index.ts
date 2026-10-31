@@ -60,3 +60,6 @@ export * from '../../domain/streams/people-masters'; // MA-6
 export * from '../../domain/streams/hkmasters';
 export * from '../../domain/streams/gsvmasters';
 export * from '../../fixtures/ext/masters-seed'; // MA-9 one masters seed
+// LG
+export {LEGACY_SAMPLE} from '../../fixtures/ext/legacy-sample'; // W1a LG: fictional legacy stays (stream-legacy-golden.mjs)
+// LG end

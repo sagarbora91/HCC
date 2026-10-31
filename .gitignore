@@ -40,3 +40,7 @@ worktrees/
 *.ldb
 LG-EXTRACT/
 tools/legacy/.runs/
+
+# W1a LG: python bytecode of the legacy extractor
+tools/legacy/__pycache__/
+tools/legacy/**/__pycache__/

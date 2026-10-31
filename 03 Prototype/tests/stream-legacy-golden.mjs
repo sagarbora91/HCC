@@ -1,6 +1,5 @@
 // LG-TESTS · Customers 360 legacy rollups, hand-computed (contract §9). Names prefixed [LG-TESTS].
-// Written against the contract shape because lg-ui's src/fixtures/ext/legacy-sample.ts / customers.ts changes had not landed when this lane ran:
-// the test uses M.LEGACY_SAMPLE (+ M.legacyRollup if lg-ui exports them) and otherwise checks the contract formulas on an inline hand-made list.
+// The contract formulas on an inline hand-made list, and lg-ui's real src/fixtures/ext/legacy-sample.ts (M.LEGACY_SAMPLE, exported by the integrator).
 export function register({test,M,assert}){
   // Three fictional legacy stays: nights 2 + 3 + 1 = 6; net 498000 + 1144000 paise (third stay has none).
   const stays=[
@@ -19,9 +18,9 @@ export function register({test,M,assert}){
   test('[LG-TESTS] a legacy stay without net adds nothing to lifetime and the badge rows carry no folio link',()=>{
     assert.equal(roll({nights:0,lifetime:0,first:null},[stays[2]]).lifetime,0);
     for(const x of stays) assert.ok(!('folioId' in x)&&!('bookingRef' in x));});
-  test('[LG-TESTS] lg-ui sample (when exported) obeys the same formulas',()=>{
+  test('[LG-TESTS] lg-ui sample obeys the same formulas',()=>{
     const sample=M.LEGACY_SAMPLE;
-    if(!sample){return;} // not exported yet: see DONE file
+    assert.ok(sample,'LEGACY_SAMPLE exported from services/mock');
     const list=Array.isArray(sample)?sample:Object.values(sample).flat();
     assert.ok(list.length>=6);
     for(const x of list){assert.ok(x.nights>=1);assert.ok(x.arrival);assert.ok(!('folioId' in x));}});

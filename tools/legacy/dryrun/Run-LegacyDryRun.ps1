@@ -3,7 +3,7 @@
   Cut-over dry run on THIS PC (run by the coordinator, never by a lane): extractor over the ten compacted files -> importer dry run ->
   05 Delivery Evidence\Legacy\LG-DryRun-<date>.md (section 6 comparison + 20-guest review list with names and phones MASKED).
 .NOTES
-  Importer call: POST /api/v1/commands/legacy.import (dryRun true) against a local server only; start it first and pass -Token (Owner bearer token).
+  Importer call: POST /api/v1/commands/legacy.import (dryRun true) against a local server only; start it first and pass -Token (Owner bearer token: POST /api/v1/auth/sign-in with returnToken true; the server accepts "Authorization: Bearer" as well as the session cookie — checked by the LG integrator).
   The result JSON is saved in the run folder. Only the masked report is written into the repository.
   The Access password is never handled here (extract.py reads Module1.bas).
 #>
