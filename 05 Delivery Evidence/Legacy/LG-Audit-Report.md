@@ -101,4 +101,9 @@ Contract §4: an `IDNumber` is "no ID" only when a placeholder or fewer than 4 c
 
 ## 3. Phase 3 — importer invariants
 
-Not run (see `LG-AUDIT-DONE.md`).
+`claude/lg-import` @ 2bb0b0b3 (with lg-schema) merged into `claude/lg-audit`; tests in `08 Production/tests/Hcc.Legacy.Tests/Audit/LegacyAuditTests.cs` on the fictional run folder (`Fixtures/run-fictional`), disposable `HccTest_*` database through lg-import's `LegacyImportWorld`:
+
+- `Dry_run_reconciliation_equals_an_independent_computation`: the eight figures per FY (bills, net, room GST, F&B, receipts count / paise (advance + payment), refunds count / paise) recomputed from the CSVs with the test's own CSV reader equal the importer's dry-run `LegacyReconciliation`; stays and `Duplicate` counts per FY equal the CSV.
+- `Committed_load_keeps_the_lgc_invariants`: no duplicate `(fy, booking)` / `(fy, bill)` / `(fy, source, row id)`; every non-null `lgc.guest_map.guest_id` exists in `gst.guest` of the same property; no `customer_key` on `lgc.stay` / `bill` / `receipt` differing from `lgc.guest_map` for the same legacy guest; guest map = CSV rows and keys; `lgc.v_customer_stay` hides exactly the `Duplicate` stays; DB bill count, Σ net and Σ receipts per FY equal the CSV.
+
+`dotnet test tests/Hcc.Legacy.Tests -maxcpucount:1` through the lock: **33 passed / 0 failed** (31 lg-import + lg-schema, 2 audit), 0 warnings. A real-data load was not run (not this lane's step: the dry run on this PC is the coordinator's `Run-LegacyDryRun.ps1`); the same invariants hold as SQL in the test and can be re-run against that database.
