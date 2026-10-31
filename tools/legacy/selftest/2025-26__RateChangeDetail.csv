@@ -1,0 +1,2 @@
+RateChangeID,BookingID,OldRoomRant,NewRoomRant,Reason
+1,6,3200,3000,negotiated
