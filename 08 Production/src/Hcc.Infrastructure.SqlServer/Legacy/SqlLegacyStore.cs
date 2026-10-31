@@ -2,6 +2,7 @@ using System.Data;
 using System.Globalization;
 using Hcc.Application.Commands;
 using Hcc.Application.Legacy;
+using Hcc.Contracts;
 using Hcc.Domain.Errors;
 using Hcc.Domain.Legacy;
 using Hcc.Infrastructure.SqlServer.Commands;

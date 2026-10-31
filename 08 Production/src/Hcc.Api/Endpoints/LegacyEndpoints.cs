@@ -3,6 +3,7 @@ using Hcc.Application.Accounting;
 using Hcc.Application.Documents;
 using Hcc.Application.GuestIds;
 using Hcc.Application.Legacy;
+using Hcc.Contracts;
 using Hcc.Contracts.Legacy;
 using Hcc.Domain.Errors;
 using Hcc.Infrastructure.SqlServer;
