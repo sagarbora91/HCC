@@ -1,0 +1,7 @@
+stay_ref,seq,room_no,room_type_code,from_date,to_date,adults,children,rate_paise,extra_paise,kind
+2025-26|1,1,101,DELUXE,2025-06-01,2025-06-03,2,0,50000,0,booked
+2025-26|2,1,102,DELUXE,2025-12-10,2025-12-11,1,0,50000,0,booked
+2025-26|3,1,103,TWIN,2026-03-30,2026-04-01,1,0,40000,0,booked
+2026-27|1,1,101,DELUXE,2026-05-01,2026-05-03,2,1,50000,0,booked
+2026-27|1,2,105,SUITE,,,,,,,shift
+2026-27|2,1,104,PREMIUM,2026-10-29,2026-11-02,1,0,60000,0,booked

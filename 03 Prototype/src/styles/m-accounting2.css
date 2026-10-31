@@ -121,3 +121,6 @@
 .m-sheet .acc-man-preview,.m-sheet .acc-man-total,.m-sheet .acc-guard,.m-sheet .exp-purchase,.m-sheet .folio-deposit{font-size:14px}
 .m-sheet .chn-bk .checkbox-line,.m-sheet .cmp-money-switches .cmp-check{min-height:48px}
 .m-sheet .acc-man-form,.m-sheet .acc-lines{max-width:none}
+/* LG-R8: pager of an opening entry longer than one page (imported drafts) */
+.acc-open-pager{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:8px 0}
+.acc-open-pager .btn{min-height:48px}

@@ -39,6 +39,7 @@ export const PAGE_CATEGORY:Record<string,CategoryId>={
   closing:'accounts',reports:'accounts',accounting:'accounts',assistant:'accounts',compliance:'accounts',
   syshealth:'admin',   // Wave C3 (A09-05): parked outbox events, retry, last backup — Owner + Tech admin
   'plans-extras':'accounts', // MA-2
+  'legacy-import':'admin', // LG-UI: old Lodge software import — Owner (PERM-LGC-001)
   prefs:'admin', // CP-1 Appearance & display (every role, this device only)
   access:'admin',settings:'admin',approvals:'admin',backup:'admin',roadmap:'admin',
 };
@@ -75,6 +76,7 @@ export const PAGE_BLURB:Record<string,string>={
   closing:'Close the business day',reports:'Revenue, occupancy and cash reports',accounting:'Ledger, vouchers and period locks',assistant:'Ask questions about your hotel data',compliance:'GST, TDS, PF, ESIC and PT due dates',
   'plans-extras':'Catalogue vs free-text charges, meal plans, discount reasons',
   access:'Users, roles and permissions',settings:'All settings in one place: 12 groups, modules on/off',approvals:'Pending approvals and the audit trail',backup:'Backup and restore data',syshealth:'Stuck background work and the last backups',roadmap:'What is planned next',
+  'legacy-import':'Load guests, history and opening balances from the old software',
   prefs:'Text size, motion, start page, lists, messages (this device)',
 };
 
@@ -117,6 +119,7 @@ export const PAGE_KEYWORDS:Record<string,string[]>={
   approvals:['approval','approvals','audit','audit log','pending','discount approval','history','who did'],
   backup:['backup','restore','recovery','export data'],
   syshealth:['system health','health','parked','stuck','retry','outbox','event log','alerts','errors','backup failed','last backup','restore drill'],
+  'legacy-import':['legacy import','old software','lodge','old data','import history','dry run','migration','legacy','previous software'],
   roadmap:['roadmap','future','planned','modules','phases'],
   prefs:['appearance','display','text size','font','font size','bigger text','larger text','zoom','motion','animation','density','compact','start page','home page','page size','rows','toast','messages','preferences','my settings','theme'],
 };
@@ -202,5 +205,6 @@ export function navRoleOk(s:State,uid:string,page:string):boolean{
   if(page==='accounting')return rbacSeesBooks(s,uid);   // DEC-079: not the Cashier (collections only, Reports)
   // DEC-079 D4: the Tech admin reaches Messages only for its templates, in production (the demo baseline stays matrix v1, D6).
   if(page==='messages'&&rbacIsRole(s,uid,'Tech admin'))return rbacTechAdminTemplates(s,uid);
+  if(page==='legacy-import')return !rbacIsRole(s,uid,'Tech admin');   // LG: the importer is Owner-only (PERM-LGC-001); the page itself checks the Owner role
   return true;
 }

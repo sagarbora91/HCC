@@ -1,0 +1,3 @@
+Tdate,ExpensesID,Qty,Rate,Remark,PaidTo,VoucherNo
+2026-05-01 00:00:00,1,3,100,-,y,2
+2026-06-01 00:00:00,2,1,999.99,r,z,3

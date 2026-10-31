@@ -26,7 +26,8 @@ public sealed record GuestDraft(
     string? Preferences = null,
     string? Notes = null,
     IReadOnlyList<GuestPartyMember>? Party = null,
-    string? IdNumber = null);
+    string? IdNumber = null,
+    string? Dob = null);
 
 /// <summary>Validation, normalisation and field masks ported from the prototype's guest stream (REQ-GUEST-004/006).</summary>
 public static partial class GuestRules
@@ -40,7 +41,7 @@ public static partial class GuestRules
     {
         ["name"] = "Name", ["phone"] = "Phone", ["email"] = "Email", ["address"] = "Address", ["nationality"] = "Nationality",
         ["idType"] = "ID type", ["idLast4"] = "ID last 4", ["idNumber"] = "ID number", ["gstin"] = "GSTIN", ["company"] = "Company", ["party"] = "Party",
-        ["preferences"] = "Preferences", ["notes"] = "Notes",
+        ["preferences"] = "Preferences", ["notes"] = "Notes", ["dob"] = "Date of birth",
     };
 
     [GeneratedRegex(@"^[+\d\s()-]+$")]
@@ -67,7 +68,7 @@ public static partial class GuestRules
     }
 
     /// <summary>Field → message (first error per field, prototype wording). <paramref name="registration"/> adds address + ID.</summary>
-    public static IReadOnlyDictionary<string, string> Validate(GuestDraft d, bool registration)
+    public static IReadOnlyDictionary<string, string> Validate(GuestDraft d, bool registration, DateOnly? today = null)
     {
         ArgumentNullException.ThrowIfNull(d);
         var e = new Dictionary<string, string>();
@@ -88,6 +89,7 @@ public static partial class GuestRules
             else if (!AgeBands.Contains(party[i].AgeBand)) e["party"] = $"Party member {i + 1}: choose an age band.";
         }
 
+        if (DobError(d.Dob, today) is { } dobError) e["dob"] = dobError;
         if (party.Count > MaxParty) e["party"] = "At most 6 accompanying guests in this demo.";
         if (registration)
         {
@@ -110,6 +112,19 @@ public static partial class GuestRules
         return e;
     }
 
+    /// <summary>
+    /// Date of birth (W1a LG, DEC-162 Q4; optional): an ISO date yyyy-MM-dd, after 1900 (1 Jan 1900 or later) and not after <paramref name="today"/>
+    /// (the hotel's date; the future check is skipped when no date is given, e.g. a pure import plan). Null = valid.
+    /// </summary>
+    public static string? DobError(string? dob, DateOnly? today)
+    {
+        if (T(dob).Length == 0) return null;
+        if (!DateOnly.TryParseExact(T(dob), "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var d)) return "Enter the date of birth as a date (YYYY-MM-DD) or leave it blank.";
+        if (d < new DateOnly(1900, 1, 1)) return "Date of birth must be after 1900.";
+        if (today is { } t && d > t) return "Date of birth cannot be in the future.";
+        return null;
+    }
+
     /// <summary>The prototype's single VALIDATION message: first error, plus "(n more: labels)".</summary>
     public static string Summary(IReadOnlyDictionary<string, string> errors)
     {
@@ -120,7 +135,7 @@ public static partial class GuestRules
         return string.Create(CultureInfo.InvariantCulture, $"{errors[keys[0]]} ({keys.Count - 1} more: {rest})");
     }
 
-    /// <summary>Trimmed copy (upper-case ID last 4 / GSTIN; nationality defaults to Indian; blanks become null; ID number normalised, last 4 derived from it).</summary>
+    /// <summary>Trimmed copy (dob: null = omitted, kept on update; "" = cleared — LG-R6; upper-case ID last 4 / GSTIN; nationality defaults to Indian; blanks become null; ID number normalised, last 4 derived from it).</summary>
     public static GuestDraft Clean(GuestDraft d)
     {
         ArgumentNullException.ThrowIfNull(d);
@@ -128,7 +143,9 @@ public static partial class GuestRules
         var number = N(d.IdNumber) is null ? null : GuestIds.GuestIdRules.Normalise(d.IdNumber);
         return new GuestDraft(T(d.Name), T(d.Phone), N(d.Email), N(d.Address), N(d.Nationality) ?? "Indian", N(d.IdType),
             number is not null ? GuestIds.GuestIdRules.Last4(number) : N(d.IdLast4)?.ToUpperInvariant(), N(d.Company), N(d.Gstin)?.ToUpperInvariant(), N(d.Preferences), N(d.Notes),
-            (d.Party ?? []).Select(p => new GuestPartyMember(T(p.Name), p.AgeBand, N(p.Relation))).ToList(), number);
+            (d.Party ?? []).Select(p => new GuestPartyMember(T(p.Name), p.AgeBand, N(p.Relation))).ToList(), number,
+            // LG-R6: an omitted dob (null) stays null = "keep the stored date"; an explicit blank becomes "" = "clear it".
+            d.Dob is null ? null : T(d.Dob));
     }
 
     /// <summary>"••••••1041" (last 4 digits) or "—".</summary>

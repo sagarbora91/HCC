@@ -59,6 +59,8 @@ public static partial class OpeningBalanceRules
     public const string DifferenceName = "Opening-balance difference";
     public const string Draft = "draft";
     public const string Approved = "approved";
+    /// <summary>Lines a hand entry (SaveOpeningBalances) may hold. LG-R8: the cap applies to hand entry only — the legacy importer's cut-over
+    /// draft (IOpeningEntryStore.SaveDraftAsync) may exceed it; reading and approving never apply it (the Owner approves the draft whole).</summary>
     public const int MaxLines = 500;
     public const long MaxPaise = 10_000_000_000;
     public const string SourceKey = "opening";

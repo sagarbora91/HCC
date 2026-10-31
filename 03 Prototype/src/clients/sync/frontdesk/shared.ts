@@ -20,7 +20,7 @@ export type SrvReservationList={businessDate:string;total:number;page:number;pag
 /** GET /guests item (`GuestView`; masked fields arrive masked and stay masked). */
 export type SrvGuest={guestId:number;name:string;phone:string;email:string|null;address:string|null;nationality:string;idType:string|null;idLast4:string|null;
   company:string|null;gstin:string|null;party:{name:string;ageBand:string;relation:string|null}[];verified:boolean;masked:boolean;version:string;idMasked:string;
-  idOnFile:boolean;canRevealId:boolean;preferences:string|null;notes:string|null;origin:string};
+  idOnFile:boolean;canRevealId:boolean;preferences:string|null;notes:string|null;origin:string;dob?:string|null;legacyGuestId?:number|null};
 export type SrvGuestPage={total:number;page:number;pageSize:number;items:SrvGuest[]};
 
 /** Reads every page (500 per page, at most `maxPages`), in server order. */

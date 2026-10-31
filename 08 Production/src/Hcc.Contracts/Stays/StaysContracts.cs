@@ -23,7 +23,8 @@ public sealed record GuestDraftDto(
     string? Preferences = null,
     string? Notes = null,
     IReadOnlyList<GuestPartyDto>? Party = null,
-    string? IdNumber = null);
+    string? IdNumber = null,
+    string? Dob = null);   // W1a LG: optional date of birth yyyy-MM-dd (DEC-162 Q4)
 
 /// <summary>
 /// RegisterGuest K V. <c>ExpectedVersion</c> = the reservation's version. With <c>Guest</c> the profile is created (or the
@@ -69,7 +70,9 @@ public sealed record GuestView(
     bool CanRevealId = false,
     string? Preferences = null,
     string? Notes = null,
-    string Origin = "manual");
+    string Origin = "manual",
+    string? Dob = null,              // W1a LG: yyyy-MM-dd; null when unknown or when the reader may not see contact details
+    long? LegacyGuestId = null);     // W1a LG: the old program's GuestID that produced this profile
 
 /// <summary>
 /// SaveGuestProfile (W4-1): create (<c>GuestId</c> null) or edit a guest profile without touching a reservation (prototype GUEST_SAVE with no

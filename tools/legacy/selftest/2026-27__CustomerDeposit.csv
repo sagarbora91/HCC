@@ -1,0 +1,13 @@
+DepositID,TransactionID,RoomNo,Date,BillNo,PaymentType,Advance,AdvanceAdjust,DepositAmt,CashType,BankName,ChequeNo,Remark,CustomerCode,SecurityDeposit,TTime
+1,1,-,2026-04-02 00:00:00,1,Bill Payment,0,0,6300.00,Cash,,-,-,1,0,10:30 AM
+2,2,-,2026-04-07 00:00:00,2,Bill Payment,0,0,2100.00,Cash,,-,-,18,0,10:30 AM
+3,3,-,2026-10-29 00:00:00,-1,Bill Payment,0,0,1000,Cash,,-,-,5,0,10:30 AM
+4,5,-,2026-05-03 00:00:00,3,Bill Payment,0,0,4200.00,Cash,,-,-,9,0,10:30 AM
+5,7,-,2026-07-02 00:00:00,5,Bill Payment,0,0,2100.00,Online,,QR,-,2,0,10:30 AM
+6,8,-,2026-07-16 00:00:00,6,Bill Payment,0,0,2625.00,Cash,,-,-,7,0,10:30 AM
+7,9,-,2026-08-02 00:00:00,7,Bill Payment,0,0,2100.00,Cash,,-,-,0,0,10:30 AM
+8,10,-,2026-08-22 00:00:00,8,Bill Payment,0,0,5250.00,Cash,,-,-,16,0,10:30 AM
+9,11,-,2026-09-06 00:00:00,9,Bill Payment,0,0,2000.00,Cash,,-,-,12,0,10:30 AM
+10,12,-,2026-10-03 00:00:00,10,Bill Payment,0,0,4369.85,Cash,,-,-,14,0,10:30 AM
+11,13,-,2026-10-11 00:00:00,11,Bill Payment,0,0,8400.00,Cash,,-,-,17,0,10:30 AM
+12,0,-,2026-10-25 00:00:00,-1,Advance,2000,0,0,Cash,,-,-,20,0,09:05 AM

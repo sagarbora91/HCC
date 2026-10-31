@@ -33,3 +33,14 @@ Thumbs.db
 # graphify knowledge-graph output (regenerate with graphify; vault lives in E:\Projects\HCC\HCC Knowledge Vault)
 graphify-out/
 worktrees/
+
+# Legacy "Lodge" data (wave LG, DEC-161): never commit Access files or extracts
+*.mdb
+*.accdb
+*.ldb
+LG-EXTRACT/
+tools/legacy/.runs/
+
+# W1a LG: python bytecode of the legacy extractor
+tools/legacy/__pycache__/
+tools/legacy/**/__pycache__/

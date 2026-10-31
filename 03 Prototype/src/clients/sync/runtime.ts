@@ -25,6 +25,11 @@ import {createMemoryCache,type ReadCache,type CachedSlice,type CacheLock,type Ca
 import {cookieAuth,memoryTokenStore,type AuthAdapter,type SignInInput,type TokenStore} from './auth';
 import {emptyState} from './empty';
 import {mayRead} from './reads';
+// LG (W1a legacy data): production wiring of the Customers 360 legacy history and the Owner's legacy importer page.
+import {setLegacyFetcher} from '../../features/customers/legacy-source';
+import {setLegacyImportClient} from '../../features/admin/legacyImportModel';
+import {legacyStaysFromProfile,type SrvLegacyProfilePart} from './customers-legacy';
+import {createLegacyImportClient} from './legacy-import';
 import {OWN_CREDENTIAL_CHANGE,MUST_CHANGE_REASON,mustChangeText} from '../../domain/credentials';
 
 export const SYNC_MARKER='hcc-sync-layer';
@@ -135,6 +140,9 @@ export function createSyncRuntime(o:SyncRuntimeOptions){
   const connection:Connection=createConnection();
   const transport:HttpTransport=createHttpTransport({baseUrl:o.baseUrl,fetch:o.fetch,connection,headers:()=>auth.headers(),timeoutMs:o.timeoutMs,commandRetries:o.commandRetries});
   const clients:HccClients&{adapter:typeof HTTP_ADAPTER_ID}={kind:'http',adapter:HTTP_ADAPTER_ID,reservations:createHttpReservationsClient(transport),system:createHttpSystemClient(transport),me:createHttpMeClient(transport)};
+  // LG: legacy stays come from GET /customers/profile (contract §9); the importer page calls POST /commands/legacy.import and GET /legacy/runs.
+  setLegacyFetcher(async key=>legacyStaysFromProfile(await transport.get<SrvLegacyProfilePart>('/customers/profile',{key})));
+  setLegacyImportClient(createLegacyImportClient(transport));
   const skeleton=(o.skeleton??emptyState)();
   const loaders:{area:string;l:SliceLoader;order:number}[]=[];
   const mappers=new Map<string,CommandMapper>();

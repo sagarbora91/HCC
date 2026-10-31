@@ -1,0 +1,13 @@
+name,phone,email,address,nationality,company,gstin,notes
+Test Guest One,9000000001,,"1 Fictional Road, Testville",Indian,,,Legacy GuestID 1
+Test Guest Two,9000000002,,"1 Fictional Road, Testville",Indian,,,Legacy GuestID 2
+Test Guest Three,9000000003,,"1 Fictional Road, Testville",Indian,Fictional Traders Pvt Ltd,27AAAAA0000A1Z5,Legacy GuestID 3
+Test Guest Four,9000000004,,"1 Fictional Road, Testville",Indian,Fictional Traders Pvt Ltd,27AAAAA0000A1Z5,Legacy GuestID 4
+Test Guest Five,9000000005,,"1 Fictional Road, Testville",Indian,Fictional Traders Pvt Ltd,27AAAAA0000A1Z5,Legacy GuestID 5
+Test Guest Six,9000000006,,"1 Fictional Road, Testville",Indian,,,Legacy GuestID 6
+Test Guest Seven,9000000007,,"1 Fictional Road, Testville",Indian,,,Legacy GuestID 7
+Test Guest Eight,9000000008,,"1 Fictional Road, Testville",Indian,,,Legacy GuestID 8
+Test Guest Nine,9000000009,,"1 Fictional Road, Testville",Indian,,,Legacy GuestID 9
+Test Guest Ten,9000000010,,"1 Fictional Road, Testville",Indian,,,Legacy GuestID 10
+Test Guest Eleven,9000000011,,"1 Fictional Road, Testville",Indian,,,Legacy GuestID 11
+Test Guest Twelve,9000000012,,"1 Fictional Road, Testville",Indian,,,Legacy GuestID 12

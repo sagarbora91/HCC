@@ -36,6 +36,7 @@ async function loadGuests(c:LoaderCtx):Promise<Guest[]>{
       preferences:g.preferences??'',notes:g.notes??'',party:g.party.map(p=>({name:p.name,ageBand:p.ageBand,relation:p.relation??''})),verified:g.verified,
       origin:g.origin==='auto'?'auto':'manual',version:1};
     if(g.company)out.company=g.company;if(g.gstin)out.gstin=g.gstin;
+    if(g.dob)out.dob=String(g.dob).slice(0,10);   // LG: returned only to contact-detail readers (LG-R5)
     return out;
   }).sort((a,b)=>Number(a.id)-Number(b.id));
 }
@@ -46,7 +47,9 @@ function guestDto(d:Record<string,unknown>):Record<string,unknown>{
   const s=(v:unknown)=>{const t=String(v??'').trim();return t===''||t==='Restricted'?undefined:t;};
   const party=Array.isArray(d.party)?(d.party as {name?:unknown;ageBand?:unknown;relation?:unknown}[]).map(p=>({name:String(p.name??''),ageBand:String(p.ageBand??''),relation:s(p.relation)})):undefined;
   return {name:s(d.name),phone:s(d.phone),email:s(d.email),address:s(d.address),nationality:s(d.nationality),idType:s(d.idType),idLast4:s(d.idLast4),
-    company:s(d.company),gstin:s(d.gstin),preferences:s(d.preferences),notes:s(d.notes),party,idNumber:s(d.idNumber)};
+    company:s(d.company),gstin:s(d.gstin),preferences:s(d.preferences),notes:s(d.notes),party,idNumber:s(d.idNumber),
+    // LG-R6: dob omitted = the server keeps the stored date; an explicit empty value clears it.
+    dob:d.dob===undefined||d.dob===null?undefined:String(d.dob).trim()};
 }
 const maskedContact=(d:Record<string,unknown>)=>MASKED.test(String(d.phone??''))||MASKED.test(String(d.email??''));
 const MASK_MSG='Contact details are hidden for your role — ask someone with guest-registration access to save this profile.';

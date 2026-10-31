@@ -6,7 +6,7 @@ import {GuestDraft,Guest,guestValidate,guestDuplicates,guestAgeBands,guestView,g
 import {FdmIdTypeNote} from '../reservations/masters';
 
 export const emptyDraft=(over:GuestDraft={}):GuestDraft=>({name:'',phone:'',email:'',address:'',nationality:'Indian',idType:'',idLast4:'',idNumber:'',company:'',gstin:'',preferences:'',notes:'',party:[],...over});
-export const draftOf=(g:Guest):GuestDraft=>emptyDraft({name:g.name,phone:g.phone,email:g.email,address:g.address,nationality:g.nationality,idType:g.idType,idLast4:g.idLast4,company:g.company||'',gstin:g.gstin||'',preferences:g.preferences,notes:g.notes,party:g.party.map(p=>({...p}))});
+export const draftOf=(g:Guest):GuestDraft=>emptyDraft({name:g.name,phone:g.phone,email:g.email,address:g.address,nationality:g.nationality,idType:g.idType,idLast4:g.idLast4,company:g.company||'',gstin:g.gstin||'',preferences:g.preferences,notes:g.notes,party:g.party.map(p=>({...p})),...(g.dob?{dob:g.dob}:{})});
 /** Small stable hash for idempotency keys derived from form content. */
 export const hashOf=(v:unknown)=>{const t=JSON.stringify(v);let h=0;for(let i=0;i<t.length;i++)h=(h*31+t.charCodeAt(i))|0;return (h>>>0).toString(36);};
 
@@ -40,7 +40,8 @@ export function GuestForm({initial,guestId,registration,submitLabel,onSubmit,onU
     </div>
     {onFile!==undefined&&<p className="muted gs-idcur">Current ID on file: {onFile?guestIdMask(stored?.idLast4)+' (full number stored — leave the field blank to keep it)':stored?.idLast4?guestIdMask(stored.idLast4)+' — full number not on file':'none'}</p>}
     {guestIdKind(d.idType)==='aadhaar'&&<p className="info-note gs-aadhaar-note" role="note"><Info size={16}/>Stored in full by owner decision DEC-068 — confirm legality with your CA/lawyer.</p>}
-    <div className="form-row">{f('nationality','Nationality',{maxLength:40})}{f('company','Company (optional)',{maxLength:80})}</div>
+    <div className="form-row">{f('nationality','Nationality',{maxLength:40})}{f('dob','Date of birth (optional)',{type:'date',min:'1900-01-01',max:s.clock.slice(0,10),autoComplete:'off'})}</div>
+    {f('company','Company (optional)',{maxLength:80})}
     {f('gstin','Company GSTIN (optional, fictional format)',{maxLength:15,placeholder:'27ABCDE1234F1Z5'})}
     <div className="form-row">{f('preferences','Preferences',{maxLength:160})}{f('notes','Notes',{maxLength:200})}</div>
     <fieldset className="gs-party"><legend>Accompanying guests ({party.length})</legend>

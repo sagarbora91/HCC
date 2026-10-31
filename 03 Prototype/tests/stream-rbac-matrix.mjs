@@ -67,6 +67,7 @@ const PAGES={
   approvals:['OWN MGR ACC','ADM-004 audit.view + APR-001 (DEC-063 G10: not the Cashier; Tech admin view at M4)'],
   backup:['OWN TAD','ADM-005 (DEC-063 G9: the Manager gets the Overview backup card instead)'],
   syshealth:['OWN TAD','PERM-SYS-001 (Wave C3, A09-05: parked outbox events, retry, last backup; the Administration area like Backup & recovery)'],
+  'legacy-import':['OWN','PERM-LGC-001 (LG-UI: old Lodge data import; Owner only — the LG integrator hides the menu entry from the Tech admin with navRoleOk)'],
   roadmap:['OWN MGR CSH ACC','Not in the matrix (informational page); current gate accepted'],
   prefs:[ALL,'CP-1 Appearance & display: every role, this device only, no hotel data (plan §4, DEC-CP-1)'],
 };

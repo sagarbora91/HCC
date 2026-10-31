@@ -43,6 +43,8 @@ public partial class RbacV2MatrixTests(AccessDatabase db) : IClassFixture<Access
         ["PERM-ACC-012"] = ["A", "—", "R", "—", "—", "—", "—", "—", "—", "—"],
         // ACC-2 (contract §9, migration 4234; coordinator ruling 11): vendor payments / advances / returns = Owner, Manager, Accountant.
         ["PERM-EXP-004"] = ["A", "A", "A", "—", "—", "—", "—", "—", "—", "—"],
+        // W1a LG (migration 4601): legacy import = Owner only.
+        ["PERM-LGC-001"] = ["A", "—", "—", "—", "—", "—", "—", "—", "—", "—"],
     };
 
     /// <summary>L cells: the Manager's limit in paise (DEC-063 G1 Rs 1,000; GRP-003 Rs 10,000 as seeded by 2201).</summary>
