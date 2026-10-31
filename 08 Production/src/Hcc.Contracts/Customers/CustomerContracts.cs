@@ -5,7 +5,18 @@ namespace Hcc.Contracts.Customers;
 
 public sealed record CustomerStayView(long ReservationId, string BookingNo, string Status, string Arrival, string Departure, int Nights, string? Room, long? TotalPaise);
 
-public sealed record CustomerSummary(string Key, string Name, string Phone, string? Email, bool Masked, int Stays, int CompletedStays, int Nights, long? LifetimePaise, string? LastStay, bool InHouse, IReadOnlyList<string> Tags);
+/// <summary>
+/// A stay from the old "Lodge" program (W1a LG, lgc.v_customer_stay; LG-HISTORY-CONTRACT §9). Read-only history: no folio, no link.
+/// <c>NetPaise</c> = the legacy bill's net amount, null when the reader may not see money or the stay has no bill.
+/// </summary>
+public sealed record LegacyStayView(long StayId, string LegacyFy, long LegacyBookingId, int? LegacyBillNo, string Arrival, string? Departure, int Nights, string Room, int RoomCount, string Status, long? NetPaise);
+
+/// <summary>
+/// <c>Stays</c> = live bookings only; <c>LegacyStays</c> = old-program stays; <c>Nights</c> and <c>LifetimePaise</c> include legacy;
+/// <c>FirstStay</c> = the earlier of the first legacy and the first live arrival (LG contract §9).
+/// </summary>
+public sealed record CustomerSummary(string Key, string Name, string Phone, string? Email, bool Masked, int Stays, int CompletedStays, int Nights, long? LifetimePaise, string? LastStay, bool InHouse, IReadOnlyList<string> Tags,
+    int LegacyStays = 0, string? FirstStay = null);
 
 public sealed record CustomerList(IReadOnlyList<CustomerSummary> Customers, int Total, int Page, int PageSize);
 
@@ -17,7 +28,10 @@ public sealed record CustomerProfile(
     string Key, string Name, string Phone, string? Email, bool Masked, IReadOnlyList<long> GuestIds, IReadOnlyList<CustomerStayView> Stays,
     int CompletedStays, int Nights, long? LifetimePaise, long? AvgRatePaise, string? FirstStay, string? LastStay, CustomerStayView? Current, IReadOnlyList<CustomerStayView> Upcoming,
     int Cancelled, IReadOnlyList<string> TopRooms, string? Preferences, string? PreferencesVersion, IReadOnlyList<string> Tags, IReadOnlyList<CustomerNoteView> Notes,
-    CustomerConsentView Consent, IReadOnlyList<string> MergedFrom);
+    CustomerConsentView Consent, IReadOnlyList<string> MergedFrom,
+    IReadOnlyList<LegacyStayView>? LegacyStays = null, long? LegacyLifetimePaise = null);
+// LG §9: profile Nights / LifetimePaise / FirstStay include legacy (like the summary); Stays (live) and LegacyStays (newest first) are separate lists;
+// LegacyLifetimePaise = the legacy part of LifetimePaise (null when money is masked).
 
 public sealed record DuplicateCandidate(string Reason, IReadOnlyList<CustomerSummary> Customers, string SuggestedSurvivor);
 
