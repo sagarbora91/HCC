@@ -6,7 +6,7 @@ import {Plus,Trash2,CheckCircle2,AlertTriangle,Info,Save,Lock,LockOpen} from 'lu
 import {useHcc} from '../../app/context';
 import {money,type ACCOpening,type ACCOpeningLine} from '../../services/mock';
 import {accOpening,accOpeningPending,accChart,accPartyLedgers} from '../../services/mock';
-import {accOpeningOverHandCap,accOpeningPageOf,ACC_OPENING_MAX_LINES} from '../../domain/streams/accounting-opening';
+import {accOpeningOverHandCap,accOpeningPageOf,ACC_OPENING_MAX_LINES} from '../../services/mock';
 import type {AccOpeningSave,AccOpeningApprove,AccOpeningReopen} from './commands';
 import {ListCard,KpiCard,StickyFooter} from '../../app/mobile/components';
 import {Empty,dateLabel,shortDate,clockTime} from '../../components/ui';
