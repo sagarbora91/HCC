@@ -13,7 +13,7 @@ export type GuestDraft=Partial<Omit<Guest,'id'|'verified'|'origin'|'version'>>;
 
 export const guestIdTypes=['Aadhaar (demo)','Passport (demo)','Driving licence (demo)','Voter ID (demo)','PAN (demo)','Other (demo)'];
 export const guestAgeBands=['Adult','Child','Infant','Senior'];
-export const guestFieldLabels:Record<string,string>={name:'Name',phone:'Phone',email:'Email',address:'Address',nationality:'Nationality',idType:'ID type',idLast4:'ID last 4',idNumber:'ID number',gstin:'GSTIN',party:'Party',preferences:'Preferences',notes:'Notes'};
+export const guestFieldLabels:Record<string,string>={name:'Name',phone:'Phone',email:'Email',address:'Address',nationality:'Nationality',idType:'ID type',idLast4:'ID last 4',idNumber:'ID number',gstin:'GSTIN',party:'Party',preferences:'Preferences',notes:'Notes',dob:'Date of birth'};
 
 // ── Full ID number (DEC-068): stored for every ID type, validated per type, shown masked (last 4) everywhere ──
 // LEGAL RISK (DEC-068): UIDAI rules expect hotels to keep only a masked Aadhaar; storing the full number can be an offence under the
@@ -127,6 +127,8 @@ export function guestValidate(d:GuestDraft,registration=false):Record<string,str
   if((t(d.idLast4)||t(d.idNumber))&&!t(d.idType))e.idType='Choose the ID type.';
   if(t(d.idNumber)&&t(d.idType)){const m=guestIdNumberError(d.idType,d.idNumber);if(m)e.idNumber=m;}
   (d.party||[]).forEach((p,i)=>{if(t(p.name).length<2)e.party=`Party member ${i+1}: enter a name.`;else if(!guestAgeBands.includes(p.ageBand))e.party=`Party member ${i+1}: choose an age band.`;});
+  // LG (DEC-162 Q4): optional date of birth, yyyy-mm-dd from 1900 (the form also bounds it by the business date).
+  if(t(d.dob)&&(!/^\d{4}-\d{2}-\d{2}$/.test(t(d.dob))||Number.isNaN(Date.parse(t(d.dob)))||t(d.dob)<'1900-01-01'))e.dob='Enter the date of birth as a valid date from 1900 (or leave it blank).';
   if((d.party||[]).length>6)e.party='At most 6 accompanying guests in this demo.';
   if(registration){
     if(!t(d.address))e.address='Enter the address.';
@@ -142,6 +144,8 @@ export function guestValidate(d:GuestDraft,registration=false):Record<string,str
 }
 /** True when the profile satisfies the registration requirements. */
 export const guestComplete=(g:GuestDraft|undefined)=>!!g&&!Object.keys(guestValidate(g,true)).length;
+/** LG-R6: a save that omits `dob` keeps the stored date; only an explicit empty value clears it. */
+export const guestDobCleared=(d:GuestDraft)=>d.dob!==undefined&&d.dob!==null&&!String(d.dob).trim();
 /** Cleaned copy of a draft (trimmed strings, upper-case GSTIN, party normalised). */
 export function guestClean(d:GuestDraft):GuestDraft{
   const t=(v:unknown)=>String(v??'').trim();
@@ -149,6 +153,7 @@ export function guestClean(d:GuestDraft):GuestDraft{
   return {name:t(d.name),phone:t(d.phone),email:t(d.email),address:t(d.address),nationality:t(d.nationality)||'Indian',idType:t(d.idType),idLast4:(t(d.idNumber)?guestIdLast4(d.idNumber):t(d.idLast4)).toUpperCase(),
     ...(t(d.idNumber)?{idNumber:guestIdNormalise(d.idNumber)}:{}),
     ...(t(d.company)?{company:t(d.company)}:{}),...(t(d.gstin)?{gstin:t(d.gstin).toUpperCase()}:{}),preferences:t(d.preferences),notes:t(d.notes),
+    ...(t(d.dob)?{dob:t(d.dob)}:{}),
     party:(d.party||[]).map(p=>({name:t(p.name),ageBand:p.ageBand,relation:t(p.relation)}))};
 }
 

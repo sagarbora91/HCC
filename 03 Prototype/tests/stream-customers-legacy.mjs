@@ -100,6 +100,8 @@ export function render(name:string,props:any,s:any,uid:string,mobile=false,searc
     for(const u of ['manager','accountant','reception','cashier']){const t=text(X.render('LegacyImport',{},s,u));assert.ok(/for the Owner/.test(t),u);assert.ok(!/Run folder/.test(t),u);}
     for(const u of ['manager','reception']){assert.ok(/for the Owner/.test(text(X.render('MaLegacyImport',{},s,u,true))),u);}
     assert.ok(/read only/.test(text(X.render('MaLegacyImport',{},s,'owner',true))));
+    // LG integrator: the menu entry is hidden from the Tech admin (navRoleOk), kept for the Owner
+    assert.equal(X.navRoleOk(s,'techadmin','legacy-import'),false);assert.equal(X.navRoleOk(s,'owner','legacy-import'),true);
   });
   test('[LG-UI] the result is rendered as tables with status colour AND text; mismatch lists its differences',()=>{
     const r=X.demoLegacyResult({folder:'E:\\x',parts:['guests','history','cutover'],dryRun:true,expectedTotals:'{}'});

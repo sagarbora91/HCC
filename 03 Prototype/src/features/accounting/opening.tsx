@@ -6,6 +6,7 @@ import {Plus,Trash2,CheckCircle2,AlertTriangle,Info,Save,Lock,LockOpen} from 'lu
 import {useHcc} from '../../app/context';
 import {money,type ACCOpening,type ACCOpeningLine} from '../../services/mock';
 import {accOpening,accOpeningPending,accChart,accPartyLedgers} from '../../services/mock';
+import {accOpeningOverHandCap,accOpeningPageOf,ACC_OPENING_MAX_LINES} from '../../domain/streams/accounting-opening';
 import type {AccOpeningSave,AccOpeningApprove,AccOpeningReopen} from './commands';
 import {ListCard,KpiCard,StickyFooter} from '../../app/mobile/components';
 import {Empty,dateLabel,shortDate,clockTime} from '../../components/ui';
@@ -53,10 +54,22 @@ function ReopenForm({onDone}:{onDone:()=>void}){
     <div className="modal-actions"><button type="button" className="btn" onClick={onDone}>Cancel</button><button className="btn primary" type="submit" disabled={busy||reason.trim().length<3}><LockOpen size={16}/> Reopen</button></div></form>;
 }
 
+/** LG-R8: pager for an entry longer than one page (imported drafts may exceed the hand-entry cap). */
+function OpeningPager({page,pages,total,set}:{page:number;pages:number;total:number;set:(p:number)=>void}){
+  if(pages<2)return null;
+  return <div className="acc-open-pager" role="navigation" aria-label="Opening lines pages">
+    <button type="button" className="btn" disabled={page===0} onClick={()=>set(page-1)}>Previous</button>
+    <span className="muted">Page {page+1} of {pages} · {total} lines</span>
+    <button type="button" className="btn" disabled={page>=pages-1} onClick={()=>set(page+1)}>Next</button></div>;
+}
+const bigNote=(n:number)=><p className="muted" role="note">This draft was written by the legacy importer and has {n} lines — more than the {ACC_OPENING_MAX_LINES} a hand entry holds. It is shown in pages and read-only; the Owner approves it whole, and later corrections go through an Owner-approved journal.</p>;
+
 function OpeningGrid({o,canEnter,canApprove}:{o?:ACCOpening;canEnter:boolean;canApprove:boolean}){
   const {s,run,busy}=useHcc();const opts=useMemo(()=>ledgerOptions(s,true),[s]);
   const [rows,setRows]=useState<Row[]>(()=>toRows(o));const [note,setNote]=useState(o?.note??'');const [reopen,setReopen]=useState(false);
-  const approved=o?.status==='approved',edit=canEnter&&!approved;
+  const big=accOpeningOverHandCap(o),[page,setPage]=useState(0);
+  const approved=o?.status==='approved',edit=canEnter&&!approved&&!big;
+  const shown=accOpeningPageOf(rows,page);
   const lines:ACCOpeningLine[]=rows.filter(r=>r.account).map(r=>({account:r.account,debit:toPaise(r.debit),credit:toPaise(r.credit)}));
   const both=lines.some(l=>l.debit&&l.credit),blank=lines.some(l=>!l.debit&&!l.credit),dup=new Set(lines.map(l=>l.account)).size!==lines.length;
   const tot=openingTotals(lines.filter(l=>l.debit||l.credit));
@@ -67,7 +80,7 @@ function OpeningGrid({o,canEnter,canApprove}:{o?:ACCOpening;canEnter:boolean;can
   const save=()=>void run({type:'ACC_OPENING_SAVE',asOf:o?.asOf??fyStart(s.date),lines:lines.filter(l=>l.debit||l.credit),note:note.trim()||undefined} satisfies AccOpeningSave,'Opening balances saved as a draft');
   return <>
     <div className="table-wrap"><table className="acc-table acc-open-grid"><thead><tr><th>Ledger / party</th><th className="acc-num">Debit (₹)</th><th className="acc-num">Credit (₹)</th><th/></tr></thead>
-      <tbody>{rows.map(r=><tr key={r.k}><td>{edit?<select aria-label="Ledger or party" value={r.account} onChange={e=>set(r.k,{account:e.target.value})}><option value="">Choose…</option>
+      <tbody>{shown.items.map(r=><tr key={r.k}><td>{edit?<select aria-label="Ledger or party" value={r.account} onChange={e=>set(r.k,{account:e.target.value})}><option value="">Choose…</option>
             {[...opts,...(r.account&&!opts.some(x=>x.id===r.account)?[{id:r.account,label:`${r.account} · ${name(r.account)}`}]:[])].map(x=><option key={x.id} value={x.id}>{x.label}</option>)}</select>
           :<><strong>{name(r.account)}</strong> <small className="number">{r.account}</small></>}</td>
         <td className="acc-num">{edit?<input inputMode="decimal" aria-label="Debit in rupees" value={r.debit} onChange={e=>set(r.k,{debit:e.target.value,credit:e.target.value?'':r.credit})}/>:<span className="number">{accAmt(toPaise(r.debit))}</span>}</td>
@@ -77,6 +90,8 @@ function OpeningGrid({o,canEnter,canApprove}:{o?:ACCOpening;canEnter:boolean;can
         {tot.gap&&<tr className="acc-gap-row" id="acc-open-gap"><td><strong>{name(OPENING_DIFF)}</strong> <small className="number">{OPENING_DIFF}</small><small className="acc-sub">Added automatically so the entry balances</small></td>
           <td className="acc-num number">{accAmt(tot.gap.debit)}</td><td className="acc-num number">{accAmt(tot.gap.credit)}</td><td/></tr>}
         <tr className="acc-total"><td><strong>Total</strong></td><td className="acc-num number"><strong>{money(tot.debit)}</strong></td><td className="acc-num number"><strong>{money(tot.credit)}</strong></td><td/></tr></tbody></table></div>
+    <OpeningPager page={shown.page} pages={shown.pages} total={rows.length} set={setPage}/>
+    {big&&bigNote(rows.length)}
     <p className="acc-balance-line">{tot.gap?<span className="pill acc-sev-warning"><AlertTriangle size={12}/>{money(tot.gap.debit||tot.gap.credit)} parked on 1400 — approve only when this is understood</span>:lines.length?<span className="pill green"><CheckCircle2 size={12}/>Balanced — 1400 is zero</span>:null}</p>
     {edit&&<label className="acc-open-note">Note (optional)<input value={note} maxLength={200} onChange={e=>setNote(e.target.value)} placeholder="e.g. Closing trial balance of the old books, 31 March"/></label>}
     {problem&&<p className="f-why" role="alert">{problem}</p>}
@@ -92,13 +107,16 @@ function OpeningGrid({o,canEnter,canApprove}:{o?:ACCOpening;canEnter:boolean;can
 
 function OpeningPhone({o,pending,head,info,name,canEnter,canApprove}:{o?:ACCOpening;pending:boolean;head:React.ReactNode;info:React.ReactNode;name:(id:string)=>string;canEnter:boolean;canApprove:boolean}){
   const {run,busy,open}=useHcc();const [reopen,setReopen]=useState(false);
-  const lines=(o?.lines??[]).filter(l=>l.account!==OPENING_DIFF),tot=openingTotals(lines),approved=o?.status==='approved',edit=canEnter&&!approved;
+  const lines=(o?.lines??[]).filter(l=>l.account!==OPENING_DIFF),tot=openingTotals(lines),approved=o?.status==='approved',big=accOpeningOverHandCap(o),edit=canEnter&&!approved&&!big;
+  const [page,setPage]=useState(0),shown=accOpeningPageOf(lines,page);
   const add=()=>open({type:'acc-opening-line',id:'new'});
   return <>
     {head}{info}
     <div className="acc-m-kpis"><KpiCard label="Debits" value={money(tot.debit)}/><KpiCard label="Credits" value={money(tot.credit)}/></div>
-    {lines.length?lines.map(l=><ListCard key={l.account} title={name(l.account)} sub={l.account} right={<strong className="number">{l.debit?'Dr '+money(l.debit):'Cr '+money(l.credit)}</strong>} onClick={edit?()=>open({type:'acc-opening-line',id:l.account}):undefined}/>)
+    {big&&bigNote(lines.length)}
+    {lines.length?shown.items.map(l=><ListCard key={l.account} title={name(l.account)} sub={l.account} right={<strong className="number">{l.debit?'Dr '+money(l.debit):'Cr '+money(l.credit)}</strong>} onClick={edit?()=>open({type:'acc-opening-line',id:l.account}):undefined}/>)
       :<Empty title="No opening lines yet" body={edit?'Tap Add line to enter the first ledger or party balance.':'The Manager or Accountant enters the opening balances.'}/>}
+    <OpeningPager page={shown.page} pages={shown.pages} total={lines.length} set={setPage}/>
     {tot.gap&&<ListCard tone="acc-m-ex-warning" title={`${name(OPENING_DIFF)}`} sub={`${OPENING_DIFF} · added automatically so the entry balances`} right={<strong className="number">{tot.gap.debit?'Dr '+money(tot.gap.debit):'Cr '+money(tot.gap.credit)}</strong>}/>}
     {lines.length>0&&!tot.gap&&<p className="acc-balance-line"><span className="pill green"><CheckCircle2 size={12}/>Balanced — 1400 is zero</span></p>}
     {pending&&o?.status==='approved'&&<p className="muted acc-m-note">Approved, but the 1400 difference is not zero — the first period lock stays refused.</p>}

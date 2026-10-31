@@ -14,6 +14,15 @@ export const ACC_OPENING_DIFF='1400';
 export const ACC_OPENING_SOURCE={kind:'opening',id:'opening',sub:'opening-entry'} as const;
 /** Upper bound of lines in one entry (one line per ledger and per party). */
 export const ACC_OPENING_MAX_LINES=500;
+/** LG-R8: the 500-line cap applies to hand entry only. A draft written by the legacy importer may hold more lines: the screen shows it
+ *  in pages of ACC_OPENING_PAGE, read-only, and the Owner approves it whole (corrections after approval go through a journal). */
+export const ACC_OPENING_PAGE=100;
+export const accOpeningOverHandCap=(o:{lines:{account:string}[]}|undefined)=>!!o&&o.lines.filter(l=>l.account!=='1400').length>ACC_OPENING_MAX_LINES;
+/** Page `page` (0-based, clamped) of `items`, plus the page count. */
+export function accOpeningPageOf<T>(items:readonly T[],page:number,size=ACC_OPENING_PAGE):{items:T[];page:number;pages:number}{
+  const pages=Math.max(1,Math.ceil(items.length/size)),p=Math.min(Math.max(0,Math.floor(page)||0),pages-1);
+  return {items:items.slice(p*size,(p+1)*size),page:p,pages};
+}
 /** Largest amount on one line: ₹1,000 crore in paise (same bound as acc.source_entry on the server). */
 export const ACC_OPENING_MAX_PAISE=10_000_000_000;
 /** An account of an opening line: a 4-digit ledger code or a party ledger id `<control code>/<party id>` (contract §3). Party ids are

@@ -38,7 +38,9 @@ public class GuestDobSqlTests : IAsyncLifetime
         var errors = GuestRules.Validate(new GuestDraft("Kiran Patil", "9820006666", Dob: "2999-01-01"), false, today);
         Assert.Equal("Date of birth cannot be in the future.", errors["dob"]);
         Assert.Equal("1985-03-12", GuestRules.Clean(new GuestDraft("Kiran Patil", "9820006666", Dob: " 1985-03-12 ")).Dob);
-        Assert.Null(GuestRules.Clean(new GuestDraft("Kiran Patil", "9820006666", Dob: " ")).Dob);
+        // LG-R6: an explicit blank is kept as "" (= clear on update); an omitted dob stays null (= keep the stored date).
+        Assert.Equal("", GuestRules.Clean(new GuestDraft("Kiran Patil", "9820006666", Dob: " ")).Dob);
+        Assert.Null(GuestRules.Clean(new GuestDraft("Kiran Patil", "9820006666")).Dob);
     }
 
     [Fact]
@@ -59,8 +61,14 @@ public class GuestDobSqlTests : IAsyncLifetime
         var listed = (await _w.StayQueries.ListGuestsAsync(_w.PropertyId, Users.Reception, "patil", 1, 50, Ct)).Items.Single();
         Assert.Equal(("1985-03-12", (long?)4711), (listed.Dob, listed.LegacyGuestId));
 
-        var edited = await _w.Stays.SaveGuestProfileAsync(_w.Ctx(Users.Reception, "d3"), new SaveGuestProfileRequest(Full with { Dob = null }, GuestId: id, GuestExpectedVersion: listed.Version), Ct);
+        // LG-R6: a save that omits dob (a client that does not send the field) keeps the stored date
+        var kept = await _w.Stays.SaveGuestProfileAsync(_w.Ctx(Users.Reception, "d3"), new SaveGuestProfileRequest(Full with { Dob = null, Notes = "edited" }, GuestId: id, GuestExpectedVersion: listed.Version), Ct);
+        var afterKeep = await _w.StayQueries.GetGuestAsync(_w.PropertyId, Users.Reception, kept.Value.GuestId, Ct);
+        Assert.Equal(("1985-03-12", "edited"), (afterKeep.Dob, afterKeep.Notes));
+        // an explicit empty value clears it
+        var edited = await _w.Stays.SaveGuestProfileAsync(_w.Ctx(Users.Reception, "d4"), new SaveGuestProfileRequest(Full with { Dob = "" }, GuestId: id, GuestExpectedVersion: afterKeep.Version), Ct);
         Assert.Null((await _w.StayQueries.GetGuestAsync(_w.PropertyId, Users.Reception, edited.Value.GuestId, Ct)).Dob);
+        Assert.Equal(1, await _w.Db.CountAsync($"SELECT COUNT(*) FROM gst.guest WHERE guest_id = {id} AND dob IS NULL;", Ct));
         Assert.Equal(4711L, (await _w.StayQueries.GetGuestAsync(_w.PropertyId, Users.Reception, id, Ct)).LegacyGuestId);   // an edit never touches the legacy id
     }
 }

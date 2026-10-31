@@ -54,3 +54,7 @@
 .acc-m .m-list-card .m-lc-right small{font-size:13px;color:var(--muted)}
 .m-sheet .acc-picker select,.m-sheet .form input,.m-sheet .form select{min-height:48px;font-size:16px}
 @media print{.acc-rangebar,.acc-open-actions{display:none}}
+
+/* LG-R8: pager of an opening entry longer than one page (imported drafts) */
+.acc-open-pager{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:8px 0}
+.acc-open-pager .btn{min-height:48px}

@@ -4,7 +4,7 @@ import type {Handler,Kit} from '../commands';
 import type {Booking} from '../../../domain/types';
 import {blockedTonight,available,occupant} from '../../../domain/selectors';
 import {nights} from '../../../domain/money';
-import {Guest,GuestDraft,guestValidate,guestClean,guestFieldLabels,staySegments,guestIdNumberError} from '../../../domain/streams/guests';
+import {Guest,GuestDraft,guestValidate,guestClean,guestFieldLabels,staySegments,guestIdNumberError,guestDobCleared} from '../../../domain/streams/guests';
 
 /** Throws VALIDATION with the first message, prefixed by its field label. */
 function validate(k:Kit,d:GuestDraft,registration:boolean){
@@ -24,11 +24,12 @@ function upsert(k:Kit,d:GuestDraft,existingId:string|undefined,verified:boolean)
       k.assert(!guestIdNumberError(clean.idType,g!.idNumber),'The ID type changed — enter the ID number for the new type.');
       clean.idNumber=g!.idNumber;clean.idLast4=g!.idLast4;
     }else if(!clean.idNumber&&g!.idType===clean.idType)clean.idLast4=clean.idLast4||g!.idLast4;
+    if(guestDobCleared(d))delete g!.dob;   // LG-R6: omitted dob = unchanged (Object.assign keeps it); explicit empty = cleared
     Object.assign(g!,clean,{verified:verified||(g!.verified&&!!clean.idLast4&&!!clean.address),origin:g!.origin==='auto'?'manual':g!.origin,version:(g!.version||1)+1});
     return g!;
   }
   const g:Guest={id:k.id('G'),...(clean as Required<Pick<Guest,'name'|'phone'|'email'|'address'|'nationality'|'idType'|'idLast4'|'preferences'|'notes'|'party'>>),
-    ...(clean.company?{company:clean.company}:{}),...(clean.gstin?{gstin:clean.gstin}:{}),verified,origin:'manual',version:1};
+    ...(clean.company?{company:clean.company}:{}),...(clean.gstin?{gstin:clean.gstin}:{}),...(clean.dob?{dob:clean.dob}:{}),verified,origin:'manual',version:1};
   s.guests.push(g);return g;
 }
 const link=(x:Booking,g:Guest)=>{if(x.guestId!==g.id){x.guestId=g.id;x.version++;}};

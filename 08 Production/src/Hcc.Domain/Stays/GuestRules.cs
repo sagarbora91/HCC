@@ -135,7 +135,7 @@ public static partial class GuestRules
         return string.Create(CultureInfo.InvariantCulture, $"{errors[keys[0]]} ({keys.Count - 1} more: {rest})");
     }
 
-    /// <summary>Trimmed copy (upper-case ID last 4 / GSTIN; nationality defaults to Indian; blanks become null; ID number normalised, last 4 derived from it).</summary>
+    /// <summary>Trimmed copy (dob: null = omitted, kept on update; "" = cleared — LG-R6; upper-case ID last 4 / GSTIN; nationality defaults to Indian; blanks become null; ID number normalised, last 4 derived from it).</summary>
     public static GuestDraft Clean(GuestDraft d)
     {
         ArgumentNullException.ThrowIfNull(d);
@@ -143,7 +143,9 @@ public static partial class GuestRules
         var number = N(d.IdNumber) is null ? null : GuestIds.GuestIdRules.Normalise(d.IdNumber);
         return new GuestDraft(T(d.Name), T(d.Phone), N(d.Email), N(d.Address), N(d.Nationality) ?? "Indian", N(d.IdType),
             number is not null ? GuestIds.GuestIdRules.Last4(number) : N(d.IdLast4)?.ToUpperInvariant(), N(d.Company), N(d.Gstin)?.ToUpperInvariant(), N(d.Preferences), N(d.Notes),
-            (d.Party ?? []).Select(p => new GuestPartyMember(T(p.Name), p.AgeBand, N(p.Relation))).ToList(), number, N(d.Dob));
+            (d.Party ?? []).Select(p => new GuestPartyMember(T(p.Name), p.AgeBand, N(p.Relation))).ToList(), number,
+            // LG-R6: an omitted dob (null) stays null = "keep the stored date"; an explicit blank becomes "" = "clear it".
+            d.Dob is null ? null : T(d.Dob));
     }
 
     /// <summary>"••••••1041" (last 4 digits) or "—".</summary>

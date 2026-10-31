@@ -205,5 +205,6 @@ export function navRoleOk(s:State,uid:string,page:string):boolean{
   if(page==='accounting')return rbacSeesBooks(s,uid);   // DEC-079: not the Cashier (collections only, Reports)
   // DEC-079 D4: the Tech admin reaches Messages only for its templates, in production (the demo baseline stays matrix v1, D6).
   if(page==='messages'&&rbacIsRole(s,uid,'Tech admin'))return rbacTechAdminTemplates(s,uid);
+  if(page==='legacy-import')return !rbacIsRole(s,uid,'Tech admin');   // LG: the importer is Owner-only (PERM-LGC-001); the page itself checks the Owner role
   return true;
 }

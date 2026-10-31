@@ -111,13 +111,14 @@ public sealed class SqlStaysStore : IStaysStore
         var sql = P3Sql.Sql(tx);
         await using var cmd = sql.Command("""
             UPDATE gst.guest SET full_name = @name, phone = @phone, email = @email, address = @address, nationality = @nat, id_type = @idt,
-              id_last4 = @id4, company = @company, gstin = @gstin, preferences = @pref, notes = @notes, dob = @dob, verified = @verified,
+              id_last4 = @id4, company = @company, gstin = @gstin, preferences = @pref, notes = @notes, dob = CASE WHEN @dobKeep = 1 THEN dob ELSE @dob END, verified = @verified,
               origin = 'manual'
             WHERE guest_id = @g AND row_ver = @v;
             """);
         cmd.Add("@g", SqlDbType.BigInt, guestId);
         cmd.Add("@v", SqlDbType.Binary, expectedVersion, 8);
         AddGuestFields(cmd, clean, verified);
+        cmd.Add("@dobKeep", SqlDbType.Bit, clean.Dob is null);   // LG-R6: a save that omits dob leaves the stored date unchanged
         SqlValues.EnsureVersionMatched(await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false), "This guest profile");
         await using (var del = sql.Command("DELETE gst.guest_party WHERE guest_id = @g;"))
         {
