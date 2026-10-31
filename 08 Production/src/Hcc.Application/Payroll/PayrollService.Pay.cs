@@ -50,7 +50,7 @@ public sealed partial class PayrollService
             if (!string.IsNullOrWhiteSpace(req.Funding))
             {
                 var ms = methods is null ? null : await methods.MethodsAsync(tx, ctx.PropertyId, c2).ConfigureAwait(false);
-                var m = Hcc.Domain.MoneyMasters.PaymentMethodBook.Pick(ms, req.Funding, Hcc.Domain.MoneyMasters.MoneyMasterValues.Expenses, null, requireReference: false);
+                var m = Hcc.Domain.MoneyMasters.PaymentMethodBook.Pick(ms, req.Funding, Hcc.Contracts.MoneyMasters.MoneyMasterValues.Expenses, null, requireReference: false);
                 if (m.IsCredit) throw HccException.Validation("An advance is paid in money: choose cash, UPI or a bank transfer — not a credit method.");
                 funding = m.Name;
                 if (m.SettlesToTill)

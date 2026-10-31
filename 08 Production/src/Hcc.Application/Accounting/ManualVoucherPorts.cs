@@ -1,4 +1,5 @@
 using System.Globalization;
+using Hcc.Application.Billing;
 using Hcc.Application.Commands;
 using Hcc.Contracts;
 using Hcc.Contracts.Accounting;

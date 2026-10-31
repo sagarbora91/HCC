@@ -25,7 +25,9 @@
     {"version": 3921, "file": "3921_system_health_rbac_seed.sql", "reason": "A09-05 system health (0d1ac65, 26 Oct 2026): merged after 3930"},
     {"version": 2880, "file": "2880_import_all_masters.sql", "reason": "masters wave MA-8…MA-11 (2880, 2890, 2891) landed on main in parallel with Wave D; no released database has 4000+ yet"},
     {"version": 2890, "file": "2890_payment_method_records.sql", "reason": "masters wave MA-8…MA-11 (2880, 2890, 2891) landed on main in parallel with Wave D; no released database has 4000+ yet"},
-    {"version": 2891, "file": "2891_number_series_rst.sql", "reason": "masters wave MA-8…MA-11 (2880, 2890, 2891) landed on main in parallel with Wave D; no released database has 4000+ yet"}
+    {"version": 2891, "file": "2891_number_series_rst.sql", "reason": "masters wave MA-8…MA-11 (2880, 2890, 2891) landed on main in parallel with Wave D; no released database has 4000+ yet"},
+    {"version": 4255, "file": "4255_hr_advance_funding.sql", "reason": "ACC-2 integration: rulings 5, 9, 10 (hr.advance funding, vendor payee_type, category transport); 4257/4258 unapplied on main, wave lands as one"},
+    {"version": 4256, "file": "4256_mst_payee_type_transport.sql", "reason": "ACC-2 integration: rulings 5, 9, 10 (hr.advance funding, vendor payee_type, category transport); 4257/4258 unapplied on main, wave lands as one"}
   ],
   "migrations": [
     {"version": 1, "file": "0001_platform.sql", "sha256": "2CB8FB349156F501295E1148366BDFE406EC097C136093F09C6F0817542F46CC"},
@@ -148,6 +150,8 @@
     {"version": 4253, "file": "4253_grp_company_active.sql", "sha256": "214DE2066C87E68417B7A8396A16817671039C2C01402C6AC8F0FD8E17F69349"},
     {"version": 4254, "file": "4254_exp_cash_deduction_lost.sql", "sha256": "F2B2B61F285531078389577073BA64EFE83903580D48D0F86AA2162AF043E137"},
     {"version": 4257, "file": "4257_acc_ledger_month_balance.sql", "sha256": "3C0EA563385D76F8C23665B26ED3A1FE3BB633295A30CF0060FE19BD05FC521D"},
-    {"version": 4258, "file": "4258_bill_charge_kind_food.sql", "sha256": "6DA5E1E8055F063649EF0AAD04626FCE80410665E7D88229876D52CB08ED768B"}
+    {"version": 4258, "file": "4258_bill_charge_kind_food.sql", "sha256": "6DA5E1E8055F063649EF0AAD04626FCE80410665E7D88229876D52CB08ED768B"},
+    {"version": 4255, "file": "4255_hr_advance_funding.sql", "sha256": "F534719241A06C38FE1BBD63135835510ACF5CDC4A655B4375B71E768C82F6A9"},
+    {"version": 4256, "file": "4256_mst_payee_type_transport.sql", "sha256": "36075564BFCD946ED4BD84DB7FD9041690CCB506CE4D948A482457596E7D2E8D"}
   ]
 }
