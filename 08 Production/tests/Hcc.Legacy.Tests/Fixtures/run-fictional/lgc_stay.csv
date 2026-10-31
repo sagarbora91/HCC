@@ -1,0 +1,6 @@
+legacy_fy,legacy_booking_id,legacy_guest_id,customer_key,guest_name_snapshot,arrival_date,arrival_utc,departure_date,departure_utc,expected_departure_date,nights,adults,children,room_no,room_count,meal_plan,grc_no,purpose,source_tag,status,paid_flag,legacy_bill_no,notes
+2025-26,1,102,9876500001,R. Demo,2025-06-01,2025-06-01T06:30:00Z,2025-06-03,2025-06-03T05:30:00Z,2025-06-03,2,2,0,101,1,CP,11,Business,,CheckedOut,Y,1,
+2025-26,2,103,9876500002,Sana Sample,2025-12-10,2025-12-10T08:30:00Z,2025-12-11,2025-12-11T05:30:00Z,2025-12-11,1,1,0,102,1,EP,12,,OTA:AGODA,CheckedOut,Y,2,
+2025-26,3,103,9876500002,Sana Sample,2026-03-30,2026-03-30T08:30:00Z,,,2026-04-01,2,1,0,103,1,EP,13,,,Duplicate,,,dropped copy (kept in 2026-27)
+2026-27,1,101,9876500001,Ravi Demo,2026-05-01,2026-05-01T06:30:00Z,2026-05-03,2026-05-03T05:30:00Z,2026-05-03,2,2,1,101,2,MAP,1,,,CheckedOut,Y,1,
+2026-27,2,104,n:walk in guest,Walk In Guest,2026-10-29,2026-10-29T06:30:00Z,,,2026-11-02,4,1,0,104,1,EP,2,,,OpenAtBackup,,,

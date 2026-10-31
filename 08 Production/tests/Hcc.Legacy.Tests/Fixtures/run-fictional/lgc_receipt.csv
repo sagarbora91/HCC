@@ -1,0 +1,7 @@
+legacy_fy,legacy_source,legacy_row_id,stay_ref,bill_ref,legacy_guest_id,customer_key,received_date,received_utc,kind,method,amount_paise,reference,bank_name,notes
+2025-26,deposit,1,2025-26|1,2025-26|1,102,9876500001,2025-06-03,2025-06-03T05:35:00Z,payment,CASH,112000,,,
+2025-26,deposit,2,2025-26|2,2025-26|2,103,9876500002,2025-12-11,2025-12-11T05:35:00Z,payment,UPI,53750,QR,,
+2025-26,deposit,-2,2025-26|2,,103,9876500002,2025-12-10,2025-12-10T08:35:00Z,security,CASH,100000,,,
+2025-26,refund,1,2025-26|2,,103,9876500002,2025-12-11,2025-12-11T05:40:00Z,refund,CASH,100000,,,
+2026-27,deposit,1,2026-27|1,,101,9876500001,2026-05-01,2026-05-01T06:35:00Z,advance,CASH,50000,,,
+2026-27,deposit,2,2026-27|1,2026-27|1,101,9876500001,2026-05-03,2026-05-03T05:35:00Z,payment,CARD,55000,,,
