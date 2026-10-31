@@ -1,0 +1,14 @@
+{
+  "extractorVersion": "fictional-1",
+  "note": "Hand-computed for the fictional fixture (lg-import).",
+  "fy": {
+    "2025-26": {
+      "beforeDedup": { "billsCount": 2, "netPaise": 165750, "roomGstPaise": 14500, "fbPaise": 5000, "receiptsCount": 2, "receiptsPaise": 165750, "refundsCount": 1, "refundsPaise": 100000 },
+      "afterDedup": { "billsCount": 2, "netPaise": 165750, "roomGstPaise": 14500, "fbPaise": 5000, "receiptsCount": 2, "receiptsPaise": 165750, "refundsCount": 1, "refundsPaise": 100000, "securityCount": 1, "securityPaise": 100000, "stays": 3, "staysDuplicate": 1, "outOfFy": 0 }
+    },
+    "2026-27": {
+      "beforeDedup": { "billsCount": 1, "netPaise": 105000, "roomGstPaise": 5000, "fbPaise": 0, "receiptsCount": 2, "receiptsPaise": 105000, "refundsCount": 0, "refundsPaise": 0 },
+      "afterDedup": { "billsCount": 1, "netPaise": 105000, "roomGstPaise": 5000, "fbPaise": 0, "receiptsCount": 2, "receiptsPaise": 105000, "refundsCount": 0, "refundsPaise": 0, "securityCount": 0, "securityPaise": 0, "stays": 2, "staysDuplicate": 0, "outOfFy": 0 }
+    }
+  }
+}

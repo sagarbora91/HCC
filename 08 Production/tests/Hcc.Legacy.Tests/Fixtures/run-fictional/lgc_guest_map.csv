@@ -1,0 +1,5 @@
+legacy_guest_id,guest_id,customer_key,phone_key,phone_valid,name_snapshot,name_fold,deleted,source_fy,guest_name,guest_phone,is_primary,dob
+101,,9876500001,9876500001,1,Ravi Demo,ravi demo,0,2026-27,Ravi Demo,9876500001,1,1985-03-12
+102,,9876500001,9876500001,1,R. Demo,r demo,0,2026-27,Ravi Demo,9876500001,0,
+103,,9876500002,9876500002,1,Sana Sample,sana sample,0,2026-27,Sana Sample,9876500002,1,
+104,,n:walk in guest,,0,Walk In Guest,walk in guest,0,2026-27,,,0,
