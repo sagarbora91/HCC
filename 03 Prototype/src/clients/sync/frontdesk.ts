@@ -112,8 +112,13 @@ export const frontdesk:SyncArea={
       const id=String(c.cmd.id);bookingOf(c,id);
       // Money (W4-3): the approved company credit for exactly the balance (DEC-041) unless the dialog names one; after the checkout the
       // tax invoice is issued (key <action>:invoice) and the folio slices reload.
-      const given=c.cmd.companyCreditApprovalId;
-      const approval=given?serverId(given,'Approval'):companyCreditApprovalId(c.state,id);
+      // ACC-2 (coordinator ruling 3): an OTA-collected stay settles its folio to the channel's receivable (receipt kind ota-credit) first;
+      // no company credit then.
+      const ota=c.cmd.otaCredit===true;
+      if(ota){const f=c.ids.server('folio',id);if(f===undefined)throw new HccClientError('INVALID_TRANSITION','This booking has no folio on the server yet.');
+        await c.api.command('SettleFolioToOta',{folioId:f,expectedVersion:c.ids.version('folio',id)??null},{step:'ota'});}
+      const given=ota?undefined:c.cmd.companyCreditApprovalId;
+      const approval=ota?undefined:given?serverId(given,'Approval'):companyCreditApprovalId(c.state,id);
       await c.api.command('CheckoutStay',{stayId:stayIdOf(c,id),...(approval?{companyCreditApprovalId:approval}:{})},{expectedVersion:versionOf(c,'stay',id,'Stay')});
       // W4 D1: the checkout has happened on the server. An invoice refusal (e.g. no hotel GSTIN yet) must not report the checkout as
       // failed: the slices still reload (the stay shows Departed) and the screen shows the warning; "Issue invoice" retries later.

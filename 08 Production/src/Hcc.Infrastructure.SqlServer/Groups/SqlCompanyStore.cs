@@ -14,7 +14,7 @@ namespace Hcc.Infrastructure.SqlServer.Groups;
 /// <summary>SQL adapter of the company accounts (schema grp, migration 2202). Writes only grp.company_account / grp.company_limit_request.</summary>
 public sealed class SqlCompanyStore(SqlConnectionFactory connections) : ICompanyStore
 {
-    private const string Columns = "company_id, property_id, name, gstin, contact, phone, email, city, rates_json, credit_limit_paise, row_ver";
+    private const string Columns = "company_id, property_id, name, gstin, contact, phone, email, city, rates_json, credit_limit_paise, row_ver, active"; // ACC-2 flows: active (migration 4253)
     private const string RequestColumns = "request_id, company_id, from_paise, to_paise, reason, status, requested_by, requested_utc, decided_by, note";
 
     private static SqlCommandTransaction Sql(ICommandTransaction tx) =>
@@ -29,7 +29,7 @@ public sealed class SqlCompanyStore(SqlConnectionFactory connections) : ICompany
     private static string? S(SqlDataReader rd, int i) => rd.IsDBNull(i) ? null : rd.GetString(i);
 
     private static CompanyRow Read(SqlDataReader rd) => new(rd.GetInt64(0), rd.GetInt32(1), rd.GetString(2), S(rd, 3), S(rd, 4), S(rd, 5), S(rd, 6), S(rd, 7),
-        JsonSerializer.Deserialize<Dictionary<string, long>>(rd.GetString(8)) ?? [], rd.GetInt64(9), SqlValues.RowVersionToWire((byte[])rd[10]));
+        JsonSerializer.Deserialize<Dictionary<string, long>>(rd.GetString(8)) ?? [], rd.GetInt64(9), SqlValues.RowVersionToWire((byte[])rd[10]), rd.GetBoolean(11));
 
     private static CompanyLimitRow ReadRequest(SqlDataReader rd) => new(rd.GetInt64(0), rd.GetInt64(1), rd.GetInt64(2), rd.GetInt64(3), rd.GetString(4), rd.GetString(5),
         rd.GetInt32(6), rd.GetDateTime(7), rd.IsDBNull(8) ? null : rd.GetInt32(8), S(rd, 9));

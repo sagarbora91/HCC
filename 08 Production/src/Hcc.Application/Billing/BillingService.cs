@@ -31,7 +31,7 @@ namespace Hcc.Application.Billing;
 public sealed class BillingService(ICommandRunner runner, IBillingStore store, IAccessPolicy policy, IStayNightSource stays,
     IGstRateResolver gst, TimeProvider clock, IGstChargeSnapshots? gstSnapshots = null, Closing.IBusinessDayGuard? days = null,
     ICashOutDecisions? cashOut = null, Groups.ICompanyCreditGuard? credit = null, MoneyMasters.IPaymentMethodSource? methods = null,
-    IRoomNightBundle? bundles = null)
+    IRoomNightBundle? bundles = null, Accounting.CashGuardService? cashGuard = null)
 {
     private DateTime Now => clock.GetUtcNow().UtcDateTime;
 
@@ -155,6 +155,9 @@ public sealed class BillingService(ICommandRunner runner, IBillingStore store, I
                 var shift = await CashDesk.RequireOpenShiftAsync(store, tx, caller.PropertyId, req.TillId!.Value, f.BusinessDate, ct2).ConfigureAwait(false);
                 await policy.RequireAsync(caller.PropertyId, caller.PrincipalId, permission, new AccessScope(BillingPermissions.ShiftScope, shift.ShiftId), ct: ct2).ConfigureAwait(false);
                 (tillId, shiftId) = (shift.TillId, shift.ShiftId);
+                if (cashGuard is not null && kind is ReceiptKind.Payment or ReceiptKind.Deposit) // ACC-2 flows (contract §7, B9): >= Rs 2,00,000 cash for a booking / a day refused
+                    await cashGuard.EnsureReceiptAsync(tx, caller.PropertyId, new Accounting.CashParty(Accounting.CashParty.Folio, f.FolioId), amount.Value, f.BusinessDate,
+                        $"the guest (folio {f.FolioId.ToString(System.Globalization.CultureInfo.InvariantCulture)})", ct2).ConfigureAwait(false);
             }
             else if (req.TillId is { } t)
             {

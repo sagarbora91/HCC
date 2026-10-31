@@ -7,19 +7,19 @@ const sha=o=>createHash('sha256').update(JSON.stringify(o)).digest('hex').slice(
 // by the optimised code. Old → new (pack · cash book · daily CSV length):
 //   BASE 24 Oct        38884c821063692d · 56abcbfee5b7dfa3 · 807   → a86f49b8a31fddd2 · 41e646b84c04be9b · 807
 //   BASE 1–24 Oct      bacebb5b465dabb7 · 56abcbfee5b7dfa3 · 1996  → afb5407434dec6a7 · 41e646b84c04be9b · 1996
-//   FY26 Apr–24 Oct    79a51a68d6f7ab82 · c41a9c8fd20f68e5 · 14839 → acd252d0980fa9df · f96b165175decc50 · 14836
-//   FY26 July          8682476fa2331354 · 91efc51d0b73458a · 2871  → a25f322e76d994e2 · 963db914995ff9d0 · 2871
-//   FY26 20–24 Oct     9e3c6b9107d01ff1 · 7c5963b5428fb40b · 1091  → 4e71ef6202dd0836 · ae556315c757253a · 1091
-//   FY26 FY window     15c5d3d2e7752d64 · 520b8e9c1b86b704 · 14778 → f8f86a7bff682aae · 530c3c39f1dbab37 · 14775
-//   FY26 10 Apr        6fced525eba64b9a · 975a73db7d9634c6 · 825   → 59535232569a3822 · b491b2ee6bbded5b · 825
+//   FY26 Apr–24 Oct    79a51a68d6f7ab82 · c41a9c8fd20f68e5 · 14839 → d536e7f498c474a9 · f96b165175decc50 · 14836
+//   FY26 July          8682476fa2331354 · 91efc51d0b73458a · 2871  → 14a5817de8d17a45 · 963db914995ff9d0 · 2871
+//   FY26 20–24 Oct     9e3c6b9107d01ff1 · 7c5963b5428fb40b · 1091  → ca11ac1026b2e09f · ae556315c757253a · 1091
+//   FY26 FY window     15c5d3d2e7752d64 · 520b8e9c1b86b704 · 14778 → c5d2c1956ec7d71f · 530c3c39f1dbab37 · 14775
+//   FY26 10 Apr        6fced525eba64b9a · 975a73db7d9634c6 · 825   → a6c522621789680a · b491b2ee6bbded5b · 825
 const GOLDEN=[
   ['BASE','2026-10-24','2026-10-24','a86f49b8a31fddd2','41e646b84c04be9b',807],
   ['BASE','2026-10-01','2026-10-24','afb5407434dec6a7','41e646b84c04be9b',1996],
-  ['FY26','2026-04-01','2026-10-24','acd252d0980fa9df','f96b165175decc50',14836],
-  ['FY26','2026-07-01','2026-07-31','a25f322e76d994e2','963db914995ff9d0',2871],
-  ['FY26','2026-10-20','2026-10-24','4e71ef6202dd0836','ae556315c757253a',1091],
-  ['FY26','FYFROM','FYTO','f8f86a7bff682aae','530c3c39f1dbab37',14775],
-  ['FY26','2026-04-10','2026-04-10','59535232569a3822','b491b2ee6bbded5b',825],
+  ['FY26','2026-04-01','2026-10-24','d536e7f498c474a9','f96b165175decc50',14836],
+  ['FY26','2026-07-01','2026-07-31','14a5817de8d17a45','963db914995ff9d0',2871],
+  ['FY26','2026-10-20','2026-10-24','ca11ac1026b2e09f','ae556315c757253a',1091],
+  ['FY26','FYFROM','FYTO','c5d2c1956ec7d71f','530c3c39f1dbab37',14775],
+  ['FY26','2026-04-10','2026-04-10','a6c522621789680a','b491b2ee6bbded5b',825],
 ];
 export function register({test,M,assert}){
   const {seed,execute,loadScenario,reportPack,reportCsv,cbRange,cbDay,shiftMovements,shiftMovementsByDate,reportPackMemo,cbRangeMemo,memoByDeps}=M;

@@ -9,6 +9,8 @@ public enum VoucherType
     Receipt,
     Payment,
     Journal,
+    Purchase, // ACC-2 (Tally Purchase)
+    Contra,   // ACC-2 (Tally Contra)
 }
 
 /// <summary>
@@ -42,8 +44,14 @@ public static class SourceKinds
     public const string Expense = "expense";
     public const string Closing = "closing";
     public const string Payroll = "payroll";
+    // ACC-2 (contract §1): manual vouchers, purchases / vendor payments, tax entries (RCM, GST set-off, TDS), OTA payouts.
+    public const string Manual = "manual";
+    public const string Purchase = "purchase";
+    public const string Vendor = "vendor";
+    public const string Tax = "tax";
+    public const string Ota = "ota";
 
-    public static readonly IReadOnlyList<string> All = [Line, Receipt, Pos, Expense, Closing, Payroll];
+    public static readonly IReadOnlyList<string> All = [Line, Receipt, Pos, Expense, Closing, Payroll, Manual, Purchase, Vendor, Tax, Ota];
 }
 
 /// <summary>Intra-state GST split (prototype <c>gstSplit</c>): SGST = half rounded toward zero, CGST = the rest (takes the odd paisa).</summary>
@@ -87,6 +95,8 @@ public static class SourceRules
     /// </summary>
     public static AccountingSource FolioReceipt(string sourceKey, string kind, string tender, DateOnly date, long amountPaise, string narration)
     {
+        if (kind == "deposit-apply") return DepositApplied(sourceKey, date, amountPaise, narration);       // ACC-2 flows (contract §4, A6a)
+        if (kind == "ota-credit") return OtaCredit(sourceKey, date, amountPaise, null, narration);          // ACC-2 flows (contract §4, A13)
         var counter = "receipt:" + kind;
         if (kind == "company-credit")
             return new(sourceKey, SourceKinds.Receipt, kind, date, VoucherType.Journal, narration, [Dr(counter, amountPaise), Cr("folio:guest", amountPaise)]);
@@ -101,9 +111,13 @@ public static class SourceRules
     /// <c>receipt:company-credit</c> ledger the checkout's company credit debited). Sub <c>company-payment</c>, so the daily company-credit
     /// reconciliation (Sub <c>company-credit</c>) is unchanged.
     /// </summary>
-    public static AccountingSource CompanyPayment(string sourceKey, string tender, DateOnly date, long amountPaise, string narration)
+    /// ACC-2 tds (contract §4 A9, rulebook T7b): <paramref name="tdsPaise"/> = TDS the company deducted — Dr tender (amount) · Dr
+    /// <c>tax:tds-receivable</c> 1360 (tds) · Cr company receivables (amount + tds); the 1360 line exists only when tds is not zero.
+    public static AccountingSource CompanyPayment(string sourceKey, string tender, DateOnly date, long amountPaise, string narration, long tdsPaise = 0)
         => new(sourceKey, SourceKinds.Receipt, "company-payment", date, VoucherType.Receipt, narration,
-            [Dr("method:" + tender, amountPaise), Cr("receipt:company-credit", amountPaise)]);
+            tdsPaise == 0
+                ? [Dr("method:" + tender, amountPaise), Cr("receipt:company-credit", amountPaise)]
+                : [Dr("method:" + tender, amountPaise), Dr(TdsCalculator.ReceivableKey, tdsPaise), Cr("receipt:company-credit", checked(amountPaise + tdsPaise))]);
 
     /// <summary>Outlet bill settled at the outlet (DEC-052): Sales, Dr tender total · Cr outlet revenue net · Cr CGST · Cr SGST. A void is negative.</summary>
     public static AccountingSource PosBill(string sourceKey, string kind, string tender, DateOnly date, long totalPaise, long netPaise, long cgst, long sgst, string narration)
@@ -120,12 +134,79 @@ public static class SourceRules
     /// <paramref name="itcPaise"/> (the bill's GST marked ITC allowed; negative on a reversal) Dr category (amount − GST) · Dr GST input credit ·
     /// Cr funding (amount); the ITC line exists only when it is not zero (prototype <c>accLiveVouchers</c>).
     /// </summary>
-    public static AccountingSource Expense(string sourceKey, bool reversal, string category, string funding, DateOnly date, long amountPaise, string narration, long itcPaise = 0)
-        => new(sourceKey, SourceKinds.Expense, reversal ? "reversal" : "expense", date, funding == "Vendor credit" ? VoucherType.Journal : VoucherType.Payment, narration,
-            itcPaise == 0
-                ? [Dr("expense:" + category, amountPaise), Cr("funding:" + funding, amountPaise)]
-                : [Dr("expense:" + category, checked(amountPaise - itcPaise)), Dr(GstInputKey, ChartOfAccounts.ItcSplit(itcPaise).Cgst),
-                    Dr(ChartOfAccounts.GstInputSgstKey, ChartOfAccounts.ItcSplit(itcPaise).Sgst), Cr("funding:" + funding, amountPaise)]); // ACC-1: ITC CGST half 1310 · SGST half 1320
+    public static AccountingSource Expense(string sourceKey, bool reversal, string category, string funding, DateOnly date, long amountPaise, string narration, long itcPaise = 0,
+        PurchaseLines? purchase = null)
+    {
+        // ACC-2 (acc2-purchase, contract §3.1, §3.5; rulebook C1, C5, C9): a bill on a credit method is a Purchase voucher (was Journal); an
+        // inter-state bill's ITC goes whole to 1330 (IGST); TDS held back credits 2150 and the funding side net. The funding entry stays LAST.
+        var p = purchase ?? PurchaseLines.None;
+        var credit = p.Credit ?? funding == "Vendor credit";
+        var entries = new List<SourceEntry> { Dr("expense:" + category, checked(amountPaise - itcPaise)) };
+        entries.AddRange(ItcEntries(itcPaise, p.Inter));
+        if (p.TdsPaise != 0) entries.Add(Cr(TdsPayableKey, p.TdsPaise));
+        entries.Add(Cr("funding:" + funding, checked(amountPaise - p.TdsPaise)));
+        return new(sourceKey, SourceKinds.Expense, reversal ? "reversal" : p.Return ? "return" : "expense", date, credit ? VoucherType.Purchase : VoucherType.Payment, narration, entries);
+    }
+
+    // ── ACC-2 (acc2-purchase) · purchases: IGST, reverse charge, vendor payments, returns (contract §3) ──
+
+    /// <summary>ACC-2: mapping keys (prototype EXP_KEY_*): IGST input credit (1330), RCM payable (2140), TDS payable (2150), vendor payable (2200).</summary>
+    public const string GstInputIgstKey = "tax:gst-input-igst";
+
+    public const string RcmPayableKey = "tax:rcm-payable";
+
+    public const string TdsPayableKey = "tax:tds-payable";
+
+    public const string VendorPayableKey = "vendor:payable";
+
+    /// <summary>ITC entries of a bill: intra = CGST half 1310 · SGST half 1320 (<see cref="ChartOfAccounts.ItcSplit"/>), inter = the whole to 1330.
+    /// Zero ITC = none. A negative ITC (reversal / return) mirrors.</summary>
+    public static IReadOnlyList<SourceEntry> ItcEntries(long itcPaise, bool inter)
+    {
+        if (itcPaise == 0) return [];
+        if (inter) return [Dr(GstInputIgstKey, itcPaise)];
+        var (c, s) = ChartOfAccounts.ItcSplit(itcPaise);
+        return [Dr(GstInputKey, c), Dr(ChartOfAccounts.GstInputSgstKey, s)];
+    }
+
+    /// <summary>
+    /// C8 / DEC-145: the reverse-charge GST of a bill (second source, kind tax, sub rcm, Journal): Dr the category (or the input-credit
+    /// ledgers when ITC is allowed) · Cr 2140 RCM payable. Negative on a reversal / return record.
+    /// </summary>
+    public static AccountingSource Rcm(string sourceKey, string category, DateOnly date, long rcmPaise, bool itc, bool inter, string narration)
+    {
+        var debit = itc ? ItcEntries(rcmPaise, inter) : [Dr("expense:" + category, rcmPaise)];
+        return new(sourceKey, SourceKinds.Tax, "rcm", date, VoucherType.Journal, narration, [.. debit, Cr(RcmPayableKey, rcmPaise)]);
+    }
+
+    /// <summary>RCM GST of an amount at a rate in basis points, rounded half away from zero (prototype <c>expBpsOf</c>).</summary>
+    public static long BpsOf(long amountPaise, int bps)
+    {
+        var n = checked(Math.Abs(amountPaise) * Math.Max(0, bps));
+        var q = n / 10000;
+        var t = q + ((n - q * 10000) * 2 >= 10000 ? 1 : 0);
+        return amountPaise < 0 ? -t : t;
+    }
+
+    /// <summary>
+    /// C3 / C4: a vendor payment or advance = Payment, Dr vendor payable (2200, party = the vendor) · Cr the tender (party = its settles-to
+    /// account). Sub <c>vendor-advance</c> when nothing was allocated to a bill. A reversing void (a later business day) is the same with a
+    /// negative amount, sub <c>vendor-payment-void</c>.
+    /// </summary>
+    public static AccountingSource VendorPayment(string sourceKey, string tender, DateOnly date, long amountPaise, bool advance, string narration, bool voiding = false)
+        => new(sourceKey, SourceKinds.Vendor, voiding ? "vendor-payment-void" : advance ? "vendor-advance" : "vendor-payment", date, VoucherType.Payment, narration,
+            [Dr(VendorPayableKey, voiding ? -amountPaise : amountPaise), Cr("method:" + tender, voiding ? -amountPaise : amountPaise)]);
+
+    /// <summary>
+    /// C5: a goods return / vendor credit note = a negative Purchase through the credit method (Dr 2200/[vendor] · Cr the category · Cr the ITC
+    /// taken). <paramref name="amountPaise"/> / <paramref name="itcPaise"/> are the positive returned amounts; sub <c>return</c>.
+    /// </summary>
+    public static AccountingSource ExpenseReturn(string sourceKey, string category, string funding, DateOnly date, long amountPaise, long itcPaise, string narration,
+        PurchaseLines? purchase = null)
+        => Expense(sourceKey, false, category, funding, date, -amountPaise, narration, -itcPaise,
+            (purchase ?? PurchaseLines.None) with { Return = true, TdsPaise = -Math.Abs((purchase ?? PurchaseLines.None).TdsPaise), Credit = true });
+
+    // ── end ACC-2 (acc2-purchase) ──
 
     /// <summary>DEC-130: the Udhaar receivables ledger key (customer credit settled by a desk receipt).</summary>
     public const string UdhaarKey = "receipt:udhaar";
@@ -188,6 +269,90 @@ public static class SourceRules
 
     // ── end ACC-1 ──
 
+    // ── ACC-2 gst lane (contract §4 advances switch, §6 set-off; rulebook A6 / A6a / A6b, E1) ──
+
+    /// <summary>Source sub of the GST on an advance received (A6 switch on).</summary>
+    public const string AdvanceGstSub = "advance-gst";
+
+    /// <summary>Source sub of the advance GST reversed when the deposit is applied (A6a, GSTR-1 11B) or returned (A6b, refund voucher).</summary>
+    public const string AdvanceGstReversalSub = "advance-gst-reversal";
+
+    /// <summary>Source sub of the month-end GST set-off journal (E1) and of its reversal when a later set-off replaces it.</summary>
+    public const string GstSetoffSub = "gst-setoff";
+
+    public const string GstSetoffReversalSub = "gst-setoff-reversal";
+
+    /// <summary>
+    /// GST on a booking advance (A6, firm-profile switch "GST on advances" on; DEC-142 default off): Journal, Dr GST paid on advances (1350) ·
+    /// Cr CGST · Cr SGST — the GST inside the amount at the booked room's rate (<see cref="GstSetOff.CumTax"/>). Kind <c>tax</c>.
+    /// </summary>
+    public static AccountingSource AdvanceGst(string sourceKey, DateOnly date, long cgstPaise, long sgstPaise, string narration)
+        => new(sourceKey, SourceKinds.Tax, AdvanceGstSub, date, VoucherType.Journal, narration,
+            [Dr(GstSetOff.KeyAdvance, checked(cgstPaise + sgstPaise)), Cr("folio:cgst", cgstPaise), Cr("folio:sgst", sgstPaise)]);
+
+    /// <summary>The advance GST reversed (A6a / A6b): Journal, Dr CGST · Dr SGST · Cr 1350.</summary>
+    public static AccountingSource AdvanceGstReversal(string sourceKey, DateOnly date, long cgstPaise, long sgstPaise, string narration)
+        => new(sourceKey, SourceKinds.Tax, AdvanceGstReversalSub, date, VoucherType.Journal, narration,
+            [Dr("folio:cgst", cgstPaise), Dr("folio:sgst", sgstPaise), Cr(GstSetOff.KeyAdvance, checked(cgstPaise + sgstPaise))]);
+
+    /// <summary>The month-end GST set-off journal (E1) from <see cref="GstSetOff.Entries"/>: Journal, kind <c>tax</c>, sub <c>gst-setoff</c>.</summary>
+    public static AccountingSource GstSetoff(string sourceKey, DateOnly date, GstSetOffResult setoff, string narration)
+        => new(sourceKey, SourceKinds.Tax, GstSetoffSub, date, VoucherType.Journal, narration, GstSetOff.Entries(setoff));
+
+    /// <summary>A replaced set-off reversed (the exact negative of the stored entries), dated the new set-off's business date.</summary>
+    public static AccountingSource GstSetoffReversal(string sourceKey, DateOnly date, IReadOnlyList<SourceEntry> original, string narration)
+    {
+        ArgumentNullException.ThrowIfNull(original);
+        return new(sourceKey, SourceKinds.Tax, GstSetoffReversalSub, date, VoucherType.Journal, narration,
+            original.Select(e => new SourceEntry(e.MapKey, e.CreditPaise, e.DebitPaise, e.Party)).ToList());
+    }
+
+    // ── end ACC-2 gst lane ──
+    // ── ACC-2 flows (02 Planning/agents/ACC2-POSTING-CONTRACT.md §4, §8; rulebook A6a, A13, A17b, DEC-150) ──
+
+    /// <summary>The OTA receivable key (1115, party = the channel), its commission (5070) and the GST TCS it collected (1340).</summary>
+    public const string OtaKey = "receipt:ota";
+
+    public const string OtaCommissionKey = "receipt:ota-commission";
+
+    public const string TcsKey = "tax:tcs";
+
+    /// <summary>A6a · deposit applied to the folio at check-out (receipt kind <c>deposit-apply</c>): Journal Dr advance deposits (<c>receipt:deposit</c>, 2000) · Cr guest ledger.</summary>
+    public static AccountingSource DepositApplied(string sourceKey, DateOnly date, long amountPaise, string narration)
+        => new(sourceKey, SourceKinds.Receipt, "deposit-apply", date, VoucherType.Journal, narration, [Dr("receipt:deposit", amountPaise), Cr("folio:guest", amountPaise)]);
+
+    /// <summary>A13 · the folio balance of an OTA-paid stay moved to the channel at check-out (receipt kind <c>ota-credit</c>): Journal Dr 1115/&lt;channel&gt; · Cr guest ledger.</summary>
+    public static AccountingSource OtaCredit(string sourceKey, DateOnly date, long amountPaise, string? channelParty, string narration)
+        => new(sourceKey, SourceKinds.Receipt, "ota-credit", date, VoucherType.Journal, narration,
+            [Dr(OtaKey, amountPaise) with { Party = PartyLedgers.Clip(channelParty) }, Cr("folio:guest", amountPaise)]);
+
+    /// <summary>
+    /// A13 / DEC-150 · OTA payout from the channel's statement (kind <c>ota</c>, sub <c>ota-payout</c>): Receipt Dr bank (<c>method:Bank transfer</c>, party
+    /// = the bank account) net · Dr 5070 commission (+ its GST unless <paramref name="itcAllowed"/>: then Dr 1310 / 1320 half each) · Dr 1340 TCS ·
+    /// Cr 1115/&lt;channel&gt; gross. Zero lines are dropped by the voucher builder. gross = net + commission + commissionGst + tcs (checked by the command).
+    /// </summary>
+    public static AccountingSource OtaPayout(string sourceKey, DateOnly date, long grossPaise, long commissionPaise, long commissionGstPaise, long tcsPaise, long netPaise,
+        bool itcAllowed, string? bankParty, string? channelParty, string narration)
+    {
+        var itc = itcAllowed ? commissionGstPaise : 0;
+        var (cgst, sgst) = ChartOfAccounts.ItcSplit(itc);
+        List<SourceEntry> e =
+        [
+            Dr("method:Bank transfer", netPaise) with { Party = PartyLedgers.Clip(bankParty) },
+            Dr(OtaCommissionKey, checked(commissionPaise + commissionGstPaise - itc)),
+        ];
+        if (itc != 0) e.AddRange([Dr(GstInputKey, cgst), Dr(ChartOfAccounts.GstInputSgstKey, sgst)]);
+        e.Add(Dr(TcsKey, tcsPaise));
+        e.Add(Cr(OtaKey, grossPaise) with { Party = PartyLedgers.Clip(channelParty) });
+        return new(sourceKey, SourceKinds.Ota, "ota-payout", date, VoucherType.Receipt, narration, e);
+    }
+
+    /// <summary>A17b · a mistaken Udhaar desk payment reversed (Owner): the negative of <see cref="UdhaarPayment"/> — Receipt Dr Udhaar receivables · Cr tender.</summary>
+    public static AccountingSource UdhaarPaymentReversal(string sourceKey, string tender, DateOnly date, long amountPaise, string narration)
+        => UdhaarPayment(sourceKey, tender, date, -Math.Abs(amountPaise), narration);
+
+    // ── end ACC-2 flows ──
+
     /// <summary>Accepted cash difference (counted − expected): short = Dr over/short · Cr cash; over = Dr cash · Cr over/short (Journal).</summary>
     public static AccountingSource CashDifference(string sourceKey, DateOnly date, long differencePaise, string narration)
         => new(sourceKey, SourceKinds.Closing, "cash-difference", date, VoucherType.Journal, narration,
@@ -212,18 +377,32 @@ public static class SourceRules
     /// Pay run posted (W2-2 contract): Journal. Dr salaries (gross) · Dr employer PF · Dr employer ESIC ·
     /// Cr salaries payable (net) · Cr PF payable (employee + employer) · Cr ESIC payable (employee + employer) · Cr PT payable ·
     /// Cr staff advances (recovered) · Cr other deductions. Balanced when gross = net + employee deductions.
+    /// ACC-2 (contract §8): with <see cref="PayRunFigures.AdvanceRecoveries"/> the advance is credited PER STAFF member (party
+    /// <c>STF-&lt;id&gt;</c>, in staff-id order; prototype <c>accPayRunLines</c>); a part the list does not name stays on the control.
     /// </summary>
     public static AccountingSource PayRun(string sourceKey, DateOnly date, PayRunFigures f, string narration)
     {
         ArgumentNullException.ThrowIfNull(f);
-        return new(sourceKey, SourceKinds.Payroll, "payrun", date, VoucherType.Journal, narration,
-        [
+        var entries = new List<SourceEntry>
+        {
             Dr("payroll:salaries", f.GrossPaise), Dr("payroll:employer-pf", f.EmployerPfPaise), Dr("payroll:employer-esic", f.EmployerEsicPaise),
             Cr("payroll:net-payable", f.NetPayablePaise), Cr("payroll:pf-payable", checked(f.EmployeePfPaise + f.EmployerPfPaise)),
             Cr("payroll:esic-payable", checked(f.EmployeeEsicPaise + f.EmployerEsicPaise)), Cr("payroll:pt-payable", f.ProfessionalTaxPaise),
-            Cr("payroll:advances", f.AdvanceRecoveryPaise), Cr("payroll:other-deductions", f.OtherDeductionsPaise),
-        ]);
+        };
+        var named = 0L;
+        foreach (var (staffId, paise) in (f.AdvanceRecoveries ?? []).Where(r => r.Paise != 0).OrderBy(r => r.StaffId))
+        {
+            entries.Add(Cr(AdvancesKey, paise) with { Party = PartyLedgers.Staff(staffId) });
+            named = checked(named + paise);
+        }
+
+        entries.Add(Cr(AdvancesKey, checked(f.AdvanceRecoveryPaise - named)));
+        entries.Add(Cr("payroll:other-deductions", f.OtherDeductionsPaise));
+        return new(sourceKey, SourceKinds.Payroll, "payrun", date, VoucherType.Journal, narration, entries);
     }
+
+    /// <summary>The staff advances key (1200, party = the staff member).</summary>
+    public const string AdvancesKey = "payroll:advances";
 
     /// <summary>Net pay paid out (W2-2 contract): Payment, Dr salaries payable · Cr funding.</summary>
     public static AccountingSource PayRunPaid(string sourceKey, string funding, DateOnly date, long amountPaise, string narration)
@@ -238,7 +417,7 @@ public static class SourceRules
     {
         ArgumentNullException.ThrowIfNull(original);
         return new(sourceKey, SourceKinds.Payroll, "payrun-reversal", date, VoucherType.Journal, narration,
-            original.Select(e => new SourceEntry(e.MapKey, e.CreditPaise, e.DebitPaise)).ToList());
+            original.Select(e => e with { DebitPaise = e.CreditPaise, CreditPaise = e.DebitPaise }).ToList()); // ACC-2: the party stays (1200/STF-<id>)
     }
 
     // ── DEC-074 (wave B3) · group master folio, staff advances, full and final ──────────────────────────────────────────────────────
@@ -315,6 +494,29 @@ public static class SourceRules
 
     // ── end DEC-074 (wave B3) ──
 
+    // ── ACC-2 (acc2-manual, contract §2) · manual vouchers ──
+
+    /// <summary>Map-key prefix of a manual voucher line: the ledger is named directly (<c>ledger:5080</c>), never through the mapping
+    /// (<see cref="ChartOfAccounts.Resolve"/>); the party of a party ledger id travels in <see cref="SourceEntry.Party"/>.</summary>
+    public const string LedgerKeyPrefix = "ledger:";
+
+    /// <summary>The source key of a manual voucher (prototype <c>accManualSource</c> id).</summary>
+    public static string ManualKey(long voucherId) => "manual:" + voucherId.ToString(CultureInfo.InvariantCulture);
+
+    /// <summary>
+    /// An approved manual voucher (or the reversing voucher of a void on a locked day) = one source of kind <c>manual</c>, sub = the template
+    /// (<c>journal</c> when none), dated the voucher date, its lines as entered: <c>ledger:&lt;code&gt;</c> + the party of a party ledger id.
+    /// </summary>
+    public static AccountingSource Manual(string sourceKey, DateOnly date, VoucherType type, string? template, string narration,
+        IEnumerable<(string Account, long DebitPaise, long CreditPaise)> lines)
+    {
+        ArgumentNullException.ThrowIfNull(lines);
+        return new(sourceKey, SourceKinds.Manual, string.IsNullOrEmpty(template) ? "journal" : template, date, type, narration,
+            lines.Select(l => new SourceEntry(LedgerKeyPrefix + PartyLedgers.ControlOf(l.Account), l.DebitPaise, l.CreditPaise, PartyLedgers.PartyOf(l.Account))).ToList());
+    }
+
+    // ── end ACC-2 manual ──
+
     public static string Rupees(long paise)
     {
         var sign = paise < 0 ? "-" : "";
@@ -323,9 +525,21 @@ public static class SourceRules
     }
 }
 
+/// <summary>
+/// ACC-2 (acc2-purchase): the purchase side of an expense source — <see cref="Inter"/> = IGST bill (ITC to 1330), <see cref="TdsPaise"/> =
+/// TDS held back (signed like the amount), <see cref="Credit"/> = the funding is a credit method (Purchase voucher; null = "Vendor credit"
+/// by name), <see cref="Return"/> = a return / vendor credit note record.
+/// </summary>
+public sealed record PurchaseLines(bool Inter = false, long TdsPaise = 0, bool? Credit = null, bool Return = false)
+{
+    public static readonly PurchaseLines None = new();
+}
+
 /// <summary>Pay-run figures as published by payroll (all paise, non-negative).</summary>
+/// ACC-2 (contract §8): <see cref="AdvanceRecoveries"/> = the advance recovered per staff member (staff id, paise); null = not split (old events).
 public sealed record PayRunFigures(long GrossPaise, long EmployerPfPaise, long EmployerEsicPaise, long EmployeePfPaise, long EmployeeEsicPaise,
-    long ProfessionalTaxPaise, long AdvanceRecoveryPaise, long OtherDeductionsPaise, long NetPayablePaise);
+    long ProfessionalTaxPaise, long AdvanceRecoveryPaise, long OtherDeductionsPaise, long NetPayablePaise,
+    IReadOnlyList<(long StaffId, long Paise)>? AdvanceRecoveries = null);
 
 /// <summary>DEC-074 (wave B3): full-and-final figures as published by payroll (paise; all non-negative except <see cref="NetPaise"/>).</summary>
 public sealed record FnfBookFigures(long GrossPaise, long AdditionsPaise, long EmployerPfPaise, long EmployerEsicPaise, long EmployeePfPaise, long EmployeeEsicPaise,

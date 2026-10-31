@@ -14,7 +14,7 @@ namespace Hcc.Domain.Accounting;
 public static partial class PartyLedgers
 {
     /// <summary>Control ledgers (contract §2 / §3): cash (tills), bank accounts, company receivables, OTA receivables, Udhaar, staff advances, vendors, loans.</summary>
-    public static readonly IReadOnlyList<string> Controls = ["1000", "1030", "1110", "1115", "1120", "1200", "2200", "2400"];
+    public static readonly IReadOnlyList<string> Controls = ["1000", "1030", "1110", "1115", "1120", "1200", "1210", "2200", "2400"]; // 1210: ACC-2 ruling 7 (staff parties)
 
     /// <summary>Longest party id stored (<c>acc.source_entry.party_id</c>, migration 4210).</summary>
     public const int MaxPartyLength = 40;
@@ -121,6 +121,7 @@ public sealed record PartyContext(string? Tender = null, string? Company = null,
                 "receipt:ota" => Channel,
                 "payroll:advances" or "payroll:fnf-recoverable" => Staff,
                 "closing:bank-deposit" => Bank,
+                SourceRules.VendorPayableKey => Vendor, // ACC-2 acc2-purchase: vendor payment / advance (2200/<vendor>)
                 _ => null,
             },
         };

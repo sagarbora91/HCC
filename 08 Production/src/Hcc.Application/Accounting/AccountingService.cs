@@ -70,7 +70,8 @@ public static class AccountingDays
 /// Accounting commands (module spec 20 §8; prototype ACC_LOCK / ACC_UNLOCK / ACC_MAP_SET / ACC_MAP_RESET). Vouchers are never
 /// keyed by hand: they are derived from the sources the outbox consumer records.
 /// </summary>
-public sealed class AccountingService(ICommandRunner runner, IAccountingStore store, IAccessPolicy policy, TimeProvider clock, IOpeningEntryStore? openingEntries = null)
+public sealed class AccountingService(ICommandRunner runner, IAccountingStore store, IAccessPolicy policy, TimeProvider clock, IOpeningEntryStore? openingEntries = null,
+    IGstMonthStore? months = null) // ACC-2 integration (gst item 2): no day unlock inside a locked month
 {
     public const string OpLock = "LockAccountingPeriod";
     public const string OpUnlock = "UnlockAccountingPeriod";
@@ -123,6 +124,10 @@ public sealed class AccountingService(ICommandRunner runner, IAccountingStore st
             await store.SerializeAsync(tx, AccountingDays.PeriodResource(caller.PropertyId, req.BusinessDate), ct2).ConfigureAwait(false);
             var lk = await store.CurrentLockAsync(tx, caller.PropertyId, req.BusinessDate, ct2).ConfigureAwait(false)
                 ?? throw new HccException(HccErrorCode.INVALID_TRANSITION, "This date is not locked.");
+            // ACC-2 integration (gst DONE item 2): a day inside a locked month stays locked — the Owner unlocks the month first (prototype ACC_UNLOCK).
+            var month = req.BusinessDate.ToString("yyyy-MM", CultureInfo.InvariantCulture);
+            if (months is not null && (await months.MonthLocksAsync(tx, caller.PropertyId, ct2).ConfigureAwait(false)).Any(m => m.Month == month && m.UnlockedUtc is null))
+                throw new HccException(HccErrorCode.INVALID_TRANSITION, GstMonthService.LockedMessage(month));
             await store.UnlockAsync(tx, lk.LockId, req.ExpectedVersion, reason, Now, ct2).ConfigureAwait(false);
             await tx.AuditAsync("ACC_PERIOD_UNLOCKED", "acc-period:" + D(req.BusinessDate), $"lock {lk.LockId} · {reason}", ct2).ConfigureAwait(false);
             await tx.PublishAsync(AccountingEvents.AccountingPeriodUnlocked, lk.LockId, new { lockId = lk.LockId, businessDate = req.BusinessDate, reason }, ct2).ConfigureAwait(false);

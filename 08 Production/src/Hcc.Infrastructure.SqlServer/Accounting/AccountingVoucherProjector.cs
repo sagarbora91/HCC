@@ -130,8 +130,9 @@ public sealed class AccountingVoucherProjector(SqlConnectionFactory connections,
             {
                 var e = Parse<ReceiptRecordedPayload>(evt);
                 var company = e.Kind == "company-credit" ? await ReceiptCompanyAsync(connection, transaction, e.ReceiptId, ct).ConfigureAwait(false) : null;
+                var channel = e.Kind == "ota-credit" ? await FolioChannelAsync(connection, transaction, e.FolioId, ct).ConfigureAwait(false) : null; // ACC-2 flows (A13)
                 source = AccountingEventMapper.Receipt(e.FolioId, e.ReceiptId, e.Kind, e.Tender, e.BusinessDate, e.AmountPaise,
-                    new PartyContext(Tender: await TenderPartyAsync(connection, transaction, propertyId, e.Tender, ct).ConfigureAwait(false), Company: company));
+                    new PartyContext(Tender: await TenderPartyAsync(connection, transaction, propertyId, e.Tender, ct).ConfigureAwait(false), Company: company, Channel: channel));
                 break;
             }
 
@@ -222,11 +223,95 @@ public sealed class AccountingVoucherProjector(SqlConnectionFactory connections,
             case AccountingEvents.UdhaarCreditRaised: // ACC-1 (contract §4, A17)
                 source = AccountingEventMapper.UdhaarCredit(Parse<UdhaarCreditRaisedEvent>(evt));
                 break;
+
+            // ── ACC-2 acc2-purchase (contract §3): reverse charge, returns, vendor payments / voids ──
+            case PurchaseEvents.ExpenseRcmPosted:
+                source = AccountingEventMapper.Rcm(Parse<ExpenseRcmPostedEvent>(evt));
+                break;
+            case PurchaseEvents.ExpenseReturned:
+            {
+                var e = Parse<ExpenseReturnedEvent>(evt);
+                source = AccountingEventMapper.ExpenseReturn(e, new PartyContext(Tender: await TenderPartyAsync(connection, transaction, propertyId, e.Funding, ct).ConfigureAwait(false),
+                    Vendor: await VendorPartyAsync(connection, transaction, propertyId, e.Vendor, ct).ConfigureAwait(false)));
+                break;
+            }
+
+            case PurchaseEvents.VendorPaymentRecorded:
+            case PurchaseEvents.VendorPaymentVoided:
+            {
+                var e = Parse<VendorPaymentEvent>(evt);
+                var parties = new PartyContext(Tender: await TenderPartyAsync(connection, transaction, propertyId, e.Tender, ct).ConfigureAwait(false),
+                    Vendor: await VendorPartyAsync(connection, transaction, propertyId, e.Vendor, ct).ConfigureAwait(false));
+                if (evt.EventType == PurchaseEvents.VendorPaymentRecorded) source = AccountingEventMapper.VendorPayment(e, parties);
+                else if (AccountingEventMapper.VendorPaymentVoid(e, parties) is { } v) source = v;
+                else await DropSourceAsync(connection, transaction, propertyId, AccountingEventMapper.VendorPaymentKey(e.PaymentId), ct).ConfigureAwait(false); // same-day void: nothing posts
+                break;
+            }
+            // ── end ACC-2 acc2-purchase ──
+            case AccountingEvents.ManualVoucherApproved: // ACC-2 (acc2-manual, contract §2)
+                source = AccountingEventMapper.ManualVoucher(Parse<ManualVoucherApprovedEvent>(evt));
+                break;
+
+            case AccountingEvents.ManualVoucherVoided: // ACC-2: nothing to book (SourcesAsync leaves out the void voucher's source; a reversal has its own event)
+                break;
+            // ── ACC-2 flows (contract §4, §8): the OTA payout (A13) and a mistaken Udhaar payment reversed (A17b) ──
+            case AccountingEvents.OtaPayoutRecorded:
+                source = AccountingEventMapper.OtaPayout(Parse<OtaPayoutRecordedEvent>(evt));
+                break;
+            case AccountingEvents.UdhaarPaymentReversed:
+            {
+                var e = Parse<UdhaarPaymentReversedEvent>(evt);
+                source = AccountingEventMapper.UdhaarPaymentReversed(e, new PartyContext(Tender: await TenderPartyAsync(connection, transaction, propertyId, e.Tender, ct).ConfigureAwait(false),
+                    Udhaar: await UdhaarPartyAsync(connection, transaction, e.ReceivableId, e.Customer, ct).ConfigureAwait(false)));
+                break;
+            }
+            // ── end ACC-2 flows ──
         }
 
         if (source is not null && !source.IsZero)
             await InsertSourceAsync(connection, transaction, propertyId, source, evt.EventType, evt.OutboxId, clock.GetUtcNow().UtcDateTime, ct).ConfigureAwait(false);
+
+        // ACC-2 gst lane (contract §4, rulebook A6 / A6a / A6b): GST on a booking advance when the firm profile's switch is on (DEC-142: off by default).
+        if (evt.EventType == AccountingEvents.ReceiptRecorded && await AdvanceGstAsync(Parse<ReceiptRecordedPayload>(evt), connection, transaction, propertyId, ct).ConfigureAwait(false) is { } adv)
+            await InsertSourceAsync(connection, transaction, propertyId, adv, evt.EventType, evt.OutboxId, clock.GetUtcNow().UtcDateTime, ct).ConfigureAwait(false);
     }
+
+    // ── ACC-2 gst lane · GST on booking advances (contract §4; rulebook §4.6, A6 / A6a / A6b; DEC-142) ──
+
+    /// <summary>Source key of the advance-GST line of a folio receipt (the folio in the key lets the reversal cap read what the folio holds).</summary>
+    public static string AdvanceGstKey(long folioId, long receiptId)
+        => "advance-gst:folio:" + folioId.ToString(CultureInfo.InvariantCulture) + "/receipt:" + receiptId.ToString(CultureInfo.InvariantCulture);
+
+    /// <summary>
+    /// With the switch on: a deposit received → Dr 1350 · Cr CGST · Cr SGST (cum-tax at the booked room's rate: the first agreed night's GST rate,
+    /// else the dated master on the nightly rate at arrival); a deposit applied (<c>deposit-apply</c>, acc2-flows) or returned → the reversal, never
+    /// more than the folio's advance GST still held. Null otherwise (switch off, another kind, nothing to post).
+    /// </summary>
+    private async Task<AccountingSource?> AdvanceGstAsync(ReceiptRecordedPayload e, SqlConnection c, SqlTransaction t, int propertyId, CancellationToken ct)
+    {
+        var inflow = e.Kind == "deposit";
+        if (!inflow && e.Kind is not ("deposit-apply" or "deposit-return")) return null;
+        if (e.AmountPaise <= 0) return null;
+        if (await SqlGstMonthStore.AdvanceContextAsync(c, t, propertyId, e.FolioId, ct).ConfigureAwait(false) is not { } ctx) return null;
+        var bps = ctx.Bps ?? (ctx.RatePaise > 0
+            ? new Hcc.Domain.Tax.GstMaster(await new Hcc.Infrastructure.SqlServer.Tax.SqlGstMasterStore(connections).ActiveVersionsAsync(null, propertyId, ct).ConfigureAwait(false))
+                .RoomNight(ctx.Arrival, new Hcc.Domain.Money.Paise(ctx.RatePaise)).Bps
+            : 0);
+        var (tax, cgst, sgst) = GstSetOff.CumTax(e.AmountPaise, bps);
+        var key = AdvanceGstKey(e.FolioId, e.ReceiptId);
+        var pct = (bps / 100m).ToString("0.##", CultureInfo.InvariantCulture);
+        if (inflow)
+            return tax == 0 ? null : SourceRules.AdvanceGst(key, e.BusinessDate, cgst, sgst,
+                $"GST on advance (receipt voucher, GSTR-1 11A) · folio {e.FolioId.ToString(CultureInfo.InvariantCulture)} · receipt {e.ReceiptId.ToString(CultureInfo.InvariantCulture)} · {SourceRules.Rupees(e.AmountPaise)} at {pct} %");
+        var held = await SqlGstMonthStore.AdvanceGstHeldAsync(c, t, propertyId, e.FolioId, ct).ConfigureAwait(false);
+        var back = Math.Min(tax, held);
+        if (back <= 0) return null;
+        var (bc, bs) = GstSplit.Of(back);
+        return SourceRules.AdvanceGstReversal(key, e.BusinessDate, bc, bs,
+            $"Advance GST reversed ({(e.Kind == "deposit-return" ? "refund voucher" : "adjusted against the invoice, GSTR-1 11B")}) · folio {e.FolioId.ToString(CultureInfo.InvariantCulture)} · receipt {e.ReceiptId.ToString(CultureInfo.InvariantCulture)} · {SourceRules.Rupees(e.AmountPaise)}");
+    }
+
+    // ── end ACC-2 gst lane ──
 
     private async Task<AccountingSource?> CorrectionLineAsync(SqlConnection c, SqlTransaction t, long approvalId, CancellationToken ct)
     {
@@ -447,6 +532,17 @@ public sealed class AccountingVoucherProjector(SqlConnectionFactory connections,
 
     // ── end ACC-1 ──
 
+    /// <summary>ACC-2 flows (A13): the channel code of a folio's reservation (the New message that created it), the 1115 party of an OTA credit.</summary>
+    private static async Task<string?> FolioChannelAsync(SqlConnection c, SqlTransaction t, long folioId, CancellationToken ct)
+    {
+        await using var cmd = new SqlCommand("""
+            SELECT TOP (1) ch.code FROM bill.folio f JOIN ota.message m ON m.reservation_id = f.reservation_id AND m.kind = 'New'
+            JOIN ota.channel ch ON ch.channel_id = m.channel_id WHERE f.folio_id = @f ORDER BY m.message_id;
+            """, c, t);
+        cmd.Parameters.Set("@f", SqlDbType.BigInt, folioId);
+        return await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false) as string;
+    }
+
     private static async Task<int> TillOfAsync(SqlConnection c, SqlTransaction t, long shiftId, CancellationToken ct)
     {
         await using var cmd = new SqlCommand("SELECT till_id FROM pay.shift WHERE shift_id = @s;", c, t);
@@ -531,4 +627,20 @@ public sealed class AccountingVoucherProjector(SqlConnectionFactory connections,
     }
 
     internal static string Iso(DateOnly d) => d.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+
+    /// <summary>
+    /// ACC-2 acc2-purchase: a vendor payment voided on its own business day books nothing (prototype parity) — its source is removed while its
+    /// date is not locked (a locked day keeps its snapshot; the void then cannot be same-day anyway).
+    /// </summary>
+    private static async Task DropSourceAsync(SqlConnection c, SqlTransaction t, int propertyId, string sourceKey, CancellationToken ct)
+    {
+        await using var cmd = new SqlCommand("""
+            DECLARE @id BIGINT = (SELECT s.source_id FROM acc.source s WITH (UPDLOCK, HOLDLOCK) WHERE s.property_id = @p AND s.source_key = @k
+              AND NOT EXISTS (SELECT 1 FROM acc.period_lock l WHERE l.property_id = s.property_id AND l.business_date = s.business_date));
+            IF @id IS NOT NULL BEGIN DELETE acc.source_entry WHERE source_id = @id; DELETE acc.source WHERE source_id = @id; END
+            """, c, t);
+        cmd.Parameters.Set("@p", SqlDbType.Int, propertyId);
+        cmd.Parameters.Set("@k", SqlDbType.VarChar, sourceKey, 80);
+        await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+    }
 }

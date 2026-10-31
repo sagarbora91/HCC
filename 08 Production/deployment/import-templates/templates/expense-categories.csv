@@ -1,1 +1,1 @@
-code,name,ledger,needsBill,approvalLimit,sortOrder,active
+code,name,ledger,needsBill,approvalLimit,itcBlocked,rcm,rcmBps,capital,transport,sortOrder,active

@@ -48,8 +48,10 @@ export type SrvGroupStatement={groupId:number;code:string;name:string;status:str
   pickup:{roomType:string;allotted:number;picked:number;released:number;remaining:number;ratePaise:number;pickedPercent:number}[];
   members:{reservationId:number;publicNo:string;guest:string;room:string|null;status:string;arrival:string;departure:string;folioId:number|null}[];version:string};
 
-const LINE_KIND:Record<string,Line['kind']>={room:'room',service:'service',discount:'discount',correction:'adjustment'};
-const RECEIPT_KIND=['payment','deposit','deposit-return','refund','company-credit'];
+const LINE_KIND:Record<string,Line['kind']>={room:'room',service:'service',food:'food',discount:'discount',correction:'adjustment'}; // ACC-2: food (F&B on a folio) once the server sends it
+const RECEIPT_KIND=['payment','deposit','deposit-return','refund','company-credit','deposit-apply','ota-credit']; // ACC-2 flows: deposit applied (A6a), folio to the OTA (A13)
+/** Server tender of a deposit applied out of the opening balance (Hcc.Domain.Money.FolioTotals.OpeningAdvanceTender). */
+const OPENING_ADVANCE='Opening advance applied';
 
 export function lineFromServer(l:SrvFolioLine):Line{
   const kind=LINE_KIND[l.kind];if(!kind)throw new HccClientError('PROTOCOL',`Unknown folio line kind ${l.kind}.`);
@@ -64,6 +66,7 @@ export function receiptFromServer(r:SrvFolioReceipt):Receipt{
   const out:Receipt={id:protoId(r.receiptId),amount:paise(r.amountPaise,'amountPaise'),method:r.tender,date:isoDate(r.businessDate,'businessDate'),
     kind:r.kind as Receipt['kind'],reference:r.reference,actor:''};
   if(r.refundOf!=null)out.refundOf=protoId(r.refundOf);
+  if(r.kind==='deposit-apply'&&r.tender===OPENING_ADVANCE)out.depositSource='opening'; // coordinator ruling 4
   return out;
 }
 const APPROVAL_STATUS=['Pending','Approved','Rejected','Expired','Invalidated','Executed'];
@@ -175,14 +178,15 @@ export function cashbookFromServer(r:SrvCashBookRange):CBState{
 export type SrvCompanyCredit={companyId:number;creditLimitPaise:number;exposurePaise:number;receivablePaise:number;openStaysPaise:number;groupMastersPaise:number;
   remainingPaise:number;items:{kind:string;id:number;reference:string;amountPaise:number}[]};
 export type SrvCompany={companyId:number;name:string;gstin:string|null;contact:string|null;phone:string|null;email:string|null;city:string|null;rates:Record<string,number>;creditLimitPaise:number;version:string;
-  credit?:SrvCompanyCredit|null};
+  credit?:SrvCompanyCredit|null;active?:boolean}; // ACC-2 flows: false = retired (ruling 12)
 export type SrvCompanyRequest={requestId:number;companyId:number;fromPaise:number;toPaise:number;reason:string;status:string;requestedBy:number;requestedUtc:string;decidedBy:number|null;note:string|null};
-export type SrvCompanyPayment={paymentId:number;companyId:number;businessDate:string;tender:string;reference:string;invoiceNo:string|null;amountPaise:number;recordedBy:number;recordedUtc:string};
+export type SrvCompanyPayment={paymentId:number;companyId:number;businessDate:string;tender:string;reference:string;invoiceNo:string|null;amountPaise:number;recordedBy:number;recordedUtc:string;
+  tdsPaise?:number}; // ACC-2 tds: TDS the company deducted (Dr 1360)
 export type SrvCompanyBook={companies:SrvCompany[];requests:SrvCompanyRequest[];payments?:SrvCompanyPayment[]|null};
 export function companyFromServer(c:SrvCompany):GRPCompany{
   const rates:Record<string,number>={};for(const [t,v] of Object.entries(c.rates??{}))rates[t]=paise(v,'rate');
   const out:GRPCompany={id:protoId(c.companyId),name:c.name,gstin:c.gstin??'',contact:c.contact??'',phone:c.phone??'',email:c.email??'',city:c.city??'',rates,
-    creditLimit:paise(c.creditLimitPaise,'creditLimitPaise'),openingOutstanding:0,limitHistory:[]};
+    creditLimit:paise(c.creditLimitPaise,'creditLimitPaise'),openingOutstanding:0,limitHistory:[],...(c.active===false?{active:false}:{})};
   // The server's figures replace the local estimate (the client does not hold every folio, group master or payment the server counts).
   if(c.credit)out.credit={exposure:paise(c.credit.exposurePaise,'exposurePaise'),receivable:paise(c.credit.receivablePaise,'receivablePaise'),
     openStays:paise(c.credit.openStaysPaise,'openStaysPaise'),groupMasters:paise(c.credit.groupMastersPaise,'groupMastersPaise'),remaining:paise(c.credit.remainingPaise,'remainingPaise'),
@@ -191,7 +195,7 @@ export function companyFromServer(c:SrvCompany):GRPCompany{
 }
 export function companyPaymentFromServer(p:SrvCompanyPayment):GRPCompanyPayment{
   return {id:protoId(p.paymentId),company:protoId(p.companyId),amount:paise(p.amountPaise,'amountPaise'),method:p.tender,reference:p.reference,...(p.invoiceNo?{invoice:p.invoiceNo}:{}),
-    date:isoDate(p.businessDate,'businessDate'),actor:protoUserId(p.recordedBy),at:utcToClock(p.recordedUtc)};
+    date:isoDate(p.businessDate,'businessDate'),actor:protoUserId(p.recordedBy),at:utcToClock(p.recordedUtc),...(p.tdsPaise?{tds:paise(p.tdsPaise,'tdsPaise')}:{})};
 }
 export function limitRequestFromServer(r:SrvCompanyRequest):GRPLimitRequest{
   const status=r.status==='Approved'||r.status==='Rejected'?r.status:'Pending';

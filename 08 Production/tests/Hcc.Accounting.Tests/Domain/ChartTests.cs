@@ -17,7 +17,8 @@ public sealed partial class ChartTests
     {
         ["1000"] = ("cash", true), ["1005"] = ("cash", false), ["1010"] = ("bank", false), ["1020"] = ("bank", false), ["1030"] = ("bank", true),
         ["1100"] = ("debtors", false), ["1110"] = ("debtors", true), ["1115"] = ("debtors", true), ["1120"] = ("debtors", true),
-        ["1200"] = ("loans-advances", true), ["1210"] = ("loans-advances", false), ["1300"] = ("duties-taxes", false), ["1310"] = ("duties-taxes", false),
+        ["1200"] = ("loans-advances", true), ["1210"] = ("loans-advances", true), // ACC-2 ruling 7
+        ["1300"] = ("duties-taxes", false), ["1310"] = ("duties-taxes", false),
         ["1320"] = ("duties-taxes", false), ["1330"] = ("duties-taxes", false), ["1340"] = ("duties-taxes", false), ["1350"] = ("duties-taxes", false),
         ["1360"] = ("loans-advances", false), ["1370"] = ("loans-advances", false), ["1400"] = ("suspense", false), ["1500"] = ("fixed-assets", false),
         ["1510"] = ("fixed-assets", false), ["1520"] = ("fixed-assets", false), ["1530"] = ("fixed-assets", false), ["1540"] = ("fixed-assets", false),
@@ -81,7 +82,7 @@ public sealed partial class ChartTests
             Assert.Equal(ChartOfAccounts.Builtin.LegacyOf(a.GroupId), a.Group);
         }
 
-        Assert.Equal(["1000", "1030", "1110", "1115", "1120", "1200", "2200", "2400"], ChartOfAccounts.All.Where(a => a.Control).Select(a => a.Code));
+        Assert.Equal(["1000", "1030", "1110", "1115", "1120", "1200", "1210", "2200", "2400"], ChartOfAccounts.All.Where(a => a.Control).Select(a => a.Code));
         Assert.Equal((AccountGroup.Suspense, AccountGroup.Income, AccountGroup.Liability), (ChartOfAccounts.Find("1400")!.Group, ChartOfAccounts.Find("4950")!.Group, ChartOfAccounts.Find("1310")!.Group));
         Assert.Equal(("Food & beverage revenue", "Cash short", "Cash over"), (ChartOfAccounts.NameOf("4200"), ChartOfAccounts.NameOf("5900"), ChartOfAccounts.NameOf("4950")));
     }

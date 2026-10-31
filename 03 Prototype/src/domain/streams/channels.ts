@@ -4,7 +4,7 @@ import type {State,Booking,Room} from '../types';
 import {bookingRef} from '../bookingRef';
 import {available,rateFor} from '../selectors';
 import {gstForRoomNight,gstStayTax} from '../gst';
-import {addDays,nights} from '../money';
+import {addDays,nights,money} from '../money';
 import {resCapacity,resHoldActive} from './reservations';
 
 export type CHNChannelStatus='Connected'|'Paused'|'Error'|'Disconnected';
@@ -15,7 +15,10 @@ export type CHNChannel={id:string;name:string;status:CHNChannelStatus;
   /** Room types stop-sold on this channel. */ stopSell:string[];
   lastSync?:string;statusNote?:string;
   /** Production only (DEC-079 D7, Wave D5): the server withheld the commission rate — the reader lacks PERM-OTA-004 (Owner, Manager and
-   *  Accountant hold it). commissionBps is then 0 and is not the channel's rate. */ commissionHidden?:boolean};
+   *  Accountant hold it). commissionBps is then 0 and is not the channel's rate. */ commissionHidden?:boolean;
+  /** ACC-2 flows (contract §4, rulebook §4.4 / DEC-143): the GST on this channel's commission invoice may be taken as input tax credit
+   *  (Dr 1310 / 1320 at payout). Absent / false = disallowed: the commission GST is part of the 5070 cost. Owner setting (CHN_CHANNEL_SAVE). */
+  itcAllowed?:boolean};
 export type CHNMessageKind='New'|'Modify'|'Cancel';
 export type CHNMessageStatus='Pending'|'Accepted'|'Applied'|'Rejected';
 export type CHNMessage={id:string;channel:string;kind:CHNMessageKind;ref:string;guest:string;phone?:string;email?:string;roomType:string;
@@ -26,7 +29,9 @@ export type CHNPush={id:string;at:string;actor:string;channel:string;rows:number
 export type CHNWebRequest={id:string;booking:string;guest:string;phone:string;email:string;roomType:string;arrival:string;departure:string;
   adults:number;children:number;net:number;tax:number;total:number;createdAt:string;status:'Pending'|'Confirmed'|'Declined';reason?:string;decidedBy?:string;notes?:string};
 /** State slice for this module, stored at s.channelsX (optional; absent in old saves → treat as empty). */
-export type CHNState={channels:CHNChannel[];messages:CHNMessage[];pushes:CHNPush[];
+/** ACC-2 (contract §4, DEC-150): one OTA payout from the channel's statement — gross = net + commission + commissionGst + tcs; settles the channel's 1115 party ledger. */
+export type CHNPayout={id:string;channel:string;date:string;statementRef:string;gross:number;commission:number;commissionGst:number;tcs:number;net:number;bank:string;bookings:string[];by:string;at:string};
+export type CHNState={channels:CHNChannel[];messages:CHNMessage[];pushes:CHNPush[];/** ACC-2 */payouts?:CHNPayout[];
   /** Scripted inbound messages delivered one at a time by CHN_PULL (simulation). */ outbox:CHNMessage[];
   webRequests:CHNWebRequest[]};
 export const chnEmpty=():CHNState=>({channels:[],messages:[],pushes:[],outbox:[],webRequests:[]});
@@ -179,3 +184,46 @@ export const CHN_TYPE_COPY:Record<string,{blurb:string;features:string[]}>={
   Deluxe:{blurb:'Spacious room with a king bed and a sitting corner.',features:['King bed','City view','Work desk']},
   Suite:{blurb:'Separate living area, ideal for families of up to four.',features:['Living room','Bathtub','Breakfast for 2']},
 };
+
+// ── ACC-2 flows · OTA payouts (contract §4, rulebook A13 / §4.14, DEC-150) ──
+// At check-out an OTA-paid stay moves its folio balance to the channel's receivable (receipt kind 'ota-credit', Journal Dr 1115/<channel>
+// · Cr 1100), allowed only when the booking's source is a CONNECTED channel. The OTA later pays net of its commission (+ 18 % GST) and the
+// GST TCS, with a statement: CHN_PAYOUT records it (Receipt Dr 1030/<bank> net · Dr 5070 commission (+ GST unless ITC is allowed) · Dr 1340
+// TCS · Cr 1115/<channel> gross). gross = net + commission + commissionGst + tcs; gross ≤ the channel's open receivable.
+/** The channel of a booking whose source is an OTA (`otaChannel` = the channel's name or id), else undefined. */
+export function chnChannelOfBooking(s:State,b:Pick<Booking,'source'|'otaChannel'>):CHNChannel|undefined{
+  const n=String(b.otaChannel??'').trim().toLowerCase();if(!n||!/^ota/i.test(String(b.source??'')))return undefined;
+  return chnSlice(s).channels.find(c=>c.id.toLowerCase()===n||c.name.toLowerCase()===n);
+}
+/** Why an OTA booking cannot go on OTA credit at check-out ('' = it can): its source must be a connected channel. */
+export function chnOtaCreditRefusal(s:State,b:Booking):string{
+  const c=chnChannelOfBooking(s,b);
+  if(!c)return 'This booking did not come from an OTA channel. Only a booking whose source is a connected OTA channel can be settled to the OTA.';
+  if(c.status!=='Connected')return `${c.name} is ${c.status.toLowerCase()} — settle the folio to the OTA only through a connected channel.`;
+  return '';
+}
+export const chnPayouts=(s:State,channel?:string)=>(chnSlice(s).payouts??[]).filter(p=>!channel||p.channel===channel);
+/** OTA credits (folio balances moved to the channel at check-out) per booking of a channel. */
+export function chnOtaCredits(s:State,channel:string):{booking:string;guest:string;date:string;amount:number}[]{
+  const out:{booking:string;guest:string;date:string;amount:number}[]=[];
+  for(const b of s.bookings){if(chnChannelOfBooking(s,b)?.id!==channel)continue;
+    for(const r of b.receipts)if(r.kind==='ota-credit')out.push({booking:b.id,guest:b.guest,date:r.date,amount:r.amount});}
+  return out;
+}
+/** The channel's open receivable from the records (OTA credits − payouts gross). The command checks the 1115/<channel> ledger balance. */
+export const chnOtaOpen=(s:State,channel:string)=>chnOtaCredits(s,channel).reduce((a,x)=>a+x.amount,0)-chnPayouts(s,channel).reduce((a,p)=>a+p.gross,0);
+/** Bookings of a channel with an OTA credit not yet named by a payout (the statement picker). */
+export const chnOtaUnpaid=(s:State,channel:string)=>{const paid=new Set(chnPayouts(s,channel).flatMap(p=>p.bookings));return chnOtaCredits(s,channel).filter(x=>!paid.has(x.booking));};
+export type CHNPayoutInput={channel:string;statementRef:string;gross:number;commission:number;commissionGst:number;tcs:number;net:number;bank:string;bookings?:string[]};
+/** Arithmetic and shape of a payout statement ('' = fine); the open receivable is checked by the command against the books. */
+export function chnPayoutProblem(x:Partial<CHNPayoutInput>):string{
+  const n=(v:unknown)=>Number.isSafeInteger(v)&&(v as number)>=0;
+  if(!String(x.statementRef??'').trim())return 'Enter the OTA statement reference.';
+  if(String(x.statementRef).trim().length>40)return 'Keep the statement reference to 40 characters.';
+  for(const [k,label] of [['gross','Gross'],['commission','Commission'],['commissionGst','GST on the commission'],['tcs','TCS'],['net','Net received']] as const)
+    if(!n(x[k]))return `${label}: enter an amount of ₹0 or more.`;
+  if(!(x.gross! >0)||!(x.net! >0))return 'Enter the gross amount and the net amount received (both above ₹0).';
+  if(x.gross!>100000000000)return 'The gross amount is too large.';
+  if(x.net!+x.commission!+x.commissionGst!+x.tcs!!==x.gross)return `Gross ${money(x.gross!)} must equal net ${money(x.net!)} + commission ${money(x.commission!)} + GST on it ${money(x.commissionGst!)} + TCS ${money(x.tcs!)} (= ${money(x.net!+x.commission!+x.commissionGst!+x.tcs!)}).`;
+  return '';
+}

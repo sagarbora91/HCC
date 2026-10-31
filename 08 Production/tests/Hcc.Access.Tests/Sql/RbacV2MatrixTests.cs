@@ -34,6 +34,15 @@ public partial class RbacV2MatrixTests(AccessDatabase db) : IClassFixture<Access
         ["PERM-ACC-007"] = ["A", "—", "—", "—", "—", "—", "—", "—", "—", "—"],
         ["PERM-ACC-008"] = ["A", "A", "A", "—", "—", "—", "—", "—", "—", "—"],
         ["PERM-ACC-009"] = ["A", "—", "—", "—", "—", "—", "—", "—", "—", "—"],
+        // ACC-2 (contract §9, migration 4245): accounting.tax (GST set-off, GST / TDS / statutory remittances, TDS report) = Owner, Accountant.
+        ["PERM-ACC-013"] = ["A", "—", "A", "—", "—", "—", "—", "—", "—", "—"],
+        // ACC-2 (contract §9, migration 4241): manual voucher enter = Owner (approved at once), Accountant (pending); approve / reject / void = Owner.
+        ["PERM-ACC-010"] = ["A", "—", "A", "—", "—", "—", "—", "—", "—", "—"],
+        ["PERM-ACC-011"] = ["A", "—", "—", "—", "—", "—", "—", "—", "—", "—"],
+        // ACC-2 (contract §6, migration 4249): accounting month lock / unlock = Owner; the Accountant requests it ('R').
+        ["PERM-ACC-012"] = ["A", "—", "R", "—", "—", "—", "—", "—", "—", "—"],
+        // ACC-2 (contract §9, migration 4234; coordinator ruling 11): vendor payments / advances / returns = Owner, Manager, Accountant.
+        ["PERM-EXP-004"] = ["A", "A", "A", "—", "—", "—", "—", "—", "—", "—"],
         // W1a LG (migration 4601): legacy import = Owner only.
         ["PERM-LGC-001"] = ["A", "—", "—", "—", "—", "—", "—", "—", "—", "—"],
     };

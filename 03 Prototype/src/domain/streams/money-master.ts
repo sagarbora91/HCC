@@ -33,9 +33,17 @@ export type MnyMethod=MasterRow&{kind:MnyKind;settlesTo?:string;
 export type MnyAccount=MasterRow&{kind:'till'|'bank';bank?:string;accountLast4?:string;ifsc?:string;/** Paise, setup only. */openingBalance?:number;
   /** Method kinds this account is the default "settles to" for (new methods). */defaultFor?:string[]};
 /** M17 · expense category (ledger = accounting default for "expense:<name>"; approvalLimit = Manager limit override, paise). */
-export type MnyCategory=MasterRow&{ledger?:string;needsBill:boolean;approvalLimit?:number};
+export type MnyCategory=MasterRow&{ledger?:string;needsBill:boolean;approvalLimit?:number;
+  /** ACC-2 (contract §3): reverse charge (DEC-145) and its rate; capital = fixed-asset purchases (ledger must be a fixed-assets ledger); itcBlocked = s.17(5) list, the ITC switch stays off (DEC-143). */
+  rcm?:boolean;rcmBps?:number;capital?:boolean;itcBlocked?:boolean;
+  /** ACC-2 integration (ruling 10, contract §7): goods-transport category — the cash-payment limit is ₹35,000 (cash.transportLimit), not ₹10,000. */
+  transport?:boolean};
 /** M18 · expense vendor (DEC-MA-6, separate from maintenance vendors). */
-export type MnyVendor=MasterRow&{type:string;gstin?:string;pan?:string;tds:boolean;contact?:string;terms?:string};
+export type MnyVendor=MasterRow&{type:string;gstin?:string;pan?:string;tds:boolean;contact?:string;terms?:string;
+  /** ACC-2 (contract §3, §5): two-letter GST state code (MH = intra-state) and the TDS rate-table row when `tds` is on. */ state?:string;tdsSection?:string;
+  /** ACC-2 integration (ruling 9, contract §5): the payee's TDS rate column — 'individual' (individual / HUF: old 194C 1 %) or 'other' (default, 2 %).
+   *  The master form suggests 'individual' when the PAN's 4th letter is P or H. */
+  payeeType?:'individual'|'other'};
 
 // ───────────────────────────── Seeds = the old constants (folio FOLIO_TENDERS, POS_TENDERS, closing EXPENSE_METHODS / TENDERS /
 // EXPENSE_CATEGORIES, accounting ACC_DEFAULT_MAP) + "Company credit" (receipts of authorised company credit) ─────────────────────────────
@@ -200,9 +208,12 @@ export function mnySettlement(s:State,from:string,to:string):MnySettleGroup[]{
     l.in+=amtIn;l.out+=amtOut;l.count++;g.in+=amtIn;g.out+=amtOut;g.net=g.in-g.out;
   };
   for(const b of s.bookings)for(const r of b.receipts){if(!inR(r.date))continue;
-    if(r.kind==='payment'||r.kind==='deposit'||r.kind==='company-credit')add(r.method,r.amount,0);else add(r.method,0,r.amount);}
+    // ACC-2 integration (flows item 10): an OTA credit settles like company credit; a deposit applied moves no money (the deposit was counted when taken).
+    if(r.kind==='payment'||r.kind==='deposit'||r.kind==='company-credit'||r.kind==='ota-credit')add(r.method,r.amount,0);else if(r.kind!=='deposit-apply')add(r.method,0,r.amount);}
   for(const r of s.posX?.receipts??[])if(inR(r.date)){if(r.amount>=0)add(r.method,r.amount,0);else add(r.method,0,-r.amount);}
   for(const e of s.expenses as Expense[])if(inR(e.date)&&(e.status==='Posted'||e.status==='Reversed')){if(e.amount>=0)add(e.method,0,e.amount);else add(e.method,-e.amount,0);}
+  // ACC-2 integration: vendor payments (purchase lane) leave through their method; a void on a later day brings the money back that day.
+  for(const p of s.expensesX?.vendorPayments??[]){if(inR(p.date)&&!(p.void&&p.voidAt===p.date))add(p.method,0,p.amount);if(p.void&&p.voidAt&&p.voidAt!==p.date&&inR(p.voidAt))add(p.method,p.amount,0);}
   const order=(g:MnySettleGroup)=>g.kind==='till'?0:g.kind==='bank'?1:2;
   const accOrder=(g:MnySettleGroup)=>idx.accounts.rows.findIndex(a=>a.code===g.account);
   return [...groups.values()].sort((a,b)=>order(a)-order(b)||accOrder(a)-accOrder(b)).map(g=>({...g,lines:g.lines.sort((a,b)=>{

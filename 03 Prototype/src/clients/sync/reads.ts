@@ -97,6 +97,18 @@ export const READS={
   'GET /accounting/chart/master':ACCOUNTING,
   'GET /accounting/chart/history':ACCOUNTING,
   'GET /accounting/opening':ACCOUNTING,
+  // ACC-2 (integration): manual vouchers + loans, GST month / month locks, ledger statement and day book — PERM-ACC-001 view; the TDS state
+  // (rates, deductions, remittances) — PERM-ACC-013 accounting.tax (Owner, Accountant); vendor payments, ageing and the asset register —
+  // PERM-EXP-004 or the accounting view (VendorPaymentQueries).
+  'GET /accounting/manual':ACCOUNTING,
+  'GET /accounting/gst/month':ACCOUNTING,
+  'GET /accounting/gst/locks':ACCOUNTING,
+  'GET /accounting/statement':ACCOUNTING,
+  'GET /accounting/day-book':ACCOUNTING,
+  'GET /accounting/tds':one(wide('PERM-ACC-013')),
+  'GET /expenses/vendor-payments':one(wide('PERM-EXP-004'),wide('PERM-ACC-001',true)),
+  'GET /expenses/vendor-ageing':one(wide('PERM-EXP-004'),wide('PERM-ACC-001',true)),
+  'GET /accounting/assets':one(wide('PERM-EXP-004'),wide('PERM-ACC-001',true)),
   'GET /expenses':one(anyScope('PERM-EXP-001'),anyScope('PERM-EXP-002'),anyScope('PERM-EXP-003')),
   'GET /expenses/registers':one(anyScope('PERM-EXP-001'),anyScope('PERM-EXP-002'),anyScope('PERM-EXP-003')), // DEC-120 SCC registers
   'GET /compliance/state':COMPLIANCE,
@@ -138,6 +150,8 @@ export const READS={
   'GET /ota/channels':OTA,
   'GET /ota/messages':OTA,
   'GET /ota/pushes':OTA,
+  // ACC-2 flows: OTA payouts are channel money (PERM-OTA-004 channels.money.view: Owner, Manager A, Accountant V).
+  'GET /ota/payouts':one(wide('PERM-OTA-004',true)),
   'GET /web-booking/requests':WEB,
   'GET /web-booking/requests/:id':WEB,
   'GET /yield/calendar':YIELD,

@@ -85,10 +85,21 @@ export const handlers:Record<string,Handler>={
       const v=txt(c[field]);if(date)k.assert(!v||validDate(v),`${what} must be a valid date.`);else limit(k,v,CMP_LIMITS.licenceNo,what);return v;};
     const fssaiNo=lic('fssaiNo','FSSAI licence number',false),fssaiExpiry=lic('fssaiExpiry','FSSAI licence expiry',true),
       lodgingNo=lic('lodgingNo','Lodging licence number',false),lodgingExpiry=lic('lodgingExpiry','Lodging licence expiry',true);
+    // ACC-2 integration (one fix for the tds and gst lanes' notes): the three Owner-only money switches (contract §4; DEC-058, DEC-142, DEC-146)
+    // survive a profile save — a field left out keeps its value; changing one is the Owner's alone.
+    const prev=x.profile,sw:Partial<Pick<CMPProfile,'gstOnAdvances'|'hotelDeductsTds'|'tdsDeductorType'>>={};
+    const keep=<K extends 'gstOnAdvances'|'hotelDeductsTds'|'tdsDeductorType'>(f:K,ok:(v:unknown)=>boolean,what:string)=>{
+      const v=c[f],old=prev?.[f];
+      if(v===undefined||v===null||v===old){if(old!==undefined)sw[f]=old;return;}
+      k.assert(ok(v),`Choose a valid value for ${what}.`);
+      if(k.user.role!=='Owner')k.fail('FORBIDDEN',`Access denied: only the Owner changes ${what} (money setting, DEC-058).`);
+      sw[f]=v as CMPProfile[K];};
+    keep('gstOnAdvances',v=>typeof v==='boolean','GST on advances');keep('hotelDeductsTds',v=>typeof v==='boolean','“the hotel deducts TDS”');
+    keep('tdsDeductorType',v=>v==='individual'||v==='other','the TDS deductor type');
     x.profile={name,pan:limit(k,txt(c.pan).toUpperCase(),CMP_LIMITS.pan,'PAN'),gstin:limit(k,txt(c.gstin).toUpperCase(),CMP_LIMITS.gstin,'GSTIN'),
       entity:entity as never,gstType:gstType as never,hasEmployees:c.hasEmployees!==false&&c.hasEmployees!=='no',
       qrmp:(gstType==='regular'||gstType==='both')&&c.qrmp===true,notes:limit(k,txt(c.notes),CMP_LIMITS.notes,'Notes'),
-      ...(fssaiNo?{fssaiNo}:{}),...(fssaiExpiry?{fssaiExpiry}:{}),...(lodgingNo?{lodgingNo}:{}),...(lodgingExpiry?{lodgingExpiry}:{}),updatedBy:k.uid,updatedAt:k.s.clock} satisfies CMPProfile;
+      ...(fssaiNo?{fssaiNo}:{}),...(fssaiExpiry?{fssaiExpiry}:{}),...(lodgingNo?{lodgingNo}:{}),...(lodgingExpiry?{lodgingExpiry}:{}),...sw,updatedBy:k.uid,updatedAt:k.s.clock} satisfies CMPProfile;
     const p=x.profile;
     return `Compliance firm profile · ${p.name} · ${cmpTypeLabel(p.gstType)}${p.qrmp?' · QRMP':''}${p.hasEmployees?'':' · no employees'}${cmpLicenceAudit(p)}`;},
 

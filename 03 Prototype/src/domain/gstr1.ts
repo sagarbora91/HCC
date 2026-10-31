@@ -26,7 +26,7 @@ type Doc={no:string;series:'INV'|'RST';supply:'B2C'|'B2B';lines:DocLine[];cancel
 type Note={no:string;supply:'B2C'|'B2B';lines:DocLine[]};
 
 /** SAC of a folio line: room nights, discounts and adjustments are the room supply; service lines by their category (as the server). */
-const sacOfLine=(l:Line)=>l.kind==='service'?GSTR1_SAC[gstCategoryOfLabel(l.label)]!:GSTR1_SAC.room!;
+const sacOfLine=(l:Line)=>l.kind==='service'||l.kind==='food'?GSTR1_SAC[gstCategoryOfLabel(l.label)]!:GSTR1_SAC.room!; // ACC-2: a food line is a service line here (same SAC rule as the server)
 const docLine=(l:Line):DocLine=>{const tax=gstLineTax(l.amount,l.taxBps),x=gstSplit(tax);return {sac:sacOfLine(l),bps:l.taxBps,taxable:l.amount,cgst:x.cgst,sgst:x.sgst};};
 /** Credit-note lines are posted on the folio as negative lines; the note credits their positive value. */
 const creditLine=(l:Line):DocLine=>{const d=docLine(l);return {...d,taxable:-d.taxable,cgst:-d.cgst,sgst:-d.sgst};};

@@ -71,7 +71,7 @@ public static class GstCategories
     public static string Of(ChargeKind kind, string label, ChargeKind? reversedKind = null, string? reversedLabel = null) => kind switch
     {
         ChargeKind.Room or ChargeKind.Discount => Room,
-        ChargeKind.Service => OfLabel(label),
+        ChargeKind.Service or ChargeKind.Food => OfLabel(label),
         _ => reversedKind is { } k && k != ChargeKind.Correction ? Of(k, reversedLabel ?? string.Empty) : Room,
     };
 
@@ -126,7 +126,7 @@ public static class DailyPackCalculator
 
         // Revenue and GST
         var room = Sum(lines.Where(l => l.Kind == ChargeKind.Room));
-        var service = Sum(lines.Where(l => l.Kind == ChargeKind.Service));
+        var service = Sum(lines.Where(l => l.Kind is ChargeKind.Service or ChargeKind.Food)); // ACC-2 parity: F&B on a folio stays in service revenue
         var discounts = Sum(lines.Where(l => l.Kind == ChargeKind.Discount));
         var corrections = Sum(lines.Where(l => l.Kind == ChargeKind.Correction));
         var net = room + service + discounts + corrections;

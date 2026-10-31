@@ -98,7 +98,7 @@ public sealed class SqlChartStoreTests(AccountingDb db) : IClassFixture<Accounti
         Assert.Equal(("Laundry & other services", true, "Income", "Cr"), (l4100.Name, l4100.Overridden, l4100.Group, l4100.Nature));
         var l5130 = master.Ledgers.Single(l => l.Code == "5130");
         Assert.Equal((false, "Expense", "Toiletries"), (l5130.System, l5130.Group, l5130.Note));
-        Assert.Equal(["pos:sales"], master.Ledgers.Single(l => l.Code == "4200").MappedBy);
+        Assert.Equal(["line:food", "pos:sales"], master.Ledgers.Single(l => l.Code == "4200").MappedBy); // ACC-2 parity: line:food → 4200
         Assert.Empty(master.Problems);
 
         var nature = await Fails(HccErrorCode.VALIDATION, () => Service.UpsertLedgerAsync(own, Key(), new UpsertLedgerRequest(false, "4100", null, "indirect-expenses", null, null, null, null), Ct));

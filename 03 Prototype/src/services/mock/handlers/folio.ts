@@ -26,6 +26,8 @@ function companyCreditCheck(k:Kit,x:Booking,amount:number){
   if(refusal)k.fail('INVALID_TRANSITION',refusal);
 }
 import {cxCashBlocked} from '../../../domain/streams/cashout';
+import {accCashEnforce} from '../../../domain/streams/accounting-guards'; // ACC-2 flows (contract §7, B9)
+import {chnChannelOfBooking,chnOtaCreditRefusal} from '../../../domain/streams/channels'; // ACC-2 flows (contract §4, A13)
 
 const DEPARTED_REFUND_MSG='A settled departed stay requires a credit note before a refund. Issue an approved credit note first.';
 const STALE_MSG='The folio changed after this request. Reject it and request again.';
@@ -73,6 +75,8 @@ const PAYMENT:Handler=k=>{
   assert(sum===cmd.amount,`Tender rows total ${money(sum)} but the payment amount is ${money(cmd.amount)}. They must be equal.`);
   if(kind==='deposit-return'){const ld=x.receipts.find(r=>r.kind==='deposit'&&cbIsLocked(s,r.date));assert(!ld,cbLockedMessage(ld?.date??'','returning a deposit taken on that day'),'DAY_CLOSED');} // DEC-065
   if(kind==='deposit-return')assert(cmd.amount<=totals(x).deposit,'Return cannot exceed the deposit held.');
+  // ACC-2 flows (contract §7, rulebook B9): cash from the guest at or above ₹2,00,000 on a day or for the booking is refused (CASH_LIMIT).
+  if(kind!=='deposit-return'){const cash=tenders.filter(t=>mnyIsDrawer(s,t.method)).reduce((a,t)=>a+t.amount,0);if(cash)accCashEnforce(s,{kind:'receipt',party:'booking:'+x.id,scope:'booking:'+x.id,amount:cash});}
   const group=tenders.length>1?id('TND'):undefined;
   for(const t of tenders){
     const r:Receipt={id:id('RCPT'),amount:t.amount,method:t.method,date:s.date,kind,reference:t.reference||'Demo cash',actor:uid};
@@ -277,6 +281,13 @@ const CHECKOUT:Handler=k=>{
       x.receipts.push({id:id('RCPT'),amount:bal,method:'Company credit',date:s.date,kind:'company-credit',reference:`${x.company?.name??'Company'} · ${credit.id}`,actor:uid,approvalId:credit.id});
       credit.status='Executed';credit.meta={...credit.meta,executedBy:uid,executedAt:s.clock};
       detail=` · ${money(bal)} to company credit (${credit.id})`;
+    }else if(cmd.otaCredit){
+      // ACC-2 flows (contract §4, rulebook A13, DEC-150): an OTA-paid stay — the balance moves to the channel's receivable (receipt kind
+      // 'ota-credit', Journal Dr 1115/<channel> · Cr 1100); only when the booking's source is a connected channel. Settled by CHN_PAYOUT.
+      const refusal=chnOtaCreditRefusal(s,x);assert(!refusal,refusal,'INVALID_TRANSITION');
+      const ch=chnChannelOfBooking(s,x)!;
+      x.receipts.push({id:id('RCPT'),amount:bal,method:'OTA credit',date:s.date,kind:'ota-credit',reference:`${ch.name} · paid by the OTA`,actor:uid});
+      detail=` · ${money(bal)} to ${ch.name} (OTA receivable)`;
     }
   }
   assert(totals(x).balance===0,'Settle the folio exactly before checkout. Refund any excess receipt.','INVALID_TRANSITION');

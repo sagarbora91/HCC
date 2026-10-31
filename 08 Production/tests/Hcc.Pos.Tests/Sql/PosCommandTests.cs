@@ -119,7 +119,7 @@ public class PosCommandTests(PosDb db) : IClassFixture<PosDb>
         Assert.Equal(before.Totals.TotalPaise + 46_200, after.Totals.TotalPaise);
         Assert.NotEqual(before.Version, after.Version);
         var line = after.Lines.Single(l => l.ChargeId == s.ChargeId);
-        Assert.Equal(("service", 44_000L, 500, 2_200L), (line.Kind, line.AmountPaise, line.TaxBps, line.TaxPaise));
+        Assert.Equal(("food", 44_000L, 500, 2_200L), (line.Kind, line.AmountPaise, line.TaxBps, line.TaxPaise)); // ACC-2 (coordinator ruling 3): F&B on a folio is charge kind food
         Assert.Contains("Room service", line.Label, StringComparison.Ordinal);
         Assert.Contains(s.BillNo, line.Label, StringComparison.Ordinal);
         // no outlet receipt, no drawer movement for a room charge
@@ -129,7 +129,7 @@ public class PosCommandTests(PosDb db) : IClassFixture<PosDb>
         Assert.True(replay.Replayed);
         Assert.Equal(s.BillId, replay.Value.BillId);
         await Fails(HccErrorCode.INVALID_TRANSITION, () => db.SettleFolioAsync(o.OrderId, null, Who.Reception));
-        Assert.Single((await db.FolioQueries.GetFolioAsync(new Hcc.Application.Billing.Caller(db.PropertyId, Who.Owner), folio)).Lines, l => l.Kind == "service");
+        Assert.Single((await db.FolioQueries.GetFolioAsync(new Hcc.Application.Billing.Caller(db.PropertyId, Who.Owner), folio)).Lines, l => l.Kind == "food"); // ACC-2 ruling 3
         // a bill posted to a folio is corrected on the folio, not voided here
         await Fails(HccErrorCode.INVALID_TRANSITION, () => db.Pos.VoidBillAsync(db.As(Who.Reception), PosDb.Key(), new VoidBillRequest(o.OrderId, "Wrong room", null)));
         Assert.Equal(stay, await db.LongAsync("SELECT stay_id FROM pos.bill WHERE bill_id = @b", ("@b", SqlDbType.BigInt, s.BillId)));

@@ -8,11 +8,14 @@ public enum ReceiptKind
     DepositReturn,
     Refund,
     CompanyCredit,
+    DepositApply, // ACC-2 flows (contract §4, A6a): the deposit held applied to the folio at check-out
+    OtaCredit,    // ACC-2 flows (contract §4, A13): the folio balance moved to the OTA's receivable at check-out
 }
 
 public sealed record FolioLine(Paise Amount, int TaxBps);
 
-public sealed record FolioReceipt(ReceiptKind Kind, Paise Amount);
+/// <summary><see cref="FromOpening"/> (ACC-2 flows): a <c>deposit-apply</c> of an advance carried in the opening balance (no deposit receipt on the folio).</summary>
+public sealed record FolioReceipt(ReceiptKind Kind, Paise Amount, bool FromOpening = false);
 
 public sealed record FolioTotalsResult(Paise Net, Paise Tax, Paise Total, Paise Paid, Paise Deposit, Paise Balance);
 
@@ -46,6 +49,11 @@ public static class FolioTotals
                 case ReceiptKind.Deposit: deposit += r.Amount; break;
                 case ReceiptKind.DepositReturn: deposit -= r.Amount; break;
                 case ReceiptKind.CompanyCredit: credit += r.Amount; break;
+                case ReceiptKind.OtaCredit: credit += r.Amount; break;                          // ACC-2 flows: like company credit
+                case ReceiptKind.DepositApply:                                                  // ACC-2 flows (coordinator ruling 28 Oct): counts as paid;
+                    paid += r.Amount;                                                           // from the folio's deposit receipts it also leaves the deposit
+                    if (!r.FromOpening) deposit -= r.Amount;
+                    break;
                 default: throw new ArgumentOutOfRangeException(nameof(receipts), r.Kind, "Unknown receipt kind.");
             }
         }
@@ -53,6 +61,9 @@ public static class FolioTotals
         var total = net + tax;
         return new FolioTotalsResult(net, tax, total, paid, deposit, total - paid - credit);
     }
+
+    /// <summary>ACC-2 flows: the tender of a <c>deposit-apply</c> receipt that applies an advance carried in the opening balance (prototype depositSource 'opening').</summary>
+    public const string OpeningAdvanceTender = "Opening advance applied";
 
     /// <summary>Parses the prototype/SQL receipt kind spelling (payment, deposit, deposit-return, refund, company-credit).</summary>
     public static ReceiptKind ParseKind(string kind) => kind switch
@@ -62,6 +73,8 @@ public static class FolioTotals
         "deposit-return" => ReceiptKind.DepositReturn,
         "refund" => ReceiptKind.Refund,
         "company-credit" => ReceiptKind.CompanyCredit,
+        "deposit-apply" => ReceiptKind.DepositApply,
+        "ota-credit" => ReceiptKind.OtaCredit,
         _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown receipt kind."),
     };
 
@@ -73,6 +86,8 @@ public static class FolioTotals
         ReceiptKind.DepositReturn => "deposit-return",
         ReceiptKind.Refund => "refund",
         ReceiptKind.CompanyCredit => "company-credit",
+        ReceiptKind.DepositApply => "deposit-apply",
+        ReceiptKind.OtaCredit => "ota-credit",
         _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown receipt kind."),
     };
 }

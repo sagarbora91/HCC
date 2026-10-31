@@ -51,7 +51,7 @@ public sealed class MappingAndExportTests(AccountingDb db) : IClassFixture<Accou
 
         var day = await db.Queries.DayAsync(db.As("ACC"), S1, Ct);
         Assert.Equal("Closed", day.Status);
-        Assert.Equal(["SAL/20260901/001", "PMT/20260901/001", "PMT/20260901/002", "JRN/20260901/001", "JRN/20260901/002"], day.Vouchers.Select(v => v.Number));
+        Assert.Equal(["SAL/20260901/001", "PMT/20260901/001", "PMT/20260901/002", "JRN/20260901/001", "PUR/20260901/001"], day.Vouchers.Select(v => v.Number));
         Assert.All(day.Vouchers, v => Assert.True(v.Balanced, v.Number));
         var gas = day.Vouchers.Single(v => v.SourceKey == "expense:22");
         Assert.Equal("9999", gas.Entries[0].Account);

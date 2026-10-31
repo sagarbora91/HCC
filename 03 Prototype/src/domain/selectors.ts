@@ -7,6 +7,7 @@ import {rmsOffline} from './streams/roomoffline';
 import {mnyIsDrawer} from './streams/money-master';
 import {cxDeskNet} from './streams/cashout';
 import {expUdDeskCash} from './streams/udhaar-desk';
+import {expVendorPayCash} from './streams/expenses-vendor'; // ACC-2 acc2-purchase
 
 // ── Cross-stream contract functions (stubs in M1; owners noted). Signatures must not change. ──
 /** Nightly tariff for a room on a date. Owner: stream E (effective-dated tariffs). */
@@ -25,10 +26,12 @@ export function blockedDuring(room:Room,a:string,d:string):boolean{
 export function totals(b:Booking){
   const net=b.lines.reduce((s,l)=>s+l.amount,0);
   const tax=b.lines.reduce((s,l)=>s+lineTax(l),0);
-  const paid=b.receipts.reduce((s,r)=>s+(r.kind==='payment'?r.amount:r.kind==='refund'?-r.amount:0),0);
-  const deposit=b.receipts.reduce((s,r)=>s+(r.kind==='deposit'?r.amount:r.kind==='deposit-return'?-r.amount:0),0);
-  // Company credit moves the balance to a receivable (Financial Rulebook §2); it is not a cash/net receipt.
-  const credit=b.receipts.reduce((s,r)=>s+(r.kind==='company-credit'?r.amount:0),0);
+  // ACC-2 flows (contract §4, A6a; coordinator ruling 28 Oct): a deposit applied at check-out counts as paid; one applied from the deposit
+  // receipts held on the folio also leaves the deposit (an advance carried in the opening balance, depositSource 'opening', has none here).
+  const paid=b.receipts.reduce((s,r)=>s+(r.kind==='payment'||r.kind==='deposit-apply'?r.amount:r.kind==='refund'?-r.amount:0),0);
+  const deposit=b.receipts.reduce((s,r)=>s+(r.kind==='deposit'?r.amount:r.kind==='deposit-return'||(r.kind==='deposit-apply'&&r.depositSource!=='opening')?-r.amount:0),0);
+  // Company credit moves the balance to a receivable (Financial Rulebook §2); it is not a cash/net receipt. ACC-2 (A13): so does an OTA credit.
+  const credit=b.receipts.reduce((s,r)=>s+(r.kind==='company-credit'||r.kind==='ota-credit'?r.amount:0),0);
   return {net,tax,total:net+tax,paid,deposit,balance:net+tax-paid-credit};
 }
 /** Coarse module gate. Disabled users and users whose assignment expired (expiresOn < business date) are denied. Owner: stream E. */
@@ -64,7 +67,8 @@ export function drawer(s:State){
   const outlet=drawerOutletCash(s);
   const expenses=s.expenses.filter(e=>e.date===s.date&&(e.status==='Posted'||e.status==='Reversed')&&mnyIsDrawer(s,e.method)).reduce((a,e)=>a+e.amount,0);
   // DEC-130: Udhaar (customer credit) payments taken in cash are desk receipts into the drawer.
-  return s.openingCash+receipts+outlet-expenses+cxDeskNet(s,s.date)+expUdDeskCash(s,s.date);
+  // ACC-2 (acc2-purchase): vendor payments in drawer cash leave it (a reversing void brings the cash back on the void date).
+  return s.openingCash+receipts+outlet-expenses+cxDeskNet(s,s.date)+expUdDeskCash(s,s.date)-expVendorPayCash(s,s.date);
 }
 /** POS cash settled today (sale receipts +, void receipts −). Room-service bills charged to a folio have no POS receipt. */
 export function drawerOutletCash(s:State){return (s.posX?.receipts??[]).filter(r=>r.date===s.date&&mnyIsDrawer(s,r.method)).reduce((a,r)=>a+r.amount,0);}

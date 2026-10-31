@@ -28,6 +28,12 @@ import {EXP_VOID_REASONS,EXP_MAX_PAISE,EXP_PHOTO_MAX_BYTES,EXP_DESC_MAX,EXP_UD_D
   expMonthUnlockRefusal,type EXPState,type ExpRecTpl,type ExpEditLog} from '../../../domain/streams/expenses-scc';
 import {expUdGst,type ExpUdKind} from '../../../domain/streams/expenses-scc'; // ACC-1 (acc1-parties): Udhaar credit raised (contract §4)
 import {gstForFood,gstForRoomNight,gstForService} from '../../../domain/gst';
+// ACC-2 acc2-purchase (contract §3): purchase fields at entry (GST kind, RCM rate, ITC guard DEC-143), stamped at approval (RCM, capital, TDS),
+// the asset register row of a capital purchase, returns approved by the Owner only.
+import {expPurchaseEntry,expPurchaseStamp,expIsReturn} from '../../../domain/streams/expenses-vendor';
+import {accSlice,accMapping} from '../../../domain/streams/accounting';
+import {accAssetFromExpense,accIsFixedAssetLedger} from '../../../domain/streams/accounting-assets';
+import {accCashEnforce,accCashNote,accCashUdhaarParty} from '../../../domain/streams/accounting-guards'; // ACC-2 flows (contract §7)
 
 const limited=(role:string)=>!closingUnlimitedRoles.includes(role);
 /** Coarse gate of edit / void: an expense user (the record decides the rest: own draft / pending, or a decider). */
@@ -128,11 +134,12 @@ export const handlers:Record<string,Handler>={
     const cat=category(k,cmd.category),pm=method(k,cmd.method),ven=vendor(k,cmd.vendor);
     const date=cmd.date===undefined||cmd.date===null||cmd.date===''?s.date:String(cmd.date);dateGate(k,date,pm.name);
     const g=gst(k,amount),itc=itcFlag(k,cmd.itc,g.gstPaise,amount);
+    const pe=expPurchaseEntry(s,{category:cat.name,vendor:ven.name,gstKind:cmd.gstKind,rcmBps:cmd.rcmBps,gstPaise:g.gstPaise,itc:cat.rcm?cmd.itc:itc});if(pe.error)k.fail('VALIDATION',pe.error); // ACC-2
     if(description){const d=expenseDuplicates(s,description,amount,date);if(d.length&&!cmd.confirmDuplicate)k.fail('VALIDATION',expDuplicateMessage(date,amount,description));}
     if(!draft&&cat.needsBill)assert(txt(cmd.receipt),`${cat.name} expenses need the bill / receipt number.`);
     const photo=billPhoto(k,cmd.billPhoto);
     const over=monthGate(k,date,cmd.override);
-    const e:Expense={id:id('EXP'),vendor:ven.name,category:cat.name,amount,method:pm.name,date,status:draft?'Draft':'Pending',actor:uid,createdAt:s.clock,...g,...(itc?{itc}:{})};
+    const e:Expense={id:id('EXP'),vendor:ven.name,category:cat.name,amount,method:pm.name,date,status:draft?'Draft':'Pending',actor:uid,createdAt:s.clock,...g,...(itc?{itc}:{}),...pe.fields};
     if(description)e.description=description;
     if(txt(cmd.notes))e.notes=txt(cmd.notes).slice(0,300);
     if(txt(cmd.receipt))e.receipt=txt(cmd.receipt).slice(0,120);
@@ -159,19 +166,35 @@ export const handlers:Record<string,Handler>={
     assert(!cbIsLocked(s,e!.date),cbLockedMessage(e!.date,'deciding this expense'),'DAY_CLOSED'); // DEC-065
     assert(e!.actor!==uid,'You cannot approve your own expense.','FORBIDDEN');
     if(cmd.approve)assert(!(e!.editors??[]).includes(uid),'You changed this expense — another approver decides it (nobody approves their own).','FORBIDDEN');
+    // ACC-2 (contract §3.5): a vendor return is a credit note — only the Owner approves it.
+    if(cmd.approve&&expIsReturn(e!)&&user.role!=='Owner')fail('FORBIDDEN','Only the Owner approves a vendor return (credit note).');
+    // ACC-2 (contract §3): the purchase fields are stamped now (RCM / capital from the category at posting, TDS held back); ITC refused on a blocked category.
+    let stamp:Partial<Expense>={};
+    if(cmd.approve&&!expIsReturn(e!)){const st=expPurchaseStamp(s,e!);if(st.error)fail('VALIDATION',st.error);stamp=st.fields;}
+    const assetLedger=stamp.capital?accMapping(s)['expense:'+e!.category]:'';
+    if(stamp.capital&&!accIsFixedAssetLedger(s,assetLedger))fail('VALIDATION',`${e!.category} is a capital category but maps to ${assetLedger||'no ledger'} — map it to a fixed-asset block (15x0) first.`);
     const lim=mnyApprovalLimit(s,e!.category,EXPENSE_MANAGER_LIMIT); // MA-3: category override, else the hotel limit
     if(cmd.approve&&limited(user.role)&&e!.amount>lim)fail('FORBIDDEN',`Expenses above ${money(lim)} need Owner approval.`);
     if(cmd.approve&&mnyIsDrawer(s,e!.method))assert(s.shiftOpen,'Open cash shift required.','INVALID_TRANSITION');
     const date=liveDate(k,e!),over=cmd.approve?monthGate(k,date,cmd.override):'';
+    // ACC-2 flows (contract §7, rulebook B10): cash above ₹10,000 to one party in a day (₹35,000 transport) posts with a warning and the
+    // record is marked "deduction lost" (P&L notes).
+    const cg=cmd.approve?accCashEnforce(s,{kind:'payment',party:e!.vendor?'2200/'+(mnyVendor(s,e!.vendor)?.code??e!.vendor):'expense:'+e!.id,amount:e!.amount,date,method:e!.method,
+      transport:!!mnyCategory(s,e!.category)?.transport,name:e!.vendor||undefined}):undefined;
+    if(cg?.deductionLost)e!.cashDeductionLost=true;
     e!.status=cmd.approve?'Posted':'Rejected';e!.date=date;e!.approver=uid;e!.decidedAt=s.clock;
     if(!cmd.approve&&cmd.reason?.trim())e!.reason=String(cmd.reason).trim();
-    return e!.id+' · '+e!.status+over+(cmd.approve?alertText(k,e!.category,date):'');
+    Object.assign(e!,stamp); // ACC-2: RCM / capital / TDS fields (none for an ordinary bill)
+    if(cmd.approve&&!expIsReturn(e!)&&!stamp.rcm){delete e!.rcm;delete e!.rcmBps;if(!e!.gstPaise)delete e!.itc;} // the category is no longer RCM at posting
+    if(stamp.capital){const x={...accSlice(s)};s.accountingX=x;const a=accAssetFromExpense(s,e!,k.id('FA'),assetLedger);x.assets=[...(x.assets??[]),a];e!.assetNo=a.no;} // ACC-2 §3.4 asset register
+    return e!.id+' · '+e!.status+over+(cmd.approve?alertText(k,e!.category,date):'')+(cg?accCashNote(cg):'');
   },
   // PERM-EXP-003 expense.reverse: Posted → Reversed + negative Posted record on today's business date (an approved expense changes only this way)
   EXPENSE_REVERSE:k=>{
     const {s,cmd,open,assert,id,uid}=k;need(k,rbacCanDecideExpense,'approve permission or the Accountant role is required (not the Cashier, DEC-063)');open();
     const e=findExpense(k);
     assert(e.status==='Posted'&&!e.reversalOf,'Only a posted expense can be reversed.','INVALID_TRANSITION');
+    assert(!expIsReturn(e),'A posted vendor return cannot be reversed — record the goods again as a new bill.','INVALID_TRANSITION'); // ACC-2 (server CK_expense_sign)
     assert(!cbIsLocked(s,e.date),cbLockedMessage(e.date,'reversing this expense'),'DAY_CLOSED'); // DEC-065
     assert(cmd.reason?.trim(),'A reason is required to reverse an expense.');
     if(mnyIsDrawer(s,e.method))assert(s.shiftOpen,'Open cash shift required.','INVALID_TRANSITION');
@@ -180,6 +203,11 @@ export const handlers:Record<string,Handler>={
     const r:Expense={id:rid,vendor:e.vendor,category:e.category,amount:-e.amount,method:e.method,date:s.date,status:'Posted',actor:uid,reversalOf:e.id,reason:cmd.reason.trim(),approver:uid,decidedAt:s.clock,createdAt:s.clock};
     if(e.description)r.description=e.description;if(e.gstPaise)r.gstPaise=-e.gstPaise;if(e.gstRateBps)r.gstRateBps=e.gstRateBps;if(e.source)r.source=e.source;
     if(e.gstPaise)r.itc=e.itc==='allowed'?'allowed':'disallowed'; // DEC-135: the reversal mirrors the original's ITC split
+    // ACC-2 (contract §3): the reversal mirrors the purchase lines too (IGST, RCM, TDS);
+    // a reversed capital purchase marks its asset register row disposed at 0 (never deleted).
+    if(e.gstKind)r.gstKind=e.gstKind;if(e.rcm){r.rcm=true;r.rcmBps=e.rcmBps??0;if(e.itc)r.itc=e.itc;}if(e.capital)r.capital=true;
+    if(e.tdsPaise){r.tdsPaise=-e.tdsPaise;if(e.tdsSection)r.tdsSection=e.tdsSection;}
+    if(e.assetNo){const x={...accSlice(s)};s.accountingX=x;x.assets=(x.assets??[]).map(a=>a.no===e.assetNo&&!a.disposed?{...a,disposed:{date:s.date,amount:0,voucher:rid}}:a);}
     s.expenses.push(r);
     e.status='Reversed';e.reversedBy=rid;e.reason=cmd.reason.trim();
     return `${e.id} reversed by ${rid} · ${money(e.amount)}`+over;
@@ -189,6 +217,7 @@ export const handlers:Record<string,Handler>={
     const {s,cmd,open,assert,fail,uid}=k;need(k,anyExpense,'expenses permission is required');open();const e=findExpense(k);
     if(e.status==='Posted'||e.status==='Reversed'||e.reversalOf)fail('INVALID_TRANSITION','Approved entry is locked — a posted expense changes only by a reversal and a new entry.');
     if(e.status==='Rejected')fail('INVALID_TRANSITION','A rejected expense cannot be changed — enter it again.');
+    if(expIsReturn(e))fail('INVALID_TRANSITION','A vendor return changes only by voiding it and recording it again.'); // ACC-2
     if(e.status==='Void')fail('INVALID_TRANSITION','This expense is void.');
     const own=e.actor===uid;
     if(own)need(k,rbacCanSubmitExpense,'expenses permission is required');
@@ -202,6 +231,8 @@ export const handlers:Record<string,Handler>={
     if(e.status==='Pending')assert(description,'Description is required');
     const g=gst(k,amount),receipt=cmd.receipt===undefined?e.receipt:txt(cmd.receipt).slice(0,120)||undefined;
     const itc=itcFlag(k,cmd.itc===undefined?e.itc:cmd.itc,g.gstPaise,amount); // DEC-135: kept while not sent
+    const pe=expPurchaseEntry(s,{category:cat.name,vendor:e.vendor,gstKind:cmd.gstKind===undefined?e.gstKind:cmd.gstKind,rcmBps:cmd.rcmBps===undefined?e.rcmBps:cmd.rcmBps,
+      gstPaise:g.gstPaise,itc:cat.rcm?(cmd.itc===undefined?e.itc:cmd.itc):itc});if(pe.error)k.fail('VALIDATION',pe.error); // ACC-2
     if(e.status==='Pending'&&cat.needsBill)assert(txt(receipt),`${cat.name} expenses need the bill / receipt number.`);
     const photo=billPhoto(k,cmd.billPhoto);
     const over=monthGate(k,e.date,reason); // SCC: the edit reason doubles as the override reason
@@ -215,6 +246,7 @@ export const handlers:Record<string,Handler>={
     e.amount=amount;e.category=cat.name;e.method=pm.name;
     if(description)e.description=description;else delete e.description;
     delete e.gstPaise;delete e.gstRateBps;delete e.itc;Object.assign(e,g);if(itc)e.itc=itc;
+    delete e.gstKind;delete e.rcm;delete e.rcmBps;Object.assign(e,pe.fields); // ACC-2
     if(receipt)e.receipt=receipt;else delete e.receipt;
     if(photo)e.billPhoto=photo;
     e.editLog=[...(e.editLog??[]),{at:s.clock,by:uid,old,new:nu,reason}];
@@ -377,6 +409,7 @@ export const handlers:Record<string,Handler>={
       assert(!cbIsLocked(s,s.date),cbLockedMessage(s.date,'cash into the drawer'),'DAY_CLOSED');
     }else if(pm!.needsReference)assert(reference,`Enter the ${pm!.name} transaction reference.`);
     const p=expUdPayment(r!,typed);
+    if(cash)accCashEnforce(s,{kind:'receipt',party:accCashUdhaarParty(r!),scope:'udhaar:'+r!.id,amount:p.amount,name:r!.name}); // ACC-2 flows (contract §7, B9)
     x.udhaar=x.udhaar!.map(u=>u.id===r!.id?{...u,settlements:[...u.settlements,{id:id('UDP'),amount:p.amount,date:s.date,mode:pm!.name,by:uid,at:s.clock,desk:true as const,...(reference?{reference}:{})}]}:u);
     return `${r!.id} · ${r!.name} paid ${money(p.amount)}${p.capped?' (more than outstanding — capped)':''} · ${cash?'cash into the drawer (desk receipt)':pm!.name+' desk receipt'}`;
   },

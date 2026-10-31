@@ -9,7 +9,7 @@ import {ShiftCountForm} from './ShiftCount';
 import {OpenShiftForm,CashOutPanel} from './CashOut';
 
 /** Detail column of a drawer movement without a booking or outlet bill (Wave B1: banking, transfers, drawings). */
-const MOVE_KIND:Record<string,string>={'expense-reversal':'Reversal',expense:'Expense',banking:'Bank deposit','transfer-out':'Till transfer','transfer-in':'Till transfer','owner-drawing':'Owner drawing'};
+const MOVE_KIND:Record<string,string>={'expense-reversal':'Reversal',expense:'Expense',banking:'Bank deposit','transfer-out':'Till transfer','transfer-in':'Till transfer','owner-drawing':'Owner drawing','staff-advance':'Salary advance'}; // ACC-2 integration: the parity lane's cash advance movement
 
 export function Cashier(){
   const {s,go,booking,permission}=useHcc();

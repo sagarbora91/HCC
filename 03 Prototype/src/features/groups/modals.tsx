@@ -3,17 +3,28 @@
 import {printDocument} from '../../app/native';
 import React,{useState} from 'react';
 import {Check,Plus,Trash2,AlertTriangle,Info,Printer,Banknote} from 'lucide-react';
-import {GRP_BLOCKS_REFUSAL,grpBlocksOnServer,money,nights,grpSlice,grpCompany,grpBlock,grpRoomTypes,grpLines,grpRemaining,grpFreeRooms,grpCredit,grpStayValue,grpHeldElsewhere,grpPickupReport,grpCreditLevel,grpCreditRefusal,GRP_CREDIT_LABEL,rbacMoneyAdmin} from '../../services/mock';
+import {grpActiveCompanies,GRP_BLOCKS_REFUSAL,grpBlocksOnServer,money,nights,grpSlice,grpCompany,grpBlock,grpRoomTypes,grpLines,grpRemaining,grpFreeRooms,grpCredit,grpStayValue,grpHeldElsewhere,grpPickupReport,grpCreditLevel,grpCreditRefusal,GRP_CREDIT_LABEL,rbacMoneyAdmin} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {Empty,field,submit,shortDate,dateLabel} from '../../components/ui';
 import {NumberStepper} from '../../app/mobile/components';
-import {GrpCreditPill,grpRupees,grpPaise,grpSimNote,grpUserName} from './parts';
+import {GrpCreditPill,grpRupees,grpPaise,grpSimNote,grpUserName,grpActive} from './parts';
+import {accPartyRetireReason} from '../accounting/acc2-views'; // ACC-2
+import type {GRPCompany} from '../../services/mock';
 import {MasterFolio,PickupTable} from './Groups';
 import {RestrictionNotice} from '../reservations/RestrictionNotice';
 import {rstState} from '../reservations/restriction';
 
 const Head=({eyebrow,title,sub}:{eyebrow:string;title:string;sub:string})=><div className="modal-heading"><div className="eyebrow">{eyebrow}</div><h2>{title}</h2><p>{sub}</p></div>;
 
+/** ACC-2 (contract §8): the active flag of a company. Retiring is refused while 1110/<company> has a balance or the company has open stays / blocks. */
+function RetireField({c}:{c:GRPCompany}){
+  const {s}=useHcc();const [on,setOn]=useState(grpActive(c));
+  const blocker=accPartyRetireReason(s,'1110/'+c.id),canRetire=!blocker;
+  return <fieldset className="grp-fieldset grp-retire"><legend>Account status</legend>
+    <label className="checkbox-line"><input type="checkbox" name="active" checked={on} aria-describedby={blocker?'grp-retire-why':undefined} onChange={e=>setOn(e.target.checked||!canRetire)}/> Active — can be picked for new bookings, blocks and company credit</label>
+    {!on&&<small className="muted">Retired: hidden from the pickers; its past stays, invoices and statement stay as they were. Save to apply.</small>}
+    {on&&blocker&&<small id="grp-retire-why" className="grp-refusal" role="alert">Cannot be retired: {blocker}</small>}</fieldset>;
+}
 export function CompanyModal({id}:{id?:string}){
   const {s,uid,run,modal,closeModal,busy}=useHcc();const c=grpCompany(s,id);
   if(id&&!c)return <Empty title="This company is unavailable"/>;
@@ -21,7 +32,7 @@ export function CompanyModal({id}:{id?:string}){
   return <><Head eyebrow={c?c.id:'NEW COMPANY ACCOUNT'} title={c?'Edit '+c.name:'New company account'} sub="Fictional companies only. The negotiated rate becomes the default block rate for this company."/>
     <form className="form" onSubmit={e=>submit(e,f=>{
       const rates:Record<string,number>={};types.forEach(t=>{const v=grpPaise(f.get('rate-'+t));if(v!==undefined)rates[t]=v;});
-      const cmd:Record<string,unknown>={type:'GRP_COMPANY_SAVE',id:c?.id,name:field(f,'name'),gstin:field(f,'gstin'),contact:field(f,'contact'),phone:field(f,'phone'),email:field(f,'email'),city:field(f,'city'),rates,key:modal!.key};
+      const cmd:Record<string,unknown>={type:'GRP_COMPANY_SAVE',id:c?.id,...(c?{active:f.get('active')==='on'}:{}),name:field(f,'name'),gstin:field(f,'gstin'),contact:field(f,'contact'),phone:field(f,'phone'),email:field(f,'email'),city:field(f,'city'),rates,key:modal!.key};
       if(!c)cmd.creditLimit=grpPaise(f.get('limit'));
       run(cmd as {type:string},c?'Company updated':'Company created',{close:true});})}>
       <label>Company name<input name="name" required minLength={2} maxLength={80} defaultValue={c?.name} placeholder="e.g. Manjra Textiles (fictional)" enterKeyHint="next"/></label>
@@ -31,6 +42,7 @@ export function CompanyModal({id}:{id?:string}){
         <label>Phone<input name="phone" type="tel" inputMode="tel" maxLength={20} defaultValue={c?.phone} placeholder="+91 90000 00000"/></label></div>
       <label>E-mail<input name="email" type="email" inputMode="email" maxLength={80} defaultValue={c?.email} placeholder="travel@company.example.test"/></label>
       <fieldset className="grp-fieldset"><legend>Negotiated nightly rate (₹, blank = rack rate)</legend><div className="form-row">{types.map(t=><label key={t}>{t}<input name={'rate-'+t} inputMode="decimal" defaultValue={grpRupees(c?.rates[t]||0)} placeholder={String(s.rooms.find(r=>r.type===t)!.rate/100)}/></label>)}</div></fieldset>
+      {c&&<RetireField c={c}/>}
       {!c&&<label>Opening credit limit (₹, optional)<input name="limit" inputMode="decimal" placeholder="0"/><small>{rbacMoneyAdmin(s,uid)?'You can set this directly.':'Without the Owner’s access this is sent as a request for approval.'}</small></label>}
       {c&&<div className="info-note"><Info size={16}/>Change the credit limit with “Credit limit” (the Owner directly, anyone else as a request the Owner decides — DEC-076).</div>}
       <div className="modal-actions"><button type="button" className="btn" onClick={closeModal}>Cancel</button><button className="btn primary" disabled={busy}>{c?'Save changes':'Create account'} <Check size={16}/></button></div>
@@ -73,7 +85,7 @@ export function BlockModal(){
       const rates:Record<string,number>={};types.forEach(t=>{const v=grpPaise(f.get('rate-'+t));if(v!==undefined&&allot[t])rates[t]=v;});
       run({type:'GRP_BLOCK_CREATE',name:field(f,'name'),company:co||undefined,billTo:bill,arrival:a,departure:dep,cutoff:field(f,'cutoff'),allot,rates,contact:field(f,'contact'),notes:field(f,'notes'),key:modal!.key},'Group block created',{close:true});})}>
       <label>Group name<input name="name" required minLength={3} maxLength={80} placeholder="e.g. Rotary district meet" enterKeyHint="next"/></label>
-      <div className="form-row"><label>Company account<select value={co} onChange={e=>{setCo(e.target.value);if(!e.target.value)setBill('guest');}}><option value="">None (private group)</option>{x.companies.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
+      <div className="form-row"><label>Company account<select value={co} onChange={e=>{setCo(e.target.value);if(!e.target.value)setBill('guest');}}><option value="">None (private group)</option>{grpActiveCompanies(s,co).map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
         <label>Billing<select value={bill} onChange={e=>setBill(e.target.value as 'company'|'guest')}><option value="guest">Guests pay own folios</option><option value="company" disabled={!co}>Bill to company</option></select></label></div>
       <div className="form-row"><label>Arrival<input type="date" required min={s.date} value={a} onChange={e=>setA(e.target.value)}/></label><label>Departure<input type="date" required min={a} value={dep} onChange={e=>setD(e.target.value)}/></label>
         <label>Cut-off (pickup until)<input name="cutoff" type="date" required min={s.date} max={a} defaultValue={a&&a>s.date?new Date(Date.parse(a+'T12:00:00Z')-3*86400000).toISOString().slice(0,10)<s.date?s.date:new Date(Date.parse(a+'T12:00:00Z')-3*86400000).toISOString().slice(0,10):s.date}/></label></div>

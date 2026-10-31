@@ -54,7 +54,7 @@ export function register({test,M,assert}){
     let s=execute(seed(),'reception',{type:'EXPENSE',description:'Linen on credit',vendor:'Morning Supplies',category:'Supplies',amount:59000,method:'Vendor credit'});
     const eid=s.expenses.at(-1).id;s=execute(s,'manager',{type:'EXPENSE_APPROVE',id:eid,approve:true});
     const code=M.mnyVendor(s,'Morning Supplies').code,v=M.accLiveVouchers(s,D).find(v=>v.source.id===eid);
-    assert.equal(v.type,'Journal');assert.deepEqual(ent(v),[['5000',59000,0],['2200/'+code,0,59000]]);
+    assert.equal(v.type,'Purchase');assert.deepEqual(ent(v),[['5000',59000,0],['2200/'+code,0,59000]]); // ACC-2 contract §3.1: Purchase (was Journal)
     assert.equal(M.accPartyBalance(s,'2200/'+code),-59000);
     assert.match(M.accPartyRetireBlocker(s,'2200',code),/Vendor payables · Morning Supplies has a ledger balance of ₹590\.00 Cr/);
     const row=M.mnyVendor(s,'Morning Supplies');
@@ -67,7 +67,7 @@ export function register({test,M,assert}){
   test('[ACC1-PARTIES] a bank account with a ledger balance cannot be retired (methods moved away first); a till likewise',()=>{
     let s=seed();const id=s.bookings.find(b=>b.status==='In house').id;
     s=execute(s,'cashier',{type:'PAYMENT',id,amount:20000,method:'Bank transfer',kind:'payment',reference:'NEFT-2'});
-    assert.ok(M.accPartyBalance(s,'1030/BANK-1')>=20000);
+    assert.ok(M.accPartyBalance(s,'1030/BANK-1')!==0); // ACC-2 parity: the BASE salary advance HR-ADV-1 (bank transfer) also moves 1030/BANK-1
     assert.match(M.accPartyRetireBlocker(s,'1030','BANK-1'),/Bank accounts · Hotel current account has a ledger balance/);
     assert.match(M.accPartyRetireBlocker(s,'1000','TILL'),/Front-desk cash drawer has a ledger balance/);
     assert.equal(M.accPartyRetireBlocker(s,'1030','NO-SUCH'),'');

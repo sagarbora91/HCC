@@ -15,7 +15,8 @@ import type {CommandMapper,LoaderCtx,SliceLoader} from '../types';
 import {serverId,utcToClock,paise} from '../map';
 
 type SrvMap={roomTypeId:number;roomType:string;channelCode:string;stopSell:boolean};
-type SrvChannel={channelId:number;code:string;name:string;status:string;version:string;commissionBps:number|null;markupBps:number;lastSync?:string|null;statusNote:string;mapping:SrvMap[]};
+type SrvChannel={channelId:number;code:string;name:string;status:string;version:string;commissionBps:number|null;markupBps:number;lastSync?:string|null;statusNote:string;mapping:SrvMap[];
+  itcAllowed?:boolean}; // ACC-2 integration (flows item 4): ota.channel.itc_allowed
 type SrvMessage={messageId:number;version:string;channelId:number;kind:string;channelRef:string;guest:string;phone?:string|null;email?:string|null;roomType?:string|null;
   channelRoomCode:string;arrival:string;departure:string;adults:number;children:number;amountPaise:number;receivedAt?:string|null;status:string;reservationId?:number|null;
   room?:string|null;reason?:string|null};
@@ -34,7 +35,7 @@ export function channelFromServer(c:SrvChannel):CHNChannel&{code:string}{
   for(const m of c.mapping){if(m.channelCode)mapping[m.roomType]=m.channelCode;if(m.stopSell)stopSell.push(m.roomType);}
   const hidden=typeof c.commissionBps!=='number';
   return {id:String(c.channelId),code:c.code,name:c.name,status:c.status as CHNChannel['status'],commissionBps:hidden?0:c.commissionBps as number,markupBps:c.markupBps,mapping,stopSell,
-    ...(c.lastSync?{lastSync:utcToClock(c.lastSync)}:{}),...(c.statusNote?{statusNote:c.statusNote}:{}),...(hidden?{commissionHidden:true}:{})};
+    ...(c.lastSync?{lastSync:utcToClock(c.lastSync)}:{}),...(c.statusNote?{statusNote:c.statusNote}:{}),...(hidden?{commissionHidden:true}:{}),...(c.itcAllowed?{itcAllowed:true}:{})};
 }
 export function messageFromServer(m:SrvMessage):CHNMessage{
   return {id:String(m.messageId),channel:String(m.channelId),kind:m.kind as CHNMessage['kind'],ref:m.channelRef,guest:m.guest,
@@ -102,7 +103,10 @@ export const otaCommands:CommandMapper[]=[
     const mapping=Object.entries((m.mapping??{}) as Record<string,string>).filter(([,code])=>String(code??'').trim())
       .map(([type,code])=>({roomTypeId:roomTypeServerId(c,type),channelCode:String(code).trim().toUpperCase()}));
     await c.api.command('SaveChannel',{channelId:serverId(m.channel,'Channel'),code:cur.code,name:cur.name,commissionBps:m.commissionBps,markupBps:m.markupBps??cur.markupBps,mapping},
-      {expectedVersion:version(c,'channel',String(m.channel))});}},
+      {expectedVersion:version(c,'channel',String(m.channel))});
+    // ACC-2 integration (flows item 4): the Owner's ITC switch on the commission GST travels as its own command.
+    if(m.itcAllowed!==undefined&&m.itcAllowed!==null&&(m.itcAllowed===true)!==!!cur.itcAllowed)
+      await c.api.command('SetChannelItc',{channelId:serverId(m.channel,'Channel'),itcAllowed:m.itcAllowed===true},{step:'itc'});}},
   {type:'CHN_STOP_SELL',reload:['channelsX'],async send(c){const m=c.cmd;
     await c.api.command('SetChannelStopSell',{channelId:m.channel==='ALL'?null:serverId(m.channel,'Channel'),roomTypeId:roomTypeServerId(c,String(m.roomType)),on:!!m.on});}},
   {type:'CHN_PUSH',reload:['channelsX'],async send(c){await c.api.command('PushChannelRates',{channelId:serverId(c.cmd.channel,'Channel')});}},

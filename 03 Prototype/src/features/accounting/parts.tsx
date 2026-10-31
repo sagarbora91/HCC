@@ -25,7 +25,13 @@ export function useAccPerms(){
   return {canLock:permission('reports')&&ACC_LOCK_ROLES.includes(user.role),canUnlock:permission('reports')&&permission('admin'),canMap:permission('admin'),s,uid,
     canChart:permission('admin')&&user.role==='Owner', // contract §7 PERM-ACC-007: chart of accounts = Owner
     canOpeningEnter:permission('reports')&&ACC_LOCK_ROLES.includes(user.role), // PERM-ACC-008: Owner, Manager, Accountant
-    canOpeningApprove:user.role==='Owner'}; // PERM-ACC-009
+    canOpeningApprove:user.role==='Owner', // PERM-ACC-009
+    // ACC-2 (contract §9; prototype equivalents): enter manual vouchers / tax entries = reports + Owner or Accountant; approve, void, month lock = Owner (admin);
+    // the Accountant may request a month lock; vendor payments and OTA payouts = payments + Owner / Manager / Accountant.
+    canManualEnter:permission('reports')&&(user.role==='Owner'||user.role==='Accountant'),canManualApprove:permission('admin')&&user.role==='Owner',
+    canTax:permission('reports')&&(user.role==='Owner'||user.role==='Accountant'),canMonthLock:permission('admin')&&user.role==='Owner',canMonthRequest:permission('reports')&&user.role==='Accountant',
+    canVendorPay:(permission('payments')&&(user.role==='Owner'||user.role==='Manager'))||(permission('reports')&&user.role==='Accountant'), // the seed gives the Accountant no 'payments' grant: books access stands in for it (PERM-EXP-0xx / PERM-OTA-004 name the Accountant)
+    isOwner:user.role==='Owner'};
 }
 export function accExport(s:ReturnType<typeof useHcc>['s'],date:string,toast:(t:string)=>void,uid:string){
   if(!rbacCanExportVouchers(s,uid)){toast('Your role cannot export vouchers.');return;} // DEC-063 G13

@@ -81,7 +81,8 @@ export function register({test,M,assert}){
     s=execute(s,'reception',{type:'POS_SETTLE',id:'POS-F04',mode:'folio',key:'pos-folio-F04'});
     const bk=s.bookings.find(x=>x.id===b.id),l=bk.lines.at(-1);
     assert.deepEqual(Object.keys(l).sort(),['amount','date','id','kind','label','taxBps']);
-    assert.equal(l.kind,'service');assert.equal(l.amount,24000+6000+14000);assert.equal(l.taxBps,500); // DEC-069 GST: 1000 → 500 (restaurant / room service 5 %)assert.equal(l.date,s.date);assert.equal(l.id,'posline:POS-F04');
+    assert.equal(l.kind,'food');assert.equal(l.amount,24000+6000+14000); // ACC-2 parity (contract §8): an F&B line → line:food → 4200
+    assert.equal(l.taxBps,500); // DEC-069 GST: 1000 → 500 (restaurant / room service 5 %)assert.equal(l.date,s.date);assert.equal(l.id,'posline:POS-F04');
     assert.equal(totals(bk).total-t0.total,44000+2200);assert.equal(bk.version,v0+1); // DEC-069 GST: tax 4400 → 2200
     assert.equal(ord(s,'POS-F04').settlement.total,46200); // DEC-069 GST: 48400 → 46200
     assert.deepEqual(execute(s,'reception',{type:'POS_SETTLE',id:'POS-F04',mode:'folio',key:'pos-folio-F04'}),s);

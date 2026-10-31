@@ -26,7 +26,7 @@ public sealed class BillingPosFolioPort(IBillingStore store, IGstChargeSnapshots
         if (f is null || f.PropertyId != propertyId) throw new HccException(HccErrorCode.NOT_FOUND, "Folio not found.");
         if (f.ReservationStatus != "InHouse") throw Invalid("Only an in-house guest's folio can take a room charge.");
         ArgumentNullException.ThrowIfNull(rate);
-        var line = new NewCharge(f.FolioId, ChargeKind.Service, businessDate, label, net.EnsureFieldRange(), rate.Bps, GstMath.LineTax(net, rate.Bps), null, null,
+        var line = new NewCharge(f.FolioId, ChargeKind.Food, businessDate, label, net.EnsureFieldRange(), rate.Bps, GstMath.LineTax(net, rate.Bps), null, null,
             tx.Context.PrincipalId, utc);
         var chargeId = await store.InsertChargeAsync(tx, line, ct).ConfigureAwait(false);
         if (gstSnapshots is not null)
@@ -36,7 +36,7 @@ public sealed class BillingPosFolioPort(IBillingStore store, IGstChargeSnapshots
         }
 
         var version = await store.TouchFolioAsync(tx, f.FolioId, ct).ConfigureAwait(false);
-        await tx.PublishAsync("ChargePosted", f.FolioId, new { folioId = f.FolioId, chargeId, kind = "service", serviceDate = businessDate, amountPaise = net.Value, taxPaise = line.Tax.Value }, ct).ConfigureAwait(false);
+        await tx.PublishAsync("ChargePosted", f.FolioId, new { folioId = f.FolioId, chargeId, kind = "food", serviceDate = businessDate, amountPaise = net.Value, taxPaise = line.Tax.Value }, ct).ConfigureAwait(false);
         return new PosFolioCharge(chargeId, version);
     }
 }

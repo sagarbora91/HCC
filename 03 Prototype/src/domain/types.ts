@@ -54,7 +54,7 @@ export type Room={id:string;floor:number;type:string;rate:number;hk:'Ready'|'Dir
   /** V14-5: business date the room was added through the rooms master (absent = an original room). Group holds take rooms that
    *  were there before (oldest first), so a room added today stays bookable while older free rooms can carry a block. */ addedOn?:string;
 };
-export type Line={id:string;label:string;amount:number;date:string;kind:'room'|'service'|'discount'|'adjustment';taxBps:number;
+export type Line={id:string;label:string;amount:number;date:string;kind:'room'|'service'|'food'|'discount'|'adjustment';taxBps:number; // ACC-2: 'food' = F&B charged to the folio → 4200 (contract §8)
   // ── Line · stream C fields (add below this line) ──
   /** Original line ID this line reverses (correction, WF-FOLIO-002). Posted lines are never edited. */
   reversalOf?:string;
@@ -73,7 +73,7 @@ export type Line={id:string;label:string;amount:number;date:string;kind:'room'|'
   /** Discount reason code (CAT_DISCOUNT); absent on a free-text reason. */
   discountReason?:string;
 };
-export type Receipt={id:string;amount:number;method:string;date:string;kind:'payment'|'deposit'|'deposit-return'|'refund'|'company-credit';reference:string;actor:string;
+export type Receipt={id:string;amount:number;method:string;date:string;kind:'payment'|'deposit'|'deposit-return'|'refund'|'company-credit'|'deposit-apply'|'ota-credit';reference:string;actor:string; // ACC-2 flows (contract §4): deposit applied at check-out (A6a), folio balance to the OTA (A13)
   // ── Receipt · stream A fields (add below this line) ──
 
   // ── Receipt · stream B fields (add below this line) ──
@@ -91,6 +91,10 @@ export type Receipt={id:string;amount:number;method:string;date:string;kind:'pay
   // ── Receipt · stream E fields (add below this line) ──
 
   // ── Receipt · stream F fields (add below this line) ──
+
+  // ── Receipt · ACC-2 flows (contract §4; coordinator ruling 28 Oct: DEPOSIT_APPLY source) ──
+  /** A `deposit-apply` receipt that applies an advance carried in the opening balance (no deposit receipt on the folio, rulebook T5a). */
+  depositSource?:'opening';
 };
 export type BookingStatus='Held'|'Expired'|'Confirmed'|'In house'|'Departed'|'Cancelled'|'No show';
 export type Booking={id:string;guest:string;email:string;people:number;room:string;arrival:string;departure:string;rate:number;source:string;status:BookingStatus;registered:boolean;lines:Line[];receipts:Receipt[];version:number;notes:string;
@@ -178,6 +182,12 @@ export type Expense={id:string;vendor:string;category:string;amount:number;metho
   reversalOf?:string;
   /** On a reversed expense: its reversal record. */
   reversedBy?:string;
+  // ── Expense · ACC-2 purchase fields (contract §3; optional — older records have none) ──
+  /** inter = IGST on the bill (vendor outside Maharashtra): allowed ITC goes to 1330. */ gstKind?:'intra'|'inter';
+  /** Reverse charge (category flag at posting): no vendor GST; HCC posts the RCM GST to 2140 at rcmBps. */ rcm?:boolean;rcmBps?:number;
+  /** Fixed-asset purchase (category flag): the debit goes to the category's asset ledger; assetNo = register row. */ capital?:boolean;assetNo?:string;
+  /** TDS held back on this bill (DEC-146): the vendor is credited net; tdsSection = rate-table row. */ tdsPaise?:number;tdsSection?:string;
+  /** Cash guard B10 tripped (cash above ₹10,000 to one person in a day): the deduction is lost for income tax. */ cashDeductionLost?:boolean;
   // ── Expense · SCC features (DEC-120; optional — records saved before have none; helpers in domain/streams/expenses-scc.ts) ──
   /** What the expense is for (SCC: required; HCC: required once submitted for approval). Older records show the vendor. */
   description?:string;
@@ -335,4 +345,4 @@ export type State={
   shift?:import('./streams/closing').ShiftRecord;
 };
 export type Command={type:string;key?:string;[field:string]:any};
-export const SCHEMA=11; // 11 = ACC-1 (accounting chart as a master, party ledgers, opening balances; new optional fields on accountingX — v10 saves need nothing). 10 = SCC port wave (leave one record per date, SCC compliance slice, SCC expense registers; v9 saves migrate by shape). 9 = masters wave MA-1…MA-7 (new optional slices / fields; v8 saves migrate, masters seed lazily)
+export const SCHEMA=12; // 12 = ACC-2 (manual vouchers, purchases / vendor payments, TDS, GST month end, OTA payouts; new optional fields only — v11 saves need nothing). 11 = ACC-1 (accounting chart as a master, party ledgers, opening balances; new optional fields on accountingX — v10 saves need nothing). 10 = SCC port wave (leave one record per date, SCC compliance slice, SCC expense registers; v9 saves migrate by shape). 9 = masters wave MA-1…MA-7 (new optional slices / fields; v8 saves migrate, masters seed lazily)

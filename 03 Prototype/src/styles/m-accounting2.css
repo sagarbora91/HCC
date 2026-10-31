@@ -55,6 +55,72 @@
 .m-sheet .acc-picker select,.m-sheet .form input,.m-sheet .form select{min-height:48px;font-size:16px}
 @media print{.acc-rangebar,.acc-open-actions{display:none}}
 
+/* ACC-2 · acc2-ui — manual vouchers, GST month, TDS, assets, vendor payments, OTA payout, purchase fields, cash guards. Tokens only. */
+.acc-man-tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px}
+.acc-man-note{margin:6px 0 10px;font-size:12px}
+.acc-man-filters{margin:6px 0 10px}
+.acc-man-filters button span{margin-left:4px;color:var(--muted)}
+.acc-man-queue{border:1px solid var(--warn-border);background:var(--warn-bg);border-radius:8px;padding:10px 14px;margin:8px 0 14px}
+.acc-man-q{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center;padding:8px 0;border-top:1px solid var(--line)}
+.acc-man-q:first-of-type{border-top:0}
+.acc-man-q small{display:block;color:var(--muted);font-size:11px}
+.acc-man-form{max-width:640px}
+.acc-lines{display:flex;flex-direction:column;gap:10px;margin:8px 0}
+.acc-line{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr) minmax(0,1fr) auto;gap:8px;align-items:end;border-top:1px solid var(--line);padding-top:8px}
+.acc-line label{display:flex;flex-direction:column;gap:4px;font-size:11px;color:var(--muted)}
+.acc-line select,.acc-line input{min-height:38px;font-size:12px;min-width:0;width:100%}
+.acc-man-preview{border:1px solid var(--line);border-radius:8px;background:var(--c-fffcf8);margin:8px 0}
+.acc-man-preview>div{display:flex;justify-content:space-between;gap:10px;padding:8px 12px;border-top:1px solid var(--line)}
+.acc-man-preview>div:first-child{border-top:0}
+.acc-man-preview small{display:block;color:var(--muted);font-size:11px}
+.acc-man-total{display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:12px;margin:6px 0}
+.acc-man-problems{margin:6px 0;padding-left:18px}
+.acc-guard{margin:8px 0}
+.acc-guard-refuse{background:var(--danger-bg);border-color:var(--danger-border);color:var(--danger-text)}
+.acc-cash-lost{font-size:11px}
+.acc-gst-head{gap:14px;align-items:flex-end;margin-bottom:8px}
+.acc-gst-actions{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}
+.acc-gst-sum{margin:12px 0;max-width:640px}
+.acc-hl{background:var(--c-faf3e6)}
+.acc-lock-box{border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:14px 0}
+.acc-blockers{list-style:none;margin:6px 0;padding:0;color:var(--danger-text);font-size:12px}
+.acc-blockers li{display:flex;gap:6px;align-items:flex-start;padding:2px 0}
+.acc-tds-bar{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;margin-top:14px}
+.acc-tds-bar .acc-h3{margin-right:auto}
+.acc-assets-bar{gap:14px;margin:8px 0}
+.exp-vendors .padded{padding-top:0}
+.exp-vend-pick{display:flex;flex-direction:column;gap:4px;font-size:11px;color:var(--muted);max-width:420px;margin:10px 0}
+.exp-vend-pick select{min-height:38px;font-size:12px}
+.exp-alloc{border:1px solid var(--line);border-radius:8px;padding:8px 12px;margin:10px 0}
+.exp-alloc-row{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:6px 0;border-top:1px solid var(--line)}
+.exp-alloc-row small{display:block;color:var(--muted);font-size:11px}
+.exp-alloc-row input{max-width:140px;text-align:right;min-height:38px}
+.exp-purchase{margin:8px 0}
+.exp-purchase label{display:flex;flex-direction:column;gap:4px;font-size:11px;margin-top:6px}
+.chn-eq{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:6px 0}
+.chn-bk{border:1px solid var(--line);border-radius:8px;padding:8px 12px;margin:8px 0;max-height:220px;overflow:auto}
+.cmp-money-switches .cmp-check{align-items:flex-start;line-height:1.4}
+.folio-deposit .grp-link{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap}
+.grp-retire{margin:8px 0}
+@media print{.acc-gst-actions,.acc-man-tools{display:none}}
+/* Phone (48 px targets, 16 px text, cards not tables) */
+.acc-m .acc-man-tools,.acc-m .acc-gst-actions,.acc-m .acc-tds-phone-actions{flex-direction:column;align-items:stretch}
+.acc-m .acc-man-q{flex-direction:column;align-items:stretch}
+.acc-m .acc-man-q .inline{flex-wrap:wrap}
+.acc-m .acc-man-q .btn,.acc-m .acc-gst-actions .btn,.acc-m .acc-lock-box .btn,.acc-m .acc-tds-phone-actions .btn,.acc-m .acc-man-tools .btn{min-height:48px;font-size:16px}
+.acc-m .acc-man-note,.acc-m .acc-lock-box,.acc-m .acc-blockers{font-size:14px}
+.acc-m .acc-date{display:flex;flex-direction:column;gap:4px;font-size:14px}
+.acc-m .acc-date select{min-height:48px;font-size:16px;width:100%}
+.acc-m .acc-tds-bar{flex-direction:column;align-items:stretch}
+.acc-m .exp-vend-pick select,.m-sheet .acc-line select,.m-sheet .acc-line input,.m-sheet .exp-alloc-row input{min-height:48px;font-size:16px}
+.m-sheet .acc-line{grid-template-columns:1fr 1fr}
+.m-sheet .acc-line .acc-line-acct{grid-column:1 / -1}
+.m-sheet .acc-line .text-btn{min-height:48px}
+.m-sheet .exp-alloc-row{flex-wrap:wrap}
+.m-sheet .exp-alloc-row input{max-width:none;width:100%}
+.m-sheet .acc-man-preview,.m-sheet .acc-man-total,.m-sheet .acc-guard,.m-sheet .exp-purchase,.m-sheet .folio-deposit{font-size:14px}
+.m-sheet .chn-bk .checkbox-line,.m-sheet .cmp-money-switches .cmp-check{min-height:48px}
+.m-sheet .acc-man-form,.m-sheet .acc-lines{max-width:none}
 /* LG-R8: pager of an opening entry longer than one page (imported drafts) */
 .acc-open-pager{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:8px 0}
 .acc-open-pager .btn{min-height:48px}

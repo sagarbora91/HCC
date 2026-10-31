@@ -30,12 +30,19 @@ public static class ExpenseEvents
 {
     public const string Posted = Contracts.Accounting.AccountingEvents.ExpensePosted;
     public const string Reversed = Contracts.Accounting.AccountingEvents.ExpenseReversed;
+    public const string RcmPosted = Contracts.Accounting.PurchaseEvents.ExpenseRcmPosted; // ACC-2 (contract §3.3)
+    public const string Returned = Contracts.Accounting.PurchaseEvents.ExpenseReturned;   // ACC-2 (contract §3.5)
 }
 
 public sealed record ExpenseRecord(long ExpenseId, int PropertyId, string Vendor, string Category, Paise Amount, string Method, DateOnly BusinessDate,
     string Status, int SubmittedBy, string? Notes, string? Receipt, string? Reason, int? DecidedBy, DateTime? DecidedUtc, int? TillId, long? ReversalOf,
     long? ReversedBy, byte[] Version, string? Description = null, int? GstRateBps = null, long? GstPaise = null, string? Source = null, string? SourceRef = null,
-    string? VoidReason = null, int? VoidedBy = null, DateTime? VoidedUtc = null, DateTime? CreatedUtc = null, bool HasBillPhoto = false, bool ItcAllowed = false)
+    string? VoidReason = null, int? VoidedBy = null, DateTime? VoidedUtc = null, DateTime? CreatedUtc = null, bool HasBillPhoto = false, bool ItcAllowed = false,
+    // ACC-2 (acc2-purchase, contract §3; migration 4230): IGST bill, reverse charge + rate, capital purchase + register no, TDS held back, return of a bill.
+    string? GstKind = null, bool Rcm = false, int? RcmBps = null, bool Capital = false, string? AssetNo = null, long? TdsPaise = null, string? TdsSection = null,
+    long? ReturnOf = null,
+    // ACC-2 integration (flows item 8; migrations 4230 / 4254): the B10 cash guard tripped on this cash expense ("deduction lost").
+    bool CashDeductionLost = false)
 {
     public bool IsReversal => ReversalOf is not null;
 
@@ -44,7 +51,8 @@ public sealed record ExpenseRecord(long ExpenseId, int PropertyId, string Vendor
 
 public sealed record NewExpense(int PropertyId, string Vendor, string Category, Paise Amount, string Method, DateOnly BusinessDate, string Status,
     int SubmittedBy, string? Notes, string? Receipt, string? Reason, int? DecidedBy, int? TillId, long? ReversalOf, DateTime NowUtc,
-    string? Description = null, int? GstRateBps = null, long? GstPaise = null, string? Source = null, string? SourceRef = null, bool ItcAllowed = false);
+    string? Description = null, int? GstRateBps = null, long? GstPaise = null, string? Source = null, string? SourceRef = null, bool ItcAllowed = false,
+    string? GstKind = null, bool Rcm = false, int? RcmBps = null, bool Capital = false, long? TdsPaise = null, string? TdsSection = null, long? ReturnOf = null); // ACC-2
 
 public sealed record ExpenseFilter(string? Status, DateOnly? From, DateOnly? To, int? SubmittedBy);
 

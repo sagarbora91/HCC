@@ -73,7 +73,7 @@ public sealed class ReportQueriesSqlTests(AccountingDb db) : IClassFixture<Accou
         await Fails(HccErrorCode.FORBIDDEN, () => q.StatementAsync(db.As("CSH"), "1000", A, B, Ct));
         await Fails(HccErrorCode.FORBIDDEN, () => q.DayBookAsync(db.As("HKP"), A, B, Ct));
         await Fails(HccErrorCode.VALIDATION, () => q.TrialBalanceAsync(db.As("ACC"), B, A, false, Ct));
-        await Fails(HccErrorCode.VALIDATION, () => q.DayBookAsync(db.As("ACC"), B.AddDays(-366), B, Ct));
+        Assert.True((await q.DayBookAsync(db.As("ACC"), B.AddDays(-400), B, Ct)).Balanced); // ACC-2 parity (contract §8): any range
         await Fails(HccErrorCode.VALIDATION, () => q.StatementAsync(db.As("ACC"), " ", A, B, Ct));
     }
 

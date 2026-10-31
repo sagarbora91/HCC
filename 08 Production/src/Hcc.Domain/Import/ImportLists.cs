@@ -334,16 +334,27 @@ public static partial class ImportLists
             Text("ledger", true, "4-digit expense ledger of the chart of accounts the category posts to (5000 to 5900).", "5000", 4),
             Flag("needsBill", "yes when a bill / receipt photo must be attached.", "yes"),
             Rupees("approvalLimit", false, "Manager approval limit for this category in rupees (blank = the general limit applies).", "5000.00"),
+            // ACC-2 acc2-purchase (contract §3; DEC-143, DEC-145; rulebook C10).
+            Flag("itcBlocked", "yes when the GST on these bills can never be claimed (CGST s.17(5): food, catering, health, club, vehicles ≤ 13 seats, construction…); the ITC switch then stays off (DEC-143).", "no"),
+            Flag("rcm", "yes for a reverse-charge category (security agency, goods transport, advocate, hired vehicle — DEC-145): the bill carries no GST; HCC posts the GST to 2140.", "no"),
+            Pct("rcmBps", false, "Reverse-charge GST percent without % (e.g. 18; required when rcm is yes).", "18", 1, 2800),
+            Flag("capital", "yes for a fixed-asset category: the ledger is then a fixed-asset block 1500 to 1540 and each bill enters the asset register.", "no"),
+            // ACC-2 integration (ruling 10): goods transport — the cash-payment limit is ₹35,000 a day instead of ₹10,000.
+            Flag("transport", "yes for hire of goods carriages: cash paid to one transporter in a day may reach ₹35,000 (not ₹10,000) before the income-tax deduction is lost.", "no"),
         ])
         {
             CodeExample = "SUPPLIES", NameExample = "Supplies",
-            Check = c => c.Rule("ledger", () => LedgerOf(c["ledger"], true, [Accounting.AccountGroup.Expense])),
+            Check = ExpenseCategoryCheck,
         },
         new(ImportMaster.ExpenseVendors, "expense-vendors", "expenseVendors", "Expense vendors", "expense vendor", true, "—",
         [
             Pick("type", true, "supplier, utility, laundry or other.", "supplier", "supplier", "utility", "laundry", "other"),
             Text("gstin", false, "GSTIN, 15 characters (blank = unregistered).", "27ABCDE1234F1Z5", 15),
             Flag("tds", "yes when TDS is deducted from the vendor's bills. A PAN is an ID number and is never put in a file: type it on the vendor's row in HCC first (Master configuration › Expense vendors); a vendor without a PAN there cannot be set to yes.", "no"),
+            Text("state", false, "Two-letter GST state code (MH = the hotel's state, CGST + SGST bills; any other state = IGST bills). Blank = MH.", "MH", 2), // ACC-2
+            Pick("tdsSection", false, "rent, contractor, professional or commission — the TDS rate-table row (required when tds is yes).", "contractor", "rent", "contractor", "professional", "commission"),
+            // ACC-2 integration (ruling 9): the TDS rate column follows the payee.
+            Pick("payeeType", false, "individual (individual / HUF) or other — the TDS rate column (blank = from the PAN in HCC, else other).", "other", "individual", "other"),
             Text("contact", false, "Contact person and phone, up to 100 characters.", "Mr Patil 9822000000", 100),
             Text("terms", false, "Payment terms, up to 60 characters.", "30 days", 60),
         ])
@@ -619,6 +630,18 @@ public static partial class ImportLists
         }
     }
 
+    /// <summary>ACC-2 (contract §3.4): a capital category's ledger is a fixed-asset block (15x0); otherwise an expense ledger; RCM needs its rate.</summary>
+    private static void ExpenseCategoryCheck(ListRowCheck c)
+    {
+        var capital = c["capital"] == "yes";
+        var l = c["ledger"].Trim();
+        if (capital && !(Expenses.ExpensePurchase.IsAssetLedger(l) && Accounting.ChartOfAccounts.Find(l) is not null))
+            c.Error("ledger", "A capital category posts to a fixed-asset block (1500 to 1540).");
+        else if (!capital && Expenses.ExpensePurchase.IsAssetLedger(l)) c.Error("ledger", "A fixed-asset block is the ledger of a capital category only — set capital to yes.");
+        else if (!capital) c.Rule("ledger", () => LedgerOf(c["ledger"], true, [Accounting.AccountGroup.Expense]));
+        if (c["rcm"] == "yes" && c["rcmBps"].Length == 0) c.Error("rcmBps", "Enter the reverse-charge GST percent (rcm is yes).");
+    }
+
     private static void ExpenseVendorCheck(ListRowCheck c)
     {
         var g = c["gstin"].ToUpperInvariant();
@@ -626,6 +649,9 @@ public static partial class ImportLists
         if (g.Length > 0 && !Gstin().IsMatch(g)) c.Error("gstin", "GSTIN: 15 characters, e.g. 27ABCDE1234F1Z5.");
         else if (g.Length > 0 && p.Length > 0 && g.Substring(2, 10) != p) c.Error("gstin", "The PAN inside the GSTIN (characters 3 to 12) does not match the vendor's PAN in HCC.");
         if (c["tds"] == "yes" && p.Length == 0) c.Error("tds", "TDS needs the vendor's PAN, which a file never carries: enter it on the vendor's row in Master configuration › Expense vendors first.");
+        var st = c["state"].Trim().ToUpperInvariant(); // ACC-2
+        if (st.Length > 0 && (st.Length != 2 || !st.All(char.IsAsciiLetterUpper))) c.Error("state", "GST state: two letters (e.g. MH, KA, GJ).");
+        if (c["tdsSection"].Length > 0 && c["tds"] != "yes") c.Error("tdsSection", "Set tds to yes to choose a TDS section.");
     }
 
     private static void NumberSeriesCheck(ListRowCheck c)

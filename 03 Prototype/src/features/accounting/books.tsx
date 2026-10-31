@@ -10,6 +10,14 @@ import {Empty,Stat,shortDate} from '../../components/ui';
 import {usePaged,ShowMore,DESKTOP_PAGE,PHONE_PAGE} from '../../components/ShowMore';
 import {downloadCsv} from '../reports/Reports';
 import {RangeBar,LedgerPicker,ledgerOptions,drcr,accAmt,type AccRange} from './shared';
+// ACC-2 integration (parity item 4): in the production build the three reports read the server over any range (no 62-day device derivation).
+import {useAccTrialBalance6,useAccStatement,useAccDayBook} from '../../clients/sync/accounting-reports-hooks';
+import type {Fetched} from '../../clients/sync/reportsHooks';
+/** "Loading from the server" / "as of" note while a production read is not ready (nothing in the prototype build). */
+function SrvNote({f}:{f?:Fetched<unknown>}){
+  if(!f||f.status==='ready'||f.status==='idle')return null;
+  return <p className="muted acc-srv-note" role="status">{f.status==='loading'?'Loading from the server…':f.data?'Server not reachable — showing the last figures read.':'Server not reachable — showing the figures on this device.'}</p>;
+}
 
 function CsvButton({name,csv,disabled}:{name:string;csv:()=>string;disabled?:boolean}){
   const {s,uid,toast}=useHcc();if(!rbacCanExportVouchers(s,uid))return null;
@@ -19,14 +27,16 @@ function CsvButton({name,csv,disabled}:{name:string;csv:()=>string;disabled?:boo
 // ── Trial balance (six columns) ──
 export function TrialBalanceView({range,setRange,phone,onStatement}:{range:AccRange;setRange:(r:AccRange)=>void;phone?:boolean;onStatement:(account:string)=>void}){
   const {s}=useHcc();const [detail,setDetail]=useState(false);
-  const tb=useMemo(()=>accTrialBalance6(s,range.from,range.to,detail),[s,range,detail]);
+  const local=useMemo(()=>accTrialBalance6(s,range.from,range.to,detail),[s,range,detail]);
+  const srv=process.env.HCC_BUILD==='production'?useAccTrialBalance6(range.from,range.to,detail):undefined; // eslint-disable-line react-hooks/rules-of-hooks
+  const tb=srv?.data??local;
   const gname=useMemo(()=>new Map(accGroups(s).map(g=>[g.id,g.name])),[s]);
   const pg=usePaged(tb.rows,phone?PHONE_PAGE:DESKTOP_PAGE),t=tb.totals;
   const bar=<div className="acc-subbar"><div className="filters" role="group" aria-label="Trial balance detail">
       <button type="button" className={!detail?'active':''} aria-pressed={!detail} onClick={()=>setDetail(false)}>Control ledgers</button>
       <button type="button" className={detail?'active':''} aria-pressed={detail} onClick={()=>setDetail(true)}>With parties</button></div>
     {tb.balanced?<span className="pill green"><CheckCircle2 size={12}/>Debits = credits in every column</span>:<span className="pill acc-sev-error"><AlertTriangle size={12}/>Out of balance</span>}
-    {!phone&&<CsvButton name={`HCC-Demo-trial-balance-${range.from}_${range.to}.csv`} csv={()=>accTrialBalance6Csv(tb)} disabled={!tb.rows.length}/>}</div>;
+    {!phone&&<CsvButton name={`HCC-Demo-trial-balance-${range.from}_${range.to}.csv`} csv={()=>accTrialBalance6Csv(tb)} disabled={!tb.rows.length}/>}<SrvNote f={srv}/></div>;
   const pending=tb.openingPending&&<div className="info-note acc-note" role="status"><Info size={16}/>Opening balances pending: no approved opening entry yet, or the 1400 difference is not zero. Opening columns are incomplete until it is approved.</div>;
   if(phone)return <>
     <RangeBar s={s} range={range} setRange={setRange} phone/>{bar}{pending}
@@ -53,12 +63,14 @@ export function TrialBalanceView({range,setRange,phone,onStatement}:{range:AccRa
 // ── Statement ──
 export function StatementView({range,setRange,account,setAccount,phone}:{range:AccRange;setRange:(r:AccRange)=>void;account:string;setAccount:(a:string)=>void;phone?:boolean}){
   const {s,open}=useHcc();const opts=useMemo(()=>ledgerOptions(s,false),[s]);
-  const st=useMemo(()=>account?accStatement(s,account,range.from,range.to):null,[s,account,range]);
+  const local=useMemo(()=>account?accStatement(s,account,range.from,range.to):null,[s,account,range]);
+  const srv=process.env.HCC_BUILD==='production'?useAccStatement(account,range.from,range.to,!!account):undefined; // eslint-disable-line react-hooks/rules-of-hooks
+  const st=account?(srv?.data??local):null;
   const pg=usePaged(st?.rows??[],phone?PHONE_PAGE:DESKTOP_PAGE);
   const voucher=(date:string,no:string)=>open({type:'acc-voucher',id:date+'|'+no});
   return <>
     <div className="acc-subbar acc-stmt-pick"><LedgerPicker options={opts} value={account} onChange={setAccount}/></div>
-    <RangeBar s={s} range={range} setRange={setRange} phone={phone}/>
+    <RangeBar s={s} range={range} setRange={setRange} phone={phone}/><SrvNote f={srv}/>
     {!st?<Empty title="Choose a ledger or party" body="A statement shows the opening balance, every entry with a running balance, and the closing balance. Choose a control ledger to see all its parties together."/>:<>
       {phone?<div className="acc-m-kpis"><KpiCard label="Opening" value={drcr(st.opening)}/><KpiCard label="Closing" value={drcr(st.closing)}/><KpiCard label="Debits" value={accAmt(st.debit)}/><KpiCard label="Credits" value={accAmt(st.credit)}/></div>
         :<div className="stats acc-stats"><Stat title="Opening balance" value={drcr(st.opening)} sub={`Before ${shortDate(range.from)}`}/><Stat title="Debits" value={accAmt(st.debit)} sub={`${st.rows.length} entries`}/><Stat title="Credits" value={accAmt(st.credit)} sub={st.name}/><Stat title="Closing balance" value={drcr(st.closing)} sub={`At ${shortDate(range.to)}`}/></div>}
@@ -78,7 +90,9 @@ export function StatementView({range,setRange,account,setAccount,phone}:{range:A
 // ── Day book ──
 type DbVoucher={date:string;no:string;type:string;narration:string;rows:ACCDayBookRow[];debit:number};
 export function DayBookView({range,setRange,phone}:{range:AccRange;setRange:(r:AccRange)=>void;phone?:boolean}){
-  const {s,open}=useHcc();const db=useMemo(()=>accDayBook(s,range.from,range.to),[s,range]),rows=db.rows;
+  const {s,open}=useHcc();const local=useMemo(()=>accDayBook(s,range.from,range.to),[s,range]);
+  const srv=process.env.HCC_BUILD==='production'?useAccDayBook(range.from,range.to):undefined; // eslint-disable-line react-hooks/rules-of-hooks
+  const db=srv?.data??local,rows=db.rows;
   const vs=useMemo(()=>{const m=new Map<string,DbVoucher>();rows.forEach(r=>{const k=r.date+'|'+r.no;let v=m.get(k);if(!v){v={date:r.date,no:r.no,type:r.type,narration:r.narration,rows:[],debit:0};m.set(k,v);}v.rows.push(r);v.debit+=r.debit;});return [...m.values()];},[rows]);
   const pg=usePaged(vs,phone?PHONE_PAGE:DESKTOP_PAGE);
   const tot={debit:db.debit,credit:db.credit};
@@ -86,7 +100,7 @@ export function DayBookView({range,setRange,phone}:{range:AccRange;setRange:(r:A
   const csv=<CsvButton name={`HCC-Demo-day-book-${range.from}_${range.to}.csv`} csv={()=>accDayBookCsv(db)} disabled={!rows.length}/>;
   return <>
     <RangeBar s={s} range={range} setRange={setRange} phone={phone}/>
-    <div className="acc-subbar"><span className="muted">{vs.length} voucher{vs.length===1?'':'s'} · debits {money(tot.debit)} · credits {money(tot.credit)}</span>{!phone&&csv}</div>
+    <div className="acc-subbar"><span className="muted">{vs.length} voucher{vs.length===1?'':'s'} · debits {money(tot.debit)} · credits {money(tot.credit)}</span>{!phone&&csv}<SrvNote f={srv}/></div>
     {vs.length?phone?<>{pg.shown.map(v=><ListCard key={v.date+v.no} title={v.no} sub={v.narration} meta={`${shortDate(v.date)} · ${v.type} · ${v.rows.length} lines`} right={<strong className="number">{money(v.debit)}</strong>} onClick={()=>voucher(v)}/>)}<ShowMore p={pg}/>{csv}</>
       :<><div className="table-wrap"><table className="acc-table"><thead><tr><th>Date</th><th>Voucher</th><th>Type</th><th>Narration</th><th>Ledger</th><th className="acc-num">Debit</th><th className="acc-num">Credit</th></tr></thead>
         <tbody>{pg.shown.flatMap(v=>v.rows.map((r,i)=><tr key={v.date+v.no+i} className={i===0?'acc-vstart':''}>

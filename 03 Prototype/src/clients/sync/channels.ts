@@ -2,10 +2,11 @@
 import type {SyncArea} from './types';
 import {yieldLoaders,yieldCommands} from './channels/yield';
 import {otaLoaders,otaCommands} from './channels/ota';
+import {OTA_PAYOUTS_LOADER} from './accounting-flows'; // ACC-2 flows
 
 export const channels:SyncArea={
   id:'channels',
-  loaders:[...yieldLoaders,...otaLoaders],
+  loaders:[...yieldLoaders,...otaLoaders,OTA_PAYOUTS_LOADER], // ACC-2 integration: the OTA payouts patch rides with the area that owns channelsX
   commands:[...yieldCommands,...otaCommands],
   unmapped:{
     CHN_WEB_REQUEST:'public website form preview: the real guest submission is the anonymous POST /public/booking/requests (rate-limited, no staff session); staff only confirm/decline',

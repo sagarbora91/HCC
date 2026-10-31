@@ -88,13 +88,13 @@ export async function register({test,assert,M}){
     assert.ok(bootGets.includes('/accounting/days'),bootGets.join(','));
     const q=srv.gets('/accounting/days')[0].query;assert.deepEqual([q.from,q.to],['2026-08-24',D],'62-day window ending on the business date');
     assert.equal(srv.gets('/accounting/trial-balance')[0].query.date,'2026-08-23');
-    assert.deepEqual(M.accDates(s),M.accDates(P));
-    for(const d of M.accDates(P)){
+    assert.deepEqual(M.accDates(s),M.accDates(P).filter(d=>d>=q.from)); // ACC-2 parity: the BASE advance of 10 Aug (payroll) is before the 62-day window
+    for(const d of M.accDates(P).filter(d=>d>=q.from)){ // ACC-2 parity: only the window's days come from the server
       assert.deepEqual(M.accVouchers(s,d),M.accVouchers(P,d).map(noBooking),d);
       assert.deepEqual(M.accReconcile(s,d),M.accReconcile(P,d),d);
       assert.deepEqual(M.accExceptions(s,d),M.accExceptions(P,d),d);
     }
-    assert.deepEqual(M.accTrialBalance(M.accVouchersUpTo(s,D)),M.accTrialBalance(M.accVouchersUpTo(P,D)));
+    assert.deepEqual(M.accTrialBalance(M.accVouchersUpTo(s,D)),M.accTrialBalance(M.accVouchersUpTo(P,D).filter(v=>v.date>=q.from))); // ACC-2 parity: the 10 Aug advance is before the window (the stub's opening is empty)
     assert.equal(M.accVouchers(s,D).length,13);
     assert.deepEqual(M.accTotals(M.accVouchers(s,D)),M.accTotals(M.accVouchers(P,D)));
     assert.equal(M.accDayStatus(s,D),M.accDayStatus(P,D));
@@ -113,7 +113,7 @@ export async function register({test,assert,M}){
     const tally=M.accTallyXml(s,Y,D);assert.equal(tally.count,M.accTallyXml(P,Y,D).count);assert.equal(tally.debit,M.accTallyXml(P,Y,D).debit);
   });
   test('[W4-7 expenses] expenses = GET /expenses (window + every Draft / Pending) mapped to the prototype Expense; compliance from GET /compliance/state',()=>{
-    assert.deepEqual(bootGets.filter(p=>p.startsWith('/expenses')).sort(),['/expenses','/expenses/registers','/expenses?Draft','/expenses?Pending']);
+    assert.deepEqual(bootGets.filter(p=>p.startsWith('/expenses')).sort(),['/expenses','/expenses/registers','/expenses/vendor-payments','/expenses?Draft','/expenses?Pending']); // ACC-2: + the vendor-payments patch loader
     assert.deepEqual(s.expenses.map(e=>e.id),['99','101','102']);
     const strip=e=>[e.vendor,e.category,e.amount,e.method,e.date,e.status];
     assert.deepEqual(s.expenses.slice(1).map(strip),P.expenses.map(strip));

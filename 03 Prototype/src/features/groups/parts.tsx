@@ -21,3 +21,6 @@ export const grpRupees=(paise:number)=>paise?String(paise/100):'';
 export const grpPaise=(v:string|FormDataEntryValue|null)=>{const t=String(v??'').replace(/[,\s₹]/g,'');return t===''?undefined:Math.round(Number(t)*100);};
 export const grpUserName=(s:State,id?:string)=>id==='auto'?'System (auto)':s.users.find(u=>u.id===id)?.name.split(' · ')[0]??id??'—';
 export const grpSimNote='Simulated: GSTINs are fictional placeholders; no GST validation, no company invoices or AR postings — exposure is an estimate.';
+/** ACC-2 (contract §8): a company is active unless the Owner retired it (`active:false`); retired companies are hidden from the pickers. */
+export const grpActive=(c:GRPCompany)=>c.active!==false; // ruling 12: GRPCompany.active
+export function GrpRetiredPill({c}:{c:GRPCompany}){return grpActive(c)?null:<span className="pill neutral">Retired</span>;}

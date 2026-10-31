@@ -451,9 +451,12 @@ public sealed class MoneyMastersCommands(ICommandRunner runner, IAccessPolicy po
         money ? (r[MoneyMastersRules.OpeningBalance] is long p ? p : 0) : null, r.List(MoneyMastersRules.DefaultFor), usage, Utc(r), VersionToken.ToWire(r.RowVer));
 
     internal static ExpenseCategoryView ExpenseCategoryView(MoneyRow r, int usage, bool money = true) => new(r.Id, r.Code, r.Name, r.SortOrder, r.Active, r.RetiredOn is null ? null : Retired(r),
-        r.Text(MoneyMastersRules.Ledger)!, r.Flag(MoneyMastersRules.NeedsBill), money ? r[MoneyMastersRules.ApprovalLimit] as long? : null, usage, Utc(r), VersionToken.ToWire(r.RowVer));
+        r.Text(MoneyMastersRules.Ledger)!, r.Flag(MoneyMastersRules.NeedsBill), money ? r[MoneyMastersRules.ApprovalLimit] as long? : null, usage, Utc(r), VersionToken.ToWire(r.RowVer),
+        r.Flag(MoneyMastersRules.Rcm), r[MoneyMastersRules.RcmBps] as int?, r.Flag(MoneyMastersRules.Capital), r.Flag(MoneyMastersRules.ItcBlocked), // ACC-2
+        r.Flag(MoneyMastersRules.Transport)); // ACC-2 integration (ruling 10)
 
     internal static ExpenseVendorView ExpenseVendorView(MoneyRow r, int usage, bool money) => new(r.Id, r.Code, r.Name, r.SortOrder, r.Active, r.RetiredOn is null ? null : Retired(r),
         r.Text(MoneyMastersRules.Type)!, r.Text(MoneyMastersRules.Gstin), money ? r.Text(MoneyMastersRules.Pan) : null, r.Flag(MoneyMastersRules.Tds),
-        r.Text(MoneyMastersRules.Contact), r.Text(MoneyMastersRules.Terms), usage, Utc(r), VersionToken.ToWire(r.RowVer));
+        r.Text(MoneyMastersRules.Contact), r.Text(MoneyMastersRules.Terms), usage, Utc(r), VersionToken.ToWire(r.RowVer),
+        r.Text(MoneyMastersRules.State), r.Text(MoneyMastersRules.TdsSection), r.Text(MoneyMastersRules.PayeeType)); // ACC-2 (+ ruling 9 payee type)
 }
