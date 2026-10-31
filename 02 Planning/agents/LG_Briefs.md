@@ -86,3 +86,10 @@ Merge the five lanes into `claude/lg` in the order lg-schema → lg-import → l
 ## Lane order and timing on this PC
 
 **Launched 31 Oct 2026 on the owner's instruction ("use maximum possible agents" with an auditor), while the single ACC-2 integrator agent is still finishing on this PC:** all six LG lanes start together from the setup head. lg-import and lg-ui build against the contract's names on local stubs until lg-schema's DONE file appears (`E:\Projects\HCC\worktrees\lg-schema\05 Delivery Evidence\Legacy\LG-SCHEMA-DONE.md`), then merge `claude/lg-schema` into their branch and delete the stubs; lg-tests likewise waits for lg-import's DONE file for the golden run; lg-audit's phases 2 and 3 wait for the extract and import DONE files. The heavy-job lock serialises builds across all seven agents: expect exit 75 often, retry patiently, never bypass the lock.
+
+## Coordinator rulings during the wave (1 Nov 2026)
+
+- **LG-R1…R4** are in the contract (§1, §4): merge guests only on phone + name fold; secret rows for image/DOB without a number; guest_map helper columns; discount comparison on DiscountAmt only.
+- **LG-R5 (DOB visibility):** `dob` is returned only to readers who may see contact details (lg-schema's choice stands; the Cashier does not see it).
+- **LG-R6 (DOB survives saves) — integrator:** a guest save whose request omits `dob` leaves the stored date unchanged; only an explicit empty value clears it. Needed because the importer loads DOB and the live clients do not all send the field. Server `GuestRules` / SQL guest store + prototype `guestClean` (lg-schema's DONE file "Integration needed" item 1 also goes to the integrator).
+- **Cut-over open items for the owner / CA (from lg-extract):** the 185 "pending" bills all carry BalanceDue 0 — the receivable amounts are not in the data; room 211 has no room type (junk package); the rate card (OP-18).
