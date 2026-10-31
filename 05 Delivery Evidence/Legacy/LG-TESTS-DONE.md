@@ -23,7 +23,7 @@ Command (through the lock): `dotnet test tests/Hcc.Legacy.Tests -maxcpucount:1` 
 
 ## Open items
 1. `stream-legacy-golden.mjs` should use lg-ui's real `legacy-sample.ts` rollups once merged (it checks `M.LEGACY_SAMPLE` only if exported).
-2. `Run-LegacyDryRun.ps1` is HTTP-only (`POST /api/v1/commands/legacy.import`, local server, `-Token`), parse-checked, never run; the `Idempotency-Key` header name is a guess (no match found in src) - coordinator to confirm on first run.
+2. `Run-LegacyDryRun.ps1` is HTTP-only (`POST /api/v1/commands/legacy.import`, local server, `-Token`), parse-checked, never run; it sends the Idempotency-Key header the API requires; bearer-token auth is assumed.
 
 ## Integration needed
 - `Hcc.Legacy.Tests.csproj`: add `<None Include="Golden\Fixtures\run-golden\*.csv" CopyToOutputDirectory="PreserveNewest" />`.
