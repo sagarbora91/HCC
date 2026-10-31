@@ -15,7 +15,7 @@ Lane lg-ui / Fable / branch `claude/lg-ui` / worktree `E:\Projects\HCC\worktrees
 
 ## Tests
 `npx tsc --noEmit` 0 errors. `npm test`: before 1948, after the first run 1949 passed / 11 failed (the RBAC matrix did not list the new page; fixed in `stream-rbac-matrix.mjs`); final counts below. `npm run build` OK before the merge.
-FINAL: see lead report (re-run after merge).
+FINAL after merging claude/lg-schema: tsc 0 errors; npm test 1960/1960 (was 1948; +12 [LG-UI]); npm run build OK before the merge (not re-run after it).
 
 ## Open items
 - Legacy-only customers (no live booking) are not in the list (index is built from bookings), as the contract says.
