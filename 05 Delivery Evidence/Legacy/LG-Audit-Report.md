@@ -79,7 +79,25 @@ None against the contract: §6 and §7 reproduce exactly. Data notes for the own
 
 ## 2. Phase 2 — extractor output vs source
 
-Not run (see `LG-AUDIT-DONE.md`).
+Extractor `claude/lg-extract` @ dffdb2b9 run from its worktree over all ten compacted files into `LG-EXTRACTudit-20261031\ext\` (exit 0, no `SELFCHECK-FAILED.txt`); checked by `tools/legacy/audit/audit_phase2.py` against my own raw readers. Run folder deleted after the check.
+
+| Check | Result |
+|---|---|
+| Row counts per FY: `lgc_stay` = RoomBooking, `lgc_bill` = TransactionEnd − de-dup | all 10 FY exact (25,718 stays; 25,636 bills = 25,658 − 22) |
+| Σ paise per column (net, room, room GST, F&B, F&B GST, laundry, advance, discount = DiscountAmt + BillDiscount) | 0 paise difference in 9 FY; 22-23 differs by exactly the 22 dropped bills (net −₹60,053.00) |
+| Receipts per FY and kind (payment / advance / security / refund) vs source | exact after the 16 dropped receipts (each dropped from the file whose FY does not contain its date) |
+| Duplicate keys `(fy, booking)` / `(fy, bill)` / `(fy, kind, row id)` | 0 / 0 / 0 |
+| `stay_ref` / `bill_ref` that do not resolve | 0 |
+| No ID-number-like column in any CSV | pass (17 CSVs) |
+| `lgc_guest_map` | 18,022 rows = every latest GuestID; `customer_key` recomputed from raw phone + name: 0 mismatches |
+| `guests.csv` | 12,842 rows = distinct valid phone keys; 0 duplicate / missing / extra keys; name always from the highest GuestID of the key: 0 exceptions |
+| §7 de-dup | bills dropped 22, receipts dropped 16, stays `Duplicate` 33 (1/6/0/0/3/13/3/6/1) — exactly the measured rows, kept in the later file |
+| Title Case | 0 initials lowered; no `M/S.` names exist in the source (0 to check) |
+| `secret\guest_ids.jsonl` | 11,931 rows, keys `legacyGuestId,idType,idNumber,dob,photoFile,idProofFile`; every `idNumber` hashes to the source's normalised value (0 mismatches), 0 extra, 0 duplicate guests; **425 guests with a non-placeholder ID number (≥ 4 chars) are left out** — see 2.1 |
+
+### 2.1 Deviation: `guest_ids.jsonl` stricter than contract §4
+
+Contract §4: an `IDNumber` is "no ID" only when a placeholder or fewer than 4 characters. `legacy_rules.real_id_number` also drops an Aadhaar (`IDCode` 8) that is not 12 digits and any value longer than 20 characters: 425 guests (12,356 expected → 11,931 written; every sampled one is `IDCode` 8, 2 have `deleteflag = Y`). Either the contract gains that rule (owner call: a mis-typed Aadhaar is probably worth keeping as `OTHER`) or the extractor writes them. Ids in `LG-AUDIT-DONE.md`-referenced phase-2 id list (kept off git).
 
 ## 3. Phase 3 — importer invariants
 
