@@ -62,7 +62,7 @@ export function ecToServer(row:Wire):Wire{
   const lim=row.approvalLimit;
   return {ledger:str(row.ledger),needsBill:!!row.needsBill,approvalLimitPaise:lim===undefined||lim===null||lim===''?null:Number(lim),
     itcBlocked:!!row.itcBlocked,rcm:!!row.rcm,rcmBps:row.rcm&&row.rcmBps!=null&&row.rcmBps!==''?Number(row.rcmBps):null,capital:!!row.capital,
-    transport:!!row.transport}; // ACC-2 (+ integration ruling 10)
+    ...(row.transport?{transport:true}:{})}; // ACC-2 (+ integration ruling 10; off = absent, the server default)
 }
 export function evFromServer(x:Wire):MasterRow{
   const r=baseRow(x,'expenseVendorId');
@@ -74,7 +74,7 @@ export function evFromServer(x:Wire):MasterRow{
 export function evToServer(row:Wire):Wire{
   return {type:str(row.type)||'other',gstin:str(row.gstin).toUpperCase()||null,pan:str(row.pan).toUpperCase()||null,tds:!!row.tds,
     contact:str(row.contact)||null,terms:str(row.terms)||null,state:str(row.state).toUpperCase()||null,tdsSection:str(row.tdsSection)||null, // ACC-2
-    payeeType:row.payeeType==='individual'||row.payeeType==='other'?row.payeeType:null}; // ACC-2 integration (ruling 9)
+    ...(row.payeeType==='individual'||row.payeeType==='other'?{payeeType:row.payeeType}:{})}; // ACC-2 integration (ruling 9; absent = from the PAN, else other)
 }
 
 /** The four money masters in MST_SERVER (sync/masters.ts spreads this object; ownLoader = rows come from the patch loader below). */

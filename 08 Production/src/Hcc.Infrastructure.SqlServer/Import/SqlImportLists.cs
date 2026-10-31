@@ -95,9 +95,11 @@ internal static class ImportListMaps
         M("bank-accounts", "mst.bank_account", "bank_account_id", T("kind", "kind"), T("bank", "bank"), new Col("accountLast4", "RTRIM(t.account_last4)", Cv.Text, "account_last4"), T("ifsc", "ifsc"),
             new Col("openingBalance", "t.opening_balance_paise", Cv.Paise, "opening_balance_paise", null, true), new Col("defaultFor", "t.default_for", Cv.Csv, "default_for", null, true)),
         M("expense-categories", "ops.expense_category", "expense_category_id", T("ledger", "ledger", true), B("needsBill", "needs_bill"), new Col("approvalLimit", "t.approval_limit_paise", Cv.Paise, "approval_limit_paise"),
-            B("itcBlocked", "itc_blocked"), B("rcm", "rcm"), new Col("rcmBps", "t.rcm_bps", Cv.Bps, "rcm_bps"), B("capital", "capital")), // ACC-2 (4231)
+            B("itcBlocked", "itc_blocked"), B("rcm", "rcm"), new Col("rcmBps", "t.rcm_bps", Cv.Bps, "rcm_bps"), B("capital", "capital"), // ACC-2 (4231)
+            B("transport", "transport")), // ACC-2 integration (4256)
         M("expense-vendors", "ops.expense_vendor", "expense_vendor_id", T("type", "vendor_type", true), T("gstin", "gstin"), B("tds", "tds"),
             new Col("state", "RTRIM(t.gst_state)", Cv.Text, "gst_state", "UPPER(NULLIF(@v_state, ''))"), T("tdsSection", "tds_section"), // ACC-2 (4231)
+            new Col("payeeType", "t.payee_type", Cv.Text, "payee_type", "NULLIF(@v_payeeType, '')"), // ACC-2 integration (4256)
             T("contact", "contact"), T("terms", "terms"), new Col("pan", "t.pan", Cv.Text, null, null, false, null, true)),
         M("menu-categories", "pos.menu_category", "category_id"),
         new("pos-tables", "pos.outlet_table t JOIN pos.outlet o ON o.outlet_id = t.outlet_id", "table_id", "pos.outlet_table", "o.property_id = @p",

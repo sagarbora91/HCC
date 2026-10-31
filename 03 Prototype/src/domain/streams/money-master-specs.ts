@@ -143,7 +143,7 @@ export const MNY_EV_SPEC:MasterSpec<MnyVendor>={
     {key:'state',label:'GST state code',type:'text',maxLength:2,placeholder:'MH',help:'Two letters. MH (the hotel’s state) or empty = CGST + SGST; any other state = IGST bills (ITC to Input IGST).'},
     {key:'tdsSection',label:'TDS section',type:'select',options:MNY_TDS_SECTIONS,help:'Rate-table row the hotel deducts under when TDS applies (DEC-146; CA to confirm).'},
     // ACC-2 integration (ruling 9): the rate column follows the payee (old 194C: individual / HUF 1 %, others 2 %).
-    {key:'payeeType',label:'TDS payee type',type:'select',options:MNY_PAYEE_TYPES,help:'Individual / HUF or other — picks the TDS rate column. Left empty, it follows the PAN (4th letter P or H = individual), else Other.'},
+    {key:'payeeType',label:'TDS payee type',type:'select',options:MNY_PAYEE_TYPES,money:true,help:'Individual / HUF or other — picks the TDS rate column. Left empty, it follows the PAN (4th letter P or H = individual), else Other.'},
     {key:'contact',label:'Contact',type:'text',maxLength:100,placeholder:'Name · phone'},
     {key:'terms',label:'Payment terms',type:'text',maxLength:60,placeholder:'Immediate / 15 days'},
     ...tail],

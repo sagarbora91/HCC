@@ -339,6 +339,8 @@ public static partial class ImportLists
             Flag("rcm", "yes for a reverse-charge category (security agency, goods transport, advocate, hired vehicle — DEC-145): the bill carries no GST; HCC posts the GST to 2140.", "no"),
             Pct("rcmBps", false, "Reverse-charge GST percent without % (e.g. 18; required when rcm is yes).", "18", 1, 2800),
             Flag("capital", "yes for a fixed-asset category: the ledger is then a fixed-asset block 1500 to 1540 and each bill enters the asset register.", "no"),
+            // ACC-2 integration (ruling 10): goods transport — the cash-payment limit is ₹35,000 a day instead of ₹10,000.
+            Flag("transport", "yes for hire of goods carriages: cash paid to one transporter in a day may reach ₹35,000 (not ₹10,000) before the income-tax deduction is lost.", "no"),
         ])
         {
             CodeExample = "SUPPLIES", NameExample = "Supplies",
@@ -351,6 +353,8 @@ public static partial class ImportLists
             Flag("tds", "yes when TDS is deducted from the vendor's bills. A PAN is an ID number and is never put in a file: type it on the vendor's row in HCC first (Master configuration › Expense vendors); a vendor without a PAN there cannot be set to yes.", "no"),
             Text("state", false, "Two-letter GST state code (MH = the hotel's state, CGST + SGST bills; any other state = IGST bills). Blank = MH.", "MH", 2), // ACC-2
             Pick("tdsSection", false, "rent, contractor, professional or commission — the TDS rate-table row (required when tds is yes).", "contractor", "rent", "contractor", "professional", "commission"),
+            // ACC-2 integration (ruling 9): the TDS rate column follows the payee.
+            Pick("payeeType", false, "individual (individual / HUF) or other — the TDS rate column (blank = from the PAN in HCC, else other).", "other", "individual", "other"),
             Text("contact", false, "Contact person and phone, up to 100 characters.", "Mr Patil 9822000000", 100),
             Text("terms", false, "Payment terms, up to 60 characters.", "30 days", 60),
         ])

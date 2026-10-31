@@ -324,11 +324,12 @@ export const staff:SyncArea={
       send:c=>post(c,'ClearLeave',{confirm:'DELETE'})},
     // ACC-2 (coordinator ruling 5): the advance is paid by a payment method (default Cash); drawer cash leaves the till of the open shift.
     {type:'HR_ADVANCE_ADD',reload:RELOAD,async send(c){
-      const funding=String(c.cmd.funding??'Cash').trim()||'Cash',cash=mnyIsDrawer(c.state,funding);
+      // The dialog always sends `funding`; a command without it keeps the server's pre-ACC-2 meaning (simulated bank transfer, no drawer).
+      const funding=String(c.cmd.funding??'').trim(),cash=!!funding&&mnyIsDrawer(c.state,funding);
       const tillId=cash?c.ids.server('till','current'):undefined;
       if(cash&&tillId===undefined)throw new HccClientError('INVALID_TRANSITION','Open cash shift required: a cash advance leaves the drawer of the open shift. Open Cashier, refresh and try again.');
       await post(c,'GiveAdvance',({staffId:serverId(c.cmd.staffId,'Staff'),amountPaise:c.cmd.amount,installmentPaise:c.cmd.installment??0,
-        reason:String(c.cmd.reason??'').trim(),fromMonth:c.cmd.fromMonth||null,funding,...(cash?{tillId}:{})}));
+        reason:String(c.cmd.reason??'').trim(),fromMonth:c.cmd.fromMonth||null,...(funding?{funding}:{}),...(cash?{tillId}:{})}));
       return cash?{reload:['shift','shiftClose','openingCash','cashbookX']}:undefined;}},
     {type:'HR_STAT_RATES_SET',reload:RELOAD,send:c=>post(c,'SetStatutoryRates',ratesBody(c.cmd))},
     {type:'HR_RATES_SET',reload:RELOAD,send:c=>post(c,'SetStatutoryRates',ratesBody(c.cmd))},

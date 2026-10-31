@@ -113,7 +113,7 @@ export async function register({test,assert,M}){
     const tally=M.accTallyXml(s,Y,D);assert.equal(tally.count,M.accTallyXml(P,Y,D).count);assert.equal(tally.debit,M.accTallyXml(P,Y,D).debit);
   });
   test('[W4-7 expenses] expenses = GET /expenses (window + every Draft / Pending) mapped to the prototype Expense; compliance from GET /compliance/state',()=>{
-    assert.deepEqual(bootGets.filter(p=>p.startsWith('/expenses')).sort(),['/expenses','/expenses/registers','/expenses?Draft','/expenses?Pending']);
+    assert.deepEqual(bootGets.filter(p=>p.startsWith('/expenses')).sort(),['/expenses','/expenses/registers','/expenses/vendor-payments','/expenses?Draft','/expenses?Pending']); // ACC-2: + the vendor-payments patch loader
     assert.deepEqual(s.expenses.map(e=>e.id),['99','101','102']);
     const strip=e=>[e.vendor,e.category,e.amount,e.method,e.date,e.status];
     assert.deepEqual(s.expenses.slice(1).map(strip),P.expenses.map(strip));

@@ -407,7 +407,7 @@ export const money:SyncArea={
         :!text(cmd.reference)?'Enter the transaction reference for a non-cash payment.':undefined,
       async send(c){const m=c.cmd;
         return {result:await c.api.command('RecordCompanyPayment',{companyId:serverId(m.company,'Company'),tender:m.method,amountPaise:m.amount,reference:text(m.reference),invoiceNo:text(m.invoice)||null,
-          tdsPaise:Number(m.tds??0)})};}}, // ACC-2 tds: TDS the company deducted
+          ...(Number(m.tds)>0?{tdsPaise:Number(m.tds)}:{})})};}}, // ACC-2 tds: TDS the company deducted
   ],
   unmapped:{
     GRP_BLOCK_ALLOT:'no server command changes a block’s allotment (inventory backlog)',

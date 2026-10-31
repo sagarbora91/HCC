@@ -52,7 +52,7 @@ export const OTA_PAYOUTS_LOADER:SliceLoader={slice:'channelsX',kind:'patch',requ
 
 export const accountingFlows:SyncArea={
   id:'accounting-flows',
-  loaders:[OTA_PAYOUTS_LOADER], // ACC-2 integration: READS 'GET /ota/payouts' (PERM-OTA-004)
+  loaders:[], // OTA_PAYOUTS_LOADER is registered in the channels area (it owns channelsX; a registry without channels has no payouts to load)
   commands:[
     {type:'DEPOSIT_APPLY',reload:['bookings'],
       precheck:cmd=>Number.isSafeInteger(cmd.amount)&&(cmd.amount as number)>0?undefined:'Enter an amount greater than zero.',
