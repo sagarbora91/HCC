@@ -6,12 +6,22 @@ import {totals} from '../selectors';
 import {nights} from '../money';
 
 export type CustomerGuest=NonNullable<State['guests']>[number];
+/** One stay from the old Lodge desktop app (read only; no folio exists for it). `net` is paise, absent when the role may not see money. */
+export type LegacyStay={fy:string;bookingId:number;billNo?:number;arrival:string;departure?:string;nights:number;room:string;roomCount:number;status:string;net?:number};
+/** Where legacy stays come from: the mock handler in the prototype, the server's `LegacyStays` in production. Key = Customer 360 key. */
+export type LegacyLookup=(key:string)=>LegacyStay[]|undefined;
+/** Legacy stays that happened (everything but cancelled / no-show) — these count in nights, lifetime and first stay. */
+export const legacyCounts=(l:LegacyStay)=>l.status!=='Cancelled'&&l.status!=='No show';
 export type Customer={
   key:string;name:string;phone:string;email:string;
   /** Saved guest profile (preferences, masked ID details), when one exists. */
   guest?:CustomerGuest;
   /** Every booking of this customer, newest arrival first (all statuses). */
   stays:Booking[];
+  /** Stays from the old Lodge app, newest arrival first (read only). */
+  legacyStays:LegacyStay[];
+  /** How many of those happened; the list shows `completed + legacyCount` stays. */
+  legacyCount:number;
   /** Stays that happened or are happening (In house + Departed). */
   completed:Booking[];
   nights:number;
@@ -28,10 +38,10 @@ const normName=(n:string)=>clean(n).toLowerCase().replace(/[^a-z0-9 ]+/g,' ').re
 export const customerPhoneKey=(p?:string)=>{const d=String(p||'').replace(/\D/g,'');return d.length>=10?d.slice(-10):'';};
 const top=(xs:string[],n:number)=>{const m=new Map<string,number>();for(const x of xs)if(x)m.set(x,(m.get(x)||0)+1);return [...m].sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0])).slice(0,n).map(x=>x[0]);};
 
-let cache:{b:State['bookings'];g:State['guests'];date:string;list:Customer[]}|undefined;
+let cache:{b:State['bookings'];g:State['guests'];date:string;legacy:LegacyLookup|undefined;list:Customer[]}|undefined;
 /** All customers, most recent stay first. Cached until the bookings or profiles change. */
-export function customerIndex(s:State):Customer[]{
-  if(cache&&cache.b===s.bookings&&cache.g===s.guests&&cache.date===s.date)return cache.list;
+export function customerIndex(s:State,legacy?:LegacyLookup):Customer[]{
+  if(cache&&cache.b===s.bookings&&cache.g===s.guests&&cache.date===s.date&&cache.legacy===legacy)return cache.list;
   const guests=s.guests||[],byGuest=new Map(guests.map(g=>[g.id,g])),byPhone=new Map<string,CustomerGuest>();
   for(const g of guests){const k=customerPhoneKey(g.phone);if(k&&!byPhone.has(k))byPhone.set(k,g);}
   const groups=new Map<string,Booking[]>();
@@ -47,15 +57,19 @@ export function customerIndex(s:State):Customer[]{
     const completed=stays.filter(b=>b.status==='In house'||b.status==='Departed');
     const latest=stays[0];
     const spent=completed.reduce((t,b)=>t+totals(b).total,0);
+    const legacyStays=[...(legacy?.(key)??[])].sort((a,b)=>b.arrival.localeCompare(a.arrival)||b.bookingId-a.bookingId);
+    const lc=legacyStays.filter(legacyCounts);
+    const firsts=[completed.length?completed[completed.length-1].arrival:'',...lc.map(l=>l.arrival)].filter(Boolean).sort();
+    const lasts=[completed[0]?.arrival??'',...lc.map(l=>l.arrival)].filter(Boolean).sort();
     out.push({key,name:clean(guest?.name||latest.guest),phone:guest?.phone||stays.find(b=>b.phone)?.phone||'',email:guest?.email||stays.find(b=>b.email)?.email||'',guest,
-      stays,completed,nights:completed.reduce((t,b)=>t+nights(b.arrival,b.departure),0),lifetime:spent,avgRate:completed.length?Math.round(completed.reduce((t,b)=>t+b.rate,0)/completed.length):0,
-      firstStay:completed.length?completed[completed.length-1].arrival:undefined,lastStay:completed[0]?.arrival,
+      stays,legacyStays,legacyCount:lc.length,completed,nights:completed.reduce((t,b)=>t+nights(b.arrival,b.departure),0)+lc.reduce((t,l)=>t+l.nights,0),lifetime:spent+lc.reduce((t,l)=>t+(l.net??0),0),avgRate:completed.length?Math.round(completed.reduce((t,b)=>t+b.rate,0)/completed.length):0,
+      firstStay:firsts[0],lastStay:lasts[lasts.length-1],
       current:stays.find(b=>b.status==='In house'),upcoming:stays.filter(b=>(b.status==='Confirmed'||b.status==='Held')&&b.departure>=s.date).reverse(),
       cancelled:stays.filter(b=>b.status==='Cancelled'||b.status==='No show').length,
       topRooms:top(completed.map(b=>b.room),3),topSources:top(completed.map(b=>b.source),3)});
   }
   out.sort((a,b)=>(b.stays[0].arrival.localeCompare(a.stays[0].arrival))||a.name.localeCompare(b.name));
-  cache={b:s.bookings,g:s.guests,date:s.date,list:out};
+  cache={b:s.bookings,g:s.guests,date:s.date,legacy,list:out};
   return out;
 }
 
