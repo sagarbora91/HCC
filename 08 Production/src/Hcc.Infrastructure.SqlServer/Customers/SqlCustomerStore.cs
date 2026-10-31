@@ -57,7 +57,7 @@ internal static class CrmSql
 }
 
 /// <summary>Read side. The customer sources are read-only queries on inv.reservation, gst.guest/registration/stay and bill.charge/folio (never written; no ID columns selected, DEC-068).</summary>
-public sealed class SqlCustomerReadStore(SqlConnectionFactory connections) : ICustomerReadStore
+public sealed partial class SqlCustomerReadStore(SqlConnectionFactory connections) : ICustomerReadStore
 {
     public async Task<CrmSource> LoadAsync(int propertyId, CancellationToken ct = default)
     {
