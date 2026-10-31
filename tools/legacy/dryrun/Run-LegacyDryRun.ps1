@@ -22,7 +22,7 @@ $stamp = Get-Date -Format 'yyyyMMdd-HHmm'
 $run = Join-Path $OutRoot $stamp
 $evidence = Join-Path $Repo '05 Delivery Evidence\Legacy'
 $report = Join-Path $evidence ('LG-DryRun-{0}.md' -f (Get-Date -Format 'yyyy-MM-dd'))
-if ((Get-ChildItem -LiteralPath $MdbDir -Filter 'Lodge*.mdb' | Measure-Object).Count -ne 10) { throw "Expected ten Lodge*.mdb files in $MdbDir" }
+if ((Get-ChildItem -LiteralPath $MdbDir -Filter 'Lodge??-??.mdb' | Measure-Object).Count -ne 10) { throw "Expected ten Lodge*.mdb files in $MdbDir" }
 $py = (Get-Command python -ErrorAction Stop).Source
 
 function Mask-Name([string]$n) {
