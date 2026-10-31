@@ -3,6 +3,7 @@ import type {Handler,Kit} from '../commands';
 import {money} from '../../../domain/money';
 import {rbacMoneyAdmin,rbacCanTally} from '../../../domain/streams/rbac';
 import {accSlice,accLiveVouchers,accTotals,accLockBlocker,accMapping,accMapRows,ACC_DEFAULT_MAP,ACC_KEY_PATTERN,ACC_SUSPENSE,ACC_LOCK_ROLES,accTallyXml,accTallyPendingReason,type ACCState} from '../../../domain/streams/accounting';
+import {accMonthLocked,accMonthLockedMessage} from '../../../domain/streams/accounting-gst'; // ACC-2 integration (gst item 3): no day unlock inside a locked month
 import {accLedger,accLedgerNameOf} from '../../../domain/streams/accounting-chart'; // ACC-1 integration: the effective chart (Owner renames / Owner-added / retired)
 
 const DATE=/^\d{4}-\d{2}-\d{2}$/;
@@ -28,6 +29,7 @@ export const handlers:Record<string,Handler>={
   ACC_UNLOCK:k=>{
     const {s,cmd,req,assert,uid,id}=k;req('reports');req('admin');
     assert(typeof cmd.date==='string'&&accSlice(s).locks?.[cmd.date],'This date is not locked.','INVALID_TRANSITION');
+    if(accMonthLocked(s,cmd.date))k.fail('INVALID_TRANSITION',accMonthLockedMessage(String(cmd.date).slice(0,7))); // ACC-2: unlock the month first (Owner, reason)
     const reason=String(cmd.reason??'').trim();assert(reason.length>=3,'A reason is required to unlock a period.');
     const x=slice(k),locks={...(x.locks??{})};delete locks[cmd.date];x.locks=locks;
     x.lockHistory=[...(x.lockHistory??[]),{id:id('ACCL'),at:s.clock,actor:uid,date:cmd.date,action:'unlock',reason}];

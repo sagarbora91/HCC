@@ -5,7 +5,7 @@ import {money,grpSlice,grpKpis,grpLines,grpBlockTotals,grpStatus,grpCompany,grpC
 import type {GRPBlock} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {PageTitle,Empty,Stat,shortDate,dateLabel} from '../../components/ui';
-import {GrpStatusPill,GrpCreditPill,GrpCreditBar,grpCutoffText,grpUserName,grpSimNote} from './parts';
+import {GrpStatusPill,GrpCreditPill,GrpCreditBar,grpCutoffText,grpUserName,grpSimNote,GrpRetiredPill} from './parts';
 
 const TABS=['Blocks','Companies','Pickup report','Master folio','Limit requests'] as const;
 type Tab=typeof TABS[number];
@@ -67,14 +67,14 @@ export function BlockCard({blk,showFolio}:{blk:GRPBlock;showFolio?:(id:string)=>
   </article>;
 }
 
-function CompaniesTab(){
+export function CompaniesTab(){
   const {s,open,permission}=useHcc();const x=grpSlice(s);
   if(!x.companies.length)return <Empty title="No company accounts"/>;
   return <><div className="info-note grp-gap"><Info size={16}/><span><b>Credit limits are enforced (DEC-076).</b> Used = what the company owes on company credit + the stays billed to it (estimated: agreed nights + GST − what the guest paid).
       A booking, company credit at checkout or a rooming list beyond the remaining credit is refused; only the Owner sets a limit (others send a request). A payment from the company frees credit.</span></div>
     <div className="table-wrap"><table className="grp-table"><thead><tr><th>Company</th><th>Contact</th><th>Negotiated rates</th><th className="number">Credit limit</th><th className="number">Used</th><th className="number">Remaining</th><th>Credit</th><th/></tr></thead>
     <tbody>{x.companies.map(c=>{const k=grpCredit(s,c),req=x.requests.find(r=>r.company===c.id&&r.status==='Pending');
-      return <tr key={c.id}><td><strong>{c.name}</strong><small>{c.gstin?`GSTIN ${c.gstin} · fictional`:'No GSTIN'}{c.city?' · '+c.city:''}</small></td>
+      return <tr key={c.id}><td><strong>{c.name}</strong> <GrpRetiredPill c={c}/><small>{c.gstin?`GSTIN ${c.gstin} · fictional`:'No GSTIN'}{c.city?' · '+c.city:''}</small></td>
         <td>{c.contact||'—'}<small>{c.phone}</small></td>
         <td>{Object.entries(c.rates).map(([t,r])=><div key={t} className="grp-rate"><span>{t}</span> {money(r)}</div>)}{!Object.keys(c.rates).length&&<span className="muted">Rack rates</span>}</td>
         <td className="number">{money(c.creditLimit)}{c.creditLimit===0&&<small>No credit</small>}{req&&<small>Request → {money(req.to)}</small>}</td>

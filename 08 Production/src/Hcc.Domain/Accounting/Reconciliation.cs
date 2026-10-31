@@ -32,7 +32,8 @@ public static class Reconciliation
         return
         [
             C("room", "Room revenue", report.RoomPaise, Net(M("line:room"), Line("room")), "Folio room lines"),
-            C("service", "Other revenue", report.ServicePaise, Net(M("line:service"), Line("service")), "Folio service lines"),
+            // ACC-2 parity: the service figure includes the F&B lines charged to folios (kind food → line:food, 4200)
+            C("service", "Other revenue", report.ServicePaise, checked(Net(M("line:service"), Line("service")) + Net(M("line:food"), Line("food"))), "Folio service and F&B lines"),
             C("discount", "Discounts (negative)", report.DiscountPaise, Net(M("line:discount"), Line("discount")), "Folio discount lines"),
             C("adjustment", "Adjustments & credit notes", report.AdjustmentPaise, Net(M("line:adjustment"), Line("correction")), "Folio correction / reversal lines"),
             // DEC-074 (wave B3): the GST ledgers also carry group attrition (a Sales line voucher), so the report side adds it.

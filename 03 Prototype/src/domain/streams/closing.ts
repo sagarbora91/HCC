@@ -111,7 +111,7 @@ export function shiftExpected(s:State){
   const parts={opening:s.openingCash,payments:sum(['payment']),deposits:sum(['deposit']),refunds:neg(sum(['refund'])),returns:neg(sum(['deposit-return'])),
     expenses:neg(sum(['expense','expense-reversal'])),other:sum(['company-credit']),restaurant:sum(['pos-sale','pos-void']),
     /** DEC-073: bank deposits, till transfers and Owner drawings, signed (usually negative: cash out of the drawer). */
-    transfers:sum(['banking','transfer-out','transfer-in','owner-drawing'])};
+    transfers:sum(['banking','transfer-out','transfer-in','owner-drawing','staff-advance'])}; // ACC-2: a cash salary advance leaves the drawer
   const expected=parts.opening+parts.payments+parts.deposits+parts.restaurant+parts.other+parts.transfers-parts.refunds-parts.returns-parts.expenses;
   return {...parts,expected,consistent:expected===drawer(s)};
 }
@@ -296,7 +296,11 @@ export function reportLines(s:State,from:string,to:string){
 export function reportReceipts(s:State,from:string,to:string){
   return s.bookings.flatMap(b=>b.receipts.filter(r=>inRange(r.date,from,to)).map(r=>({b,r})));
 }
-export function reportExpenses(s:State,from:string,to:string){return s.expenses.filter(e=>expenseCounts(e)&&inRange(e.date,from,to));}
+/** ACC-2 integration (contract §3.4, purchase DONE item 7): a capital purchase (fixed asset) is never an expense in the reports — it sits on the
+ *  asset register; the drawer movement of a cash capital bill still counts (cash summaries above). A reversal record of one follows it. */
+export function reportExpenses(s:State,from:string,to:string){const cap=expCapitalIds(s);return s.expenses.filter(e=>expenseCounts(e)&&inRange(e.date,from,to)&&!cap.has(e.id));}
+/** Ids of capital purchases and their reversal records (ACC-2 integration). */
+export function expCapitalIds(s:State):Set<string>{const cap=new Set(s.expenses.filter(e=>e.capital).map(e=>e.id));for(const e of s.expenses)if(e.reversalOf&&cap.has(e.reversalOf))cap.add(e.id);return cap;}
 /** Stays occupying a room on date d (from the stay interval [arrival, departure)). */
 export function reportStaysOn(s:State,d:string){return s.bookings.filter(b=>(b.status==='In house'||b.status==='Departed')&&b.arrival<=d&&d<b.departure);}
 export function reportSellableOn(s:State,d:string){return s.rooms.filter(r=>!blockedDuring(r,d,addDays(d,1)));}
@@ -330,7 +334,8 @@ export function reportPack(s:State,from:string,to:string):ReportPack{
   const lines=reportLines(s,from,to),rec=reportReceipts(s,from,to),exp=reportExpenses(s,from,to);
   // Rows and per-date sums are built once per selection (the day tables used to rebuild them for every date).
   const memoRows=<K,V>(f:(k:K)=>V)=>{const c=new Map<K,V>();return (k:K)=>{let v=c.get(k);if(v===undefined){v=f(k);c.set(k,v);}return v;};};
-  const Lk=memoRows((k:string)=>lines.filter(x=>!k||x.l.kind===k).map(x=>lineRow(x.b,x.l,x.l.amount)));
+  // ACC-2 parity: F&B charged to a folio (kind 'food') stays in the report's service revenue, as on the server (a folio charge, not room revenue).
+  const Lk=memoRows((k:string)=>lines.filter(x=>!k||x.l.kind===k||k==='service'&&x.l.kind==='food').map(x=>lineRow(x.b,x.l,x.l.amount)));
   const L=(k?:Line['kind'])=>Lk(k??'');
   const taxRows=lines.map(x=>lineRow(x.b,x.l,lineTax(x.l)));
   const Rk=memoRows((key:string)=>{const [kinds,method]=key.split('|');const ks=kinds.split(',');return rec.filter(x=>ks.includes(x.r.kind)&&(!method||x.r.method===method)).map(x=>receiptRow(x.b,x.r));});

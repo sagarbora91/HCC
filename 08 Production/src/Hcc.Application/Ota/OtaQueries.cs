@@ -40,7 +40,7 @@ public sealed class OtaQueries(IOtaStore store, IInventoryStore inventoryStore, 
     public static ChannelView ToView(ChannelRecord c, int pending, bool money) => new(c.ChannelId, c.Code, c.Name, c.Status, InventoryErrors.VersionToWire(c.RowVersion),
         money ? c.CommissionBps : null,
         c.MarkupBps, c.LastSyncUtc is { } l ? Iso(l) : null, c.StatusNote, c.AriDirtyUtc is not null && c.Status == ChannelStatuses.Connected, pending,
-        c.Map.Select(m => new ChannelMappingView(m.RoomTypeId, m.RoomType, m.ChannelCode, m.StopSell)).ToList());
+        c.Map.Select(m => new ChannelMappingView(m.RoomTypeId, m.RoomType, m.ChannelCode, m.StopSell)).ToList(), c.ItcAllowed);
 
     public async Task<IReadOnlyList<ChannelMessageView>> ListMessagesAsync(int propertyId, int principalId, string? status, int limit, CancellationToken ct = default)
     {

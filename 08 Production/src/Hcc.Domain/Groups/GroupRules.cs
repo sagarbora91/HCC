@@ -87,7 +87,7 @@ public static class GroupRouting
     public static RouteCategory CategoryOf(ChargeKind kind) => kind switch
     {
         ChargeKind.Room or ChargeKind.Discount => RouteCategory.Room,
-        ChargeKind.Service => RouteCategory.Extras,
+        ChargeKind.Service or ChargeKind.Food => RouteCategory.Extras, // ACC-2 parity: F&B on a folio routes as the extras it was
         _ => throw new InvalidOperationException("A reversal line takes the route of the line it reverses."),
     };
 

@@ -6,7 +6,8 @@ namespace Hcc.Application.Ota;
 public sealed record ChannelMap(int RoomTypeId, string RoomType, string ChannelCode, bool StopSell);
 
 public sealed record ChannelRecord(int ChannelId, int PropertyId, string Code, string Name, string Status, int CommissionBps, int MarkupBps,
-    DateTime? LastSyncUtc, string StatusNote, DateTime? AriDirtyUtc, byte[] RowVersion, IReadOnlyList<ChannelMap> Map)
+    DateTime? LastSyncUtc, string StatusNote, DateTime? AriDirtyUtc, byte[] RowVersion, IReadOnlyList<ChannelMap> Map,
+    bool ItcAllowed = false) // ACC-2 integration (flows item 4): ota.channel.itc_allowed (migration 4251)
 {
     public ChannelMap? MapFor(int roomTypeId) => Map.FirstOrDefault(m => m.RoomTypeId == roomTypeId);
 

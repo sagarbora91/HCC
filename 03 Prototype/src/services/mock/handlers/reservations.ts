@@ -29,7 +29,9 @@ function creditCheck(k:Kit,c:GRPCompany,x:Booking,before:number){
   const subject=grpBookingExposure(k.s,x),refusal=grpCreditRefusal(c,after-subject,subject,'booking');
   if(refusal)k.fail('INVALID_TRANSITION',refusal);
 }
-function accountOf(k:Kit,id:unknown):GRPCompany{const c=grpCompany(k.s,String(id??''));k.assert(c,'Company account not found.','NOT_FOUND');return c!;}
+function accountOf(k:Kit,id:unknown):GRPCompany{const c=grpCompany(k.s,String(id??''));k.assert(c,'Company account not found.','NOT_FOUND');
+  if(c!.active===false)mstFail('MASTER_RETIRED',`${c!.name} is retired — choose an active company account.`,'company'); // ACC-2 flows (contract §8)
+  return c!;}
 
 const DATE=/^\d{4}-\d{2}-\d{2}$/;
 /** Shared stay validation for BOOK and CHANGE_DATES. Message texts match the M1 BOOK command. */

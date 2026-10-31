@@ -163,14 +163,23 @@ public sealed class CashierService(ICommandRunner runner, IBillingStore store, I
     /// <summary>DEC-130: the source type of an Udhaar (customer credit) payment taken in cash — a desk receipt (movement kind <c>payment</c>, cash in).</summary>
     public const string UdhaarSource = "udhaar";
 
+    /// <summary>ACC-2 flows (A17b): the source type of a reversed Udhaar cash payment (movement kind <c>payment</c>, cash out).</summary>
+    public const string UdhaarReversalSource = "udhaar-reversal";
+
     public async Task<long> RecordMovementAsync(ICommandTransaction tx, int tillId, CashMovementKind kind, string sourceType, long sourceId, Paise amount,
         string label, string reference, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(tx);
         var udhaar = kind == CashMovementKind.Payment && string.Equals(sourceType, UdhaarSource, StringComparison.Ordinal);
-        if (!udhaar && kind is CashMovementKind.Payment or CashMovementKind.Deposit or CashMovementKind.Refund or CashMovementKind.DepositReturn or CashMovementKind.CompanyCredit)
+        // ACC-2 flows (A17b): a reversed Udhaar cash payment leaves the drawer — kind payment, negative, source type udhaar-reversal.
+        var udhaarReversal = kind == CashMovementKind.Payment && string.Equals(sourceType, UdhaarReversalSource, StringComparison.Ordinal);
+        if (udhaarReversal)
+        {
+            if (amount >= Paise.Zero) throw HccException.Validation("An Udhaar reversal movement must be negative (out of the drawer).");
+        }
+        else if (!udhaar && kind is CashMovementKind.Payment or CashMovementKind.Deposit or CashMovementKind.Refund or CashMovementKind.DepositReturn or CashMovementKind.CompanyCredit)
             throw new InvalidOperationException("Folio cash moves only through RecordReceipt / ExecuteAdjustment.");
-        var inward = udhaar || kind is CashMovementKind.PosSale or CashMovementKind.ExpenseReversal or CashMovementKind.TransferIn;
+        var inward = !udhaarReversal && (udhaar || kind is CashMovementKind.PosSale or CashMovementKind.ExpenseReversal or CashMovementKind.TransferIn);
         if (amount == Paise.Zero || (inward ? amount < Paise.Zero : amount > Paise.Zero))
             throw HccException.Validation($"A {CashDrawer.Code(kind)} movement must be {(inward ? "positive (into the drawer)" : "negative (out of the drawer)")}.");
         var p = tx.Context.PropertyId;

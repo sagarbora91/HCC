@@ -124,7 +124,7 @@ public static partial class ChartOfAccounts
         L("1115", "OTA receivables", "debtors", "One party per OTA channel (ACC-2 posts it)", control: true),
         L("1120", "Udhaar receivables (customer credit)", "debtors", "DEC-130 / DEC-144: one party per Udhaar customer", control: true),
         L("1200", "Staff advances", "loans-advances", "Salary advances recovered through payroll; one party per staff member", control: true),
-        L("1210", "Recoverable from leavers (F&F)", "loans-advances"),
+        L("1210", "Recoverable from leavers (F&F)", "loans-advances", "ACC-2 (ruling 7): one party per staff member — a full and final that leaves the leaver owing (D4)", control: true),
         L("1300", "GST input credit (legacy, locked snapshots only)", "duties-taxes", "DEC-135 one-ledger ITC before ACC-1; new ITC goes to 1310 / 1320", gst: LedgerGst.Input),
         L("1310", "Input CGST", "duties-taxes", "ITC marked allowed, CGST half", gst: LedgerGst.Input),
         L("1320", "Input SGST", "duties-taxes", "ITC marked allowed, SGST half", gst: LedgerGst.Input),
@@ -275,11 +275,26 @@ public static partial class ChartOfAccounts
         // DEC-074 (wave B3): group attrition and deposits; full-and-final additions, deductions and an amount the leaver owes (illustrative — CA to confirm).
         // ACC-1 (contract §2): attrition / retention charges move to 4300.
         ["line:attrition"] = "4300", ["receipt:group-deposit"] = "2000",
-        ["payroll:fnf-additions"] = "5100", ["payroll:fnf-deductions"] = "2340", ["payroll:fnf-recoverable"] = "1200",
+        ["payroll:fnf-additions"] = "5100", ["payroll:fnf-deductions"] = "2340", ["payroll:fnf-recoverable"] = "1210", // ACC-2 integration (ruling 7, rulebook D4): 1210/<leaver>
 
         // DEC-130 an Udhaar payment settles the customer's credit; ACC-1 (contract §2) the expense ITC splits half / half like output GST:
         // CGST half → 1310 (tax:gst-input), SGST half → 1320 (tax:gst-input-sgst); 1300 stays for locked snapshots only.
         ["receipt:udhaar"] = "1120", ["tax:gst-input"] = "1310", ["tax:gst-input-sgst"] = "1320",
+
+        // ACC-2 (acc2-purchase, contract §3): IGST input credit, RCM payable, TDS payable, and the vendor payable a vendor payment / advance
+        // debits (party = the vendor, 2200/<vendor>).
+        ["tax:gst-input-igst"] = "1330", ["tax:rcm-payable"] = "2140", ["tax:tds-payable"] = "2150", ["vendor:payable"] = "2200",
+        // ACC-2 tds (contract §4 A9, §5): TDS a company deducted from the hotel → 1360; TDS the hotel holds back on a bill → 2150.
+        [TdsCalculator.ReceivableKey] = "1360", // TdsCalculator.PayableKey ("tax:tds-payable") = 2150 is in the acc2-purchase line above (one key)
+        // ACC-2 gst lane (contract §4, §6): the tax ledgers the GST set-off journal, the advance-GST lines and the RCM / cash-ledger entries post to.
+        ["tax:output-cgst"] = "2110", ["tax:output-sgst"] = "2120", ["tax:output-igst"] = "2130", // tax:gst-input-igst 1330 and tax:rcm-payable 2140: acc2-purchase line above (one key each)
+        ["tax:gst-cash"] = "1340", ["tax:advance-gst"] = "1350",
+        // ACC-2 gst end
+        // ACC-2 flows (contract §4, rulebook A13, DEC-150): the OTA's receivable (1115/<channel>), its commission (5070) and the TCS it
+        // collected (GST electronic cash ledger 1340), from the payout statement.
+        ["receipt:ota"] = "1115", ["receipt:ota-commission"] = "5070", ["tax:tcs"] = "1340",
+        // ACC-2 parity (contract §8, rulebook A3): an F&B line charged to a folio (prototype Line.kind food) → 4200 F&B revenue.
+        ["line:food"] = "4200",
     };
 
     /// <summary>ACC-1: the SGST-half ITC key (contract §2).</summary>
@@ -297,10 +312,10 @@ public static partial class ChartOfAccounts
     [
         ("line", "Folio line kind"), ("folio", "Folio"), ("method", "Receipt method (tender)"), ("receipt", "Receipt kind (counter-ledger)"),
         ("expense", "Expense category"), ("funding", "Expense funding"), ("closing", "Closing record"), ("pos", "Outlet (POS) bill"),
-        ("payroll", "Payroll"), ("tax", "GST input credit (ITC)"),
+        ("payroll", "Payroll"), ("tax", "GST input credit (ITC)"), ("vendor", "Vendor payments (payables)"), // ACC-2 acc2-purchase
     ];
 
-    [GeneratedRegex(@"^(line|folio|method|receipt|expense|funding|closing|pos|payroll|tax):.{1,72}$")]
+    [GeneratedRegex(@"^(line|folio|method|receipt|expense|funding|closing|pos|payroll|tax|vendor):.{1,72}$")]
     private static partial Regex KeyPattern();
 
     public static bool IsValidKey(string? key) => key is not null && KeyPattern().IsMatch(key);
@@ -351,6 +366,10 @@ public static partial class ChartOfAccounts
     public static string? Resolve(IReadOnlyDictionary<string, string> mapping, string key, EffectiveChart? chart = null)
     {
         ArgumentNullException.ThrowIfNull(mapping);
+        ArgumentNullException.ThrowIfNull(key);
+        // ACC-2 (acc2-manual): a manual voucher line names its ledger (ledger:<code>) — an active ledger of the chart, never Suspense.
+        if (key.StartsWith(SourceRules.LedgerKeyPrefix, StringComparison.Ordinal))
+            return key[SourceRules.LedgerKeyPrefix.Length..] is var code && (chart ?? Builtin).Find(code) is { Active: true } && code != Suspense ? code : null;
         return mapping.TryGetValue(key, out var a) && (chart ?? Builtin).Find(a) is { Active: true } && a != Suspense ? a : null;
     }
 }

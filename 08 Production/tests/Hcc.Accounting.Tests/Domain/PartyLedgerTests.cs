@@ -19,7 +19,7 @@ public sealed class PartyLedgerTests
     [Fact]
     public void Party_ids_compose_only_on_control_ledgers_and_split_back()
     {
-        Assert.Equal(["1000", "1030", "1110", "1115", "1120", "1200", "2200", "2400"], PartyLedgers.Controls);
+        Assert.Equal(["1000", "1030", "1110", "1115", "1120", "1200", "1210", "2200", "2400"], PartyLedgers.Controls); // 1210: ACC-2 ruling 7
         Assert.Equal("1110/CMP-7", PartyLedgers.Compose("1110", "CMP-7"));
         Assert.Equal("1010", PartyLedgers.Compose("1010", "BANK-1"));   // UPI clearing is not a control ledger
         Assert.Equal("2200", PartyLedgers.Compose("2200", null));

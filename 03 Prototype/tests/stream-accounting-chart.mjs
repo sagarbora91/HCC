@@ -9,7 +9,7 @@ export function register({test,M,assert}){
   const retire=(s,u,c,r)=>M.execute(s,u,{type:'ACC_LEDGER_RETIRE',code:c,...(r?{reason:r}:{})});
   // The §2 table of the contract: code → [group, control].
   const TABLE={'1000':['cash',1],'1005':['cash'],'1010':['bank'],'1020':['bank'],'1030':['bank',1],'1100':['debtors'],'1110':['debtors',1],'1115':['debtors',1],
-    '1120':['debtors',1],'1200':['loans-advances',1],'1210':['loans-advances'],'1300':['duties-taxes'],'1310':['duties-taxes'],'1320':['duties-taxes'],'1330':['duties-taxes'],
+    '1120':['debtors',1],'1200':['loans-advances',1],'1210':['loans-advances',1],'1300':['duties-taxes'],'1310':['duties-taxes'],'1320':['duties-taxes'],'1330':['duties-taxes'],
     '1340':['duties-taxes'],'1350':['duties-taxes'],'1360':['loans-advances'],'1370':['loans-advances'],'1400':['suspense'],'1500':['fixed-assets'],'1510':['fixed-assets'],
     '1520':['fixed-assets'],'1530':['fixed-assets'],'1540':['fixed-assets'],'2000':['current-liabilities'],'2100':['duties-taxes'],'2110':['duties-taxes'],'2120':['duties-taxes'],
     '2130':['duties-taxes'],'2140':['duties-taxes'],'2150':['duties-taxes'],'2200':['creditors',1],'2300':['current-liabilities'],'2310':['duties-taxes'],'2320':['duties-taxes'],
@@ -35,7 +35,7 @@ export function register({test,M,assert}){
     assert.deepEqual(M.ACC_LEDGERS.map(l=>l.code),Object.keys(TABLE).sort());
     for(const l of M.ACC_LEDGERS){const [g,c]=TABLE[l.code];assert.equal(l.group,g,l.code);assert.equal(!!l.control,!!c,l.code);assert.equal(l.system,true);assert.equal(l.active,true);
       assert.ok(M.ACC_GROUPS.some(x=>x.id===l.group),l.code);}
-    assert.deepEqual(M.ACC_LEDGERS.filter(l=>l.control).map(l=>l.code),['1000','1030','1110','1115','1120','1200','2200','2400']);
+    assert.deepEqual(M.ACC_LEDGERS.filter(l=>l.control).map(l=>l.code),['1000','1030','1110','1115','1120','1200','1210','2200','2400']);
     const legacy=Object.fromEntries(M.ACC_CHART.map(a=>[a.code,a.group]));
     assert.deepEqual([legacy['1000'],legacy['1110'],legacy['2110'],legacy['3000'],legacy['4000'],legacy['4900'],legacy['5100'],legacy['9999'],legacy['1400'],legacy['4950']],
       ['Asset','Asset','Liability','Liability','Income','Income','Expense','Suspense','Suspense','Income']);
@@ -146,12 +146,15 @@ export function register({test,M,assert}){
     assert.throws(()=>retire(t,'owner','4400'),e=>e.reason==='MASTER_IN_USE'&&/balance of ₹[\d,]+ Cr/.test(e.message));
     // A party balance (contract §3 id <control>/<party>) blocks retiring its control.
     t=M.loadScenario('ACC');
-    t={...t,accountingX:{...t.accountingX,locks:{...t.accountingX.locks,[Y]:{...t.accountingX.locks[Y],vouchers:[...t.accountingX.locks[Y].vouchers,
+    // ACC-2 flows: 1115 is now the default ledger of receipt:ota — map that key elsewhere so the party balance is what blocks.
+    t={...t,accountingX:{...t.accountingX,mapping:{...(t.accountingX.mapping??{}),'receipt:ota':'4960'},locks:{...t.accountingX.locks,[Y]:{...t.accountingX.locks[Y],vouchers:[...t.accountingX.locks[Y].vouchers,
       {no:'JRN/20261023/900',date:Y,type:'Journal',narration:'OTA receivable (fictional)',source:{kind:'closing',id:'test-ota',sub:'test'},unmapped:[],
         entries:[{account:'1115/CHN-GOIBIBO',debit:120000,credit:0},{account:'4960',debit:0,credit:120000}]}]}}}};
     assert.deepEqual(M.accLedgerBalances(t,'1115'),{balance:120000,own:0,parties:{'CHN-GOIBIBO':120000}});
     assert.throws(()=>retire(t,'owner','1115'),e=>e.reason==='MASTER_IN_USE'&&/CHN-GOIBIBO ₹1,200 Dr/.test(e.message));
-    assert.equal(M.accLedgerRetireBlocker(M.seed(),'1115'),'','no party balance, unmapped → retirable');
+    assert.match(M.accLedgerRetireBlocker(M.seed(),'1115'),/receipt:ota/,'ACC-2 flows: mapped by default (receipt:ota)');
+    const um=M.seed();um.accountingX={mapping:{'receipt:ota':'4960'}};
+    assert.equal(M.accLedgerRetireBlocker(um,'1115'),'','no party balance, unmapped → retirable');
   });
 
   test('[ACC1-CHART] §1 custom sub-groups: g-<slug> under any group, nature inherited; Tally’s 28 fixed; re-parent within the same nature, no loops; ledgers move into them',()=>{
@@ -184,7 +187,7 @@ export function register({test,M,assert}){
     const ids=M.accChartProblems(bad).map(p=>p.id).sort();
     assert.deepEqual(ids,['dup:6000','group:g-orphan','ledger-group:6000','map:expense:Laundry','map:line:service']);
     assert.ok(M.accChartProblems(bad).every(p=>p.severity==='error'));
-    assert.deepEqual(M.accChartRows(s).find(r=>r.code==='4200').mappedBy,['pos:sales']);
+    assert.deepEqual(M.accChartRows(s).find(r=>r.code==='4200').mappedBy,['line:food','pos:sales']); // ACC-2 parity: line:food → 4200
     assert.deepEqual(M.accChartRows(s).find(r=>r.code==='1310').mappedBy,['tax:gst-input']);
   });
 }

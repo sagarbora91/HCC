@@ -45,6 +45,15 @@ public static class AccountingEvents
     // ACC-1 (contract §4, rulebook A17, DEC-144): an Udhaar credit raised is a sale booked the same day (Dr 1120/<customer> · Cr revenue · Cr CGST · Cr SGST).
     public const string UdhaarCreditRaised = "UdhaarCreditRaised";
 
+    // ACC-2 (acc2-manual, contract §2): a manual voucher approved (booked as manual:<id>) / voided (books nothing: an unlocked day's source stops
+    // counting; a locked day's reversal comes as its own ManualVoucherApproved).
+    public const string ManualVoucherApproved = "ManualVoucherApproved";
+    public const string ManualVoucherVoided = "ManualVoucherVoided";
+    // ACC-2 flows (contract §4, §8): an OTA payout from the statement (A13) and a mistaken Udhaar payment reversed (A17b). Deposit applied (A6a) and
+    // the OTA credit at check-out are ReceiptRecorded events of kind deposit-apply / ota-credit (SourceRules.DepositApplied / OtaCredit).
+    public const string OtaPayoutRecorded = "OtaPayoutRecorded";
+    public const string UdhaarPaymentReversed = "UdhaarPaymentReversed";
+
     /// <summary>Published by accounting when a period is locked / unlocked.</summary>
     public const string AccountingPeriodLocked = "AccountingPeriodLocked";
 
@@ -56,7 +65,10 @@ public static class AccountingEvents
          CashBanked, CashBankingRejected, OwnerDrawingRecorded,                                  // Wave B1 (DEC-073)
          CompanyPaymentRecorded,                                                                 // DEC-076 (wave B5)
          UdhaarPaymentRecorded,                                                                  // DEC-130 (SCC decisions wave)
-         UdhaarCreditRaised];                                                                    // ACC-1 (acc1-parties, DEC-144)
+         UdhaarCreditRaised,                                                                     // ACC-1 (acc1-parties, DEC-144)
+         ManualVoucherApproved, ManualVoucherVoided,                                             // ACC-2 (acc2-manual, contract §2)
+         OtaPayoutRecorded, UdhaarPaymentReversed,                                               // ACC-2 flows
+         .. PurchaseEvents.All];                                                                 // ACC-2 acc2-purchase (contract §3)
 }
 
 /// <summary>Wave B1 (DEC-073): a bank deposit recorded (<see cref="AccountingEvents.CashBanked"/>) or rejected (<see cref="AccountingEvents.CashBankingRejected"/>).</summary>
@@ -69,7 +81,9 @@ public sealed record OwnerDrawingEvent(long TransferId, int TillId, long ShiftId
 /// DEC-076: a payment received from a company account against its company-credit receivable (Groups <c>RecordCompanyPayment</c>; tender UPI | Card |
 /// Bank transfer). Booked as a Receipt voucher: Dr the tender · Cr company receivables (the <c>receipt:company-credit</c> ledger).
 /// </summary>
-public sealed record CompanyPaymentRecordedEvent(long CompanyId, long PaymentId, DateOnly BusinessDate, string Tender, long AmountPaise, string Reference, string Company);
+/// ACC-2 tds (contract §4 A9): <c>TdsPaise</c> = TDS the company deducted (0 / absent in older payloads) — booked Dr 1360 TDS receivable.
+public sealed record CompanyPaymentRecordedEvent(long CompanyId, long PaymentId, DateOnly BusinessDate, string Tender, long AmountPaise, string Reference, string Company,
+    long TdsPaise = 0);
 
 /// <summary>
 /// DEC-130: an Udhaar (customer credit) payment taken as a desk receipt (Expenses <c>PayUdhaar</c>; any front-desk tender, cash into the drawer).
@@ -102,17 +116,28 @@ public sealed record PosBillSettledEvent(long BillId, string Kind, DateOnly Busi
 /// ledger; absent (events published before) or "disallowed" = the whole amount to the category.
 /// </summary>
 public sealed record ExpensePostedEvent(long ExpenseId, DateOnly BusinessDate, string Category, string Funding, long AmountPaise, string Vendor, long? ReversalOf,
-    long? GstPaise = null, string? Itc = null);
+    long? GstPaise = null, string? Itc = null,
+    // ACC-2 (acc2-purchase, contract §3.1): IGST bill, TDS held back (signed like the amount), the funding is a credit method (Purchase voucher).
+    string? GstKind = null, long? TdsPaise = null, bool? Credit = null, string? TdsSection = null);
 
 /// <summary>
 /// W2-2 Payroll: a locked pay run. Gross = net + employee PF + employee ESIC + PT + advance recovery + other deductions.
 /// <see cref="LockSeq"/> = which lock of the run (1 = first; a re-lock after an unlock is 2, …) — one voucher per lock.
+/// ACC-2 (coordinator ruling 2): <see cref="BusinessDate"/> = the pay period's last day when the lock is later (the month's trial balance holds
+/// at month end); <see cref="LockedOn"/> = the business date of the lock (narration). Null on older events (then the lock's date = BusinessDate).
+/// ACC-2 (contract §8): <see cref="AdvanceRecoveries"/> = the advance recovered per staff member (the voucher credits 1200/STF-&lt;id&gt; each);
+/// null on events published before ACC-2 (the recovery then stays on the 1200 control with a <c>no-party</c> warning).
 /// </summary>
 public sealed record PayrollPostedEvent(long PayRunId, string Period, DateOnly BusinessDate, long GrossPaise, long EmployerPfPaise, long EmployerEsicPaise,
-    long EmployeePfPaise, long EmployeeEsicPaise, long ProfessionalTaxPaise, long AdvanceRecoveryPaise, long OtherDeductionsPaise, long NetPayablePaise, int LockSeq = 1);
+    long EmployeePfPaise, long EmployeeEsicPaise, long ProfessionalTaxPaise, long AdvanceRecoveryPaise, long OtherDeductionsPaise, long NetPayablePaise, int LockSeq = 1,
+    IReadOnlyList<AdvanceRecoveryLine>? AdvanceRecoveries = null, DateOnly? LockedOn = null);
+
+/// <summary>ACC-2 (contract §8): one staff member's advance recovered in a pay run (paise).</summary>
+public sealed record AdvanceRecoveryLine(long StaffId, long Paise); // wire: {staffId, paise} (coordinator ruling 3)
 
 /// <summary>W2-2 Payroll: net pay paid out (first bank file of a lock). Funding as for expenses.</summary>
-public sealed record PayrollPaidEvent(long PayRunId, DateOnly BusinessDate, string Funding, long AmountPaise, string Reference, int LockSeq = 1);
+/// ACC-2 (coordinator ruling 2): <see cref="BusinessDate"/> = the pay period's last day when the file is generated later; <see cref="PaidOn"/> = the day it was.
+public sealed record PayrollPaidEvent(long PayRunId, DateOnly BusinessDate, string Funding, long AmountPaise, string Reference, int LockSeq = 1, DateOnly? PaidOn = null);
 
 /// <summary>
 /// W2-2 Payroll: lock <see cref="LockSeq"/> of the run was unlocked on <see cref="BusinessDate"/>. Accounting books the exact reversal of that

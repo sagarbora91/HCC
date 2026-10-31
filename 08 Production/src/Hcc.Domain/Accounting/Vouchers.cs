@@ -30,13 +30,16 @@ public sealed record AccountingIssue(string Id, string Severity, string Kind, st
 /// <summary>Voucher derivation, totals, trial balance and exceptions (prototype accLiveVouchers / accTrialBalance / accExceptions).</summary>
 public static class VoucherBuilder
 {
-    private static readonly VoucherType[] TypeOrder = [VoucherType.Sales, VoucherType.Receipt, VoucherType.Payment, VoucherType.Journal];
+    // ACC-2 (contract §1): Purchase and Contra numbered after the four (prototype accLiveVouchers order); without them a Purchase voucher was dropped.
+    private static readonly VoucherType[] TypeOrder = [VoucherType.Sales, VoucherType.Receipt, VoucherType.Payment, VoucherType.Journal, VoucherType.Purchase, VoucherType.Contra];
 
     public static string Prefix(VoucherType t) => t switch
     {
         VoucherType.Sales => "SAL",
         VoucherType.Receipt => "RCT",
         VoucherType.Payment => "PMT",
+        VoucherType.Purchase => "PUR", // ACC-2
+        VoucherType.Contra => "CTR",   // ACC-2
         _ => "JRN",
     };
 

@@ -6,10 +6,15 @@ using Hcc.Domain.Masters;
 namespace Hcc.Domain.Expenses;
 
 /// <summary>One row of the Expense categories master (ops.expense_category, MA-3): needs a bill number, Manager approval-limit override.</summary>
-public sealed record ExpenseCategoryRow(string Code, string Name, bool Active, bool NeedsBill, long? ApprovalLimitPaise);
+public sealed record ExpenseCategoryRow(string Code, string Name, bool Active, bool NeedsBill, long? ApprovalLimitPaise,
+    // ACC-2 (acc2-purchase, contract §3; migration 4231): reverse charge + its default rate, capital (fixed-asset block ledger), ITC blocked (s.17(5)).
+    bool Rcm = false, int? RcmBps = null, bool Capital = false, bool ItcBlocked = false, string? Ledger = null,
+    bool Transport = false); // ACC-2 integration (ruling 10; migration 4256): goods transport — the cash guard's ₹35,000 limit
 
 /// <summary>One row of the Expense vendors master (ops.expense_vendor, MA-3).</summary>
-public sealed record ExpenseVendorRow(int VendorId, string Code, string Name, bool Active);
+public sealed record ExpenseVendorRow(int VendorId, string Code, string Name, bool Active,
+    // ACC-2 (acc2-purchase, contract §3, §5; migration 4231): GST state (MH / null = intra), TDS flag and section.
+    string? State = null, bool Tds = false, string? TdsSection = null);
 
 /// <summary>
 /// The expense commands' master checks — the server gaps the SCC gap report found (§4): the category must be an active row of the Expense

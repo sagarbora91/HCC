@@ -16,7 +16,8 @@ namespace Hcc.Contracts.Expenses;
 /// </summary>
 public sealed record SubmitExpenseRequest(string? Vendor, string Category, long AmountPaise, string Method, bool Draft = false, string? Notes = null, string? Receipt = null,
     string? Description = null, string? ExpenseDate = null, int? GstRateBps = null, long? GstPaise = null, string? BillPhotoBase64 = null, string? BillPhotoContentType = null,
-    bool ConfirmDuplicate = false, bool ConfirmGst = false, string? OverrideReason = null, string? Itc = null);
+    bool ConfirmDuplicate = false, bool ConfirmGst = false, string? OverrideReason = null, string? Itc = null,
+    string? GstKind = null, int? RcmBps = null); // ACC-2 (contract §3): intra | inter (default: the vendor's state); RCM rate override
 
 /// <summary>SubmitExpenseDraft K V (PERM-EXP-001): the submitter sends their own draft for approval (its date while open, else the business day).</summary>
 public sealed record SubmitExpenseDraftRequest(long ExpenseId, string ExpectedVersion, string? OverrideReason = null);
@@ -39,7 +40,7 @@ public sealed record ReverseExpenseRequest(long ExpenseId, string ExpectedVersio
 /// </summary>
 public sealed record EditExpenseRequest(long ExpenseId, string ExpectedVersion, long AmountPaise, string Category, string Method, string? Description, string Reason,
     int? GstRateBps = null, long? GstPaise = null, string? Receipt = null, string? BillPhotoBase64 = null, string? BillPhotoContentType = null, bool ConfirmGst = false,
-    string? Itc = null);
+    string? Itc = null, string? GstKind = null, int? RcmBps = null); // ACC-2 (contract §3)
 
 /// <summary>VoidExpense K V (DEC-120, SCC voidEntry): one of SCC's six reasons + an optional note; Draft / Pending only; PERM-EXP-003 (never the Cashier, DEC-063 G5) or the maker of their own draft.</summary>
 public sealed record VoidExpenseRequest(long ExpenseId, string ExpectedVersion, string Reason, string? Note = null);
@@ -122,7 +123,18 @@ public sealed record ExpenseView(
     bool HasBillPhoto = false,
     string? CreatedUtc = null,
     IReadOnlyList<ExpenseEditView>? Edits = null,
-    string? Itc = null);
+    string? Itc = null,
+    // ACC-2 (acc2-purchase, contract §3): purchase fields (migration 4230).
+    string? GstKind = null,
+    bool Rcm = false,
+    int? RcmBps = null,
+    bool Capital = false,
+    string? AssetNo = null,
+    long? TdsPaise = null,
+    string? TdsSection = null,
+    long? ReturnOf = null,
+    // ACC-2 integration (flows item 8): the B10 cash guard tripped (cash above the day's limit to one payee) — "deduction lost".
+    bool CashDeductionLost = false);
 
 /// <summary>One logged change (SCC editLog): who, when, why, and the changed fields old → new (amounts in paise, rates in basis points).</summary>
 public sealed record ExpenseEditView(long EditId, int By, string AtUtc, string Reason, IReadOnlyDictionary<string, System.Text.Json.JsonElement> Old,

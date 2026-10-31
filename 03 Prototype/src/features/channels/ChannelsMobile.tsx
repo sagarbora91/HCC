@@ -7,16 +7,18 @@ import {useHcc} from '../../app/context';
 import {Empty,shortDate,clockTime} from '../../components/ui';
 import {ListCard,KpiCard,ChipFilter,StickyFooter} from '../../app/mobile/components';
 import {ChnPill,ChnSimulated,stay,party} from './shared';
+import {PayoutsTab} from './payout';
+import {seesVendorBooks} from '../accounting/shared';
 import {chnTabFor,usePushChannel,StopSellToggle,type ChnTab} from './Channels';
 
 const pl=(n:number,w:string)=>`${n} ${w}${n===1?'':'s'}`;
 export function ChannelsMobile(){
-  const {s,tab,setTab,run,busy,open,permission}=useHcc();const hidden=chnCommissionHidden(s);const t=chnTabFor(tab,hidden);
+  const {s,uid,tab,setTab,run,busy,open,permission}=useHcc();const hidden=chnCommissionHidden(s);const po=seesVendorBooks(s,uid);const t=chnTabFor(tab,hidden,po);
   const st=chnSlice(s),pend=chnPending(s),rep=chnCommissionReport(s);
   const [ch,setCh]=usePushChannel();const pc=st.channels.find(c=>c.id===ch);
   return <div className="chn-m">
     <ChnSimulated text="Simulated channel manager — fictional OTAs, nothing is sent."/>
-    <ChipFilter<ChnTab> label="Channels view" value={t} onChange={v=>setTab(v)} options={[{id:'inbox',label:'Inbox',count:pend.length},{id:'channels',label:'Channels'},{id:'push',label:'Push'},...(hidden?[]:[{id:'commission' as const,label:'Commission'}])]}/>
+    <ChipFilter<ChnTab> label="Channels view" value={t} onChange={v=>setTab(v)} options={[{id:'inbox',label:'Inbox',count:pend.length},{id:'channels',label:'Channels'},{id:'push',label:'Push'},...(hidden?[]:[{id:'commission' as const,label:'Commission'}]),...(po?[{id:'payouts' as const,label:'Payouts'}]:[])]}/>
     {t==='inbox'&&<>
       {pend.map(m=>{const c=chnAcceptCheck(s,m);return <ListCard key={m.id} onClick={()=>open({type:'chn-message',id:m.id})}
         title={<>{m.guest} <ChnPill status={m.kind}/></>} sub={`${chnChannelName(s,m.channel)} · ${m.ref} · ${m.roomType}`}
@@ -37,6 +39,7 @@ export function ChannelsMobile(){
           <ul>{rows.map(r=><li key={r.date} className={r.closed?'closed':''}><span>{shortDate(r.date)}</span><b>{r.closed?'Closed':`${r.avail} left`}</b><small>{r.closed?r.why:money(r.rate)}</small></li>)}</ul></section>;})}
       {!chnPushPreview(s,ch).rows.length&&<Empty title="Nothing to push" body="Map a room type on desktop or in the channel sheet."/>}
       <StickyFooter><button className="btn primary" disabled={busy||pc?.status!=='Connected'||!chnPushPreview(s,ch).rows.length} onClick={()=>run({type:'CHN_PUSH',channel:ch},`Pushed to ${pc?.name} (simulated)`)}><Send size={18}/> {pc?.status==='Connected'?`Push to ${pc.name}`:`${pc?.name??'Channel'} not connected`}</button></StickyFooter></>}
+    {t==='payouts'&&<PayoutsTab phone/>}
     {t==='commission'&&<>
       <div className="chn-mkpis"><KpiCard label="Commission due" value={money(rep.total.commission)} sub={pl(rep.total.bookings,'booking')}/><KpiCard label="Net to hotel" value={money(rep.total.net)} sub={pl(rep.total.nights,'room night')}/></div>
       {rep.byChannel.map(x=><ListCard key={x.channel.id} title={x.channel.name} sub={`${pl(x.bookings,'booking')} · ${pl(x.nights,'night')} · ${chnPct(x.channel.commissionBps)}`} meta={`Revenue ${money(x.base)} · net ${money(x.net)}`} right={<strong>{money(x.commission)}</strong>}/>)}

@@ -201,7 +201,7 @@ export async function register({test,M,assert}){
     s=execute(s,'reception',{type:'EXPENSE',description:'Test expense stream-money-master:201',vendor:'Hardware Corner',category:'Maintenance',amount:30000,method:'Supplier account'});
     s=execute(s,'owner',{type:'EXPENSE_APPROVE',id:s.expenses.at(-1).id,approve:true});
     assert.equal(drawer(s),d);assert.equal(accMapping(s)['funding:Supplier account'],'2200');
-    const v=M.accVouchers(s,s.date).find(v=>v.source.id===s.expenses.at(-1).id);assert.equal(v.type,'Journal');
+    const v=M.accVouchers(s,s.date).find(v=>v.source.id===s.expenses.at(-1).id);assert.equal(v.type,'Purchase'); // ACC-2 contract §3.1: a bill on a credit method is a Purchase voucher (was Journal)
     assert.equal(reportPack(s,s.date,s.date).tabs.find(t=>t.id==='expenses').metrics.find(m=>m.id==='vendor').value,30000);});
 
   // ── Expense vendors ──

@@ -32,6 +32,7 @@ import type {Command} from '../../services/mock';
 import {hrLeaveImportParse} from '../../domain/streams/staff-leave';
 import type {HRState,HRStaff,HRRates,HRLine,HRCounts,HRSccDays,HRRun,HRLeave,HRAdvance,HRFnf,HRAtt,HRShiftCode,HRSend,HRBankFile,HRRequest,HRDayEntry,HRBank,HREnt,HRAgenda,HRLeavePolicy} from '../../domain/streams/staff';
 import {HccClientError} from '../errors';
+import {mnyIsDrawer} from '../../domain/streams/money-master';
 import type {SyncArea,CommandCtx} from './types';
 import {protoId,serverId,utcToClock} from './map';
 
@@ -321,8 +322,15 @@ export const staff:SyncArea={
           ...(plan.weekOff?{weekOffMask:weekOffToMask(plan.weekOff)}:{})});}},
     {type:'HR_LEAVE_CLEAR',reload:RELOAD,precheck:cmd=>String(cmd.confirm??'').trim()!=='DELETE'?'Type DELETE (uppercase) to confirm':undefined,
       send:c=>post(c,'ClearLeave',{confirm:'DELETE'})},
-    {type:'HR_ADVANCE_ADD',reload:RELOAD,send:c=>post(c,'GiveAdvance',({staffId:serverId(c.cmd.staffId,'Staff'),amountPaise:c.cmd.amount,installmentPaise:c.cmd.installment??0,
-      reason:String(c.cmd.reason??'').trim(),fromMonth:c.cmd.fromMonth||null}))},
+    // ACC-2 (coordinator ruling 5): the advance is paid by a payment method (default Cash); drawer cash leaves the till of the open shift.
+    {type:'HR_ADVANCE_ADD',reload:RELOAD,async send(c){
+      // The dialog always sends `funding`; a command without it keeps the server's pre-ACC-2 meaning (simulated bank transfer, no drawer).
+      const funding=String(c.cmd.funding??'').trim(),cash=!!funding&&mnyIsDrawer(c.state,funding);
+      const tillId=cash?c.ids.server('till','current'):undefined;
+      if(cash&&tillId===undefined)throw new HccClientError('INVALID_TRANSITION','Open cash shift required: a cash advance leaves the drawer of the open shift. Open Cashier, refresh and try again.');
+      await post(c,'GiveAdvance',({staffId:serverId(c.cmd.staffId,'Staff'),amountPaise:c.cmd.amount,installmentPaise:c.cmd.installment??0,
+        reason:String(c.cmd.reason??'').trim(),fromMonth:c.cmd.fromMonth||null,...(funding?{funding}:{}),...(cash?{tillId}:{})}));
+      return cash?{reload:['shift','shiftClose','openingCash','cashbookX']}:undefined;}},
     {type:'HR_STAT_RATES_SET',reload:RELOAD,send:c=>post(c,'SetStatutoryRates',ratesBody(c.cmd))},
     {type:'HR_RATES_SET',reload:RELOAD,send:c=>post(c,'SetStatutoryRates',ratesBody(c.cmd))},
     {type:'HR_PAYROLL_RUN',reload:RELOAD,send:c=>post(c,'PreparePayRun',({month:c.cmd.month}))},

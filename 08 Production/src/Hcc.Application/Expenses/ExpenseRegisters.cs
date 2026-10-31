@@ -24,7 +24,7 @@ namespace Hcc.Application.Expenses;
 /// </summary>
 public sealed class ExpenseRegisterCommands(ICommandRunner runner, IAccessPolicy policy, IExpenseStore store, IExpenseRegisterStore registers, TimeProvider clock,
     Hcc.Application.Closing.IBusinessDayGuard? days = null, MoneyMasters.IPaymentMethodSource? methods = null, IExpenseMasterSource? masters = null,
-    Billing.ICashDrawerPort? drawer = null)
+    Billing.ICashDrawerPort? drawer = null, Accounting.CashGuardService? cashGuard = null)
 {
     public const string OpSetBudget = "SetExpenseBudget";
     public const string OpCopyBudgets = "CopyExpenseBudgets";
@@ -358,6 +358,8 @@ public sealed class ExpenseRegisterCommands(ICommandRunner runner, IAccessPolicy
             }
 
             var p = ExpenseScc.UdhaarPayment(r.Outstanding, req.AmountPaise);
+            if (cash && cashGuard is not null) // ACC-2 flows (contract §7, B9): the credit's cash reaching Rs 2,00,000 is refused (CASH_LIMIT)
+                await cashGuard.EnsureReceiptAsync(tx, ctx.PropertyId, new Accounting.CashParty(Accounting.CashParty.Udhaar, r.ReceivableId), p.Amount, bd, r.Name, c).ConfigureAwait(false);
             var id = await registers.InsertSettlementAsync(tx, new UdhaarSettlementRecord(0, r.ReceivableId, p.Amount, bd, method.Name, ctx.PrincipalId, UtcNow, true, reference, till), c)
                 .ConfigureAwait(false);
             long? movementId = null;

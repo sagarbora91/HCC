@@ -50,7 +50,8 @@ public sealed class ModuleGateHttpTests(ConfigDatabase db) : IClassFixture<Confi
             "TransferGroupMember", "RecordGroupReceipt", "RequestGroupAttrition", "DecideGroupAttrition", "SettleGroup", "SaveCompany", "SetCompanyLimit",
             "DecideCompanyLimit", "RecordCompanyPayment", "CreateGroupBlock", "ReleaseGroupBlock"],
         [ConfigModuleIds.Ota] = ["SaveChannel", "SetChannelStatus", "SetChannelStopSell", "PushChannelRates", "ImportChannelMessage", "QueueSimulatedMessage",
-            "PullChannelMessages", "AcceptChannelMessage", "RejectChannelMessage"],
+            "PullChannelMessages", "AcceptChannelMessage", "RejectChannelMessage",
+            "RecordOtaPayout", "SetChannelItc"], // ACC-2 flows: the OTA payout and the channel's ITC switch follow the OTA module switch (DEC-057)
         [ConfigModuleIds.Website] = ["ConfirmWebRequest", "DeclineWebRequest", "CreateWebDepositLink", "MarkWebDepositPaid"],
         [ConfigModuleIds.Messaging] = ["SendMessage", "RunMessagingTriggers", "SimulateMessageDelivery", "RetryMessage", "SetMessagingConsent", "UpdateMessageTemplate",
             "UpdateMessageRule"],

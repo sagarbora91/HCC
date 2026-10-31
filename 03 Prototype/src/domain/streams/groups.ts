@@ -19,11 +19,15 @@ export type GRPCompany={id:string;name:string;
   limitHistory?:{from:number;to:number;at:string;actor:string;reason:string;request?:string}[];
   /** Production only: the server's credit figures (GET /groups/companies); grpCredit() shows these instead of the local estimate. */
   credit?:GRPServerCredit;
+  /** ACC-2 flows (contract §8, DEC-157): false = retired (hidden from pickers; no new booking, block or credit). Absent = active. Retiring
+   *  refuses a non-zero 1110/<company> balance, open stays and open blocks (grpRetireBlocker + accPartyRetireBlocker). */
+  active?:boolean;
 };
 /** The server's credit picture of a company (DEC-076; paise). Items: receivable | payment | stay | group with a booking / invoice / group reference. */
 export type GRPServerCredit={exposure:number;receivable:number;openStays:number;groupMasters:number;remaining:number;items:{kind:string;id:string;reference:string;amount:number}[]};
 /** Money received from a company against its company-credit receivable (DEC-076): non-cash, never more than it owes; frees credit. */
-export type GRPCompanyPayment={id:string;company:string;amount:number;method:string;reference:string;invoice?:string;date:string;actor:string;at:string};
+export type GRPCompanyPayment={id:string;company:string;amount:number;method:string;reference:string;invoice?:string;date:string;actor:string;at:string;
+  /** ACC-2 (contract §4 A9): TDS the company deducted (paise; absent = none). It settles the receivable with `amount` (Dr 1360 TDS receivable). */ tds?:number};
 export type GRPBlockStatus='Open'|'Released'|'Cancelled';
 export type GRPBlock={id:string;name:string;
   /** Company account ID (optional — e.g. a wedding party has none). */
@@ -160,7 +164,7 @@ export function grpAccountOf(s:State,b:Booking):GRPCompany|undefined{
   return blk?grpCompany(s,blk.company):undefined;
 }
 /** Money received from the company (DEC-076). */
-export const grpPaid=(s:State,c:GRPCompany)=>(grpSlice(s).payments??[]).filter(p=>p.company===c.id).reduce((a,p)=>a+p.amount,0);
+export const grpPaid=(s:State,c:GRPCompany)=>(grpSlice(s).payments??[]).filter(p=>p.company===c.id).reduce((a,p)=>a+p.amount+(p.tds??0),0); // ACC-2 tds: TDS deducted settles too (A9)
 /** Company-credit receivable: opening outstanding + company credit given at checkout on its bookings − payments received (never below 0). */
 export function grpReceivable(s:State,c:GRPCompany){
   const credit=grpCompanyBookings(s,c).reduce((a,b)=>a+b.receipts.filter(r=>r.kind==='company-credit').reduce((x,r)=>x+r.amount,0),0);
@@ -249,3 +253,19 @@ export function grpKpis(s:State){
 /** GSTIN placeholder shape (same as reservations' RES_GSTIN); fixture values use the fictional "ZZFIC" pattern. */
 export const GRP_GSTIN=/^\d{2}[A-Z]{5}\d{4}[A-Z][A-Z\d]Z[A-Z\d]$/;
 export const GRP_MAX_LIMIT=1000000000; // ₹1 crore in paise
+
+// ── ACC-2 flows · company retire (contract §8, ACC1-DONE §6 / §7 item 10, DEC-157) ──
+export const grpCompanyActive=(c:Pick<GRPCompany,'active'>)=>c.active!==false;
+/** Companies offered in pickers: the active ones, plus `keep` (the value already chosen on a record, even when retired since). */
+export const grpActiveCompanies=(s:State,keep?:string)=>grpSlice(s).companies.filter(c=>grpCompanyActive(c)||c.id===keep);
+/** Why a company cannot be retired from the group / booking side ('' = it can): open stays billed to it, open group blocks, an open
+ *  company-credit receivable. The 1110/<company> ledger balance is the accounting guard (accPartyRetireBlocker), checked by the command. */
+export function grpRetireBlocker(s:State,c:GRPCompany):string{
+  const stays=s.bookings.filter(b=>b.company?.account===c.id&&['Held','Confirmed','In house'].includes(b.status)&&!(b.status==='Held'&&b.holdUntil&&s.clock>=b.holdUntil));
+  if(stays.length)return `${c.name} has ${stays.length} open stay${stays.length===1?'':'s'} billed to it (${stays.slice(0,3).map(b=>b.id).join(', ')}${stays.length>3?', …':''}) — move or settle them before retiring the account.`;
+  const blocks=grpSlice(s).blocks.filter(b=>b.company===c.id&&grpStatus(s,b)==='Open');
+  if(blocks.length)return `${c.name} has ${blocks.length} open group block${blocks.length===1?'':'s'} (${blocks.map(b=>b.name).join(', ')}) — release or cancel ${blocks.length===1?'it':'them'} first.`;
+  const owed=grpReceivable(s,c);
+  if(owed>0)return `${c.name} still owes ${money(owed)} on company credit — record the payment before retiring the account.`;
+  return '';
+}

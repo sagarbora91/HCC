@@ -5,7 +5,7 @@ import {money,grpSlice,grpKpis,grpBlockTotals,grpLines,grpStatus,grpCompany,grpC
 import {useHcc} from '../../app/context';
 import {Empty,shortDate} from '../../components/ui';
 import {ListCard,KpiCard,ChipFilter,Fab} from '../../app/mobile/components';
-import {GrpStatusPill,GrpCreditPill,GrpCreditBar,grpCutoffText,grpUserName} from './parts';
+import {GrpStatusPill,GrpCreditPill,GrpCreditBar,grpCutoffText,grpUserName,GrpRetiredPill} from './parts';
 
 type Chip='blocks'|'companies'|'pickup'|'requests';
 export function GroupsMobile(){
@@ -20,7 +20,7 @@ export function GroupsMobile(){
       return <ListCard key={b.id} title={b.name} sub={`${c?c.name:'Private group'} · ${shortDate(b.arrival)}→${shortDate(b.departure)}`} meta={`${t.picked}/${t.allot} picked · ${grpCutoffText(s,b)}`}
         right={<span className="grp-m-right"><GrpStatusPill s={s} blk={b}/>{t.atRisk&&<span className="pill grp-red">At risk</span>}</span>} onClick={()=>open({type:'grp-detail',id:b.id})}/>;}):<Empty title="No group blocks"/>)}
     {chip==='companies'&&x.companies.map(c=>{const cr=grpCredit(s,c);
-      return <ListCard key={c.id} title={c.name} sub={`Used ${money(cr.exposure)} of ${money(cr.limit)} · ${money(cr.available)} left`} meta={<><GrpCreditBar s={s} c={c}/>Owed {money(cr.receivable)} · {c.gstin} · fictional</>} right={<GrpCreditPill level={cr.level}/>} onClick={()=>open({type:'grp-limit',id:c.id})}/>;})}
+      return <ListCard key={c.id} title={<>{c.name} <GrpRetiredPill c={c}/></>} sub={`Used ${money(cr.exposure)} of ${money(cr.limit)} · ${money(cr.available)} left`} meta={<><GrpCreditBar s={s} c={c}/>Owed {money(cr.receivable)} · {c.gstin} · fictional</>} right={<GrpCreditPill level={cr.level}/>} onClick={()=>open({type:'grp-limit',id:c.id})}/>;})}
     {chip==='companies'&&<p className="grp-m-note">Limits are enforced: bookings, company credit and rooming lists beyond the remaining credit are refused. Only the Owner sets a limit; a payment from the company frees credit (DEC-076).</p>}
     {chip==='pickup'&&<>{grpPickupReport(s).map(r=><ListCard key={r.block.id+r.type} title={`${r.block.name} · ${r.type}`} sub={`${r.picked} of ${r.allot} picked (${r.pct}%) · ${r.released} released · ${r.remaining} left`} meta={`${shortDate(r.block.arrival)}→${shortDate(r.block.departure)} · cut-off ${shortDate(r.block.cutoff)}`} right={<span className="pill neutral">{r.status}</span>}/>)}
       <button className="btn full grp-m-btn" onClick={()=>open({type:'grp-print',id:'pickup'})}><Printer size={18}/> Print pickup report</button></>}

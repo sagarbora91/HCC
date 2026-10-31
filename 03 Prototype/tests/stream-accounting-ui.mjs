@@ -139,9 +139,9 @@ export function render(name:string,props:any,s:any,uid:string,mobile=false){
   test('[ACC1-UI] source discipline: the contract stubs are gone (integration) — contract names come from the mock barrel, command shapes from commands.ts; no hex colours in the accounting styles; phone targets 48 px',async()=>{
     const dir='src/features/accounting/';const all=await readdir(dir);assert.ok(!all.includes('_contract-stubs.ts'),'the stubs file is deleted at integration');
     const files=all.filter(f=>/\.tsx?$/.test(f));
-    for(const f of files){const src=await readFile(dir+f,'utf8');
+    for(const f of files){/* ACC-2: _contract-stubs-2 is the ACC-2 lane's own file */const src=await readFile(dir+f,'utf8');
       assert.ok(!/from '\.\.\/\.\.\/domain\/streams\/accounting-/.test(src),f+' imports a lane file directly');
-      assert.ok(!/_contract-stubs/.test(src),f+' still imports the stubs');}
+      assert.ok(!/_contract-stubs['"]/.test(src),f+' still imports the stubs');}
     for(const n of ['accChart','accGroups','accChartHistory','accPartyLedgers','accOpening','accOpeningPending','accStatement','accTrialBalance6','accDayBook','accStatementCsv','accTrialBalance6Csv','accDayBookCsv'])
       assert.equal(typeof M[n],'function',n+' is exported by the mock barrel');
     const cmds=await readFile(dir+'commands.ts','utf8');

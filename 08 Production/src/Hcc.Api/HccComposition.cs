@@ -37,6 +37,13 @@ public static class HccComposition
         services.AddExpensesModule();                   // W2-4 expenses and petty cash
         services.AddAccountingModule();                  // W2-3 accounting & Tally (outbox consumer)
         services.AddAccountingOpeningModule();           // ACC-1 opening balances (IOpeningEntryStore: lock guard, cumulative TB, report opening)
+        // ACC-2 integration: the lanes' services (endpoint lines in the ACC-2 block below).
+        services.AddAccountingManualModule();            // acc2-manual: manual vouchers + the IGstManualVouchers / ITdsRemittancePoster ports over them
+        services.AddAccountingTdsModule();               // acc2-tds: TdsService (TDS held back at expense approval, remittance → TDS compliance card)
+        services.AddAccountingGstModule();               // acc2-gst: GST month, set-off, month locks (pending manual vouchers through the manual port)
+        services.AddAccountingFlowsModule();             // acc2-flows: SqlFlowsStore ports, CashGuardService (+ settings provider) → BillingService / PosService / ExpenseCommands / ExpenseRegisterCommands / vendor payments / manual vouchers / advances
+        services.AddSingleton<Hcc.Application.Accounting.ILedgerMonthBalanceStore>(sp =>  // acc2-parity: acc.ledger_month_balance (report opening read)
+            new Hcc.Infrastructure.SqlServer.Accounting.SqlLedgerMonthBalanceStore(sp.GetRequiredService<SqlPlatform>().Connections));
         services.AddHccCompliance();                     // W2-5 compliance calendar
         services.AddPosModule();                         // W2-6 restaurant POS
         services.AddHccMaintenance();                    // W2-7
@@ -128,6 +135,14 @@ public static class HccComposition
         api.MapAccountingOpeningEndpoints(); // ACC-1 opening balances (contract §5)
         api.MapAccountingReportEndpoints(); // ACC-1 acc1-statements
         // ACC-1 end
+        // ACC-2 lanes: add ONE api.MapAccounting<Lane>Endpoints(); (or services.Add…Module()) line below (append only).
+        api.MapExpenseVendorEndpoints(); // acc2-purchase (vendor payments, returns, ageing, asset register)
+        api.MapAccountingManualEndpoints(); // ACC-2 acc2-manual (contract §2: manual vouchers, loans)
+        api.MapAccountingTdsEndpoints(); // ACC-2 tds lane (contract §4 A9, §5)
+        api.MapAccountingGstEndpoints(); // ACC-2 gst lane (contract §4 switch, §6)
+        api.MapOtaPayoutEndpoints(); // acc2-flows: ApplyDeposit, SettleFolioToOta, RecordOtaPayout, SetChannelItc, ReverseUdhaarPayment, SetCompanyActive, GET /ota/payouts
+        api.MapAccountingParityEndpoints(); // acc2-parity: BackfillUdhaarCredits (contract §8)
+        // ACC-2 end
         api.MapComplianceEndpoints();    // W2-5
         api.MapPosEndpoints();           // W2-6
         api.MapMaintenanceEndpoints();   // W2-7

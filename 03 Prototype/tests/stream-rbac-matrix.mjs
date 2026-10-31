@@ -117,7 +117,15 @@ const CMDS={
   ACC_TALLY_EXPORT:C('OWN ACC','DEC-063 G13 Tally tab; DEC-077 export log'),ACC_LOCK:C('OWN MGR ACC','Module 20 §8'),ACC_UNLOCK:C('OWN','Module 20 §8'),ACC_MAP_SET:C('OWN','Module 20 §8 + matrix note: TAD holds no financial actions'),ACC_MAP_RESET:C('OWN','as ACC_MAP_SET'),
   ACC_LEDGER_UPSERT:C('OWN','ACC-1 contract §7: chart of accounts = Owner-only money master (PERM-ACC-007, DEC-058)'),ACC_LEDGER_RETIRE:C('OWN','as ACC_LEDGER_UPSERT'),ACC_GROUP_UPSERT:C('OWN','as ACC_LEDGER_UPSERT'),
   // ACC-1 opening balances (contract §5/§7, DEC-148): enter = Owner / Manager / Accountant with reports (PERM-ACC-008); approve / reopen = Owner (PERM-ACC-009).
+  // ACC-2 acc2-purchase (contract §3.2, §3.5, §9 PERM-EXP-004 expenses.vendor.pay; void Owner-only)
+  EXP_VENDOR_PAY:C('OWN MGR ACC','ACC-2 contract §9 PERM-EXP-004'),EXP_VENDOR_PAY_VOID:C('OWN','ACC-2 contract §3.2 (Owner voids)'),EXP_VENDOR_RETURN:C('OWN MGR ACC','ACC-2 contract §3.5 + §9 PERM-EXP-004 (Owner approves)'),
+  ACC_MANUAL_SAVE:C('OWN ACC','ACC-2 contract §9 PERM-ACC-010 (Accountant pending, Owner approved at once)'),ACC_MANUAL_DECIDE:C('OWN','ACC-2 contract §9 PERM-ACC-011'),ACC_MANUAL_VOID:C('OWN','ACC-2 contract §9 PERM-ACC-011 (approve and void)'),ACC_LOAN_ADD:C('OWN','ACC-2 contract §2 Add loan = chart edit (PERM-ACC-007)'),
   ACC_OPENING_SAVE:C('OWN MGR ACC','ACC-1 contract §7 PERM-ACC-008'),ACC_OPENING_APPROVE:C('OWN','ACC-1 contract §7 PERM-ACC-009'),ACC_OPENING_REOPEN:C('OWN','ACC-1 contract §5 (Owner reopens)'),
+  ACC_TDS_SETTINGS:C('OWN','ACC-2 contract §4 firm-profile TDS switches (Owner-only money setting, DEC-058)'),ACC_TDS_REMIT:C('OWN ACC','ACC-2 contract §5 / §9 PERM-ACC-013 TDS remittance (E5)'),
+  // ACC-2 gst lane (contract §6, §9): tax entries = Owner / Accountant (PERM-ACC-013); month lock / unlock = Owner (PERM-ACC-012), the Accountant requests; GST on advances = Owner money setting (DEC-058, DEC-142).
+  ACC_GST_SETOFF:C('OWN ACC','ACC-2 contract §6 PERM-ACC-013'),ACC_GST_PAY:C('OWN ACC','ACC-2 contract §6 PERM-ACC-013'),ACC_STAT_REMIT:C('OWN ACC','ACC-2 contract §6 D5 PERM-ACC-013'),ACC_MONTH_LOCK:C('OWN','ACC-2 contract §9 PERM-ACC-012'),ACC_MONTH_LOCK_REQUEST:C('ACC','ACC-2 contract §9 (Accountant: request)'),ACC_MONTH_UNLOCK:C('OWN','ACC-2 contract §6 (DEC-131 mirror)'),ACC_GST_ADVANCES_SET:C('OWN','ACC-2 contract §4 Owner-only money setting (DEC-058, DEC-142)'),
+  // ACC-2 flows (contract §4, §8, §9): deposit applied at check-out = a folio receipt (PAY-001); OTA payout = PERM-OTA-004 holders; Udhaar reversal = Owner (A17b).
+  DEPOSIT_APPLY:C('OWN MGR REC CSH','ACC-2 contract §4 A6a (payments, open shift)'),CHN_PAYOUT:C('OWN MGR ACC','ACC-2 contract §4 / §9 PERM-OTA-004'),EXP_UD_PAY_REVERSE:C('OWN','ACC-2 contract §8 A17b (Owner)'),
   OWN_CREDENTIAL_CHANGE:C(ALL,'A02b-05: every signed-in user changes their own password / PIN (server ChangeOwnCredential)'),
   AI_ASK:C(ALL,'Module 26: any user, answer filtered'),AI_CLEAR:C(ALL,'Module 26: own history'),AI_SETTINGS:C('OWN MGR','Module 26 (approve)'),
   CB_LOCK:C('OWN MGR ACC','Wave 0.5: day locked by a checker'),CB_REOPEN:C('OWN','Wave 0.5: owner reopen'),

@@ -115,7 +115,8 @@ public sealed record ChannelMappingView(int RoomTypeId, string RoomType, string 
 /// <summary>One channel of GET /ota/channels. <c>CommissionBps</c> is null for a reader without <see cref="OtaPermissions.ViewMoney"/>
 /// (DEC-079 D7, Wave D5: Reception and the Tech admin see the channels but not the commission; Owner, Manager and Accountant see it).</summary>
 public sealed record ChannelView(int ChannelId, string Code, string Name, string Status, string Version, int? CommissionBps, int MarkupBps,
-    string? LastSync, string StatusNote, bool PushDue, int PendingMessages, IReadOnlyList<ChannelMappingView> Mapping);
+    string? LastSync, string StatusNote, bool PushDue, int PendingMessages, IReadOnlyList<ChannelMappingView> Mapping,
+    bool ItcAllowed = false); // ACC-2 integration (flows item 4): the GST on this channel's commission may be taken as ITC (Owner setting, SetChannelItc)
 
 public sealed record ChannelMessageView(long MessageId, string Version, int ChannelId, string Channel, string ExternalId, string Kind, string ChannelRef,
     string Guest, string? Phone, string? Email, string ChannelRoomCode, int? RoomTypeId, string? RoomType, string Arrival, string Departure,

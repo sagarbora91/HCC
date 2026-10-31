@@ -141,7 +141,7 @@ export function register({test,M,assert}){
       else assert.equal(st.net,net);
       assert.equal(st.taxBps,500);assert.equal(st.tax,taxOf(st.net));assert.equal(st.total,st.net+st.tax);
       if(st.mode==='folio'){const b=s.bookings.find(x=>x.id===st.booking),l=b.lines.find(x=>x.id===st.folioLineId);
-        assert.ok(l&&l.amount===st.net&&l.taxBps===st.taxBps&&l.kind==='service'&&l.label.includes(st.billNo),o.id);const seg=(b.segments??[{room:b.room,from:b.arrival,to:b.departure}]).find(g=>g.from<=st.date&&st.date<(g.to??b.departure));assert.ok(st.date>=b.arrival&&st.date<b.departure&&seg&&seg.room===o.room,o.id);}
+        assert.ok(l&&l.amount===st.net&&l.taxBps===st.taxBps&&l.kind==='food'&&l.label.includes(st.billNo),o.id);const seg=(b.segments??[{room:b.room,from:b.arrival,to:b.departure}]).find(g=>g.from<=st.date&&st.date<(g.to??b.departure));assert.ok(st.date>=b.arrival&&st.date<b.departure&&seg&&seg.room===o.room,o.id);}
       else assert.ok(p.receipts.some(r=>r.id===st.receiptId&&r.amount===st.total&&r.method===st.method&&r.date===st.date));}
     const nums=[...hist2].sort((a,b)=>a.openedAt<b.openedAt?-1:1).map(o=>Number(o.settlement.billNo.slice(-4)));
     for(let i=1;i<nums.length;i++)assert.equal(nums[i],nums[i-1]+1);
@@ -159,7 +159,8 @@ export function register({test,M,assert}){
       assert.ok(o.lines.every(l=>l.voided&&l.voidApproval===a.id));
       const vr=p.receipts.find(r=>r.order===o.id&&r.kind==='void');assert.ok(vr&&vr.amount===-o.settlement.total);}
     const roomLines=hist.flatMap(b=>b.lines.filter(l=>l.id.startsWith('posline:')));assert.ok(roomLines.length>100);
-    const d='2026-09-20',expect=hist.flatMap(b=>b.lines.filter(l=>l.date===d&&l.kind==='service')).reduce((a,l)=>a+l.amount,0);
+    const d='2026-09-20',expect=hist.flatMap(b=>b.lines.filter(l=>l.date===d&&(l.kind==='service'||l.kind==='food'))) // ACC-2 parity: room-service lines are 'food', still service revenue in the report
+      .reduce((a,l)=>a+l.amount,0);
     assert.equal(s.closings[d].revenue.service,expect);
   });
   test('[HIST-C] channels: OTA bookings arrive as applied messages; commission report equals the channel rates',()=>{

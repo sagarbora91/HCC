@@ -925,6 +925,17 @@ internal sealed class SqlPayrollDb(SqlConnectionFactory factory, SqlConnection c
         return Convert.ToInt64(await ScalarAsync(c, ct).ConfigureAwait(false), CultureInfo.InvariantCulture);
     }
 
+    public async Task SetAdvanceFundingAsync(long advanceId, string funding, int? tillId, long? movementId, bool cashDeductionLost, CancellationToken ct)
+    {
+        var c = Cmd("UPDATE hr.advance SET funding = @fu, till_id = @t, cash_movement_id = @m, cash_deduction_lost = @l WHERE advance_id = @id;");
+        P(c, "@fu", SqlDbType.NVarChar, 60, funding);
+        P(c, "@t", SqlDbType.Int, tillId);
+        P(c, "@m", SqlDbType.BigInt, movementId);
+        P(c, "@l", SqlDbType.Bit, cashDeductionLost);
+        P(c, "@id", SqlDbType.BigInt, advanceId);
+        await ExecAsync(c, ct).ConfigureAwait(false);
+    }
+
     public async Task RecordRecoveryAsync(long advanceId, long? runId, long? fnfId, long amount, DateTime utc, CancellationToken ct)
     {
         var c = Cmd("""

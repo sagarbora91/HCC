@@ -15,6 +15,9 @@ public sealed partial class PayrollService
     /// <summary>Advances and full-and-final net pay are paid by bank transfer (simulated; never drawer cash) — the funding Accounting credits.</summary>
     public const string AdvanceFunding = "Bank transfer";
 
+    /// <summary>ACC-2 integration (ruling 5): pay.cash_movement source type of a salary advance paid in drawer cash (kind expense, negative).</summary>
+    public const string AdvanceDrawerSource = "staff-advance";
+
     // ── Advances ──
 
     public async Task<CommandResult<AdvanceResult>> GiveAdvanceAsync(CommandContext ctx, GiveAdvanceRequest req, CancellationToken ct = default)
@@ -40,13 +43,41 @@ public sealed partial class PayrollService
             if (from < current) throw HccException.Validation("Recovery starts this month or later.");
             var advances = await db.AdvancesAsync(ctx.PropertyId, c2).ConfigureAwait(false);
             if (advances.Any(a => a.StaffId == st.StaffId && a.Balance > 0)) throw Invalid("This staff member already has an open advance.");
+            // ACC-2 integration (ruling 5): the funding method; drawer cash needs the till of the open shift and passes the B10 cash guard first.
+            var funding = AdvanceFunding;
+            int? till = null;
+            Hcc.Domain.Accounting.CashGuardResult? cashWarn = null;
+            if (!string.IsNullOrWhiteSpace(req.Funding))
+            {
+                var ms = methods is null ? null : await methods.MethodsAsync(tx, ctx.PropertyId, c2).ConfigureAwait(false);
+                var m = Hcc.Domain.MoneyMasters.PaymentMethodBook.Pick(ms, req.Funding, Hcc.Contracts.MoneyMasters.MoneyMasterValues.Expenses, null, requireReference: false);
+                if (m.IsCredit) throw HccException.Validation("An advance is paid in money: choose cash, UPI or a bank transfer — not a credit method.");
+                funding = m.Name;
+                if (m.SettlesToTill)
+                {
+                    if (drawer is null) throw HccException.Validation("Cash advances need the shared cash drawer on this server.");
+                    till = req.TillId ?? throw HccException.Validation("Choose the till that pays this cash advance (open cash shift required).");
+                    if (cashGuard is not null)
+                        cashWarn = await cashGuard.PaymentAsync(tx, ctx.PropertyId, new Accounting.CashParty(Accounting.CashParty.Ledger, 0, "1200/STF-" + st.StaffId.ToString(CultureInfo.InvariantCulture)),
+                            req.AmountPaise, clockInfo.BusinessDate, transport: false, st.Profile.Name, c2).ConfigureAwait(false);
+                }
+            }
+
             var id = await db.InsertAdvanceAsync(ctx.PropertyId, st.StaffId, req.AmountPaise, req.InstallmentPaise, clockInfo.BusinessDate, from, reason, ctx.PrincipalId, Now, c2)
                 .ConfigureAwait(false);
-            var text = $"{st.Profile.Name} · advance {Rs(req.AmountPaise)} · {(req.InstallmentPaise > 0 ? Rs(req.InstallmentPaise) + "/month" : "full recovery")} from {from.Label} (simulated bank transfer, not drawer cash)";
+            long? movement = null;
+            if (till is { } t)
+                movement = await drawer!.RecordMovementAsync(tx, t, Hcc.Domain.Payments.CashMovementKind.Expense, AdvanceDrawerSource, id, new Hcc.Domain.Money.Paise(-req.AmountPaise),
+                    $"Salary advance · {st.Profile.Name}", reason, c2).ConfigureAwait(false);
+            if (!string.IsNullOrWhiteSpace(req.Funding))
+                await db.SetAdvanceFundingAsync(id, funding, till, movement, cashWarn?.DeductionLost == true, c2).ConfigureAwait(false);
+            var how = string.IsNullOrWhiteSpace(req.Funding) ? "simulated bank transfer, not drawer cash" : till is null ? funding + ", simulated — no money moves" : "cash from the drawer";
+            var text = $"{st.Profile.Name} · advance {Rs(req.AmountPaise)} · {(req.InstallmentPaise > 0 ? Rs(req.InstallmentPaise) + "/month" : "full recovery")} from {from.Label} ({how})"
+                + (cashWarn is { DeductionLost: true } ? " · " + cashWarn.Message : "");
             await tx.AuditAsync("HR_ADVANCE_GIVEN", Target("hr.advance", id), text, c2).ConfigureAwait(false);
             // DEC-074: Accounting books the advance (Dr staff advances · Cr bank) from this, so the pay-run recoveries have something to clear.
             await tx.PublishAsync(Contracts.Accounting.AccountingEvents.AdvanceGiven, id, new Contracts.Accounting.AdvanceGivenEvent(id, st.StaffId, req.AmountPaise, req.InstallmentPaise,
-                clockInfo.BusinessDate, AdvanceFunding), c2).ConfigureAwait(false);
+                clockInfo.BusinessDate, funding), c2).ConfigureAwait(false);
             return new AdvanceResult(id, st.StaffId, req.AmountPaise, req.InstallmentPaise, from.ToString(), text);
         }, ct).ConfigureAwait(false);
     }
@@ -178,10 +209,26 @@ public sealed partial class PayrollService
             // Accounting (W2-3) books the salary journal from this (its PayrollPostedEvent contract); nothing is paid by HCC.
             var postedOn = (await db.PropertyAsync(ctx.PropertyId, c2).ConfigureAwait(false)).BusinessDate;
             var other = t.Gross - t.Net - t.Pf - t.Esic - t.Pt - t.Advance; // gross = net + employee deductions
+            // ACC-2 (coordinator rulings 2 and 6): the pay-run voucher is dated the pay period's last day when the lock is later and that day is not
+            // period-locked yet, else the business date of the lock; the lock date rides along.
             await tx.PublishAsync(Contracts.Accounting.AccountingEvents.PayrollPosted, run.RunId, new Contracts.Accounting.PayrollPostedEvent(run.RunId, run.Month.ToString(),
-                postedOn, t.Gross, t.PfEr, t.EsicEr, t.Pf, t.Esic, t.Pt, t.Advance, other, t.Net, lockSeq), c2).ConfigureAwait(false);
+                await BookOnAsync(tx, ctx.PropertyId, run.Month, postedOn, c2).ConfigureAwait(false), t.Gross, t.PfEr, t.EsicEr, t.Pf, t.Esic, t.Pt, t.Advance, other, t.Net, lockSeq,
+                // ACC-2 (contract §8): the advance recovered per staff member → Cr 1200/STF-<id> (no more no-party warning on the 1200 control)
+                lines.Where(l => l.Advance > 0).GroupBy(l => l.StaffId).OrderBy(g => g.Key)
+                    .Select(g => new Contracts.Accounting.AdvanceRecoveryLine(g.Key, g.Sum(l => l.Advance))).ToList(), postedOn), c2).ConfigureAwait(false);
             return RunResult(run.RunId, run.Month, "Locked", lines, version, run.Warnings, text);
         }, ct).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// ACC-2 integration (coordinator ruling 6): the date a pay-run / net-pay voucher is booked on — the pay period's last day when the act is later
+    /// and that day is not period-locked, else the act's business date (prototype <c>payrollBookOn</c>).
+    /// </summary>
+    private async Task<DateOnly> BookOnAsync(ICommandTransaction tx, int propertyId, PayMonth month, DateOnly actOn, CancellationToken ct)
+    {
+        if (actOn <= month.Last) return actOn;
+        if (accountingDays is not null && await accountingDays.IsLockedAsync(tx, propertyId, month.Last, ct).ConfigureAwait(false)) return actOn;
+        return month.Last;
     }
 
     /// <summary>SCC unlockRun: Owner only, latest locked month only, with a reason; recoveries reversed; a bank file already issued needs confirmation (F-09).</summary>
@@ -242,8 +289,10 @@ public sealed partial class PayrollService
             {
                 // The first bank file of this lock is the salary payment Accounting books (PayrollPaidEvent); a re-issue is not a second payment.
                 var paidOn = (await db.PropertyAsync(ctx.PropertyId, c2).ConfigureAwait(false)).BusinessDate;
-                await tx.PublishAsync(Contracts.Accounting.AccountingEvents.PayrollPaid, run.RunId, new Contracts.Accounting.PayrollPaidEvent(run.RunId, paidOn, "Bank transfer", net,
-                    $"Bank file {issueNo} · {run.Month.Label}", run.LockSeq), c2).ConfigureAwait(false);
+                // ACC-2 (coordinator rulings 2 and 6): dated the pay period's last day when the file is generated later and that day is not
+                // period-locked yet, else the day of the file; the day it was rides along.
+                await tx.PublishAsync(Contracts.Accounting.AccountingEvents.PayrollPaid, run.RunId, new Contracts.Accounting.PayrollPaidEvent(run.RunId,
+                    await BookOnAsync(tx, ctx.PropertyId, run.Month, paidOn, c2).ConfigureAwait(false), "Bank transfer", net, $"Bank file {issueNo} · {run.Month.Label}", run.LockSeq, paidOn), c2).ConfigureAwait(false);
             }
             var text = $"{run.Month.Label} bank transfer file {issueNo} · net {Rs(net)}{(prior.Count > 0 ? $" · REISSUE (earlier file {Rs(prior[^1].Net)})" : "")} (simulated — no money moves)";
             await tx.AuditAsync("HR_BANK_FILE", Target("hr.run", run.RunId), text, c2).ConfigureAwait(false);

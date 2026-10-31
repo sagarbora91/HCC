@@ -37,7 +37,8 @@ const CAT_CHARGE:Handler=k=>{
   assert(label.length<=120,'Keep the description to 120 characters.');
   const gst=cmd.gst===undefined||cmd.gst===''?item!.gst??'other':cmd.gst;
   assert(GST_CHARGE_CATEGORIES.some(c=>c.id===gst),'Choose a GST category: food, laundry, banquet or other.');
-  x.lines.push({id:id('line'),label,amount:amount!,date:s.date,kind:'service',taxBps:gstForCharge(s,s.date,gst).bps,extraId:item!.id});x.version++;
+  // ACC-2 (contract §8): an extra charged in GST category food is an F&B line (kind food → line:food → 4200); every other class stays 'service'.
+  x.lines.push({id:id('line'),label,amount:amount!,date:s.date,kind:gst==='food'?'food':'service',taxBps:gstForCharge(s,s.date,gst).bps,extraId:item!.id});x.version++;
   const edited=[label!==item!.name&&!(qty>1&&label===`${item!.name} × ${qty}`)?'name':'',price!==undefined&&amount!==price*qty?'price':'',gst!==item!.gst?'GST class':''].filter(Boolean);
   return `${x.id} · ${label} · ${money(amount!)} · catalogue ${item!.code}${qty>1?` × ${qty}`:''}${edited.length?` (changed: ${edited.join(', ')})`:''}`;
 };

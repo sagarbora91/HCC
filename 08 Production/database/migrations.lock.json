@@ -25,7 +25,9 @@
     {"version": 3921, "file": "3921_system_health_rbac_seed.sql", "reason": "A09-05 system health (0d1ac65, 26 Oct 2026): merged after 3930"},
     {"version": 2880, "file": "2880_import_all_masters.sql", "reason": "masters wave MA-8…MA-11 (2880, 2890, 2891) landed on main in parallel with Wave D; no released database has 4000+ yet"},
     {"version": 2890, "file": "2890_payment_method_records.sql", "reason": "masters wave MA-8…MA-11 (2880, 2890, 2891) landed on main in parallel with Wave D; no released database has 4000+ yet"},
-    {"version": 2891, "file": "2891_number_series_rst.sql", "reason": "masters wave MA-8…MA-11 (2880, 2890, 2891) landed on main in parallel with Wave D; no released database has 4000+ yet"}
+    {"version": 2891, "file": "2891_number_series_rst.sql", "reason": "masters wave MA-8…MA-11 (2880, 2890, 2891) landed on main in parallel with Wave D; no released database has 4000+ yet"},
+    {"version": 4255, "file": "4255_hr_advance_funding.sql", "reason": "ACC-2 integration: rulings 5, 9, 10 (hr.advance funding, vendor payee_type, category transport); 4257/4258 unapplied on main, wave lands as one"},
+    {"version": 4256, "file": "4256_mst_payee_type_transport.sql", "reason": "ACC-2 integration: rulings 5, 9, 10 (hr.advance funding, vendor payee_type, category transport); 4257/4258 unapplied on main, wave lands as one"}
   ],
   "migrations": [
     {"version": 1, "file": "0001_platform.sql", "sha256": "2CB8FB349156F501295E1148366BDFE406EC097C136093F09C6F0817542F46CC"},
@@ -123,6 +125,34 @@
     {"version": 4211, "file": "4211_acc_locked_entry_party.sql", "sha256": "81022DC2A0330803945F4C09B6DCB32B174C8E4B6E2EBC711FB273027D133016"},
     {"version": 4215, "file": "4215_exp_udhaar_kind_gst.sql", "sha256": "B2B35889FC09392BA0057530DBE4718F5F153A4517924B2976ED83EF63F60C37"},
     {"version": 4220, "file": "4220_acc_opening_entry.sql", "sha256": "66958CB2725AA31F0B1CC8108DDF543F0A42BBF5954D69328031867AD5360269"},
-    {"version": 4221, "file": "4221_acc_opening_rbac_seed.sql", "sha256": "D862F5DAAEBFFBECF647DFA0F6FE83D6F6D1809B6E15A83D81F5D62E3CA839A2"}
+    {"version": 4221, "file": "4221_acc_opening_rbac_seed.sql", "sha256": "D862F5DAAEBFFBECF647DFA0F6FE83D6F6D1809B6E15A83D81F5D62E3CA839A2"},
+    {"version": 4230, "file": "4230_exp_expense_purchase.sql", "sha256": "4C2C11F014C2BA85C636696DA2D6435D41F7B6F80BCDC5477BBCFEC8E2AFF405"},
+    {"version": 4231, "file": "4231_exp_master_purchase.sql", "sha256": "76750B5DBCA0322E8338F178424E975200E7F774ADBA1310833650C28BC37301"},
+    {"version": 4232, "file": "4232_exp_vendor_payment.sql", "sha256": "8B220BDC5F3CE55EE037981340C851BF3A5CD6E31101F79D2AB6DF701C30435D"},
+    {"version": 4233, "file": "4233_acc_fixed_asset.sql", "sha256": "E6D2F7D87632B28D903BECDAB6178607B3C9B07652DAAD0E74AB74D85384F0D4"},
+    {"version": 4234, "file": "4234_exp_vendor_pay_rbac_seed.sql", "sha256": "4B07641AABB27887F9A74EB5CD0A8021A9D93A237C5CBA8CC39CA97E07893A4C"},
+    {"version": 4235, "file": "4235_acc_source_kind_purchase.sql", "sha256": "6BA2DD2683A35E28B5E3DEB1A23489036A348A192A33D1E2212293AADFCE2CA5"},
+    {"version": 4238, "file": "4238_acc_source_kinds_acc2.sql", "sha256": "0E7BEB0D433701746AC3C83438F6CE0D9FFFCFB84375FF73C14FDFDC6C052551"},
+    {"version": 4239, "file": "4239_acc_manual_voucher.sql", "sha256": "B2AE402896972D8854B1C69F132A137BED7B1E226961F65C8A04BD74B1F69135"},
+    {"version": 4240, "file": "4240_acc_loan.sql", "sha256": "D3E23F4BFAE95685F5F763C04D480A75F1825AEACD57D381CB2D51512C2CCC56"},
+    {"version": 4241, "file": "4241_acc_manual_rbac_seed.sql", "sha256": "AF5E417585C114C135F1ECD23A24D7FE628F668776103E38D6444BE0C51D2F3E"},
+    {"version": 4242, "file": "4242_grp_company_payment_tds.sql", "sha256": "997266533DDA33091B0163893ACBDB7DE23CF4828D0D3AC7B98A70E854735989"},
+    {"version": 4243, "file": "4243_acc_tds_rate.sql", "sha256": "67139774B9B30D502C96439C6A27349BC4030A41420918381D143196541EFC2A"},
+    {"version": 4244, "file": "4244_acc_tds_remit.sql", "sha256": "0E2373EE2F99BAE1172B47BAF97595879A51D217F4C95ED8F06A4D52B5CBF334"},
+    {"version": 4245, "file": "4245_acc_tds_rbac_seed.sql", "sha256": "5345D033DCA52908216D5FD257A65874C19178A112B19AD22E66FEC5C461A7F6"},
+    {"version": 4246, "file": "4246_acc_month_lock.sql", "sha256": "6CA08C31DDD1A9A0D87FC1B88878AFD70E6B73DF6AFD49D08F0EA63F368FBB9F"},
+    {"version": 4247, "file": "4247_acc_gst_setoff.sql", "sha256": "5F2808FAFF6654EC556217C9A06DD904A8C255FC4643E6E50A5F02A50901BAB3"},
+    {"version": 4248, "file": "4248_cmp_profile_gst_on_advances.sql", "sha256": "52DB6558A6D7AB11508F8A294A6EA9FBEC4BBC78F0C670B11E9F7E9A74A85FBD"},
+    {"version": 4249, "file": "4249_acc_gst_rbac_seed.sql", "sha256": "F18912FD0F47957E9C6B85C7644E8B18D7E87830CACDAFD137AAE7EB5922F5B4"},
+    {"version": 4250, "file": "4250_acc2_flows_receipt_kinds.sql", "sha256": "1AAF5006B2BC56CEE5128F6C023C12BFADA07E147FC0162545A548152CE16A8E"},
+    {"version": 4251, "file": "4251_ota_payout.sql", "sha256": "3F6F20FB3767F846BE7716E0F89B2D2581161FAF571883C282A4ADF92EA54319"},
+    {"version": 4252, "file": "4252_exp_udhaar_reversal.sql", "sha256": "9678FA6F9A5FC21AB439E90F505240D61DF146FE02713DF6FBB560C64DDE753A"},
+    {"version": 4253, "file": "4253_grp_company_active.sql", "sha256": "214DE2066C87E68417B7A8396A16817671039C2C01402C6AC8F0FD8E17F69349"},
+    {"version": 4254, "file": "4254_exp_cash_deduction_lost.sql", "sha256": "36273C9FB80011774A32508051CB2AB8BBDD787D57A3733B05366B4935FAB350"},
+    {"version": 4257, "file": "4257_acc_ledger_month_balance.sql", "sha256": "3C0EA563385D76F8C23665B26ED3A1FE3BB633295A30CF0060FE19BD05FC521D"},
+    {"version": 4258, "file": "4258_bill_charge_kind_food.sql", "sha256": "6DA5E1E8055F063649EF0AAD04626FCE80410665E7D88229876D52CB08ED768B"},
+    {"version": 4255, "file": "4255_hr_advance_funding.sql", "sha256": "F534719241A06C38FE1BBD63135835510ACF5CDC4A655B4375B71E768C82F6A9"},
+    {"version": 4256, "file": "4256_mst_payee_type_transport.sql", "sha256": "36075564BFCD946ED4BD84DB7FD9041690CCB506CE4D948A482457596E7D2E8D"},
+    {"version": 4259, "file": "4259_acc_ledger_1210_control.sql", "sha256": "61FDCF5501D5676A93D8F088A92707D32FC8BC20A2AA36B3B293D0DA7DC450B1"}
   ]
 }

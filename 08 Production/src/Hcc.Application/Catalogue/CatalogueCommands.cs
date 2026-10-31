@@ -327,7 +327,9 @@ public sealed class CatalogueCommands(ICommandRunner runner, IAccessPolicy polic
             var label = CatalogueRules.ChargeLabel(req.Label, item.Name, qty);
             var category = GstCategories.Parse(gstOverride ?? item.F("gst_category") ?? "other");
             var g = await gst.ChargeAsync(tx, ctx.PropertyId, f.BusinessDate, category, c).ConfigureAwait(false);
-            var line = new NewCharge(f.FolioId, ChargeKind.Service, f.BusinessDate, label, amount, g.Bps, GstMath.LineTax(amount, g.Bps), null, null, ctx.PrincipalId, Now);
+            // ACC-2 parity (contract §8): an extra of GST class food is an F&B line (charge kind food → line:food, 4200); every other class stays service.
+            var kind = category == GstCategory.Food ? ChargeKind.Food : ChargeKind.Service;
+            var line = new NewCharge(f.FolioId, kind, f.BusinessDate, label, amount, g.Bps, GstMath.LineTax(amount, g.Bps), null, null, ctx.PrincipalId, Now);
             var chargeId = await billing.InsertChargeAsync(tx, line, c).ConfigureAwait(false);
             await RecordGstAsync(tx, chargeId, g, line.Tax, c).ConfigureAwait(false);
             await store.LinkChargeAsync(tx, chargeId, item.Id, null, null, qty, c).ConfigureAwait(false);
@@ -336,8 +338,8 @@ public sealed class CatalogueCommands(ICommandRunner runner, IAccessPolicy polic
                 gstOverride is not null && gstOverride != item.F("gst_category") ? "GST class" : "" }.Where(x => x.Length > 0).ToList();
             await tx.AuditAsync("CHARGE_POSTED", "folio:" + f.FolioId.ToString(CultureInfo.InvariantCulture),
                 $"{label} · {amount} + tax {line.Tax} · catalogue {item.Code}{(qty > 1 ? " × " + qty.ToString(CultureInfo.InvariantCulture) : "")}{(edited.Count > 0 ? $" (changed: {string.Join(", ", edited)})" : "")}", c).ConfigureAwait(false);
-            await tx.PublishAsync("ChargePosted", f.FolioId, new { folioId = f.FolioId, chargeId, kind = "service", serviceDate = f.BusinessDate, amountPaise = amount.Value, taxPaise = line.Tax.Value }, c).ConfigureAwait(false);
-            return new ChargeResult(chargeId, f.FolioId, "service", f.BusinessDate, label, amount.Value, g.Bps, line.Tax.Value, true, version);
+            await tx.PublishAsync("ChargePosted", f.FolioId, new { folioId = f.FolioId, chargeId, kind = BillingCodes.Code(kind), serviceDate = f.BusinessDate, amountPaise = amount.Value, taxPaise = line.Tax.Value }, c).ConfigureAwait(false);
+            return new ChargeResult(chargeId, f.FolioId, BillingCodes.Code(kind), f.BusinessDate, label, amount.Value, g.Bps, line.Tax.Value, true, version);
         }, ct).ConfigureAwait(false);
     }
 

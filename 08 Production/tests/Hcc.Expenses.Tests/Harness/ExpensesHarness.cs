@@ -49,11 +49,13 @@ public sealed class FakeAccessPolicy(IEnumerable<IAccessScopeResolver> resolvers
             ["PERM-EXP-001"] = new('P'), ["PERM-EXP-002"] = new('P'), ["PERM-EXP-003"] = new('P'), ["PERM-SHF-001"] = new('P'), ["PERM-ADM-003"] = new('P'), ["PERM-CFG-003"] = new('P'),
             ["PERM-MST-002"] = new('P'), // DEC-120: the month lock and its override are the Owner's; DEC-129 budgets / templates, DEC-131 unlock
             ["PERM-PAY-001"] = new('P'),
+            ["PERM-EXP-004"] = new('P'), // ACC-2 acc2-purchase: vendor payments / returns (migration 4234)
         },
-        [Who.Manager] = new() { ["PERM-EXP-001"] = new('P'), ["PERM-EXP-002"] = new('P', 500_000), ["PERM-EXP-003"] = new('P'), ["PERM-SHF-001"] = new('P'), ["PERM-PAY-001"] = new('P') },
+        [Who.Manager] = new() { ["PERM-EXP-001"] = new('P'), ["PERM-EXP-002"] = new('P', 500_000), ["PERM-EXP-003"] = new('P'), ["PERM-SHF-001"] = new('P'), ["PERM-PAY-001"] = new('P'),
+            ["PERM-EXP-004"] = new('P') },
         [Who.Reception] = new() { ["PERM-EXP-001"] = new('O'), ["PERM-SHF-001"] = new('P'), ["PERM-PAY-001"] = new('P') },
         [Who.Cashier] = new() { ["PERM-EXP-001"] = new('O'), ["PERM-SHF-001"] = new('P'), ["PERM-PAY-001"] = new('P') },
-        [Who.Accountant] = new() { ["PERM-EXP-001"] = new('O'), ["PERM-EXP-002"] = new('P'), ["PERM-EXP-003"] = new('P') },
+        [Who.Accountant] = new() { ["PERM-EXP-001"] = new('O'), ["PERM-EXP-002"] = new('P'), ["PERM-EXP-003"] = new('P'), ["PERM-EXP-004"] = new('P') },
         [Who.Housekeeper] = [],
     };
 
@@ -122,6 +124,11 @@ public sealed partial class ExpensesDb : IAsyncLifetime
 
     public CashierService Cashier { get; private set; } = null!;
 
+    /// <summary>ACC-2 acc2-purchase: vendor payments, returns, ageing and the fixed-asset register.</summary>
+    public VendorPaymentCommands Vendor { get; private set; } = null!;
+
+    public VendorPaymentQueries VendorQueries { get; private set; } = null!;
+
     public BillingQueries Billing { get; private set; } = null!;
 
     public Caller As(int principal) => new(PropertyId, principal);
@@ -162,7 +169,11 @@ public sealed partial class ExpensesDb : IAsyncLifetime
         var masters = new SqlExpenseMasterSource(Platform.Connections);
         var registers = new SqlExpenseRegisterStore(Platform.Connections);
         var guard = new Hcc.Infrastructure.SqlServer.Closing.SqlBusinessDayGuard();
-        Commands = new ExpenseCommands(Platform.Commands, Policy, expenses, Cashier, Clock, guard, null, masters, registers);
+        var assets = new SqlFixedAssetStore(Platform.Connections); // ACC-2 acc2-purchase: the asset register of capital purchases
+        Commands = new ExpenseCommands(Platform.Commands, Policy, expenses, Cashier, Clock, guard, null, masters, registers, assets);
+        var vendorPayments = new SqlVendorPaymentStore(Platform.Connections);
+        Vendor = new VendorPaymentCommands(Platform.Commands, Policy, vendorPayments, expenses, Cashier, Clock, guard, null, masters, registers);
+        VendorQueries = new VendorPaymentQueries(Policy, vendorPayments, expenses, assets, null, masters);
         Queries = new ExpenseQueries(Policy, expenses, null, masters);
         Registers = new ExpenseRegisterCommands(Platform.Commands, Policy, expenses, registers, Clock, guard, null, masters, Cashier); // DEC-130: Udhaar cash → drawer
         RegisterQueries = new ExpenseRegisterQueries(Policy, expenses, registers, Queries);

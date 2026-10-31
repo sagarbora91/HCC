@@ -10,10 +10,12 @@ import {Empty,shortDate} from '../../components/ui';
 import {mmCheckoutChecklist,mmCheckoutCommand} from './logic';
 import {IssueInvoiceAction} from '../../features/folio/modals';
 import {CompanyCreditPanel} from '../../features/groups/credit';
+import {ApplyDepositPanel,useOtaCredit} from '../../features/folio/deposit'; // ACC-2
 
 export function MmCheckout({id}:{id?:string}){
   const {s,run,booking,open,busy,permission}=useHcc();
   const b=s.bookings.find(x=>x.id===id);
+  const ota=useOtaCredit(b,true);
   if(!b)return <Empty title="This record is unavailable"/>;
   const t=totals(b),c=mmCheckoutChecklist(s,b);
   const canCheckout=permission('checkout');
@@ -30,6 +32,8 @@ export function MmCheckout({id}:{id?:string}){
       <div className="mm-row"><div className="mm-row-main"><strong>Outstanding</strong></div><div className="mm-row-amt"><strong className="number">{money(t.balance)}</strong></div></div>
       <div className="mm-row"><div className="mm-row-main"><strong>Deposit to return</strong></div><div className="mm-row-amt"><strong className="number">{money(t.deposit)}</strong></div></div>
     </div>
+    <ApplyDepositPanel b={b} mobile/>
+    {ota.node}
     <CompanyCreditPanel b={b} mobile/>
     {c.clear?<div className="info-note"><Info size={17}/>All clear. Checkout marks the room dirty, creates one housekeeping task and allocates a sample invoice number once.</div>
       :<p className="mm-why" role="status">Confirm is available when every item shows Done.{!canCheckout?' Your role cannot check guests out — reception or a manager does.':''}</p>}
@@ -39,7 +43,7 @@ export function MmCheckout({id}:{id?:string}){
       <button type="button" className="btn" onClick={()=>open({type:'invoice',id:b.id})}><Printer size={18}/>Invoice preview</button>
     </div>
     <div className="modal-actions"><button className="btn" onClick={()=>booking(b.id)}>Folio</button>
-      <button className="btn primary mm-big" disabled={busy||!c.clear||!canCheckout} onClick={()=>run(mmCheckoutCommand(b.id),'Checkout completed. Housekeeping task created.',{after:()=>open({type:'invoice',id:b.id})})}>Confirm checkout <ArrowRight size={18}/></button></div></>;
+      <button className="btn primary mm-big" disabled={busy||!c.clear||!canCheckout} onClick={()=>run({...mmCheckoutCommand(b.id),...(ota.on?{otaCredit:true,key:'checkout:'+b.id+':ota'}:{})},'Checkout completed. Housekeeping task created.',{after:()=>open({type:'invoice',id:b.id})})}>Confirm checkout <ArrowRight size={18}/></button></div></>;
 }
 
 export function MmInvoice({id}:{id?:string}){

@@ -24,3 +24,4 @@ export * from './reads';
 export {MST_SERVER} from './masters';
 export {orderFromServer} from './pos';
 export {gstr1FromServer,loadServerGstr1} from './gstr1';
+export * from './accounting-reports'; // ACC-2 acc2-parity: report readers for any range (contract §8)

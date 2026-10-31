@@ -36,6 +36,7 @@ public enum ChargeKind
     Service,
     Discount,
     Correction,
+    Food, // ACC-2 parity (contract §8, rulebook A3): F&B charged to a folio (POS charge-to-folio, extras of GST class food) → line:food (4200)
 }
 
 public static class BillingCodes
@@ -70,6 +71,7 @@ public static class BillingCodes
         ChargeKind.Service => "service",
         ChargeKind.Discount => "discount",
         ChargeKind.Correction => "correction",
+        ChargeKind.Food => "food",
         _ => throw new ArgumentOutOfRangeException(nameof(k), k, "Unknown charge kind."),
     };
 
@@ -79,6 +81,7 @@ public static class BillingCodes
         "service" => ChargeKind.Service,
         "discount" => ChargeKind.Discount,
         "correction" => ChargeKind.Correction,
+        "food" => ChargeKind.Food,
         _ => throw new ArgumentOutOfRangeException(nameof(code), code, "Unknown charge kind."),
     };
 

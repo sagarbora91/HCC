@@ -42,7 +42,10 @@ export type ExpRecTpl={id:string;name:string;amount:number;dueDay:number;categor
 export type ExpPettyEntry={id:string;amount:number;date:string;by:string;at:string;status:'Pending'|'Approved'|'Rejected';note?:string;decidedBy?:string;decidedAt?:string;reason?:string};
 /** `desk` (DEC-130): taken as a desk receipt — cash into the open shift's drawer, other modes to their own ledgers — and booked in Accounting
  *  (Dr the tender · Cr Udhaar receivables). Settlements recorded before DEC-130 have no `desk`: they never reached the drawer or the books. */
-export type ExpUdSettlement={id:string;amount:number;date:string;mode:string;by:string;at:string;desk?:true;reference?:string};
+export type ExpUdSettlement={id:string;amount:number;date:string;mode:string;by:string;at:string;desk?:true;reference?:string;
+  /** ACC-2 flows (rulebook A17b, EXP_UD_PAY_REVERSE): a reversal is a negative settlement dated the business date naming the payment it
+   *  reverses (`reversalOf`, the Owner's `reason`); the reversed payment carries `reversedBy`. */
+  reversalOf?:string;reason?:string;reversedBy?:string};
 /** ACC-1 (contract §4, rulebook A17, DEC-144): `kind` = what was sold on credit (restaurant bill, room folio or other — the screen asks) and
  *  `gstBps` = its GST rate. Raising the credit posts a Sales voucher the same day (Dr 1120/<customer> gross · Cr F&B / room / other revenue ·
  *  Cr CGST · Cr SGST). Rows raised before ACC-1 have neither: kind 'other' (4100), no GST lines (CA note in ACC1-PARTIES-DONE.md). */
@@ -59,7 +62,12 @@ export type ExpMonthFeed={month:string;expense:number;count:number;byCategory:Re
   /** DEC-131: every Owner unlock of this month, oldest first (kept when the month is locked again). */
   unlocks?:ExpMonthUnlock[]};
 export type ExpMonthUnlock={at:string;by:string;reason:string};
+/** ACC-2 (contract §3.2): a payment to a vendor, allocated to open bills oldest-first by default; the unallocated rest is an advance (the party goes Dr). */
+export type ExpVendorPayment={id:string;vendor:string;date:string;amount:number;method:string;reference:string;by:string;at:string;allocations:{expense:string;amount:number}[];
+  void?:boolean;voidReason?:string;voidBy?:string;voidAt?:string;
+  /** ACC-2 integration (contract §7 B10): cash above the payment limit to this vendor on the day — the income-tax deduction is lost. */ cashDeductionLost?:boolean};
 export type EXPState={
+  /** ACC-2 */ vendorPayments?:ExpVendorPayment[];
   /** SCC gm_budgets: month (YYYY-MM) → category → cap in paise (0 / absent = no budget). */
   budgets?:Record<string,Record<string,number>>;
   recurring?:ExpRecTpl[];
@@ -199,7 +207,7 @@ export function expFeedStale(s:State,month:string):boolean{
 export type ExpBudgetRow={category:string;budget:number;actual:number;pct:number;status:'none'|'over'|'near'|'ok'};
 /** Σ counted expenses of a category in a month (SCC: Σ non-void expense rows; HCC counts after approval). */
 export function expCategorySpend(s:State,category:string,month:string):number{
-  let t=0;for(const e of s.expenses)if(counts(e)&&e.category===category&&expYm(e.date)===month)t+=e.amount;return t;
+  let t=0;for(const e of s.expenses)if(counts(e)&&!e.capital&&e.category===category&&expYm(e.date)===month)t+=e.amount;return t; // ACC-2: capital purchases never count against a budget (contract §3)
 }
 /** SCC's tab status: pct = round(actual ÷ budget × 100); "over" when pct > 100, "near limit" when pct ≥ 85, else ok; no budget → "no budget". */
 export function expBudgetRow(category:string,budget:number,actual:number):ExpBudgetRow{
@@ -208,7 +216,7 @@ export function expBudgetRow(category:string,budget:number,actual:number):ExpBud
 }
 export function expBudgetRows(s:State,month:string,categories:string[]):ExpBudgetRow[]{
   const bm=expSlice(s).budgets?.[month]??{},spend:Record<string,number>={};
-  for(const e of s.expenses)if(counts(e)&&expYm(e.date)===month)spend[e.category]=(spend[e.category]??0)+e.amount;
+  for(const e of s.expenses)if(counts(e)&&!e.capital&&expYm(e.date)===month)spend[e.category]=(spend[e.category]??0)+e.amount; // ACC-2: not capital purchases
   const cats=[...categories];for(const c of [...Object.keys(bm),...Object.keys(spend)])if(!cats.includes(c))cats.push(c);
   return cats.map(c=>expBudgetRow(c,Number(bm[c])||0,spend[c]??0));
 }

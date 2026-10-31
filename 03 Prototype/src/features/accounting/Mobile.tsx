@@ -10,10 +10,14 @@ import {TrialBalanceView,StatementView,DayBookView} from './books';
 import {ChartView,PartiesView} from './chart';
 import {OpeningView} from './opening';
 import {useAccRange} from './shared';
+import {ManualView} from './manual';
+import {GstMonthView} from './gst';
+import {TdsView,AssetsView} from './tds';
+import {accManualList} from './acc2-views';
 import {TallyExport} from './Accounting';
 import {AccStatusPill,AccSeverity,AccLockButton,AccExportButton,accUserName,useAccPerms,accVoucherDebit} from './parts';
 
-type View='ledger'|'tb'|'statements'|'daybook'|'chart'|'parties'|'opening'|'tally';
+type View='ledger'|'manual'|'gst'|'tds'|'assets'|'tb'|'statements'|'daybook'|'chart'|'parties'|'opening'|'tally';
 type Filter='all'|'Sales'|'Receipt'|'Payment'|'Journal';
 export function AccountingMobile(){
   const {s,uid,open,go,permission}=useHcc();const {canLock,canMap}=useAccPerms();
@@ -32,8 +36,12 @@ export function AccountingMobile(){
   const [range,setRange]=useAccRange(s.date);const [stmtAcc,setStmtAcc]=useState('');
   const goStatement=(a:string)=>{setStmtAcc(a);setView('statements');};
   const head=<><div className="page-title"><div><h1>Accounting</h1><p>Vouchers derived from folios, receipts, expenses and closing · fictional data</p></div></div>
-    <ChipFilter<View> label="Accounting view" value={view} onChange={setView} options={[{id:'ledger',label:'Day'},{id:'tb',label:'Trial balance'},{id:'statements',label:'Statements'},{id:'daybook',label:'Day book'},{id:'chart',label:'Chart'},{id:'parties',label:'Parties'},{id:'opening',label:accOpeningPending(s)?'Opening (pending)':'Opening'},...(tally?[{id:'tally' as View,label:'Tally export (Simulated)'}]:[])]}/></>;
+    <ChipFilter<View> label="Accounting view" value={view} onChange={setView} options={[{id:'ledger',label:'Day'},{id:'manual',label:accManualList(s).some(v=>v.status==='pending')?'Manual (pending)':'Manual vouchers'},{id:'gst',label:'GST month'},{id:'tds',label:'TDS'},{id:'assets',label:'Assets'},{id:'tb',label:'Trial balance'},{id:'statements',label:'Statements'},{id:'daybook',label:'Day book'},{id:'chart',label:'Chart'},{id:'parties',label:'Parties'},{id:'opening',label:accOpeningPending(s)?'Opening (pending)':'Opening'},...(tally?[{id:'tally' as View,label:'Tally export (Simulated)'}]:[])]}/></>;
   if(!rbacSeesBooks(s,uid)||!permission('reports'))return <div className="acc-m"><Empty title="Not available for your role" body="The books are for the Owner, Manager and Accountant."/></div>;
+  if(view==='manual')return <div className="acc-m">{head}<ManualView phone/></div>;
+  if(view==='gst')return <div className="acc-m">{head}<GstMonthView phone/></div>;
+  if(view==='tds')return <div className="acc-m">{head}<TdsView phone/></div>;
+  if(view==='assets')return <div className="acc-m">{head}<AssetsView phone/></div>;
   if(view==='tb')return <div className="acc-m">{head}<TrialBalanceView range={range} setRange={setRange} phone onStatement={goStatement}/></div>;
   if(view==='statements')return <div className="acc-m">{head}<StatementView range={range} setRange={setRange} account={stmtAcc} setAccount={setStmtAcc} phone/></div>;
   if(view==='daybook')return <div className="acc-m">{head}<DayBookView range={range} setRange={setRange} phone/></div>;

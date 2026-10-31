@@ -42,6 +42,7 @@ import {HccClientError} from '../errors';
 import type {SyncArea,LoaderCtx,CommandCtx} from './types';
 import {serverId,protoUserId,utcToClock,paise,isoDate} from './map';
 import {CASH_SLICES,cashBlockedReason} from './money';
+import {expPurchaseWire,purchaseFieldsFromServer} from './expenses-vendor'; // ACC-2 acc2-purchase: purchase fields on the expense wire
 import {saveTextFile,saveCsv} from '../../app/native';
 
 /** GET /accounting/export/tally (TallyExportView; DEC-077 re-export / provisional dates and the export log id; A03b-05 pending accounting
@@ -77,8 +78,12 @@ export type SrvExpense={expenseId:number;ref:string;vendor:string;category:strin
   /** DEC-120 SCC features (ExpenseView). */
   description?:string|null;gstRateBps?:number|null;gstPaise?:number|null;source?:string|null;sourceRef?:string|null;voidReason?:string|null;voidedBy?:number|null;
   voidedUtc?:string|null;hasBillPhoto?:boolean;createdUtc?:string|null;edits?:SrvExpenseEdit[]|null;
+  /** ACC-2 (contract §3): purchase fields (ExpenseView). */
+  gstKind?:string|null;rcm?:boolean|null;rcmBps?:number|null;capital?:boolean|null;assetNo?:string|null;tdsPaise?:number|null;tdsSection?:string|null;
   /** DEC-135: 'allowed' | 'disallowed' when the bill has GST. */
-  itc?:string|null};
+  itc?:string|null;
+  /** ACC-2 flows (B10): the cash guard tripped — "deduction lost". */
+  cashDeductionLost?:boolean|null};
 type SrvExpenseEdit={editId:number;by:number;atUtc:string;reason:string;old:Record<string,string|number>;new:Record<string,string|number>};
 /** GET /expenses/registers (ExpenseRegistersView). */
 type SrvRegisters={businessDate:string;budgets:{month:string;category:string;amountPaise:number}[];
@@ -185,7 +190,9 @@ export function expenseFromServer(e:SrvExpense):Expense{
   if(e.source==='petty'||e.source==='recurring')x.source=e.source;if(e.sourceRef)x.sourceRef=e.sourceRef;
   if(e.voidReason)x.voidReason=e.voidReason;if(e.voidedBy!=null)x.voidedBy=protoUserId(e.voidedBy);if(e.voidedUtc)x.voidedAt=clock(e.voidedUtc);
   if(e.hasBillPhoto)x.hasBillPhoto=true;if(e.createdUtc)x.createdAt=clock(e.createdUtc);
+  if(e.cashDeductionLost)x.cashDeductionLost=true; // ACC-2 integration (flows item 8)
   if(e.gstPaise)x.itc=e.itc==='allowed'?'allowed':'disallowed'; // DEC-135 (a bill without the flag = disallowed)
+  Object.assign(x,purchaseFieldsFromServer(e));if(e.rcm&&!e.gstPaise&&(e.itc==='allowed'||e.itc==='disallowed'))x.itc=e.itc; // ACC-2: an RCM bill's ITC is on the RCM GST
   if(e.edits?.length){
     x.editLog=e.edits.map((d):ExpEditLog=>({at:clock(d.atUtc),by:protoUserId(d.by),old:{...d.old},new:{...d.new},reason:d.reason}));
     const editors=[...new Set(e.edits.map(d=>protoUserId(d.by)))].filter(u=>u!==x.actor);if(editors.length)x.editors=editors;
@@ -351,7 +358,7 @@ export const accounting:SyncArea={
       async send(c){const m=c.cmd,gst=gstWire(m);
         const r=await c.api.command<{expense:SrvExpense;duplicateOf:number[];budgetAlert?:string|null}>('SubmitExpense',{vendor:txt(m.vendor)||null,category:txt(m.category),amountPaise:m.amount,
           method:m.method,draft:!!m.draft,...(txt(m.notes)?{notes:txt(m.notes).slice(0,300)}:{}),...(txt(m.receipt)?{receipt:txt(m.receipt).slice(0,120)}:{}),
-          ...(txt(m.description)?{description:txt(m.description)}:{}),...(DATE.test(String(m.date??''))?{expenseDate:m.date}:{}),...gst,...itcWire(m),...billPhotoWire(m.billPhoto),
+          ...(txt(m.description)?{description:txt(m.description)}:{}),...(DATE.test(String(m.date??''))?{expenseDate:m.date}:{}),...gst,...itcWire(m),...expPurchaseWire(m),...billPhotoWire(m.billPhoto),
           ...(m.confirmDuplicate?{confirmDuplicate:true}:{}),...(m.confirmGst?{confirmGst:true}:{}),...override(m)});
         return {result:{id:String(r?.expense?.expenseId??''),duplicateOf:(r?.duplicateOf??[]).map(String)},...(r?.budgetAlert?{warning:r.budgetAlert}:{})};}},
     {type:'EXPENSE_SUBMIT',reload:['expenses'],
@@ -371,7 +378,7 @@ export const accounting:SyncArea={
     {type:'EXP_EDIT',reload:['expenses','expensesX'],precheck:cmd=>txt(cmd.reason)?undefined:'Reason required',
       async send(c){const m=c.cmd,id=String(m.id);
         const r=await c.api.command<{budgetAlert?:string|null}>('EditExpense',{expenseId:serverId(id,'Expense'),expectedVersion:loadedVersion(c,'expense',id,'This expense'),amountPaise:m.amount,
-          category:txt(m.category),method:m.method,description:txt(m.description)||null,reason:txt(m.reason),...gstWire(m),...itcWire(m),...(m.receipt!==undefined?{receipt:txt(m.receipt)||null}:{}),
+          category:txt(m.category),method:m.method,description:txt(m.description)||null,reason:txt(m.reason),...gstWire(m),...itcWire(m),...expPurchaseWire(m),...(m.receipt!==undefined?{receipt:txt(m.receipt)||null}:{}),
           ...billPhotoWire(m.billPhoto),...(m.confirmGst?{confirmGst:true}:{})});
         return r?.budgetAlert?{warning:r.budgetAlert}:undefined;}},
     {type:'EXP_VOID',reload:['expenses','expensesX'],precheck:cmd=>txt(cmd.reason)?undefined:'Choose a reason.',

@@ -8,8 +8,9 @@ using Hcc.Domain.Groups;
 
 namespace Hcc.Application.Groups;
 
+/// <summary><see cref="Active"/> (ACC-2 flows, migration 4253): false = retired (no new booking, block or credit; hidden from pickers).</summary>
 public sealed record CompanyRow(long CompanyId, int PropertyId, string Name, string? Gstin, string? Contact, string? Phone, string? Email, string? City,
-    IReadOnlyDictionary<string, long> Rates, long CreditLimitPaise, string Version);
+    IReadOnlyDictionary<string, long> Rates, long CreditLimitPaise, string Version, bool Active = true);
 
 public sealed record CompanyDetails(string Name, string? Gstin, string? Contact, string? Phone, string? Email, string? City, IReadOnlyDictionary<string, long> Rates);
 
@@ -239,7 +240,7 @@ public sealed class CompanyQueries(ICompanyStore store, IAccessPolicy policy, Co
                 payments.AddRange(paid);
             }
 
-            views.Add(new CompanyView(c.CompanyId, c.Name, c.Gstin, c.Contact, c.Phone, c.Email, c.City, c.Rates, c.CreditLimitPaise, c.Version, figures));
+            views.Add(new CompanyView(c.CompanyId, c.Name, c.Gstin, c.Contact, c.Phone, c.Email, c.City, c.Rates, c.CreditLimitPaise, c.Version, figures, c.Active));
         }
 
         return new CompanyBookView(views,

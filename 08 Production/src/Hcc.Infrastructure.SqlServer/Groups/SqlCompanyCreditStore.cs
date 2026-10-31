@@ -36,7 +36,7 @@ public sealed class SqlCompanyCreditStore(SqlConnectionFactory connections) : IC
           FROM pay.receipt rc JOIN bill.folio f ON f.folio_id = rc.folio_id JOIN inv.reservation r ON r.reservation_id = f.reservation_id
          WHERE rc.company_id = @c AND rc.kind = 'company-credit' AND r.property_id = @p
          ORDER BY rc.receipt_id;
-        SELECT cp.payment_id, cp.business_date, cp.tender, cp.reference, cp.invoice_no, cp.amount_paise, cp.principal_id, cp.recorded_utc
+        SELECT cp.payment_id, cp.business_date, cp.tender, cp.reference, cp.invoice_no, cp.amount_paise, cp.principal_id, cp.recorded_utc, cp.tds_paise
           FROM grp.company_payment cp JOIN grp.company_account a ON a.company_id = cp.company_id
          WHERE cp.company_id = @c AND a.property_id = @p
          ORDER BY cp.payment_id;
@@ -91,7 +91,7 @@ public sealed class SqlCompanyCreditStore(SqlConnectionFactory connections) : IC
         var payments = new List<CompanyPaymentRow>();
         while (await rd.ReadAsync(ct).ConfigureAwait(false))
             payments.Add(new CompanyPaymentRow(rd.GetInt64(0), D(rd, 1), rd.GetString(2), rd.GetString(3), S(rd, 4), new Paise(rd.GetInt64(5)), rd.GetInt32(6),
-                DateTime.SpecifyKind(rd.GetDateTime(7), DateTimeKind.Utc)));
+                DateTime.SpecifyKind(rd.GetDateTime(7), DateTimeKind.Utc), new Paise(rd.GetInt64(8))));
         await rd.NextResultAsync(ct).ConfigureAwait(false);
         var heads = new List<(long Id, string No, string Guest, string Status, Paise Paid, Paise Credit)>();
         while (await rd.ReadAsync(ct).ConfigureAwait(false))
@@ -117,8 +117,8 @@ public sealed class SqlCompanyCreditStore(SqlConnectionFactory connections) : IC
     {
         ArgumentNullException.ThrowIfNull(payment);
         await using var cmd = Sql(tx).Command("""
-            INSERT grp.company_payment(company_id, business_date, tender, reference, invoice_no, amount_paise, principal_id, recorded_utc)
-            OUTPUT INSERTED.payment_id VALUES (@c, @d, @t, @r, @i, @a, @u, @utc);
+            INSERT grp.company_payment(company_id, business_date, tender, reference, invoice_no, amount_paise, principal_id, recorded_utc, tds_paise)
+            OUTPUT INSERTED.payment_id VALUES (@c, @d, @t, @r, @i, @a, @u, @utc, @tds);
             """);
         P(cmd, "@c", SqlDbType.BigInt, payment.CompanyId);
         P(cmd, "@d", SqlDbType.Date, payment.BusinessDate.ToDateTime(TimeOnly.MinValue));
@@ -128,6 +128,7 @@ public sealed class SqlCompanyCreditStore(SqlConnectionFactory connections) : IC
         P(cmd, "@a", SqlDbType.BigInt, payment.Amount.EnsureReceiptAmount().Value);
         P(cmd, "@u", SqlDbType.Int, payment.PrincipalId);
         P(cmd, "@utc", SqlDbType.DateTime2, payment.RecordedUtc);
+        P(cmd, "@tds", SqlDbType.BigInt, payment.Tds.Value); // ACC-2 tds (migration 4242)
         return (long)(await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false))!;
     }
 }

@@ -52,6 +52,16 @@ public static partial class MoneyMastersRules
     public const string Tds = "tds";
     public const string Contact = "contact";
     public const string Terms = "terms";
+    // ACC-2 acc2-purchase (contract §3, §5; migration 4231).
+    public const string Rcm = "rcm";
+    public const string RcmBps = "rcmBps";
+    public const string Capital = "capital";
+    public const string ItcBlocked = "itcBlocked";
+    public const string State = "state";
+    public const string TdsSection = "tdsSection";
+    // ACC-2 integration (ruling 9 / ruling 10; migration 4256): the TDS payee type (rate column) and the goods-transport cash limit flag.
+    public const string PayeeType = "payeeType";
+    public const string Transport = "transport";
 
     public const int MaxSurchargeBps = 1000;
     public const long MaxMoneyPaise = 10_000_000_000;
@@ -83,8 +93,8 @@ public static partial class MoneyMastersRules
     {
         MoneyMasterIds.PaymentMethods => [Kind, SettlesTo, NeedsReference, UsableAt, SurchargePct, Ledger],
         MoneyMasterIds.BankAccounts => [Kind, Bank, AccountLast4, Ifsc, OpeningBalance, DefaultFor],
-        MoneyMasterIds.ExpenseCategories => [Ledger, NeedsBill, ApprovalLimit],
-        MoneyMasterIds.ExpenseVendors => [Type, Gstin, Pan, Tds, Contact, Terms],
+        MoneyMasterIds.ExpenseCategories => [Ledger, NeedsBill, ApprovalLimit, ItcBlocked, Rcm, RcmBps, Capital, Transport],
+        MoneyMasterIds.ExpenseVendors => [Type, Gstin, Pan, Tds, State, TdsSection, PayeeType, Contact, Terms],
         _ => throw new ArgumentOutOfRangeException(nameof(master), master, "Unknown money master."),
     };
 
@@ -233,9 +243,20 @@ public static partial class MoneyMastersRules
         ArgumentNullException.ThrowIfNull(r);
         var row = MastersRules.Validate(r.Code, r.Name, r.SortOrder);
         if (r.ApprovalLimitPaise is < 0 or > MaxMoneyPaise) throw MastersRules.Fail(MasterReasons.Invalid, "Manager approval limit: enter an amount in rupees (0 or more).", ApprovalLimit);
+        // ACC-2 (contract §3.4): a capital category posts to a fixed-asset block (15x0) and only a capital category does; an RCM category needs its
+        // rate; vehicles / buildings are ITC-blocked (rulebook §4.5). Same messages as the prototype money-master-specs.
+        var ledgerCode = (r.Ledger ?? string.Empty).Trim();
+        var asset = Hcc.Domain.Expenses.ExpensePurchase.IsAssetLedger(ledgerCode) && ChartOfAccounts.Find(ledgerCode) is not null;
+        if (r.Capital && !asset)
+            throw MastersRules.Fail(MasterReasons.Invalid, "A capital category posts to a fixed-asset block (15x0 — Buildings, Furniture, Plant & machinery, Computers, Vehicles).", Ledger);
+        if (!r.Capital && asset)
+            throw MastersRules.Fail(MasterReasons.Invalid, "A fixed-asset block is the ledger of a capital category only — turn on “Capital purchase” or choose an expense ledger.", Ledger);
+        if (r.Rcm && r.RcmBps is not (> 0 and <= 2800)) throw MastersRules.Fail(MasterReasons.Invalid, "Enter the reverse-charge GST rate (e.g. 18 %; GTA 5 %).", RcmBps);
         var fields = new Dictionary<string, object?>
         {
-            [Ledger] = LedgerOf(r.Ledger, true, [AccountGroup.Expense]), [NeedsBill] = r.NeedsBill, [ApprovalLimit] = r.ApprovalLimitPaise,
+            [Ledger] = asset ? ledgerCode : LedgerOf(r.Ledger, true, [AccountGroup.Expense]), [NeedsBill] = r.NeedsBill, [ApprovalLimit] = r.ApprovalLimitPaise,
+            [ItcBlocked] = r.ItcBlocked || (r.Capital && Hcc.Domain.Expenses.ExpensePurchase.ItcBlockedAssetLedgers.Contains(ledgerCode)), [Rcm] = r.Rcm,
+            [RcmBps] = r.Rcm ? r.RcmBps : null, [Capital] = r.Capital, [Transport] = r.Transport,
         };
         return new MoneyDraft(row, fields);
     }
@@ -251,12 +272,24 @@ public static partial class MoneyMastersRules
         if (p is not null && !PanPattern().IsMatch(p)) throw MastersRules.Fail(MasterReasons.Invalid, "PAN: 5 letters, 4 digits, 1 letter (e.g. ABCDE1234F).", Pan);
         if (g is not null && p is not null && g.Substring(2, 10) != p) throw MastersRules.Fail(MasterReasons.Invalid, "The PAN inside the GSTIN (characters 3–12) does not match the PAN.", Pan);
         if (r.Tds && p is null) throw MastersRules.Fail(MasterReasons.Invalid, "Enter the PAN when TDS applies.", Pan);
+        // ACC-2 (contract §3, §5): two-letter GST state; the TDS section only with TDS on.
+        var st = Up(r.State);
+        if (st is not null && (st.Length != 2 || !st.All(char.IsAsciiLetterUpper))) throw MastersRules.Fail(MasterReasons.Invalid, "GST state: two letters (e.g. MH, KA, GJ).", State);
+        var sec = string.IsNullOrWhiteSpace(r.TdsSection) ? null : r.TdsSection.Trim().ToLowerInvariant();
+        if (sec is not null && !Hcc.Domain.Expenses.ExpensePurchase.TdsSections.Contains(sec)) throw MastersRules.Fail(MasterReasons.Invalid, "Choose a TDS section from the list.", TdsSection);
+        if (sec is not null && !r.Tds) throw MastersRules.Fail(MasterReasons.Invalid, "Turn on “TDS applies” to choose a TDS section.", TdsSection);
+        // ACC-2 integration (ruling 9): the payee type picks the TDS rate column; left empty it follows the PAN (4th letter P / H = individual), else other.
+        var payee = string.IsNullOrWhiteSpace(r.PayeeType) ? PayeeHint(p) : r.PayeeType.Trim().ToLowerInvariant();
+        if (payee is not (null or "individual" or "other")) throw MastersRules.Fail(MasterReasons.Invalid, "Choose the TDS payee type from the list.", PayeeType);
         var fields = new Dictionary<string, object?>
         {
-            [Type] = type, [Gstin] = g, [Pan] = p, [Tds] = r.Tds, [Contact] = Opt(r.Contact, 100, "Contact", Contact), [Terms] = Opt(r.Terms, 60, "Payment terms", Terms),
+            [Type] = type, [Gstin] = g, [Pan] = p, [Tds] = r.Tds, [State] = st, [TdsSection] = sec, [PayeeType] = payee, [Contact] = Opt(r.Contact, 100, "Contact", Contact), [Terms] = Opt(r.Terms, 60, "Payment terms", Terms),
         };
         return new MoneyDraft(row, fields);
     }
+
+    /// <summary>ACC-2 integration (ruling 9): a PAN whose 4th letter is P (individual) or H (HUF) suggests the individual column; null = no PAN.</summary>
+    public static string? PayeeHint(string? pan) => pan is { Length: 10 } p && PanPattern().IsMatch(p) ? (p[3] is 'P' or 'H' ? "individual" : "other") : null;
 
     // ── Resolution of stored record values (pay.receipt.method, pos.bill.tender, ops.expense.method / category / vendor) ──
 
@@ -292,7 +325,7 @@ public static partial class MoneyMastersRules
         bool b => b ? "Yes" : "No",
         IReadOnlyList<string> l => l.Count == 0 ? null : string.Join(", ", l),
         long p when field is OpeningBalance or ApprovalLimit => "₹" + (p / 100m).ToString("#,##0.##", CultureInfo.InvariantCulture),
-        int bps when field == SurchargePct => (bps / 100m).ToString("0.##", CultureInfo.InvariantCulture) + " %",
+        int bps when field is SurchargePct or RcmBps => (bps / 100m).ToString("0.##", CultureInfo.InvariantCulture) + " %",
         IFormattable f => f.ToString(null, CultureInfo.InvariantCulture),
         _ => v.ToString(),
     };

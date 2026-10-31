@@ -15,9 +15,14 @@ namespace Hcc.Application.Groups;
 /// <summary>A company-credit receipt attributed to the company (checkout to company credit): the stay's balance the company owes.</summary>
 public sealed record CompanyCreditReceiptRow(long ReceiptId, long ReservationId, string PublicNo, DateOnly BusinessDate, Paise Amount);
 
-/// <summary>Money received from the company against its company-credit receivable (<c>grp.company_payment</c>).</summary>
+/// <summary>Money received from the company against its company-credit receivable (<c>grp.company_payment</c>). ACC-2 tds: <paramref name="Tds"/> = TDS
+/// the company deducted (<c>tds_paise</c>, migration 4242); Amount + Tds settle the receivable.</summary>
 public sealed record CompanyPaymentRow(long PaymentId, DateOnly BusinessDate, string Tender, string Reference, string? InvoiceNo, Paise Amount, int PrincipalId,
-    DateTime RecordedUtc);
+    DateTime RecordedUtc, Paise Tds = default)
+{
+    /// <summary>What the payment settles: the money received plus the TDS deducted.</summary>
+    public Paise Settled => Amount + Tds;
+}
 
 /// <summary>
 /// A live reservation billed to the company: its posted lines, what the guest paid (payments − refunds), the company credit already moved off its
@@ -31,7 +36,7 @@ public sealed record CompanyCreditFacts(DateOnly BusinessDate, IReadOnlyList<Com
     IReadOnlyList<CompanyStayRow> Stays, IReadOnlyList<long> GroupIds);
 
 public sealed record NewCompanyPayment(long CompanyId, DateOnly BusinessDate, string Tender, string Reference, string? InvoiceNo, Paise Amount, int PrincipalId,
-    DateTime RecordedUtc);
+    DateTime RecordedUtc, Paise Tds = default);
 
 /// <summary>SQL adapter: Hcc.Infrastructure.SqlServer/Groups/SqlCompanyCreditStore (migration 3500).</summary>
 public interface ICompanyCreditStore
@@ -86,8 +91,8 @@ public sealed class CompanyCredit(ICommandRunner runner, ICompanyStore companies
 
         foreach (var p in f.Payments)
         {
-            items.Add(new CompanyExposureItem("payment", p.PaymentId, p.InvoiceNo ?? p.Reference, -p.Amount));
-            receivable -= p.Amount;
+            items.Add(new CompanyExposureItem("payment", p.PaymentId, p.InvoiceNo ?? p.Reference, -p.Settled)); // ACC-2 tds: the TDS deducted settles too
+            receivable -= p.Settled;
         }
 
         var stays = Paise.Zero;
@@ -133,6 +138,9 @@ public sealed class CompanyCredit(ICommandRunner runner, ICompanyStore companies
             throw HccException.Validation("A company pays by UPI, card or bank transfer (a cheque is recorded as a bank transfer). Take cash on a guest folio in a cashier shift.");
         var invoiceNo = GroupText.Optional(req.InvoiceNo, 16)?.ToUpperInvariant();
         await policy.RequireAsync(ctx.PropertyId, ctx.PrincipalId, GroupPermissions.Payment, AccessScopes.Any, ct: ct).ConfigureAwait(false);
+        // ACC-2 tds (contract §4 A9): TDS the company deducted; amount + tds settle the receivable (Dr 1360 TDS receivable).
+        var tds = Paise.FromWire(req.TdsPaise);
+        if (Hcc.Domain.Accounting.TdsCalculator.ReceivableProblem(amount.Value, tds.Value) is { } tdsProblem) throw HccException.Validation(tdsProblem);
         return await runner.RunAsync(ctx, req, async (tx, c) =>
         {
             if (days is not null) await days.EnsureBusinessDayOpenAsync(tx, ctx.PropertyId, c).ConfigureAwait(false); // DAY_CLOSED (P6)
@@ -141,18 +149,22 @@ public sealed class CompanyCredit(ICommandRunner runner, ICompanyStore companies
             if (days is not null) await days.EnsureCashBookOpenAsync(tx, ctx.PropertyId, facts.BusinessDate, "a company payment", c).ConfigureAwait(false); // DEC-065
             var before = await ComputeAsync(tx, ctx.PropertyId, facts, c).ConfigureAwait(false);
             if (before.Receivable <= Paise.Zero) throw GroupCommands.Invalid($"{co.Name} owes nothing on company credit.");
-            if (amount > before.Receivable)
-                throw HccException.Validation($"Payment cannot exceed what {co.Name} owes on company credit ({before.Receivable}).");
+            if (amount + tds > before.Receivable)
+                throw HccException.Validation(tds > Paise.Zero
+                    ? $"Payment {amount} + TDS {tds} cannot exceed what {co.Name} owes on company credit ({before.Receivable})."
+                    : $"Payment cannot exceed what {co.Name} owes on company credit ({before.Receivable}).");
             var id = await store.InsertPaymentAsync(tx, new NewCompanyPayment(co.CompanyId, facts.BusinessDate, tender, reference, invoiceNo, amount, ctx.PrincipalId,
-                clock.GetUtcNow().UtcDateTime), c).ConfigureAwait(false);
-            var receivable = before.Receivable - amount;
-            var used = before.Total - amount;
+                clock.GetUtcNow().UtcDateTime, tds), c).ConfigureAwait(false);
+            var receivable = before.Receivable - amount - tds;
+            var used = before.Total - amount - tds;
             var limit = new Paise(co.CreditLimitPaise);
             await tx.AuditAsync("COMPANY_PAYMENT_RECORDED", Target(co.CompanyId), $"{co.Name} · {tender} · {amount} · ref {reference}"
-                + (invoiceNo is null ? "" : " · invoice " + invoiceNo) + $" · receivable {before.Receivable} → {receivable} · manual entry, not verified", c).ConfigureAwait(false);
+                + (invoiceNo is null ? "" : " · invoice " + invoiceNo) + (tds > Paise.Zero ? $" · TDS {tds} deducted (receivable 1360)" : "")
+                + $" · receivable {before.Receivable} → {receivable} · manual entry, not verified", c).ConfigureAwait(false);
             await tx.PublishAsync(AccountingEvents.CompanyPaymentRecorded, co.CompanyId,
-                new CompanyPaymentRecordedEvent(co.CompanyId, id, facts.BusinessDate, tender, amount.Value, reference, co.Name), c).ConfigureAwait(false);
-            return new CompanyPaymentResult(co.CompanyId, id, amount.Value, facts.BusinessDate, receivable.Value, used.Value, CompanyCreditRules.Remaining(limit, used).Value);
+                new CompanyPaymentRecordedEvent(co.CompanyId, id, facts.BusinessDate, tender, amount.Value, reference, co.Name, tds.Value), c).ConfigureAwait(false);
+            return new CompanyPaymentResult(co.CompanyId, id, amount.Value, facts.BusinessDate, receivable.Value, used.Value, CompanyCreditRules.Remaining(limit, used).Value,
+                tds.Value);
         }, ct).ConfigureAwait(false);
     }
 
@@ -172,7 +184,8 @@ public sealed class CompanyCredit(ICommandRunner runner, ICompanyStore companies
         var facts = await store.LoadAsync(null, propertyId, company.CompanyId, ct).ConfigureAwait(false);
         var e = await ComputeAsync(null, propertyId, facts, ct).ConfigureAwait(false);
         return (View(company.CompanyId, company.CreditLimitPaise, e), facts.Payments.OrderByDescending(p => p.PaymentId)
-            .Select(p => new CompanyPaymentView(p.PaymentId, company.CompanyId, p.BusinessDate, p.Tender, p.Reference, p.InvoiceNo, p.Amount.Value, p.PrincipalId, p.RecordedUtc))
+            .Select(p => new CompanyPaymentView(p.PaymentId, company.CompanyId, p.BusinessDate, p.Tender, p.Reference, p.InvoiceNo, p.Amount.Value, p.PrincipalId, p.RecordedUtc,
+                p.Tds.Value))
             .ToList());
     }
 
@@ -191,6 +204,7 @@ public static class CompanyCreditCheck
     {
         ArgumentNullException.ThrowIfNull(guard);
         ArgumentNullException.ThrowIfNull(company);
+        if (!company.Active) throw Hcc.Domain.Masters.MastersRules.Fail(Hcc.Contracts.Masters.MasterReasons.Retired, $"{company.Name} is retired — choose an active company account."); // ACC-2 flows (contract §8)
         var after = await guard.ExposureAsync(tx, company.PropertyId, company.CompanyId, ct).ConfigureAwait(false);
         var subject = after.Of(kind, subjectId);
         CompanyCreditRules.Ensure(company.CompanyId, company.Name, new Paise(company.CreditLimitPaise), after.Total - subject, subject, what);

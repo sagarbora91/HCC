@@ -263,6 +263,9 @@ public interface IPayrollDb
 
     Task<long> InsertAdvanceAsync(int propertyId, long staffId, long amount, long installment, DateOnly date, PayMonth fromMonth, string reason, int by, DateTime utc, CancellationToken ct);
 
+    /// <summary>ACC-2 integration (ruling 5; migration 4255): how the advance was paid — the method, the till / cash movement of drawer cash, the B10 flag.</summary>
+    Task SetAdvanceFundingAsync(long advanceId, string funding, int? tillId, long? movementId, bool cashDeductionLost, CancellationToken ct);
+
     Task RecordRecoveryAsync(long advanceId, long? runId, long? fnfId, long amount, DateTime utc, CancellationToken ct);
 
     Task<int> ReverseRunRecoveriesAsync(long runId, int by, DateTime utc, CancellationToken ct);
