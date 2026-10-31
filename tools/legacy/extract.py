@@ -247,7 +247,7 @@ def build_guests(ci: list[dict], lk: dict, latest_fy: str, today: date, warnings
         idc = R.to_int(g(r, "IDCode"))
         num = R.real_id_number(idc, g(r, "IDNumber"))
         secret.append({"legacyGuestId": gid, "idType": (R.id_type_for(idc) or "OTHER") if num else R.id_type_for(idc),
-                       "idNumber": num or None, "dob": dob or None, "_photo": g(r, "Photpath"), "_idproof": g(r, "IDProofPath")})
+                       "idNumber": num or None, "malformed": bool(num) and R.id_malformed(R.id_type_for(idc) or "OTHER", num), "dob": dob or None, "_photo": g(r, "Photpath"), "_idproof": g(r, "IDProofPath")})
     return gm, guest_rows, sorted(tags), secret, rows
 
 
@@ -869,6 +869,19 @@ def run(a, log=print) -> int:
     lsrc = srcs[latest]
     cut = build_cutover(out, lf, lsrc, gm, lk, a.paidout_all, fys, srcs)
 
+    # ---- duplicates-review.csv (legacy ids only): same ID-number hash, different phone keys
+    import hashlib
+    byh = defaultdict(list)
+    for s in secret:
+        if s["idNumber"]:
+            byh[hashlib.sha256(s["idNumber"].encode("utf-8")).hexdigest()].append(s["legacyGuestId"])
+    dup_rows, ngrp = [], 0
+    for h, ids in sorted(byh.items(), key=lambda kv: min(kv[1])):
+        if len(ids) > 1 and len({gm[i]["phone_key"] for i in ids}) > 1:
+            ngrp += 1
+            dup_rows += [{"group_no": ngrp, "legacy_guest_id": i} for i in sorted(ids)]
+    write_csv(out / "duplicates-review.csv", ["group_no", "legacy_guest_id"], dup_rows)
+
     # ---- secret
     sec_stats = write_secret(out, secret, a.support_dir or DEFAULT_SUPPORT, log)
 
@@ -886,7 +899,7 @@ def run(a, log=print) -> int:
                    "invalidPhoneRows": sum(1 for x in gm_rows if not x["phone_valid"] and not x.get("_stub")),
                    "mergedAway": sum(1 for x in gm_rows if x["guest_name"] and not x["is_primary"]),
                    "stubs": sum(1 for x in gm_rows if x.get("_stub")), "tags": len(tags), "companies": len(comp_rows),
-                   "secretRows": sec_stats["rows"]},
+                   "secretRows": sec_stats["rows"], "duplicateIdGroups": ngrp, "malformedIds": sum(1 for s in secret if s.get("malformed"))},
         "cutover": cut,
     }
     (out / "totals.json").write_text(json.dumps(totals, indent=2, sort_keys=True) + "\n", encoding="utf-8")
@@ -1029,8 +1042,10 @@ def write_secret(out: Path, secret: list[dict], support_dirs, log) -> dict:
                 shutil.copyfile(ip, sd / "images" / "idproof" / ip.name); n_proof += 1
             s["photoFile"] = ph.name if ph else None
             s["idProofFile"] = ip.name if ip else None
-            f.write(json.dumps({k: s[k] for k in ("legacyGuestId", "idType", "idNumber", "dob", "photoFile", "idProofFile")},
-                               ensure_ascii=False) + "\n")
+            row = {k: s[k] for k in ("legacyGuestId", "idType", "idNumber", "dob", "photoFile", "idProofFile")}
+            if s.get("malformed"):
+                row["malformed"] = True
+            f.write(json.dumps(row, ensure_ascii=False) + "\n")
     return {"rows": kept, "photos": n_photo, "idProofs": n_proof}
 
 

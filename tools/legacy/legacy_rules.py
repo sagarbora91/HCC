@@ -237,13 +237,22 @@ def normalise_id_number(v) -> str:
 
 
 def real_id_number(id_code: int, raw) -> str:
-    """Normalised ID number or '' (placeholders, fewer than 4 characters, Aadhaar not 12 digits, > 20 chars)."""
+    """Normalised ID number or '' when it is a placeholder or has fewer than 4 characters (contract section 4, LG-R11)."""
     s = normalise_id_number(raw)
-    if len(s) < 4 or s.lower() in _PLACEHOLDERS or len(s) > 20 or set(s) == {"0"}:
-        return ""
-    if id_code == 8 and not (len(s) == 12 and s.isdigit()):
+    if len(s) < 4 or s.lower() in _PLACEHOLDERS:
         return ""
     return s
+
+
+def id_malformed(id_type: str | None, num: str) -> bool:
+    """True when the number fails the declared type's expected shape (Aadhaar 12 digits, PAN AAAAA9999A, passport 8 characters)."""
+    if id_type == "AADHAAR":
+        return not (len(num) == 12 and num.isdigit())
+    if id_type == "PAN":
+        return re.fullmatch(r"[A-Z]{5}[0-9]{4}[A-Z]", num) is None
+    if id_type == "PASSPORT":
+        return len(num) != 8
+    return False
 
 
 def real_dob(v, today: date) -> str:

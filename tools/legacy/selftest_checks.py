@@ -69,7 +69,9 @@ def rules_tests():
     eq(R.cash_method("Cheque", "1"), "BANK", "cheque")
     eq(R.cash_method("Credit Card", ""), "CARD", "card")
     eq(R.real_id_number(8, "1234 5678 9012"), "123456789012", "aadhaar 12 digits")
-    eq(R.real_id_number(8, "12345678901"), "", "aadhaar 11 digits refused")
+    eq(R.real_id_number(8, "12345678901"), "12345678901", "any 4+ char value is an ID (LG-R11)")
+    ok(R.id_malformed("AADHAAR", "12345678901") and not R.id_malformed("AADHAAR", "123456789012"), "aadhaar shape")
+    ok(not R.id_malformed("PAN", "ABCDE1234F") and R.id_malformed("PAN", "ABCDE1234") and R.id_malformed("PASSPORT", "X1234567X"), "pan / passport shape")
     eq(R.real_id_number(2, "-"), "", "placeholder id")
     eq(R.real_id_number(2, "ab"), "", "too short id")
     eq(R.ota_name("Make My Trip"), "MMT", "ota MMT")
@@ -233,7 +235,11 @@ def main_tests(here: Path, run, tmp: Path):
     ok("2026-27: last BillNo 11" in (out / "cutover_number_series.md").read_text(encoding="utf-8"), "number series file")
     # secret
     sj = [json.loads(x) for x in (out / "secret" / "guest_ids.jsonl").read_text(encoding="utf-8").splitlines()]
-    eq(sorted(s["legacyGuestId"] for s in sj), [1, 2, 17, 18], "secret rows: real ID, or image, or DOB")
+    eq(sorted(s["legacyGuestId"] for s in sj), [1, 2, 5, 17, 18, 19], "secret rows: real ID, or image, or DOB")
+    s19 = next(s for s in sj if s["legacyGuestId"] == 19)
+    eq((s19["idNumber"], s19.get("malformed")), ("12345678901", True), "malformed Aadhaar kept and flagged")
+    ok(not next(s for s in sj if s["legacyGuestId"] == 1).get("malformed"), "well-formed ID not flagged")
+    eq(rows(out / "duplicates-review.csv"), [{"group_no": "1", "legacy_guest_id": "2"}, {"group_no": "1", "legacy_guest_id": "5"}], "duplicates-review: same ID hash, different phones, ids only")
     s18 = next(s for s in sj if s["legacyGuestId"] == 18)
     eq((s18["idNumber"], s18["photoFile"]), (None, "2.jpg"), "image without an ID number is kept")
     s1 = next(s for s in sj if s["legacyGuestId"] == 1)
