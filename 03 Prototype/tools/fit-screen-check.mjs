@@ -89,7 +89,8 @@ for(const vp of VIEWPORTS){
       for(const tab of tabs){
         await openPage(page,id,tab);
         const m=await measure(page,vp);
-        const reached=id==='home'||!(m.crumbs.length<=1&&/^Hotel Control Centre$/.test(m.title));
+        // A page the role cannot open (or a module switched off) falls back to Modules Home, whose title has no "<page> · " prefix.
+        const reached=id==='home'||!/^(Modules Home · )?Hotel Control Centre$/.test(m.title);
         if(!reached)break; // role cannot open this page
         if(RECORD){for(const [k,v] of Object.entries(m.fonts))(recorded[k]??=new Set()).add(v);continue;}
         const f=[];
