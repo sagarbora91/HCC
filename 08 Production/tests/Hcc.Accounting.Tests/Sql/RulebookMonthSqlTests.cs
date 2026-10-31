@@ -257,8 +257,8 @@ public sealed class RulebookFullMonthSqlTests(AccountingDb db) : IClassFixture<A
         Assert.Equal(("Locked", 30), (locked.Status, locked.DaysLocked));
         // a day inside the locked month cannot be unlocked on its own (the Owner unlocks the month first)
         var accounting = new AccountingService(db.Platform.Commands, db.Store, policy, db.Clock, openingStore, new SqlGstMonthStore(db.Platform.Connections));
-        var day = await db.Queries.DayAsync(db.As("ACC"), new DateOnly(2026, 4, 27), Ct);
-        var dayRefused = await Assert.ThrowsAsync<HccException>(() => accounting.UnlockAsync(db.As("OWN"), Key(), new UnlockPeriodRequest(new DateOnly(2026, 4, 27), "Late entry", day.Lock!.Version), Ct));
+        var lockedDay = await db.Queries.DayAsync(db.As("ACC"), new DateOnly(2026, 4, 27), Ct);
+        var dayRefused = await Assert.ThrowsAsync<HccException>(() => accounting.UnlockAsync(db.As("OWN"), Key(), new UnlockPeriodRequest(new DateOnly(2026, 4, 27), "Late entry", lockedDay.Lock!.Version), Ct));
         Assert.Contains("Month 2026-04 is locked", dayRefused.Message, StringComparison.Ordinal);
 
         // ── B9: a ₹2,00,000 cash receipt from one guest is refused (the seed limit) ──
