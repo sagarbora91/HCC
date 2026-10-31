@@ -63,6 +63,9 @@ public static class HccComposition
         services.AddOpsMastersModule();                  // MA-7 housekeeping task types / zones, complaint and lost-and-found categories
         services.AddSystemHealthModule();                // Wave C3 (A09-05): parked outbox events, retry, last backup (PERM-SYS-001)
         services.ConfigureHttpJsonOptions(o => o.SerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase);
+        // LG
+        services.AddLegacyModule();                      // W1a LG legacy Lodge importer (contract §5)
+        // LG end
         return services;
     }
 
@@ -153,6 +156,9 @@ public static class HccComposition
         api.MapPeopleListsEndpoints();   // MA-6 people lists
         api.MapOpsMastersEndpoints();    // MA-7 housekeeping task types / zones, complaint and lost-and-found categories
         api.MapSystemHealthEndpoints();  // Wave C3 (A09-05): GET /admin/system-health, RetryParkedEvent
+        // LG
+        api.MapLegacyEndpoints();        // W1a LG legacy importer + runs
+        // LG end
         app.MapHccWebApp(app.Configuration); // W4 F3 (H1): the production web build (index.html) on the same origin
         return api;
     }
