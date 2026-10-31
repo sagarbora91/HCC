@@ -1,0 +1,13 @@
+legacy_guest_id,guest_id,customer_key,phone_key,phone_valid,name_snapshot,name_fold,deleted,source_fy
+1,,9000000001,9000000001,1,Test Guest One,test guest one,0,2026-27
+2,,9000000002,9000000002,1,Test Guest Two,test guest two,0,2026-27
+3,,9000000003,9000000003,1,Test Guest Three,test guest three,0,2026-27
+4,,9000000004,9000000004,1,Test Guest Four,test guest four,0,2026-27
+5,,9000000005,9000000005,1,Test Guest Five,test guest five,0,2026-27
+6,,9000000006,9000000006,1,Test Guest Six,test guest six,0,2026-27
+7,,9000000007,9000000007,1,Test Guest Seven,test guest seven,0,2026-27
+8,,9000000008,9000000008,1,Test Guest Eight,test guest eight,0,2026-27
+9,,9000000009,9000000009,1,Test Guest Nine,test guest nine,0,2026-27
+10,,9000000010,9000000010,1,Test Guest Ten,test guest ten,0,2026-27
+11,,9000000011,9000000011,1,Test Guest Eleven,test guest eleven,0,2026-27
+12,,9000000012,9000000012,1,Test Guest Twelve,test guest twelve,0,2026-27
