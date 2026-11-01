@@ -16,8 +16,9 @@ import {ManualView} from './manual';
 import {GstMonthView} from './gst';
 import {TdsView,AssetsView} from './tds';
 import {accManualList} from './acc2-views';
+import {PlView,BalanceSheetView,OutstandingView,GstSummaryView,CashRatioView,ExportsView,TallyMastersPanel} from './reports3';
 
-export type AccTab='vouchers'|'manual'|'gst'|'tds'|'assets'|'tb'|'statements'|'daybook'|'chart'|'parties'|'opening'|'exceptions'|'recon'|'mapping'|'tally';
+export type AccTab='vouchers'|'manual'|'gst'|'tds'|'assets'|'tb'|'statements'|'daybook'|'chart'|'parties'|'opening'|'exceptions'|'recon'|'mapping'|'tally'|'pl'|'bs'|'ageing'|'gstsum'|'cashratio'|'exports';
 type Tab=AccTab;
 export function AccDatePicker({date,setDate,dates}:{date:string;setDate:(d:string)=>void;dates:string[]}){
   return <label className="acc-date">Business date<select value={date} onChange={e=>setDate(e.target.value)}>
@@ -29,7 +30,7 @@ export function AccountingPage(){
   const dates=useMemo(()=>accDates(s),[s]);
   const [sel,setDate]=useState(s.date);const date=dates.includes(sel)?sel:dates[0];
   const [tab,setTab]=useState<Tab>('vouchers');
-  const [range,setRange]=useAccRange(s.date);const [stmtAcc,setStmtAcc]=useState('');
+  const [range,setRange]=useAccRange(s.date);const [stmtAcc,setStmtAcc]=useState('');const [asOf,setAsOf]=useState(s.date);
   const goStatement=(a:string)=>{setStmtAcc(a);setTab('statements');};
   const vs=useMemo(()=>accVouchers(s,date),[s,date]);
   const ex=useMemo(()=>accExceptions(s,date),[s,date]);
@@ -37,7 +38,7 @@ export function AccountingPage(){
   const t=accTotals(vs),status=accDayStatus(s,date),lock=accLockOf(s,date),why=accLockBlocker(s,date);
   const errors=ex.filter(x=>x.severity==='error').length,reconOk=recon.every(c=>c.ok);
   const manualPending=accManualList(s).filter(v=>v.status==='pending').length;
-  const tabs:[Tab,string,(number|string)?][]=[['vouchers','Vouchers',vs.length],['manual','Manual vouchers',manualPending||undefined],['gst','GST month'],['tds','TDS'],['assets','Assets'],['tb','Trial balance'],['statements','Statements'],['daybook','Day book'],['chart','Chart of accounts'],['parties','Parties'],['opening','Opening balances',accOpeningPending(s)?'pending':undefined],
+  const tabs:[Tab,string,(number|string)?][]=[['vouchers','Vouchers',vs.length],['manual','Manual vouchers',manualPending||undefined],['gst','GST month'],['tds','TDS'],['assets','Assets'],['tb','Trial balance'],['statements','Statements'],['pl','P&L'],['bs','Balance sheet'],['ageing','Outstanding'],['gstsum','GST summary'],['cashratio','Cash ratio'],['exports','Exports'],['daybook','Day book'],['chart','Chart of accounts'],['parties','Parties'],['opening','Opening balances',accOpeningPending(s)?'pending':undefined],
     ['exceptions','Exceptions',ex.filter(x=>x.severity!=='info').length],['recon','Reconciliation'],['mapping','Mapping'],...(tally?[['tally','Tally export'] as [Tab,string]]:[])];
   if(!rbacSeesBooks(s,uid)||!permission('reports'))return <div className="acc-page"><PageTitle title="Accounting" sub="The books"/><Empty title="Not available for your role" body="The books are for the Owner, Manager and Accountant. The Cashier’s collections are in Reports."/></div>;
   return <div className="acc-page">
@@ -66,6 +67,12 @@ export function AccountingPage(){
       {tab==='assets'&&<AssetsView/>}
       {tab==='tb'&&<TrialBalanceView range={range} setRange={setRange} onStatement={goStatement}/>}
       {tab==='statements'&&<StatementView range={range} setRange={setRange} account={stmtAcc} setAccount={setStmtAcc}/>}
+      {tab==='pl'&&<PlView range={range} setRange={setRange}/>}
+      {tab==='bs'&&<BalanceSheetView asOf={asOf} setAsOf={setAsOf}/>}
+      {tab==='ageing'&&<OutstandingView/>}
+      {tab==='gstsum'&&<GstSummaryView/>}
+      {tab==='cashratio'&&<CashRatioView/>}
+      {tab==='exports'&&<ExportsView/>}
       {tab==='daybook'&&<DayBookView range={range} setRange={setRange}/>}
       {tab==='chart'&&<ChartView/>}
       {tab==='parties'&&<PartiesView onStatement={goStatement}/>}
@@ -101,6 +108,7 @@ export function TallyExport(){
   const p=useMemo(()=>accTallyXml(s,from,to),[s,from,to]);
   const lines=p.xml.split(String.fromCharCode(10)),shown=lines.slice(0,60).join(String.fromCharCode(10));
   return <div className="padded exp-tally">
+    <TallyMastersPanel/>
     <div className="exp-tally-head"><span className="pill orange" role="status">Simulated</span><span className="muted">No file is sent to Tally. Saving this XML does not mean it was imported — only Tally's own import confirms that.</span></div>
     <div className="inline exp-tally-range"><label className="acc-date">From<input type="date" value={from} max={s.date} onChange={e=>setFrom(e.target.value)}/></label>
       <label className="acc-date">To<input type="date" value={to} max={s.date} onChange={e=>setTo(e.target.value)}/></label>

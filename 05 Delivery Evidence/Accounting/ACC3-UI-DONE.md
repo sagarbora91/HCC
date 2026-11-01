@@ -1,0 +1,20 @@
+# ACC3-UI DONE (lane acc3-ui, branch claude/acc3-ui)
+
+## Files
+- new `03 Prototype/src/features/accounting/reports3.tsx`: PlView, BalanceSheetView, OutstandingView, GstSummaryView, CashRatioView, ExportsView, TallyMastersPanel, ExportBar (desktop tables, phone cards via `phone` prop).
+- new `acc3-views.ts`: contract §2/§3/§5 types (copied) and STUB selectors (`accPl`, `accBalanceSheet`, `accCashRatio`, `accAgeing`, `accGstSummary`, `accTallyMasters`, `accTallyVouchers`) plus stub export builders (`accReportTable`, `accReportCsv`, `accReportXlsx`, `accReportsZip`) over the existing trial balance.
+- edited `Accounting.tsx`, `Mobile.tsx` (tabs/chips P&L, Balance sheet, Outstanding, GST summary, Cash ratio, Exports; masters panel above the Tally voucher export), `navmap.ts` (one keywords line).
+- new `tests/stream-accounting-ui3.mjs` (11 tests, `[ACC3-UI]`).
+
+## Integration needed
+- Delete the stub bodies in `acc3-views.ts`; re-export the real selectors from services/mock (names as contract). `reports3.tsx` imports only from `./acc3-views`, so one file changes.
+- `accCashRatio(s, fy)` and `accTallyMasters(s, fy)` take `fy` as the FY start date (`2026-04-01`); adapt if the real selector wants `2026-27`.
+- Export builders: contract §5 gives no names; UI uses `accReportTable(s,kind,args)` -> `accReportCsv/Xlsx(table)` and `accReportsZip(tables)`. Map to acc3-exports' real functions.
+- Tally tab still downloads vouchers via existing `accTallyXml` + `ACC_TALLY_EXPORT` (keeps the export log); swap to `accTallyVouchers` when acc3-tally lands. The masters panel uses the stub.
+- No new CSS: existing classes only; masking = role gate (books roles + `reports`), export buttons need `rbacCanExportVouchers`, masters need `rbacCanTally`. Phone 360 px / 48 px not browser-measured in this lane.
+- Real P&L "by Tally group" and ageing bills come from the lanes; stubs return one "opening" bill per party and zero GST.
+
+Tests: prototype 2095 (main) -> 2106 (+11), tsc clean, build not run (lock busy for long; integrator runs it).
+
+## HANDOFF bullet
+ACC-3 UI: six report tabs + Exports + Tally masters on desktop and phone, built against stubbed contract selectors.
