@@ -25,7 +25,10 @@ export function extendBase(s:State):void{
     const b=s.bookings.find(b=>b.id===bid)!;
     const idNumber=guestFictionalId(idType,i+1,idLast4);
     return {id:'G-'+String(i+1).padStart(4,'0'),name,phone,email:b.email,address:`${10+i} Demo Street, ${city} (fictional)`,nationality:'Indian',idType,idLast4:guestIdLast4(idNumber),idNumber,
-      ...(company?{company,gstin}:{}),preferences,notes:'Fictional guest · demonstration profile',party:party||[],verified:b.status==='In house',origin:'seed',version:1};
+      ...(company?{company,gstin}:{}),preferences,notes:'Fictional guest · demonstration profile',party:(party||[]).map((p,j)=>{
+        // DEC-193: adults / seniors carry their own FICTIONAL passport (Z…); children none.
+        if(p.ageBand!=='Adult'&&p.ageBand!=='Senior')return p;
+        const n=guestFictionalId('Passport (demo)',900+i*7+j);return {...p,idType:'Passport (demo)',idLast4:guestIdLast4(n),idNumber:n};}),verified:b.status==='In house',origin:'seed',version:1};
   });
   s.guests.forEach((g,i)=>{const b=s.bookings.find(b=>b.id===seed[i][0])!;b.guestId=g.id;
     if(b.status==='In house')b.segments=[{room:b.room,from:b.arrival}];});
