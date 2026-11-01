@@ -43,3 +43,11 @@
 - Final `npm test` and the full check (overview, rooms, calendar; all viewports, roles, scale 1 + 1.3) have NOT run: it waited ~3 h on the lock. A full run is queued (.scratch\full.ps1, report to fit-front-a\.scratch\c2\). The Overview tab-id fix and the legend move (abcbfc5a, fixes cramped 124 at tab-port) are unchecked. DONE file has FULL_CHECK_PLACEHOLDER.
 - Dashboard "Front desk today" now lists all rows of the chosen tab (was first 5) inside a scroll panel: coordinator decision = keep (no content hidden, in line with the contract); fit-review to confirm it is layout-only.
 - 4 modal openers for fit-modals.json in its DONE file.
+
+## From admin-b (done, fc6b70c6)
+- `FitPage layout="form"` puts `.fit-form` on the page root, colliding with the FormSections grid; fix in z-fit.css: scope the grid to `.fit-page>.fit-form` (admin-a's form pages need the same).
+- Frozen by [CT-C] tests (never append rules): admin.css, housekeeping.css, prefs.css, closing, folio, guests, history, reservations, restriction and the m-* sheets. Lanes use new sheets (fit-admin-b.css etc.).
+- Updated tests (not loosened): stream-prefs.mjs, stream-themes.mjs open each Prefs section first.
+- `sign-in-devices` tab only in production build (demo: palette entry opens Users).
+- Modal openers "New user" and "Edit" (access) for fit-modals.json.
+- `SUB_SCREENS` block name used is `// FIT-ADMIN` (admin-b) — check no collision with `// FIT-ADMIN-A`.
