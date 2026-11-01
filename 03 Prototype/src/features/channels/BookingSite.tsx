@@ -3,7 +3,10 @@ import React,{useState,useRef,useEffect} from 'react';
 import {BedDouble,CheckCircle2,ArrowLeft,Check,X,Users,Eye} from 'lucide-react';
 import {money,addDays,nights,chnSlice,chnRoomTypes,chnWebQuote,chnWebSearchError,chnWebStatus,resHoldLeftLabel,CHN_TYPE_COPY,rmsTypeCopy,type CHNQuote} from '../../services/mock';
 import {useHcc} from '../../app/context';
-import {PageTitle,Empty,clockTime} from '../../components/ui';
+import {Empty,clockTime} from '../../components/ui';
+import {FitPage,FitTabs,FitNote,ScrollPanel,StatStrip,useFitTab} from '../../components/fit';
+import {usePaged,ShowMore,DESKTOP_PAGE} from '../../components/ShowMore';
+import type {CHNWebRequest} from '../../services/mock';
 import {NumberStepper,ChipFilter} from '../../app/mobile/components';
 import {ChnPill,ChnSimulated,stay,party,firstName} from './shared';
 
@@ -68,9 +71,11 @@ export function GuestPreview(){
   </div>;
 }
 
-export function WebRequests({compact=false}:{compact?:boolean}){
+const webRequestsSorted=(s:ReturnType<typeof useHcc>['s'])=>[...chnSlice(s).webRequests].sort((a,b)=>(a.status==='Pending'?0:1)-(b.status==='Pending'?0:1)||b.createdAt.localeCompare(a.createdAt));
+/** `list` (FIT): the page of requests to show when the desktop tab pages the full list with ShowMore; omitted = all of them, as on the phone. */
+export function WebRequests({compact=false,list}:{compact?:boolean;list?:CHNWebRequest[]}){
   const {s,run,busy,open,booking,permission}=useHcc();
-  const reqs=[...chnSlice(s).webRequests].sort((a,b)=>(a.status==='Pending'?0:1)-(b.status==='Pending'?0:1)||b.createdAt.localeCompare(a.createdAt));
+  const reqs=list??webRequestsSorted(s);
   if(!reqs.length)return <Empty title="No web requests yet" body="Submit a request from the guest page preview to see it here."/>;
   return <div className={'chn-reqs'+(compact?' compact':'')}>{reqs.map(w=>{const st=chnWebStatus(s,w),b=s.bookings.find(b=>b.id===w.booking);
     return <article key={w.id} className="chn-req">
@@ -88,15 +93,22 @@ export function WebRequests({compact=false}:{compact?:boolean}){
     </article>;})}</div>;
 }
 
+/** Sub-screens (FIT, DEC-196): Bookings = the web booking requests (paged), Preview = the guest page preview. The page has no separate
+ *  settings or room-rate screens (room copy and rates come from the masters and the tariff), so no empty tabs are invented. */
+const SITE_TAB_IDS=['bookings','preview'] as const;
+type SiteTab=typeof SITE_TAB_IDS[number];
 export function BookingSitePage(){
-  const {s}=useHcc();const pending=chnSlice(s).webRequests.filter(w=>chnWebStatus(s,w)==='Pending').length;
-  return <><PageTitle title="Direct booking site" sub="Module 22 · in-app preview of the guest booking page. Requests become held bookings that the front desk confirms."/>
-    <ChnSimulated text="Preview — not published. No website is hosted and no payment is taken; requests are created in this demo only."/>
-    <div className="chn-site-layout">
-      <div className="chn-device"><GuestPreview/></div>
-      <section className="card"><div className="section-title"><div><h2>Web booking requests</h2><p>{pending} pending confirmation · holds last 2 simulated hours</p></div></div>
-        <div className="padded"><WebRequests/></div></section>
-    </div></>;
+  const {s}=useHcc();const [tab,setTab]=useFitTab<SiteTab>('booking-site',SITE_TAB_IDS,'bookings');
+  const all=webRequestsSorted(s);const pg=usePaged(all,DESKTOP_PAGE);
+  const pending=all.filter(w=>chnWebStatus(s,w)==='Pending').length;
+  const note=process.env.HCC_BUILD==='production'?null:<FitNote text={<><b>Simulated.</b> Preview — not published. No website is hosted and no payment is taken; requests are created in this demo only.</>}/>;
+  return <FitPage title="Direct booking site" sub="Module 22 · in-app preview of the guest booking page. Requests become held bookings that the front desk confirms."
+      toolbar={<StatStrip items={[{title:'Web booking requests',value:String(all.length)},{title:'Pending confirmation',value:String(pending),sub:'holds last 2 simulated hours',tone:pending?'warn':undefined}]}/>}
+      tabs={<FitTabs page="booking-site" value={tab} onChange={setTab} tabs={[{id:'bookings',label:'Bookings',count:pending>0?pending:undefined,badge:pending>0?'warn':undefined},{id:'preview',label:'Preview'}]}/>}>
+    {tab==='bookings'&&<ScrollPanel label="Web booking requests" title="Web booking requests" actions={<span className="muted">{pending} pending confirmation</span>} footer={<>{note}<ShowMore p={pg}/></>}>
+      <div className="padded"><WebRequests list={pg.shown}/></div></ScrollPanel>}
+    {tab==='preview'&&<ScrollPanel label="Guest booking page preview" footer={note}><div className="chn-device-stage"><div className="chn-device"><GuestPreview/></div></div></ScrollPanel>}
+  </FitPage>;
 }
 export function BookingSiteMobile(){
   const {s}=useHcc();const [v,setV]=useState<'preview'|'requests'>('preview');
