@@ -11,3 +11,8 @@
 }
 .mst-detail input:not([type=checkbox]):not([type=radio]), .mst-detail select, .mst-detail textarea { min-width: min(240px, 100%); }
 .mst-detail .mst-dated-add label { min-width: min(240px, 100%); }
+/* FIT-ADMIN-A (DEC-194): Master configuration inside the FIT split view (desktop / tablet only; the phone shell has no .app-shell).
+   Lives here because m-config.css is pinned by the colour-token tests. Layout only: no font size, no colour. */
+.app-shell .fit-page .fit-panel-body .cfg-sec:first-child h2 { margin-top: 6px; }
+.app-shell .fit-page-toolbar .cfg-search { margin: 0; flex: 0 1 460px; }
+.app-shell .fit-split-pane .cfg-detail { padding-bottom: 12px; }
