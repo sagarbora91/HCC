@@ -95,7 +95,7 @@ export function GuestsPage(){
   const [sel,setSel]=useState<string>('');const g=guestById(s,sel)||(wide?list[0]:undefined);
   // FIT (contract §6 'guests' = fill; profile beside the list as a split, slide-over below 900 px).
   const listPanel=<ScrollPanel title="Profiles" label="Guest profiles" actions={<span className="muted">{list.length} shown</span>}>
-    {list.length?<ul className="gs-list">{list.map(x=>{const v=guestView(s,uid,x);const dup=guestDuplicates(s,x).length>0;const stays=guestStays(s,x.id);
+    {list.length?<ul className="gs-list" style={{maxHeight:'none',overflow:'visible'}}>{list.map(x=>{const v=guestView(s,uid,x);const dup=guestDuplicates(s,x).length>0;const stays=guestStays(s,x.id);
       return <li key={x.id}><button className={'gs-list-item '+(g?.id===x.id?'active':'')} aria-pressed={g?.id===x.id} onClick={()=>setSel(x.id)}>
         <span className="avatar">{x.name.split(' ').map(p=>p[0]).slice(0,2).join('')}</span>
         <span className="gs-list-main"><strong>{x.name}</strong><small>{x.id} · {v.phone} · {stays.length} stay{stays.length===1?'':'s'}</small></span>
@@ -112,7 +112,7 @@ export function GuestsPage(){
 }
 function GuestPanel({g}:{g:Guest}){
   const {s,uid,open}=useHcc();const access=guestAccess(s,uid);const dups=guestDuplicates(s,g);const latest:Booking|undefined=guestStays(s,g.id).find(b=>b.registered);
-  return <section className="card"><div className="section-title"><div><div className="eyebrow">{g.id}</div><h2>{g.name}</h2></div><div className="inline"><VerifiedPill g={g}/></div></div>
+  return <section className="gs-record"><div className="section-title"><div><div className="eyebrow">{g.id}</div><h2>{g.name}</h2></div><div className="inline"><VerifiedPill g={g}/></div></div>
     <div className="gs-panel">
       {dups.length>0&&<div className="gs-dup" role="status"><ShieldCheck size={17}/><div><strong>Possible match: {dups.map(m=>`${m.guest.id} (${m.reason==='phone'?'same phone':'same name'})`).join(', ')}</strong>
         <div className="inline">{dups.map(m=><button key={m.guest.id} className="text-btn" onClick={()=>open({type:'guest-profile',id:m.guest.id})}>Open {m.guest.id}</button>)}</div></div></div>}

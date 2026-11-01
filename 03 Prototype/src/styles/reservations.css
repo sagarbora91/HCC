@@ -80,6 +80,3 @@ button.res-cal-cell.free:hover,button.res-cal-cell.free:focus-visible{background
   .res-excluded li{grid-template-columns:40px 56px 1fr}
 }
 @media print{.res-confirmation::after{color:var(--ink)}}
-
-/* FIT (DEC-194): Reservations toolbar (search, status filters, source, date) sits in the FitPage toolbar row. Desktop layout only (.app-shell). */
-.app-shell .fit-page .fit-page-toolbar .res-list-filters{margin:0;gap:12px}

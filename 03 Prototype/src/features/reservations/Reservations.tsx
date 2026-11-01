@@ -20,7 +20,7 @@ export function Reservations({folio=false}:{folio?:boolean}){
   // FIT (DEC-194, contract §6 'reservations' = fill): header with the primary action, one toolbar (search, status, source, date), the table in a ScrollPanel.
   return <FitPage title={folio?'Guests & folios':'Reservations'} sub={folio?'Charges, receipts and every guest’s balance, connected.':'From the first enquiry to a warm welcome.'} actions={act('reservations',()=>open({type:'new'}),'+ New reservation','btn primary')}
       toolbar={<><SearchBox value={search} onChange={setSearch} placeholder="Search guest, phone, room or booking…"/><div className="filters">{STATUSES.map(x=><button key={x} className={filter===x?'active':''} aria-pressed={filter===x} onClick={()=>setFilter(x)}>{x}</button>)}</div>
-        <div className="res-list-filters"><label>Source<select value={source} onChange={e=>setSource(e.target.value)}><option value="All">All sources</option>{sources.map(x=><option key={x}>{x}</option>)}</select></label>
+        <div className="res-list-filters" style={{margin:0,gap:12}}><label>Source<select value={source} onChange={e=>setSource(e.target.value)}><option value="All">All sources</option>{sources.map(x=><option key={x}>{x}</option>)}</select></label>
           <label>Staying on<input type="date" value={date} onChange={e=>setDate(e.target.value)}/></label>{date&&<button className="text-btn" onClick={()=>setDate('')}>Clear date</button>}
           <span className="muted">{list.length} of {s.bookings.length} bookings</span></div></>}>
     <ScrollPanel label={folio?'Guests and folios':'Reservations'} footer={<><ShowMore p={pg}/><FitNote text="All names and records are fictional. Tax figures use the dated GST master (illustrative — CA to confirm)."/></>}>

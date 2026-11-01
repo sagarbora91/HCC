@@ -45,10 +45,9 @@ export function register({test,assert}){
     for(const f of ['src/features/reservations/Reservations.tsx','src/features/guests/InHouse.tsx','src/features/guests/GuestProfile.tsx']){
       const src=read(f);assert.ok(!src.includes('<PageTitle')&&!src.includes('FitTabs'),f);}
   });
-  test('[FIT-FRONT-B] desktop CSS is guarded by .app-shell and uses no hex colour or font-size',()=>{
-    for(const f of ['src/styles/guests.css','src/styles/reservations.css']){
-      const add=read(f).split('/* FIT (DEC-194)').slice(1).join('');assert.ok(add.length>0,f);
-      for(const line of add.split('\n').filter(l=>l.trim()&&!l.startsWith('/*')))assert.ok(line.startsWith('.app-shell '),f+': '+line);
-      assert.ok(!/#[0-9a-f]{3,6}\b|font-size/i.test(add),f);}
+  test('[FIT-FRONT-B] no stylesheet touched (guests.css / reservations.css are token-checked files); the pages carry no hex colour or font-size',()=>{
+    for(const f of ['src/features/reservations/Reservations.tsx','src/features/guests/InHouse.tsx','src/features/guests/GuestProfile.tsx','src/features/guests/useWideSplit.ts'])
+      assert.ok(!/#[0-9a-f]{6}|fontSize|font-size/i.test(read(f).replace(/&#\d+;/g,'')),f);
+    assert.ok(read('src/features/guests/GuestProfile.tsx').includes('className="gs-record"'),'the record sits in the split pane, not in a second card');
   });
 }

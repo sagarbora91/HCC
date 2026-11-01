@@ -89,8 +89,3 @@
 .m-sheet .fd-list .fd-cards{display:flex;flex-direction:column;gap:8px}
 .m-sheet .fd-list .fd-table{display:none}
 @media print{.fd-list .fd-cards{display:none!important}.fd-list .fd-table{display:block!important}}
-
-/* FIT (DEC-194): In-house stays and Guests use SplitView inside a FitPage; the lists scroll in their ScrollPanel, the record in the split pane. Desktop layout only (.app-shell). */
-.app-shell .fit-page .gs-list{max-height:none;overflow:visible;padding:0 12px 12px}
-.app-shell .fit-page .fit-split-pane>.card{border:0;box-shadow:none;margin:0;background:transparent}
-.app-shell .fit-page .fit-split-pane>.padded{padding:16px 18px}
