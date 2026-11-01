@@ -2,6 +2,8 @@
 
 **Purpose:** list what the old VB6 "Lodge" software (live at Hotel Parth Executive) does that HCC does not, so the missing pieces can be built.
 
+**Build:** wave **W2b LF** (DEC-184) — contract `02 Planning/agents/LF-CONTRACT.md`, briefs `02 Planning/agents/LF_Briefs.md` (A1–A8, B1–B7, G1 and the separate documents database; A9 and B8 not in LF; §E reports → W7).
+
 **Sources (old software):**
 - `Existing Software\HTML Demo\FUNCTION_MAP.md`: 137 forms, every button probed.
 - `HTML Demo\live\THIRD_LEVEL_MAP.md`: the live menu path of each form.
