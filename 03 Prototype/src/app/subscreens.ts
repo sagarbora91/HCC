@@ -16,4 +16,7 @@ export const SUB_SCREENS:SubScreen[]=[
   {page:'overview',id:'departures',label:'Departures'},
   {page:'overview',id:'in-house',label:'In house'},
   {page:'rooms',id:'all',label:'All floors'},
+  // FIT-CASH-A
+  {page:'folios',id:'folios',label:'Folios',keywords:['folio list','balances']},
+  {page:'folios',id:'folio-requests',label:'Folio requests',keywords:['refund','company credit','correction','credit note','discount approval']},
 ];

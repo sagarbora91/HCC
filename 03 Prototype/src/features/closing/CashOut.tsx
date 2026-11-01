@@ -10,6 +10,7 @@ import {Pill,Empty,dateLabel} from '../../components/ui';
 import {compressSlipPhoto} from '../../app/slipPhoto';
 import {clearCapturedPhotos} from '../../app/native';
 import {SlipPhotoProd} from '../../clients/sync/cashier-ui';
+import {ScrollPanel} from '../../components/fit';
 
 /** "1,234.50" / "₹1,234" → paise; NaN when not a positive amount with at most 2 decimals. */
 export function cxRupees(v:string):number{
@@ -43,19 +44,32 @@ export function OpenShiftForm({compact}:{compact?:boolean}){
   </form>;
 }
 
-/** Bank deposits, till transfers and Owner drawings of the desk drawer: actions + today's / pending records. */
-export function CashOutPanel({phone}:{phone?:boolean}){
+/** The "Bank deposit / Till transfer / Owner drawing" buttons the user may use, and why they are disabled (shared by the panel and, on the
+ *  desktop fit page, the page header — FIT §11.9: the page's actions sit in its header, always visible). */
+function useCashOutActs(phone?:boolean){
   const {s,uid,open}=useHcc();
-  const x=cxSlice(s),st=shiftStatus(s),closed=isDayClosed(s);
+  const st=shiftStatus(s),closed=isDayClosed(s);
   const shiftOk=st==='Open'&&!closed,own=cxOwnsDesk(s,uid);
-  const list=x.records.filter(r=>r.status==='Pending'||r.date===s.date||r.decidedDate===s.date).slice().reverse();
-  const pending=cxPending(s).length;
   const why=!shiftOk?'Needs an open cash shift.':!own?'Only from your own open shift.':'';
   const acts=[
     cxCanBank(s,uid)&&<button key="b" type="button" className={phone?'btn full':'btn'} disabled={!!why} title={why||undefined} onClick={()=>open({type:'cash-bank'})}><Landmark size={16}/> Bank deposit</button>,
     cxCanTransfer(s,uid)&&<button key="t" type="button" className={phone?'btn full':'btn'} disabled={!!why} title={why||undefined} onClick={()=>open({type:'till-transfer'})}><ArrowLeftRight size={16}/> Till transfer</button>,
     cxCanDraw(s,uid)&&<button key="d" type="button" className={phone?'btn full':'btn'} disabled={!shiftOk} title={shiftOk?undefined:'Needs an open cash shift.'} onClick={()=>open({type:'owner-drawing'})}><HandCoins size={16}/> Owner drawing</button>,
   ].filter(Boolean);
+  return {acts,why};
+}
+/** FIT desktop page header: the cash-out buttons (the Cashier page passes them to FitPage "actions"). */
+export function CashOutActions(){const {acts}=useCashOutActs();return <>{acts}</>;}
+
+/** Bank deposits, till transfers and Owner drawings of the desk drawer: actions + today's / pending records.
+ *  fit (desktop FIT page): a ScrollPanel without the buttons (they are in the page header, CashOutActions); the reason they are disabled shows
+ *  at the top of the panel. The phone and the old desktop markup are unchanged. */
+export function CashOutPanel({phone,fit}:{phone?:boolean;fit?:boolean}){
+  const {s,open}=useHcc();
+  const x=cxSlice(s);
+  const list=x.records.filter(r=>r.status==='Pending'||r.date===s.date||r.decidedDate===s.date).slice().reverse();
+  const pending=cxPending(s).length;
+  const {acts,why}=useCashOutActs(phone);
   const row=(r:CXRecord)=>{const detail=r.kind==='banking'?`${r.bank??''} · slip ${r.slip??''}`:r.kind==='till'?`${cxTillName(s,r.fromTill)} → ${cxTillName(s,r.toTill)}`:r.reason??'';
     return {detail,who:`${name(s,r.actor)}${r.decidedBy?` · ${r.status.toLowerCase()} by ${name(s,r.decidedBy)}`:''}`};};
   const body=!list.length?<Empty title="Nothing banked, transferred or drawn today" body="Bank deposits, till transfers and Owner drawings appear here and in the cash book."/>
@@ -66,6 +80,12 @@ export function CashOutPanel({phone}:{phone?:boolean}){
         <td>{v.who}</td><td><Pill tone={tone(r)}>{statusText(r)}</Pill></td><td className="number">{money(r.amount)}</td>
         <td><button type="button" className="btn small-btn" onClick={()=>open({type:'cash-decide',id:r.id})}>{r.status==='Pending'?'Open':'View'}</button></td></tr>;})}
     </tbody></table></div>;
+  const note=<p className="muted">Expected cash drops when the cash leaves the drawer. A bank deposit is confirmed by a different Manager or Owner
+      (a rejected one puts the cash back); a till transfer is accepted by the receiver on their own shift. A pending transfer holds up the day close.</p>;
+  if(fit&&!phone)return <ScrollPanel title="Banking, transfers and drawings" label="Cash leaving the drawer" actions={<span className="muted">{pending?`${pending} awaiting a second person`:'DEC-073'}</span>}>
+    <div className="padded cx-fit-note">{acts.length>0&&why&&<p className="f-why">{why}</p>}{note}</div>
+    {body}
+  </ScrollPanel>;
   return <section className={phone?'mm-card':'card'} aria-label="Cash leaving the drawer">
     <div className={phone?undefined:'section-title'}><h2 className={phone?'mm-h':undefined}>Banking, transfers and drawings</h2>{!phone&&<span className="muted">{pending?`${pending} awaiting a second person`:'DEC-073'}</span>}</div>
     {acts.length>0&&<div className={phone?'mm-form':'cb-actions padded'}>{acts}{!phone&&why&&<span className="f-why">{why}</span>}</div>}

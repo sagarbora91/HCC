@@ -1,0 +1,386 @@
+[
+ {
+  "vp": "tab-land",
+  "role": "owner",
+  "state": "folio-open",
+  "errs": [],
+  "doc": [
+   640,
+   640,
+   1138,
+   1138
+  ],
+  "content": [
+   584,
+   584
+  ],
+  "panels": [
+   {
+    "l": "Folio list",
+    "h": 303
+   },
+   {
+    "l": "Folios ΓÇö record",
+    "h": 366
+   }
+  ],
+  "acts": [
+   {
+    "t": "Folio preview",
+    "in": true
+   }
+  ]
+ },
+ {
+  "vp": "tab-land",
+  "role": "owner",
+  "state": "cashbook-day",
+  "errs": [],
+  "doc": [
+   640,
+   640,
+   1138,
+   1138
+  ],
+  "content": [
+   584,
+   584
+  ],
+  "panels": [
+   {
+    "l": "Cash book entries",
+    "h": 387
+   },
+   {
+    "l": "Day lock and banking",
+    "h": 361
+   }
+  ],
+  "acts": [
+   {
+    "t": "Lock this day",
+    "in": true
+   }
+  ]
+ },
+ {
+  "vp": "tab-land",
+  "role": "cashier",
+  "state": "folio-open",
+  "errs": [],
+  "doc": [
+   640,
+   640,
+   1138,
+   1138
+  ],
+  "content": [
+   584,
+   584
+  ],
+  "panels": [
+   {
+    "l": "Folio list",
+    "h": 303
+   },
+   {
+    "l": "Folios ΓÇö record",
+    "h": 366
+   }
+  ],
+  "acts": [
+   {
+    "t": "Folio preview",
+    "in": true
+   }
+  ]
+ },
+ {
+  "vp": "tab-land",
+  "role": "cashier",
+  "state": "cashbook-day",
+  "errs": [],
+  "doc": [
+   640,
+   640,
+   1138,
+   1138
+  ],
+  "content": [
+   584,
+   584
+  ],
+  "panels": [
+   {
+    "l": "Cash book entries",
+    "h": 387
+   },
+   {
+    "l": "Day lock and banking",
+    "h": 361
+   }
+  ],
+  "acts": [
+   {
+    "t": "Lock this day",
+    "in": true
+   }
+  ]
+ },
+ {
+  "vp": "tab-port",
+  "role": "owner",
+  "state": "folio-open",
+  "errs": [],
+  "doc": [
+   1066,
+   1066,
+   711,
+   711
+  ],
+  "content": [
+   1010,
+   1010
+  ],
+  "panels": [
+   {
+    "l": "Folio list",
+    "h": 656
+   },
+   {
+    "l": "Folios ΓÇö record",
+    "h": 667
+   }
+  ],
+  "acts": [
+   {
+    "t": "Folio preview",
+    "in": true
+   }
+  ]
+ },
+ {
+  "vp": "tab-port",
+  "role": "owner",
+  "state": "cashbook-day",
+  "errs": [],
+  "doc": [
+   1066,
+   1066,
+   711,
+   711
+  ],
+  "content": [
+   1010,
+   1010
+  ],
+  "panels": [
+   {
+    "l": "Cash book entries",
+    "h": 352
+   },
+   {
+    "l": "Day lock and banking",
+    "h": 324
+   }
+  ],
+  "acts": [
+   {
+    "t": "Lock this day",
+    "in": true
+   }
+  ]
+ },
+ {
+  "vp": "tab-port",
+  "role": "cashier",
+  "state": "folio-open",
+  "errs": [],
+  "doc": [
+   1066,
+   1066,
+   711,
+   711
+  ],
+  "content": [
+   1010,
+   1010
+  ],
+  "panels": [
+   {
+    "l": "Folio list",
+    "h": 656
+   },
+   {
+    "l": "Folios ΓÇö record",
+    "h": 667
+   }
+  ],
+  "acts": [
+   {
+    "t": "Folio preview",
+    "in": true
+   }
+  ]
+ },
+ {
+  "vp": "tab-port",
+  "role": "cashier",
+  "state": "cashbook-day",
+  "errs": [],
+  "doc": [
+   1066,
+   1066,
+   711,
+   711
+  ],
+  "content": [
+   1010,
+   1010
+  ],
+  "panels": [
+   {
+    "l": "Cash book entries",
+    "h": 352
+   },
+   {
+    "l": "Day lock and banking",
+    "h": 324
+   }
+  ],
+  "acts": [
+   {
+    "t": "Lock this day",
+    "in": true
+   }
+  ]
+ },
+ {
+  "vp": "lap-1366",
+  "role": "owner",
+  "state": "folio-open",
+  "errs": [],
+  "doc": [
+   657,
+   657,
+   1366,
+   1366
+  ],
+  "content": [
+   601,
+   601
+  ],
+  "panels": [
+   {
+    "l": "Folio list",
+    "h": 368
+   },
+   {
+    "l": "Folios ΓÇö record",
+    "h": 404
+   }
+  ],
+  "acts": [
+   {
+    "t": "Folio preview",
+    "in": true
+   }
+  ]
+ },
+ {
+  "vp": "lap-1366",
+  "role": "owner",
+  "state": "cashbook-day",
+  "errs": [],
+  "doc": [
+   657,
+   657,
+   1366,
+   1366
+  ],
+  "content": [
+   601,
+   601
+  ],
+  "panels": [
+   {
+    "l": "Cash book entries",
+    "h": 396
+   },
+   {
+    "l": "Day lock and banking",
+    "h": 380
+   }
+  ],
+  "acts": [
+   {
+    "t": "Lock this day",
+    "in": true
+   }
+  ]
+ },
+ {
+  "vp": "lap-1366",
+  "role": "cashier",
+  "state": "folio-open",
+  "errs": [],
+  "doc": [
+   657,
+   657,
+   1366,
+   1366
+  ],
+  "content": [
+   601,
+   601
+  ],
+  "panels": [
+   {
+    "l": "Folio list",
+    "h": 368
+   },
+   {
+    "l": "Folios ΓÇö record",
+    "h": 404
+   }
+  ],
+  "acts": [
+   {
+    "t": "Folio preview",
+    "in": true
+   }
+  ]
+ },
+ {
+  "vp": "lap-1366",
+  "role": "cashier",
+  "state": "cashbook-day",
+  "errs": [],
+  "doc": [
+   657,
+   657,
+   1366,
+   1366
+  ],
+  "content": [
+   601,
+   601
+  ],
+  "panels": [
+   {
+    "l": "Cash book entries",
+    "h": 396
+   },
+   {
+    "l": "Day lock and banking",
+    "h": 380
+   }
+  ],
+  "acts": [
+   {
+    "t": "Lock this day",
+    "in": true
+   }
+  ]
+ }
+]
