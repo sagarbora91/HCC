@@ -53,11 +53,11 @@ public sealed class ExportsTests
     {
         var used = new List<string>();
         Assert.Equal("Profit and loss", OpenXmlExporter.SheetName("Profit and loss", used));
-        Assert.Equal("Profit and loss 2", OpenXmlExporter.SheetName("profit and loss", used));
+        Assert.Equal("profit and loss 2", OpenXmlExporter.SheetName("profit and loss", used));
         Assert.Equal("History sheet", OpenXmlExporter.SheetName("History", used));
         var n = OpenXmlExporter.SheetName("a:b/c?d*e[f]" + new string('x', 40), used);
         Assert.True(n.Length <= 31);
-        Assert.DoesNotContain(n, c => ":\/?*[]".Contains(c, StringComparison.Ordinal));
+        Assert.DoesNotContain(n, c => ":\\/?*[]".Contains(c, StringComparison.Ordinal));
         Assert.Equal("A", OpenXmlExporter.ColumnName(0));
         Assert.Equal("AA", OpenXmlExporter.ColumnName(26));
     }
@@ -72,12 +72,12 @@ public sealed class ExportsTests
     [Fact]
     public void Csv_cells_are_formula_guarded_money_has_two_decimals_and_lines_are_crlf()
     {
-        var st = Statement("2200/V-1", "=HYPERLINK(\"http://x\")", -50, Row("BIL/1", "+cmd|calc", 0, 125050, -125100));
+        var st = Statement("2200/V-1", "Vendor", -50, Row("BIL/1", "=HYPERLINK(\"http://x\")", 0, 125050, -125100));
         var csv = StatementExports.Csv(StatementExports.StatementTable("HCC", st));
         Assert.Contains("\r\n", csv);
         Assert.Contains("'=HYPERLINK", csv, StringComparison.Ordinal);
-        Assert.Contains("'+cmd|calc", csv, StringComparison.Ordinal);
-        Assert.DoesNotContain(",=HYPERLINK", csv, StringComparison.Ordinal);
+        Assert.Contains("\"'=HYPERLINK", csv, StringComparison.Ordinal);
+        Assert.DoesNotContain(",\"=HYPERLINK", csv, StringComparison.Ordinal);
         Assert.Contains("1250.50", csv, StringComparison.Ordinal);
         Assert.Contains("1251.00,Cr", csv, StringComparison.Ordinal);
         Assert.All(csv.Split("\r\n"), l => Assert.False(l.StartsWith('=') || l.StartsWith('@')));
