@@ -14,7 +14,7 @@ import {mnyVendor} from './money-master';
 import {grpSlice} from './groups';
 import {accSlice,accMapping,accVouchers,type ACCManualVoucher} from './accounting';
 import {accControlOf} from './accounting-parties';
-import {registerSettingsGroup,type CfgProviderDef} from './config';
+import {registerSettingsGroup,type CfgProviderDef,type CFGChange} from './config';
 import {TDS_SEED,TDS_SECTIONS,TDS_ILLUSTRATIVE,TDS_LEDGER,ACC_TDS_PAYABLE_KEY,tdsSeedOn,tdsPct,tdsBaseSection,tdsSectionDef,type TdsKey,type TdsSectionId} from '../tds';
 
 export * from '../tds';
@@ -47,21 +47,46 @@ export function tdsPeriod(s:State,p?:string|{fy?:string;month?:string}):TdsPerio
 const inP=(p:TdsPeriod,d:string)=>d>=p.from&&d<=p.to;
 
 // ───────────────────────────── Remittances (E5; ACC_TDS_REMIT → manual template tds-remittance) ─────────────────────────────
-export type TdsRemit={id:string;date:string;month:string;section:TdsSectionId;amount:number;challan:string;status:ACCManualVoucher['status'];voucher:ACCManualVoucher};
-const REMIT_RE=/^TDS remittance · ([a-z]+) \(.*\) · (\d{4}-\d{2}) · challan (.+)$/;
+/** ACC-3 C6 (contract §7): the remittance and the compliance card are kept per sub-section — 194-I(a) plant / 194-I(b) premises, 194J(a)
+ *  technical / 194J(b) professional. The code is the vendor master's tdsSection (`rent`, `rent:plant`, `professional`, `professional:technical`, …). */
+export const TDS_SUB_OLD:Record<string,string>={'rent':'194-I(b)','rent:plant':'194-I(a)','professional':'194J(b)','professional:technical':'194J(a)'};
+/** Old-Act section of a code (sub-section where the Act splits it). */
+export const tdsOldOf=(code:string)=>TDS_SUB_OLD[code]??tdsSectionDef(tdsBaseSection(code)??'')?.old??code;
+/** Label of a code: the variant's label (rent of plant, technical fees) or the row's. */
+export function tdsCodeLabel(code:string):string{
+  const base=tdsBaseSection(code),d=base?tdsSectionDef(base):undefined;if(!d)return code;
+  const v=code.split(':')[1];return (v?d.variants?.find(x=>x.id===v)?.label:undefined)??d.label;
+}
+export type TdsRemit={id:string;date:string;month:string;section:TdsSectionId;/** ACC-3 C6: the code remitted (sub-section). */code:string;amount:number;challan:string;
+  status:ACCManualVoucher['status'];voucher:ACCManualVoucher;/** ACC-3 C7: Form 168 figures (company → paise) the CA keyed on this remittance. */form168?:Record<string,number>};
+const REMIT_RE=/^TDS remittance · ([a-z]+(?::[a-z]+)?) \(.*\) · (\d{4}-\d{2}) · challan (.+)$/;
 /** The narration ACC_TDS_REMIT writes (parsed back by tdsRemittances; the server keeps the same fields in acc.tds_remit). */
-export function tdsRemitNarration(section:TdsSectionId,month:string,challan:string){
-  const d=tdsSectionDef(section)!;return `TDS remittance · ${section} (${d.section}, old ${d.old}) · ${month} · challan ${challan}`;
+export function tdsRemitNarration(section:string,month:string,challan:string){
+  const d=tdsSectionDef(tdsBaseSection(section)!)!;return `TDS remittance · ${section} (${d.section}, old ${tdsOldOf(section)}) · ${month} · challan ${challan}`;
 }
 /** Every TDS remittance entry (any status), oldest first. */
 export function tdsRemittances(s:State):TdsRemit[]{
-  const out:TdsRemit[]=[];
+  const out:TdsRemit[]=[],f168=accSlice(s).tdsForm168??{};
   for(const v of accSlice(s).manual??[]){
     if(v.template!=='tds-remittance'||v.voidOf)continue;const m=REMIT_RE.exec(v.narration);const sec=m?tdsBaseSection(m[1]):undefined;if(!m||!sec)continue;
     const amount=v.lines.filter(l=>accControlOf(l.account)===(accMapping(s)[ACC_TDS_PAYABLE_KEY]??TDS_LEDGER.payable)).reduce((a,l)=>a+l.debit-l.credit,0);
-    out.push({id:v.id,date:v.date,month:m[2],section:sec,amount,challan:m[3],status:v.status,voucher:v});
+    out.push({id:v.id,date:v.date,month:m[2],section:sec,code:m[1],amount,challan:m[3],status:v.status,voucher:v,...(f168[v.id]?{form168:f168[v.id]}:{})});
   }
   return out.sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:a.id<b.id?-1:1);
+}
+/** ACC-3 C7: the Form 168 figures of a financial year — per company the figure keyed on the latest remittance dated in the year that carries it. */
+export function tdsForm168Of(s:State,fy?:string):Record<string,number>{
+  const p=tdsPeriod(s,fy),out:Record<string,number>={};
+  for(const r of tdsRemittances(s))if(r.form168&&r.date>=p.from&&r.date<=p.to&&(r.status==='approved'||r.status==='pending'))Object.assign(out,r.form168);
+  return out;
+}
+/** Refusal of a Form 168 figure map ('' = fine): company ids of the groups master, whole paise ≥ 0, at most 50 rows. */
+export function tdsForm168Refusal(s:State,x:unknown):string{
+  if(!x||typeof x!=='object'||Array.isArray(x))return 'Form 168: a map of company → TDS amount in paise.';
+  const e=Object.entries(x as Record<string,unknown>);if(e.length>50)return 'Form 168: at most 50 companies.';
+  const ids=new Set(grpSlice(s).companies.map(c=>c.id));
+  for(const [id,v] of e){if(!ids.has(id))return `Form 168: ${id} is not a company of the groups master.`;if(!(Number.isSafeInteger(v)&&(v as number)>=0))return `Form 168: enter whole paise for ${id}.`;}
+  return '';
 }
 const live=(r:TdsRemit)=>r.status==='approved'||r.status==='pending';
 
@@ -80,14 +105,14 @@ export function tdsBills(s:State):TdsBillRow[]{
   }
   rows.sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:a.expense<b.expense?-1:1);
   const pool=new Map<string,number>();
-  for(const r of tdsRemittances(s))if(r.status==='approved'){const k=r.section+'|'+r.month;pool.set(k,(pool.get(k)??0)+r.amount);}
-  for(const b of rows){const k=b.base+'|'+b.month,left=pool.get(k)??0;if(left<=0||b.tds<=0)continue;const take=Math.min(left,b.tds);b.remitted=take;pool.set(k,left-take);}
+  for(const r of tdsRemittances(s))if(r.status==='approved'){const k=r.code+'|'+r.month;pool.set(k,(pool.get(k)??0)+r.amount);} // ACC-3 C6: per sub-section
+  for(const b of rows){const k=b.section+'|'+b.month,left=pool.get(k)??0;if(left<=0||b.tds<=0)continue;const take=Math.min(left,b.tds);b.remitted=take;pool.set(k,left-take);}
   return rows;
 }
-/** TDS held back for a section and month less what is remitted (approved and pending entries) — what ACC_TDS_REMIT may still pay. */
-export function tdsPayableOutstanding(s:State,section:TdsSectionId,month:string):number{
-  const held=tdsBills(s).filter(b=>b.base===section&&b.month===month).reduce((a,b)=>a+b.tds,0);
-  const paid=tdsRemittances(s).filter(r=>live(r)&&r.section===section&&r.month===month).reduce((a,r)=>a+r.amount,0);
+/** TDS held back for a section code (sub-section, ACC-3 C6) and month less what is remitted (approved and pending entries) — what ACC_TDS_REMIT may still pay. */
+export function tdsPayableOutstanding(s:State,section:string,month:string):number{
+  const held=tdsBills(s).filter(b=>b.section===section&&b.month===month).reduce((a,b)=>a+b.tds,0);
+  const paid=tdsRemittances(s).filter(r=>live(r)&&r.code===section&&r.month===month).reduce((a,r)=>a+r.amount,0);
   return held-paid;
 }
 
@@ -96,7 +121,7 @@ export type TdsDeducteeRow={vendor:string;code:string;pan:string;section:string;
 export type TdsDeducteeReport={period:TdsPeriod;rows:TdsDeducteeRow[];bills:TdsBillRow[];remittances:TdsRemit[];
   totals:{taxable:number;tds:number;remitted:number;pending:number};note:string};
 const sectionLabel=(code:string)=>{const base=tdsBaseSection(code),d=base?tdsSectionDef(base)!:undefined;if(!d)return code;
-  const v=code.split(':')[1],vl=v?d.variants?.find(x=>x.id===v)?.label:undefined;return `${vl??d.label} · ${d.section} (old ${d.old})`;};
+  const v=code.split(':')[1],vl=v?d.variants?.find(x=>x.id===v)?.label:undefined;return `${vl??d.label} · ${d.section} (old ${tdsOldOf(code)})`;};
 /** Deductee-wise TDS for a financial year ('2026-27') or a month ('2026-04'): one row per vendor and section; the CA deposits and files (DEC-146). */
 export function tdsDeducteeReport(s:State,period?:string|{fy?:string;month?:string}):TdsDeducteeReport{
   const p=tdsPeriod(s,period),bills=tdsBills(s).filter(b=>inP(p,b.date)),by=new Map<string,TdsDeducteeRow>();
@@ -125,7 +150,7 @@ export type TdsReceivableReport={period:TdsPeriod;rows:TdsReceivableRow[];compan
  * the 1360 movement of the company-payment vouchers of the period beside it, and per company the Form 168 figure (paise) when the CA keys it in
  * — a shortfall is chased with the company; at year end the credit goes to the proprietor (Dr 3000 · Cr 1360, a manual journal, E6).
  */
-export function tdsReceivableReport(s:State,fy?:string,form168:Record<string,number>={}):TdsReceivableReport{
+export function tdsReceivableReport(s:State,fy?:string,form168:Record<string,number>=tdsForm168Of(s,fy)):TdsReceivableReport{ // ACC-3 C7: stored figures by default
   const p=tdsPeriod(s,fy),g=grpSlice(s),name=(id:string)=>g.companies.find(c=>c.id===id)?.name??id,by=new Map<string,TdsReceivableRow>();
   const pays=(g.payments??[]).filter(x=>inP(p,x.date)&&(x.tds??0)!==0);
   for(const x of pays){const k=x.company+'|'+x.date.slice(0,7);const r=by.get(k)??{company:x.company,name:name(x.company),month:x.date.slice(0,7),payments:0,settled:0,received:0,tds:0};
@@ -149,3 +174,10 @@ export function tdsReceivableCsv(r:TdsReceivableReport):string{
 }
 /** Section rows for pickers / the TDS tab (id, label with the s.393 row and the old section). */
 export const tdsSectionChoices=()=>TDS_SECTIONS.map(d=>({id:d.id,label:`${d.label} · ${d.section} (old ${d.old})`}));
+
+// ── ACC-3 C11 (contract §7): the server's dated TDS-rate versions (acc.tds_rate, GET /accounting/tds) as Master configuration changes ──
+/** Display rows for configX.changes (oldest first, as the hub log; ids `TDS-R<rateId>`); tdsValueOn then reads them like a hub edit. */
+export function tdsRatesToChanges(rates:{rateId?:number;key:string;effectiveFrom:string;value:number}[]):CFGChange[]{
+  return [...rates].sort((a,b)=>a.effectiveFrom<b.effectiveFrom?-1:a.effectiveFrom>b.effectiveFrom?1:0)
+    .map((r,i)=>({id:'TDS-R'+(r.rateId??i+1),key:r.key,before:undefined,after:r.value,effectiveFrom:r.effectiveFrom.slice(0,10),at:r.effectiveFrom.slice(0,10)+' 00:00',by:'server',status:'applied' as const}));
+}

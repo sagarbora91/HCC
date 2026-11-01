@@ -18,9 +18,10 @@ type SrvReveal={guestId:number;idType:string;idNumber:string;formatted:string;id
 export type Revealed={idType:string;formatted:string};
 
 /** One reveal call with a fresh Idempotency-Key per click (a key is never reused, so each reveal is audited as its own event). */
-export async function revealGuestId(t:Pick<HttpTransport,'command'>,guestId:string|number):Promise<Revealed>{
-  const key=`idview-${guestId}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,10)}`;
-  const r=await t.command<SrvReveal>('RevealGuestId',{guestId:Number(guestId)},{idempotencyKey:key});
+export async function revealGuestId(t:Pick<HttpTransport,'command'>,guestId:string|number,partySeq?:number):Promise<Revealed>{
+  const key=`idview-${guestId}-${partySeq??0}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,10)}`;
+  // DEC-193: partySeq = an accompanying guest (1-based); the server audits "party member <seq>".
+  const r=await t.command<SrvReveal>('RevealGuestId',partySeq?{guestId:Number(guestId),partySeq}:{guestId:Number(guestId)},{idempotencyKey:key});
   return {idType:r.idType,formatted:r.formatted||r.idNumber};
 }
 

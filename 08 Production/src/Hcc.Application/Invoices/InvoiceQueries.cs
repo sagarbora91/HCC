@@ -103,6 +103,13 @@ public sealed class InvoiceQueries(IInvoiceStore store, IAccessPolicy policy, II
     public async Task<Gstr1View> Gstr1Async(int propertyId, int principalId, DateOnly from, DateOnly to, CancellationToken ct = default)
     {
         await ViewAsync(propertyId, principalId, ct).ConfigureAwait(false);
+        return await Gstr1UncheckedAsync(propertyId, from, to, ct).ConfigureAwait(false);
+    }
+
+    /// <summary>ACC-3 ruling ACC3-R3: the GSTR-1 working summary for the accounting GST summary, which has already required the accounting view
+    /// permission (PERM-ACC-001) of its caller; no invoice permission is checked here. Never map this to an endpoint of its own.</summary>
+    public async Task<Gstr1View> Gstr1UncheckedAsync(int propertyId, DateOnly from, DateOnly to, CancellationToken ct = default)
+    {
         Range(from, to);
         var invoices = await store.InvoicesInRangeAsync(propertyId, from, to, ct).ConfigureAwait(false);
         var notes = await store.CreditNotesInRangeAsync(propertyId, from, to, ct).ConfigureAwait(false);

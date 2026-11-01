@@ -25,7 +25,9 @@ export function addHistoryGuests(s:State,history:Booking[],seed:number):void{
       const city=rng.pick(CITIES),pref=rng.pick(PREFS);
       g={id:'G-H'+String(n).padStart(4,'0'),name:b.guest,phone:b.phone??'',email:b.email??'',address:`${rng.int(1,120)} Demo Street, ${city} (fictional)`,nationality:'Indian',idType,idLast4,idNumber,
         ...(b.company?{company:b.company.name,gstin:b.company.gstin}:{}),preferences:pref,notes:'Fictional guest · FY 2026-27 history profile',
-        party:b.people>1&&rng.chance(0.25)?[{name:'Companion (fictional)',ageBand:'Adult',relation:rng.pick(['Spouse','Friend','Colleague'])}]:[],verified:departed,origin:'seed',version:1};
+        party:b.people>1&&rng.chance(0.25)?[{name:'Companion (fictional)',ageBand:'Adult',relation:rng.pick(['Spouse','Friend','Colleague']),
+          // DEC-193: every adult has their own ID — FICTIONAL passport Z…, deterministic (no extra random draw, so the history is unchanged otherwise)
+          idType:'Passport (demo)',idLast4:guestIdLast4(guestFictionalId('Passport (demo)',50000+n)),idNumber:guestFictionalId('Passport (demo)',50000+n)}]:[],verified:departed,origin:'seed',version:1};
       byKey.set(key,g);out.push(g);
     }
     b.guestId=g.id;

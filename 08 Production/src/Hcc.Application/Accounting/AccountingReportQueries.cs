@@ -88,14 +88,30 @@ public sealed class AccountingReportQueries(IAccountingStore store, IAccessPolic
         var days = await AccountingDays.RangeAsync(store, caller.PropertyId, start, to, ct).ConfigureAwait(false);
         var all = days.SelectMany(d => d.Vouchers).ToList();
         if (carried is not null) all.Add(carried);
-        var entry = openingEntry is null ? null : await openingEntry.GetAsync(caller.PropertyId, ct).ConfigureAwait(false);
         var extra = new Dictionary<string, (string Name, string Group)>(StringComparer.Ordinal);
-        if (entry?.Voucher is { } ov) all.Add(ov);
-        else if (imported is not null && AccountingReports.ImportedVoucher(await imported.GetAsync(caller.PropertyId, ct).ConfigureAwait(false), extra) is { } iv) all.Add(iv);
+        var entry = await ReportOpeningLoader.AddOpeningAsync(all, caller.PropertyId, openingEntry, imported, extra, ct).ConfigureAwait(false);
         var parties = partyNames is null ? null : await partyNames.GetAsync(caller.PropertyId, ct).ConfigureAwait(false);
         var (opening, period) = AccountingReports.Split(all, from, to);
         var chart = await store.ChartAsync(null, caller.PropertyId, ct).ConfigureAwait(false);
         return new Loaded(opening, period, new LedgerNames(parties, extra, chart), entry);
+    }
+}
+
+/// <summary>
+/// ACC-3 integration (ruling ACC3-R6): the one opening loader of the report queries (<see cref="AccountingReportQueries"/>, <see cref="PlQueries"/>):
+/// the approved opening entry's voucher when there is one, else the imported opening (OB-1) as a voucher whose ledgers outside the chart are added
+/// to <paramref name="extra"/>. Returns the opening entry (null when none) for the "opening pending" flag.
+/// </summary>
+public static class ReportOpeningLoader
+{
+    public static async Task<ReportOpening?> AddOpeningAsync(List<Voucher> all, int propertyId, IReportOpeningSource? openingEntry, IOpeningBalanceSource? imported,
+        Dictionary<string, (string Name, string Group)> extra, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(all);
+        var entry = openingEntry is null ? null : await openingEntry.GetAsync(propertyId, ct).ConfigureAwait(false);
+        if (entry?.Voucher is { } ov) all.Add(ov);
+        else if (imported is not null && AccountingReports.ImportedVoucher(await imported.GetAsync(propertyId, ct).ConfigureAwait(false), extra) is { } iv) all.Add(iv);
+        return entry;
     }
 }
 

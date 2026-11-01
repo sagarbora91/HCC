@@ -42,6 +42,24 @@ public static class CashGuard
     public const long SeedReceiptLimitPaise = 20_000_000;
     public const long SeedPaymentLimitPaise = 1_000_000;
     public const long SeedTransportLimitPaise = 3_500_000;
+    // ── ACC-3 C8 (contract §7; rulebook B11): loans only through a bank ledger ──
+    public const string LoanControl = "2400";
+
+    public const string LoanCashMessage = "A loan is received and repaid only through a bank account (rulebook B11; old s.269SS / 269T → Income-tax Act 2025 s.185 / s.188 — "
+        + Verify + "): cash of ₹20,000 or more on a voucher that touches a loan ledger (2400) is refused — use the bank ledger.";
+
+    /// <summary>B11 threshold (rulebook wins over the contract, ruling ACC3-R5): cash legs totalling ₹20,000 or more, in paise. CA to confirm.</summary>
+    public const long LoanCashLimitPaise = 2_000_000;
+
+    /// <summary>B11: the refusal when a voucher has a line on a loan ledger (2400 or 2400/&lt;party&gt;) and a Cash-in-Hand line (null = fine). Prototype accLoanCashRefusal.</summary>
+    public static string? LoanCashRefusal(IEnumerable<(string Account, bool Cash, long AmountPaise)> lines)
+    {
+        var l = (lines ?? throw new ArgumentNullException(nameof(lines))).ToList();
+        var loan = l.Any(x => x.Account == LoanControl || x.Account.StartsWith(LoanControl + "/", StringComparison.Ordinal));
+        var cash = l.Where(x => x.Cash).Sum(x => Math.Abs(x.AmountPaise));
+        return loan && cash >= LoanCashLimitPaise ? LoanCashMessage : null;
+    }
+
     public const string Verify = "VERIFY section numbers — CA to confirm (rulebook OP-10)";
 
     /// <summary>B9: refused when the day's total from the party, or the scope's total (booking / transaction / event), reaches the limit with this amount.</summary>

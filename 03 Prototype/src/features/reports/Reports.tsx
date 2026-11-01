@@ -53,7 +53,8 @@ function ReportsPage(){
   return <><PageTitle title="Reports" sub={process.env.HCC_BUILD==='production'?'Figures from the hotel server · '+dateLabel(s.date):'Every figure derived from source records · fictional data · '+dateLabel(s.date)} action={<div className="inline">
       {canExport&&<><button className="btn" disabled={!pack} onClick={exportTab}><Download size={16}/> Export CSV</button>
       <button className="btn" disabled={!pack} onClick={exportExcel}><FileSpreadsheet size={16}/> Export Excel</button></>}
-      <button className="btn" disabled={!pack} onClick={()=>open({type:'report-print',id:tab,room:from+'|'+to})}><Printer size={16}/> Print</button></div>}/>
+      {/* ACC-3 integrator: Print is an export of the whole pack (PDF) — same role check as the exports (RPT-003; not the Cashier). */}
+      {canExport&&<button className="btn" disabled={!pack} onClick={()=>open({type:'report-print',id:tab,room:from+'|'+to})}><Printer size={16}/> Print</button>}</div>}/>
     {process.env.HCC_BUILD==='production'?<ServerHistorySummary/>:<HistorySummary/>}
     <section className="card f-filters" aria-label="Report filters">
       <label>From (business date)<input type="date" value={from} max={s.date} onChange={e=>{setFrom(e.target.value);setDrill(null);}}/></label>
@@ -99,12 +100,14 @@ function Dictionary(){
 }
 /** Wide modal 'report-print': id = tab ID, room = 'from|to'. */
 export function ReportPrintModal({id,room}:{id?:string;room?:string}){
-  const {s,closeModal,permission}=useHcc();
+  const {s,uid,closeModal,permission}=useHcc();
   const [from,to]=(room||s.date+'|'+s.date).split('|');
+  const allowed=rbacCanExportReports(s,uid);
   const mask=!permission('billing')&&!permission('reservations');
   const srv=process.env.HCC_BUILD==='production'?useServerReport(from,to):NO_FETCH; // eslint-disable-line react-hooks/rules-of-hooks
   const pack0=useMemo(()=>process.env.HCC_BUILD==='production'?(srv.data?.pack??null):scoped(reportPackMemo(s,from,to),mask),[s.bookings,s.expenses,s.rooms,s.posX,s.closings,s.closedDates,s.date,s.openingCash,s.shiftClose,from,to,mask,srv.data]); // eslint-disable-line react-hooks/exhaustive-deps
   const pack=pack0?scoped(pack0,mask):null;
+  if(!allowed)return <><div className="f-print-doc invoice"><p role="alert">Printing the reports is not available for your role (Owner, Manager or Accountant).</p></div><div className="modal-actions no-print"><button className="btn" onClick={closeModal}>Close</button></div></>;
   if(!pack)return <><div className="f-print-doc invoice"><p role="status">{srv.status==='error'?'The report could not be loaded from the server.':'Loading the report from the server…'}</p></div><div className="modal-actions no-print"><button className="btn" onClick={closeModal}>Close</button></div></>;
   const t=pack.tabs.find(x=>x.id===id);
   return <><div className="f-print-doc invoice">

@@ -108,7 +108,7 @@ export type ACCManualVoucher={id:string;date:string;type:'Journal'|'Contra'|'Pay
   status:'pending'|'approved'|'rejected'|'void';by:string;at:string;decidedBy?:string;decidedAt?:string;reason?:string;voidOf?:string;voidedBy?:string;bookedOn?:string;
   /** ACC-2 integration (contract §7 B10): a cash Payment above the payment limit to one party in a day — the deduction is lost (P&L notes). */ cashDeductionLost?:boolean};
 /** Fixed-asset register row (contract §3.4): created when a capital purchase posts; no depreciation journal in HCC (DEC-140 / DEC-138). */
-export type ACCAsset={id:string;no:string;ledger:string;name:string;cost:number;date:string;vendor:string;expense:string;itc:number;putToUse?:string;disposed?:{date:string;amount:number;voucher:string}};
+export type ACCAsset={id:string;no:string;ledger:string;name:string;cost:number;date:string;vendor:string;expense:string;itc:number;putToUse?:string;disposed?:{date:string;amount:number;voucher:string;method?:string;flag?:string};/** ACC-3 C2: Σ returned against the purchase (derived; cost is net of it). */returned?:number};
 /** Month lock (contract §6): every day of the month locked, the GST set-off posted, no pending manual voucher; mirrors the SCC expense month lock. */
 export type ACCMonthLock={lockedAt:string;lockedBy:string;setoff?:string;unlocks?:{at:string;by:string;reason:string}[]};
 // ── end ACC-2 contract block ──
@@ -222,7 +222,7 @@ export type ACCState={mapping?:Record<string,string>;locks?:Record<string,ACCLoc
   /** ACC-1 (SCHEMA 11): the chart as a master (Owner overrides of built-ins, Owner-added ledgers, custom sub-groups, history) and the hand-entered opening balances. */
   chart?:{ledgers:ACCLedger[];groups:ACCGroupDef[];history:ACCChartChange[]};opening?:ACCOpening;
   /** ACC-2 (SCHEMA 12): manual vouchers, the fixed-asset register, month locks and the posted GST set-off per month (contract §2, §3.4, §6). */
-  manual?:ACCManualVoucher[];assets?:ACCAsset[];monthLocks?:Record<string,ACCMonthLock>;gstSetoffs?:Record<string,string>;
+  manual?:ACCManualVoucher[];assets?:ACCAsset[];monthLocks?:Record<string,ACCMonthLock>;gstSetoffs?:Record<string,string>;/** ACC-3 C7: Form 168 figures per TDS remittance (manual voucher id → company → paise). */tdsForm168?:Record<string,Record<string,number>>;
   tallyExports?:ACCTallyExport[];reexport?:Record<string,ACCReexport>};
 export const accEmpty=():ACCState=>({});
 export const accSlice=(s:State):ACCState=>s.accountingX??accEmpty();

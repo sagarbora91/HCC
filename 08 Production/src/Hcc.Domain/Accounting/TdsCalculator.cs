@@ -163,7 +163,7 @@ public static class TdsReports
         var remitted = new Dictionary<long, long>();
         foreach (var b in rows)
         {
-            var k = TdsRates.BaseSection(b.Section) + "|" + Month(b.Date);
+            var k = b.Section + "|" + Month(b.Date); // ACC-3 C6: remittances are kept per sub-section (the vendor's code)
             var left = pool.GetValueOrDefault(k);
             if (left <= 0 || b.TdsPaise <= 0) continue;
             var take = Math.Min(left, b.TdsPaise);

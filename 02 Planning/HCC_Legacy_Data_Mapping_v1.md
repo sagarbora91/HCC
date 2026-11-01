@@ -2,7 +2,7 @@
 
 Draft 28 Oct 2026. Source profile: `E:\Projects\HCC\Existing Software\DB-PROFILE\README.md` (row counts, fill rates, schema CSVs) and the compacted copies in `DB-PROFILE\compacted\LodgeYY-YY.mdb` (251 MB for ten financial years; same password as the live files, hard-coded in `Forms\Forms\Module1.bas` ~line 944). Target: the production SQL Server schema in `08 Production\database\migrations` and the masters import templates in `08 Production\deployment\import-templates`.
 
-Status: **decided 28 Oct 2026** — the owner applied the recommendations of §8 as they stood (APR-021 → DEC-161…164 in `HCC_Decision_Register.md`). Scheduled as wave **W1a LG — legacy data** in `HCC_Build_Plan_v2_2026-10-27.md` (branch `claude/lg`, migrations 4600–4619). Two inputs are still owed: the rack-rate card (Q9, OP-18) and the CA's word on invoice-number continuity (Q10, OP-19).
+Status: **built and dry-run 1 Nov 2026** (wave W1a LG on `main`; rulings DEC-178…192 refine this document where they differ; see `05 Delivery Evidence/Legacy/LG-DONE.md`). Decided 28 Oct 2026 — the owner applied the recommendations of §8 as they stood (APR-021 → DEC-161…164 in `HCC_Decision_Register.md`). Scheduled as wave **W1a LG — legacy data** in `HCC_Build_Plan_v2_2026-10-27.md` (branch `claude/lg`, migrations 4600–4619). Two inputs are still owed: the rack-rate card (Q9, OP-18) and the CA's word on invoice-number continuity (Q10, OP-19).
 
 ---
 

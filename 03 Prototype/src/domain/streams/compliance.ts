@@ -36,7 +36,7 @@ export type CMPProfile={name:string;pan:string;gstin:string;entity:CMPEntity;gst
   /** DEC-133 (optional, Owner): licence numbers (free text) and expiry dates (YYYY-MM-DD). An expiry date puts the renewal card on its month. */
   fssaiNo?:string;fssaiExpiry?:string;lodgingNo?:string;lodgingExpiry?:string;
   /** ACC-2 (contract §4, §5; Owner-only money settings): GST on booking advances (DEC-142, default off); the hotel deducts TDS (DEC-146, default on) and its deductor type (rate column). */
-  gstOnAdvances?:boolean;hotelDeductsTds?:boolean;tdsDeductorType?:'individual'|'other';
+  gstOnAdvances?:boolean;/** ACC-3 C10: the switch applies to advances dated on or after this date (absent = every advance). */gstOnAdvancesFrom?:string;hotelDeductsTds?:boolean;tdsDeductorType?:'individual'|'other';
   updatedBy?:string;updatedAt?:string};
 /** SCC record (L2421, L2190) + HCC audit fields (who / when). Done and NA are independent flags; NA wins on screen (SCC). */
 export type CMPRecord={done?:boolean;na?:boolean;filedOn?:string;notes?:string;evidenceRef?:string;reviewerNote?:string;dueDate?:string;

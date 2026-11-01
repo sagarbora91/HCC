@@ -392,7 +392,7 @@ public static partial class ImportLists
         new(ImportMaster.IdTypes, "id-types", "idTypes", "Guest ID types", "ID type", false, "—",
         [
             Flag("accepted", "yes when the hotel accepts this ID at check-in (blank = yes).", "yes", "yes"),
-            Flag("needsPhoto", "yes when a photo of the ID must be taken.", "no"),
+            Flag("needsPhoto", "yes when a photo of the ID is suggested (optional; DEC-193: a photo is never required).", "no"),
             Flag("foreignerOnly", "yes when only foreign nationals use it (passport + visa).", "no"),
         ])
         {

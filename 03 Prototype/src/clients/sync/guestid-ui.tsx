@@ -15,10 +15,10 @@ export function useCanRevealGuestId():boolean{
 // Show ID dialog layout (v12 APK12-8): left aligned, close button in its own 48 px corner, 16 px text, Maroon and Sand colours; works from 360 px up.
 const DIALOG:React.CSSProperties={position:'relative',boxSizing:'border-box',width:'min(440px,calc(100vw - 32px))',maxWidth:'100%',padding:'16px 16px 20px',textAlign:'left',background:'#fff',borderRadius:14};
 const CLOSE:React.CSSProperties={position:'absolute',top:8,right:8,width:48,height:48,minWidth:48,display:'inline-flex',alignItems:'center',justifyContent:'center',color:'#7a1f2b'};
-export function GuestIdRevealButton({guestId,uid}:{guestId:string;uid:string}){
+export function GuestIdRevealButton({guestId,uid,partySeq}:{guestId:string;uid:string;partySeq?:number}){
   const [view,setView]=useState<RevealView>({phase:'idle'});
   const [left,setLeft]=useState(REVEAL_MS/1000);
-  const ctl=useMemo(()=>createReveal({reveal:()=>revealGuestId(getSyncRuntime().transport,guestId),onChange:setView}),[guestId,uid]);
+  const ctl=useMemo(()=>createReveal({reveal:()=>revealGuestId(getSyncRuntime().transport,guestId,partySeq),onChange:setView}),[guestId,uid,partySeq]);
   useEffect(()=>()=>ctl.hide(),[ctl]); // another guest / user / leaving the screen: drop the number
   useEffect(()=>{ // the app goes to the background: hide
     const f=()=>{if(document.visibilityState==='hidden')ctl.hide();};

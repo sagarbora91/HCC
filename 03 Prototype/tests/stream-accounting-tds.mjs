@@ -142,7 +142,7 @@ export function register({test,M,assert}){
     const csv=M.tdsDeducteeCsv(m).split('\r\n');
     assert.equal(csv[0],'Vendor,Vendor code,PAN,Section,Bills,Taxable (₹),TDS (₹),Remitted (₹),Pending (₹)');
     assert.equal(csv.at(-1),'Total,,,,2,110000.00,7000.00,6000.00,1000.00');
-    assert.match(csv[1],/^Godown Owner \(fictional\),V-LANDLORD,AAAPS1234C,Rent of premises · s\.393\(1\) Sl\. 2\(ii\) \(old 194-I\),1,60000\.00,6000\.00,6000\.00,0\.00$/);
+    assert.match(csv[1],/^Godown Owner \(fictional\),V-LANDLORD,AAAPS1234C,Rent of premises · s\.393\(1\) Sl\. 2\(ii\) \(old 194-I\(b\)\),1,60000\.00,6000\.00,6000\.00,0\.00$/);
   });
 
   test('[ACC2-TDS] A9 rulebook figure: Deccan Agro ₹60,000 taxable → ₹6,000 TDS (T7b); ₹40,000 below the ₹50,000 month → none (T7a)',()=>{

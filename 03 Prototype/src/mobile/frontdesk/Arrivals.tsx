@@ -11,6 +11,7 @@ import {Fab,ListCard,Stepper,NumberStepper} from '../../app/mobile/components';
 import {Pill,Empty,shortDate} from '../../components/ui';
 import {GuestForm,emptyDraft,draftOf,hashOf} from '../../features/guests/GuestForm';
 import {GuestDetails} from '../../features/guests/GuestProfile';
+import {PartyIdChips} from '../../features/guests/CheckIn';
 import {mfCheckinState,mfCheckinSteps,mfInitials} from './logic';
 import {MfRows,MfSearch,useMfTop} from './shared';
 import {bookingIdLookup} from '../../domain/streams/customers';
@@ -114,7 +115,7 @@ export function MfCheckin({id}:{id?:string}){
           <button className="btn small-btn" onClick={()=>goStep(3)}>Choose another room</button>
           <button className="btn small-btn" onClick={()=>{closeModal();go('arrivals');}}>Back to arrivals</button></div></div></div>}
       <div className="modal-actions">{prevBtn}<button type="button" className="btn primary" disabled={busy||st.missing.length>0} onClick={checkin}><DoorOpen size={16}/>Check in</button></div></>;}
-  return <><div className="modal-heading"><div className="eyebrow">CHECK-IN{b?' · '+bookingRef(b):''}</div><h2>{b?b.guest:'Find the reservation'}</h2>{b&&<p>Room {b.room} · {shortDate(b.arrival)} – {shortDate(b.departure)} · {b.people} guest{b.people>1?'s':''}</p>}</div>
+  return <><div className="modal-heading"><div className="eyebrow">CHECK-IN{b?' · '+bookingRef(b):''}</div><h2>{b?b.guest:'Find the reservation'}</h2>{b&&<p>Room {b.room} · {shortDate(b.arrival)} – {shortDate(b.departure)} · {b.people} guest{b.people>1?'s':''}</p>}{b&&b.status!=='In house'&&<PartyIdChips g={g}/>}</div>
     {b?.status!=='In house'&&<Stepper steps={mfCheckinSteps} current={step-1}/>}
     {b?.status!=='In house'&&<h3 className="mf-sub">Step {step} of 6 · {mfCheckinSteps[step-1]}</h3>}
     {body}</>;

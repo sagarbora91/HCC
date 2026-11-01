@@ -42,7 +42,21 @@ public sealed class GuestIdProtector(IGuestIdKeyRing keys)
     private static byte[] Aad(int propertyId, long guestId, string keyId)
         => Encoding.UTF8.GetBytes(string.Create(CultureInfo.InvariantCulture, $"HCC-GUESTID-v1|{propertyId}|{guestId}|{keyId}"));
 
-    public SealedGuestId Seal(int propertyId, long guestId, string normalisedNumber)
+    /// <summary>DEC-193: associated data of an accompanying guest's number — the party seq binds the blob to that member.</summary>
+    private static byte[] Aad(int propertyId, long guestId, int seq, string keyId)
+        => Encoding.UTF8.GetBytes(string.Create(CultureInfo.InvariantCulture, $"HCC-GUESTID-v1|{propertyId}|{guestId}|{seq}|{keyId}"));
+
+    /// <summary>DEC-193: seals a party member's number (associated data <c>HCC-GUESTID-v1|property|guest|seq|keyId</c>).</summary>
+    public SealedGuestId Seal(int propertyId, long guestId, int seq, string normalisedNumber) => SealWith(normalisedNumber, k => Aad(propertyId, guestId, seq, k));
+
+    /// <summary>DEC-193: opens a party member's number (fails for another guest, another seq or the registered guest's blob).</summary>
+    public string Open(int propertyId, long guestId, int seq, SealedGuestId stored) => OpenWith(stored, k => Aad(propertyId, guestId, seq, k));
+
+    public SealedGuestId Seal(int propertyId, long guestId, string normalisedNumber) => SealWith(normalisedNumber, k => Aad(propertyId, guestId, k));
+
+    public string Open(int propertyId, long guestId, SealedGuestId stored) => OpenWith(stored, k => Aad(propertyId, guestId, k));
+
+    private SealedGuestId SealWith(string normalisedNumber, Func<string, byte[]> aad)
     {
         ArgumentException.ThrowIfNullOrEmpty(normalisedNumber);
         var keyId = keys.CurrentKeyId;
@@ -52,12 +66,12 @@ public sealed class GuestIdProtector(IGuestIdKeyRing keys)
         var nonce = blob.AsSpan(1, NonceSize);
         RandomNumberGenerator.Fill(nonce);
         using (var aes = new AesGcm(KeyOrThrow(keyId), TagSize))
-            aes.Encrypt(nonce, plain, blob.AsSpan(1 + NonceSize + TagSize), blob.AsSpan(1 + NonceSize, TagSize), Aad(propertyId, guestId, keyId));
+            aes.Encrypt(nonce, plain, blob.AsSpan(1 + NonceSize + TagSize), blob.AsSpan(1 + NonceSize, TagSize), aad(keyId));
         CryptographicOperations.ZeroMemory(plain);
         return new SealedGuestId(keyId, blob);
     }
 
-    public string Open(int propertyId, long guestId, SealedGuestId stored)
+    private string OpenWith(SealedGuestId stored, Func<string, byte[]> aad)
     {
         ArgumentNullException.ThrowIfNull(stored);
         var blob = stored.Sealed;
@@ -67,7 +81,7 @@ public sealed class GuestIdProtector(IGuestIdKeyRing keys)
         try
         {
             using var aes = new AesGcm(KeyOrThrow(stored.KeyId), TagSize);
-            aes.Decrypt(blob.AsSpan(1, NonceSize), blob.AsSpan(1 + NonceSize + TagSize), blob.AsSpan(1 + NonceSize, TagSize), plain, Aad(propertyId, guestId, stored.KeyId));
+            aes.Decrypt(blob.AsSpan(1, NonceSize), blob.AsSpan(1 + NonceSize + TagSize), blob.AsSpan(1 + NonceSize, TagSize), plain, aad(stored.KeyId));
             return Encoding.ASCII.GetString(plain);
         }
         catch (AuthenticationTagMismatchException)

@@ -135,6 +135,8 @@ export async function saveTextFile(name:string,text:string,mime:string,bom=false
   }catch{return 'failed';}
 }
 export const saveCsv=(name:string,csv:string)=>saveTextFile(name,csv,'text/csv',true);
+/** ACC-3 (contract §4/§5): any non-CSV text export (Tally XML, JSON) — same cache + share sheet / download path as saveCsv, no byte-order mark. */
+export const saveText=(name:string,text:string,mime:string)=>saveTextFile(name,text,mime,false);
 const bytesToBase64=(bytes:Uint8Array)=>{let bin='';for(let i=0;i<bytes.length;i+=0x8000)bin+=String.fromCharCode(...bytes.subarray(i,i+0x8000));return btoa(bin);};
 /** Bytes per native write (a multiple of 3, so each base64 piece is whole). */
 export const NATIVE_CHUNK=3*1024*1024;

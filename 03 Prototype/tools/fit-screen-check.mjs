@@ -1,4 +1,4 @@
-// FIT · fit-to-screen check (DEC-178…180, contract 02 Planning/agents/FIT-LAYOUT-CONTRACT.md §8). Playwright, by hand; not part of npm test.
+// FIT · fit-to-screen check (DEC-194…196, contract 02 Planning/agents/FIT-LAYOUT-CONTRACT.md §8). Playwright, by hand; not part of npm test.
 // Needs `npm run build` and a server: `PORT=4183 node serve.mjs` (or BASE=http://127.0.0.1:<port>/). Run through tools\Invoke-Serialized.ps1.
 //   node tools/fit-screen-check.mjs [--pages a,b] [--roles owner,reception] [--viewports tab-land,lap-1366] [--text-scale 1.3]
 //                                   [--out <dir>] [--no-shots] [--record-baseline]

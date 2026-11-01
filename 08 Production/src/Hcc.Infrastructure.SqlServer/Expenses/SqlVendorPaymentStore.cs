@@ -64,6 +64,40 @@ public sealed class SqlVendorPaymentStore(SqlConnectionFactory connections) : IV
         return id;
     }
 
+    /// <summary>ACC-3 C3: delete + insert the allocation rows, then the audit row (4271).</summary>
+    public async Task ReallocateAsync(ICommandTransaction tx, long paymentId, IReadOnlyList<VendorAllocationDto> before, IReadOnlyList<VendorAllocationDto> after, int by, DateTime nowUtc,
+        CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(before);
+        ArgumentNullException.ThrowIfNull(after);
+        await using (var del = Sql(tx).Command("DELETE ops.vendor_payment_alloc WHERE vendor_payment_id = @id;"))
+        {
+            Add(del, "@id", SqlDbType.BigInt, paymentId);
+            await del.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+        }
+
+        foreach (var a in after)
+        {
+            await using var cmd = Sql(tx).Command("INSERT ops.vendor_payment_alloc(vendor_payment_id, expense_id, opening, amount_paise) VALUES (@id, @e, @o, @a);");
+            Add(cmd, "@id", SqlDbType.BigInt, paymentId);
+            Add(cmd, "@e", SqlDbType.BigInt, a.Opening ? null : a.ExpenseId);
+            Add(cmd, "@o", SqlDbType.Bit, a.Opening);
+            Add(cmd, "@a", SqlDbType.BigInt, a.AmountPaise);
+            await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+        }
+
+        static string J(IReadOnlyList<VendorAllocationDto> xs) => System.Text.Json.JsonSerializer.Serialize(xs.Select(a => new { expenseId = a.ExpenseId, amountPaise = a.AmountPaise, opening = a.Opening }));
+        await using var log = Sql(tx).Command("""
+            INSERT ops.vendor_payment_realloc(vendor_payment_id, before_json, after_json, changed_by, changed_utc) VALUES (@id, @b, @a, @by, @now);
+            """);
+        Add(log, "@id", SqlDbType.BigInt, paymentId);
+        Add(log, "@b", SqlDbType.NVarChar, J(before), -1);
+        Add(log, "@a", SqlDbType.NVarChar, J(after), -1);
+        Add(log, "@by", SqlDbType.Int, by);
+        Add(log, "@now", SqlDbType.DateTime2, nowUtc);
+        await log.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+    }
+
     public async Task SetCashMovementAsync(ICommandTransaction tx, long paymentId, long movementId, CancellationToken ct = default)
     {
         await using var cmd = Sql(tx).Command("UPDATE ops.vendor_payment SET cash_movement_id = @m WHERE vendor_payment_id = @id;");
@@ -277,21 +311,88 @@ public sealed class SqlFixedAssetStore(SqlConnectionFactory connections) : IFixe
         await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
     }
 
-    public async Task<IReadOnlyList<FixedAssetView>> ListAsync(int propertyId, CancellationToken ct = default)
+    // ACC-3 C2: the register cost is net of the posted returns against the purchase (each return net of the ITC it reverses — prototype accAssetReturned).
+    private const string AssetSelect = """
+        SELECT a.fixed_asset_id, a.asset_no, a.ledger, a.name, a.cost_paise, a.itc_paise, a.purchase_date, a.vendor, a.expense_id, a.put_to_use, a.disposed_date,
+               a.disposed_amount_paise, a.disposed_voucher, a.disposal_method, a.disposal_flag,
+               ISNULL((SELECT SUM(-(r.amount_paise - CASE WHEN r.rcm = 0 AND r.itc_allowed = 1 THEN ISNULL(r.gst_paise, 0) ELSE 0 END))
+                       FROM ops.expense r WHERE r.return_of = a.expense_id AND r.status = 'Posted' AND r.reversal_of IS NULL), 0)
+        FROM acc.fixed_asset a
+        """;
+
+    private static FixedAssetView ReadAsset(SqlDataReader rd)
     {
         static string W(DateTime d) => DateOnly.FromDateTime(d).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        long cost = rd.GetInt64(4), returned = Math.Max(0, rd.GetInt64(15));
+        return new FixedAssetView(rd.GetInt64(0), rd.GetString(1), rd.GetString(2), rd.GetString(3), Math.Max(0, cost - returned), rd.GetInt64(5), W(rd.GetDateTime(6)), rd.GetString(7),
+            rd.GetInt64(8), rd.IsDBNull(9) ? null : W(rd.GetDateTime(9)), rd.IsDBNull(10) ? null : W(rd.GetDateTime(10)), rd.IsDBNull(11) ? null : rd.GetInt64(11),
+            rd.IsDBNull(12) ? null : rd.GetString(12), cost, returned, rd.IsDBNull(13) ? null : rd.GetString(13), rd.IsDBNull(14) ? null : rd.GetString(14));
+    }
+
+    public async Task<IReadOnlyList<FixedAssetView>> ListAsync(int propertyId, CancellationToken ct = default)
+    {
         await using var conn = await connections.OpenAsync(ct).ConfigureAwait(false);
-        await using var cmd = connections.Command("""
-            SELECT fixed_asset_id, asset_no, ledger, name, cost_paise, itc_paise, purchase_date, vendor, expense_id, put_to_use, disposed_date, disposed_amount_paise, disposed_voucher
-            FROM acc.fixed_asset WHERE property_id = @p ORDER BY purchase_date DESC, asset_no DESC;
-            """, conn);
+        await using var cmd = connections.Command(AssetSelect + " WHERE a.property_id = @p ORDER BY a.purchase_date DESC, a.asset_no DESC;", conn);
         Add(cmd, "@p", SqlDbType.Int, propertyId);
         var list = new List<FixedAssetView>();
         await using var rd = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        while (await rd.ReadAsync(ct).ConfigureAwait(false))
-            list.Add(new FixedAssetView(rd.GetInt64(0), rd.GetString(1), rd.GetString(2), rd.GetString(3), rd.GetInt64(4), rd.GetInt64(5), W(rd.GetDateTime(6)), rd.GetString(7),
-                rd.GetInt64(8), rd.IsDBNull(9) ? null : W(rd.GetDateTime(9)), rd.IsDBNull(10) ? null : W(rd.GetDateTime(10)), rd.IsDBNull(11) ? null : rd.GetInt64(11),
-                rd.IsDBNull(12) ? null : rd.GetString(12)));
+        while (await rd.ReadAsync(ct).ConfigureAwait(false)) list.Add(ReadAsset(rd));
         return list;
+    }
+
+    public async Task<IReadOnlyList<FixedAssetView>> ListAsync(ICommandTransaction tx, int propertyId, CancellationToken ct = default)
+    {
+        await using var cmd = Sql(tx).Command(AssetSelect + " WHERE a.property_id = @p ORDER BY a.purchase_date DESC, a.asset_no DESC;");
+        Add(cmd, "@p", SqlDbType.Int, propertyId);
+        var list = new List<FixedAssetView>();
+        await using var rd = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+        while (await rd.ReadAsync(ct).ConfigureAwait(false)) list.Add(ReadAsset(rd));
+        return list;
+    }
+
+    public async Task<FixedAssetView?> LockAsync(ICommandTransaction tx, int propertyId, long assetId, CancellationToken ct = default)
+    {
+        await using (var l = Sql(tx).Command("SELECT 1 FROM acc.fixed_asset WITH (UPDLOCK, HOLDLOCK) WHERE fixed_asset_id = @id AND property_id = @p;"))
+        {
+            Add(l, "@id", SqlDbType.BigInt, assetId);
+            Add(l, "@p", SqlDbType.Int, propertyId);
+            if (await l.ExecuteScalarAsync(ct).ConfigureAwait(false) is null) return null;
+        }
+
+        await using var cmd = Sql(tx).Command(AssetSelect + " WHERE a.fixed_asset_id = @id AND a.property_id = @p;");
+        Add(cmd, "@id", SqlDbType.BigInt, assetId);
+        Add(cmd, "@p", SqlDbType.Int, propertyId);
+        await using var rd = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+        return await rd.ReadAsync(ct).ConfigureAwait(false) ? ReadAsset(rd) : null;
+    }
+
+    public async Task SetPutToUseAsync(ICommandTransaction tx, long assetId, DateOnly date, int by, DateTime nowUtc, CancellationToken ct = default)
+    {
+        await using var cmd = Sql(tx).Command("UPDATE acc.fixed_asset SET put_to_use = @d, put_to_use_by = @by, put_to_use_utc = @now WHERE fixed_asset_id = @id;");
+        Add(cmd, "@d", SqlDbType.Date, date.ToDateTime(TimeOnly.MinValue));
+        Add(cmd, "@by", SqlDbType.Int, by);
+        Add(cmd, "@now", SqlDbType.DateTime2, nowUtc);
+        Add(cmd, "@id", SqlDbType.BigInt, assetId);
+        await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+    }
+
+    public async Task DisposeAsync(ICommandTransaction tx, long assetId, DateOnly date, long amountPaise, string? voucher, string? method, string? flag, string? reason, int by, DateTime nowUtc,
+        CancellationToken ct = default)
+    {
+        await using var cmd = Sql(tx).Command("""
+            UPDATE acc.fixed_asset SET disposed_date = @d, disposed_amount_paise = @a, disposed_voucher = @v, disposal_method = @m, disposal_flag = @f, disposal_reason = @r,
+              disposed_by = @by, disposed_utc = @now
+            WHERE fixed_asset_id = @id AND disposed_date IS NULL;
+            """);
+        Add(cmd, "@d", SqlDbType.Date, date.ToDateTime(TimeOnly.MinValue));
+        Add(cmd, "@a", SqlDbType.BigInt, amountPaise);
+        Add(cmd, "@v", SqlDbType.VarChar, voucher, 60);
+        Add(cmd, "@m", SqlDbType.NVarChar, method, 60);
+        Add(cmd, "@f", SqlDbType.NVarChar, flag, 300);
+        Add(cmd, "@r", SqlDbType.NVarChar, reason, 200);
+        Add(cmd, "@by", SqlDbType.Int, by);
+        Add(cmd, "@now", SqlDbType.DateTime2, nowUtc);
+        Add(cmd, "@id", SqlDbType.BigInt, assetId);
+        await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
     }
 }

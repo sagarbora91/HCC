@@ -279,7 +279,9 @@ export type State={
     /** W1a LG (DEC-162 Q4): date of birth yyyy-mm-dd, optional (no SCHEMA bump). */ dob?:string;
     /** W1a LG: the old "Lodge" program's GuestID that produced this profile (set by the legacy importer only). */ legacyGuestId?:number;
     company?:string;gstin?:string;preferences:string;notes:string;
-    party:{name:string;ageBand:string;relation:string}[];verified:boolean;
+    /** DEC-193: every accompanying guest has their own ID (idType, idLast4, idNumber? — optional fields, no SCHEMA bump; the full number is
+     *  shown masked and revealed only through the audited GUEST_ID_VIEW {seq}). Required for Adult / Senior (GUEST_PARTY_ID_REQUIRED_BANDS). */
+    party:{name:string;ageBand:string;relation:string;idType?:string;idLast4?:string;idNumber?:string}[];verified:boolean;
     /** seed = fixture, manual = GUEST_SAVE/REGISTER with details, auto = minimal demo profile from REGISTER {id}. */
     origin?:'seed'|'manual'|'auto';version?:number}[];
 

@@ -33,7 +33,8 @@ async function loadGuests(c:LoaderCtx):Promise<Guest[]>{
   return items.map(g=>{
     const id=String(g.guestId);c.ids.learn('guest',id,g.guestId);c.ids.setVersion('guest',id,g.version);
     const out:Guest={id,name:g.name,phone:g.phone,email:g.email??'',address:g.address??'',nationality:g.nationality,idType:g.idType??'',idLast4:g.idLast4??'',
-      preferences:g.preferences??'',notes:g.notes??'',party:g.party.map(p=>({name:p.name,ageBand:p.ageBand,relation:p.relation??''})),verified:g.verified,
+      preferences:g.preferences??'',notes:g.notes??'',party:g.party.map(p=>{const m:Guest['party'][number]={name:p.name,ageBand:p.ageBand,relation:p.relation??''}; // DEC-193: the member's own ID, masked (never the number)
+        if(p.idType)m.idType=p.idType;if(p.idLast4&&/^[0-9A-Za-z]{4}$/.test(p.idLast4))m.idLast4=p.idLast4;return m;}),verified:g.verified,
       origin:g.origin==='auto'?'auto':'manual',version:1};
     if(g.company)out.company=g.company;if(g.gstin)out.gstin=g.gstin;
     if(g.dob)out.dob=String(g.dob).slice(0,10);   // LG: returned only to contact-detail readers (LG-R5)
@@ -45,7 +46,9 @@ const MASKED=/[•*]/;
 /** Guest draft (prototype) → GuestDraftDto. A masked placeholder ("Restricted") is never sent back as a value. */
 function guestDto(d:Record<string,unknown>):Record<string,unknown>{
   const s=(v:unknown)=>{const t=String(v??'').trim();return t===''||t==='Restricted'?undefined:t;};
-  const party=Array.isArray(d.party)?(d.party as {name?:unknown;ageBand?:unknown;relation?:unknown}[]).map(p=>({name:String(p.name??''),ageBand:String(p.ageBand??''),relation:s(p.relation)})):undefined;
+  // DEC-193: per member ID type + number (write-only on the server; blank number = keep the stored one when the member keeps name and ID type).
+  const party=Array.isArray(d.party)?(d.party as {name?:unknown;ageBand?:unknown;relation?:unknown;idType?:unknown;idNumber?:unknown}[]).map(p=>({name:String(p.name??''),ageBand:String(p.ageBand??''),relation:s(p.relation),
+    idType:s(p.idType),idNumber:MASKED.test(String(p.idNumber??''))?undefined:s(p.idNumber)})):undefined;
   return {name:s(d.name),phone:s(d.phone),email:s(d.email),address:s(d.address),nationality:s(d.nationality),idType:s(d.idType),idLast4:s(d.idLast4),
     company:s(d.company),gstin:s(d.gstin),preferences:s(d.preferences),notes:s(d.notes),party,idNumber:s(d.idNumber),
     // LG-R6: dob omitted = the server keeps the stored date; an explicit empty value clears it.
