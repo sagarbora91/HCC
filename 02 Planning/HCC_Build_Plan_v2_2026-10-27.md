@@ -35,7 +35,7 @@ ETP shipped eleven releases in October with Claude agents by one method (`E:\ETP
 | W1 | **ACC-1 Chart and parties** | `claude/acc1` | Fable design · Opus 4 · Sonnet 2 | 6 | 4200–4229 | rulebook §8 golden month (opening + ledgers + six-column TB) |
 | W1a | **LG Legacy data** (old "Lodge" software, DEC-161…164) | `claude/lg` | Fable design · Opus 2 · Sonnet 3 | 5 | 4600–4619 | dry run against the June 2026 backups reconciles per FY (bills, room GST, receipts); 20 known guests reviewed by the Owner |
 | W2 | **ACC-2 Purchases, manual vouchers, GST, TDS** | `claude/acc2` | Opus 5 · Sonnet 2 | 7 | 4230–4259 | golden month complete; oracle run in ERPNext / GNUKhata |
-| W2a | **FIT Fit-to-screen desktop / tablet layout** (DEC-178…180, added 1 Nov 2026) | `claude/fit` | Opus 3 (shell, people lane, integrator) · Sonnet 7 | 2 + 7 | — | `tools/fit-screen-check.mjs`: no page scroll at five viewports × nine roles × every page and sub-screen; fonts equal the baseline except the 22 px heading; phone layout unchanged |
+| W2a | **FIT Fit-to-screen desktop / tablet layout** (DEC-194…180, added 1 Nov 2026) | `claude/fit` | Opus 3 (shell, people lane, integrator) · Sonnet 7 | 2 + 7 | — | `tools/fit-screen-check.mjs`: no page scroll at five viewports × nine roles × every page and sub-screen; fonts equal the baseline except the 22 px heading; phone layout unchanged |
 | W3 | **ACC-3 P&L, ageing, exports, Tally XML** | `claude/acc3` | Fable (Tally format) · Opus 2 · Sonnet 3 | 5 | 4260–4279 | Tally import of the golden month into a fresh Tally company |
 | W4 | **ACC-4 Year lock, bank reconciliation** | `claude/acc4` | Opus 2 · Sonnet 1 | 3 | 4280–4299 | statement-import fixture reconciles to zero |
 | W5 | **HB Hall booking (module 27)** | `claude/hb` | Fable spec → owner approval → Opus 3 · Sonnet 3 | 6 | 4300–4349 | banquet golden event: enquiry → quote → advance → event bill → accounting |
@@ -158,8 +158,8 @@ Borrowed whole from ETP: `scripts\build-windows-release.ps1` → `build-windows-
 | OP-15 | Providers for W8: WhatsApp / SMS gateway, ID OCR, channel manager — which vendors, and who signs the contracts | Owner |
 | OP-16 | GitHub repository **private** before the push (DEC-087 says private; `sagarbora91/HCC` is public today) | Owner |
 | OP-17 | Hall-booking spec approval (W5) — written while W2–W4 run | Owner |
-| OP-18 | ~~Rack-rate card~~ **Closed 1 Nov 2026 (DEC-182):** owner's card (GST-inclusive, room GST 18 % — CA to confirm), import files in `Existing Software\DB-PROFILE\rate-card\` | Owner (done) |
-| OP-19 | ~~Ask the CA whether the HCC invoice series must continue the legacy bill numbers~~ **Closed 1 Nov 2026 (DEC-181):** fresh series `HPE/2627/0001` from go-live; legacy bills keep their numbers; both series in GSTR-1 Table 13 | Owner (done) |
+| OP-18 | ~~Rack-rate card~~ **Closed 1 Nov 2026 (DEC-198):** owner's card (GST-inclusive, room GST 18 % — CA to confirm), import files in `Existing Software\DB-PROFILE\rate-card\` | Owner (done) |
+| OP-19 | ~~Ask the CA whether the HCC invoice series must continue the legacy bill numbers~~ **Closed 1 Nov 2026 (DEC-197):** fresh series `HPE/2627/0001` from go-live; legacy bills keep their numbers; both series in GSTR-1 Table 13 | Owner (done) |
 
 ## 6. What you do, when
 

@@ -1,6 +1,6 @@
 # FIT layout contract (wave `claude/fit`, prepared 1 Nov 2026) — fit-to-screen desktop and tablet layout
 
-The shared rules and component names every FIT lane builds against. **Copy, never reinterpret.** A lane that needs a change writes it in its DONE file; the coordinator amends this file and tells the other lanes. Owner rulings behind it: **DEC-178** (no page scroll on desktop / tablet), **DEC-179** (page heading 22 px; every other text size and every touch size unchanged), **DEC-180** (sub-screens are page tabs, no fourth menu level), approved in chat 31 Oct – 1 Nov 2026 (**APR-023**). Tablet mockups of the five patterns approved by the owner on 1 Nov 2026 ("mockups: approved"; canvas link in `FIT_Briefs.md`).
+The shared rules and component names every FIT lane builds against. **Copy, never reinterpret.** A lane that needs a change writes it in its DONE file; the coordinator amends this file and tells the other lanes. Owner rulings behind it: **DEC-194** (no page scroll on desktop / tablet), **DEC-195** (page heading 22 px; every other text size and every touch size unchanged), **DEC-196** (sub-screens are page tabs, no fourth menu level), approved in chat 31 Oct – 1 Nov 2026 (**APR-025**). Tablet mockups of the five patterns approved by the owner on 1 Nov 2026 ("mockups: approved"; canvas link in `FIT_Briefs.md`).
 
 ## 0. Why (the measurement this wave fixes)
 
@@ -10,7 +10,7 @@ Owner, display Auto, at the Galaxy Tab S7 landscape app area (1138 × 640 CSS px
 2. **Sections stack vertically** on a wide, short screen (Day closing 7 step cards, Groups' 3,760 px card, Rooms' six floor blocks, Cashier's two cards above a table).
 3. **Chrome eats a quarter of the height**: top bar 69 px + page title block (30 px heading, sub-line, 28 px margin) ≈ 165 px of 640 before any work area; the prototype's demo toolbar and the page footer add more.
 
-## 1. The rule (DEC-178)
+## 1. The rule (DEC-194)
 
 On the **desktop layout** (`display.isMobile === false`: Windows browser, and the Android app on tablets — short side ≥ 600, `PHONE_SHORT_SIDE`), at every viewport in §8:
 
@@ -20,7 +20,7 @@ On the **desktop layout** (`display.isMobile === false`: Windows browser, and th
 - **Primary actions are always visible**: the page's main button(s) sit in the page header; a form's Save / Cancel sit in a sticky action bar; nothing that commits work is ever below a scroll.
 - **The phone layout is out of scope.** No edits to `src/mobile/**`, `src/app/mobile/**`, any `*Mobile.tsx` / `Mobile.tsx`, `styles/mobile*.css`, `styles/m-*.css` rules that only apply under the phone layout. Phones scroll by design.
 
-## 2. What must not change (DEC-179) — the owner's explicit condition
+## 2. What must not change (DEC-195) — the owner's explicit condition
 
 - **No font size is reduced** anywhere except the page heading `h1` in the page header: **30 px → 22 px** (weight 600, letter-spacing −0.4 px). Body, table cells, table headings, labels, inputs, buttons, pills, stats (`money-stat` values included), tabs, menu, dialog text: computed `font-size` identical to `main` at text scale 1 and at every text-size preference (CP-2 `--hcc-text`, CP-4 Android text zoom).
 - **Touch sizes stay** (DEC-060): coarse-pointer dense rows / filters / inputs ≥ 44 px, primary actions, hamburger, drawer items, breadcrumb chips, dialog buttons ≥ 48 px; tab buttons in a `FitTabs` bar ≥ 48 px on touch.
@@ -71,7 +71,7 @@ export function ScrollPanel(p:{title?:React.ReactNode; actions?:React.ReactNode;
 /** List + detail side by side. Below 900 px width the detail opens over the list as a slide-over with a Back button (never stacked below). */
 export function SplitView(p:{list:React.ReactNode; detail:React.ReactNode|null; empty:React.ReactNode; onCloseDetail:()=>void; ratio?:`${number}fr ${number}fr`; /* default '2fr 3fr' */ label:string}):JSX.Element
 
-/** Sub-screens (DEC-180). Tab bar ≥ 48 px on touch; scrolls sideways if it overflows; role=tablist, arrow keys, Home/End.
+/** Sub-screens (DEC-196). Tab bar ≥ 48 px on touch; scrolls sideways if it overflows; role=tablist, arrow keys, Home/End.
  *  Selected tab: remembered per page in sessionStorage `hcc-fit-tab:<page>`; `go(page,{tab})` opens a given tab (existing ctx.go option).
  *  Switching tabs uses no history entry (Android Back leaves the page, as today). */
 export function FitTabs<T extends string>(p:{page:string; tabs:{id:T;label:string;count?:number;badge?:'warn'|'danger'}[]; value:T; onChange:(t:T)=>void}):JSX.Element
@@ -116,7 +116,7 @@ The search palette (`SearchPalette.tsx`) lists every sub-screen as "Page › Tab
 
 | Thing | Before | After | Note |
 |---|---|---|---|
-| Page heading `h1` | 30 px, margin-bottom 28 px | **22 px**, header row 48 px, margin-bottom 10 px | DEC-179, the only font change |
+| Page heading `h1` | 30 px, margin-bottom 28 px | **22 px**, header row 48 px, margin-bottom 10 px | DEC-195, the only font change |
 | Page sub-line | full paragraph under heading | one line, ellipsis, `title` = full text | same font size |
 | Card gap | 22–25 px | 12 px | |
 | Card section-title padding | 22 px 23 px | 12 px 16 px | |
