@@ -12,7 +12,7 @@ const flavour={'process.env.NODE_ENV':'"production"','process.env.HCC_BUILD':pro
 // Scenario worker (audit P-01): bundled on its own and inlined into the app as a string, started from a Blob URL at runtime.
 const worker=await build({entryPoints:['src/app/scenarioWorker.ts'],bundle:true,write:false,format:'iife',target:['es2020'],minify:true,define:flavour});
 const result=await build({entryPoints:['src/main.tsx'],bundle:true,write:false,format:'iife',target:['es2020'],minify:true,plugins:production?[prodTextPlugin(resolve('src'))]:[],define:{...flavour,__HCC_SCENARIO_WORKER__:JSON.stringify(worker.outputFiles[0].text)}});
-const css=await buildBundleCss('.'); // src/styles.css + every src/styles/*.css (readdir, sorted: z-touch.css and zz-print.css load last) concatenated, then the text-size transform (tools/cssTextScale.mjs)
+const css=await buildBundleCss('.'); // src/styles.css + every src/styles/*.css (readdir, sorted; FIT: z-fit.css right after z-touch.css, zz-print.css last — tools/cssTextScale.mjs styleOrder) concatenated, then the text-size transform (tools/cssTextScale.mjs)
 const js=result.outputFiles[0].text.replace(/<\/script/gi,'<\\/script');
 // A10-05: the browser hashes an inline block after turning CR LF / CR into LF, so the production CSS (CRLF source files) is normalised first.
 const style=production?css.replace(/\r\n?/g,'\n'):css;

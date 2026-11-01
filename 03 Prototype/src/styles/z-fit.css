@@ -1,0 +1,198 @@
+/* FIT · fit-to-screen desktop / tablet layout (DEC-178…180, contract 02 Planning/agents/FIT-LAYOUT-CONTRACT.md §3–§5). Loaded after
+   z-touch.css and before zz-print.css (tools/cssTextScale.mjs readStyleSources). Every rule is scoped to the desktop shell (.app-shell, which
+   the phone shell never renders), a desktop dialog (.modal:not(.m-sheet)) or the desktop sign-in (.fit-signin): the phone layout is untouched.
+   DEC-179: no font size is set here except the page h1 (22 px) and two "inherit"s that keep a moved line at its old size. Colours: tokens only. */
+:root{--fit-topbar:56px}
+
+/* ── Height chain: the document never scrolls; .content fills what the top bar leaves ─────────────────────────────── */
+html:has(.app-shell),html:has(.app-shell) body,html:has(.app-shell) #root{height:100%}
+.app-shell{height:100vh;height:100dvh;min-height:0;overflow:hidden}
+.app-shell main{display:flex;flex-direction:column;flex:1;min-width:0;min-height:0}
+.app-shell main>.sync-status{flex:none;max-height:28px;overflow:hidden;white-space:nowrap;flex-wrap:nowrap;margin-top:4px;margin-bottom:0;padding-top:2px;padding-bottom:2px}
+
+/* ── Top bar: one 56 px row; chips shrink in priority order (App.tsx FitTopbar sets data-fit-squeeze) ───────────────── */
+.app-shell .topbar.fit-topbar{height:var(--fit-topbar);min-height:var(--fit-topbar);flex:none;flex-wrap:nowrap;padding:0 16px;gap:12px;align-items:center}
+.app-shell .fit-topbar .topbar-left{flex:1 1 auto;min-width:min(240px,32%);gap:8px;flex-wrap:nowrap}
+.app-shell .fit-topbar .topbar-right{flex:0 0 auto;min-width:0;gap:10px;flex-wrap:nowrap;justify-content:flex-end}
+.app-shell .fit-topbar .topbar-right>*{flex:none;white-space:nowrap}
+.app-shell .fit-topbar .crumbs{min-width:0;overflow:hidden}
+.app-shell .fit-topbar .crumbs ol{flex-wrap:nowrap;min-width:0}
+.app-shell .fit-topbar .crumbs li{min-width:0;flex:0 1 auto}
+.app-shell .fit-topbar .crumbs li:not(:first-child):not(:last-child){flex-shrink:4;min-width:3em}
+.app-shell .fit-topbar .crumbs li:last-child{flex-shrink:1;min-width:4em}
+.app-shell .fit-topbar .crumbs li>button,.app-shell .fit-topbar .crumbs li>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block}
+.app-shell .fit-topbar .crumbs li>svg{flex:none}
+.app-shell .fit-topbar[data-fit-squeeze="1"] .fit-clock,.app-shell .fit-topbar[data-fit-squeeze="2"] .fit-clock,.app-shell .fit-topbar[data-fit-squeeze="3"] .fit-clock{display:none}
+.app-shell .fit-topbar[data-fit-squeeze="2"] .fit-date-text,.app-shell .fit-topbar[data-fit-squeeze="3"] .fit-date-text{display:none}
+.app-shell .fit-topbar[data-fit-squeeze="3"] .fit-search-text,.app-shell .fit-topbar[data-fit-squeeze="3"] .search-btn kbd{display:none}
+
+/* Demo pill (prototype build): the DemoToolbar controls, unchanged, in a popover under the top bar */
+.fit-demo{position:relative;flex:none}
+.fit-demo-pill{display:inline-flex;align-items:center;gap:6px;min-height:32px;padding:0 10px;border-radius:999px;border:1px solid var(--c-e5d5b3);background:var(--c-fbf6ea);color:var(--c-7a5e33);font-weight:700;letter-spacing:1.2px;white-space:nowrap}
+.fit-demo-pill:hover{background:var(--c-fdf8ee)}
+.fit-demo-pill.armed{border-color:var(--c-c9773d);background:var(--c-fff1e4)}
+.fit-demo-pop{position:fixed;top:calc(var(--fit-topbar) - 4px);right:16px;z-index:90;width:min(460px,calc(100vw - 32px));max-height:calc(100dvh - var(--fit-topbar) - 16px);overflow:auto;background:var(--c-fbf6ea);border:1px solid var(--c-e5d5b3);border-radius:12px;box-shadow:0 12px 40px var(--c-2b1d1630);padding:12px}
+.fit-demo-notes{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+.app-shell .fit-demo-pop .demo-toolbar{display:flex!important;flex-direction:column;align-items:stretch;flex-wrap:nowrap;padding:0;border:0;background:transparent;gap:8px}
+.app-shell .fit-demo-pop .demo-spacer{display:none}
+.app-shell .fit-demo-pop .demo-field select{max-width:none;flex:1}
+.app-shell .fit-demo-pop .demo-btn,.app-shell .fit-demo-pop .demo-field{justify-content:flex-start}
+
+/* ── Content: fills, never scrolls; its single child is the page root ─────────────────────────────────────────────── */
+.app-shell .content{flex:1;min-height:0;width:100%;max-width:1580px;margin:0 auto;overflow:hidden;display:flex;flex-direction:column;padding:12px 16px 12px}
+@media (pointer:fine) and (min-width:1280px){.app-shell .content{padding:16px 24px 16px}}
+.app-shell .content>.fit-legacy{flex:1;min-height:0;overflow:auto} /* a page not converted yet: scrolls here (check tool: not-converted) */
+.app-shell .content>.fit-legacy>.page-footer{display:none}
+
+/* ── PageTitle (older pages) and FitPage header: 22 px heading, one-line sub ──────────────────────────────────────── */
+.app-shell .content .page-title{margin:0 0 10px}
+.app-shell .content .page-title h1{font-size:22px;font-weight:600;letter-spacing:-.4px;line-height:1.25}
+.app-shell .content .page-title>div:first-child{min-width:0}
+.app-shell .content .page-title>div:first-child>p{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+
+/* ── FitPage ────────────────────────────────────────────────────────────────────────────────────────────────────── */
+.fit-page{flex:1;min-height:0;min-width:0;display:flex;flex-direction:column;gap:10px}
+.app-shell .content .fit-page>.fit-page-head{margin:0;min-height:48px;flex:none;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:nowrap}
+.app-shell .fit-page-heading{flex:1 1 auto;min-width:0}
+.app-shell .fit-page-heading>h1{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.app-shell .fit-page-actions{flex:0 1 auto;display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap;min-width:0}
+.app-shell .fit-page-actions>.inline{flex-wrap:wrap;justify-content:flex-end;gap:8px}
+.fit-page-toolbar{flex:none;display:flex;align-items:center;gap:10px 12px;flex-wrap:nowrap;min-width:0}
+.fit-page-toolbar>*{min-width:0}
+.fit-page-toolbar>.search{flex:0 1 320px}
+@media (max-width:899.98px){.fit-page-toolbar{flex-wrap:wrap}}
+.fit-page-body{flex:1;min-height:0;min-width:0;display:flex;flex-direction:column;gap:12px}
+.app-shell .fit-page-body>.card,.app-shell .fit-page-body>*>.card{margin-bottom:0}
+.app-shell .fit-page-body>.footnote,.app-shell .fit-page-body>.info-note{flex:none;margin:0}
+/* Panel columns / stacks inside a page body (utility for module lanes; see FIT_Component_Guide.md) */
+.fit-stack{flex:1;min-height:0;min-width:0;display:flex;flex-direction:column;gap:12px}
+.fit-cols{flex:1;min-height:0;min-width:0;display:grid;grid-template-columns:minmax(0,3fr) minmax(240px,1fr);gap:12px}
+.fit-cols>*{min-height:0;min-width:0;display:flex;flex-direction:column;gap:12px}
+@media (max-width:899.98px){.fit-cols{display:flex;flex-direction:column}}
+
+/* §5 spacing on converted pages (comfortable); compact stays tighter */
+.app-shell .fit-page .section-title{padding:12px 16px}
+[data-density="compact"] .app-shell .fit-page .section-title{padding:8px 12px}
+.fit-panel-body td,.fit-panel-body th{padding:10px 12px}
+[data-density="compact"] .app-shell .fit-panel-body td,[data-density="compact"] .app-shell .fit-panel-body th{padding:7px 10px}
+[data-density="compact"] .app-shell .fit-page,[data-density="compact"] .app-shell .fit-page-body{gap:8px}
+
+/* ── ScrollPanel ─────────────────────────────────────────────────────────────────────────────────────────────────── */
+.app-shell .fit-panel{flex:1 1 0;min-height:0;min-width:0;display:flex;flex-direction:column;margin:0}
+.fit-panel-head{flex:none}
+.fit-panel-body{flex:1 1 auto;min-height:0;overflow:auto;scrollbar-width:thin}
+.fit-panel-body:focus-visible,.fit-split-pane:focus-visible,.fit-form-body:focus-visible,.fit-home-grid:focus-visible,.modal-body:focus-visible{outline:3px solid var(--primary);outline-offset:-3px}
+.fit-panel-body .table-wrap{overflow:visible}
+.fit-panel-body thead th{position:sticky;top:0;z-index:1}
+.fit-panel-foot{flex:none;border-top:1px solid var(--line);padding:8px 16px;display:flex;align-items:center;gap:12px;min-width:0}
+.fit-panel-foot>.footnote{margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.fit-panel-foot>.show-more,.fit-panel-foot>*{margin-top:0;margin-bottom:0}
+
+/* ── SplitView: side by side; below 900 px the record slides over the list with a Back button ─────────────────────── */
+.fit-split{flex:1;min-height:0;min-width:0;display:grid;grid-template-columns:var(--fit-split-cols,minmax(0,2fr) minmax(0,3fr));gap:12px;position:relative}
+.fit-split-list,.fit-split-detail{min-height:0;min-width:0;display:flex;flex-direction:column;gap:8px}
+.fit-split-pane{flex:1;min-height:0;overflow:auto;background:var(--c-ffffff);border:1px solid var(--line);border-radius:9px;scrollbar-width:thin}
+.fit-split-back{display:none}
+@media (max-width:899.98px){
+  .fit-split{grid-template-columns:minmax(0,1fr)}
+  .fit-split-detail{display:none}
+  .fit-split.has-detail .fit-split-detail{display:flex;position:absolute;top:0;right:0;bottom:0;left:0;z-index:5;background:var(--bg)}
+  .fit-split.has-detail .fit-split-back{display:inline-flex;align-items:center;gap:6px;align-self:flex-start;flex:none}
+}
+
+/* ── FitTabs: sub-screens ─────────────────────────────────────────────────────────────────────────────────────────── */
+.app-shell .fit-tabs-bar{flex:none;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;padding:0 4px;scrollbar-width:thin;min-width:0}
+.app-shell .fit-tabs-bar button{flex:none;white-space:nowrap}
+.fit-tab-count.warn{background:var(--c-fff1e4);color:var(--c-95533e)}
+.fit-tab-count.danger{background:var(--c-f3e4e6);color:var(--primary)}
+
+/* ── StatStrip: one row, sideways if too many; Stat fonts unchanged ─────────────────────────────────────────────────── */
+.fit-stats{display:flex;flex-wrap:nowrap;gap:10px;overflow-x:auto;min-width:0;scrollbar-width:thin}
+.app-shell .fit-stats .fit-stat{flex:none;min-height:0;padding:8px 12px;display:flex;flex-direction:column;gap:2px}
+.fit-stat.warn{border-color:var(--c-c9773d)}.fit-stat.danger{border-color:var(--primary)}
+
+/* ── BoardColumns ────────────────────────────────────────────────────────────────────────────────────────────────── */
+.fit-board{flex:1;min-height:0;min-width:0;display:grid;grid-auto-flow:column;grid-auto-columns:minmax(var(--fit-col,240px),1fr);gap:12px;overflow-x:auto;overflow-y:hidden}
+.app-shell .fit-board-col{display:flex;flex-direction:column;min-height:0;margin:0}
+
+/* ── StepFlow ────────────────────────────────────────────────────────────────────────────────────────────────────── */
+.fit-steps{flex:1;min-height:0;min-width:0;display:grid;grid-template-columns:minmax(200px,260px) minmax(0,1fr);gap:12px}
+.fit-step-rail{list-style:none;margin:0;padding:6px;min-height:0;overflow:auto;background:var(--c-ffffff);border:1px solid var(--line);border-radius:9px;display:flex;flex-direction:column;gap:4px}
+.fit-step{width:100%;display:flex;align-items:flex-start;gap:10px;text-align:left;padding:10px 12px;border:1px solid transparent;border-radius:8px;background:transparent;color:var(--ink)}
+.fit-step:hover{background:var(--sand-2)}
+.fit-step.on{background:var(--c-f3e4e6);border-color:var(--primary)}
+.fit-step-ic{flex:none;display:inline-flex;margin-top:1px;color:var(--muted)}
+.fit-step.done .fit-step-ic{color:var(--c-436a41)}.fit-step.current .fit-step-ic{color:var(--primary)}.fit-step.blocked .fit-step-ic{color:var(--c-95533e)}
+.fit-step-text{display:flex;flex-direction:column;gap:2px;min-width:0}
+.fit-step-text small{color:var(--muted)}
+.fit-step-body{min-height:0;min-width:0;display:flex;flex-direction:column;gap:12px}
+@media (max-width:899.98px){.fit-steps{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr)}
+  .fit-step-rail{flex-direction:row;overflow-x:auto;overflow-y:hidden}.fit-step-rail>li{flex:none}}
+
+/* ── FormSections ────────────────────────────────────────────────────────────────────────────────────────────────── */
+.fit-form{flex:1;min-height:0;min-width:0;display:grid;grid-template-columns:minmax(180px,240px) minmax(0,1fr);gap:12px}
+.fit-form-nav{min-height:0;overflow:auto;background:var(--c-ffffff);border:1px solid var(--line);border-radius:9px;padding:6px}
+.fit-form-nav ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}
+.fit-form-nav button{width:100%;text-align:left;padding:10px 12px;border:1px solid transparent;border-radius:8px;background:transparent;color:var(--ink);display:flex;align-items:center;gap:8px}
+.fit-form-nav button:hover{background:var(--sand-2)}
+.fit-form-nav button.on{background:var(--c-f3e4e6);border-color:var(--primary);font-weight:600}
+.fit-dirty{color:var(--primary);margin-left:auto}
+.fit-form-main{min-height:0;min-width:0;display:flex;flex-direction:column;background:var(--c-ffffff);border:1px solid var(--line);border-radius:9px}
+.fit-form-body{flex:1;min-height:0;overflow:auto;padding:16px}
+.app-shell .fit-form-main>.fit-form-actions{flex:none;margin:0;padding:10px 16px}
+@media (max-width:899.98px){.fit-form{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr)}
+  .fit-form-nav ul{flex-direction:row;overflow-x:auto}.fit-form-nav li{flex:none}}
+
+/* ── Modules Home / category pages: tile grid in one scroll panel ──────────────────────────────────────────────────── */
+.app-shell .fit-home .fit-page-sub{font-size:inherit} /* the welcome line keeps its old size (it was .home-head p) */
+.app-shell .fit-home kbd{font:inherit;font-size:12px;border:1px solid var(--c-d9c9b6);border-bottom-width:2px;border-radius:5px;padding:0 5px;background:var(--c-ffffff)}
+.fit-home-grid{flex:1;min-height:0;overflow:auto;padding:2px;scrollbar-width:thin}
+.app-shell .fit-home .tiles{grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+.app-shell .fit-home .tile{padding:12px 14px;min-height:84px}
+.app-shell .fit-home .tile:has(.tile-badge){padding-right:48px}
+.app-shell .fit-home-foot{flex:none;margin:0;padding:0}
+
+/* ── Sign-in: fits; 2 columns of names at ≥ 900 px, 3 at ≥ 1280 px; the list scrolls if longer ─────────────────────── */
+html:has(.fit-signin),html:has(.fit-signin) body,html:has(.fit-signin) #root{height:100%}
+.signin.fit-signin{height:100vh;height:100dvh;min-height:0;overflow:hidden;padding:16px}
+.fit-signin .signin-card{max-height:100%;min-height:0;display:flex;flex-direction:column}
+.fit-signin .signin-card>*{flex:none}
+.fit-signin .signin-card>.signin-list{flex:0 1 auto;min-height:0;overflow:auto;padding:2px}
+@media (min-width:900px){.fit-signin .signin-card{max-width:880px}.fit-signin .signin-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (min-width:1280px){.fit-signin .signin-card{max-width:1180px}.fit-signin .signin-list{grid-template-columns:repeat(3,minmax(0,1fr))}}
+
+/* ── Desktop dialogs (ModalHost): heading fixed, body scrolls, actions sticky at the bottom (also V17-1's clipped footer) ─ */
+.modal-overlay:not(.m-sheet-overlay){padding:16px}
+.modal:not(.m-sheet){max-height:calc(100vh - 32px);max-height:calc(100dvh - 32px);display:flex;flex-direction:column;overflow:hidden;padding:0}
+.modal:not(.m-sheet)>.modal-close{z-index:3}
+.modal:not(.m-sheet)>.modal-body{flex:1 1 auto;min-height:0;overflow:auto;padding:0 30px;scrollbar-width:thin;overscroll-behavior:contain}
+.modal:not(.m-sheet)>.modal-body:not(:has(.modal-heading)){padding-top:30px}
+.modal:not(.m-sheet)>.modal-body:not(:has(.modal-actions)){padding-bottom:30px}
+.modal:not(.m-sheet) .modal-body .modal-heading{position:sticky;top:0;z-index:2;background:var(--c-ffffff);margin-top:0;padding-top:30px;padding-bottom:12px;margin-bottom:13px}
+.modal:not(.m-sheet) .modal-body .modal-actions{position:sticky;bottom:0;z-index:2;background:var(--c-ffffff);border-top:1px solid var(--line);padding-bottom:20px;margin-bottom:0}
+.modal:not(.m-sheet)>.form-error{flex:none;margin:0 30px 16px}
+.fit-modal-frame{display:flex;flex-direction:column;min-height:0}
+@media (max-width:760px){.modal:not(.m-sheet)>.modal-body{padding-left:20px;padding-right:20px}.modal:not(.m-sheet) .modal-body .modal-heading{padding-top:25px}.modal:not(.m-sheet)>.form-error{margin:0 20px 12px}}
+@media (min-width:900px){.modal:not(.m-sheet) .fit-form-2col{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 20px}.modal:not(.m-sheet) .fit-form-2col>.modal-actions,.modal:not(.m-sheet) .fit-form-2col>.full{grid-column:1/-1}}
+/* User menu: About this build (the work pages' footer lines) sits above Sign out */
+.fit-user-menu{display:flex;flex-direction:column}
+.fit-user-menu>.modal-actions{order:3}
+.fit-about{order:2;margin-top:8px}
+.fit-about .gs-sub{margin:12px 0 4px}
+
+/* ── Touch tablets (DEC-060): tab buttons 48 px; the bar keeps one row ───────────────────────────────────────────── */
+@media screen and (pointer:coarse) and (min-width:600px){
+  .app-shell .topbar.fit-topbar{padding:0 12px;gap:8px}
+  .app-shell .fit-tabs-bar [role=tab]{min-height:var(--hcc-touch-primary)!important}
+  .app-shell .fit-step,.app-shell .fit-form-nav button{min-height:var(--hcc-touch-primary)!important}
+}
+
+/* ── Print: the shell returns to normal flow, scroll panels print in full ─────────────────────────────────────────── */
+@media print{
+  html:has(.app-shell),html:has(.app-shell) body,html:has(.app-shell) #root{height:auto}
+  .app-shell,.app-shell main,.app-shell .content{height:auto;overflow:visible}
+  [data-fit-scroll]{overflow:visible;max-height:none}
+  .fit-tabs-bar{display:none}
+  .modal:not(.m-sheet){display:block;max-height:none;overflow:visible}
+  .modal:not(.m-sheet) .modal-body .modal-heading,.modal:not(.m-sheet) .modal-body .modal-actions,.fit-panel-body thead th{position:static}
+}

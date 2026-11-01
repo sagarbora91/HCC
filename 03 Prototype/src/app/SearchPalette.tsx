@@ -5,8 +5,17 @@ import {Search,ChevronRight,CornerDownLeft,X,ArrowRight,Zap} from 'lucide-react'
 import {useHcc} from './context';
 import {navItems} from './nav';
 import {trapTab,useReturnFocus} from '../components/ui';
-import {buildSearchEntries,searchEntries,visibleEntries,categoryOf,PAGE_CATEGORY,navFilterModules,type SearchEntry} from './navmap';
+import {buildSearchEntries,searchEntries,visibleEntries,categoryOf,PAGE_CATEGORY,DASHBOARD,navFilterModules,type SearchEntry} from './navmap';
+import {SUB_SCREENS,type SubScreen} from './subscreens';
 
+/** FIT (DEC-180): every sub-screen tab is a result "Page › Tab" that opens with go(page,{tab}). Same page permission as its page. */
+type Entry=SearchEntry&{tab?:string};
+export function subScreenEntries(items:{id:string;label:string}[],subs:readonly SubScreen[]=SUB_SCREENS):Entry[]{
+  return subs.flatMap(x=>{const n=items.find(i=>i.id===x.page);if(!n)return [];
+    const cat=PAGE_CATEGORY[x.page],c=cat?categoryOf(cat):undefined;
+    return [{id:`sub-${x.page}-${x.id}`,kind:'page' as const,label:`${n.label} › ${x.label}`,page:x.page,tab:x.id,category:cat??'dashboard',
+      path:c?[c.label,n.label,x.label]:[DASHBOARD.label,x.label],keywords:[x.label,...(x.keywords??[])]}];});
+}
 const esc=(t:string)=>t.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
 function Hl({text,terms}:{text:string;terms:string[]}){
   const ts=terms.filter(Boolean);if(!ts.length)return <>{text}</>;
@@ -19,15 +28,15 @@ export function SearchPalette({onClose}:{onClose:()=>void}){
   const ref=useRef<HTMLInputElement>(null);
   const box=useRef<HTMLDivElement>(null);
   useReturnFocus();
-  const all=useMemo(()=>buildSearchEntries(navItems),[]);
+  const all=useMemo<Entry[]>(()=>[...buildSearchEntries(navItems),...subScreenEntries(navItems)],[]);
   const allowed=new Set(navFilterModules(s,navItems,uid).filter(n=>permission(n.p)).map(n=>n.id));
   const visible=visibleEntries(all,allowed,p=>permission(p));
   const terms=q.trim().toLowerCase().split(/\s+/).filter(Boolean);
-  const hits:SearchEntry[]=terms.length?searchEntries(visible,q).slice(0,12).map(h=>h.entry)
-    :[...visible.filter(e=>e.kind==='action'),...visible.filter(e=>e.kind==='page').slice(0,6)];
+  const hits:Entry[]=terms.length?searchEntries(visible,q).slice(0,12).map(h=>h.entry)
+    :[...visible.filter(e=>e.kind==='action'),...visible.filter(e=>e.kind==='page'&&!(e as Entry).tab).slice(0,6)];
   useEffect(()=>{ref.current?.focus();},[]);
   useEffect(()=>{setAt(0);},[q]);
-  const choose=(e:SearchEntry)=>{onClose();go(e.page);if(e.modal){const m=e.modal;window.setTimeout(()=>open(m),60);}};
+  const choose=(e:Entry)=>{onClose();go(e.page,e.tab?{tab:e.tab}:{});if(e.modal){const m=e.modal;window.setTimeout(()=>open(m),60);}};
   const onKey=(e:React.KeyboardEvent)=>{
     if(e.key==='Escape'){e.preventDefault();onClose();}
     else if(e.key==='Tab'){if(box.current)trapTab(e,box.current);}

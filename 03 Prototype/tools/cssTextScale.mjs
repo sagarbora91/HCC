@@ -60,10 +60,13 @@ export function textScaleCss(css){
   return t.includes(PRINT_RESET)?t:`${t}\n${PRINT_RESET}`;
 }
 
-/** The stylesheet sources in bundle order: src/styles.css, then src/styles/*.css sorted by name (zz-print.css last). */
+/** FIT (contract §3): z-fit.css loads after z-touch.css and before zz-print.css; every other file keeps its name order. */
+export const styleOrder=files=>{const rest=files.filter(f=>f!=='z-fit.css').sort();if(!files.includes('z-fit.css'))return rest;
+  const i=rest.findIndex(f=>f>'z-touch.css');rest.splice(i<0?rest.length:i,0,'z-fit.css');return rest;};
+/** The stylesheet sources in bundle order: src/styles.css, then src/styles/*.css sorted by name (z-fit.css after z-touch.css, zz-print.css last). */
 export async function readStyleSources(root='.'){
   const dir=`${root}/src/styles`;
-  const extra=(await readdir(dir)).filter(f=>f.endsWith('.css')).sort();
+  const extra=styleOrder((await readdir(dir)).filter(f=>f.endsWith('.css')));
   return [await readFile(`${root}/src/styles.css`,'utf8'),...await Promise.all(extra.map(f=>readFile(`${dir}/${f}`,'utf8')))];
 }
 

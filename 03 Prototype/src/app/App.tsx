@@ -1,6 +1,6 @@
 // App shell: state, the single run() command path, navigation, header and demo toolbar.
-import React,{useState,useRef,useMemo,useCallback,useEffect} from 'react';
-import {Search,Hotel,Menu,CalendarDays,AlertCircle,CheckCircle2,X,Clock,Wifi,LogOut} from 'lucide-react';
+import React,{useState,useRef,useMemo,useCallback,useEffect,useLayoutEffect} from 'react';
+import {Search,Hotel,Menu,CalendarDays,AlertCircle,CheckCircle2,X,Clock} from 'lucide-react';
 import {useMetrics} from './useMetrics';
 import {State,Command,Permission,Room,addDays,can,roomStatus as statusOf,errorTitle,codeOf,assignedScopeRoles,isDayClosed} from '../services/mock';
 import {executeWithFault,FaultMode,LATENCY_MS} from '../services/mock/faults';
@@ -11,7 +11,8 @@ import type {Restored} from '../services/mock';
 import {navItems} from './nav';
 import {HOME_PAGE,parseCatPage,navFilterModules,pagesOfCategory} from './navmap';
 import {Breadcrumb,ModulesHome,CategoryPage,SignIn} from './ModulesHome';
-import {DemoToolbar} from './demo/DemoToolbar';
+import {DemoPill} from './demo/DemoToolbar';
+import {FitNavContext,type FitNav} from '../components/fit'; // FIT (DEC-178…180): sub-screen tab + breadcrumb tab crumb for desktop pages
 import {useReadOnly,READ_ONLY_HINT} from '../clients/react';
 import {ProductionApp,SyncStatus,type ServerBinding} from '../clients/sync/react'; // production build only (W4-0 server sync layer)
 import {extraPages,mobilePages} from './registry';
@@ -87,6 +88,8 @@ function AppShell({initial,server}:{initial:Restored;/** Production only: state,
   const toastTimer=useRef<number|undefined>(undefined);
   const display=useDisplayMode();
   const [tabKey,setTabKey]=useState('');
+  const [navSeq,setNavSeq]=useState(0); // FIT: moves on every navigation so a page re-reads its sub-screen (go(page,{tab}), Back / Forward)
+  const [tabCrumb,setTabCrumb]=useState<{page:string;label:string}|null>(null); // FIT: selected FitTabs label → breadcrumb
   const [depth,setDepth]=useState(0); // HCC page entries pushed on top of the first one (Android back)
   // T-05: the depth lives in each history entry (idx), so it can never drift from the real stack.
   const histIdx=()=>{try{const st=history.state as {idx?:number}|null;return typeof st?.idx==='number'?st.idx:0;}catch{return 0;}};
@@ -128,10 +131,10 @@ function AppShell({initial,server}:{initial:Restored;/** Production only: state,
   function go(p:string,opts:{tab?:string;replace?:boolean}={}){
     cancelBackFallback();
     if(pageDirty.current&&!modalRef.current&&p!==page){pendingNav.current=()=>go(p,opts);setDiscardAsk(true);return;} // V15-2: an unsaved inline form asks first
-    if(p!==page&&!opts.replace){try{const idx=histIdx()+1;history.pushState({hcc:'page',page:p,idx},'');setDepth(idx);}catch{/* history unavailable */}}
-    else if(p!==page){try{history.replaceState({hcc:'page',page:p,idx:histIdx()},'');}catch{/* ignore */}}
+    if(p!==page&&!opts.replace){try{const idx=histIdx()+1;history.pushState({hcc:'page',page:p,idx,tab:opts.tab},'');setDepth(idx);}catch{/* history unavailable */}}
+    else if(p!==page){try{history.replaceState({hcc:'page',page:p,idx:histIdx(),tab:opts.tab},'');}catch{/* ignore */}}
     if(display.isMobile&&p!==page)window.setTimeout(()=>window.scrollTo(0,0),0);
-    setTabKey(opts.tab??'');setPage(p);setSearch('');setFilter('All');setMobile(false);setError('');}
+    setTabKey(opts.tab??'');setNavSeq(n=>n+1);setPage(p);setSearch('');setFilter('All');setMobile(false);setError('');}
   // Android back / browser back (MB-02, AC-M03): closes the sheet first, then returns to the previous page.
   useEffect(()=>{try{history.replaceState({hcc:'page',page,idx:0},'');}catch{/* ignore */}},[]);// eslint-disable-line
   useEffect(()=>{if(!modal&&modalPushed.current){modalPushed.current=false;skipPop.current=true;try{history.back();}catch{/* ignore */}}},[modal]);
@@ -144,8 +147,8 @@ function AppShell({initial,server}:{initial:Restored;/** Production only: state,
       if(pageDirty.current){ // V15-2: Back on a page with an unsaved inline form: stay on it, ask, and go back only on Discard
         try{history.pushState({hcc:'page',page,idx:histIdx()+1},'');}catch{/* ignore */}
         pendingNav.current=()=>{try{history.back();}catch{go(HOME_PAGE,{replace:true});}};setDiscardAsk(true);return;}
-      const st=e.state as {hcc?:string;page?:string}|null;
-      if(st?.hcc==='page'&&st.page){setPage(st.page);setTabKey('');setDepth(histIdx());}
+      const st=e.state as {hcc?:string;page?:string;tab?:string}|null;
+      if(st?.hcc==='page'&&st.page){setPage(st.page);setTabKey(st.tab??'');setNavSeq(n=>n+1);setDepth(histIdx());}
     };window.addEventListener('popstate',onPop);return ()=>window.removeEventListener('popstate',onPop);},[page]);
   const back=()=>{if(depth>0){try{history.back();return;}catch{/* ignore */}}go(HOME_PAGE,{replace:true});};
   // Android hardware back button (APK only, plan D1): sheet → wizard step → previous page → landing page → "Exit?" confirmation.
@@ -244,34 +247,72 @@ function AppShell({initial,server}:{initial:Restored;/** Production only: state,
     <MobileShell allowedIds={allowedIds} canGoBack={depth>0} onBack={back} tabKey={tabKey} onTab={onTab}>{pageBody}</MobileShell>
     {process.env.HCC_BUILD==='production'&&<SyncStatus/>}{toastEl}<ModalHost/>{menuOpen&&<NavDrawer onClose={()=>setMenuOpen(false)}/>}{searchOpen&&<SearchPalette onClose={()=>setSearchOpen(false)}/>}{exitEl}
   </HccContext.Provider>;
-  return <HccContext.Provider value={ctx}>
-    <div className="app-shell">
+  const fitNav:FitNav={page:current,tabKey,seq:navSeq,setTabCrumb};
+  const crumbTab=tabCrumb&&tabCrumb.page===current?tabCrumb.label:undefined;
+  return <HccContext.Provider value={ctx}><FitNavContext.Provider value={fitNav}>
+    <div className="app-shell fit-shell">
       <a className="skip-link" href="#main-content" onClick={e=>{e.preventDefault();document.getElementById('main-content')?.focus();}}>Skip to main content</a>
       <main id="main-content" tabIndex={-1}>
-        <header className="topbar">
-          <div className="topbar-left"><button className="icon-btn mobile-menu" aria-label="Open menu" onClick={()=>{cancelBackFallback();setMenuOpen(true);}}><Menu size={22}/></button><Breadcrumb page={current} label={navItems.find(n=>n.id===current)?.label||'Access unavailable'}/></div>
+        <FitTopbar>
+          <div className="topbar-left"><button className="icon-btn mobile-menu" aria-label="Open menu" onClick={()=>{cancelBackFallback();setMenuOpen(true);}}><Menu size={22}/></button><Breadcrumb page={current} label={navItems.find(n=>n.id===current)?.label||'Access unavailable'} tab={crumbTab}/></div>
           <div className="topbar-right">
-            <button type="button" className="search-btn" onClick={()=>{cancelBackFallback();setSearchOpen(true);}} aria-label="Search pages and actions (Control+K)"><Search size={16}/>Search<kbd>Ctrl K</kbd></button>
-            <span className="today" title="Simulated business date"><CalendarDays size={15}/>Business date {dateLabel(s.date)} · <b className={closed?'day-closed':'day-open'}>{closed?'Closed':'Open'}</b></span>
-            {process.env.HCC_BUILD==='production'?null:<><span className="today" title="Simulated hotel clock (Asia/Kolkata)"><Clock size={15}/>{clockTime(s.clock)} IST</span>
-            <span className="conn-chip" title="All data comes from the in-browser mock service"><Wifi size={13}/>Local mock service</span>
-            <span className="demo-badge">DEMO — FICTIONAL DATA</span></>}
-            <button type="button" className="current-user current-user-btn" aria-haspopup="dialog" title="Your profile: change my password / PIN, display mode, sign out"
+            <button type="button" className="search-btn" onClick={()=>{cancelBackFallback();setSearchOpen(true);}} aria-label="Search pages and actions (Control+K)"><Search size={16}/><span className="fit-search-text">Search</span><kbd>Ctrl K</kbd></button>
+            <span className="today" title={`Simulated business date ${dateLabel(s.date)} · ${closed?'Closed':'Open'}`}><CalendarDays size={15}/><span className="fit-date-text">Business date </span>{dateLabel(s.date)} · <b className={closed?'day-closed':'day-open'}>{closed?'Closed':'Open'}</b></span>
+            {process.env.HCC_BUILD==='production'?null:<><span className="today fit-clock" title="Simulated hotel clock (Asia/Kolkata)"><Clock size={15}/>{clockTime(s.clock)} IST</span>
+            <DemoPill/></>}
+            <button type="button" className="current-user current-user-btn" aria-haspopup="dialog" title="Your profile: change my password / PIN, display mode, sign out, about this build"
               onClick={()=>open({type:'user-menu'})}>{user.name.split(' · ')[0]} · {user.role}</button>
-            <button type="button" className="search-btn topbar-signout" onClick={signOut}><LogOut size={16}/>Sign out</button>
             <TextSizeQuick/>
             <DisplayToggle display={display} compact/>
           </div>
-        </header>
-        {process.env.HCC_BUILD==='production'?<SyncStatus/>:<DemoToolbar/>}
-        <div className="content">
-          {pageBody}
-          {process.env.HCC_BUILD==='production'?<footer className="page-footer"><span>Hotel Control Centre</span><span>{s.settings.hotel||'Hotel server'}</span></footer>
-            :<footer className="page-footer"><span>Hotel Control Centre <i/> Prototype M1</span><span>Local prototype · Fictional records only · Scenario {s.scenario}</span></footer>}
-        </div>
+        </FitTopbar>
+        {process.env.HCC_BUILD==='production'?<SyncStatus/>:null}
+        <FitContent page={current}>{pageBody}</FitContent>
       </main>
     </div>
     {toastEl}
     <ModalHost/>{menuOpen&&<NavDrawer onClose={()=>setMenuOpen(false)}/>}{searchOpen&&<SearchPalette onClose={()=>setSearchOpen(false)}/>}{exitEl}
-  </HccContext.Provider>;
+  </FitNavContext.Provider></HccContext.Provider>;
+}
+
+/** FIT §3 top bar: one 56 px row. When the right-hand chips do not fit, they shrink in priority order (data-fit-squeeze 1 → 3):
+ *  clock hidden → the words "Business date" hidden → the word "Search" hidden; icons always stay. Measured, so text size changes count. */
+function FitTopbar({children}:{children:React.ReactNode}){
+  const ref=useRef<HTMLElement>(null);
+  useLayoutEffect(()=>{const el=ref.current;if(!el)return;
+    // Too tight = the bar overflows, or a breadcrumb crumb is cut (the crumbs shrink first, so their ellipsis is the early signal).
+    const tight=()=>el.scrollWidth>el.clientWidth+1||Array.from(el.querySelectorAll<HTMLElement>('.crumbs li>button,.crumbs li>span')).some(c=>c.scrollWidth>c.clientWidth+1);
+    const fit=()=>{let lvl=0;el.dataset.fitSqueeze='0';
+      while(lvl<3&&tight()){lvl++;el.dataset.fitSqueeze=String(lvl);}};
+    fit();
+    if(typeof ResizeObserver==='undefined')return;
+    const ro=new ResizeObserver(()=>fit());ro.observe(el);
+    const right=el.querySelector('.topbar-right'),left=el.querySelector('.topbar-left');if(right)ro.observe(right);if(left)ro.observe(left);
+    return ()=>ro.disconnect();});
+  return <header className="topbar fit-topbar" ref={ref}>{children}</header>;
+}
+
+/** FIT §3 content area: fills the height, never scrolls. A page whose root is a `fit-page` is its single child. A page not converted yet
+ *  is wrapped once in a scrolling box marked data-fit-scroll="legacy" (nothing is cut off mid-wave; the check tool reports it). */
+const legacyPages=new Map<string,boolean>();
+function FitContent({page,children}:{page:string;children:React.ReactNode}){
+  const ref=useRef<HTMLDivElement>(null);
+  const [legacy,setLegacy]=useState(()=>legacyPages.get(page)??false);
+  const [seenPage,setSeenPage]=useState(page);
+  if(seenPage!==page){setSeenPage(page);setLegacy(legacyPages.get(page)??false);}
+  useLayoutEffect(()=>{const el=ref.current;if(!el)return;
+    const check=()=>{
+      const kids=Array.from(el.children);
+      const fit=legacy?kids.length===1&&kids[0].children.length===1&&kids[0].firstElementChild!.classList.contains('fit-page')
+        :kids.length===1&&kids[0].classList.contains('fit-page');
+      const isLegacy=!fit;
+      legacyPages.set(page,isLegacy);
+      if(isLegacy!==legacy)setLegacy(isLegacy);
+    };
+    check();
+    if(typeof MutationObserver==='undefined')return;
+    const mo=new MutationObserver(check);mo.observe(el,{childList:true});
+    const inner=legacy?el.firstElementChild:null;if(inner)mo.observe(inner,{childList:true});
+    return ()=>mo.disconnect();});
+  return <div className="content" ref={ref}>{legacy?<div className="fit-legacy" data-fit-scroll="legacy">{children}</div>:children}</div>;
 }

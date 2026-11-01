@@ -60,7 +60,7 @@ export function ModalHost(){
       case 'reset':return process.env.HCC_BUILD==='production'?null:<ResetModal/>; // demo-only: compiled out of the production build
       case 'guide':return process.env.HCC_BUILD==='production'?null:<GuideModal/>; // demo-only: compiled out of the production build
       case 'demo':return process.env.HCC_BUILD==='production'?null:<DemoSheet/>; // demo-only: compiled out of the production build
-      case 'user-menu':return <UserMenuSheet/>;
+      case 'user-menu':return display.isMobile?<UserMenuSheet/>:<div className="fit-user-menu"><UserMenuSheet/><AboutBuild/></div>; // FIT §3: the page footer's lines moved here
       case 'own-credential':return <OwnCredentialSheet/>; // A02b-05: every signed-in user, both builds
       default:return <Empty title="This record is unavailable"/>;
     }
@@ -76,7 +76,15 @@ export function ModalHost(){
     <div className={'modal '+(wide.includes(modal.type)?'wide':'')+(sheet?' m-sheet':'')} ref={dlg} tabIndex={-1} role="dialog" aria-modal="true" aria-label={modal.type==='booking'?s.bookings.find(b=>b.id===modal.id)?.guest:'Hotel Control Centre dialog'} onKeyDown={trap} onInput={onInput} onSubmitCapture={()=>setDirty(false)}>
       {sheet?<div className="m-sheet-head"><button className="m-icon" aria-label="Close" onClick={closeModal}><X size={22}/></button></div>
       :<button className="modal-close icon-btn" aria-label="Close dialog" onClick={closeModal}><X size={21}/></button>}
-      {body()}
+      {sheet?body():<div className="modal-body" data-fit-scroll="" tabIndex={0} aria-label="Dialog content">{body()}</div>}
       {error&&<div className="form-error" role="alert"><AlertCircle size={17}/>{error}</div>}
     </div></div>;
+}
+
+/** FIT §3: the two lines the work pages' footer used to show, now under the user menu (desktop layout). */
+function AboutBuild(){
+  const {s}=useHcc();
+  return <section className="fit-about" aria-label="About this build"><h3 className="gs-sub">About this build</h3>
+    {process.env.HCC_BUILD==='production'?<p className="footnote">Hotel Control Centre · {s.settings.hotel||'Hotel server'}</p>
+      :<p className="footnote">Hotel Control Centre · Prototype M1<br/>Local prototype · Fictional records only · Scenario {s.scenario}</p>}</section>;
 }

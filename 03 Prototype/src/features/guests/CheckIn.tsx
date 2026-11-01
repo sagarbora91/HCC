@@ -4,7 +4,8 @@ import {bookingRef} from '../../domain/bookingRef';
 import {Check,ArrowRight,ArrowLeft,DoorOpen,AlertCircle,BedDouble,Printer,UserPlus,Info,Loader2,X} from 'lucide-react';
 import {useHcc} from '../../app/context';
 import {Booking,Room,money,nights,addDays,totals,gstForRoomNight,gstStayTax,gstPct,guestForBooking,guestComplete,stayArrivals,stayRoomEligibility,stayCheckinAlternatives,stayFreeRooms,guestView,staySegments,plural,rmsRoomLine} from '../../services/mock';
-import {PageTitle,Pill,Empty,shortDate,SearchBox} from '../../components/ui';
+import {Pill,Empty,shortDate,SearchBox} from '../../components/ui';
+import {FitPage,ScrollPanel} from '../../components/fit';
 import {GuestForm,emptyDraft,draftOf,hashOf} from './GuestForm';
 import {GuestDetails,statusTone} from './GuestProfile';
 import {PrintListButton} from './FrontDeskList';
@@ -24,13 +25,17 @@ export function ArrivalsPage(){
   const found=bookingIdLookup(s,search).filter(b=>!list.some(x=>x.id===b.id));
   const today=s.bookings.filter(b=>b.status==='In house'&&staySegments(b)[0]?.from===s.date);
   const canWalkin=permission('reservations')&&permission('checkin');
-  return <><PageTitle title="Arrivals & check-in" sub={`Expected today and overdue arrivals · business date ${shortDate(s.date)} · check-in from ${s.settings.checkin}`}
-      action={<div className="inline"><PrintListButton kind="arrivals"/>{canWalkin?<button className="btn primary" onClick={()=>open({type:'guest-walkin'})}><UserPlus size={16}/>Walk-in</button>:<span className="muted">Walk-in needs reservation and check-in permissions.</span>}</div>}/>
-    <div className="toolbar"><SearchBox value={search} onChange={setSearch} placeholder="Search guest, room or booking ID…"/><span className="muted">{list.length} awaiting check-in</span></div>
-    {found.length>0&&<section className="card" aria-label="Booking ID lookup"><div className="section-title"><h2>Booking ID lookup</h2><span className="muted">{found.length} found</span></div>
+  // FIT reference page (DEC-178, contract §6 'arrivals' = fill): FitPage header (actions always visible), one toolbar row, the arrivals
+  // table in a ScrollPanel (sticky heads, footnote in its footer); the Booking ID lookup and "Checked in today" sit beside it in a side column.
+  const sub=`Expected today and overdue arrivals · business date ${shortDate(s.date)} · check-in from ${s.settings.checkin}`;
+  const lookup=found.length>0&&<ScrollPanel title="Booking ID lookup" label="Booking ID lookup" actions={<span className="muted">{found.length} found</span>}>
       <ul className="gs-simple-list">{found.map(b=><li key={b.id}><strong>{b.id}</strong><span>{b.guest} · room {b.room} · {shortDate(b.arrival)} — {shortDate(b.departure)}</span><Pill tone={statusTone(b.status)}>{b.status}</Pill>
-        <button className="text-btn" onClick={()=>booking(b.id)}>Open booking</button>{b.status==='Confirmed'&&b.arrival>s.date&&<small>Arrives {shortDate(b.arrival)} — check-in opens that day</small>}</li>)}</ul></section>}
-    <section className="card"><div className="table-wrap"><table><thead><tr><th>Guest / booking</th><th>Room</th><th>Stay</th><th>Registration</th><th>Room status</th><th>Advance</th><th></th></tr></thead><tbody>
+        <button className="text-btn" onClick={()=>booking(b.id)}>Open booking</button>{b.status==='Confirmed'&&b.arrival>s.date&&<small>Arrives {shortDate(b.arrival)} — check-in opens that day</small>}</li>)}</ul></ScrollPanel>;
+  const checkedIn=today.length>0&&<ScrollPanel title="Checked in today" label="Checked in today" actions={<span className="muted">{today.length}</span>}>
+      <ul className="gs-simple-list">{today.map(b=><li key={b.id}><span className="room-number">{b.room}</span><strong>{b.guest}</strong><small>{bookingRef(b)}</small><button className="text-btn" onClick={()=>open({type:'stay-detail',id:b.id})}>Stay details</button></li>)}</ul></ScrollPanel>;
+  const table=<ScrollPanel label="Arrivals awaiting check-in" grow={2}
+      footer={<p className="footnote" title="Check-in requires a verified registration and a vacant, ready, unblocked room. All records are fictional.">Check-in requires a verified registration and a vacant, ready, unblocked room. All records are fictional.</p>}>
+    <div className="table-wrap"><table><thead><tr><th>Guest / booking</th><th>Room</th><th>Stay</th><th>Registration</th><th>Room status</th><th>Advance</th><th></th></tr></thead><tbody>
       {list.map(b=>{const g=guestForBooking(s,b);const v=g?guestView(s,uid,g):undefined;return <tr key={b.id}>
         <td><strong>{b.guest}</strong><small>{bookingRef(b)} · {b.source}{v?' · '+v.phone:''}</small></td>
         <td><span className="room-number">{b.room}</span><small>{s.rooms.find(r=>r.id===b.room)?.type}</small></td>
@@ -39,10 +44,12 @@ export function ArrivalsPage(){
         <td><RoomState b={b}/></td>
         <td className="number">{money(totals(b).paid)}</td>
         <td>{permission('checkin')?<button className="btn small-btn primary" aria-label={`${b.registered?'Continue check-in':'Start check-in'}, ${b.guest}`} onClick={()=>open({type:'guest-checkin',id:b.id})}>{b.registered?'Continue check-in':'Start check-in'}</button>:<span className="muted">Check-in permission needed</span>}</td></tr>;})}
-    </tbody></table>{!list.length&&<Empty title="No arrivals waiting" body="Everyone expected today has checked in. Use Walk-in for guests without a reservation."/>}</div></section>
-    {today.length>0&&<section className="card"><div className="section-title"><h2>Checked in today</h2><span className="muted">{today.length}</span></div>
-      <ul className="gs-simple-list">{today.map(b=><li key={b.id}><span className="room-number">{b.room}</span><strong>{b.guest}</strong><small>{bookingRef(b)}</small><button className="text-btn" onClick={()=>open({type:'stay-detail',id:b.id})}>Stay details</button></li>)}</ul></section>}
-    <p className="footnote">Check-in requires a verified registration and a vacant, ready, unblocked room. All records are fictional.</p></>;
+    </tbody></table>{!list.length&&<Empty title="No arrivals waiting" body="Everyone expected today has checked in. Use Walk-in for guests without a reservation."/>}</div></ScrollPanel>;
+  return <FitPage title="Arrivals & check-in" sub={sub}
+      actions={<><PrintListButton kind="arrivals"/>{canWalkin?<button className="btn primary" onClick={()=>open({type:'guest-walkin'})}><UserPlus size={16}/>Walk-in</button>:<span className="muted">Walk-in needs reservation and check-in permissions.</span>}</>}
+      toolbar={<><SearchBox value={search} onChange={setSearch} placeholder="Search guest, room or booking ID…"/><span className="muted">{list.length} awaiting check-in</span></>}>
+    {lookup||checkedIn?<div className="fit-cols"><div>{table}</div><div>{lookup}{checkedIn}</div></div>:table}
+  </FitPage>;
 }
 
 function Progress({step,done,setStep,reachable}:{step:number;done:boolean[];setStep:(n:number)=>void;reachable:number}){
