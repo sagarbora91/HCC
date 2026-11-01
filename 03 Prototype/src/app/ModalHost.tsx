@@ -72,8 +72,9 @@ export function ModalHost(){
   const sheet=display.isMobile;
   // Any typing inside a form marks the sheet as dirty; back/close then asks before discarding (AC-M03).
   const onInput=(e:React.FormEvent<HTMLDivElement>)=>{if((e.target as HTMLElement).closest('form'))setDirty(true);};
-  return <div className={'modal-overlay'+(sheet?' m-sheet-overlay'+(display.framed?' framed':''):'')} onMouseDown={e=>{if(!sheet&&e.target===e.currentTarget)closeModal();}}>
-    <div className={'modal '+(wide.includes(modal.type)?'wide':'')+(sheet?' m-sheet':'')} ref={dlg} tabIndex={-1} role="dialog" aria-modal="true" aria-label={modal.type==='booking'?s.bookings.find(b=>b.id===modal.id)?.guest:'Hotel Control Centre dialog'} onKeyDown={trap} onInput={onInput} onSubmitCapture={()=>setDirty(false)}>
+  // FIT §11.1: on the desktop layout the dialog carries .fit-modal (scrolling .modal-body, sticky actions); phone sheets never do.
+  return <div className={'modal-overlay'+(sheet?' m-sheet-overlay'+(display.framed?' framed':''):' fit-modal-overlay')} onMouseDown={e=>{if(!sheet&&e.target===e.currentTarget)closeModal();}}>
+    <div className={'modal '+(wide.includes(modal.type)?'wide':'')+(sheet?' m-sheet':' fit-modal')} ref={dlg} tabIndex={-1} role="dialog" aria-modal="true" aria-label={modal.type==='booking'?s.bookings.find(b=>b.id===modal.id)?.guest:'Hotel Control Centre dialog'} onKeyDown={trap} onInput={onInput} onSubmitCapture={()=>setDirty(false)}>
       {sheet?<div className="m-sheet-head"><button className="m-icon" aria-label="Close" onClick={closeModal}><X size={22}/></button></div>
       :<button className="modal-close icon-btn" aria-label="Close dialog" onClick={closeModal}><X size={21}/></button>}
       {sheet?body():<div className="modal-body" data-fit-scroll="" tabIndex={0} aria-label="Dialog content">{body()}</div>}

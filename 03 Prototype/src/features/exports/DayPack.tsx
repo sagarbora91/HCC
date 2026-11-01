@@ -6,6 +6,7 @@ import {money,reportPack,closingSummary,isDayClosed,rbacCanDayPack} from '../../
 import {useHcc} from '../../app/context';
 import {printDocument} from '../../app/native';
 import {dateLabel,shortDate} from '../../components/ui';
+import {ModalFrame} from '../../components/fit';
 
 import {ServerDayPackSheet} from './ServerDayPack';
 /** Production: figures from the server's report; prototype: derived from the loaded records. */
@@ -18,9 +19,9 @@ function LocalDayPackSheet({date,onClose}:{date:string;onClose:()=>void}){
   const receipts=rows('receipts','net'),expenses=rows('expenses','total');
   const L=(label:string,v:React.ReactNode)=><div key={label}><span>{label}</span><strong>{v}</strong></div>;
   const diff=rec?.cash.difference??0;
-  return <div className="modal-overlay" onMouseDown={e=>{if(e.target===e.currentTarget)onClose();}}>
-    <div className="modal wide" role="dialog" aria-modal="true" aria-label="Day pack">
-      <button autoFocus className="modal-close icon-btn no-print" aria-label="Close day pack" onClick={onClose}><X size={21}/></button>
+  // Stand-alone dialog (FIT §11.1): ModalFrame gives it the desktop dialog frame (scrolling body, sticky actions); the phone keeps this markup.
+  return <ModalFrame dialog={{label:'Day pack',onClose,className:'wide',close:<button autoFocus className="modal-close icon-btn no-print" aria-label="Close day pack" onClick={onClose}><X size={21}/></button>}}
+    heading={null} actions={<div className="modal-actions no-print"><button className="btn" onClick={onClose}>Close</button><button className="btn primary" onClick={()=>{void printDocument();}}><Printer size={16}/> Print / save A4 PDF</button></div>}>
       <div className="f-print-doc invoice exp-pack">
         <div className="invoice-top"><Hotel size={30}/><div><h2>{s.settings.hotel}</h2><p>Day pack · {dateLabel(date)} · scenario {s.scenario}</p></div></div>
         <div className="invoice-stamp">DEMONSTRATION — FICTIONAL DATA · NOT A TAX DOCUMENT</div>
@@ -40,8 +41,7 @@ function LocalDayPackSheet({date,onClose}:{date:string;onClose:()=>void}){
           {!expenses.length&&<tr><td colSpan={4}>No expenses on this date.</td></tr>}</tbody></table></div>
         <p className="footnote">Generated at simulated clock {s.clock.replace('T',' ')} for {shortDate(date)}. Every figure is derived from source records. GST from the dated GST master (illustrative — CA to confirm).</p>
       </div>
-      <div className="modal-actions no-print"><button className="btn" onClick={onClose}>Close</button><button className="btn primary" onClick={()=>{void printDocument();}}><Printer size={16}/> Print / save A4 PDF</button></div>
-    </div></div>;
+  </ModalFrame>;
 }
 /** Day closing button: opens the pack for `date`. */
 export function DayPackButton({date,label}:{date:string;label?:string}){

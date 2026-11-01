@@ -1,12 +1,15 @@
-/* FIT · fit-to-screen desktop / tablet layout (DEC-178…180, contract 02 Planning/agents/FIT-LAYOUT-CONTRACT.md §3–§5). Loaded after
-   z-touch.css and before zz-print.css (tools/cssTextScale.mjs readStyleSources). Every rule is scoped to the desktop shell (.app-shell, which
-   the phone shell never renders), a desktop dialog (.modal:not(.m-sheet)) or the desktop sign-in (.fit-signin): the phone layout is untouched.
-   DEC-179: no font size is set here except the page h1 (22 px) and two "inherit"s that keep a moved line at its old size. Colours: tokens only. */
+/* FIT · fit-to-screen desktop / tablet layout (DEC-194 no page scroll, DEC-195 no smaller text, DEC-196 sub-screens as tabs; APR-025; contract
+   02 Planning/agents/FIT-LAYOUT-CONTRACT.md §3–§5, §11). Loaded after z-touch.css and before zz-print.css (tools/cssTextScale.mjs readStyleSources).
+   Every rule is scoped to the desktop shell (.app-shell, which the phone shell never renders), a desktop dialog (.fit-modal, added by ModalHost and
+   ModalFrame on the desktop layout only — never a bare .modal, which phone sheets and the phone Day pack share) or the desktop sign-in (.fit-signin).
+   DEC-195: no font size is set here except the page h1 (22 px), one "inherit" that keeps a moved line at its old size, and the 12 px kbd copied
+   unchanged from home.css. Colours: tokens only. */
 :root{--fit-topbar:56px}
 
 /* ── Height chain: the document never scrolls; .content fills what the top bar leaves ─────────────────────────────── */
 html:has(.app-shell),html:has(.app-shell) body,html:has(.app-shell) #root{height:100%}
 .app-shell{height:100vh;height:100dvh;min-height:0;overflow:hidden}
+.app-shell{position:relative} /* B2: the shell is the containing block of every absolute descendant, so its overflow:hidden clips them too */
 .app-shell main{display:flex;flex-direction:column;flex:1;min-width:0;min-height:0}
 .app-shell main>.sync-status{flex:none;max-height:28px;overflow:hidden;white-space:nowrap;flex-wrap:nowrap;margin-top:4px;margin-bottom:0;padding-top:2px;padding-bottom:2px}
 
@@ -42,8 +45,10 @@ html:has(.app-shell),html:has(.app-shell) body,html:has(.app-shell) #root{height
 .app-shell .content{flex:1;min-height:0;width:100%;max-width:1580px;margin:0 auto;overflow:hidden;display:flex;flex-direction:column;padding:12px 16px 12px}
 .app-shell .content{position:relative} /* absolutely placed helpers (screen-reader-only labels) stay inside the clipped content box */
 @media (pointer:fine) and (min-width:1280px){.app-shell .content{padding:16px 24px 16px}}
-.app-shell .content>.fit-legacy{flex:1;min-height:0;overflow:auto;position:relative} /* a page not converted yet: scrolls here (check tool: not-converted) */
-.app-shell .content>.fit-legacy>.page-footer{display:none}
+/* A page not converted yet (contract §3, §11.3): App.tsx FitContent marks its own root data-fit-scroll="legacy" (no wrapper, no remount) and it
+   scrolls there (check tool: not-converted). A page that renders several root elements (a fragment) makes .content itself the legacy scroller. */
+.app-shell .content>:only-child:not(.fit-page){flex:1;min-height:0;overflow:auto;position:relative}
+.app-shell .content:has(>:nth-child(2)){display:block;overflow:auto}
 
 /* ── PageTitle (older pages) and FitPage header: 22 px heading, one-line sub ──────────────────────────────────────── */
 .app-shell .content .page-title{margin:0 0 10px}
@@ -54,10 +59,17 @@ html:has(.app-shell),html:has(.app-shell) body,html:has(.app-shell) #root{height
 /* ── FitPage ────────────────────────────────────────────────────────────────────────────────────────────────────── */
 .fit-page{flex:1;min-height:0;min-width:0;display:flex;flex-direction:column;gap:10px}
 .app-shell .content .fit-page>.fit-page-head{margin:0;min-height:48px;flex:none;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:nowrap}
-.app-shell .fit-page-heading{flex:1 1 auto;min-width:0}
+.app-shell .fit-page-heading{flex:1 1 auto;min-width:min(220px,35%)}
 .app-shell .fit-page-heading>h1{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.app-shell .fit-page-actions{flex:0 1 auto;display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap;min-width:0}
-.app-shell .fit-page-actions>.inline{flex-wrap:wrap;justify-content:flex-end;gap:8px}
+/* §11.9: the actions never wrap; what does not fit goes into the More menu (fit.tsx HeaderActions) */
+.app-shell .fit-page-actions{flex:0 1 auto;display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:nowrap;min-width:0;overflow:hidden}
+.app-shell .fit-page-actions>*{flex:none}
+.app-shell .fit-page-actions>.inline{flex-wrap:nowrap;justify-content:flex-end;gap:8px}
+.app-shell .fit-page-actions:has(.fit-more-pop){overflow:visible}
+.fit-more{position:relative}
+.fit-more-btn{display:inline-flex;align-items:center;gap:6px}
+.fit-more-pop{position:absolute;top:calc(100% + 6px);right:0;z-index:30;min-width:220px;max-width:min(420px,calc(100vw - 32px));display:flex;flex-direction:column;align-items:stretch;gap:8px;padding:8px;background:var(--c-ffffff);border:1px solid var(--line);border-radius:10px;box-shadow:0 12px 40px var(--c-2b1d1630)}
+.fit-more-pop>*{white-space:nowrap}
 .fit-page-toolbar{flex:none;display:flex;align-items:center;gap:10px 12px;flex-wrap:nowrap;min-width:0}
 .fit-page-toolbar>*{min-width:0}
 .fit-page-toolbar>.search{flex:0 1 320px}
@@ -69,7 +81,11 @@ html:has(.app-shell),html:has(.app-shell) body,html:has(.app-shell) #root{height
 .fit-stack{flex:1;min-height:0;min-width:0;display:flex;flex-direction:column;gap:12px}
 .fit-cols{flex:1;min-height:0;min-width:0;display:grid;grid-template-columns:minmax(0,3fr) minmax(240px,1fr);gap:12px}
 .fit-cols>*{min-height:0;min-width:0;display:flex;flex-direction:column;gap:12px}
-@media (max-width:899.98px){.fit-cols{display:flex;flex-direction:column}}
+/* Below 900 px the columns stack, each a grid row of at least 160 px (a panel never collapses: no flex:1 1 0 in an auto-height parent, §11.11);
+   a column holding two panels splits its row between them. */
+@media (max-width:899.98px){.fit-cols{grid-template-columns:minmax(0,1fr);grid-auto-rows:minmax(160px,1fr)}
+  .fit-cols>*{display:grid;grid-auto-rows:minmax(0,1fr);gap:12px}
+  .fit-cols>*>.fit-panel{min-height:160px}}
 
 /* §5 spacing on converted pages (comfortable); compact stays tighter */
 .app-shell .fit-page .section-title{padding:12px 16px}
@@ -86,7 +102,13 @@ html:has(.app-shell),html:has(.app-shell) body,html:has(.app-shell) #root{height
 .fit-panel-body .table-wrap{overflow:visible}
 .fit-panel-body thead th{position:sticky;top:0;z-index:1}
 .fit-panel-foot{flex:none;border-top:1px solid var(--line);padding:8px 16px;display:flex;align-items:center;gap:12px;min-width:0}
-.fit-panel-foot>.footnote{margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.fit-panel-foot>.footnote,.fit-panel-foot>.fit-note{margin:0;min-width:0;flex:1 1 auto}
+/* FitNote (§11.4): one line + a "More" button that opens the full text in place (touch-reachable; no title-only tooltip) */
+.fit-note{display:flex;align-items:flex-start;gap:8px;min-width:0}
+.fit-note>.fit-note-text{flex:1 1 auto;min-width:0;margin:0}
+.fit-note:not(.open)>.fit-note-text{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fit-note.open>.fit-note-text{white-space:normal;max-height:12em;overflow:auto}
+.fit-note>.fit-note-more{flex:none;padding:0 4px}
 .fit-panel-foot>.show-more,.fit-panel-foot>*{margin-top:0;margin-bottom:0}
 
 /* ── SplitView: side by side; below 900 px the record slides over the list with a Back button ─────────────────────── */
@@ -110,7 +132,7 @@ html:has(.app-shell),html:has(.app-shell) body,html:has(.app-shell) #root{height
 /* ── StatStrip: one row, sideways if too many; Stat fonts unchanged ─────────────────────────────────────────────────── */
 .fit-stats{display:flex;flex-wrap:nowrap;gap:10px;overflow-x:auto;min-width:0;scrollbar-width:thin}
 .app-shell .fit-stats .fit-stat{flex:none;min-height:0;padding:8px 12px;display:flex;flex-direction:column;gap:2px}
-.fit-stat.warn{border-color:var(--c-c9773d)}.fit-stat.danger{border-color:var(--primary)}
+.fit-stat.ok{border-color:var(--c-436a41)}.fit-stat.warn{border-color:var(--c-c9773d)}.fit-stat.danger{border-color:var(--primary)}
 
 /* ── BoardColumns ────────────────────────────────────────────────────────────────────────────────────────────────── */
 .fit-board{flex:1;min-height:0;min-width:0;display:grid;grid-auto-flow:column;grid-auto-columns:minmax(var(--fit-col,240px),1fr);gap:12px;overflow-x:auto;overflow-y:hidden}
@@ -162,19 +184,21 @@ html:has(.fit-signin),html:has(.fit-signin) body,html:has(.fit-signin) #root{hei
 @media (min-width:900px){.fit-signin .signin-card{max-width:880px}.fit-signin .signin-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (min-width:1280px){.fit-signin .signin-card{max-width:1180px}.fit-signin .signin-list{grid-template-columns:repeat(3,minmax(0,1fr))}}
 
-/* ── Desktop dialogs (ModalHost): heading fixed, body scrolls, actions sticky at the bottom (also V17-1's clipped footer) ─ */
-.modal-overlay:not(.m-sheet-overlay){padding:16px}
-.modal:not(.m-sheet){max-height:calc(100vh - 32px);max-height:calc(100dvh - 32px);display:flex;flex-direction:column;overflow:hidden;padding:0}
-.modal:not(.m-sheet)>.modal-close{z-index:3}
-.modal:not(.m-sheet)>.modal-body{flex:1 1 auto;min-height:0;overflow:auto;padding:0 30px;scrollbar-width:thin;overscroll-behavior:contain}
-.modal:not(.m-sheet)>.modal-body:not(:has(.modal-heading)){padding-top:30px}
-.modal:not(.m-sheet)>.modal-body:not(:has(.modal-actions)){padding-bottom:30px}
-.modal:not(.m-sheet) .modal-body .modal-heading{position:sticky;top:0;z-index:2;background:var(--c-ffffff);margin-top:0;padding-top:30px;padding-bottom:12px;margin-bottom:13px}
-.modal:not(.m-sheet) .modal-body .modal-actions{position:sticky;bottom:0;z-index:2;background:var(--c-ffffff);border-top:1px solid var(--line);padding-bottom:20px;margin-bottom:0}
-.modal:not(.m-sheet)>.form-error{flex:none;margin:0 30px 16px}
+/* ── Desktop dialogs (.fit-modal: ModalHost and ModalFrame on the desktop layout, §11.1): heading fixed, body scrolls, actions sticky at the
+   bottom (also V17-1's clipped footer). Phone sheets (.m-sheet) and dialogs on the phone layout never carry .fit-modal. ────────────────────────── */
+.fit-modal-overlay{padding:16px}
+.modal.fit-modal{max-height:calc(100vh - 32px);max-height:calc(100dvh - 32px);display:flex;flex-direction:column;overflow:hidden;padding:0}
+.modal.fit-modal>.modal-close{z-index:3}
+.modal.fit-modal>.modal-body{flex:1 1 auto;min-height:0;overflow:auto;padding:0 30px;scrollbar-width:thin;overscroll-behavior:contain}
+.modal.fit-modal>.modal-body:not(:has(.modal-heading)){padding-top:30px}
+.modal.fit-modal>.modal-body:not(:has(.modal-actions)){padding-bottom:30px}
+.modal.fit-modal .modal-body .modal-heading{position:sticky;top:0;z-index:2;background:var(--c-ffffff);margin-top:0;padding-top:30px;padding-bottom:12px;margin-bottom:13px}
+.modal.fit-modal .modal-body .modal-actions{position:sticky;bottom:0;z-index:2;background:var(--c-ffffff);border-top:1px solid var(--line);padding-bottom:20px;margin-bottom:0}
+.modal.fit-modal>.form-error{flex:none;margin:0 30px 16px}
+.modal.fit-modal.fit-modal-tight>.modal-body{padding:0} /* a stand-alone dialog that keeps its own padding (guest-ID dialog) */
 .fit-modal-frame{display:flex;flex-direction:column;min-height:0}
-@media (max-width:760px){.modal:not(.m-sheet)>.modal-body{padding-left:20px;padding-right:20px}.modal:not(.m-sheet) .modal-body .modal-heading{padding-top:25px}.modal:not(.m-sheet)>.form-error{margin:0 20px 12px}}
-@media (min-width:900px){.modal:not(.m-sheet) .fit-form-2col{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 20px}.modal:not(.m-sheet) .fit-form-2col>.modal-actions,.modal:not(.m-sheet) .fit-form-2col>.full{grid-column:1/-1}}
+@media (max-width:760px){.modal.fit-modal>.modal-body{padding-left:20px;padding-right:20px}.modal.fit-modal .modal-body .modal-heading{padding-top:25px}.modal.fit-modal>.form-error{margin:0 20px 12px}.modal.fit-modal.fit-modal-tight>.modal-body{padding:0}}
+@media (min-width:900px){.modal.fit-modal .fit-form-2col{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 20px}.modal.fit-modal .fit-form-2col>.modal-actions,.modal.fit-modal .fit-form-2col>.full{grid-column:1/-1}}
 /* User menu: About this build (the work pages' footer lines) sits above Sign out */
 .fit-user-menu{display:flex;flex-direction:column}
 .fit-user-menu>.modal-actions{order:3}
@@ -186,6 +210,9 @@ html:has(.fit-signin),html:has(.fit-signin) body,html:has(.fit-signin) #root{hei
   .app-shell .topbar.fit-topbar{padding:0 12px;gap:8px}
   .app-shell .fit-tabs-bar [role=tab]{min-height:var(--hcc-touch-primary)!important}
   .app-shell .fit-step,.app-shell .fit-form-nav button{min-height:var(--hcc-touch-primary)!important}
+  /* §11.8: the 56 px bar shows the user button on touch tablets too (z-tablet.css hides .current-user there); About this build and Sign out
+     stay in the user menu it opens. */
+  .app-shell .topbar.fit-topbar .topbar-right .current-user{display:inline-flex!important;align-items:center}
 }
 
 /* ── Print: the shell returns to normal flow, scroll panels print in full ─────────────────────────────────────────── */
@@ -193,7 +220,11 @@ html:has(.fit-signin),html:has(.fit-signin) body,html:has(.fit-signin) #root{hei
   html:has(.app-shell),html:has(.app-shell) body,html:has(.app-shell) #root{height:auto}
   .app-shell,.app-shell main,.app-shell .content{height:auto;overflow:visible}
   [data-fit-scroll]{overflow:visible;max-height:none}
+  .fit-board,.fit-stats,.fit-step-rail,.fit-form-nav,.fit-note>.fit-note-text{overflow:visible;max-height:none}
+  .fit-note>.fit-note-text{white-space:normal}.fit-note-more{display:none}
   .fit-tabs-bar{display:none}
-  .modal:not(.m-sheet){display:block;max-height:none;overflow:visible}
-  .modal:not(.m-sheet) .modal-body .modal-heading,.modal:not(.m-sheet) .modal-body .modal-actions,.fit-panel-body thead th{position:static}
+  .app-shell .content:has(>:nth-child(2)){overflow:visible}
+  .modal.fit-modal{display:block;max-height:none;overflow:visible;padding:15px} /* the print .modal padding of styles.css */
+  .modal.fit-modal>.modal-body{padding:0}
+  .modal.fit-modal .modal-body .modal-heading,.modal.fit-modal .modal-body .modal-actions,.fit-panel-body thead th{position:static}
 }

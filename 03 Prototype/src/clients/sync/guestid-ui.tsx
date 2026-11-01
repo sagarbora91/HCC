@@ -4,6 +4,7 @@ import {Eye,EyeOff,X} from 'lucide-react';
 import {getSyncRuntime} from './instance';
 import {canRevealGuestId,createReveal,revealGuestId,REVEAL_MS,type RevealView} from './guestid';
 import {useSecureScreen} from '../../app/native';
+import {ModalFrame} from '../../components/fit';
 
 /** Current user's right to reveal (PERM-GST-003 from /me/capabilities). */
 export function useCanRevealGuestId():boolean{
@@ -36,14 +37,14 @@ export function GuestIdRevealButton({guestId,uid,partySeq}:{guestId:string;uid:s
   return <>
     <button type="button" className="text-btn gs-idshow" disabled={loading} onClick={()=>{void ctl.show();}}><Eye size={13}/> {loading?'Checking…':'Show ID'}</button>
     {view.phase==='error'&&<small className="form-error" role="alert"> {view.text}</small>}
-    {view.phase==='shown'&&<div className="modal-overlay" onMouseDown={e=>{if(e.target===e.currentTarget)ctl.hide();}}>
-      <div className="modal" role="dialog" aria-modal="true" aria-label="Guest ID number" tabIndex={-1} ref={el=>el?.focus()} style={DIALOG}
-        onKeyDown={e=>{if(e.key==='Escape'){e.preventDefault();ctl.hide();}}}>
-        <button type="button" className="modal-close icon-btn" aria-label="Hide ID" onClick={ctl.hide} style={CLOSE}><X size={22}/></button>
-        <h2 style={{margin:'0 0 12px',paddingRight:56,minHeight:48,display:'flex',alignItems:'center',fontSize:18,textAlign:'left',color:'#2b1d16'}}>{view.value.idType||'ID number'}</h2>
+    {/* Stand-alone dialog (FIT §11.1): ModalFrame adds the desktop dialog frame (tight: it keeps its own padding); the phone keeps this markup. */}
+    {view.phase==='shown'&&<ModalFrame dialog={{label:'Guest ID number',onClose:ctl.hide,tight:true,
+        attrs:{tabIndex:-1,ref:(el:HTMLDivElement|null)=>el?.focus(),style:DIALOG,onKeyDown:e=>{if(e.key==='Escape'){e.preventDefault();ctl.hide();}}},
+        close:<button type="button" className="modal-close icon-btn" aria-label="Hide ID" onClick={ctl.hide} style={CLOSE}><X size={22}/></button>}}
+      heading={<h2 style={{margin:'0 0 12px',paddingRight:56,minHeight:48,display:'flex',alignItems:'center',fontSize:18,textAlign:'left',color:'#2b1d16'}}>{view.value.idType||'ID number'}</h2>}
+      actions={<div className="modal-actions" style={{display:'flex',justifyContent:'stretch',margin:0,padding:0,border:0}}><button type="button" className="btn primary" style={{flex:1,minHeight:48,fontSize:16,justifyContent:'center'}} onClick={ctl.hide}><EyeOff size={16}/> Hide ID</button></div>}>
         <p className="gs-idfull" style={{margin:'0 0 12px',fontSize:'1.5rem',fontWeight:700,letterSpacing:'.05em',fontVariantNumeric:'tabular-nums',textAlign:'left',overflowWrap:'anywhere',color:'#2b1d16'}}>{view.value.formatted}</p>
         <p className="muted" style={{margin:'0 0 16px',fontSize:16,lineHeight:1.45,textAlign:'left',color:'#6b5547'}}>This view was logged. It hides itself in {left} s and is not stored on this device.</p>
-        <div className="modal-actions" style={{display:'flex',justifyContent:'stretch',margin:0,padding:0,border:0}}><button type="button" className="btn primary" style={{flex:1,minHeight:48,fontSize:16,justifyContent:'center'}} onClick={ctl.hide}><EyeOff size={16}/> Hide ID</button></div>
-      </div></div>}
+      </ModalFrame>}
   </>;
 }

@@ -6,6 +6,7 @@ import {money} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {printDocument} from '../../app/native';
 import {dateLabel,shortDate} from '../../components/ui';
+import {ModalFrame} from '../../components/fit';
 import {useServerReport,asOfText,SERVER_DETAIL_NOTE} from '../reports/serverBits';
 import {closingFromDailyView} from '../../clients/sync/reports';
 
@@ -15,9 +16,9 @@ export function ServerDayPackSheet({date,onClose}:{date:string;onClose:()=>void}
   const status=view?.dayStatus.find(d=>d.date===date)?.status;
   const L=(label:string,v:React.ReactNode)=><div key={label}><span>{label}</span><strong>{v}</strong></div>;
   const diff=rec?.cash.difference??0;
-  return <div className="modal-overlay" onMouseDown={e=>{if(e.target===e.currentTarget)onClose();}}>
-    <div className="modal wide" role="dialog" aria-modal="true" aria-label="Day pack">
-      <button autoFocus className="modal-close icon-btn no-print" aria-label="Close day pack" onClick={onClose}><X size={21}/></button>
+  // Stand-alone dialog (FIT §11.1): ModalFrame gives it the desktop dialog frame (scrolling body, sticky actions); the phone keeps this markup.
+  return <ModalFrame dialog={{label:'Day pack',onClose,className:'wide',close:<button autoFocus className="modal-close icon-btn no-print" aria-label="Close day pack" onClick={onClose}><X size={21}/></button>}}
+    heading={null} actions={<div className="modal-actions no-print"><button className="btn" onClick={onClose}>Close</button><button className="btn primary" disabled={!rec} onClick={()=>{void printDocument();}}><Printer size={16}/> Print / save A4 PDF</button></div>}>
       <div className="f-print-doc invoice exp-pack">
         <div className="invoice-top"><Hotel size={30}/><div><h2>{s.settings.hotel}</h2><p>Day pack · {dateLabel(date)}</p></div></div>
         <div className="invoice-stamp">FIGURES FROM THE HOTEL SERVER · NOT A TAX DOCUMENT</div>
@@ -36,6 +37,5 @@ export function ServerDayPackSheet({date,onClose}:{date:string;onClose:()=>void}
           <p className="muted">Receipt and expense lines: {SERVER_DETAIL_NOTE}</p>
           <p className="footnote">Figures for {shortDate(date)} from the server report as of {asOfText(f.data?.asOfUtc)}. GST from the dated GST master (illustrative — CA to confirm).</p></>}
       </div>
-      <div className="modal-actions no-print"><button className="btn" onClick={onClose}>Close</button><button className="btn primary" disabled={!rec} onClick={()=>{void printDocument();}}><Printer size={16}/> Print / save A4 PDF</button></div>
-    </div></div>;
+  </ModalFrame>;
 }

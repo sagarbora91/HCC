@@ -12,7 +12,7 @@ import {navItems} from './nav';
 import {HOME_PAGE,parseCatPage,navFilterModules,pagesOfCategory} from './navmap';
 import {Breadcrumb,ModulesHome,CategoryPage,SignIn} from './ModulesHome';
 import {DemoPill} from './demo/DemoToolbar';
-import {FitNavContext,type FitNav} from '../components/fit'; // FIT (DEC-178…180): sub-screen tab + breadcrumb tab crumb for desktop pages
+import {FitNavContext,type FitNav} from '../components/fit'; // FIT (DEC-194…196): sub-screen tab + breadcrumb tab crumb for desktop pages
 import {useReadOnly,READ_ONLY_HINT} from '../clients/react';
 import {ProductionApp,SyncStatus,type ServerBinding} from '../clients/sync/react'; // production build only (W4-0 server sync layer)
 import {extraPages,mobilePages} from './registry';
@@ -131,8 +131,9 @@ function AppShell({initial,server}:{initial:Restored;/** Production only: state,
   function go(p:string,opts:{tab?:string;replace?:boolean}={}){
     cancelBackFallback();
     if(pageDirty.current&&!modalRef.current&&p!==page){pendingNav.current=()=>go(p,opts);setDiscardAsk(true);return;} // V15-2: an unsaved inline form asks first
-    if(p!==page&&!opts.replace){try{const idx=histIdx()+1;history.pushState({hcc:'page',page:p,idx,tab:opts.tab},'');setDepth(idx);}catch{/* history unavailable */}}
-    else if(p!==page){try{history.replaceState({hcc:'page',page:p,idx:histIdx(),tab:opts.tab},'');}catch{/* ignore */}}
+    const histTab=display.isMobile?undefined:opts.tab; // FIT §11.2: the history tab is desktop only (the phone keeps its own tab ids and Back)
+    if(p!==page&&!opts.replace){try{const idx=histIdx()+1;history.pushState({hcc:'page',page:p,idx,tab:histTab},'');setDepth(idx);}catch{/* history unavailable */}}
+    else if(p!==page){try{history.replaceState({hcc:'page',page:p,idx:histIdx(),tab:histTab},'');}catch{/* ignore */}}
     if(display.isMobile&&p!==page)window.setTimeout(()=>window.scrollTo(0,0),0);
     setTabKey(opts.tab??'');setNavSeq(n=>n+1);setPage(p);setSearch('');setFilter('All');setMobile(false);setError('');}
   // Android back / browser back (MB-02, AC-M03): closes the sheet first, then returns to the previous page.
@@ -148,8 +149,8 @@ function AppShell({initial,server}:{initial:Restored;/** Production only: state,
         try{history.pushState({hcc:'page',page,idx:histIdx()+1},'');}catch{/* ignore */}
         pendingNav.current=()=>{try{history.back();}catch{go(HOME_PAGE,{replace:true});}};setDiscardAsk(true);return;}
       const st=e.state as {hcc?:string;page?:string;tab?:string}|null;
-      if(st?.hcc==='page'&&st.page){setPage(st.page);setTabKey(st.tab??'');setNavSeq(n=>n+1);setDepth(histIdx());}
-    };window.addEventListener('popstate',onPop);return ()=>window.removeEventListener('popstate',onPop);},[page]);
+      if(st?.hcc==='page'&&st.page){setPage(st.page);setTabKey(display.isMobile?'':(st.tab??''));setNavSeq(n=>n+1);setDepth(histIdx());} // phone: setTabKey('') as before (§11.2)
+    };window.addEventListener('popstate',onPop);return ()=>window.removeEventListener('popstate',onPop);},[page,display.isMobile]);
   const back=()=>{if(depth>0){try{history.back();return;}catch{/* ignore */}}go(HOME_PAGE,{replace:true});};
   // Android hardware back button (APK only, plan D1): sheet → wizard step → previous page → landing page → "Exit?" confirmation.
   const [exitAsk,setExitAsk]=useState(false);
@@ -247,7 +248,7 @@ function AppShell({initial,server}:{initial:Restored;/** Production only: state,
     <MobileShell allowedIds={allowedIds} canGoBack={depth>0} onBack={back} tabKey={tabKey} onTab={onTab}>{pageBody}</MobileShell>
     {process.env.HCC_BUILD==='production'&&<SyncStatus/>}{toastEl}<ModalHost/>{menuOpen&&<NavDrawer onClose={()=>setMenuOpen(false)}/>}{searchOpen&&<SearchPalette onClose={()=>setSearchOpen(false)}/>}{exitEl}
   </HccContext.Provider>;
-  const fitNav:FitNav={page:current,tabKey,seq:navSeq,setTabCrumb};
+  const fitNav:FitNav={desktop:true,page:current,tabKey,seq:navSeq,setTabCrumb};
   const crumbTab=tabCrumb&&tabCrumb.page===current?tabCrumb.label:undefined;
   return <HccContext.Provider value={ctx}><FitNavContext.Provider value={fitNav}>
     <div className="app-shell fit-shell">
@@ -267,7 +268,7 @@ function AppShell({initial,server}:{initial:Restored;/** Production only: state,
           </div>
         </FitTopbar>
         {process.env.HCC_BUILD==='production'?<SyncStatus/>:null}
-        <FitContent page={current}>{pageBody}</FitContent>
+        <FitContent>{pageBody}</FitContent>
       </main>
     </div>
     {toastEl}
@@ -276,43 +277,39 @@ function AppShell({initial,server}:{initial:Restored;/** Production only: state,
 }
 
 /** FIT §3 top bar: one 56 px row. When the right-hand chips do not fit, they shrink in priority order (data-fit-squeeze 1 → 3):
- *  clock hidden → the words "Business date" hidden → the word "Search" hidden; icons always stay. Measured, so text size changes count. */
+ *  clock hidden → the words "Business date" hidden → the word "Search" hidden; icons always stay. Measured, so text size changes count.
+ *  One ResizeObserver for the bar's life (bar, left and right halves); a content change re-measures through the effect below. */
 function FitTopbar({children}:{children:React.ReactNode}){
-  const ref=useRef<HTMLElement>(null);
+  const ref=useRef<HTMLElement>(null);const fitRef=useRef<()=>void>(()=>{});
   useLayoutEffect(()=>{const el=ref.current;if(!el)return;
     // Too tight = the bar overflows, or a breadcrumb crumb is cut (the crumbs shrink first, so their ellipsis is the early signal).
     const tight=()=>el.scrollWidth>el.clientWidth+1||Array.from(el.querySelectorAll<HTMLElement>('.crumbs li>button,.crumbs li>span')).some(c=>c.scrollWidth>c.clientWidth+1);
     const fit=()=>{let lvl=0;el.dataset.fitSqueeze='0';
       while(lvl<3&&tight()){lvl++;el.dataset.fitSqueeze=String(lvl);}};
-    fit();
+    fitRef.current=fit;fit();
     if(typeof ResizeObserver==='undefined')return;
     const ro=new ResizeObserver(()=>fit());ro.observe(el);
     const right=el.querySelector('.topbar-right'),left=el.querySelector('.topbar-left');if(right)ro.observe(right);if(left)ro.observe(left);
-    return ()=>ro.disconnect();});
+    return ()=>ro.disconnect();},[]);
+  useLayoutEffect(()=>{fitRef.current();}); // new crumbs / date / user text: re-measure (cheap; no observer churn)
   return <header className="topbar fit-topbar" ref={ref}>{children}</header>;
 }
 
-/** FIT §3 content area: fills the height, never scrolls. A page whose root is a `fit-page` is its single child. A page not converted yet
- *  is wrapped once in a scrolling box marked data-fit-scroll="legacy" (nothing is cut off mid-wave; the check tool reports it). */
-const legacyPages=new Map<string,boolean>();
-function FitContent({page,children}:{page:string;children:React.ReactNode}){
+/** FIT §3 / §11.3 content area: fills the height, never scrolls. A converted page's root (`fit-page`) is its single child. A page not
+ *  converted yet gets data-fit-scroll="legacy" on its own root element (no wrapper, so React never remounts the page) and scrolls there
+ *  (z-fit.css); a page that renders several root elements (a fragment) marks .content itself. The check tool reports both as not-converted. */
+function FitContent({children}:{children:React.ReactNode}){
   const ref=useRef<HTMLDivElement>(null);
-  const [legacy,setLegacy]=useState(()=>legacyPages.get(page)??false);
-  const [seenPage,setSeenPage]=useState(page);
-  if(seenPage!==page){setSeenPage(page);setLegacy(legacyPages.get(page)??false);}
   useLayoutEffect(()=>{const el=ref.current;if(!el)return;
-    const check=()=>{
+    const mark=()=>{
       const kids=Array.from(el.children);
-      const fit=legacy?kids.length===1&&kids[0].children.length===1&&kids[0].firstElementChild!.classList.contains('fit-page')
-        :kids.length===1&&kids[0].classList.contains('fit-page');
-      const isLegacy=!fit;
-      legacyPages.set(page,isLegacy);
-      if(isLegacy!==legacy)setLegacy(isLegacy);
+      for(const k of kids)if(k.getAttribute('data-fit-scroll')==='legacy'&&(kids.length!==1||k.classList.contains('fit-page')))k.removeAttribute('data-fit-scroll');
+      if(kids.length===1&&!kids[0].classList.contains('fit-page'))kids[0].setAttribute('data-fit-scroll','legacy');
+      if(kids.length>1)el.setAttribute('data-fit-scroll','legacy');else el.removeAttribute('data-fit-scroll');
     };
-    check();
+    mark();
     if(typeof MutationObserver==='undefined')return;
-    const mo=new MutationObserver(check);mo.observe(el,{childList:true});
-    const inner=legacy?el.firstElementChild:null;if(inner)mo.observe(inner,{childList:true});
-    return ()=>mo.disconnect();});
-  return <div className="content" ref={ref}>{legacy?<div className="fit-legacy" data-fit-scroll="legacy">{children}</div>:children}</div>;
+    const mo=new MutationObserver(mark);mo.observe(el,{childList:true});
+    return ()=>mo.disconnect();},[]);
+  return <div className="content" ref={ref}>{children}</div>;
 }

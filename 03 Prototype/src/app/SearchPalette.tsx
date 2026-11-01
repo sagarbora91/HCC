@@ -8,13 +8,18 @@ import {trapTab,useReturnFocus} from '../components/ui';
 import {buildSearchEntries,searchEntries,visibleEntries,categoryOf,PAGE_CATEGORY,DASHBOARD,navFilterModules,type SearchEntry} from './navmap';
 import {SUB_SCREENS,type SubScreen} from './subscreens';
 
-/** FIT (DEC-180): every sub-screen tab is a result "Page › Tab" that opens with go(page,{tab}). Same page permission as its page. */
+/** FIT (DEC-196): every sub-screen tab is a result "Page › Tab" that opens with go(page,{tab}). Same page permission as its page. */
 type Entry=SearchEntry&{tab?:string};
 export function subScreenEntries(items:{id:string;label:string}[],subs:readonly SubScreen[]=SUB_SCREENS):Entry[]{
   return subs.flatMap(x=>{const n=items.find(i=>i.id===x.page);if(!n)return [];
     const cat=PAGE_CATEGORY[x.page],c=cat?categoryOf(cat):undefined;
     return [{id:`sub-${x.page}-${x.id}`,kind:'page' as const,label:`${n.label} › ${x.label}`,page:x.page,tab:x.id,category:cat??'dashboard',
       path:c?[c.label,n.label,x.label]:[DASHBOARD.label,x.label],keywords:[x.label,...(x.keywords??[])]}];});
+}
+/** Everything the palette can list: pages + quick actions, plus the sub-screens on the desktop layout only (FIT §11.2: the phone shell has
+ *  its own tab ids, so "Page › Tab" results would open a tab the phone page does not know). */
+export function paletteEntries(isMobile:boolean,items:{id:string;label:string}[]=navItems,subs:readonly SubScreen[]=SUB_SCREENS):Entry[]{
+  return [...buildSearchEntries(items),...(isMobile?[]:subScreenEntries(items,subs))];
 }
 const esc=(t:string)=>t.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
 function Hl({text,terms}:{text:string;terms:string[]}){
@@ -23,12 +28,13 @@ function Hl({text,terms}:{text:string;terms:string[]}){
   return <>{parts.map((p,i)=>i%2?<mark key={i}>{p}</mark>:<span key={i}>{p}</span>)}</>;
 }
 export function SearchPalette({onClose}:{onClose:()=>void}){
-  const {s,uid,go,open,permission}=useHcc();
+  const {s,uid,go,open,permission,display}=useHcc();
   const [q,setQ]=useState(''),[at,setAt]=useState(0);
   const ref=useRef<HTMLInputElement>(null);
   const box=useRef<HTMLDivElement>(null);
   useReturnFocus();
-  const all=useMemo<Entry[]>(()=>[...buildSearchEntries(navItems),...subScreenEntries(navItems)],[]);
+  // FIT §11.2: sub-screen results are desktop only (the phone shell has its own tab ids).
+  const all=useMemo<Entry[]>(()=>paletteEntries(display.isMobile),[display.isMobile]);
   const allowed=new Set(navFilterModules(s,navItems,uid).filter(n=>permission(n.p)).map(n=>n.id));
   const visible=visibleEntries(all,allowed,p=>permission(p));
   const terms=q.trim().toLowerCase().split(/\s+/).filter(Boolean);
