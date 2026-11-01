@@ -53,3 +53,12 @@ Contract §8. Schema, sealing with the existing protector (party seq in the asso
 
 ## Integrator (Opus, after the lanes' DONE files)
 Merge order: acc3-pl → acc3-ageing → acc3-tally → acc3-exports → acc3-carry → acc3-ui → acc3-tests → partyid; apply "Integration needed" items; delete stubs; SCHEMA bump only if a persisted shape changed; full suites through the lock; `ACC3-DONE.md` with rulings proposed as **DEC-194 onwards**; then the coordinator runs `tools\Start-Gate.ps1 -Repo E:\Projects\HCC\worktrees\acc3 -Wave acc3`, the owner imports the golden Tally files into a fresh Tally company, and main is fast-forwarded.
+
+## Coordinator rulings during the wave (1 Nov 2026)
+
+- **ACC3-R1 (permissions):** report reads use **PERM-ACC-001** (view, as the trial balance); the contract's "PERM-ACC-003" was wrong (that code is Unlock on the server). Exports keep PERM-ACC-005.
+- **ACC3-R2 (ageing shapes):** acc3-ageing's additions stand: `flagged`, `note`, `advance` per row; GST summary output figures are tax amounts with `outputTaxable` for taxable values, plus `bookOutput`, `cashPaid`; `due` = bill date until a credit-terms master exists.
+- **ACC3-R3 (GST summary access):** the server GST summary reads GSTR-1 under the accounting view permission, not the caller's PERM-INV-001 — integrator.
+- **ACC3-R4 (carry to ACC-4):** server vendor returns allocate oldest-first (the voucher does not name its bill); server GST tie does not compare a posted set-off journal; server ageing reads every day from the first source. Recorded, not blocking.
+- **acc3-tests facts:** on 30 April the Deccan Agro receivable is nil (paid that day); receivable ageing checks sit on 28/29 April; `RulebookReportsTests.cs` is behind `ACC3_REPORTS` until the lanes land (integrator enables it and fixes the adapter names).
+- **acc3-ui:** stubs in `acc3-views.ts` re-export the real selectors at integration; its invented export builder names (`accReportTable/Csv/Xlsx`, `accReportsZip`) map to acc3-exports' functions; `fy` passed as the FY start date — adapt to the real selectors.
