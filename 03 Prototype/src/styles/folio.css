@@ -29,15 +29,3 @@
 .invoice-stamp{text-transform:uppercase}
 @media(max-width:760px){.folio-tender{flex-wrap:wrap}.folio-tender label{flex:1 1 140px}}
 @media print{.invoice-stamp{border:2px dashed var(--primary);font-size:11px}.folio-cn-list{break-inside:avoid}}
-/* FIT · Guests & folios desktop / tablet layout (lane fit-cash-a, DEC-194…196, contract §6 'folios' = split). Desktop shell only (.app-shell;
-   the phone shell never renders it). Layout only: no font size, colours as tokens. */
-.app-shell .fit-page-toolbar>.filters{flex:none;flex-wrap:nowrap}
-.app-shell .fit-page-toolbar>.small-stats{display:flex;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;margin:0;gap:10px;flex:1 1 auto;min-width:0}
-.app-shell .fit-page-toolbar>.small-stats>div{flex:none;padding:6px 12px;gap:10px;white-space:nowrap}
-.app-shell .fol-row-on>td{background:var(--primary-tint)}
-.app-shell .fol-record{padding:0 20px;min-height:100%;display:flex;flex-direction:column}
-.app-shell .fol-record>.modal-heading{margin-top:16px}
-/* the folio's own action bar (invoice / folio preview) stays visible at the bottom of the record pane */
-.app-shell .fol-record>.modal-actions{position:sticky;bottom:0;z-index:1;margin-top:auto;background:var(--c-ffffff);padding-bottom:12px}
-.app-shell .fit-page-body>.fit-panel>.fit-panel-body>.request-list{padding-top:12px}
-@media (max-width:899.98px){.app-shell .fit-page-toolbar>.filters{flex-wrap:wrap}}

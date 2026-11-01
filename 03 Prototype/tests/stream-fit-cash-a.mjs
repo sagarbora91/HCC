@@ -4,10 +4,14 @@
 // the shared pieces (CashBookView / DayCard / CashOutPanel phone) carries no fit- class. Layout only: the CSS is desktop-guarded and sets no font.
 import {build} from 'esbuild';
 import {readFileSync} from 'node:fs';
-await build({entryPoints:['tests/fit-cash-a-entry.tsx'],bundle:true,platform:'node',format:'esm',outfile:'tests/.generated/fit-cash-a.mjs',
-  external:['react','react-dom','lucide-react'],logLevel:'error',jsx:'automatic',define:{'process.env.HCC_BUILD':'"prototype"','process.env.NODE_ENV':'"production"'},
-  loader:{'.css':'empty'},banner:{js:"import {createRequire as __fcaReq} from 'node:module';const require=__fcaReq(import.meta.url);"}});
-const F=await import('./.generated/fit-cash-a.mjs');
+let F=null,buildError='';
+try{
+  await build({entryPoints:['tests/fit-cash-a-entry.tsx'],bundle:true,platform:'node',format:'esm',outfile:'tests/.generated/fit-cash-a.mjs',
+    external:['react','react-dom','lucide-react'],logLevel:'silent',jsx:'automatic',define:{'process.env.HCC_BUILD':'"prototype"','process.env.NODE_ENV':'"production"'},
+    loader:{'.css':'empty'},banner:{js:"import {createRequire as __fcaReq} from 'node:module';const require=__fcaReq(import.meta.url);"}});
+  F=await import('./.generated/fit-cash-a.mjs');
+}catch(e){buildError=String(e&&e.message).split('
+')[0];}
 const {renderToStaticMarkup}=await import('react-dom/server');
 const React=(await import('react')).default;
 const h=React.createElement;
@@ -38,8 +42,10 @@ const noComments=t=>t.replace(/\/\*[^]*?\*\//g,'');
 const rules=css=>[...noComments(css).replace(/@media[^{]*\{/g,'').matchAll(/([^{}]+)\{([^{}]*)\}/g)].map(m=>({sel:m[1].trim(),body:m[2]})).filter(r=>r.sel);
 
 export function register({test,assert}){
+  test('[FIT-CASH-A] page harness builds',()=>{assert.ok(F,'could not build the fit-cash-a harness: '+buildError);});
+  if(!F)return;
   test('[FIT-CASH-A] folios, cashier and cashbook render one fit-page root with data-fit-page on the desktop layout',()=>{
-    const want={folios:['split',h(F.Folios)],cashier:['fill',h(F.Cashier)],cashbook:['fill',h(F.CashBook)]};
+    const want={folios:['fill',h(F.Folios)],cashier:['fill',h(F.Cashier)],cashbook:['fill',h(F.CashBook)]};
     for(const [id,[layout,el]] of Object.entries(want)){
       store.clear();const html=page(id,el);const r=rootOf(html);
       assert.ok(r&&r.single,`${id}: one top-level element`);
@@ -59,9 +65,11 @@ export function register({test,assert}){
     assert.ok(def.includes('placeholder="Search guest, room, company or invoice…"')&&def.includes('>Balance due</button>'),'search + filters in the toolbar');
     const req=page('folios',h(F.Folios),{tabKey:'folio-requests'});
     assert.match(req,/data-tab="folio-requests" aria-selected="true"/);
-    assert.ok(req.includes('class="fit-page fit-fill"')&&req.includes('>Folio requests</h2>')&&req.includes('no self-approval'),'requests tab = one ScrollPanel');
+    assert.ok(!req.includes('class="fit-split')&&req.includes('>Folio requests</h2>')&&req.includes('no self-approval'),'requests tab = one ScrollPanel');
     assert.equal(store.get('hcc-fit-tab:folios'),'folio-requests','the asked tab is remembered for the session');
-    for(const html of [def,req])for(const t of ['Outstanding balances','In house','Folio requests pending','Approved refunds to execute'])assert.ok(html.includes(`<span>${t}</span>`),t+' (small-stats markup kept)');
+    for(const html of [def,req]){const row=html.slice(html.indexOf('class="fol-tabsrow"'),html.indexOf('class="fit-page-body"'));
+      assert.ok(row.includes('role="tablist"')&&row.includes('class="small-stats fol-stats" role="list"'),'tabs and the totals strip share one row');
+      for(const t of ['Outstanding balances','In house','Folio requests pending','Approved refunds to execute'])assert.ok(row.includes(`<span>${t}</span>`),t+' (small-stats markup kept)');}
   });
   test('[FIT-CASH-A] folios: every row keeps the dialog opener, the record pane renders the full folio (BookingModal) so every action of it stays',()=>{
     store.clear();const html=page('folios',h(F.Folios));
@@ -79,9 +87,12 @@ export function register({test,assert}){
     assert.match(html,/>(Count the drawer|Difference approval|Shift result)<\/h2>/);
     const head=html.slice(0,html.indexOf('</header>'));
     assert.ok(head.includes('Day closing'),'Day closing in the header');
-    for(const b of ['Bank deposit','Till transfer','Owner drawing'])assert.ok(head.includes(b),b+' in the header (Owner)');
+    for(const b of ['Till transfer','Owner drawing'])assert.ok(head.includes(b),b+' in the header (Owner)');
+    assert.ok(!head.includes('Bank deposit'),'Owner does not bank (CX_BANK_ROLES unchanged)');
     const body=html.slice(html.indexOf('</header>'));
-    assert.ok(!/<button[^>]*>(<svg[^>]*>.*?<\/svg>)? ?Bank deposit<\/button>/.test(body),'the cash-out buttons are not repeated in the panel');
+    assert.ok(!/<button[^>]*>(<svg[^>]*>.*?<\/svg>)? ?(Till transfer|Owner drawing)<\/button>/.test(body),'the cash-out buttons are not repeated in the panel');
+    const mgr=page('cashier',h(F.Cashier),{uid:'manager'});
+    assert.ok(mgr.slice(0,mgr.indexOf('</header>')).includes('Bank deposit'),'Manager: Bank deposit in the header');
     assert.equal((html.match(/data-fit-scroll=""/g)||[]).length,4,'four scroll panels');
   });
   test('[FIT-CASH-A] cashier: a role without cash-out rights gets no cash-out buttons; the CashOutPanel phone markup has no fit- class',()=>{
@@ -114,8 +125,7 @@ export function register({test,assert}){
     assert.ok(ph.startsWith('<div class="cb-daybar">')&&!/fit-/.test(ph),'phone day card unchanged');
   });
   test('[FIT-CASH-A] CSS: desktop rules only (every selector under .app-shell), no font size, no hex colour',()=>{
-    const fol=read('src/styles/folio.css');const own=fol.slice(fol.indexOf('/* FIT · Guests & folios'));
-    for(const [name,css] of [['cashbook.css',read('src/styles/cashbook.css')],['cashier.css',read('src/styles/cashier.css')],['folio.css (FIT block)',own]]){
+    for(const name of ['cashbook.css','cashier.css','folios.css']){const css=read('src/styles/'+name);
       const rs=rules(css);assert.ok(rs.length>3,name);
       for(const r of rs){for(const sel of r.sel.split(','))assert.match(sel.trim(),/^\.app-shell /,`${name}: ${sel}`);
         assert.ok(!/font-size|font:/.test(r.body),`${name}: no font change (${r.sel})`);assert.ok(!/#[0-9a-f]{3,8}\b/i.test(r.body),`${name}: tokens only (${r.sel})`);}
