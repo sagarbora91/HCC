@@ -1,6 +1,6 @@
 # HCC — Session handoff (updated 24 Oct 2026, session 2: MB-00…04)
 
-> **Current status (1 Nov 2026): read Session 13m (ACC-2 on main; W1a LG legacy data integrated), including its end-of-morning state (1 Nov, 12:30: ACC-3 and FIT interrupted by the PC restart, resumed from the Fable coordinator session), at the very end of this file, then 13l; Session 13n (FIT started, DEC-194…202, LF planned, report catalogue) follows it, then Session 13o (ACC-3 on main 83df0300), the newest, at the very end of this file.** Everything earlier is history: the "Next", "Waiting on the owner", "running" and "launched" lines in Session 13 and 13e–13i were all carried out or superseded by later sessions, and are left unmarked on purpose. The open owner/CA points are only the ones listed in 13j. New sessions start by reading `E:\Projects\HCC\Resume.md`, which points here.
+> **Current status (1 Nov 2026, evening): read Session 13o (ACC-3 on main 83df0300, rulings DEC-203…208 / APR-026, owner items OP-21 children's IDs and OP-22 Tally import), then 13n (FIT started, DEC-194…202, LF planned) and 13m (ACC-2 and W1a LG on main; legacy dry run all FYs MATCH).** Everything earlier is history. New sessions start by reading `E:\Projects\HCC\Resume.md`, which points here. Next on this PC: FIT (`claude/fit`), then APK v19, then LF.
 
 ## Status
 - **M0** planning package: done (`02 Planning/`), approved (APR-003).
@@ -534,3 +534,10 @@ Single agent, one milestone per session; owner runs `npm test`/`npm start` and s
 - **Counts:** prototype 2176/2176, server 3697/3697 in 36 projects, 0 warnings. SCHEMA 12 unchanged. The gate found and fixed a Tally masters idempotency bug.
 - **Open (ACC3-DONE §7):** CA: asset disposal treatment (F4), TDS sub-section split, B11 threshold Rs 20,000, cash-ratio definition, full-Aadhaar storage for party members. Owner: OP-21 (ID for children / infants), import the golden Tally files into a fresh TallyPrime company, open the exported workbooks in Excel. Carried to ACC-4: server vendor-return allocation, GST tie vs set-off journal, server ageing source.
 - **Next:** resume FIT (shell fixes first), then APK v19 (versionCode 19), then LF, then the rest.
+
+
+### Legacy Lodge HTML demo - integration 1-Nov-2026 (evening)
+- Lanes P (persistence), X (Android bridge), U (tablet mode), T (training mode), V (deck) and M (manager test) integrated into `E:\Projects\HCC\Existing Software\HTML Demo\Lodge-Demo.html` (2,908 KB; load order A B C D E F G P M X U T). New `demo_live_M.js`: **demo clock** (Screens > Set demo date and time..., `?clock=`), Advance Booking delete + advance question, editable check-in grid. Root fixes from the manager test: bill numbers per FY, guest-level advance, NRI flag, Direct Bill Detail report, owner payments kept by `rebuildAccounts`. VB findings (M-2..M-10, e.g. no Day Close register exists in VB) and every number: `HTML Demo\live\INTEGRATION.md` section 7.
+- Tests (one browser at a time, port 8790, `sh live/tests/S_all.sh`): audit 0 errors, behave 77/77/76/72, T 1313/0, P 52/0, U 45/45 x3, M self-check 100 % (planted mistake caught), probe W 3326 / N 14 / X 1.
+- APK `1.2026.11.01-1429` in `E:\Projects\HCC\Builds6-11-01\` (debug 04de9463..., release 5dbb8a42...; training files in `training\`; MP4s still to be copied by the owner). Emulator LodgeTablet only: data + clock survive force-stop, coach opens, ZIP export and backup land in Downloads. Not installed on the Tab S7.
+- Left: camera permission dialog and a physical tablet run unverified; deck / video show the earlier wording of two course steps.
