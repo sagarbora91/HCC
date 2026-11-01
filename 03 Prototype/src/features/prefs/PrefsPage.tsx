@@ -5,7 +5,7 @@ import {RotateCcw,Info} from 'lucide-react';
 import {useHcc} from '../../app/context';
 import {DisplaySection} from '../../app/display';
 import {isNative} from '../../app/native';
-import {FitPage,FormSections,FitNote,useFitTab} from '../../components/fit';
+import {FitPage,FormSections,useFitTab} from '../../components/fit';
 import {usePrefs,useResolvedTheme,PAGE_SIZES,TOAST_SECONDS,toastLabel,textScaleLabel,resolvePageSize,type ReduceMotion,type Density} from '../../app/prefs';
 import {Seg,StartPageSelect,textScaleOptions,DEVICE_ONLY,ThemeSeg,ThemePreview,themeHelp} from './parts';
 import {applyHonourSystemFont} from './prefsNative';
@@ -67,7 +67,7 @@ export function PrefsPage(){
   // The Reset card became the sticky action bar of the form (always visible, whichever section is open): same note, same button, same handler.
   return <FitPage title="Appearance & display" sub="How the app looks and behaves on this device. Changes apply at once. Printed documents are never affected." layout="form">
     <FormSections value={sec} onChange={id=>setSec(id as PrefsSection)} sections={PREFS_SECTIONS.map(x=>({id:x.id,label:x.label}))}
-      actions={<><div className="pf-note"><FitNote lines={1} text={<><Info size={16} aria-hidden="true"/> Puts every setting on this page back to its default on this device. The display mode above is kept. {DEVICE_ONLY}</>}/></div>
+      actions={<><p className="pf-note"><Info size={16} aria-hidden="true"/>Puts every setting on this page back to its default on this device. The display mode above is kept. {DEVICE_ONLY}</p>
         <button type="button" className="btn" onClick={()=>{reset();if(native)void applyHonourSystemFont(true);toast('Appearance & display reset to the defaults on this device.');}}><RotateCcw size={16}/>Reset this device</button></>}>
       <div className="pf-page">{sections[sec]}</div>
     </FormSections>

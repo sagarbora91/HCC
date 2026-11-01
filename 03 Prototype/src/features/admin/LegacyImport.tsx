@@ -62,14 +62,13 @@ export function LegacyImport(){
   // FIT (contract §6, form + result ScrollPanel): the run form on the left, the result and the runs list on the right, each scrolling on its own.
   return <FitPage title="Legacy import" sub="Load guests, history and opening balances extracted from the old Lodge software. Start with a dry run." actions={client.demo?<Pill tone="blue">Demo data</Pill>:undefined}>
     <div className="fit-cols adm-lg-cols"><div>
-    <ScrollPanel title="Run" label="Run an import">
+    <ScrollPanel title="Run" label="Run an import" footer={<><div className="inline"><button type="button" className="btn primary" disabled={!!block||work} onClick={()=>void go()}><Play size={16}/>{work?'Running…':dry?'Run dry run':'Run import'}</button>{block&&<small className="adm-why">{block}</small>}</div>
+        {err&&<p role="alert" className="adm-why">{err}</p>}</>}>
       <div className="padded">
         <label className="field"><span>Run folder on the server PC</span><input value={folder} onChange={e=>setFolder(e.target.value)} placeholder="E:\\Projects\\HCC\\Existing Software\\LG-EXTRACT\\20261105-2130" autoComplete="off"/></label>
         <fieldset className="field"><legend>Parts</legend>{LEGACY_PARTS.map(p=><label key={p.id} className="inline"><input type="checkbox" checked={parts.includes(p.id)} onChange={()=>toggle(p.id)}/><span><strong>{p.label}</strong> <small className="muted">{p.note}</small></span></label>)}</fieldset>
         <label className="field"><span><FileUp size={14}/> Expected totals (totals.json of the run){totalsName?': '+totalsName:''}</span><input type="file" accept=".json,application/json" onChange={e=>void pick(e.target.files?.[0])}/></label>
         <label className="inline"><input type="checkbox" checked={dry} onChange={e=>setDry(e.target.checked)}/><span><strong>Dry run</strong> <small className="muted">Check everything, write nothing</small></span></label>
-        <div className="inline"><button type="button" className="btn primary" disabled={!!block||work} onClick={()=>void go()}><Play size={16}/>{work?'Running…':dry?'Run dry run':'Run import'}</button>{block&&<small className="adm-why">{block}</small>}</div>
-        {err&&<p role="alert" className="adm-why">{err}</p>}
       </div></ScrollPanel></div><div>
     {result&&<LegacyResultView r={result}/>}
     <ScrollPanel title="Runs" label="Runs" actions={<span className="muted">{runs.length}</span>}><RunsTable runs={runs}/></ScrollPanel></div></div></FitPage>;

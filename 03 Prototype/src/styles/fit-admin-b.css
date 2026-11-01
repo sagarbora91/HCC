@@ -8,8 +8,8 @@
 .app-shell .adm-fit-filters .filters{flex-wrap:wrap}
 @media (min-width:900px){
   .app-shell .fit-cols.adm-side-cols{grid-template-columns:minmax(0,1fr) minmax(360px,440px)}
-  .app-shell .fit-cols.adm-sys-cols{grid-template-columns:minmax(0,3fr) minmax(320px,2fr)}
-  .app-shell .fit-cols.adm-lg-cols{grid-template-columns:minmax(340px,420px) minmax(0,1fr)}
+  .app-shell .fit-cols.adm-sys-cols{grid-template-columns:minmax(0,1fr) minmax(300px,340px)}
+  .app-shell .fit-cols.adm-lg-cols{grid-template-columns:minmax(380px,460px) minmax(0,1fr)}
 }
 /* the side panels hold forms and per-permission rows: one column of fields */
 .app-shell .adm-side-cols .adm-perm{grid-template-columns:1fr 1fr}
@@ -32,3 +32,11 @@
 .app-shell .fit-form-body .pf-page{max-width:none}
 .app-shell .fit-form-body>.pf-page>.card{margin-bottom:0}
 .app-shell .fit-form-actions .pf-note{margin-right:auto;min-width:0;flex:1 1 auto}
+/* Legacy import: the Parts checkboxes keep their label text beside them; the Run button sits in the panel footer (always visible) */
+.app-shell .adm-lg-cols fieldset .inline{flex-wrap:nowrap;align-items:flex-start;margin-bottom:6px}
+.app-shell .adm-lg-cols .fit-panel-foot .inline{margin:0}
+/* Add exception: the form wraps the whole panel so the submit button can sit in its footer */
+.app-shell .adm-side-cols .adm-exc-wrap{flex:1 1 0;min-height:0;min-width:0;display:flex;flex-direction:column}
+.app-shell .adm-side-cols .adm-exc-wrap>.fit-panel{flex:1 1 0}
+/* layout="form" puts .fit-form on the page root too (FitPage); the real FormSections grid is the child, so the root stays a flex column */
+.app-shell .fit-page.fit-form{display:flex;flex-direction:column;grid-template-columns:none;gap:12px}

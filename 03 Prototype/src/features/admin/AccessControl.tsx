@@ -140,15 +140,16 @@ function ExceptionsTab(){
           <td><Pill tone={e.effect==='deny'?'neutral':'green'}>{e.effect==='deny'?'✕ Deny':'✓ Allow'}</Pill></td><td className="adm-wrap">{e.reason}</td><td>{shortDate(e.expires)}</td><td><StatusPill status={active?'Active':'Expired'}/></td>
           <td><GuardedButton className="text-btn" block={rb} busy={busy} onClick={()=>run({type:'USER_EXCEPTION',remove:e.id,key:'exc-remove:'+e.id},d.decision==='approval'?'Removal sent for Owner approval':'Exception removed')}>Remove</GuardedButton></td></tr>;})}
     </tbody></table>{!pol.exceptions.length&&<Empty title="No user exceptions" body="Every user follows their role template."/>}</div></ScrollPanel></div><div>
-    <ScrollPanel title="Add exception" label="Add exception">
-    <form className="form adm-exc-form" onSubmit={e=>submit(e,f=>run({type:'USER_EXCEPTION',user:field(f,'user'),perm:field(f,'perm'),effect:field(f,'effect'),reason:field(f,'reason'),expires:field(f,'expires')},d.decision==='approval'?'Exception sent to the Owner for approval':'Exception added · policy version bumped'))}>
+    <form className="adm-exc-wrap" onSubmit={e=>submit(e,f=>run({type:'USER_EXCEPTION',user:field(f,'user'),perm:field(f,'perm'),effect:field(f,'effect'),reason:field(f,'reason'),expires:field(f,'expires')},d.decision==='approval'?'Exception sent to the Owner for approval':'Exception added · policy version bumped'))}>
+    <ScrollPanel title="Add exception" label="Add exception" footer={<GuardedButton className="btn primary" block={block} busy={busy} onClick={()=>{}}>Add exception</GuardedButton>}>
+    <div className="form adm-exc-form">
       <div className="form-row"><label>User<select name="user" required>{s.users.filter(u=>u.id!==uid).map(u=><option key={u.id} value={u.id}>{firstName(u.name)} · {u.role}</option>)}</select></label>
         <label>Permission<select name="perm" required>{ADMIN_PERMS.map(p=><option key={p.id} value={p.id}>{p.id} · {p.action}</option>)}</select></label></div>
       <div className="form-row"><label>Effect<select name="effect"><option value="deny">Deny</option><option value="allow">Allow</option></select></label>
         <label>Expires after (business date)<input type="date" name="expires" min={s.date} defaultValue={s.date} required/></label></div>
       <label>Reason (required)<input name="reason" required minLength={3} maxLength={120} placeholder="e.g. Covering the cashier desk this weekend"/></label>
-      <div><GuardedButton className="btn primary" block={block} busy={busy} onClick={()=>{}}>Add exception</GuardedButton></div>
-    </form></ScrollPanel></div></div>;
+    </div>
+    </ScrollPanel></form></div></div>;
 }
 
 function HistoryTab(){
