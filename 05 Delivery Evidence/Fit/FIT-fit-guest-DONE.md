@@ -5,6 +5,9 @@ Lane **fit-guest** (phase B) · model Sonnet · branch `claude/fit-guest` · wor
 ## Commits
 
 ```
+d3ac6758 FIT guest: the paging test asks for the Outbox tab explicitly
+eef1fd6e FIT guest: diagnostic message on the ShowMore assertion
+fd7e7c0f FIT guest DONE file and check report
 af78c31e FIT guest: ShowMore status assertion tolerant of the page-size preference
 890c796b FIT guest: page root split-class override, test fixes
 ba3f6244 FIT guest: triggers and documents use one panel each (160 px minimum); test harness externals
@@ -49,9 +52,9 @@ All through the lock (label `fit-guest`), output in `E:\Projects\HCC\worktrees\f
 
 | Command | Result |
 |---|---|
-| `npx tsc --noEmit` | clean (run on the first conversion commit; later edits were confined to one component, CSS and tests, and `npm test` bundles them) |
-| `npm test` (last full run, commit `890c796b`) | 2256 tests, **2248 passed, 8 failed**: 1 = my own assertion on the ShowMore text (`Showing 100 of …`; fixed afterwards by accepting any page size, re-run queued behind the lock, see below), 7 = `[FIT]` tests of fit-check's `stream-fit.mjs` that fail for every converted page and are not caused by this lane (Integration needed 3). All 16 other `[FIT-GUEST]` tests, the two updated tests and everything on `main` pass. |
-| `npm run build` | clean (same run) |
+| `npx tsc --noEmit` | clean (re-run on the final head) |
+| `npm test` (last full run, at commit `d3ac6758`) | 2256 tests, **2249 passed, 7 failed**; all 7 are `[FIT]` tests of fit-check's `stream-fit.mjs` that fail for every converted page including `arrivals` and are not caused by this lane (Integration needed 3: seven `page <id> renders a fit-page root` incl. arrivals + `no phone-layout file changed since the wave base`). All 16 `[FIT-GUEST]` tests, the two updated tests and everything on `main` pass. (Main before the wave 2176; fit-shell 2194; this lane adds 16.) |
+| `npm run build` | clean (run with the check) |
 | `node tools/fit-screen-check.mjs --pages guest-services,gsv-my-requests,messages,documents,customers` (server `PORT=4196`, through the lock) | 423 checks, 12 failing, all `font-changed label 14px (was 11px)` on Customers at lap-1366 / lap-1280 / desk-1920 (a baseline artifact, Integration needed 2); 0 page-scroll, 0 content-scroll, 0 cramped, 0 touch-size, 0 hidden-action, 0 not-converted; text scale 1.3 at tab-land and lap-1366: all PASS. Report `05 Delivery Evidence/Fit/fit-check-20261101-1719.md` (+ `.json`; screenshots in `screens-20261101-1719/`, kept out of git). Earlier run (31 failing: Triggers and Documents stacked panels < 160 px, the page-root `.fit-split` collision, Customers narrow list 109 px) is what the fixes in commits `ba3f6244` and `890c796b` removed. |
 | `check-print-layout`, `check-tablet-back`, `check-overlay-compat` | not run (integrator's list; no file they exercise is in this lane's ownership) |
 
