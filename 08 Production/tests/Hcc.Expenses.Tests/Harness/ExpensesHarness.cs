@@ -50,12 +50,13 @@ public sealed class FakeAccessPolicy(IEnumerable<IAccessScopeResolver> resolvers
             ["PERM-MST-002"] = new('P'), // DEC-120: the month lock and its override are the Owner's; DEC-129 budgets / templates, DEC-131 unlock
             ["PERM-PAY-001"] = new('P'),
             ["PERM-EXP-004"] = new('P'), // ACC-2 acc2-purchase: vendor payments / returns (migration 4234)
+            ["PERM-ACC-010"] = new('P'), // ACC-3 acc3-carry C1: asset put to use / disposal (Owner + Accountant, as manual vouchers)
         },
         [Who.Manager] = new() { ["PERM-EXP-001"] = new('P'), ["PERM-EXP-002"] = new('P', 500_000), ["PERM-EXP-003"] = new('P'), ["PERM-SHF-001"] = new('P'), ["PERM-PAY-001"] = new('P'),
             ["PERM-EXP-004"] = new('P') },
         [Who.Reception] = new() { ["PERM-EXP-001"] = new('O'), ["PERM-SHF-001"] = new('P'), ["PERM-PAY-001"] = new('P') },
         [Who.Cashier] = new() { ["PERM-EXP-001"] = new('O'), ["PERM-SHF-001"] = new('P'), ["PERM-PAY-001"] = new('P') },
-        [Who.Accountant] = new() { ["PERM-EXP-001"] = new('O'), ["PERM-EXP-002"] = new('P'), ["PERM-EXP-003"] = new('P'), ["PERM-EXP-004"] = new('P') },
+        [Who.Accountant] = new() { ["PERM-EXP-001"] = new('O'), ["PERM-EXP-002"] = new('P'), ["PERM-EXP-003"] = new('P'), ["PERM-EXP-004"] = new('P'), ["PERM-ACC-010"] = new('P') },
         [Who.Housekeeper] = [],
     };
 

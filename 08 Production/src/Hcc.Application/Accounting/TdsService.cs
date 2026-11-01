@@ -31,7 +31,8 @@ public static class AccountingTaxPermissions
 public sealed record TdsRateRecord(long RateId, string Key, DateOnly EffectiveFrom, long Value, string Reason);
 
 /// <summary>A stored remittance (acc.tds_remit).</summary>
-public sealed record TdsRemitRecord(long RemitId, string Month, string Section, long AmountPaise, string Tender, string Challan, DateOnly BusinessDate, string? ManualVoucherId);
+public sealed record TdsRemitRecord(long RemitId, string Month, string Section, long AmountPaise, string Tender, string Challan, DateOnly BusinessDate, string? ManualVoucherId,
+    string? Form168Json = null); // ACC-3 C7
 
 /// <summary>A company payment that carried TDS (grp.company_payment.tds_paise &gt; 0).</summary>
 public sealed record TdsReceivablePayment(long CompanyId, string Company, DateOnly BusinessDate, long AmountPaise, long TdsPaise);
@@ -57,6 +58,12 @@ public interface ITdsStore
 
     /// <summary>Links the remittance to its manual voucher once posted (the only update acc.tds_remit allows).</summary>
     Task LinkVoucherAsync(ICommandTransaction tx, long remitId, string manualVoucherId, CancellationToken ct);
+
+    /// <summary>ACC-3 C7: replaces the Form 168 figures on the remittance (form168_json, migration 4272).</summary>
+    Task SetForm168Async(ICommandTransaction tx, int propertyId, long remitId, string json, CancellationToken ct);
+
+    /// <summary>ACC-3 C7: the company ids of the groups master (the figures must name one).</summary>
+    Task<IReadOnlySet<long>> CompanyIdsAsync(ICommandTransaction? tx, int propertyId, CancellationToken ct);
 
     /// <summary>Posted bills that carry TDS (ops.expense tds_paise / tds_section — the purchase lane's columns; none before they exist).</summary>
     Task<IReadOnlyList<TdsBillRow>> BillsAsync(ICommandTransaction? tx, int propertyId, CancellationToken ct);
@@ -150,16 +157,82 @@ public sealed partial class TdsService(ICommandRunner runner, ITdsStore store, I
         }, ct).ConfigureAwait(false);
     }
 
-    /// <summary>TDS held back for a row and month less every remittance recorded for it.</summary>
+    /// <summary>TDS held back for a code (ACC-3 C6: the sub-section — rent:plant apart from rent) and month less every remittance recorded for it.</summary>
     public static long Outstanding(IEnumerable<TdsBillRow> bills, IEnumerable<TdsRemitRecord> remits, string section, string month)
-        => bills.Where(b => TdsRates.BaseSection(b.Section) == section && TdsReports.Month(b.Date) == month).Sum(b => b.TdsPaise)
+        => bills.Where(b => b.Section == section && TdsReports.Month(b.Date) == month).Sum(b => b.TdsPaise)
             - remits.Where(r => r.Section == section && r.Month == month).Sum(r => r.AmountPaise);
+
+    /// <summary>ACC-3 C6: the old-Act sub-sections the remittance and the compliance card keep apart (prototype TDS_SUB_OLD).</summary>
+    public static readonly IReadOnlyDictionary<string, string> SubOld = new Dictionary<string, string>(StringComparer.Ordinal)
+    {
+        ["rent"] = "194-I(b)", ["rent:plant"] = "194-I(a)", ["professional"] = "194J(b)", ["professional:technical"] = "194J(a)",
+    };
+
+    /// <summary>Old-Act section of a code (sub-section where the Act splits it).</summary>
+    public static string OldOf(string code) => SubOld.TryGetValue(code, out var o) ? o : TdsRates.Row(TdsRates.BaseSection(code) ?? "")?.Old ?? code;
+
+    /// <summary>Label of a code: the variant's label or the row's (prototype tdsCodeLabel).</summary>
+    public static string LabelOf(string code)
+    {
+        var row = TdsRates.Row(TdsRates.BaseSection(code) ?? "");
+        if (row is null) return code;
+        var parts = code.Split(':');
+        return parts.Length == 2 ? row.Variants.FirstOrDefault(v => v.Id == parts[1])?.Label ?? row.Label : row.Label;
+    }
 
     /// <summary>The narration of a remittance voucher (prototype tdsRemitNarration).</summary>
     public static string Narration(string section, string month, string challan)
     {
-        var row = TdsRates.Row(section) ?? throw new ArgumentException("Unknown TDS row " + section, nameof(section));
-        return $"TDS remittance · {section} ({row.Section}, old {row.Old}) · {month} · challan {challan}";
+        var row = TdsRates.Row(TdsRates.BaseSection(section) ?? "") ?? throw new ArgumentException("Unknown TDS row " + section, nameof(section));
+        return $"TDS remittance · {section} ({row.Section}, old {OldOf(section)}) · {month} · challan {challan}";
+    }
+
+    /// <summary>ACC-3 C7: Form 168 figures as stored (JSON) and back.</summary>
+    public static string Form168Json(IEnumerable<Form168FigureDto> figures)
+        => System.Text.Json.JsonSerializer.Serialize(figures.Select(f => new { companyId = f.CompanyId, amountPaise = f.AmountPaise }));
+
+    public static IReadOnlyList<Form168FigureDto>? Form168Of(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return null;
+        using var doc = System.Text.Json.JsonDocument.Parse(json);
+        return doc.RootElement.EnumerateArray().Select(e => new Form168FigureDto(e.GetProperty("companyId").GetInt64(), e.GetProperty("amountPaise").GetInt64())).ToList();
+    }
+
+    private async Task<string?> Form168RefusalAsync(ICommandTransaction? tx, int propertyId, IReadOnlyList<Form168FigureDto> figures, CancellationToken ct)
+    {
+        if (figures.Count > 50) return "Form 168: at most 50 companies.";
+        var ids = await store.CompanyIdsAsync(tx, propertyId, ct).ConfigureAwait(false);
+        var seen = new HashSet<long>();
+        foreach (var f in figures)
+        {
+            if (!ids.Contains(f.CompanyId)) return $"Form 168: {f.CompanyId.ToString(CultureInfo.InvariantCulture)} is not a company of the groups master.";
+            if (!seen.Add(f.CompanyId)) return $"Form 168: company {f.CompanyId.ToString(CultureInfo.InvariantCulture)} is listed twice.";
+            if (f.AmountPaise is < 0 or > 10_000_000_000) return $"Form 168: enter whole paise for {f.CompanyId.ToString(CultureInfo.InvariantCulture)}.";
+        }
+
+        return null;
+    }
+
+    public const string OpForm168 = "SetTdsForm168";
+
+    /// <summary>ACC-3 C7: replaces the Form 168 figures on a remittance (PERM-ACC-013).</summary>
+    public async Task<CommandResult<TdsForm168Result>> SetForm168Async(Caller caller, string idempotencyKey, SetTdsForm168Request req, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(caller);
+        ArgumentNullException.ThrowIfNull(req);
+        await policy.RequireAsync(caller.PropertyId, caller.PrincipalId, AccountingTaxPermissions.Tax, ct: ct).ConfigureAwait(false);
+        var figures = req.Figures ?? throw HccException.Validation("Form 168: a list of {companyId, amountPaise}.");
+        return await runner.RunAsync(Ctx(caller, OpForm168, idempotencyKey), req, async (tx, c) =>
+        {
+            var r = (await store.RemitsAsync(tx, caller.PropertyId, c).ConfigureAwait(false)).FirstOrDefault(x => x.RemitId == req.RemitId)
+                ?? throw new HccException(HccErrorCode.NOT_FOUND, "TDS remittance not found.");
+            if (await Form168RefusalAsync(tx, caller.PropertyId, figures, c).ConfigureAwait(false) is { } why) throw HccException.Validation(why);
+            await store.SetForm168Async(tx, caller.PropertyId, r.RemitId, Form168Json(figures), c).ConfigureAwait(false);
+            await tx.AuditAsync("TDS_FORM168_SET", "tds-remit:" + r.RemitId.ToString(CultureInfo.InvariantCulture),
+                "Form 168 figures · " + (figures.Count == 0 ? "cleared" : string.Join(", ", figures.Select(f => f.CompanyId.ToString(CultureInfo.InvariantCulture) + " " + new Paise(f.AmountPaise)))), c)
+                .ConfigureAwait(false);
+            return new TdsForm168Result(r.RemitId, figures);
+        }, ct).ConfigureAwait(false);
     }
 
     public async Task<CommandResult<TdsRemittanceResult>> RecordRemittanceAsync(Caller caller, string idempotencyKey, RecordTdsRemittanceRequest req, CancellationToken ct = default)
@@ -170,7 +243,7 @@ public sealed partial class TdsService(ICommandRunner runner, ITdsStore store, I
         var month = (req.Month ?? "").Trim();
         if (!MonthPattern().IsMatch(month)) throw HccException.Validation("Choose the month the TDS was deducted in (YYYY-MM).");
         var section = (req.Section ?? "").Trim();
-        if (TdsRates.Row(section) is null) throw HccException.Validation("Choose the TDS section (rent, contractor, professional or commission).");
+        if (TdsRates.BaseSection(section) is null) throw HccException.Validation("Choose the TDS section (rent, contractor, professional or commission)."); // ACC-3 C6: sub-sections
         var amount = Paise.FromWire(req.AmountPaise).EnsureReceiptAmount();
         var challan = (req.Challan ?? "").Trim();
         if (challan.Length is < 3 or > 40) throw HccException.Validation("Enter the challan number (3–40 characters).");
@@ -184,14 +257,15 @@ public sealed partial class TdsService(ICommandRunner runner, ITdsStore store, I
             if (string.CompareOrdinal(month, TdsReports.Month(bd)) > 0) throw HccException.Validation("The month cannot be after the business date.");
             if (date > bd) throw HccException.Validation("The payment date cannot be after the business date.");
             if (string.CompareOrdinal(TdsReports.Month(date), month) < 0) throw HccException.Validation("The payment date cannot be before the month it pays for.");
+            if (req.Form168 is { } f168 && await Form168RefusalAsync(tx, caller.PropertyId, f168, c).ConfigureAwait(false) is { } bad) throw HccException.Validation(bad);
             var remits = await store.RemitsAsync(tx, caller.PropertyId, c).ConfigureAwait(false);
             var out0 = Outstanding(await store.BillsAsync(tx, caller.PropertyId, c).ConfigureAwait(false), remits, section, month);
-            var label = TdsRates.Row(section)!.Label.ToLowerInvariant();
+            var label = $"{LabelOf(section).ToLowerInvariant()} (old {OldOf(section)})";
             if (out0 <= 0) throw new HccException(HccErrorCode.INVALID_TRANSITION, $"No TDS is held back for {label} in {month}.");
             if (amount.Value > out0)
                 throw HccException.Validation($"The remittance cannot exceed the TDS held back for {label} in {month} and not yet remitted ({new Paise(out0)}). Interest or a late fee is a separate entry on 5400.");
-            var id = await store.InsertRemitAsync(tx, caller.PropertyId, new TdsRemitRecord(0, month, section, amount.Value, req.Tender, challan, date, null), caller.PrincipalId, Now, c)
-                .ConfigureAwait(false);
+            var id = await store.InsertRemitAsync(tx, caller.PropertyId, new TdsRemitRecord(0, month, section, amount.Value, req.Tender, challan, date, null,
+                req.Form168 is { } fx ? Form168Json(fx) : null), caller.PrincipalId, Now, c).ConfigureAwait(false);
             string? voucher = null;
             if (poster is not null)
             {
@@ -201,9 +275,9 @@ public sealed partial class TdsService(ICommandRunner runner, ITdsStore store, I
             }
 
             var card = cards is null ? "" : " · " + (await cards.MarkFiledAsync(tx, caller.PropertyId, "TDS", month, date, challan,
-                $"TDS {TdsRates.Row(section)!.Label} {amount} remitted · {req.Tender}" + (voucher is null ? "" : " · manual voucher " + voucher), caller.PrincipalId, Now, c).ConfigureAwait(false)).Note;
+                $"TDS {LabelOf(section)} (old {OldOf(section)}) {amount} remitted · {req.Tender}" + (voucher is null ? "" : " · manual voucher " + voucher), caller.PrincipalId, Now, c).ConfigureAwait(false)).Note;
             await tx.AuditAsync("TDS_REMITTED", "tds-remit:" + id.ToString(CultureInfo.InvariantCulture),
-                $"TDS remittance · {TdsRates.Row(section)!.Label} · {month} · {amount} by {req.Tender} · challan {challan}" + (voucher is null ? " · voucher pending (manual-voucher service)" : " · voucher " + voucher) + card, c)
+                $"TDS remittance · {LabelOf(section)} (old {OldOf(section)}) · {month} · {amount} by {req.Tender} · challan {challan}" + (voucher is null ? " · voucher pending (manual-voucher service)" : " · voucher " + voucher) + card, c)
                 .ConfigureAwait(false);
             return new TdsRemittanceResult(id, month, section, amount.Value, date, voucher, out0 - amount.Value);
         }, ct).ConfigureAwait(false);
@@ -237,7 +311,8 @@ public sealed partial class TdsService(ICommandRunner runner, ITdsStore store, I
         var remits = await store.RemitsAsync(null, caller.PropertyId, ct).ConfigureAwait(false);
         return new TdsStateView(set.HotelDeductsTds, Column(set.Column), bd, table,
             rates.Select(r => new TdsRateView(r.RateId, r.Key, StayDates.ToWire(r.EffectiveFrom), r.Value, r.Reason)).ToList(),
-            remits.Select(r => new TdsRemittanceView(r.RemitId, r.Month, r.Section, r.AmountPaise, r.Tender, r.Challan, r.BusinessDate, r.ManualVoucherId)).ToList());
+            remits.Select(r => new TdsRemittanceView(r.RemitId, r.Month, r.Section, r.AmountPaise, r.Tender, r.Challan, r.BusinessDate, r.ManualVoucherId, Form168Of(r.Form168Json), OldOf(r.Section)))
+                .ToList());
     }
 
     /// <summary>'2026-27' → that financial year; '2026-04' → that month; null / anything else → the business date's financial year.</summary>
@@ -287,7 +362,11 @@ public sealed partial class TdsService(ICommandRunner runner, ITdsStore store, I
             .Select(g => new TdsReceivableRowView(g.Key.CompanyId, g.Key.Company, g.Key.Month, g.Count(), g.Sum(p => p.AmountPaise), g.Sum(p => p.TdsPaise),
                 g.Sum(p => p.AmountPaise + p.TdsPaise)))
             .OrderBy(r => r.Company, StringComparer.Ordinal).ThenBy(r => r.Month, StringComparer.Ordinal).ToList();
-        return new TdsReceivableReportView(label, from, to, rows, rows.Sum(r => r.TdsPaise));
+        // ACC-3 C7: per company the figure on the latest remittance dated in the period that carries one.
+        var f168 = new Dictionary<long, long>();
+        foreach (var r in (await store.RemitsAsync(null, caller.PropertyId, ct).ConfigureAwait(false)).Where(r => r.BusinessDate >= from && r.BusinessDate <= to))
+            foreach (var f in Form168Of(r.Form168Json) ?? []) f168[f.CompanyId] = f.AmountPaise;
+        return new TdsReceivableReportView(label, from, to, rows, rows.Sum(r => r.TdsPaise), f168.OrderBy(k => k.Key).Select(k => new Form168FigureDto(k.Key, k.Value)).ToList());
     }
 
     /// <summary>

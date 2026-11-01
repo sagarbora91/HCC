@@ -141,3 +141,14 @@ export function accCashDeductionLost(s:State,from?:string,to?:string){
   return s.expenses.filter(e=>e.cashDeductionLost&&e.status==='Posted'&&(!from||e.date>=from)&&(!to||e.date<=to))
     .map(e=>({id:e.id,date:e.date,vendor:e.vendor,category:e.category,amount:e.amount})).sort((a,b)=>b.date.localeCompare(a.date)||b.id.localeCompare(a.id));
 }
+
+// ── ACC-3 C8 (contract §7; rulebook B11): loans only through a bank ledger ──
+/** Loan control ledger (party rows 2400/<CODE>, DEC-166). */
+export const ACC_B11_LOAN_CONTROL='2400';
+export const ACC_LOAN_CASH_MESSAGE='A loan is received and repaid only through a bank account (rulebook B11; old s.269SS / 269T → Income-tax Act 2025 s.185 / s.188 — '+ACC_CASH_VERIFY+'): a cash line on a voucher that touches a loan ledger (2400) is refused — use the bank ledger.';
+/** B11: the refusal when a voucher has a line on a loan ledger (2400 or 2400/<party>) and a line on a Cash-in-Hand ledger ('' = fine). `cash`
+ *  says which lines are cash (the caller knows the chart). */
+export function accLoanCashRefusal(lines:{account:string;cash:boolean}[]):string{
+  const loan=lines.some(l=>l.account===ACC_B11_LOAN_CONTROL||l.account.startsWith(ACC_B11_LOAN_CONTROL+'/'));
+  return loan&&lines.some(l=>l.cash)?ACC_LOAN_CASH_MESSAGE:'';
+}

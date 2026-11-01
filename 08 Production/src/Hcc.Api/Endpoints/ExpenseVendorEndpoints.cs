@@ -1,3 +1,4 @@
+using Hcc.Application.Accounting;
 using Hcc.Application.Expenses;
 using Hcc.Contracts.Expenses;
 using Hcc.Infrastructure.SqlServer;
@@ -21,6 +22,11 @@ public static class ExpenseVendorEndpoints
         return services;
     }
 
+    // ACC-3 C1: the asset commands (PERM-ACC-010) — built from the platform with the manual-voucher port (sales post a Receipt).
+    private static AssetService Assets(IServiceProvider sp) => sp.GetService<AssetService>() ?? new AssetService(sp.GetRequiredService<SqlPlatform>().Commands,
+        sp.GetRequiredService<Hcc.Application.Access.IAccessPolicy>(), sp.GetService<IFixedAssetStore>() ?? new SqlFixedAssetStore(sp.GetRequiredService<SqlPlatform>().Connections),
+        sp.GetRequiredService<IAccountingStore>(), sp.GetRequiredService<TimeProvider>(), sp.GetService<IGstManualVouchers>());
+
     public static RouteGroupBuilder MapExpenseVendorEndpoints(this RouteGroupBuilder api)
     {
         ArgumentNullException.ThrowIfNull(api);
@@ -31,6 +37,10 @@ public static class ExpenseVendorEndpoints
             http.HccReply(await c.VoidAsync(http.HccCommand(VendorPaymentCommands.OpVoid), body, ct)));
         g.MapPost("/commands/" + VendorPaymentCommands.OpReturn, async (HttpContext http, RecordExpenseReturnRequest body, VendorPaymentCommands c, CancellationToken ct) =>
             http.HccReply(await c.ReturnAsync(http.HccCommand(VendorPaymentCommands.OpReturn), body, ct)));
+        g.MapPost("/commands/" + VendorPaymentCommands.OpReallocate, async (HttpContext http, ReallocateVendorPaymentRequest body, VendorPaymentCommands c, CancellationToken ct) =>
+            http.HccReply(await c.ReallocateAsync(http.HccCommand(VendorPaymentCommands.OpReallocate), body, ct))); // ACC-3 C3
+        BillingEndpoints.Command<SetAssetPutToUseRequest, FixedAssetResult>(g, AssetService.OpPutToUse, (sp, c, k, r, ct) => Assets(sp).PutToUseAsync(c, k, r, ct)); // ACC-3 C1
+        BillingEndpoints.Command<DisposeFixedAssetRequest, FixedAssetResult>(g, AssetService.OpDispose, (sp, c, k, r, ct) => Assets(sp).DisposeAsync(c, k, r, ct)); // ACC-3 C1
         g.MapGet("/expenses/vendor-payments", async (HttpContext http, VendorPaymentQueries q, CancellationToken ct) =>
         {
             var (property, principal) = http.HccActor();

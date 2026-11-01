@@ -196,18 +196,38 @@ public sealed class SqlGstMonthStore(SqlConnectionFactory connections) : IGstMon
             return await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false) == 1;
         }, ct);
 
+    public Task<DateOnly?> GstOnAdvancesFromAsync(ICommandTransaction? tx, int propertyId, CancellationToken ct)
+        => WithAsync(tx, async (c, t) =>
+        {
+            await using var cmd = Cmd("SELECT gst_on_advances_from FROM cmp.profile WHERE property_id = @p AND gst_on_advances = 1;", c, t);
+            cmd.Parameters.Set("@p", SqlDbType.Int, propertyId);
+            return await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false) is DateTime d ? DateOnly.FromDateTime(d) : (DateOnly?)null;
+        }, ct);
+
+    public Task SetGstOnAdvancesFromAsync(ICommandTransaction tx, int propertyId, DateOnly? from, CancellationToken ct)
+        => WithAsync(tx, async (c, t) =>
+        {
+            await using var cmd = Cmd("UPDATE cmp.profile SET gst_on_advances_from = @f WHERE property_id = @p;", c, t);
+            cmd.Parameters.Set("@p", SqlDbType.Int, propertyId);
+            cmd.Parameters.Set("@f", SqlDbType.Date, from is { } f ? f.ToDateTime(TimeOnly.MinValue) : null);
+            return await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+        }, ct);
+
     // ── The deposit rule's reads (projector, ACC-2 gst section) ──
 
     /// <summary>
     /// The switch and the booked room of a folio (bill.folio → inv.reservation): the GST rate of its first agreed night (inv.reservation_night
     /// tax snapshot), else its nightly rate and arrival for the dated GST master. Null when the switch is off or the folio has no reservation.
     /// </summary>
-    internal static async Task<(int? Bps, long RatePaise, DateOnly Arrival)?> AdvanceContextAsync(SqlConnection c, SqlTransaction t, int propertyId, long folioId, CancellationToken ct)
+    internal static async Task<(int? Bps, long RatePaise, DateOnly Arrival)?> AdvanceContextAsync(SqlConnection c, SqlTransaction t, int propertyId, long folioId, CancellationToken ct,
+        DateOnly? receiptDate = null)
     {
-        await using (var sw = new SqlCommand("SELECT gst_on_advances FROM cmp.profile WHERE property_id = @p;", c, t))
+        // ACC-3 C10: a deposit dated before gst_on_advances_from carries no advance GST (NULL = every deposit while the switch is on).
+        await using (var sw = new SqlCommand("SELECT 1 FROM cmp.profile WHERE property_id = @p AND gst_on_advances = 1 AND (gst_on_advances_from IS NULL OR @d IS NULL OR gst_on_advances_from <= @d);", c, t))
         {
             sw.Parameters.Set("@p", SqlDbType.Int, propertyId);
-            if (await sw.ExecuteScalarAsync(ct).ConfigureAwait(false) is not true) return null;
+            sw.Parameters.Set("@d", SqlDbType.Date, receiptDate is { } rd0 ? rd0.ToDateTime(TimeOnly.MinValue) : null);
+            if (await sw.ExecuteScalarAsync(ct).ConfigureAwait(false) is null) return null;
         }
 
         await using var cmd = new SqlCommand("""

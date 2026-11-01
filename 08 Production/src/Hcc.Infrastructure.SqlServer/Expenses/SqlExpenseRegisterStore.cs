@@ -321,9 +321,9 @@ public sealed class SqlExpenseMasterSource(SqlConnectionFactory connections) : I
                 r.GetBoolean(5), r.IsDBNull(6) ? null : r.GetInt32(6), r.GetBoolean(7), r.GetBoolean(8), r.GetString(9).Trim(), r.GetBoolean(10)), ct).ConfigureAwait(false); // ACC-2 (4231; transport 4256)
 
     public async Task<IReadOnlyList<ExpenseVendorRow>> VendorsAsync(ICommandTransaction? tx, int propertyId, CancellationToken ct = default) =>
-        await QueryAsync(tx, "SELECT expense_vendor_id, code, name, active, gst_state, tds, tds_section FROM ops.expense_vendor WHERE property_id = @p ORDER BY sort_order, code;", propertyId,
+        await QueryAsync(tx, "SELECT expense_vendor_id, code, name, active, gst_state, tds, tds_section, gstin FROM ops.expense_vendor WHERE property_id = @p ORDER BY sort_order, code;", propertyId,
             r => new ExpenseVendorRow(r.GetInt32(0), r.GetString(1), r.GetString(2), r.GetBoolean(3), r.IsDBNull(4) ? null : r.GetString(4), r.GetBoolean(5),
-                r.IsDBNull(6) ? null : r.GetString(6)), ct).ConfigureAwait(false); // ACC-2 (4231)
+                r.IsDBNull(6) ? null : r.GetString(6), r.IsDBNull(7) ? null : r.GetString(7)), ct).ConfigureAwait(false); // ACC-2 (4231); ACC-3 C4 gstin
 
     public async Task AddVendorAsync(ICommandTransaction tx, int propertyId, string name, int by, DateTime nowUtc, CancellationToken ct = default)
     {

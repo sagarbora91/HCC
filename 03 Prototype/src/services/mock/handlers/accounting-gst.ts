@@ -24,7 +24,7 @@ import {accPost} from '../../../domain/streams/accounting-parties';
 import {accChartIndex} from '../../../domain/streams/accounting-chart';
 import {
   ACC_MONTH,accMonthRange,accMonthOf,accGstMonth,accGstSetoffPosted,accGstSetoffId,accMonthLockOf,accMonthLocked,accMonthLockedMessage,
-  accMonthLockBlocker,accMonthDaysToLock,accDayLockSnapshot,ACC_GST_LEDGER,ACC_STAT_LEDGER,ACC_STAT_LABEL,ACC_STAT_CARD_KIND,accGstOnAdvances,type ACCStatKind,
+  accMonthLockBlocker,accMonthDaysToLock,accDayLockSnapshot,ACC_GST_LEDGER,ACC_STAT_LEDGER,ACC_STAT_LABEL,ACC_STAT_CARD_KIND,accGstOnAdvances,accGstOnAdvancesFrom,type ACCStatKind,
 } from '../../../domain/streams/accounting-gst';
 import {cmpSlice,cmpLegacyCard,cmpFindCard,cmpRecord,cmpParseDue,type CMPState} from '../../../domain/streams/compliance';
 import {expSlice,expMonthSummary,expMonthLocked} from '../../../domain/streams/expenses-scc';
@@ -160,8 +160,12 @@ export const handlers:Record<string,Handler>={
     const {s,uid}=k;if(!rbacMoneyAdmin(s,uid)||k.user.role!=='Owner')k.fail('FORBIDDEN','Access denied: only the Owner changes the GST on advances switch (money setting, DEC-058).');
     const on=k.cmd.on===true;
     const x=cmpSlice(s);k.assert(x.profile,'Set the compliance firm profile first (Owner: Compliance calendar › Firm profile).','INVALID_TRANSITION');
-    k.assert(accGstOnAdvances(s)!==on,`GST on advances is already ${on?'on':'off'}.`,'INVALID_TRANSITION');
-    k.s.complianceX={...x,profile:{...x.profile!,gstOnAdvances:on,updatedBy:uid,updatedAt:s.clock}};
-    return `GST on booking advances switched ${on?'ON — deposits received post Dr 1350 · Cr 2110 · Cr 2120 at the booked room\'s rate (A6)':'OFF — no GST on advances (DEC-142)'} · locked days keep their snapshot`;
+    // ACC-3 C10 (contract §7): a dated switch — `from` (default the business date) = the first advance date it applies to.
+    const from=on?(k.cmd.from===undefined||k.cmd.from===null||k.cmd.from===''?s.date:String(k.cmd.from)):'';
+    if(on)k.assert(/^\d{4}-\d{2}-\d{2}$/.test(from),'Enter the date GST on advances applies from (YYYY-MM-DD).');
+    k.assert(accGstOnAdvances(s)!==on||(on&&from!==accGstOnAdvancesFrom(s)),`GST on advances is already ${on?'on':'off'}.`,'INVALID_TRANSITION');
+    const {gstOnAdvancesFrom:_drop,...rest}=x.profile!;void _drop;
+    k.s.complianceX={...x,profile:{...rest,gstOnAdvances:on,...(on?{gstOnAdvancesFrom:from}:{}),updatedBy:uid,updatedAt:s.clock}};
+    return `GST on booking advances switched ${on?`ON from ${from} — deposits received on or after it post Dr 1350 · Cr 2110 · Cr 2120 at the booked room's rate (A6)`:'OFF — no GST on advances (DEC-142)'} · locked days keep their snapshot`;
   },
 };

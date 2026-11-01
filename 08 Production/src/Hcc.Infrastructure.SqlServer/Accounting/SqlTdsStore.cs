@@ -130,7 +130,7 @@ public sealed class SqlTdsStore(SqlConnectionFactory connections) : ITdsStore
         => WithAsync(tx, async (c, t) =>
         {
             await using var cmd = Cmd("""
-                SELECT remit_id, month, section, amount_paise, tender, challan, business_date, manual_voucher_id FROM acc.tds_remit
+                SELECT remit_id, month, section, amount_paise, tender, challan, business_date, manual_voucher_id, form168_json FROM acc.tds_remit
                  WHERE property_id = @p ORDER BY business_date, remit_id;
                 """, c, t);
             cmd.Parameters.Set("@p", SqlDbType.Int, propertyId);
@@ -138,7 +138,7 @@ public sealed class SqlTdsStore(SqlConnectionFactory connections) : ITdsStore
             await using var rd = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
             while (await rd.ReadAsync(ct).ConfigureAwait(false))
                 list.Add(new TdsRemitRecord(rd.GetInt64(0), rd.GetString(1), rd.GetString(2), rd.GetInt64(3), rd.GetString(4), rd.GetString(5), AccSql.Date(rd, 6),
-                    rd.IsDBNull(7) ? null : rd.GetInt64(7).ToString(CultureInfo.InvariantCulture)));
+                    rd.IsDBNull(7) ? null : rd.GetInt64(7).ToString(CultureInfo.InvariantCulture), rd.IsDBNull(8) ? null : rd.GetString(8)));
             return (IReadOnlyList<TdsRemitRecord>)list;
         }, ct);
 
@@ -149,8 +149,8 @@ public sealed class SqlTdsStore(SqlConnectionFactory connections) : ITdsStore
         return WithAsync(tx, async (c, t) =>
         {
             await using var cmd = Cmd("""
-                INSERT acc.tds_remit(property_id, month, section, amount_paise, tender, challan, business_date, recorded_by, recorded_utc) OUTPUT INSERTED.remit_id
-                VALUES (@p, @m, @s, @a, @t, @c, @d, @u, @now);
+                INSERT acc.tds_remit(property_id, month, section, amount_paise, tender, challan, business_date, recorded_by, recorded_utc, form168_json) OUTPUT INSERTED.remit_id
+                VALUES (@p, @m, @s, @a, @t, @c, @d, @u, @now, @f);
                 """, c, t);
             cmd.Parameters.Set("@p", SqlDbType.Int, propertyId);
             cmd.Parameters.Set("@m", SqlDbType.Char, remit.Month, 7);
@@ -161,9 +161,34 @@ public sealed class SqlTdsStore(SqlConnectionFactory connections) : ITdsStore
             cmd.Parameters.Set("@d", SqlDbType.Date, D(remit.BusinessDate));
             cmd.Parameters.Set("@u", SqlDbType.Int, actor);
             cmd.Parameters.Set("@now", SqlDbType.DateTime2, now);
+            cmd.Parameters.Set("@f", SqlDbType.NVarChar, remit.Form168Json, -1);
             return (long)(await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false))!;
         }, ct);
     }
+
+    public Task SetForm168Async(ICommandTransaction tx, int propertyId, long remitId, string json, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(tx);
+        return WithAsync(tx, async (c, t) =>
+        {
+            await using var cmd = Cmd("UPDATE acc.tds_remit SET form168_json = @f WHERE remit_id = @r AND property_id = @p;", c, t);
+            cmd.Parameters.Set("@f", SqlDbType.NVarChar, json, -1);
+            cmd.Parameters.Set("@r", SqlDbType.BigInt, remitId);
+            cmd.Parameters.Set("@p", SqlDbType.Int, propertyId);
+            return await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+        }, ct);
+    }
+
+    public Task<IReadOnlySet<long>> CompanyIdsAsync(ICommandTransaction? tx, int propertyId, CancellationToken ct)
+        => WithAsync(tx, async (c, t) =>
+        {
+            await using var cmd = Cmd("SELECT company_id FROM grp.company_account WHERE property_id = @p;", c, t);
+            cmd.Parameters.Set("@p", SqlDbType.Int, propertyId);
+            var set = new HashSet<long>();
+            await using var rd = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+            while (await rd.ReadAsync(ct).ConfigureAwait(false)) set.Add(Convert.ToInt64(rd.GetValue(0), CultureInfo.InvariantCulture));
+            return (IReadOnlySet<long>)set;
+        }, ct);
 
     public Task LinkVoucherAsync(ICommandTransaction tx, long remitId, string manualVoucherId, CancellationToken ct)
     {

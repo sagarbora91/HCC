@@ -42,11 +42,15 @@ public sealed class SqlFlowsStore(SqlConnectionFactory connections) : ICashFlowR
                 SELECT ISNULL(SUM(CASE WHEN r.business_date = @d THEN r.amount_paise ELSE 0 END), 0), ISNULL(SUM(r.amount_paise), 0)
                 FROM pay.receipt r WHERE r.folio_id = @id AND r.kind IN ('payment','deposit') AND r.shift_id IS NOT NULL;
                 """,
-            // An Udhaar credit: its cash desk settlements (a reversal is negative).
+            // An Udhaar credit. ACC-3 C5 (rulebook B9): the DAY total is per customer — every credit of the same person (same mobile; without a
+            // mobile, the same name) — as the prototype's party 1120/UD-<mobile | name>; the scope total stays the credit's own (one transaction).
             CashParty.Udhaar => """
-                SELECT ISNULL(SUM(CASE WHEN s.settle_date = @d THEN s.amount_paise ELSE 0 END), 0), ISNULL(SUM(s.amount_paise), 0)
-                FROM ops.udhaar_settlement s JOIN ops.udhaar_receivable u ON u.receivable_id = s.receivable_id
-                WHERE s.receivable_id = @id AND u.property_id = @p AND s.till_id IS NOT NULL;
+                SELECT ISNULL((SELECT SUM(s2.amount_paise) FROM ops.udhaar_settlement s2 JOIN ops.udhaar_receivable u2 ON u2.receivable_id = s2.receivable_id
+                               WHERE u2.property_id = @p AND s2.till_id IS NOT NULL AND s2.settle_date = @d
+                                 AND ((c.mobile IS NOT NULL AND u2.mobile = c.mobile)
+                                   OR (c.mobile IS NULL AND u2.mobile IS NULL AND UPPER(LTRIM(RTRIM(u2.customer_name))) = UPPER(LTRIM(RTRIM(c.customer_name)))))), 0),
+                       ISNULL((SELECT SUM(s.amount_paise) FROM ops.udhaar_settlement s WHERE s.receivable_id = c.receivable_id AND s.till_id IS NOT NULL), 0)
+                FROM ops.udhaar_receivable c WHERE c.receivable_id = @id AND c.property_id = @p;
                 """,
             // ACC-2 integration: a party ledger — the cash side of approved manual Receipt vouchers that name it (no scope beyond the day).
             CashParty.Ledger => """

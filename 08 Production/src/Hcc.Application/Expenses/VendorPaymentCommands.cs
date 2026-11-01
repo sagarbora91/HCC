@@ -71,6 +71,10 @@ public interface IVendorPaymentStore
 
     /// <summary>Σ returned (amount, GST) against a bill by return records that are not void / rejected (positive paise).</summary>
     Task<(long Amount, long Gst)> ReturnedAsync(ICommandTransaction tx, long expenseId, CancellationToken ct = default);
+
+    /// <summary>ACC-3 C3: replaces the payment's allocation rows and writes the audit row (ops.vendor_payment_realloc, migration 4271).</summary>
+    Task ReallocateAsync(ICommandTransaction tx, long paymentId, IReadOnlyList<VendorAllocationDto> before, IReadOnlyList<VendorAllocationDto> after, int by, DateTime nowUtc,
+        CancellationToken ct = default);
 }
 
 public sealed record NewFixedAsset(int PropertyId, string AssetNo, string Ledger, string Name, long CostPaise, long ItcPaise, DateOnly PurchaseDate, string Vendor, long ExpenseId,
@@ -87,6 +91,17 @@ public interface IFixedAssetStore
     Task DisposeByExpenseAsync(ICommandTransaction tx, long expenseId, DateOnly date, long amountPaise, string voucher, CancellationToken ct = default);
 
     Task<IReadOnlyList<FixedAssetView>> ListAsync(int propertyId, CancellationToken ct = default);
+
+    /// <summary>ACC-3 C1: one row (net cost, as the list) locked for update, or null.</summary>
+    Task<FixedAssetView?> LockAsync(ICommandTransaction tx, int propertyId, long assetId, CancellationToken ct = default);
+
+    /// <summary>ACC-3 C1: the rows of the property inside the command transaction (the F4 flag counts the other assets of the block).</summary>
+    Task<IReadOnlyList<FixedAssetView>> ListAsync(ICommandTransaction tx, int propertyId, CancellationToken ct = default);
+
+    Task SetPutToUseAsync(ICommandTransaction tx, long assetId, DateOnly date, int by, DateTime nowUtc, CancellationToken ct = default);
+
+    Task DisposeAsync(ICommandTransaction tx, long assetId, DateOnly date, long amountPaise, string? voucher, string? method, string? flag, string? reason, int by, DateTime nowUtc,
+        CancellationToken ct = default);
 }
 
 /// <summary>
@@ -102,6 +117,7 @@ public sealed class VendorPaymentCommands(ICommandRunner runner, IAccessPolicy p
     public const string OpPay = "RecordVendorPayment";
     public const string OpVoid = "VoidVendorPayment";
     public const string OpReturn = "RecordExpenseReturn";
+    public const string OpReallocate = "ReallocateVendorPayment"; // ACC-3 C3
     public const string DrawerSourcePay = "vendor-payment";
     public const string DrawerSourceVoid = "vendor-pay-void";
 
@@ -204,7 +220,42 @@ public sealed class VendorPaymentCommands(ICommandRunner runner, IAccessPolicy p
                 allocatedPaise = allocated, reference, tillId = till, cashMovementId = movement,
             }, c).ConfigureAwait(false);
             var p = (await payments.LockAsync(tx, ctx.PropertyId, id, c).ConfigureAwait(false))!;
-            return new VendorPaymentResult(ToView(p), req.AmountPaise - allocated);
+            return new VendorPaymentResult(ToView(p), req.AmountPaise - allocated, VendorGstin.Warning(v.Name, v.Gstin, v.State)); // ACC-3 C4: warning only
+        }, ct).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// ACC-3 C3 (contract §7, §9): re-allocates a live payment — PERM-EXP-004 (Owner / Manager / Accountant). The open bills are computed without
+    /// this payment (its own allocations count as open); the rest stays an advance. The voucher does not change; ageing follows the rows.
+    /// </summary>
+    public async Task<CommandResult<VendorPaymentResult>> ReallocateAsync(CommandContext ctx, ReallocateVendorPaymentRequest req, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(ctx);
+        ArgumentNullException.ThrowIfNull(req);
+        await policy.RequireAsync(ctx.PropertyId, ctx.PrincipalId, VendorPaymentPermissions.Pay, null, null, ct).ConfigureAwait(false);
+        if (req.Allocations is null) throw HccException.Validation("Allocations: a list of {expense, amount}.");
+
+        return await runner.RunAsync(ctx with { Operation = OpReallocate }, req, async (tx, c) =>
+        {
+            var p = await payments.LockAsync(tx, ctx.PropertyId, req.PaymentId, c).ConfigureAwait(false) ?? throw new HccException(HccErrorCode.NOT_FOUND, "Vendor payment not found.");
+            if (p.Voided) throw new HccException(HccErrorCode.INVALID_TRANSITION, "This vendor payment is void.");
+            var ms = await MethodsAsync(tx, ctx.PropertyId, c).ConfigureAwait(false);
+            var bd = await expenses.BusinessDateAsync(tx, ctx.PropertyId, c).ConfigureAwait(false);
+            var rows = await payments.BillsAsync(tx, ctx.PropertyId, p.VendorName, p.VendorCode, c).ConfigureAwait(false);
+            var others = (await payments.ListAsync(tx, ctx.PropertyId, p.VendorCode, c).ConfigureAwait(false)).Where(x => x.PaymentId != p.PaymentId).ToList();
+            var open = OpenBills(rows, others, ms, bd, await payments.OpeningAsync(tx, ctx.PropertyId, p.VendorCode, c).ConfigureAwait(false));
+            var list = req.Allocations.Select(a => (a.Opening ? 0L : a.ExpenseId, a.AmountPaise)).ToList();
+            if (list.Any(a => a.Item1 == 0) && !open.Any(b => b.ExpenseId == 0 && b.Open > 0)) throw HccException.Validation("The vendor has no opening balance left to pay.");
+            if (ExpensePurchase.AllocationRefusal(open, p.AmountPaise, list) is { } why) throw HccException.Validation(why);
+            var after = list.Select(a => new VendorAllocationDto(a.Item1, a.AmountPaise, a.Item1 == 0)).ToList();
+            if (after.SequenceEqual(p.Allocations)) throw new HccException(HccErrorCode.INVALID_TRANSITION, "The allocations are unchanged.");
+            await payments.ReallocateAsync(tx, p.PaymentId, p.Allocations, after, ctx.PrincipalId, UtcNow, c).ConfigureAwait(false);
+            static string L(IEnumerable<VendorAllocationDto> xs) => string.Join(", ", xs.Select(a => (a.Opening ? "opening" : ExpenseMapping.Ref(a.ExpenseId)) + " " + new Paise(a.AmountPaise)));
+            var allocated = after.Sum(a => a.AmountPaise);
+            await tx.AuditAsync("VENDOR_PAYMENT_REALLOCATE", Target(p.PaymentId), $"{p.VendorName} · {new Paise(p.AmountPaise)} re-allocated · was {(p.Allocations.Count == 0 ? "none" : L(p.Allocations))}"
+                + $" · now {(after.Count == 0 ? "none" : L(after))}" + (p.AmountPaise > allocated ? " · advance " + new Paise(p.AmountPaise - allocated) : string.Empty), c).ConfigureAwait(false);
+            var u = (await payments.LockAsync(tx, ctx.PropertyId, p.PaymentId, c).ConfigureAwait(false))!;
+            return new VendorPaymentResult(ToView(u), p.AmountPaise - allocated);
         }, ct).ConfigureAwait(false);
     }
 
