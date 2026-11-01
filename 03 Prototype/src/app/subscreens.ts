@@ -4,6 +4,7 @@
 export type SubScreen={page:string;id:string;label:string;keywords?:string[]};
 export const SUB_SCREENS:SubScreen[]=[
   // FIT-FRONT
+  // FIT-FRONT-B: reservations, arrivals, inhouse, guests have no sub-screens (fill / split pages).
   // FIT-CASH
   // FIT-OPS
   // FIT-GUEST
