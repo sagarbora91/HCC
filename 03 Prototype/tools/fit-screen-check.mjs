@@ -97,7 +97,7 @@ const measure=(page,touch)=>page.evaluate(({FONT_SEL,touch})=>{
   const root=c&&c.firstElementChild;
   const panels=[...document.querySelectorAll('[data-fit-scroll]')].filter(vis).map(e=>({kind:e.getAttribute('data-fit-scroll')||'panel',sideways:e.matches('.fit-tabs-bar, [data-fit-scroll=x]'),h:Math.round(e.getBoundingClientRect().height)}));
   const actions=[...document.querySelectorAll('.fit-page-actions *:is(button,a), .modal-actions *:is(button,a)')].filter(vis).map(e=>{const r=e.getBoundingClientRect();return {t:(e.textContent||'').trim().slice(0,24),ok:r.top>=-1&&r.left>=-1&&r.bottom<=innerHeight+1&&r.right<=innerWidth+1};});
-  const fonts={};for(const [k,s] of Object.entries(FONT_SEL)){const e=[...document.querySelectorAll(s)].find(vis);if(e)fonts[k]=getComputedStyle(e).fontSize;}
+  const fonts={};for(const [k,s] of Object.entries(FONT_SEL)){const all=[...document.querySelectorAll(s)].filter(vis);const e=(k==='.drawer a'||k==='.modal h2')?all[0]:(all.find(x=>x.closest('.content'))||all[0]);if(e)fonts[k]=getComputedStyle(e).fontSize;}
   const h1=[...document.querySelectorAll('.content h1')].find(vis);
   const modal=[...document.querySelectorAll('.modal')].find(vis);const mr=modal&&modal.getBoundingClientRect();
   const small=touch?[...document.querySelectorAll('.app-shell button, .app-shell input:not([type=checkbox]):not([type=radio]), .app-shell select, [role=tab]')].filter(vis)
