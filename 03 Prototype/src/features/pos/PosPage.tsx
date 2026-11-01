@@ -9,6 +9,7 @@ import {Empty,dateLabel} from '../../components/ui';
 import {FitPage,FitTabs,useFitTab,useFitNav,ScrollPanel,BoardColumns,StatStrip,FitNote} from '../../components/fit';
 import {PosSpots,PosMenu,PosCheck,PosKotCard,posKitchenColumns,PosStatus} from './parts';
 import {PosSummaryTables} from './modals';
+import {usePaged,ShowMore,DESKTOP_PAGE} from '../../components/ShowMore';
 
 export type PosView='orders'|'kitchen'|'summary';
 /** FIT (DEC-194…196, contract §6 `pos`): the three views are page tabs (sub-screens orders / kitchen / summary); the order view is a board of
@@ -61,9 +62,15 @@ export function PosKitchenBoard(){
   return <>
     {stations.length>0&&<div className="pos-cats pos-fit-stations" role="group" aria-label="Kitchen station">{['',...stations].map(x=><button type="button" key={x||'all'} aria-pressed={station===x} className={station===x?'on':''} onClick={()=>setStation(x)}>{x||'All stations'}</button>)}</div>}
     <BoardColumns minColumn={200} columns={posKitchenColumns.map(c=>{const xs=all.filter(x=>x.kot.status===c);return {id:c,title:c,count:xs.length,
-      body:<>{xs.map(x=><PosKotCard key={x.kot.id} o={x.order} kotId={x.kot.id}/>)}{!xs.length&&<p className="muted">No KOTs.</p>}</>};})}/>
+      body:<PosKotColumn key={c+station} xs={xs}/>};})}/>
     <PosAvailability/>
   </>;
+}
+
+/** One kitchen column: the cards a page at a time (the Served column holds every KOT of the day and history), "Show more" at its foot. */
+function PosKotColumn({xs}:{xs:ReturnType<typeof posKitchenAt>}){
+  const pg=usePaged(xs,DESKTOP_PAGE);
+  return <>{pg.shown.map(x=><PosKotCard key={x.kot.id} o={x.order} kotId={x.kot.id}/>)}{!xs.length&&<p className="muted">No KOTs.</p>}<ShowMore p={pg}/></>;
 }
 
 /** Menu availability ("86" list). */

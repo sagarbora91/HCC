@@ -25,8 +25,9 @@
 .app-shell .fit-page .pos-fit-stations{flex:none;margin:0;overflow-x:auto;flex-wrap:nowrap;scrollbar-width:thin}
 .app-shell .fit-page .pos-fit-stations button{flex:none}
 .app-shell .fit-page .fit-board-col .pos-kot{margin-bottom:8px}
-.app-shell .fit-page .pos-86{flex:none;margin-top:0}
-.app-shell .fit-page .pos-86[open] .pos-86-grid{max-height:24vh;overflow:auto;scrollbar-width:thin}
+.app-shell .fit-page .pos-86{flex:none;margin-top:0;position:relative}
+/* opened, the 86 list floats over the bottom of the board so the board keeps its height */
+.app-shell .fit-page .pos-86[open] .pos-86-grid{position:absolute;left:0;right:0;bottom:100%;z-index:6;margin:0 0 6px;padding:10px 14px;max-height:min(40vh,300px);overflow:auto;scrollbar-width:thin;background:var(--c-ffffff);border:1px solid var(--line);border-radius:8px;box-shadow:0 8px 24px var(--c-2b1d1620)}
 .app-shell .fit-page>.fit-page-toolbar .pos-mst-links{margin:0 0 0 auto;display:flex;flex-wrap:wrap;gap:4px 14px;align-items:center}
 
 /* ── POS · day summary ───────────────────────────────────────────────────────────────────────────────────────────────────────────────── */
@@ -39,12 +40,15 @@
 .app-shell .fit-page .exp-banner-fit>.fit-note{flex:1 1 auto;min-width:0;margin:0}
 /* register: card with fixed head + status tabs + filters, one scrolling table body, footer */
 .app-shell .fit-page .exp-register{overflow:hidden}
-.app-shell .fit-page .exp-register .fit-panel-actions{flex-wrap:wrap;justify-content:flex-end;gap:4px 12px}
+.app-shell .fit-page .exp-reg-top{display:flex;align-items:center;gap:8px;min-width:0}
+.app-shell .fit-page .exp-reg-top .exp-reg-title{flex:none;border:0}
+.app-shell .fit-page .exp-reg-top .tabs{flex:1 1 0}
 .app-shell .fit-page .exp-subbar{flex:none;border-bottom:1px solid var(--line)}
 .app-shell .fit-page .exp-subbar .tabs{margin:0;overflow-x:auto;overflow-y:hidden;flex-wrap:nowrap;scrollbar-width:thin}
 .app-shell .fit-page .exp-subbar .tabs button{flex:none;white-space:nowrap}
-.app-shell .fit-page .exp-subbar .exp-filters{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:flex-end;padding:8px 16px;margin:0}
-.app-shell .fit-page .exp-subbar .exp-filters label{flex:1 1 150px;min-width:0}
+.app-shell .fit-page .exp-subbar .exp-filters{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;padding:8px 16px;margin:0}
+.app-shell .fit-page .exp-subbar .exp-filters label{flex:1 1 200px;min-width:0;flex-direction:row;align-items:center;gap:8px;white-space:nowrap}
+.app-shell .fit-page .exp-subbar .exp-filters label>select,.app-shell .fit-page .exp-subbar .exp-filters label>input{flex:1 1 auto;min-width:0;width:auto}
 .app-shell .fit-page .exp-register .fit-panel-foot:empty{display:none}
 .app-shell .fit-page .exp-register .fit-panel-foot{min-height:0}
 /* the other sections are existing cards: shown flat inside one scrolling panel */

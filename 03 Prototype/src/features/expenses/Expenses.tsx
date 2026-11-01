@@ -55,10 +55,9 @@ export function Expenses(){
   const cashChecker=!permission('approve')&&rbacCanDecideCash(s,uid);
   const flat=(label:string,node:React.ReactNode)=><ScrollPanel label={label}>{node}</ScrollPanel>;
   const register=<div className="fit-cols exp-fit-cols"><div>
-      <section className="card fit-panel exp-register" aria-labelledby={regId}><div className="section-title fit-panel-head"><h2 id={regId}>Expense register</h2><span className="inline fit-panel-actions"><Pill>Bill photos up to 4 MB</Pill>
-          <MstLink spec="expenseCategories" label="Categories…"/><MstLink spec="expenseVendors" label="Vendors…"/><MstLink spec="paymentMethods" label="Funding sources…"/>
-          {canDecide&&<button type="button" className="btn small-btn" onClick={()=>csv('ledger')}><Download size={15}/> Ledger CSV</button>}</span></div>
-        <div className="exp-subbar"><div className="tabs" role="tablist" aria-label="Expense status">{tabs.map(t=><button key={t} role="tab" aria-selected={t===tab} className={t===tab?'active':''} onClick={()=>setTab(t)}>{t}<span>{t==='All'?s.expenses.length:s.expenses.filter(e=>e.status===t).length}</span></button>)}</div>
+      <section className="card fit-panel exp-register" aria-labelledby={regId}>
+        <div className="exp-subbar"><div className="exp-reg-top"><div className="section-title fit-panel-head exp-reg-title"><h2 id={regId}>Expense register</h2></div>
+          <div className="tabs" role="tablist" aria-label="Expense status">{tabs.map(t=><button key={t} role="tab" aria-selected={t===tab} className={t===tab?'active':''} onClick={()=>setTab(t)}>{t}<span>{t==='All'?s.expenses.length:s.expenses.filter(e=>e.status===t).length}</span></button>)}</div></div>
           <div className="form-row exp-filters"><label>Mode<select value={mode} onChange={e=>setMode(e.target.value)}><option value="">All</option>{mnyNames(s,'expenses').map(m=><option key={m}>{m}</option>)}</select></label>
             <label>Month<input type="month" value={month} onChange={e=>setMonth(e.target.value)}/></label>
             <label>Search<input value={q} onChange={e=>setQ(e.target.value)} placeholder="description / vendor / category"/></label></div></div>
@@ -87,7 +86,9 @@ export function Expenses(){
   const stats=[{title:'Posted today (net)',value:money(today.reduce((a,e)=>a+e.amount,0))},{title:'Drawer cash today',value:money(today.filter(e=>mnyIsDrawer(s,e.method)).reduce((a,e)=>a+e.amount,0))},
     {title:'Pending approval',value:String(s.expenses.filter(e=>e.status==='Pending').length)},{title:'Drafts',value:String(s.expenses.filter(e=>e.status==='Draft').length)},{title:'GST paid this month',value:money(expGstPaid(s,expYm(s.date)))}];
   return <FitPage title="Expenses & approvals" sub="Every expense accounted for. Every adjustment traceable." layout="fill"
-      actions={canSubmit?<button className="btn primary" disabled={busy} onClick={()=>open({type:'expense'})}>+ Add expense</button>:null}
+      actions={<>{canSubmit&&<button className="btn primary" disabled={busy} onClick={()=>open({type:'expense'})}>+ Add expense</button>}
+        {section==='register'&&<><Pill>Bill photos up to 4 MB</Pill>{(permission('admin')||permission('masters'))&&<><MstLink spec="expenseCategories" label="Categories…"/><MstLink spec="expenseVendors" label="Vendors…"/><MstLink spec="paymentMethods" label="Funding sources…"/></>}
+          {canDecide&&<button type="button" className="btn small-btn" onClick={()=>csv('ledger')}><Download size={15}/> Ledger CSV</button>}</>}</>}
       toolbar={<StatStrip items={stats}/>}
       tabs={<FitTabs page="expenses" value={section} onChange={setSection} tabs={expSectionsFor(books).map(([id,label])=>({id,label}))}/>}>
     <ExpBanners onSection={setSection} fit/>
