@@ -4,7 +4,8 @@ import {RefreshCw,Send,Printer,PlugZap,Pause,Unplug,Settings2,Check,X,Plus} from
 import {money,chnSlice,chnPending,chnAcceptCheck,chnPushPreview,chnCommissionReport,chnRoomTypes,chnChannelName,chnPct,chnRate,chnCommissionHidden,CHN_PUSH_DAYS,
   type CHNMessage,type CHNChannel,rmsTypeName} from '../../services/mock';
 import {useHcc} from '../../app/context';
-import {PageTitle,Empty,shortDate,clockTime} from '../../components/ui';
+import {Empty,shortDate,clockTime} from '../../components/ui';
+import {FitPage,FitTabs,FitNote,ScrollPanel,StatStrip,useFitTab} from '../../components/fit';
 import {ChnPill,ChnSimulated,stay,party,firstName} from './shared';
 import {PayoutsTab} from './payout';
 import {seesVendorBooks} from '../accounting/shared';
@@ -18,22 +19,24 @@ export const CHN_PAYOUT_TAB:{id:ChnTab;label:string}={id:'payouts',label:'Payout
 export const chnTabsFor=(hidden:boolean,payouts=false)=>[...(hidden?CHN_TABS.filter(x=>x.id!=='commission'):CHN_TABS),...(payouts?[CHN_PAYOUT_TAB]:[])];
 export const chnTabFor=(t:string,hidden:boolean,payouts=false):ChnTab=>{const x=chnTabOf(t);return (hidden&&x==='commission')||(x==='payouts'&&!payouts)?'inbox':x;};
 
+const CHN_TAB_IDS=['inbox','channels','push','commission','payouts'] as const;
 export function ChannelsPage(){
-  const {s,uid,tab,setTab,run,busy}=useHcc();const hidden=chnCommissionHidden(s);const po=seesVendorBooks(s,uid);const t=chnTabFor(tab,hidden,po);
+  const {s,uid,run,busy}=useHcc();const hidden=chnCommissionHidden(s);const po=seesVendorBooks(s,uid);
+  const [tab,setTab]=useFitTab<ChnTab>('channels',CHN_TAB_IDS,'inbox');const t=chnTabFor(tab,hidden,po);
   const st=chnSlice(s),pend=chnPending(s),rep=chnCommissionReport(s);
-  return <><PageTitle title="OTA channels" sub="Module 21 · channel manager preview — connections, room mapping, rate & availability push, inbound reservations and commission. Simulated."
-    action={<button className="btn primary" disabled={busy} onClick={()=>run({type:'CHN_PULL'},'Checked channels (simulated)')}><RefreshCw size={15}/> Check for new messages</button>}/>
-    <ChnSimulated/>
-    <div className="small-stats">
-      <div><span>Pending messages</span><strong>{pend.length}</strong></div>
-      <div><span>Connected channels</span><strong>{st.channels.filter(c=>c.status==='Connected').length}/{st.channels.length}</strong></div>
-      <div><span>OTA bookings (active)</span><strong>{rep.total.bookings}</strong></div>
-      {!hidden&&<div><span>Commission due</span><strong>{money(rep.total.commission)}</strong></div>}
-    </div>
-    <section className="card">
-      <div className="tabs chn-tabs" role="tablist">{chnTabsFor(hidden,po).map(x=><button key={x.id} role="tab" aria-selected={t===x.id} className={t===x.id?'active':''} onClick={()=>setTab(x.id)}>{x.label}{x.id==='inbox'&&pend.length>0&&<span>{pend.length}</span>}</button>)}</div>
-      {t==='inbox'&&<InboxTab/>}{t==='channels'&&<ChannelsTab/>}{t==='push'&&<PushTab/>}{t==='commission'&&<CommissionTab/>}{t==='payouts'&&<PayoutsTab/>}
-    </section></>;
+  const stats=[{title:'Pending messages',value:String(pend.length)},{title:'Connected channels',value:`${st.channels.filter(c=>c.status==='Connected').length}/${st.channels.length}`},{title:'OTA bookings (active)',value:String(rep.total.bookings)},
+    ...(!hidden?[{title:'Commission due',value:money(rep.total.commission)}]:[])];
+  return <FitPage title="OTA channels" sub="Module 21 · channel manager preview — connections, room mapping, rate & availability push, inbound reservations and commission. Simulated."
+    actions={<button className="btn primary" disabled={busy} onClick={()=>run({type:'CHN_PULL'},'Checked channels (simulated)')}><RefreshCw size={15}/> Check for new messages</button>}
+    toolbar={<StatStrip items={stats}/>}
+    tabs={<FitTabs page="channels" value={t} onChange={setTab} tabs={chnTabsFor(hidden,po).map(x=>({id:x.id,label:x.label,count:x.id==='inbox'&&pend.length>0?pend.length:undefined,badge:x.id==='inbox'&&pend.length>0?'warn' as const:undefined}))}/>}>
+    {t==='inbox'&&<InboxTab/>}{t==='channels'&&<ChannelsTab/>}{t==='push'&&<PushTab/>}{t==='commission'&&<CommissionTab/>}{t==='payouts'&&<ScrollPanel label="Payouts" footer={<ChnNote/>}><PayoutsTab/></ScrollPanel>}
+  </FitPage>;
+}
+/** Panel footer note: the "Simulated" banner of the old page (not shown in the production build), one line + More. */
+function ChnNote({text='No data leaves this device. Channels and guests are fictional.'}:{text?:string}){
+  if(process.env.HCC_BUILD==='production')return null;
+  return <FitNote text={<><b>Simulated.</b> {text}</>}/>;
 }
 
 export function PrecheckCell({m}:{m:CHNMessage}){
@@ -44,7 +47,7 @@ export function PrecheckCell({m}:{m:CHNMessage}){
 function InboxTab(){
   const {s,run,busy,open}=useHcc();const pend=chnPending(s);
   const decided=chnSlice(s).messages.filter(m=>m.status!=='Pending').sort((a,b)=>(b.decidedAt||'').localeCompare(a.decidedAt||'')).slice(0,8);
-  return <div>
+  return <ScrollPanel label="OTA inbox" footer={<ChnNote/>}><div>
     <div className="table-wrap"><table className="chn-table"><thead><tr><th>Received</th><th>Channel · ref</th><th>Guest</th><th>Room type · stay</th><th className="number">Channel amount</th><th>Pre-check</th><th>Action</th></tr></thead><tbody>
       {pend.map(m=>{const ok=chnAcceptCheck(s,m).ok;return <tr key={m.id}>
         <td>{clockTime(m.receivedAt)}<small>{shortDate(m.receivedAt.slice(0,10))}</small></td>
@@ -64,7 +67,7 @@ function InboxTab(){
           <td><ChnPill status={m.status}/> <small>{m.booking?`${m.booking} · room ${m.room}`:m.reason}</small></td>
           <td>{firstName(s.users.find(u=>u.id===m.decidedBy)?.name)}<small>{m.decidedAt?clockTime(m.decidedAt):''}</small></td></tr>)}
       </tbody></table></div></>}
-  </div>;
+  </div></ScrollPanel>;
 }
 
 export function ConnectionButtons({c}:{c:CHNChannel}){
@@ -83,8 +86,8 @@ export function StopSellToggle({c,type}:{c:CHNChannel;type:string}){
 
 function ChannelsTab(){
   const {s,open,permission}=useHcc();const st=chnSlice(s),types=chnRoomTypes(s);
-  return <div className="padded">
-    {!permission('approve')&&<div className="info-note chn-note">Connection, commission and mapping changes need a Manager or Owner. You can toggle stop-sell and push availability.</div>}
+  return <ScrollPanel label="Channels and room mapping" footer={<><ChnNote/>{!permission('approve')&&<FitNote text="Connection, commission and mapping changes need a Manager or Owner. You can toggle stop-sell and push availability."/>}</>}><div className="padded">
+
     {process.env.HCC_BUILD==='production'&&<div className="chn-add">{permission('approve')?<button className="btn small-btn" onClick={()=>open({type:'chn-channel',id:'new'})}><Plus size={14}/> Add channel</button>:!st.channels.length&&<p className="chn-muted">No channels yet. A Manager or Owner adds the first one.</p>}</div>}
     <div className="chn-grid">{st.channels.map(c=><article key={c.id} className="chn-channel">
       <header><div><h3>{c.name}</h3><small>{c.statusNote}</small></div><ChnPill status={c.status}/></header>
@@ -95,7 +98,7 @@ function ChannelsTab(){
       </tbody></table>
       <footer><ConnectionButtons c={c}/>{permission('approve')&&<button className="btn small-btn" onClick={()=>open({type:'chn-channel',id:c.id})}><Settings2 size={14}/> Terms & mapping</button>}</footer>
     </article>)}</div>
-  </div>;
+  </div></ScrollPanel>;
 }
 
 export function usePushChannel(){
@@ -107,10 +110,10 @@ function PushTab(){
   const {s,run,busy,user}=useHcc();const st=chnSlice(s);const [ch,setCh]=usePushChannel();
   const c=st.channels.find(c=>c.id===ch);const p=chnPushPreview(s,ch);
   const types=[...new Set(p.rows.map(r=>r.type))];
-  return <div className="padded">
-    <div className="chn-toolbar"><label className="form chn-inline">Channel<select value={ch} onChange={e=>setCh(e.target.value)}>{st.channels.map(c=><option key={c.id} value={c.id}>{c.name} · {c.status}</option>)}</select></label>
-      <p className="chn-muted">What would be sent for the next {CHN_PUSH_DAYS} nights from the business date: rooms free per night (blocked, booked and held rooms excluded) and the hotel tariff {c?`+ ${chnPct(c.markupBps)} markup`:''}.</p>
-      <button className="btn primary" disabled={busy||c?.status!=='Connected'||!p.rows.length} onClick={()=>run({type:'CHN_PUSH',channel:ch},`Pushed to ${c?.name} (simulated)`)}><Send size={15}/> Push now</button></div>
+  return <ScrollPanel label="Rate and availability push" title="Rate & availability push" footer={<ChnNote/>}
+      actions={<><label className="form chn-inline">Channel<select value={ch} onChange={e=>setCh(e.target.value)}>{st.channels.map(c=><option key={c.id} value={c.id}>{c.name} · {c.status}</option>)}</select></label>
+        <button className="btn primary" disabled={busy||c?.status!=='Connected'||!p.rows.length} onClick={()=>run({type:'CHN_PUSH',channel:ch},`Pushed to ${c?.name} (simulated)`)}><Send size={15}/> Push now</button></>}><div className="padded">
+    <p className="chn-muted">What would be sent for the next {CHN_PUSH_DAYS} nights from the business date: rooms free per night (blocked, booked and held rooms excluded) and the hotel tariff {c?`+ ${chnPct(c.markupBps)} markup`:''}.</p>
     {c&&c.status!=='Connected'&&<div className="info-note chn-note">{c.name} is {c.status.toLowerCase()} — the preview is shown but nothing can be pushed until it is connected.</div>}
     {p.unmapped.length>0&&<div className="info-note chn-note">Not mapped on {c?.name} (not sold, not pushed): {p.unmapped.join(', ')}.</div>}
     {types.length>0?<div className="table-wrap"><table className="chn-ari"><thead><tr><th>Room type</th>{p.dates.map(d=><th key={d}>{shortDate(d)}</th>)}</tr></thead><tbody>
@@ -121,7 +124,7 @@ function PushTab(){
     <div className="table-wrap"><table className="chn-table"><thead><tr><th>When</th><th>Channel</th><th>Summary</th><th>By</th></tr></thead><tbody>
       {st.pushes.slice(0,8).map(x=><tr key={x.id}><td>{shortDate(x.at.slice(0,10))} {clockTime(x.at)}</td><td>{chnChannelName(s,x.channel)}</td><td>{x.summary}</td><td>{firstName(s.users.find(u=>u.id===x.actor)?.name)}</td></tr>)}
     </tbody></table>{!st.pushes.length&&<Empty title="No pushes yet"/>}</div>
-  </div>;
+  </div></ScrollPanel>;
 }
 
 export function CommissionTables(){
@@ -143,7 +146,7 @@ export function CommissionTables(){
 }
 function CommissionTab(){
   const {open}=useHcc();
-  return <div className="padded chn-print">
-    <div className="chn-toolbar"><p className="chn-muted">Commission owed to each channel on active OTA bookings (Confirmed, In house, Departed).</p><button className="btn" onClick={()=>open({type:'chn-commission-print'})}><Printer size={15}/> Print view</button></div>
-    <CommissionTables/></div>;
+  return <ScrollPanel label="Commission report" title="Commission report" footer={<ChnNote/>} actions={<button className="btn" onClick={()=>open({type:'chn-commission-print'})}><Printer size={15}/> Print view</button>}><div className="padded chn-print">
+    <p className="chn-muted">Commission owed to each channel on active OTA bookings (Confirmed, In house, Departed).</p>
+    <CommissionTables/></div></ScrollPanel>;
 }

@@ -34,6 +34,24 @@ export const SUB_SCREENS:SubScreen[]=[
   {page:'messages',id:'templates',label:'Templates'},
   {page:'messages',id:'consent',label:'Consent'},
   // FIT-REVENUE
+  {page:'yield',id:'rate-calendar',label:'Rate calendar',keywords:['suggested','bar','calendar']},
+  {page:'yield',id:'rate-plans',label:'Rate plans',keywords:['quote','rate sheet']},
+  {page:'yield',id:'rules',label:'Rules',keywords:['season','guardrails','occupancy tiers']},
+  {page:'yield',id:'restrictions',label:'Restrictions',keywords:['minimum stay','closed to arrival']},
+  {page:'yield',id:'history',label:'History',keywords:['publish log','change history']},
+  {page:'yield',id:'publish-requests',label:'Publish requests',keywords:['proposals','approve']},
+  {page:'groups',id:'blocks',label:'Blocks',keywords:['rooming list','allotment','group block']},
+  {page:'groups',id:'companies',label:'Companies',keywords:['credit limit','corporate']},
+  {page:'groups',id:'pickup-report',label:'Pickup report'},
+  {page:'groups',id:'master-folio',label:'Master folio',keywords:['billing']},
+  {page:'groups',id:'limit-requests',label:'Limit requests',keywords:['credit']},
+  {page:'channels',id:'inbox',label:'Inbox',keywords:['ota messages','reservations']},
+  {page:'channels',id:'channels',label:'Channels & mapping',keywords:['room mapping','stop-sell']},
+  {page:'channels',id:'push',label:'Rate & availability push'},
+  {page:'channels',id:'commission',label:'Commission report'},
+  {page:'channels',id:'payouts',label:'Payouts'},
+  {page:'booking-site',id:'bookings',label:'Bookings',keywords:['web requests']},
+  {page:'booking-site',id:'preview',label:'Preview',keywords:['guest page']},
   // FIT-PEOPLE
   // FIT-ADMIN
   // FIT-FRONT-A
