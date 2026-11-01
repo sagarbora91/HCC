@@ -96,3 +96,12 @@ Old reports that HCC has no single screen for yet. Each becomes a catalogue entr
 5. B7 / E reports go into W7 RPT; B8 into the GL stand-ins.
 
 Proposed as wave **LF (legacy feature parity)** after FIT: about 6 lanes, prototype and server, contract and briefs in the usual ETP form.
+
+## F. Found while sizing the database (owner's question, 1 Nov 2026)
+
+HCC keeps documents and images **inside SQL Server** (`SqlDocumentStore`). SQL Server 2025 Express allows 50 GB of data per database.
+- **Legacy history (W1a LG):** about 1.85 million rows across the ten yearly files, many of them repeated master copies. The imported `lgc` history is estimated at **0.2–0.5 GB**. The legacy photos and ID proofs on disk are 25 MB.
+- **HCC's own data without images:** about 0.2–0.4 GB a year (stays, folio lines, payments, journal lines, audit, events, housekeeping, attendance), so more than 100 years to 50 GB.
+- **Images are the risk.** ID images and documents are accepted up to 4 MB each, and are not compressed on the device. Only the bank-slip photo is, to under 100 KB. About 3,000 guests a year × 2 images × 2–4 MB comes to 12–24 GB a year, so the limit would be reached in 2–4 years.
+- **Build item G1:** compress ID, document and expense-bill images on the device to about 150 KB, reusing the slip-photo compressor (`app/slipPhoto.ts`). That brings images to about 1 GB a year, roughly 1.5 GB a year in total, or 30+ years.
+- **Option G2:** move images to a second database (`HccDocuments`), which has its own 50 GB. The Express limit is per database, and the log file does not count.
