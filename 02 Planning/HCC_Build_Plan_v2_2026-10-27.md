@@ -158,7 +158,7 @@ Borrowed whole from ETP: `scripts\build-windows-release.ps1` → `build-windows-
 | OP-15 | Providers for W8: WhatsApp / SMS gateway, ID OCR, channel manager — which vendors, and who signs the contracts | Owner |
 | OP-16 | GitHub repository **private** before the push (DEC-087 says private; `sagarbora91/HCC` is public today) | Owner |
 | OP-17 | Hall-booking spec approval (W5) — written while W2–W4 run | Owner |
-| OP-18 | ~~Rack-rate card~~ **Closed 1 Nov 2026 (DEC-182):** owner's card (GST-inclusive, room GST 18 % — CA to confirm), import files in `Existing Software\DB-PROFILEate-card\` | Owner (done) |
+| OP-18 | ~~Rack-rate card~~ **Closed 1 Nov 2026 (DEC-182):** owner's card (GST-inclusive, room GST 18 % — CA to confirm), import files in `Existing Software\DB-PROFILE\rate-card\` | Owner (done) |
 | OP-19 | ~~Ask the CA whether the HCC invoice series must continue the legacy bill numbers~~ **Closed 1 Nov 2026 (DEC-181):** fresh series `HPE/2627/0001` from go-live; legacy bills keep their numbers; both series in GSTR-1 Table 13 | Owner (done) |
 
 ## 6. What you do, when
