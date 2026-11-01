@@ -15,6 +15,7 @@
     <Project Path="tests/Hcc.Inventory.Tests/Hcc.Inventory.Tests.csproj" />
     <Project Path="tests/Hcc.Integration.Tests/Hcc.Integration.Tests.csproj" />
     <Project Path="tests/Hcc.Handover.Tests/Hcc.Handover.Tests.csproj" />
+    <Project Path="tests/Hcc.Keys.Tests/Hcc.Keys.Tests.csproj" />
     <Project Path="tests/Hcc.Operations.Tests/Hcc.Operations.Tests.csproj" />
     <Project Path="tests/Hcc.Closing.Tests/Hcc.Closing.Tests.csproj" />
     <Project Path="tests/Hcc.GstIds.Tests/Hcc.GstIds.Tests.csproj" />
@@ -180,5 +181,7 @@
     <File Path="database/migrations/4601_legacy_rbac_seed.sql" />
     <File Path="database/migrations/4605_legacy_capture_kind.sql" />
     <File Path="database/migrations/4620_guest_party_ids.sql" />
+    <File Path="database/migrations/4720_keys_schema.sql" />
+    <File Path="database/migrations/4721_keys_rbac_seed.sql" />
   </Folder>
 </Solution>
