@@ -43,7 +43,7 @@
     },
     {
       "candidate_id": "ETP-TALLY",
-      "source_repository": "E:\ETP\Code\SaagarCC-V6-ETP-Source-and-Report-Engine-605002f (owner's own code, DEC-054)",
+      "source_repository": "E:/ETP/Code/SaagarCC-V6-ETP-Source-and-Report-Engine-605002f (owner's own code, DEC-054)",
       "pinned_commit": "8d65d83fc7428b8f69069233aea47d0d66e43cc0",
       "source_paths": ["src/Etp.Reporting.Infrastructure.SqlServer/AccountingAndSharingServices.cs"],
       "source_hashes": {"src/Etp.Reporting.Infrastructure.SqlServer/AccountingAndSharingServices.cs": "8e44c104933d18228c560fe9d2f82c45391f6110979ff4e52bf55ab3ffe45cdf"},

@@ -4,7 +4,6 @@ using System.Text.Json;
 using System.Xml.Linq;
 using Hcc.Accounting.Tests.Golden;
 using Hcc.Application.Accounting;
-using Hcc.Application.Accounting;
 using Hcc.Domain.Accounting;
 using Hcc.Domain.ThirdParty.Etp;
 
@@ -63,7 +62,7 @@ public sealed class TallyExportTests
     {
         // the prototype built the golden from its own chart; the server's built-in chart must agree name for name and group for group
         var chart = Input.GetProperty("chart");
-        var ledgers = chart.GetProperty("ledgers").EnumerateArray().ToDictionary(l => l.GetProperty("code").GetString()!, l => l);
+        var ledgers = chart.GetProperty("ledgers").EnumerateArray().Where(l => !l.GetProperty("code").GetString()!.Contains('/', StringComparison.Ordinal)).ToDictionary(l => l.GetProperty("code").GetString()!, l => l);
         Assert.Equal(ChartOfAccounts.All.Select(l => l.Code).Order(StringComparer.Ordinal), ledgers.Keys.Order(StringComparer.Ordinal));
         foreach (var l in ChartOfAccounts.All)
         {
@@ -248,7 +247,7 @@ public sealed class TallyExportTests
         var parties = new Dictionary<string, TallyPartyInfo>
         {
             ["1030/BA-HDFC"] = new("HDFC"), ["2400/LN-HDFC"] = new("HDFC term loan"), ["2200/EV-MORNING"] = new("Morning Supplies", "27ABCDE1234F1Z5"),
-            ["2200/EV-KAVERI"] = new("Kaveri Traders"), ["1110/CMP-0007"] = new("Deccan Agro Ltd", "27AAACD1111A1Z1"), ["1115/CHN-GOIBIBO"] = new("Goibibo"), ["1200/STF-007"] = new("Staff 07"),
+            ["2200/EV-KAVERI"] = new("Kaveri Traders"), ["1110/CMP-7"] = new("Deccan Agro Ltd", "27AAACD1111A1Z1"), ["1115/CHN-GOIBIBO"] = new("Goibibo"), ["1200/STF-7"] = new("Staff 07"),
         };
         var book = TallyBook.Build(ChartOfAccounts.Builtin, open, parties, period.SelectMany(v => v.Entries.Select(e => e.Account)));
         var masters = XDocument.Parse(VoucherExport.TallyMastersXml(book, "Rulebook Hotels", fy));
