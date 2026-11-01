@@ -10,8 +10,7 @@ try{
     external:['react','react-dom','lucide-react'],logLevel:'silent',jsx:'automatic',define:{'process.env.HCC_BUILD':'"prototype"','process.env.NODE_ENV':'"production"'},
     loader:{'.css':'empty'},banner:{js:"import {createRequire as __fcaReq} from 'node:module';const require=__fcaReq(import.meta.url);"}});
   F=await import('./.generated/fit-cash-a.mjs');
-}catch(e){buildError=String(e&&e.message).split('
-')[0];}
+}catch(e){buildError=String(e&&e.message).split(/\r?\n/)[0];}
 const {renderToStaticMarkup}=await import('react-dom/server');
 const React=(await import('react')).default;
 const h=React.createElement;
