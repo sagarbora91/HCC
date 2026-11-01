@@ -21,7 +21,7 @@ import type {State} from '../types';
 import {accSlice,accLockOf,type ACCLedger,type ACCManualLine,type ACCManualTemplate,type ACCManualVoucher,type ACCVoucher} from './accounting';
 import {accChartIndex,accChartSlice,accGroupOf,accLedger} from './accounting-chart';
 import {accIsControl,accIsParty,accControlOf,accPartyIdOf,accPartyLedgers,accPartySlug} from './accounting-parties';
-import {accCashGuard} from './accounting-guards'; // ACC-2 integration: contract §7 cash guard (replaces the lane's stub)
+import {accCashGuard,accLoanCashRefusal} from './accounting-guards'; // ACC-2 integration: contract §7 cash guard (replaces the lane's stub)
 
 // ── Constants ──
 export const ACC_MANUAL_TYPES=['Journal','Contra','Payment','Receipt'] as const;
@@ -124,6 +124,13 @@ export function accManualIsCashBank(s:State,account:string):boolean{
   for(let i=0;g&&i<32;i++){if(g.id==='cash'||g.id==='bank')return true;g=g.parent?accGroupOf(s,g.parent):undefined;}
   return false;
 }
+/** ACC-3 C8: true when the ledger of `account` sits in Cash-in-Hand (or a sub-group of it). */
+export function accManualIsCash(s:State,account:string):boolean{
+  const l=accLedger(s,account);if(!l)return false;
+  let g=accGroupOf(s,l.group);
+  for(let i=0;g&&i<32;i++){if(g.id==='cash')return true;g=g.parent?accGroupOf(s,g.parent):undefined;}
+  return false;
+}
 /** Party ledger ids that exist (contract §3 parties derived from the masters, plus the Owner's loan rows). */
 function partyIds(s:State):Set<string>{
   const out=new Set(accPartyLedgers(s).map(p=>p.id));
@@ -177,6 +184,7 @@ export function accManualProblems(s:State,x:ACCManualInput):string[]{
   if(type==='Contra'&&cb.some(v=>!v))out.push(M.contra);
   if(type==='Payment'&&(!ls.some((l,i)=>cb[i]&&l.credit>0)||ls.some((l,i)=>cb[i]&&l.debit>0)))out.push(M.payment);
   if(type==='Receipt'&&(!ls.some((l,i)=>cb[i]&&l.debit>0)||ls.some((l,i)=>cb[i]&&l.credit>0)))out.push(M.receipt);
+  const b11=accLoanCashRefusal(ls.map(l=>({account:l.account.trim(),cash:accManualIsCash(s,l.account.trim())})));if(b11)out.push(b11); // ACC-3 C8 (rulebook B11)
   return out;
 }
 /** Lines as stored from raw command input (trimmed accounts, numbers, optional note ≤ 120). Call after accManualProblems. */

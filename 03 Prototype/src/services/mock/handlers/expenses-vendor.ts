@@ -18,7 +18,7 @@ import {rbacIsAccountant} from '../../../domain/streams/rbac';
 import {accLockOf} from '../../../domain/streams/accounting';
 import {accCashEnforce,accCashNote} from '../../../domain/streams/accounting-guards'; // ACC-2 integration: the flows lane's cash guard (contract §7)
 import {expSlice,expDateCheck,expMonthLocked,expMonthLockedMessage,EXP_MAX_PAISE,type EXPState,type ExpVendorPayment} from '../../../domain/streams/expenses-scc';
-import {EXP_VENDOR_PAY_ROLES,expVendorAllocate,expVendorAllocationRefusal,expVendorOpenBills,expIsReturn,expReturned,expReturnMethod,expVendorName} from '../../../domain/streams/expenses-vendor';
+import {EXP_VENDOR_PAY_ROLES,expVendorAllocate,expVendorAllocationRefusal,expVendorOpenBills,expIsReturn,expReturned,expReturnMethod,expVendorName,expVendorReallocationRefusal,expVendorGstinWarning} from '../../../domain/streams/expenses-vendor';
 
 const txt=(v:unknown)=>typeof v==='string'?v.trim():'';
 const slice=(k:Kit):EXPState=>{const x={...expSlice(k.s)};k.s.expensesX=x;return x;};
@@ -56,7 +56,8 @@ export const handlers:Record<string,Handler>={
     const x=slice(k);x.vendorPayments=[...(x.vendorPayments??[]),p];
     return `${p.id} · ${v!.name} paid ${money(amount)} by ${pm!.name}${reference?' · '+reference:''}`
       +(allocations.length?` · against ${allocations.map(a=>`${a.expense} ${money(a.amount)}`).join(', ')}`:'')
-      +(advance>0?` · advance ${money(advance)}`:'')+(date!==s.date?` · dated ${date}`:'')+(cg?accCashNote(cg):'');
+      +(advance>0?` · advance ${money(advance)}`:'')+(date!==s.date?` · dated ${date}`:'')+(cg?accCashNote(cg):'')
+      +(expVendorGstinWarning(v)?' · '+expVendorGstinWarning(v):''); // ACC-3 C4: warning only
   },
   EXP_VENDOR_PAY_VOID:k=>{
     const {s,cmd,fail,assert,uid,user,open}=k;
@@ -68,6 +69,22 @@ export const handlers:Record<string,Handler>={
     if(mnyIsDrawer(s,p!.method))assert(s.shiftOpen,'Open cash shift required: the cash of a voided payment comes back into the drawer.','INVALID_TRANSITION');
     x.vendorPayments=x.vendorPayments!.map(v=>v.id===p!.id?{...v,void:true,voidReason:reason,voidBy:uid,voidAt:s.date}:v);
     return `${p!.id} · ${expVendorName(s,p!.vendor)} ${money(p!.amount)} void · ${reason} · `+(sameDay?'same day: nothing posts':`reversing voucher on ${s.date}`);
+  },
+  // ACC-3 C3 (contract §7, §9): EXP_VENDOR_PAY_REALLOCATE {payment, allocations[]} — Owner / Manager / Accountant (PERM-EXP-004). Replaces the
+  // payment's allocations (open bills of the vendor, the opening balance included; the rest stays an advance); the voucher does not change (it
+  // debits the vendor's party ledger either way) — only the bill-wise ageing follows. Each change is kept on the payment (`reallocations`).
+  EXP_VENDOR_PAY_REALLOCATE:k=>{
+    const {s,cmd,fail,uid}=k;payer(k,'re-allocates vendor payments');
+    const x=slice(k),p=(x.vendorPayments??[]).find(v=>v.id===txt(cmd.payment??cmd.id));if(!p)fail('NOT_FOUND','Vendor payment not found.');
+    if(p!.void)fail('INVALID_TRANSITION','This vendor payment is void.');
+    const why=expVendorReallocationRefusal(s,p!,cmd.allocations);if(why)fail('VALIDATION',why);
+    const allocations=(cmd.allocations as {expense:string;amount:number}[]).map(a=>({expense:txt(a.expense),amount:a.amount}));
+    const same=JSON.stringify(allocations)===JSON.stringify(p!.allocations);k.assert(!same,'The allocations are unchanged.','INVALID_TRANSITION');
+    const prev=p!.allocations,hist=[...(p!.reallocations??[]),{at:s.clock,by:uid,before:prev}];
+    x.vendorPayments=x.vendorPayments!.map(v=>v.id===p!.id?{...v,allocations,reallocations:hist}:v);
+    const allocated=allocations.reduce((a,b)=>a+b.amount,0);
+    return `${p!.id} · ${expVendorName(s,p!.vendor)} ${money(p!.amount)} re-allocated · was ${prev.map(a=>`${a.expense} ${money(a.amount)}`).join(', ')||'none'} · now ${allocations.map(a=>`${a.expense} ${money(a.amount)}`).join(', ')||'none'}`
+      +(p!.amount>allocated?` · advance ${money(p!.amount-allocated)}`:'');
   },
   EXP_VENDOR_RETURN:k=>{
     const {s,cmd,fail,assert,id,uid,user,open}=k;payer(k,'records vendor returns');open();

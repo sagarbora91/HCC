@@ -31,9 +31,10 @@ public sealed record UnlockAccountingMonthRequest(string? Month, string? Reason)
 public sealed record AccountingMonthLockResult(string Month, string Status, int DaysLocked, string? SetoffKey, bool ExpenseMonthLocked);
 
 /// <summary>SetGstOnAdvances (Owner, PERM-CFG-003 money settings): the firm profile's "GST on advances" switch (A6, DEC-142 default off).</summary>
-public sealed record SetGstOnAdvancesRequest(bool On);
+/// ACC-3 C10: From = the first advance date the switch applies to (default the business date); ignored when off.
+public sealed record SetGstOnAdvancesRequest(bool On, string? From = null);
 
-public sealed record GstOnAdvancesResult(bool On);
+public sealed record GstOnAdvancesResult(bool On, string? From = null);
 
 /// <summary>A posted set-off as stored (acc.gst_setoff).</summary>
 public sealed record GstSetoffView(string Month, DateOnly PostedOn, string SourceKey, GstHeadsView Output, GstHeadsView Credit, GstHeadsView CreditUsed, GstHeadsView Cash,
@@ -53,4 +54,5 @@ public sealed record GstMonthView(string Month, DateOnly From, DateOnly To, GstH
 public sealed record AccountingMonthLockView(string Month, DateTime LockedUtc, int LockedBy, string? SetoffKey, DateTime? UnlockedUtc, int? UnlockedBy, string? UnlockReason);
 
 /// <summary>GET /accounting/gst/locks: every month lock with its history, the open requests, the switch.</summary>
-public sealed record AccountingMonthLocksView(IReadOnlyList<AccountingMonthLockView> Locks, IReadOnlyList<string> Requested, IReadOnlyList<GstSetoffView> Setoffs, bool GstOnAdvances);
+public sealed record AccountingMonthLocksView(IReadOnlyList<AccountingMonthLockView> Locks, IReadOnlyList<string> Requested, IReadOnlyList<GstSetoffView> Setoffs, bool GstOnAdvances,
+    string? GstOnAdvancesFrom = null); // ACC-3 C10

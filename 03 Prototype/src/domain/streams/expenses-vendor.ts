@@ -61,7 +61,7 @@ export function expItcBlockRefusal(s:State,category:string,itc:unknown):string{
  *  sent or inter), `rcm` + `rcmBps` for a reverse-charge category (the typed rate 0–28 %, else the category default); an RCM bill carries no vendor GST; ITC refused on a blocked
  *  category. `itc` = the flag the caller resolved; an RCM category keeps 'allowed' / 'disallowed' without GST (its ITC is the RCM GST). */
 export function expPurchaseEntry(s:State,x:{category:string;vendor?:string;gstKind?:unknown;rcmBps?:unknown;gstPaise?:number;itc?:unknown}):
-  {error?:string;fields:Pick<Expense,'gstKind'|'rcm'|'rcmBps'>&{itc?:'allowed'|'disallowed'}}{
+  {error?:string;warning?:string;fields:Pick<Expense,'gstKind'|'rcm'|'rcmBps'>&{itc?:'allowed'|'disallowed'}}{
   const c=mnyCategory(s,x.category),fields:Pick<Expense,'gstKind'|'rcm'|'rcmBps'>&{itc?:'allowed'|'disallowed'}={};
   if(x.gstKind!==undefined&&x.gstKind!==null&&x.gstKind!==''&&x.gstKind!=='intra'&&x.gstKind!=='inter')return {error:'Choose the GST on the bill: intra-state (CGST + SGST) or inter-state (IGST).',fields};
   const kind=x.gstKind==='intra'||x.gstKind==='inter'?x.gstKind:expGstKindOf(s,x.vendor);
@@ -74,7 +74,8 @@ export function expPurchaseEntry(s:State,x:{category:string;vendor?:string;gstKi
     if(x.itc==='allowed'||x.itc==='disallowed')fields.itc=x.itc;
   }
   const why=expItcBlockRefusal(s,x.category,x.itc);if(why)return {error:why,fields};
-  return {fields};
+  const warning=txt(x.vendor)?expVendorGstinWarning(mnyVendor(s,txt(x.vendor))):''; // ACC-3 C4: a warning, never a refusal
+  return warning?{fields,warning}:{fields};
 }
 /** Fields stamped on a bill when it is approved (contract §3: "from the category flag at the time of posting"): rcm + rcmBps (the bill's own
  *  rate, else the category default), capital, TDS held back (tdsForBill, contract §5), the vendor's TDS section. Absent flags are
@@ -215,4 +216,37 @@ export function expReturned(s:State,expenseId:string):{amount:number;gst:number}
 export function expReturnMethod(s:State,e:Expense):string|undefined{
   if(mnyIsCredit(s,e.method))return mnyMethod(s,e.method)?.name??e.method;
   return mnyNames(s,'expenses').find(n=>mnyIsCredit(s,n));
+}
+
+// ── ACC-3 C3 (contract §7): re-allocating an existing vendor payment ──
+/** Why `allocations` cannot replace payment `p`'s allocations ('' = they can): each line an open bill of the vendor (counting what `p`
+ *  itself holds on it now as open), at most that, Σ ≤ the payment. The opening balance (`expense:'opening'`) counts as a bill (DEC-172). */
+export function expVendorReallocationRefusal(s:State,p:ExpVendorPayment,allocations:unknown):string{
+  if(p.void)return 'This vendor payment is void.';
+  if(!Array.isArray(allocations))return 'Allocations: a list of {expense, amount}.';
+  const mine=new Map<string,number>();for(const a of p.allocations)mine.set(a.expense,(mine.get(a.expense)??0)+a.amount);
+  const open=new Map(expVendorOpenBills(s,p.vendor,s.date,true).map(b=>[b.expense,b.open+(mine.get(b.expense)??0)]));
+  let total=0;const seen=new Set<string>();
+  for(const a of allocations as {expense?:unknown;amount?:unknown}[]){
+    const id=txt(a?.expense),amt=a?.amount;
+    if(!id||!open.has(id)||!(open.get(id)!>0))return `Bill ${id||'(none)'} is not an open bill of this vendor.`;
+    if(seen.has(id))return `Bill ${id} is allocated twice.`;seen.add(id);
+    if(!(Number.isSafeInteger(amt)&&(amt as number)>0))return `Enter a positive amount for bill ${id}.`;
+    if((amt as number)>open.get(id)!)return `Bill ${id} has only ${(open.get(id)!/100).toFixed(2)} open.`;
+    total+=amt as number;
+  }
+  return total>p.amount?'The allocations add up to more than the payment.':'';
+}
+
+// ── ACC-3 C4 (contract §7; DEC-136): the vendor's GST state against its GSTIN ──
+/** GST state codes (first two digits of a GSTIN) by the two-letter state code the vendor master keeps (common variants included). */
+export const EXP_GST_STATE_CODES:Record<string,string>={JK:'01',HP:'02',PB:'03',CH:'04',UK:'05',UT:'05',HR:'06',DL:'07',RJ:'08',UP:'09',BR:'10',SK:'11',AR:'12',NL:'13',
+  MN:'14',MZ:'15',TR:'16',ML:'17',AS:'18',WB:'19',JH:'20',OD:'21',OR:'21',CG:'22',CT:'22',MP:'23',GJ:'24',DD:'25',DN:'26',MH:'27',KA:'29',GA:'30',LD:'31',KL:'32',
+  TN:'33',PY:'34',AN:'35',TS:'36',TG:'36',AP:'37',LA:'38'};
+/** Warning text when the GSTIN's first two digits are not the vendor's state code ('' = consistent or nothing to compare). DEC-136: HCC bills
+ *  CGST + SGST only, so a mismatch is a warning — never a refusal. An empty state means the hotel's own state (MH). */
+export function expVendorGstinWarning(v:{name?:string;gstin?:string;state?:string}|undefined):string{
+  const g=String(v?.gstin??'').trim().toUpperCase();if(g.length<2||!/^\d{2}/.test(g))return '';
+  const st=String(v?.state??'').trim().toUpperCase()||EXP_HOME_STATE,code=EXP_GST_STATE_CODES[st];if(!code)return '';
+  return g.slice(0,2)===code?'':`GSTIN ${g} of ${v?.name??'the vendor'} starts ${g.slice(0,2)}, but its GST state is ${st} (${code}) — check the vendor master (DEC-136: CGST + SGST are billed either way).`;
 }

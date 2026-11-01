@@ -25,7 +25,20 @@ public sealed record VendorPaymentView(long PaymentId, string VendorCode, string
 
 public sealed record VendorPaymentList(IReadOnlyList<VendorPaymentView> Items);
 
-public sealed record VendorPaymentResult(VendorPaymentView Payment, long AdvancePaise);
+/// <summary>ACC-3 C4: <c>Warning</c> = the vendor's GSTIN does not start with its state code (DEC-136: a warning, never a refusal).</summary>
+public sealed record VendorPaymentResult(VendorPaymentView Payment, long AdvancePaise, string? Warning = null);
+
+/// <summary>ACC-3 C3 ReallocateVendorPayment K (PERM-EXP-004 Owner / Manager / Accountant): the payment's new allocation list (open bills of the
+/// vendor, its own current allocations counted as open; the opening balance with <c>Opening</c>); the rest stays an advance. Audit row in
+/// ops.vendor_payment_realloc (migration 4271); the voucher does not change.</summary>
+public sealed record ReallocateVendorPaymentRequest(long PaymentId, IReadOnlyList<VendorAllocationDto> Allocations);
+
+/// <summary>ACC-3 C1 SetAssetPutToUse K (PERM-ACC-010 Owner / Accountant): the date the asset was first used (default the business date).</summary>
+public sealed record SetAssetPutToUseRequest(long AssetId, string? Date = null);
+
+/// <summary>ACC-3 C1 DisposeFixedAsset K (PERM-ACC-010 Owner / Accountant; rulebook F4): sale value (0 = scrapped, nothing received), the
+/// tender it came in by (needed when the value is above 0), date (default the business date), reason.</summary>
+public sealed record DisposeFixedAssetRequest(long AssetId, long ProceedsPaise, string? Method = null, string? Date = null, string? Reason = null);
 
 /// <summary>An open item of a vendor: a bill, or the opening balance (<c>Opening</c>, ExpenseId 0, dated the opening entry's asOf).</summary>
 public sealed record VendorOpenBillView(long ExpenseId, string BusinessDate, string Category, string? Description, long PayablePaise, long ReturnedPaise, long AllocatedPaise,
@@ -37,7 +50,12 @@ public sealed record VendorAgeingRow(string VendorCode, string Vendor, long Open
 
 public sealed record VendorAgeingView(string AsOf, IReadOnlyList<VendorAgeingRow> Rows);
 
+/// <summary>A register row. ACC-3: <c>CostPaise</c> is net of the posted returns against the purchase (C2; <c>OriginalCostPaise</c> − <c>ReturnedPaise</c>);
+/// <c>DisposalMethod</c> / <c>DisposalFlag</c> (rulebook F4 "short-term capital gain / loss — CA") come with a disposal (C1).</summary>
 public sealed record FixedAssetView(long AssetId, string AssetNo, string Ledger, string Name, long CostPaise, long ItcPaise, string PurchaseDate, string Vendor, long ExpenseId,
-    string? PutToUse, string? DisposedDate, long? DisposedAmountPaise, string? DisposedVoucher);
+    string? PutToUse, string? DisposedDate, long? DisposedAmountPaise, string? DisposedVoucher, long? OriginalCostPaise = null, long ReturnedPaise = 0, string? DisposalMethod = null,
+    string? DisposalFlag = null);
+
+public sealed record FixedAssetResult(FixedAssetView Asset, string? ManualVoucherId, string? Flag);
 
 public sealed record FixedAssetList(IReadOnlyList<FixedAssetView> Items);

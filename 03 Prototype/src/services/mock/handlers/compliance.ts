@@ -99,7 +99,7 @@ export const handlers:Record<string,Handler>={
     x.profile={name,pan:limit(k,txt(c.pan).toUpperCase(),CMP_LIMITS.pan,'PAN'),gstin:limit(k,txt(c.gstin).toUpperCase(),CMP_LIMITS.gstin,'GSTIN'),
       entity:entity as never,gstType:gstType as never,hasEmployees:c.hasEmployees!==false&&c.hasEmployees!=='no',
       qrmp:(gstType==='regular'||gstType==='both')&&c.qrmp===true,notes:limit(k,txt(c.notes),CMP_LIMITS.notes,'Notes'),
-      ...(fssaiNo?{fssaiNo}:{}),...(fssaiExpiry?{fssaiExpiry}:{}),...(lodgingNo?{lodgingNo}:{}),...(lodgingExpiry?{lodgingExpiry}:{}),...sw,updatedBy:k.uid,updatedAt:k.s.clock} satisfies CMPProfile;
+      ...(fssaiNo?{fssaiNo}:{}),...(fssaiExpiry?{fssaiExpiry}:{}),...(lodgingNo?{lodgingNo}:{}),...(lodgingExpiry?{lodgingExpiry}:{}),...sw,...(sw.gstOnAdvances&&prev?.gstOnAdvances&&prev.gstOnAdvancesFrom?{gstOnAdvancesFrom:prev.gstOnAdvancesFrom}:{}),updatedBy:k.uid,updatedAt:k.s.clock} satisfies CMPProfile;
     const p=x.profile;
     return `Compliance firm profile · ${p.name} · ${cmpTypeLabel(p.gstType)}${p.qrmp?' · QRMP':''}${p.hasEmployees?'':' · no employees'}${cmpLicenceAudit(p)}`;},
 

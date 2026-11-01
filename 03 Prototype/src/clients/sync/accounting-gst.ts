@@ -6,7 +6,7 @@
 //             ACC_STAT_REMIT {kind, month, amount, method, challan, date} → RecordStatutoryRemittance {kind, month, amountPaise, method, challan, date}
 //             ACC_MONTH_LOCK {month} / ACC_MONTH_LOCK_REQUEST {month} → LockAccountingMonth / RequestAccountingMonthLock {month}
 //             ACC_MONTH_UNLOCK {month, reason}                       → UnlockAccountingMonth {month, reason}
-//             ACC_GST_ADVANCES_SET {on}                              → SetGstOnAdvances {on}
+//             ACC_GST_ADVANCES_SET {on, from?}                       → SetGstOnAdvances {on, from} (ACC-3 C10)
 //             each reloads accountingX (the server's day evaluation then carries the set-off journal and the day locks) and the remittance
 //             also complianceX (the card it marks filed) and expensesX (the expense month lock).
 //   loader    accountingGstLoader (patch on accountingX ← GET /accounting/gst/locks, PERM-ACC-001) fills monthLocks and gstSetoffs; registered
@@ -70,6 +70,6 @@ export const accountingGst:SyncArea={
     {type:'ACC_MONTH_UNLOCK',reload:['accountingX','expensesX'],precheck:cmd=>month(cmd)??(txt(cmd.reason).length>=3?undefined:'A reason is required to unlock a month.'),
       async send(c){await c.api.command('UnlockAccountingMonth',{month:txt(c.cmd.month),reason:txt(c.cmd.reason)});}},
     {type:'ACC_GST_ADVANCES_SET',reload:['complianceX','accountingX'],
-      async send(c){await c.api.command('SetGstOnAdvances',{on:c.cmd.on===true});}},
+      async send(c){await c.api.command('SetGstOnAdvances',{on:c.cmd.on===true,from:typeof c.cmd.from==='string'&&c.cmd.from?c.cmd.from:null});}}, // ACC-3 C10: dated switch
   ],
 };
