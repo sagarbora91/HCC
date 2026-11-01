@@ -59,7 +59,7 @@ public static partial class BuiltinSettings
             new("brand.legalName", "Legal name (Tally company)", SettingType.Text)
             {
                 MaxLength = 100, AllowEmpty = true, Default = T(string.Empty), Approver = SettingApprover.Owner, Unit = "text, ≤ 100 chars, optional",
-                Help = "The firm's registered name, exactly as the company is named in Tally. Empty = the property display name.",
+                Help = "The registered name of the firm, exactly as the company is named in Tally. Empty = the property display name.",
                 Affects = "Tally masters and vouchers files exported after the change.",
             },
             new("brand.invoiceHeader", "Invoice header line", SettingType.Text) { MaxLength = 80, AllowEmpty = true, Default = T(string.Empty), Unit = "text, ≤ 80 chars", Help = "Second line of the invoice header." },

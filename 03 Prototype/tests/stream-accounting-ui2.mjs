@@ -277,7 +277,7 @@ export function render(name:string,props:any,s:any,uid:string,mobile=false,extra
   test('[ACC2-UI] firm profile: the three accounting switches, Owner only (the Accountant sees them disabled)',()=>{
     const s=M.seed();
     const o=render('CmpProfileModal',{},s,'owner'),t=text(o);
-    for(const x of ['Accounting switches','Owner only','Charge GST on booking advances','The hotel deducts TDS from vendor bills','Deductor type'])assert.match(t,new RegExp(x),x);
+    for(const x of ['Accounting switches','Owner only','GST on booking advances','dated switch in Accounting','The hotel deducts TDS from vendor bills','Deductor type'])assert.match(t,new RegExp(x),x);
     assert.doesNotMatch(o.match(/<fieldset[^>]*cmp-money-switches[^>]*>/)[0],/disabled/);
     const a=render('CmpProfileModal',{},s,'accountant');assert.match(a.match(/<fieldset[^>]*cmp-money-switches[^>]*>/)[0],/disabled/);assert.match(text(a),/Only the Owner changes these switches/);
     assert.match(o,/<input type="checkbox" checked=""[^>]*\/>The hotel deducts TDS/,'DEC-146 default: the hotel deducts TDS');

@@ -52,6 +52,7 @@ export * from '../../domain/streams/accounting-payroll'; // acc2-parity (contrac
 export * from '../../domain/streams/accounting-pl'; // acc3-pl (contract §2)
 export * from '../../domain/streams/accounting-ageing'; export * from '../../domain/streams/accounting-gst-summary'; // acc3-ageing (contract §3)
 export * from '../../domain/streams/accounting-tally'; // ACC-3 acc3-tally (contract §4)
+export * from '../../domain/streams/accounting-exports'; // ACC-3 acc3-exports (contract §5)
 // ACC-3 end
 export * from '../../domain/streams/assistant';
 export * from '../../domain/streams/compliance';

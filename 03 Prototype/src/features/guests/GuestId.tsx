@@ -42,9 +42,16 @@ export function GuestPartyIdValue({g,seq}:{g:Guest;seq:number}){
   const v=guestPartyView(a,p);
   if(!a.idDetails)return <>Restricted</>;
   if(!p.idLast4)return v.idRequired?<span className="pill red">ID missing</span>:<small className="muted">No ID (not needed)</small>;
-  const full=shown&&process.env.HCC_BUILD!=='production'?guestRevealPartyId(s,uid,g,seq):undefined;
+  if(process.env.HCC_BUILD==='production')return <PartyIdServer g={g} seq={seq} uid={uid} idType={p.idType} last4={p.idLast4}/>;
+  const full=shown?guestRevealPartyId(s,uid,g,seq):undefined;
   return <><span className="gs-idval">{p.idType||'ID'} · {full?guestIdFormat(p.idType,full):guestIdMask(p.idLast4)}</span>
     {v.idOnFile&&process.env.HCC_BUILD!=='production'?<button type="button" className="text-btn gs-idshow" style={{minHeight:48}} disabled={busy} aria-pressed={shown}
         onClick={()=>{if(shown){setShown(false);return;}void run({type:'GUEST_ID_VIEW',id:g.id,seq,key:'idview:'+g.id+':'+seq+':'+Date.now()},'ID shown — this view is logged').then(ok=>{if(ok)setShown(true);});}}>
       {shown?<><EyeOff size={13}/> Hide ID</>:<><Eye size={13}/> Show ID</>}</button>:null}</>;
+}
+
+/** Production: the member's masked ID and the server Show ID (RevealGuestId {guestId, partySeq}, PERM-GST-003, audited with the seq). */
+function PartyIdServer({g,seq,uid,idType,last4}:{g:Guest;seq:number;uid:string;idType?:string;last4:string}){
+  const can=useCanRevealGuestId();
+  return <><span className="gs-idval">{idType||'ID'} · {guestIdMask(last4)}</span>{can?<GuestIdRevealButton guestId={g.id} uid={uid} partySeq={seq}/>:null}</>;
 }

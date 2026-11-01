@@ -184,7 +184,7 @@ export function accManualProblems(s:State,x:ACCManualInput):string[]{
   if(type==='Contra'&&cb.some(v=>!v))out.push(M.contra);
   if(type==='Payment'&&(!ls.some((l,i)=>cb[i]&&l.credit>0)||ls.some((l,i)=>cb[i]&&l.debit>0)))out.push(M.payment);
   if(type==='Receipt'&&(!ls.some((l,i)=>cb[i]&&l.debit>0)||ls.some((l,i)=>cb[i]&&l.credit>0)))out.push(M.receipt);
-  const b11=accLoanCashRefusal(ls.map(l=>({account:l.account.trim(),cash:accManualIsCash(s,l.account.trim())})));if(b11)out.push(b11); // ACC-3 C8 (rulebook B11)
+  const b11=accLoanCashRefusal(ls.map(l=>({account:l.account.trim(),cash:accManualIsCash(s,l.account.trim()),amount:(Number(l.debit)||0)+(Number(l.credit)||0)})));if(b11)out.push(b11); // ACC-3 C8 (rulebook B11)
   return out;
 }
 /** Lines as stored from raw command input (trimmed accounts, numbers, optional note ≤ 120). Call after accManualProblems. */

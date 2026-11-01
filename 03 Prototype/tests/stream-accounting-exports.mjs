@@ -11,9 +11,9 @@ const PL={from:'2026-04-01',to:'2026-04-30',provisional:true,
   expenses:{consumption:{name:'Consumption',lines:[],total:0},employee:{name:'Employee cost',lines:[{code:'5100',name:'Salaries',paise:1000000,group:'Indirect Expenses'}],total:1000000},finance:{name:'Finance',lines:[],total:0},depreciation:{name:'Depreciation',lines:[],total:0},other:{name:'Other',lines:[],total:0},total:1000000},
   profitBeforeTax:28900000,byTallyGroup:[{group:'SA',name:'Sales Accounts',paise:29900000}]};
 const AGE={asOf:'2026-04-30',side:'receivable',rows:[{account:'1110/CMP-A',party:'CMP-A',name:'Deccan Agro',control:'1110',bills:[{ref:'SAL/1',date:'2026-04-10',due:'2026-04-25',amount:7080000,paid:0,open:7080000,days:20}],open:7080000,b0_30:7080000,b31_60:0,b61_90:0,b90:0}],totals:{open:7080000,b0_30:7080000,b31_60:0,b61_90:0,b90:0}};
-const GST={month:'2026-04',output:{rate5:100,rate18:200,b2b:1,b2cs:2,advances11A:3,advances11B:4,creditNotes:5},itc:{cgst:1,sgst:1,igst:0},rcm:0,setoff:{cgst:10},cashPaid:2890000,tcsCredit:0,cashLedgerBalance:0,ties:{gstr1:true,gstr3b:true,differences:[]}};
+const GST={month:'2026-04',output:{rate5:100,rate18:200,b2b:1,b2cs:2,advances11A:3,advances11B:4,creditNotes:5},itc:{cgst:1,sgst:1,igst:0},rcm:0,setoff:{output:{igst:0,cgst:15,sgst:15},credit:{igst:0,cgst:5,sgst:5},cashAvailable:0,use:{igst:{igst:0,cgst:0,sgst:0},cgst:{igst:0,cgst:5,sgst:0},sgst:{igst:0,cgst:0,sgst:5}},cash:{igst:0,cgst:10,sgst:10},creditLeft:{igst:0,cgst:0,sgst:0},payable:20,challan:20},cashPaid:2890000,tcsCredit:0,cashLedgerBalance:0,ties:{gstr1:true,gstr3b:true,differences:[]}};
 const BS={asOf:'2026-04-30',provisional:false,liabilities:{ownersFunds:{name:"Owner's funds",lines:[{code:'3100',name:'Capital',paise:100,}],total:100},nonCurrent:{name:'Non-current',lines:[],total:0},current:{name:'Current',lines:[],total:0},total:100},assets:{nonCurrent:{name:'Fixed assets',lines:[],total:0},current:{name:'Current assets',lines:[{code:'1000',name:'Cash',paise:100}],total:100},total:100},balanced:true,suspense:0,openingDifference:0};
-const CR={fy:'2026-27',cashReceipts:10,totalReceipts:1000,cashPayments:20,totalPayments:100,receiptsPct:0.01,paymentsPct:0.2,flagged:true};
+const CR={fy:'2026-27',cashReceipts:10,totalReceipts:1000,cashPayments:20,totalPayments:100,receiptsPct:100,paymentsPct:2000 /* basis points, as accCashRatio (integration) */,flagged:true};
 /** Sheet XML parts of an xlsx, via the stored-zip reader. */
 const parts=b=>Object.fromEntries(X.unzipStored(b).map(e=>[e.name,dec.decode(e.data)]));
 export function register({test,M,assert}){
@@ -48,7 +48,7 @@ export function register({test,M,assert}){
     assert.match(parts(X.accBalanceSheetXlsx('HCC',BS).bytes)['xl/workbook.xml'],/Balance sheet/);
     assert.match(parts(X.accCashRatioXlsx('HCC',CR).bytes)['xl/worksheets/sheet1.xml'],/FLAGGED/);
     const a=parts(X.accAgeingXlsx('HCC',AGE).bytes);assert.match(a['xl/workbook.xml'],/Outstanding/);assert.match(a['xl/workbook.xml'],/Bills/);assert.match(a['xl/worksheets/sheet2.xml'],/SAL\/1/);
-    assert.match(parts(X.accGstSummaryXlsx('HCC',GST).bytes)['xl/worksheets/sheet1.xml'],/Set-off · cgst/);
+    assert.match(parts(X.accGstSummaryXlsx('HCC',GST).bytes)['xl/worksheets/sheet1.xml'],/Set-off · payable in cash/);
     assert.match(parts(X.accBalanceSheetXlsx('HCC',BS).bytes)['xl/worksheets/sheet1.xml'],/not the statutory statement/);
   });
   test('[ACC3-EXPORTS] CSV: same rows as the sheet, CRLF, money with two decimals, formula-looking text neutralised',()=>{

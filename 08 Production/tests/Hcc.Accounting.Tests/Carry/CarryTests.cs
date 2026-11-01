@@ -75,9 +75,10 @@ public sealed class CarryRuleTests
     [Fact]
     public void C8_B11_a_cash_line_with_a_loan_ledger_is_refused_bank_passes()
     {
-        Assert.Equal(CashGuard.LoanCashMessage, CashGuard.LoanCashRefusal([("2400/LN-HDFC", false), ("1000/DESK", true)]));
-        Assert.Null(CashGuard.LoanCashRefusal([("2400/LN-HDFC", false), ("1030/HDFC", false)]));
-        Assert.Null(CashGuard.LoanCashRefusal([("5000", false), ("1000/DESK", true)]));
+        Assert.Equal(CashGuard.LoanCashMessage, CashGuard.LoanCashRefusal([("2400/LN-HDFC", false, 2_000_000L), ("1000/DESK", true, 2_000_000L)]));
+        Assert.Null(CashGuard.LoanCashRefusal([("2400/LN-HDFC", false, 1_999_900L), ("1000/DESK", true, 1_999_900L)])); // below ₹20,000: rulebook B11 (ACC3-R5)
+        Assert.Null(CashGuard.LoanCashRefusal([("2400/LN-HDFC", false, 5_000_000L), ("1030/HDFC", false, 5_000_000L)]));
+        Assert.Null(CashGuard.LoanCashRefusal([("5000", false, 5_000_000L), ("1000/DESK", true, 5_000_000L)]));
         Assert.Contains("rulebook B11", CashGuard.LoanCashMessage, StringComparison.Ordinal);
     }
 

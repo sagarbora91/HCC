@@ -155,9 +155,10 @@ export function register({test,M,assert}){
 
   // ── C8 rulebook B11 ──
   test(T+'C8 B11: a loan is received / repaid only through a bank — a cash leg on 2400 is refused; bank passes',()=>{
-    assert.match(M.accLoanCashRefusal([{account:'2400/LN-X',cash:false},{account:'1000/DESK',cash:true}]),/B11/);
-    assert.equal(M.accLoanCashRefusal([{account:'2400/LN-X',cash:false},{account:'1030/B',cash:false}]),'');
-    assert.equal(M.accLoanCashRefusal([{account:'5000',cash:false},{account:'1000/DESK',cash:true}]),'');
+    assert.match(M.accLoanCashRefusal([{account:'2400/LN-X',cash:false,amount:2000000},{account:'1000/DESK',cash:true,amount:2000000}]),/B11/);
+    assert.equal(M.accLoanCashRefusal([{account:'2400/LN-X',cash:false,amount:1999900},{account:'1000/DESK',cash:true,amount:1999900}]),'','below ₹20,000 cash passes (rulebook B11, ACC3-R5)');
+    assert.equal(M.accLoanCashRefusal([{account:'2400/LN-X',cash:false,amount:5000000},{account:'1030/B',cash:false,amount:5000000}]),'');
+    assert.equal(M.accLoanCashRefusal([{account:'5000',cash:false,amount:5000000},{account:'1000/DESK',cash:true,amount:5000000}]),'');
     let s=execute(seed(),'owner',{type:'ACC_LOAN_ADD',code:'LN-HDFC',name:'HDFC term loan',lender:'HDFC Bank (fictional)',kind:'secured'});
     const loan=M.accLoans(s).find(l=>l.code.endsWith('LN-HDFC')).code;
     const cash=M.accPartyLedgers(s).find(p=>p.id.startsWith('1000/')).id,bank=M.accPartyLedgers(s).find(p=>p.id.startsWith('1030/')).id;

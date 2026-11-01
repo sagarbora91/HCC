@@ -38,6 +38,8 @@ public static class AccountingExportEndpoints
         sp.GetService<ILedgerMonthBalanceStore>() ?? new Hcc.Infrastructure.SqlServer.Accounting.SqlLedgerMonthBalanceStore(sp.GetRequiredService<Hcc.Infrastructure.SqlServer.SqlPlatform>().Connections),
         sp.GetService<TimeProvider>());
 
+    private const string CsvGap = "\r\n\r\n";
+
     public static RouteGroupBuilder MapAccountingExportEndpoints(this RouteGroupBuilder api)
     {
         ArgumentNullException.ThrowIfNull(api);
@@ -101,9 +103,7 @@ public static class AccountingExportEndpoints
             var name = StatementExports.FileName(prop, report, a, b, fmt);
             return fmt == "xlsx"
                 ? Results.File(StatementExports.Xlsx(tables), OpenXmlExporter.Mime, name)
-                : Results.File(System.Text.Encoding.UTF8.GetBytes(string.Join("
-
-", tables.Select(StatementExports.Csv))), "text/csv", name);
+                : Results.File(System.Text.Encoding.UTF8.GetBytes(string.Join(CsvGap, tables.Select(StatementExports.Csv))), "text/csv", name);
         });
         return api;
     }

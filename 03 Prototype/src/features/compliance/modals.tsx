@@ -40,14 +40,14 @@ export function CmpProfileModal(){
   const [type,setType]=useState<string>(f?.gstType??'regular'),[emp,setEmp]=useState(f?.hasEmployees===false?'no':'yes'),[qrmp,setQrmp]=useState(f?.qrmp===true),[notes,setNotes]=useState(f?.notes??'');
   const [fssaiNo,setFssaiNo]=useState(f?.fssaiNo??''),[fssaiExpiry,setFssaiExpiry]=useState(f?.fssaiExpiry??''),[lodgingNo,setLodgingNo]=useState(f?.lodgingNo??''),[lodgingExpiry,setLodgingExpiry]=useState(f?.lodgingExpiry??'');
   // ACC-2 (contract §4, §5): three money switches of the firm profile — Owner only (DEC-058), shown to the Accountant read-only.
-  const [gstAdv,setGstAdv]=useState(f?.gstOnAdvances===true),[deducts,setDeducts]=useState(f?.hotelDeductsTds!==false),[deductor,setDeductor]=useState<'individual'|'other'>(f?.tdsDeductorType==='other'?'other':'individual');
+  const gstAdv=f?.gstOnAdvances===true;const [deducts,setDeducts]=useState(f?.hotelDeductsTds!==false),[deductor,setDeductor]=useState<'individual'|'other'>(f?.tdsDeductorType==='other'?'other':'individual');
   const qrmpShown=type==='regular'||type==='both';
   /** DEC-133: where the renewal card will sit (the FY page of the expiry month). */
   const where=(kind:'fssai'|'lodging',expiry:string)=>{const l=cmpLicenceCard({profile:{...(f??{name,pan,gstin,entity:'proprietorship',gstType:'regular',hasEmployees:true,qrmp:false,notes:''}),
     fssaiExpiry:kind==='fssai'?expiry:'',lodgingExpiry:kind==='lodging'?expiry:''}},kind);
     return <small className="cmp-lic-note">{l?`Renewal card: ${l.month} page of ${cmpFyLabel(l.fy)}, due ${dateLabel(l.expiry)} (risk High).`:'No expiry date — no renewal card.'}</small>;};
   return <form className="form cmp-profile" onSubmit={e=>{e.preventDefault();void run({type:'CMP_PROFILE_SET',name,pan,gstin,entity,gstType:type,hasEmployees:emp!=='no',qrmp,notes,
-      fssaiNo,fssaiExpiry,lodgingNo,lodgingExpiry,...(owner?{gstOnAdvances:gstAdv,hotelDeductsTds:deducts,tdsDeductorType:deductor}:{}),key:cmpActionKey(s,'profile')},'Firm profile saved',{close:true});}}>
+      fssaiNo,fssaiExpiry,lodgingNo,lodgingExpiry,...(owner?{hotelDeductsTds:deducts,tdsDeductorType:deductor}:{}),key:cmpActionKey(s,'profile')},'Firm profile saved',{close:true});}}>
     <div className="modal-heading"><h2>Firm profile</h2><p>The hotel is one firm: one profile for this property{owner?'':' — only the Owner changes it'}. The GST type and “has employees” decide which SCC cards apply.</p></div>
     <fieldset disabled={!owner} className="cmp-fieldset">
       <label>Firm name<input required maxLength={120} value={name} onChange={e=>setName(e.target.value)}/></label>
@@ -65,7 +65,7 @@ export function CmpProfileModal(){
         <label>Lodging licence expiry<input type="date" value={lodgingExpiry} onChange={e=>setLodgingExpiry(e.target.value)}/>{where('lodging',lodgingExpiry)}</label></div>
       <p className="cmp-meta">After a renewal, enter the new expiry date: the card moves to that month and financial year. Lead time and penalties: CA to confirm.</p></fieldset>
     <fieldset disabled={!owner} className="cmp-fieldset cmp-money-switches" aria-label="Accounting switches (Owner only)"><legend>Accounting switches <span className="pill orange">Owner only</span></legend>
-      <label className="cmp-check"><input type="checkbox" checked={gstAdv} onChange={e=>setGstAdv(e.target.checked)}/>Charge GST on booking advances (DEC-142) — off: GST is booked when the stay is billed; on: the advance carries GST that is reversed when the deposit is applied or refunded</label>
+      <p className="muted">GST on booking advances (DEC-142): {gstAdv?`on${f?.gstOnAdvancesFrom?` from ${f.gstOnAdvancesFrom}`:""}`:"off"}. Change it with the dated switch in Accounting › GST month ("GST on advances", Owner).</p>
       <label className="cmp-check"><input type="checkbox" checked={deducts} onChange={e=>setDeducts(e.target.checked)}/>The hotel deducts TDS from vendor bills (DEC-146) — on: vendors with TDS are paid net and the hotel deposits the TDS; off: no TDS is held back</label>
       <label>Deductor type (picks the TDS rate column)<select value={deductor} disabled={!deducts} onChange={e=>setDeductor(e.target.value==='other'?'other':'individual')}><option value="individual">Individual / HUF (proprietorship)</option><option value="other">Other than individual / HUF (firm, company)</option></select></label>
       {!owner&&<p className="cmp-meta">Only the Owner changes these switches.</p>}

@@ -1,18 +1,16 @@
 // ACC-3 · acc3-ui — the report selectors and export builders the report tabs (reports3.tsx) use. At integration the stubs were removed: the
 // selectors are the report lanes' real ones (acc3-pl accounting-pl.ts, acc3-ageing accounting-ageing.ts / accounting-gst-summary.ts, acc3-tally
 // accounting-tally.ts) and the files are built by acc3-exports' accounting-exports.ts. No accounting rule lives here; money = integer paise.
-import {accPl,accBalanceSheet,accCashRatio,accAgeing,accGstSummary,accTallyMasters as accTallyMastersFy,accTallyVouchers,type State} from '../../services/mock';
-import {accExportName,accExportProperty,accPlTables,accBalanceSheetTable,accCashRatioTable,accAgeingTables,accGstSummaryTable,accTablesCsv,accTablesXlsx,type ExTable}
-  from '../../domain/streams/accounting-exports';
-import {cfgValueOn} from '../../domain/streams/config';
+import {accPl,accBalanceSheet,accCashRatio,accAgeing,accGstSummary,accTallyMasters as accTallyMastersFy,accTallyVouchers,accExportName,accExportProperty,accPlTables,accBalanceSheetTable,accCashRatioTable,accAgeingTables,accGstSummaryTable,accTablesCsv,accTablesXlsx,type ExTable,type State} from '../../services/mock';
+import {cfgValueOn} from '../../services/mock';
 import {XLSX_MIME} from '../../app/xlsx';
 import {zipFiles} from '../../app/zip';
 
 export {accPl,accBalanceSheet,accCashRatio,accAgeing,accGstSummary,accTallyVouchers};
-export type {ACCPl,ACCPlLine,ACCPlGroup,ACCBsBlock,ACCBalanceSheet,ACCCashRatio} from '../../domain/streams/accounting-pl';
-export type {ACCAgeing,ACCAgeingRow,ACCAgeingBill} from '../../domain/streams/accounting-ageing';
-export type {ACCGstSummary} from '../../domain/streams/accounting-gst-summary';
-export type {TallyMastersResult,TallyVouchersResult} from '../../domain/streams/accounting-tally';
+export type {ACCPl,ACCPlLine,ACCPlGroup,ACCBsBlock,ACCBalanceSheet,ACCCashRatio} from '../../services/mock';
+export type {ACCAgeing,ACCAgeingRow,ACCAgeingBill} from '../../services/mock';
+export type {ACCGstSummary} from '../../services/mock';
+export type {TallyMastersResult,TallyVouchersResult} from '../../services/mock';
 
 /** The UI passes the FY start date (`2026-04-01`); the Tally selector takes `2026` / `2026-27`. */
 export const accTallyMasters=(s:State,fyStart:string,company?:string)=>accTallyMastersFy(s,fyStart.slice(0,4),company);
