@@ -27,7 +27,8 @@
     {"version": 2890, "file": "2890_payment_method_records.sql", "reason": "masters wave MA-8…MA-11 (2880, 2890, 2891) landed on main in parallel with Wave D; no released database has 4000+ yet"},
     {"version": 2891, "file": "2891_number_series_rst.sql", "reason": "masters wave MA-8…MA-11 (2880, 2890, 2891) landed on main in parallel with Wave D; no released database has 4000+ yet"},
     {"version": 4255, "file": "4255_hr_advance_funding.sql", "reason": "ACC-2 integration: rulings 5, 9, 10 (hr.advance funding, vendor payee_type, category transport); 4257/4258 unapplied on main, wave lands as one"},
-    {"version": 4256, "file": "4256_mst_payee_type_transport.sql", "reason": "ACC-2 integration: rulings 5, 9, 10 (hr.advance funding, vendor payee_type, category transport); 4257/4258 unapplied on main, wave lands as one"}
+    {"version": 4256, "file": "4256_mst_payee_type_transport.sql", "reason": "ACC-2 integration: rulings 5, 9, 10 (hr.advance funding, vendor payee_type, category transport); 4257/4258 unapplied on main, wave lands as one"},
+    {"version": 4266, "file": "4266_acc_tally_file_log.sql", "reason": "ACC-3 contract section 10 reserves 4266 for the tally lane; main's lock reached 4605 through W1a LG, ACC-2 block 4230-4259 precedent"}
   ],
   "migrations": [
     {"version": 1, "file": "0001_platform.sql", "sha256": "2CB8FB349156F501295E1148366BDFE406EC097C136093F09C6F0817542F46CC"},
@@ -156,6 +157,7 @@
     {"version": 4259, "file": "4259_acc_ledger_1210_control.sql", "sha256": "61FDCF5501D5676A93D8F088A92707D32FC8BC20A2AA36B3B293D0DA7DC450B1"},
     {"version": 4600, "file": "4600_legacy_history.sql", "sha256": "CDB157492BFDC3CAFFAB872EBB29B2A04A9B336AD706ADFAD3DF8DCD93090FBC"},
     {"version": 4601, "file": "4601_legacy_rbac_seed.sql", "sha256": "AD6966974368740CBC557EB060607F24F502C1E744D02BA99BF0F6CBED6D3D70"},
-    {"version": 4605, "file": "4605_legacy_capture_kind.sql", "sha256": "769BF850E3EF595442C6A5767C85FA2AB655914DF24DD49C5A2037155FC79800"}
+    {"version": 4605, "file": "4605_legacy_capture_kind.sql", "sha256": "769BF850E3EF595442C6A5767C85FA2AB655914DF24DD49C5A2037155FC79800"},
+    {"version": 4266, "file": "4266_acc_tally_file_log.sql", "sha256": "6C4479AB767B8FB20D44A654E9CF95E794C26179BE5B865D97D6F0214CE9085C"}
   ]
 }

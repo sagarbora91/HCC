@@ -17,6 +17,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Golden\*.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="Golden\*.xml" CopyToOutputDirectory="PreserveNewest" /> <!-- ACC-3 acc3-tally: Tally golden files -->
     <None Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
     <Using Include="Xunit" />
   </ItemGroup>
