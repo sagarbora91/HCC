@@ -5,7 +5,8 @@ import {saveTextFile,saveAndReport} from '../../app/native';
 import {useHcc} from '../../app/context';
 import {money,accDates,accVouchers,accExceptions,accReconcile,accMapRows,accLockOf,accDayStatus,accTotals,accLockBlocker,accLedgerName,accTallyXml,TALLY_MAX_DAYS,addDays,
   rbacCanTally,rbacSeesBooks} from '../../services/mock';
-import {PageTitle,Empty,Stat,shortDate,clockTime} from '../../components/ui';
+import {Empty,shortDate,clockTime} from '../../components/ui';
+import {FitPage,FitTabs,useFitTab,ScrollPanel,StatStrip,FitNote} from '../../components/fit';
 import {AccStatusPill,AccSeverity,AccLockButton,AccExportButton,accUserName,useAccPerms,accVoucherDebit} from './parts';
 import {accOpeningPending} from '../../services/mock';
 import {TrialBalanceView,StatementView,DayBookView} from './books';
@@ -21,6 +22,9 @@ import {accTallyVouchers,accTallyCompany} from './acc3-views';
 
 export type AccTab='vouchers'|'manual'|'gst'|'tds'|'assets'|'tb'|'statements'|'daybook'|'chart'|'parties'|'opening'|'exceptions'|'recon'|'mapping'|'tally'|'pl'|'bs'|'ageing'|'gstsum'|'cashratio'|'exports';
 type Tab=AccTab;
+/** FIT (DEC-196): the page's sections are sub-screens with their existing ids, in tab-bar order (src/app/subscreens.ts lists the same). */
+export const ACC_TAB_IDS=['vouchers','manual','gst','tds','assets','tb','statements','pl','bs','ageing','gstsum','cashratio','exports','daybook','chart','parties','opening','exceptions','recon','mapping','tally'] as const;
+const ACC_FOOTNOTE='Vouchers are re-derived from source records until a closed day is locked; voucher numbers are provisional until then. Synthetic chart of accounts; GST split CGST + SGST from the GST master (illustrative — CA to confirm) — not a statutory book of account.';
 export function AccDatePicker({date,setDate,dates}:{date:string;setDate:(d:string)=>void;dates:string[]}){
   return <label className="acc-date">Business date<select value={date} onChange={e=>setDate(e.target.value)}>
     {dates.map(d=><option key={d} value={d}>{shortDate(d)} {d.slice(0,4)}</option>)}</select></label>;
@@ -30,7 +34,8 @@ export function AccountingPage(){
   const tally=rbacCanTally(s,uid); // DEC-063 G13: Tally export tab = Owner + Accountant (Manager/Cashier keep Accounting without it)
   const dates=useMemo(()=>accDates(s),[s]);
   const [sel,setDate]=useState(s.date);const date=dates.includes(sel)?sel:dates[0];
-  const [tab,setTab]=useState<Tab>('vouchers');
+  const [picked,setTab]=useFitTab<Tab>('accounting',ACC_TAB_IDS,'vouchers');
+  const tab:Tab=picked==='tally'&&!tally?'vouchers':picked; // a role without the Tally export never lands on it (remembered or asked)
   const [range,setRange]=useAccRange(s.date);const [stmtAcc,setStmtAcc]=useState('');const [asOf,setAsOf]=useState(s.date);
   const goStatement=(a:string)=>{setStmtAcc(a);setTab('statements');};
   const vs=useMemo(()=>accVouchers(s,date),[s,date]);
@@ -41,22 +46,24 @@ export function AccountingPage(){
   const manualPending=accManualList(s).filter(v=>v.status==='pending').length;
   const tabs:[Tab,string,(number|string)?][]=[['vouchers','Vouchers',vs.length],['manual','Manual vouchers',manualPending||undefined],['gst','GST month'],['tds','TDS'],['assets','Assets'],['tb','Trial balance'],['statements','Statements'],['pl','P&L'],['bs','Balance sheet'],['ageing','Outstanding'],['gstsum','GST summary'],['cashratio','Cash ratio'],['exports','Exports'],['daybook','Day book'],['chart','Chart of accounts'],['parties','Parties'],['opening','Opening balances',accOpeningPending(s)?'pending':undefined],
     ['exceptions','Exceptions',ex.filter(x=>x.severity!=='info').length],['recon','Reconciliation'],['mapping','Mapping'],...(tally?[['tally','Tally export'] as [Tab,string]]:[])];
-  if(!rbacSeesBooks(s,uid)||!permission('reports'))return <div className="acc-page"><PageTitle title="Accounting" sub="The books"/><Empty title="Not available for your role" body="The books are for the Owner, Manager and Accountant. The Cashier’s collections are in Reports."/></div>;
-  return <div className="acc-page">
-    <PageTitle title="Accounting" sub="Balanced vouchers derived automatically from folio lines, receipts, expenses and closing records · fictional data · GST (CGST + SGST)"
-      action={<div className="inline"><AccDatePicker date={date} setDate={setDate} dates={dates}/><AccExportButton date={date}/><AccLockButton date={date}/></div>}/>
-    <div className="acc-statusbar"><AccStatusPill status={status}/>
-      {lock?<span className="muted">Locked by {accUserName(s,lock.lockedBy)} · {shortDate(lock.lockedAt.slice(0,10))} {clockTime(lock.lockedAt)} (simulated) · {lock.count} vouchers frozen</span>
-        :why?<span className="muted" id="acc-lock-why">{why}</span>:<span className="muted">Ready to lock.</span>}
-      <span className="acc-generic"><Info size={14} aria-hidden/> Export is a generic import format · Tally/other mapping later</span></div>
-    <div className="stats acc-stats">
-      <Stat title="Vouchers" value={String(vs.length)} sub={`${vs.filter(v=>v.type==='Sales').length} sales · ${vs.filter(v=>v.type==='Receipt').length} receipt · ${vs.filter(v=>v.type==='Payment').length} payment · ${vs.filter(v=>v.type==='Journal').length} journal`}/>
-      <Stat title="Total debits" value={money(t.debit)} sub={t.debit===t.credit?'Equals total credits — balanced':'Does not equal credits'}/>
-      <Stat title="Total credits" value={money(t.credit)} sub={reconOk?`Reconciles with Reports (${recon.length} checks)`:`${recon.filter(c=>!c.ok).length} reconciliation check(s) differ`}/>
-      <Stat title="Exceptions" value={String(errors)} sub={errors?'Blocking — resolve before locking':'Nothing blocks locking'}/>
-    </div>
-    <section className="card">
-      <div className="tabs acc-tabs" role="tablist" aria-label="Accounting view">{tabs.map(([id,label,n])=><button key={id} role="tab" aria-selected={tab===id} className={tab===id?'active':''} onClick={()=>setTab(id)}>{label}{n!==undefined&&<span>{n}</span>}</button>)}</div>
+  if(!rbacSeesBooks(s,uid)||!permission('reports'))return <FitPage title="Accounting" sub="The books">
+    <ScrollPanel label="Accounting"><Empty title="Not available for your role" body="The books are for the Owner, Manager and Accountant. The Cashier’s collections are in Reports."/></ScrollPanel></FitPage>;
+  // FIT (contract §6 'accounting'): header = Lock (the committing action, first) + Export; toolbar = business date + day status + StatStrip;
+  // the sections are FitTabs with their existing ids; each section's existing content scrolls in one ScrollPanel, the footnotes sit in its footer.
+  const label=tabs.find(x=>x[0]===tab)?.[1]??'Accounting';
+  return <FitPage title="Accounting" sub="Balanced vouchers derived automatically from folio lines, receipts, expenses and closing records · fictional data · GST (CGST + SGST)"
+      actions={<><AccLockButton date={date}/><AccExportButton date={date}/></>}
+      toolbar={<div className="acc-fit-toolbar">
+        <div className="acc-statusbar"><AccDatePicker date={date} setDate={setDate} dates={dates}/><AccStatusPill status={status}/>
+          {lock?<span className="muted">Locked by {accUserName(s,lock.lockedBy)} · {shortDate(lock.lockedAt.slice(0,10))} {clockTime(lock.lockedAt)} (simulated) · {lock.count} vouchers frozen</span>
+            :why?<span className="muted" id="acc-lock-why">{why}</span>:<span className="muted">Ready to lock.</span>}</div>
+        <StatStrip items={[
+          {title:'Vouchers',value:String(vs.length),sub:`${vs.filter(v=>v.type==='Sales').length} sales · ${vs.filter(v=>v.type==='Receipt').length} receipt · ${vs.filter(v=>v.type==='Payment').length} payment · ${vs.filter(v=>v.type==='Journal').length} journal`},
+          {title:'Total debits',value:money(t.debit),sub:t.debit===t.credit?'Equals total credits — balanced':'Does not equal credits'},
+          {title:'Total credits',value:money(t.credit),sub:reconOk?`Reconciles with Reports (${recon.length} checks)`:`${recon.filter(c=>!c.ok).length} reconciliation check(s) differ`},
+          {title:'Exceptions',value:String(errors),sub:errors?'Blocking — resolve before locking':'Nothing blocks locking'}]}/></div>}
+      tabs={<FitTabs<Tab> page="accounting" value={tab} onChange={setTab} tabs={tabs.map(([id,l,n])=>({id,label:l,count:n as number|undefined /* 'pending' on Opening balances shows as text, as before */,badge:id==='opening'&&n?'warn':undefined}))}/>}>
+    <ScrollPanel label={label+' — accounting'} footer={<FitNote text={<><Info size={14} aria-hidden/> Export is a generic import format · Tally/other mapping later. {ACC_FOOTNOTE}</>}/>}>
       {tab==='vouchers'&&(vs.length?<div className="table-wrap"><table className="acc-table"><thead><tr><th>Voucher no</th><th>Type</th><th>Narration</th><th>Source ID</th><th className="acc-num">Amount</th><th>Check</th></tr></thead>
         <tbody>{vs.map(v=><tr key={v.no}><td><button className="text-btn acc-link number" onClick={()=>open({type:'acc-voucher',id:date+'|'+v.no})}>{v.no}</button></td><td>{v.type}</td>
           <td className="acc-wrap">{v.narration}</td><td className="number"><small>{v.source.id}</small></td><td className="acc-num number"><strong>{money(accVoucherDebit(v))}</strong></td>
@@ -86,9 +93,8 @@ export function AccountingPage(){
           <td>{c.ok?<span className="pill green"><CheckCircle2 size={12}/>Agrees</span>:<span className="pill acc-sev-error"><AlertTriangle size={12}/>Differs {money(c.ledger-c.report)}</span>}</td><td><small>{c.note}</small></td></tr>)}</tbody></table></div>}
       {tab==='mapping'&&<MappingTable/>}
       {tab==='tally'&&tally&&<TallyExport/>}
-    </section>
-    <p className="footnote">Vouchers are re-derived from source records until a closed day is locked; voucher numbers are provisional until then. Synthetic chart of accounts; GST split CGST + SGST from the GST master (illustrative — CA to confirm) — not a statutory book of account.</p>
-  </div>;
+    </ScrollPanel>
+  </FitPage>;
 }
 function MappingTable(){
   const {s,open}=useHcc();const {canMap}=useAccPerms();const rows=accMapRows(s);const hist=[...(s.accountingX?.mapHistory??[])].reverse().slice(0,8);

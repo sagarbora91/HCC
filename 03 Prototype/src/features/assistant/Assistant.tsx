@@ -3,7 +3,8 @@
 import React,{useEffect,useRef,useState} from 'react';
 import {Sparkles,Send,Info,Trash2,RotateCcw,ArrowRight,Bot,Newspaper,Flag} from 'lucide-react';
 import {useHcc} from '../../app/context';
-import {PageTitle,clockTime,dateLabel} from '../../components/ui';
+import {clockTime,dateLabel} from '../../components/ui';
+import {FitPage,ScrollPanel,FitNote} from '../../components/fit';
 import {ChipFilter} from '../../app/mobile/components';
 import {can,aiHistory,aiSuggestions,aiBriefing,aiFlags,aiDirtyHours,AI_LABEL,AI_QUESTION_MAX} from '../../services/mock';
 import type {AIMessage,AIFlag,AIBriefing,AILink,State} from '../../services/mock';
@@ -105,24 +106,27 @@ export function AIFlagsCard({flags,s,phone}:{flags:AIFlag[];s:State;phone?:boole
   </section>;
 }
 
-function SimLabel(){return <div className="info-note ai-sim"><Info size={15}/><span><b>{AI_LABEL}.</b> No AI service is used and nothing leaves this device. Answers include only data your role may see.</span></div>;}
 
 export function AssistantPage(){
   const {s,uid,run,busy}=useHcc();const {ask,pending}=useAsk();
   const history=aiHistory(s,uid);const b=aiBriefing(s,uid);const flags=aiFlags(s,uid);const off=busy||pending;
-  return <div className="ai-page">
-    <PageTitle title="Management assistant" sub="Ask plain questions about today’s operations and get the figures, how they were computed and where to act." action={<span className="ai-badge"><Sparkles size={14}/>Simulated · rule-based</span>}/>
-    <SimLabel/>
-    <div className="ai-layout">
-      <section className="card ai-chat" aria-label="Assistant conversation">
-        <div className="section-title"><div><h2>Conversation</h2><p>{history.length} of your questions · saved for your demo user only</p></div>
-          {history.length>0&&<button type="button" className="btn small-btn" disabled={off} onClick={()=>run({type:'AI_CLEAR'},'Your assistant history was cleared')}><Trash2 size={13}/>Clear my history</button>}</div>
+  // FIT (contract §6 'assistant' = chat): the conversation scrolls in its own panel (newest at the bottom), the question box is pinned in
+  // that panel's footer; the side panel holds the suggested questions, the daily briefing and the anomaly flags. The simulation label is a FitNote.
+  return <FitPage title="Management assistant" sub="Ask plain questions about today’s operations and get the figures, how they were computed and where to act."
+      actions={<span className="ai-badge"><Sparkles size={14}/>Simulated · rule-based</span>}
+      toolbar={<div className="ai-fit-sim"><FitNote text={<><Info size={15} aria-hidden/> <b>{AI_LABEL}.</b> No AI service is used and nothing leaves this device. Answers include only data your role may see.</>}/></div>}>
+    <div className="fit-cols ai-fit-cols">
+      <div><ScrollPanel title="Conversation" label="Assistant conversation"
+          actions={<><span className="muted">{history.length} of your questions · saved for your demo user only</span>
+            {history.length>0&&<button type="button" className="btn small-btn" disabled={off} onClick={()=>run({type:'AI_CLEAR'},'Your assistant history was cleared')}><Trash2 size={13}/>Clear my history</button>}</>}
+          footer={<div className="ai-fit-compose"><AskForm onAsk={ask} busy={off}/></div>}>
         <Thread history={history} onAsk={q=>{void ask(q);}} busy={off}/>
-        <div className="ai-compose"><Suggestions onAsk={q=>{void ask(q);}} busy={off}/><AskForm onAsk={ask} busy={off}/></div>
-      </section>
-      <aside className="ai-side"><AIBriefingCard b={b}/><AIFlagsCard flags={flags} s={s}/></aside>
+      </ScrollPanel></div>
+      <div><ScrollPanel title="Suggested questions" label="Suggestions, daily briefing and anomaly flags">
+        <div className="ai-fit-side"><Suggestions onAsk={q=>{void ask(q);}} busy={off}/><AIBriefingCard b={b}/><AIFlagsCard flags={flags} s={s}/></div>
+      </ScrollPanel></div>
     </div>
-  </div>;
+  </FitPage>;
 }
 
 type AIView='ask'|'brief'|'flags';

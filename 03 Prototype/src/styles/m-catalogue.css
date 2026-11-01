@@ -16,3 +16,9 @@
 .cat-cards{display:grid;gap:8px}
 .cat-card{display:flex;flex-direction:column;gap:2px;padding:12px;border:1px solid var(--line,var(--c-e4d9cc));border-radius:10px;font-size:16px}
 .cat-card small{color:var(--muted,var(--muted))}
+/* FIT (DEC-194, lane fit-people-b): Plans & extras desktop layout (.app-shell only): dates in the toolbar, one section per tab. */
+.app-shell .cat-fit-filters{flex:1 1 auto;min-width:0;align-items:center}
+.app-shell .cat-fit-filters label{display:flex;align-items:center;gap:8px}
+.app-shell .cat-fit-filters .field-error{margin:0}
+.app-shell .cat-fit-body{padding:12px 16px}
+.app-shell .fit-panel-head .cat-manage{margin:0}

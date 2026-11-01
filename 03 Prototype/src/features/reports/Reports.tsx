@@ -9,7 +9,8 @@ import {usePaged,ShowMore,DESKTOP_PAGE} from '../../components/ShowMore';
 import {HistorySummary} from './HistorySummary';
 import {reportPackMemo} from '../../domain/memo';
 import {useHcc} from '../../app/context';
-import {PageTitle,Empty,dateLabel,shortDate} from '../../components/ui';
+import {Empty,dateLabel,shortDate} from '../../components/ui';
+import {FitPage,ScrollPanel,SplitView,FitNote} from '../../components/fit';
 import {useServerReport,ServerReportStrip,ServerDetailNote,ServerHistorySummary,ServerReportsGate,fyMonths,SERVER_DETAIL_NOTE} from './serverBits';
 import {asOfText,NO_FETCH} from './asOf';
 import {FdmSourceReport} from '../reservations/masters';
@@ -33,6 +34,9 @@ function ReportsPage(){
   const {s,uid,permission,toast,open}=useHcc();
   const canExport=rbacCanExportReports(s,uid); // DEC-063 G13: RPT-003 export = Owner, Manager, Accountant (not the Cashier)
   const [tab,setTab]=useState('daily');const [from,setFrom]=useState(s.date);const [to,setTo]=useState(s.date);const [drill,setDrill]=useState<string|null>(null);
+  // FIT (contract §6 'reports' = split): the report list sits on the left; on a narrow screen (< 900 px) the open report slides over it and
+  // "Back to list" (or Android Back) returns to the list. The FY history summary is an entry of that list (it used to sit above the filters).
+  const [listOnly,setListOnly]=useState(false);
   const valid=/^\d{4}-\d{2}-\d{2}$/.test(from)&&/^\d{4}-\d{2}-\d{2}$/.test(to)&&from<=to&&to<=s.date;
   const span=valid?Math.round((Date.parse(to)-Date.parse(from))/86400000)+1:0;
   const limit=process.env.HCC_BUILD==='production'?REPORT_MAX_DAYS:reportRangeLimit(s),tooLong=span>limit;
@@ -50,13 +54,34 @@ function ReportsPage(){
   function exportExcel(){if(!pack)return;
     let bytes:Uint8Array;try{bytes=reportXlsx({hotel:s.settings.hotel,scenario:s.scenario,clock:s.clock},pack);}catch{toast('Could not build the Excel workbook for this range. Try a shorter range (for example one month).',true);return;}
     void saveAndReport(saveBinaryFile(`HCC-Demo-reports-${from}_${to}.xlsx`,bytes,XLSX_MIME),toast,'Demo Excel workbook saved · all report tabs','the Excel workbook');}
-  return <><PageTitle title="Reports" sub={process.env.HCC_BUILD==='production'?'Figures from the hotel server · '+dateLabel(s.date):'Every figure derived from source records · fictional data · '+dateLabel(s.date)} action={<div className="inline">
+  const exports=<>
       {canExport&&<><button className="btn" disabled={!pack} onClick={exportTab}><Download size={16}/> Export CSV</button>
       <button className="btn" disabled={!pack} onClick={exportExcel}><FileSpreadsheet size={16}/> Export Excel</button></>}
       {/* ACC-3 integrator: Print is an export of the whole pack (PDF) — same role check as the exports (RPT-003; not the Cashier). */}
-      {canExport&&<button className="btn" disabled={!pack} onClick={()=>open({type:'report-print',id:tab,room:from+'|'+to})}><Printer size={16}/> Print</button>}</div>}/>
-    {process.env.HCC_BUILD==='production'?<ServerHistorySummary/>:<HistorySummary/>}
-    <section className="card f-filters" aria-label="Report filters">
+      {canExport&&<button className="btn" disabled={!pack} onClick={()=>open({type:'report-print',id:tab,room:from+'|'+to})}><Printer size={16}/> Print</button>}</>;
+  const history=process.env.HCC_BUILD==='production'?<ServerHistorySummary/>:<HistorySummary/>;
+  const hasHistory=process.env.HCC_BUILD==='production'||!!(s.historyX&&months.length);
+  const pick=(id:string)=>{setTab(id);setDrill(null);setListOnly(false);};
+  const label=tab==='history'?'History summary':TABS.find(x=>x[0]===tab)?.[1]??'Report';
+  const groups:[string,[string,string][]][]=[...(hasHistory?[['Summary',[['history','History summary']]] as [string,[string,string][]]]:[]),
+    ['Reports',TABS.filter(x=>x[0]!=='dictionary') as [string,string][]],['Reference',TABS.filter(x=>x[0]==='dictionary') as [string,string][]]];
+  const list=<ScrollPanel title="Reports" label="Report list">
+    <nav className="f-report-list" aria-label="Report">{groups.map(([g,items])=><div key={g} className="f-report-group"><h3>{g}</h3>
+      <ul>{items.map(([id,l])=><li key={id}><button type="button" className={'f-report-item'+(tab===id?' on':'')} aria-current={tab===id?'page':undefined} onClick={()=>pick(id)}>{l}</button></li>)}</ul></div>)}</nav>
+  </ScrollPanel>;
+  const body=tab==='history'?history:tab==='dictionary'?<Dictionary/>:!pack||!t?<Empty title={process.env.HCC_BUILD==='production'&&valid&&!tooLong&&srv.status!=='error'?'Loading the report…':'No report for this range'} body={process.env.HCC_BUILD==='production'&&valid&&!tooLong?(srv.status==='error'?'The server did not answer. Try Refresh.':'Waiting for the server.'):'Adjust the date range.'}/>:<>
+      <div className="f-metrics">{t.metrics.map(x=><button key={x.id} className={'f-metric '+(drill===x.id?'on':'')} aria-expanded={drill===x.id} onClick={()=>setDrill(drill===x.id?null:x.id)}>
+        <span>{x.label}</span><strong>{x.unit==='money'?money(x.value):x.value}</strong><small>{process.env.HCC_BUILD==='production'?'Server figure · details on the server PC':<>{x.rows.length} source row{x.rows.length===1?'':'s'} · view ›</>}</small>{x.note&&<small>{x.note}</small>}</button>)}
+        {t.ratios.map(r=><div key={r.id} className="f-metric ratio"><span>{r.label}</span><strong>{r.display}</strong><small>{r.formula}</small></div>)}</div>
+      {m&&(process.env.HCC_BUILD==='production'?<ServerDetailNote label={m.label}/>:<Drill key={m.id+pack.from+pack.to} pack={pack} m={m} mask={mask} onClose={()=>setDrill(null)}/>)}
+      {tab==='occupancy'&&process.env.HCC_BUILD!=='production'&&<FdmSourceReport from={from} to={to}/>}
+      {t.table&&<section className="card"><div className="section-title"><h2>By business date</h2><span className="muted">{shortDate(from)} – {shortDate(to)}</span></div><TableView t={t}/></section>}
+    </>;
+  const report=<ScrollPanel title={label} label={label+' — report'} actions={tab==='history'?undefined:exports}
+      footer={tab==='history'||tab==='dictionary'?undefined:<FitNote text={<><Info size={14} aria-hidden/> Charges follow service date, receipts follow receipt date, expenses follow business date. Daily cash need not equal daily revenue. GST from the dated GST master (illustrative — CA to confirm).</>}/>}>
+    <div className="f-report-body">{body}</div></ScrollPanel>;
+  return <FitPage title="Reports" sub={process.env.HCC_BUILD==='production'?'Figures from the hotel server · '+dateLabel(s.date):'Every figure derived from source records · fictional data · '+dateLabel(s.date)} layout="split"
+      toolbar={<section className="f-filters f-fit-filters" aria-label="Report filters">
       <label>From (business date)<input type="date" value={from} max={s.date} onChange={e=>{setFrom(e.target.value);setDrill(null);}}/></label>
       <label>To<input type="date" value={to} max={s.date} onChange={e=>{setTo(e.target.value);setDrill(null);}}/></label>
       <div className="inline f-quick">{presets.map(p=><button key={p.id} className="btn small-btn" onClick={()=>setRange(p.from,p.to)}>{p.label}</button>)}
@@ -65,17 +90,10 @@ function ReportsPage(){
       {tooLong&&<p className="f-why" role="alert">Choose at most {limit} days{process.env.HCC_BUILD==='production'?' (the server report limit)':' in this demo'}.</p>}
       {process.env.HCC_BUILD==='production'&&valid&&!tooLong&&<ServerReportStrip f={srv}/>}
       {mask&&<p className="muted">Restricted scope: guest names are masked.</p>}
-    </section>
-    <div className="tabs f-report-tabs" role="tablist" aria-label="Report">{TABS.map(([id,label])=><button key={id} role="tab" aria-selected={tab===id} className={tab===id?'active':''} onClick={()=>{setTab(id);setDrill(null);}}>{label}</button>)}</div>
-    {tab==='dictionary'?<Dictionary/>:!pack||!t?<Empty title={process.env.HCC_BUILD==='production'&&valid&&!tooLong&&srv.status!=='error'?'Loading the report…':'No report for this range'} body={process.env.HCC_BUILD==='production'&&valid&&!tooLong?(srv.status==='error'?'The server did not answer. Try Refresh.':'Waiting for the server.'):'Adjust the date range.'}/>:<>
-      <div className="f-metrics">{t.metrics.map(x=><button key={x.id} className={'f-metric '+(drill===x.id?'on':'')} aria-expanded={drill===x.id} onClick={()=>setDrill(drill===x.id?null:x.id)}>
-        <span>{x.label}</span><strong>{x.unit==='money'?money(x.value):x.value}</strong><small>{process.env.HCC_BUILD==='production'?'Server figure · details on the server PC':<>{x.rows.length} source row{x.rows.length===1?'':'s'} · view ›</>}</small>{x.note&&<small>{x.note}</small>}</button>)}
-        {t.ratios.map(r=><div key={r.id} className="f-metric ratio"><span>{r.label}</span><strong>{r.display}</strong><small>{r.formula}</small></div>)}</div>
-      {m&&(process.env.HCC_BUILD==='production'?<ServerDetailNote label={m.label}/>:<Drill key={m.id+pack.from+pack.to} pack={pack} m={m} mask={mask} onClose={()=>setDrill(null)}/>)}
-      {tab==='occupancy'&&process.env.HCC_BUILD!=='production'&&<FdmSourceReport from={from} to={to}/>}
-      {t.table&&<section className="card"><div className="section-title"><h2>By business date</h2><span className="muted">{shortDate(from)} – {shortDate(to)}</span></div><TableView t={t}/></section>}
-      <div className="info-note"><Info size={17}/>Charges follow service date, receipts follow receipt date, expenses follow business date. Daily cash need not equal daily revenue. GST from the dated GST master (illustrative — CA to confirm).</div>
-    </>}</>;
+    </section>}>
+    <SplitView label="Reports" ratio="1fr 3fr" list={list} detail={listOnly?null:report} onCloseDetail={()=>setListOnly(true)}
+      empty={<Empty title="Pick a report" body="Its figures, source rows and exports open here."/>}/>
+  </FitPage>;
 }
 function Drill({pack,m,mask,onClose}:{pack:ReportPack;m:ReportMetric;mask:boolean;onClose:()=>void}){
   const {s,uid,booking,toast}=useHcc();const p=usePaged(m.rows,DESKTOP_PAGE);
