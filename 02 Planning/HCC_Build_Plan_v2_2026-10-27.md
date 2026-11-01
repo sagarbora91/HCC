@@ -33,7 +33,7 @@ ETP shipped eleven releases in October with Claude agents by one method (`E:\ETP
 |---|---|---|---|---|---|---|
 | W0 | **APK v18** | `claude/apk18` | Sonnet 1 (+ Opus for any money defect) | 1 | — | emulator phone + tablet report; physical-tab prompt |
 | W1 | **ACC-1 Chart and parties** | `claude/acc1` | Fable design · Opus 4 · Sonnet 2 | 6 | 4200–4229 | rulebook §8 golden month (opening + ledgers + six-column TB) |
-| W1a | **LG Legacy data** (old "Lodge" software, DEC-161…164) | `claude/lg` | Fable design · Opus 2 · Sonnet 3 | 5 | 4600–4619 | dry run against the June 2026 backups reconciles per FY (bills, room GST, receipts); 20 known guests reviewed by the Owner |
+| W1a ✅ 1 Nov 2026 | **LG Legacy data** (old "Lodge" software, DEC-161…164, rulings DEC-178…192; on main, dry run all FYs MATCH) | `claude/lg` | Fable design · Opus 2 · Sonnet 3 | 5 | 4600–4619 | dry run against the June 2026 backups reconciles per FY (bills, room GST, receipts); 20 known guests reviewed by the Owner |
 | W2 | **ACC-2 Purchases, manual vouchers, GST, TDS** | `claude/acc2` | Opus 5 · Sonnet 2 | 7 | 4230–4259 | golden month complete; oracle run in ERPNext / GNUKhata |
 | W3 | **ACC-3 P&L, ageing, exports, Tally XML** | `claude/acc3` | Fable (Tally format) · Opus 2 · Sonnet 3 | 5 | 4260–4279 | Tally import of the golden month into a fresh Tally company |
 | W4 | **ACC-4 Year lock, bank reconciliation** | `claude/acc4` | Opus 2 · Sonnet 1 | 3 | 4280–4299 | statement-import fixture reconciles to zero |
@@ -156,7 +156,8 @@ Borrowed whole from ETP: `scripts\build-windows-release.ps1` → `build-windows-
 | OP-16 | GitHub repository **private** before the push (DEC-087 says private; `sagarbora91/HCC` is public today) | Owner |
 | OP-17 | Hall-booking spec approval (W5) — written while W2–W4 run | Owner |
 | OP-18 | **Rack-rate card** for the room types SUITE / PREMIUM / DELUXE / TWIN (single, double, extra person; GST-exclusive) — the legacy rates are not loaded (DEC-163) | Owner |
-| OP-19 | Ask the CA whether the HCC invoice series must **continue the legacy bill numbers** inside FY 2026-27 or may start fresh with its own prefix (DEC-163) | Owner → CA |
+| OP-19 | Ask the CA whether the HCC invoice series must **continue the legacy bill numbers** inside FY 2026-27 or may start fresh with its own prefix (DEC-163) — **answered by the owner in another session on 1 Nov 2026 (with the rate card, OP-18); carry both into the cut-over checklist** | Owner → CA |
+| OP-20 | **DEC-193 party-member IDs** (one ID per guest, photo optional): small Opus lane `claude/partyid` before W3 — schema for party-member IDs (sealed per DEC-068/070), registration desktop + phone, ID capture per member, check-in refusal while an adult's ID is missing; Owner to confirm whether children need one | Lead |
 
 ## 6. What you do, when
 
