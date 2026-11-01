@@ -14,10 +14,11 @@ import {ManualView} from './manual';
 import {GstMonthView} from './gst';
 import {TdsView,AssetsView} from './tds';
 import {accManualList} from './acc2-views';
+import {PlView,BalanceSheetView,OutstandingView,GstSummaryView,CashRatioView,ExportsView} from './reports3';
 import {TallyExport} from './Accounting';
 import {AccStatusPill,AccSeverity,AccLockButton,AccExportButton,accUserName,useAccPerms,accVoucherDebit} from './parts';
 
-type View='ledger'|'manual'|'gst'|'tds'|'assets'|'tb'|'statements'|'daybook'|'chart'|'parties'|'opening'|'tally';
+type View='ledger'|'manual'|'gst'|'tds'|'assets'|'tb'|'statements'|'daybook'|'chart'|'parties'|'opening'|'tally'|'pl'|'bs'|'ageing'|'gstsum'|'cashratio'|'exports';
 type Filter='all'|'Sales'|'Receipt'|'Payment'|'Journal';
 export function AccountingMobile(){
   const {s,uid,open,go,permission}=useHcc();const {canLock,canMap}=useAccPerms();
@@ -33,10 +34,10 @@ export function AccountingMobile(){
   const lockable=canLock&&!lock&&!why;
   const tally=rbacCanTally(s,uid); // DEC-063 G13: Owner + Accountant only
   const [view,setView]=useState<View>('ledger'); // W05-3: Tally export (Simulated) reachable on the phone; ACC-1: books, chart, parties, opening balances
-  const [range,setRange]=useAccRange(s.date);const [stmtAcc,setStmtAcc]=useState('');
+  const [range,setRange]=useAccRange(s.date);const [stmtAcc,setStmtAcc]=useState('');const [asOf,setAsOf]=useState(s.date);
   const goStatement=(a:string)=>{setStmtAcc(a);setView('statements');};
   const head=<><div className="page-title"><div><h1>Accounting</h1><p>Vouchers derived from folios, receipts, expenses and closing · fictional data</p></div></div>
-    <ChipFilter<View> label="Accounting view" value={view} onChange={setView} options={[{id:'ledger',label:'Day'},{id:'manual',label:accManualList(s).some(v=>v.status==='pending')?'Manual (pending)':'Manual vouchers'},{id:'gst',label:'GST month'},{id:'tds',label:'TDS'},{id:'assets',label:'Assets'},{id:'tb',label:'Trial balance'},{id:'statements',label:'Statements'},{id:'daybook',label:'Day book'},{id:'chart',label:'Chart'},{id:'parties',label:'Parties'},{id:'opening',label:accOpeningPending(s)?'Opening (pending)':'Opening'},...(tally?[{id:'tally' as View,label:'Tally export (Simulated)'}]:[])]}/></>;
+    <ChipFilter<View> label="Accounting view" value={view} onChange={setView} options={[{id:'ledger',label:'Day'},{id:'manual',label:accManualList(s).some(v=>v.status==='pending')?'Manual (pending)':'Manual vouchers'},{id:'gst',label:'GST month'},{id:'tds',label:'TDS'},{id:'assets',label:'Assets'},{id:'tb',label:'Trial balance'},{id:'statements',label:'Statements'},{id:'pl',label:'P&L'},{id:'bs',label:'Balance sheet'},{id:'ageing',label:'Outstanding'},{id:'gstsum',label:'GST summary'},{id:'cashratio',label:'Cash ratio'},{id:'exports',label:'Exports'},{id:'daybook',label:'Day book'},{id:'chart',label:'Chart'},{id:'parties',label:'Parties'},{id:'opening',label:accOpeningPending(s)?'Opening (pending)':'Opening'},...(tally?[{id:'tally' as View,label:'Tally export (Simulated)'}]:[])]}/></>;
   if(!rbacSeesBooks(s,uid)||!permission('reports'))return <div className="acc-m"><Empty title="Not available for your role" body="The books are for the Owner, Manager and Accountant."/></div>;
   if(view==='manual')return <div className="acc-m">{head}<ManualView phone/></div>;
   if(view==='gst')return <div className="acc-m">{head}<GstMonthView phone/></div>;
@@ -44,6 +45,12 @@ export function AccountingMobile(){
   if(view==='assets')return <div className="acc-m">{head}<AssetsView phone/></div>;
   if(view==='tb')return <div className="acc-m">{head}<TrialBalanceView range={range} setRange={setRange} phone onStatement={goStatement}/></div>;
   if(view==='statements')return <div className="acc-m">{head}<StatementView range={range} setRange={setRange} account={stmtAcc} setAccount={setStmtAcc} phone/></div>;
+  if(view==='pl')return <div className="acc-m">{head}<PlView range={range} setRange={setRange} phone/></div>;
+  if(view==='bs')return <div className="acc-m">{head}<BalanceSheetView asOf={asOf} setAsOf={setAsOf} phone/></div>;
+  if(view==='ageing')return <div className="acc-m">{head}<OutstandingView phone/></div>;
+  if(view==='gstsum')return <div className="acc-m">{head}<GstSummaryView phone/></div>;
+  if(view==='cashratio')return <div className="acc-m">{head}<CashRatioView phone/></div>;
+  if(view==='exports')return <div className="acc-m">{head}<ExportsView phone/></div>;
   if(view==='daybook')return <div className="acc-m">{head}<DayBookView range={range} setRange={setRange} phone/></div>;
   if(view==='chart')return <div className="acc-m">{head}<ChartView phone/></div>;
   if(view==='parties')return <div className="acc-m">{head}<PartiesView phone onStatement={goStatement}/></div>;

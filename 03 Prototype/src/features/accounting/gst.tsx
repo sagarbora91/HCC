@@ -3,7 +3,7 @@
 import React,{useMemo,useState} from 'react';
 import {Lock,LockOpen,CheckCircle2,AlertTriangle,Banknote} from 'lucide-react';
 import {useHcc} from '../../app/context';
-import {money} from '../../services/mock';
+import {money,accGstOnAdvances,accGstOnAdvancesFrom} from '../../services/mock';
 import {ListCard,KpiCard,ChipFilter} from '../../app/mobile/components';
 import {Empty,dateLabel} from '../../components/ui';
 import {accGstMonthView,accGstHeads,accMonthLockBlocker,accMonthLockOf,accManualList,type ACCGstHead,
@@ -18,7 +18,7 @@ export const blockersOf=(b:string|string[]|undefined)=>([] as string[]).concat(b
 const sum3=(r:Record<ACCGstHead,number>)=>r.igst+r.cgst+r.sgst;
 
 export function GstMonthView({phone}:{phone?:boolean}){
-  const {s,open,run,busy,toast}=useHcc();const {canTax,canMonthLock,canMonthRequest}=useAccPerms();
+  const {s,open,run,busy,toast,user}=useHcc();const {canTax,canMonthLock,canMonthRequest}=useAccPerms();
   const months=useMemo(()=>monthChoices(s.date),[s.date]);const [month,setMonth]=useState(months[0]);
   const g=useMemo(()=>accGstMonthView(s,month),[s,month]);const lock=accMonthLockOf(s,month),blockers=blockersOf(accMonthLockBlocker(s,month));
   const remits=accManualList(s).filter(v=>v.date.startsWith(month)&&(v.template==='gst-payment'||v.template==='statutory-remittance')&&v.status!=='void'&&v.status!=='rejected');
@@ -31,7 +31,8 @@ export function GstMonthView({phone}:{phone?:boolean}){
     <button type="button" className="btn" disabled={busy||!!lock} onClick={()=>void run({type:'ACC_GST_SETOFF',month,key:'accgst-so:'+month} satisfies AccGstSetoff,g.posted?'Set-off re-posted':'Set-off posted')}>{g.posted?'Re-post set-off':'Post set-off'}</button>
     <button type="button" className="btn primary" onClick={()=>open({type:'acc-gst-pay',id:month})}><Banknote size={16}/> Pay GST…</button>
     <button type="button" className="btn" onClick={()=>open({type:'acc-gst-pay',id:month,room:'rcm'})}>Pay reverse-charge GST…</button>
-    <button type="button" className="btn" onClick={()=>open({type:'acc-stat-remit',id:month})}>PF / ESIC / PT remittance…</button></div>
+    <button type="button" className="btn" onClick={()=>open({type:'acc-stat-remit',id:month})}>PF / ESIC / PT remittance…</button>
+    {user.role==='Owner'&&<button type="button" className="btn" onClick={()=>open({type:'acc-gst-advances'})}>GST on advances{accGstOnAdvances(s)?` (on from ${accGstOnAdvancesFrom(s)})`:' (off)'}…</button>}</div>
     :<p className="muted">GST entries are made by the Owner or the Accountant.</p>;
   const lockBox=<section className="acc-lock-box" aria-label="Month lock">
     <h3 className="acc-h3">Month lock {status}</h3>

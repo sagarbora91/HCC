@@ -8,6 +8,7 @@ import {money,rbacCanExportVouchers,cmpSlice} from '../../services/mock';
 import {ListCard} from '../../app/mobile/components';
 import {Empty,dateLabel} from '../../components/ui';
 import {downloadCsv} from '../reports/Reports';
+import {tdsRemittances} from '../../services/mock';
 import {tdsRateRows,tdsDeducteeRows,tdsDeducteeCsvOf,tdsReceivableRows,accAssetsList,accAssetsCsv,accLoanRows,type AccTdsRemit,type AccLoanAdd} from './acc2-views';
 import {useAccPerms} from './parts';
 import {monthChoices,monthLabel,toPaise,fromPaise,bankMethods,fyStart} from './shared';
@@ -19,7 +20,7 @@ function Csv({name,csv,disabled}:{name:string;csv:()=>string;disabled?:boolean})
 }
 
 export function TdsView({phone}:{phone?:boolean}){
-  const {s,open}=useHcc();const {canTax}=useAccPerms();
+  const {s,open,user}=useHcc();const {canTax}=useAccPerms();
   const months=useMemo(()=>monthChoices(s.date),[s.date]);const fy='FY'+fyStart(s.date).slice(0,4);
   const [period,setPeriod]=useState(months[0]);
   const prof=cmpSlice(s).profile,deducts=prof?.hotelDeductsTds!==false,other=prof?.tdsDeductorType==='other';
@@ -44,6 +45,9 @@ export function TdsView({phone}:{phone?:boolean}){
       :<Empty title="No TDS deducted" body={`Nothing was deducted from vendors in ${label(period)}.`}/>;
   const form168=recv.length>0&&<><h3 className="acc-h3">TDS deducted by companies (Form 168 reconciliation)</h3>
     {recv.map(r=><p key={r.company+r.month} className="muted">{r.company} · {r.month} · {money(r.tds)}</p>)}</>;
+  const remits=tdsRemittances(s).filter(r=>r.status==='approved'||r.status==='pending').slice(-12).reverse();
+  const remitList=remits.length>0&&<><h3 className="acc-h3">Remittances</h3>{remits.map(r=><div key={r.id} className="acc-remit-row"><ListCard title={`${r.code} · ${r.month} · ${money(r.amount)}`} sub={`${r.id} · challan ${r.challan}`} meta={r.form168?`Form 168 figures for ${Object.keys(r.form168).length} compan${Object.keys(r.form168).length===1?'y':'ies'}`:'No Form 168 figures yet'}/>
+    {(user.role==='Owner'||user.role==='Accountant')&&<button type="button" className="btn full" onClick={()=>open({type:'acc-tds-form168',id:r.id})}>Form 168 figures…</button>}</div>)}</>;
   return <div className={phone?undefined:'padded'}>
     {head}
     <h3 className="acc-h3">Rate table</h3>{rateList}
@@ -51,6 +55,7 @@ export function TdsView({phone}:{phone?:boolean}){
     {deductee}
     {tot.tds>tot.remitted&&<p className="muted">{money(tot.tds-tot.remitted)} deducted and not yet remitted (Dr TDS payable 2150 · Cr bank when you remit).</p>}
     {form168}
+    {remitList}
     {phone&&<div className="acc-tds-phone-actions"><Csv name={`HCC-Demo-tds-deductees-${period}.csv`} csv={()=>tdsDeducteeCsvOf(s,period)} disabled={!rows.length}/>{remitBtn}</div>}
   </div>;
 }
@@ -77,19 +82,20 @@ export function TdsRemitModal({id}:{id?:string}){
 
 // ── Assets ──
 export function AssetsView({phone}:{phone?:boolean}){
-  const {s,open}=useHcc();const rows=accAssetsList(s);const cost=rows.reduce((a,r)=>a+r.cost,0);
+  const {s,open,user}=useHcc();const canAsset=user.role==='Owner'||user.role==='Accountant';const rows=accAssetsList(s);const cost=rows.reduce((a,r)=>a+r.cost,0);
   const note=<p className="muted">Created automatically when a capital purchase posts. HCC keeps the register only — depreciation is worked in Tally (no depreciation journal here).</p>;
   if(phone)return <>{note}
     {rows.map(a=><ListCard key={a.id} title={`${a.no} · ${a.name}`} sub={`${a.ledger} · ${a.vendor||'—'} · bought ${dateLabel(a.date)}`}
       meta={`${a.putToUse?'Put to use '+dateLabel(a.putToUse):'Not marked as put to use'}${a.disposed?` · disposed ${dateLabel(a.disposed.date)} for ${money(a.disposed.amount)}`:''}`} right={<strong className="number">{money(a.cost)}</strong>}
       onClick={()=>open({type:'exp-text',id:a.expense})}/>)}
+    {canAsset&&rows.filter(a=>!a.disposed).map(a=><div key={a.id+'-act'} className="acc-asset-actions"><button type="button" className="btn full" onClick={()=>open({type:'acc-asset-put',id:a.id})}>Put to use · {a.no}</button><button type="button" className="btn full" onClick={()=>open({type:'acc-asset-dispose',id:a.id})}>Dispose · {a.no}</button></div>)}
     {!rows.length&&<Empty title="No fixed assets yet" body="A purchase in a capital category creates a register row."/>}
     <Csv name="HCC-Demo-fixed-assets.csv" csv={()=>accAssetsCsv(s)} disabled={!rows.length}/></>;
   return <div className="padded">{note}
     <div className="inline acc-assets-bar"><strong>{rows.length} asset{rows.length===1?'':'s'} · cost {money(cost)}</strong><Csv name="HCC-Demo-fixed-assets.csv" csv={()=>accAssetsCsv(s)} disabled={!rows.length}/></div>
-    {rows.length?<div className="table-wrap"><table className="acc-table"><thead><tr><th>Asset no</th><th>Name</th><th>Ledger</th><th>Vendor</th><th>Bought</th><th className="acc-num">Cost</th><th className="acc-num">ITC taken</th><th>Put to use</th><th>Disposal</th></tr></thead><tbody>
+    {rows.length?<div className="table-wrap"><table className="acc-table"><thead><tr><th>Asset no</th><th>Name</th><th>Ledger</th><th>Vendor</th><th>Bought</th><th className="acc-num">Cost</th><th className="acc-num">ITC taken</th><th>Put to use</th><th>Disposal</th>{canAsset&&<th>Actions</th>}</tr></thead><tbody>
       {rows.map(a=><tr key={a.id}><td className="number">{a.no}</td><td>{a.name}<small>{a.expense}</small></td><td>{a.ledger}</td><td>{a.vendor||'—'}</td><td>{dateLabel(a.date)}</td><td className="acc-num number">{money(a.cost)}</td><td className="acc-num number">{a.itc?money(a.itc):'—'}</td>
-        <td>{a.putToUse?dateLabel(a.putToUse):'—'}</td><td>{a.disposed?`${dateLabel(a.disposed.date)} · ${money(a.disposed.amount)}`:'—'}</td></tr>)}</tbody></table></div>
+        <td>{a.putToUse?dateLabel(a.putToUse):'—'}</td><td>{a.disposed?`${dateLabel(a.disposed.date)} · ${money(a.disposed.amount)}`:'—'}</td>{canAsset&&<td>{!a.disposed&&<><button type="button" className="text-btn" onClick={()=>open({type:'acc-asset-put',id:a.id})}>Put to use…</button> <button type="button" className="text-btn danger-text" onClick={()=>open({type:'acc-asset-dispose',id:a.id})}>Dispose…</button></>}</td>}</tr>)}</tbody></table></div>
       :<Empty title="No fixed assets yet" body="A purchase in a capital category creates a register row."/>}</div>;
 }
 
