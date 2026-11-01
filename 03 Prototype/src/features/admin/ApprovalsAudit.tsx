@@ -15,7 +15,7 @@ type Tab=typeof TABS[number]['id'];
 const TAB_IDS=TABS.map(x=>x.id);
 // FIT (DEC-194/196, contract §6 'approvals' = FitTabs): three sub-screens — the approvals inbox, pending expenses and the audit log —
 // each one panel that fits (a fourth/second stacked panel would be cramped at 640 px, so the expenses table gets its own tab).
-// Inbox status tabs and the audit filters sit in the toolbar; "Load more" is in the audit panel footer. Every action stays.
+// Inbox status tabs and the audit filters sit in a side panel; "Load more" is in the audit panel footer. Every action stays.
 export function ApprovalsAudit(){
   const {s,uid}=useHcc();
   const [tab,setTab]=useFitTab<Tab>('approvals',TAB_IDS,'approvals');
@@ -26,8 +26,7 @@ export function ApprovalsAudit(){
   const pendingExp=s.expenses.filter(e=>e.status==='Pending').length;
   const audit=useAuditFilters();
   const auditOk=authorize(s,uid,'PERM-ADM-004').decision==='allow';
-  const toolbar=tab==='approvals'?<Tabs tabs={ADMIN_INBOX_TABS} value={status} onChange={setStatus} counts={counts}/>
-    :tab==='audit'&&auditOk?<AuditFilters f={audit}/>:undefined;
+  const toolbar=tab==='approvals'?<Tabs tabs={ADMIN_INBOX_TABS} value={status} onChange={setStatus} counts={counts}/>:undefined;
   return <FitPage title="Approvals & audit" sub="Every request with its binding, and every change with who, when and what." actions={<Pill tone="blue">Simulated clock {clockTime(s.clock)} IST</Pill>}
       toolbar={toolbar}
       tabs={<FitTabs page="approvals" value={tab} onChange={setTab}
@@ -37,7 +36,7 @@ export function ApprovalsAudit(){
         {list.map(r=><InboxRow key={r.a.id} r={r}/>)}</tbody></table></div>:<Empty title={`No ${status.toLowerCase()} requests`} body={status==='Pending'?'Discounts above the threshold and policy change requests appear here.':'Nothing in this state.'}/>}
     </ScrollPanel>}
     {tab==='expenses'&&<Expenses/>}
-    {tab==='audit'&&<AuditLog f={audit}/>}
+    {tab==='audit'&&(auditOk?<div className="fit-cols"><div><AuditLog f={audit}/></div><div><ScrollPanel title="Filters" label="Audit filters"><div className="padded"><AuditFilters f={audit}/></div></ScrollPanel></div></div>:<AuditLog f={audit}/>)}
   </FitPage>;
 }
 

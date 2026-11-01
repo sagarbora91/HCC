@@ -47,9 +47,9 @@ export function register({test,assert}){
     assert.ok(page(F.ApprovalsAudit,'approvals','audit').includes('Audit log</h2>'));
     assert.deepEqual(F.SUB_SCREENS.filter(x=>x.page==='approvals').map(x=>x.id),['approvals','expenses','audit']);
   });
-  test('[FIT-ADMIN-A] approvals audit tab: filters sit in the toolbar, role without audit permission sees the lock message in the panel',()=>{
+  test('[FIT-ADMIN-A] approvals audit tab: filters sit in a side panel (fit-cols), role without audit permission sees the lock message in the panel',()=>{
     const html=page(F.ApprovalsAudit,'approvals','audit');
-    assert.ok(/fit-page-toolbar"><div class="adm-filters form-row"><label>Actor/.test(html),'filters in the toolbar');
+    assert.ok(/class="fit-cols".*aria-label="Audit filters".*<div class="adm-filters form-row"><label>Actor/.test(html),'filters in a side panel');
     const denied=page(F.ApprovalsAudit,'approvals','audit','reception');
     assert.ok(denied.includes('Audit view is limited to Owner, Manager, Accountant and Tech admin (view).'),'lock text kept');
     assert.ok(!denied.includes('adm-filters'));
