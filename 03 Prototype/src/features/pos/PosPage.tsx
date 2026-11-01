@@ -16,7 +16,7 @@ export type PosView='orders'|'kitchen'|'summary';
  *  three columns — tables, menu, check — that scroll on their own, the check's KOT / Settle bar sticky at the bottom of its column. */
 const POS_VIEWS=['orders','kitchen','summary'] as const;
 export function PosPage(){
-  const {s,uid}=useHcc();const p=posSlice(s);
+  const {s,uid,open}=useHcc();const p=posSlice(s);
   const [tab,setView]=useFitTab<PosView>('pos',POS_VIEWS,'orders');
   const kitchenOpen=posKitchen(s).filter(x=>x.kot.status!=='Served').length;
   const sales=rbacPosSeesDaySales(s,uid); // DEC-079 D1: no day sales for the Restaurant role
@@ -26,8 +26,8 @@ export function PosPage(){
   const tabs:{id:PosView;label:string;count?:number}[]=[{id:'orders',label:'Orders',count:posOpenOrders(s).length},{id:'kitchen',label:'Kitchen (KOT)',count:kitchenOpen},
     ...(sales?[{id:'summary' as PosView,label:'Day summary'}]:[])];
   return <FitPage title="Restaurant & room service" sub={sub} layout="fill"
-      actions={<span className="pos-sim"><Info size={14}/>KOT printer & card terminal simulated</span>}
-      toolbar={<>{isDayClosed(s)&&<FitNote text="The business day is closed — checks are read-only until the next day is opened."/>}<PosMasterLinks/></>}
+      actions={<>{view==='summary'&&<button className="btn" onClick={()=>open({type:'pos-report'})}><Printer size={15}/> Print summary</button>}<span className="pos-sim"><Info size={14}/>KOT printer & card terminal simulated</span></>}
+      toolbar={<>{view==='summary'&&<FitNote text={`Settled bills by settlement date; open checks as of ${s.clock.slice(11,16)} (simulated clock).`}/>}{isDayClosed(s)&&<FitNote text="The business day is closed — checks are read-only until the next day is opened."/>}<PosMasterLinks/></>}
       tabs={<FitTabs page="pos" value={view} onChange={setView} tabs={tabs}/>}>
     {view==='orders'&&<PosOrders/>}{view==='kitchen'&&<PosKitchenBoard/>}{view==='summary'&&sales&&<PosSummary/>}
   </FitPage>;
@@ -83,9 +83,8 @@ export function PosAvailability(){
 }
 
 export function PosSummary(){
-  const {s,open}=useHcc();const d=posDaySummary(s);
+  const {s}=useHcc();const d=posDaySummary(s);
   return <>
-    <div className="pos-sum-head"><p>Settled bills by settlement date; open checks as of {s.clock.slice(11,16)} (simulated clock).</p><button className="btn" onClick={()=>open({type:'pos-report'})}><Printer size={15}/> Print summary</button></div>
     <StatStrip items={[{title:'Outlet sales (incl. tax)',value:money(d.gross),sub:`${d.checks} bill${d.checks===1?'':'s'} · net ${money(d.net)}`},
       {title:'Outlet cash',value:money(d.outletCash),sub:'Counted in the front-desk drawer'},
       {title:'Posted to room folios',value:money(d.byMode['Room folio']||0),sub:'Collected at checkout'},

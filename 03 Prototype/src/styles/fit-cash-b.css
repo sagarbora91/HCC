@@ -27,7 +27,7 @@
 .app-shell .fit-page .fit-board-col .pos-kot{margin-bottom:8px}
 .app-shell .fit-page .pos-86{flex:none;margin-top:0;position:relative}
 /* opened, the 86 list floats over the bottom of the board so the board keeps its height */
-.app-shell .fit-page .pos-86[open] .pos-86-grid{position:absolute;left:0;right:0;bottom:100%;z-index:6;margin:0 0 6px;padding:10px 14px;max-height:min(40vh,300px);overflow:auto;scrollbar-width:thin;background:var(--c-ffffff);border:1px solid var(--line);border-radius:8px;box-shadow:0 8px 24px var(--c-2b1d1620)}
+.app-shell .fit-page .pos-86[open] .pos-86-grid{position:absolute;left:0;right:0;bottom:100%;z-index:6;margin:0 0 6px;padding:10px 14px;min-height:160px;max-height:min(40vh,300px);overflow:auto;scrollbar-width:thin;background:var(--c-ffffff);border:1px solid var(--line);border-radius:8px;box-shadow:0 8px 24px var(--c-2b1d1620)}
 .app-shell .fit-page>.fit-page-toolbar .pos-mst-links{margin:0 0 0 auto;display:flex;flex-wrap:wrap;gap:4px 14px;align-items:center}
 
 /* ── POS · day summary ───────────────────────────────────────────────────────────────────────────────────────────────────────────────── */
