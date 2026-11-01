@@ -234,3 +234,21 @@ Output: `05 Delivery Evidence/Fit/fit-check-<yyyyMMdd-HHmm>.md` (a table page ×
 - Server: no change (`08 Production` untouched; the gate still runs the server suite).
 - Phone layout byte-identical in behaviour: no diff under §1's phone paths.
 - APK v18 (W0) is built from the merged `main` after this wave, and its tablet report includes the fit check at `tab-land` / `tab-port` on the emulator.
+
+## 11. Coordinator amendments (1 Nov 2026, after the fit-shell review)
+
+Source: `05 Delivery Evidence/Fit/FIT-shell-review-20261101.md` §6. These override anything above that says otherwise.
+
+**Decision numbers:** the FIT rules are **DEC-194** (no page scroll), **DEC-195** (no smaller text; h1 22 px) and **DEC-196** (sub-screens as tabs), approved as **APR-025**. DEC-178…180 are legacy-data rulings; never cite them for FIT.
+
+1. **Modals.** Every rule for desktop dialogs targets the class **`.fit-modal`**, which `ModalHost` adds on the desktop layout. Never use `.modal:not(.m-sheet)` or a bare `.modal`: phone sheets and some phone paths (Day pack) share `.modal`. `ModalHost` already gives the scrolling `.modal-body`, so `ModalFrame` is **only for stand-alone dialogs** that render outside `ModalHost`, and then it renders the `.modal fit-modal` shell itself. The stand-alone dialogs `DayPack`, `ServerDayPack` and the guest-ID dialog (`guestid-ui`) are converted to `ModalFrame` by **fit-shell**; on the phone they keep their current look.
+2. **Sub-screens are desktop only.** Search-palette entries for sub-screens, the `tab` in `go(page,{tab})` and the history `tab` field apply on the desktop layout only. The phone keeps its own tab ids and its Back behaviour (`onPop` keeps `setTabKey('')`).
+3. **Unconverted pages.** The shell puts `data-fit-scroll="legacy"` **on the page's own root element**, never in a wrapper div (a wrapper remounts the page). CSS selector: `.app-shell .content > :not(.fit-page)`.
+4. **Notes and footnotes.** New component **`FitNote`** (`text`, optional `lines` = 1): shows one line with a **More** button that opens the full text in place. Built by fit-shell, then used by every lane. A `title`-only tooltip is not allowed, because touch cannot reach it.
+5. **Nested tabs** (for example Customers: split view with Overview / Stays / … inside): the breadcrumb shows **one** tab crumb, the outer sub-screen; inner tabs are not in the breadcrumb or the search palette.
+6. **Heading baseline.** The page h1 goes from 30 px to 22 px; the Modules Home and category headings go from **26 px** to 22 px. The font baseline compares per element kind, so the check does not change.
+7. **Ownership.** `tools/cssTextScale.mjs` (`readStyleSources`, the CSS bundle order) belongs to fit-shell, together with `build.mjs`.
+8. **User button on touch tablets.** The 56 px top bar shows the user button on every desktop-layout device, touch tablets included, as in the approved mockups. fit-shell lifts `z-tablet.css`'s coarse-pointer hiding of `.current-user` inside `.app-shell .topbar` only. "About this build" and "Sign out" stay in the user menu.
+9. **Header actions never wrap.** The header row stays one row (48 px). The page's primary action is always visible; extra actions go into a **More** menu (`FitPage` prop `actions` = primary first, the rest overflow).
+10. **Tab keyboard.** Arrow keys move focus and select (automatic activation), as built; Home / End go to the first / last tab.
+11. **Below 900 px**, `.fit-cols` stacks, but its panels keep a definite height (no `flex:1 1 0` inside an auto-height parent). A table panel never collapses below the 160 px panel minimum at `tab-port`. fit-shell fixes this in `arrivals` first; the guide shows the pattern.
