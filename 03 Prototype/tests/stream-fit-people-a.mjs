@@ -19,7 +19,9 @@ function ctxFor(s,uid,isMobile=false){
     display:{isMobile,framed:false,mode:isMobile?'mobile':'desktop',setMode(){}},setDirty(){},openSearch(){},openMenu(){},signOut(){},prefs:{prefs:{textScale:1},save(){},reset(){}}};
 }
 /** Desktop render: HccContext + the desktop shell's FitNavContext (page, asked tab). */
-const desk=(el,s,uid,page,tab='')=>renderToStaticMarkup(h(F.HccContext.Provider,{value:ctxFor(s,uid)},h(F.FitNavContext.Provider,{value:{desktop:true,page,tabKey:tab,seq:1,setTabCrumb(){}}},el)));
+const forget=page=>{try{globalThis.sessionStorage?.removeItem('hcc-fit-tab:'+page);}catch{/* no storage */}};
+/** No asked tab = a fresh browser session (useFitTab remembers the last asked tab in sessionStorage, which Node 25 provides globally). */
+const desk=(el,s,uid,page,tab='')=>(tab||forget(page),renderToStaticMarkup(h(F.HccContext.Provider,{value:ctxFor(s,uid)},h(F.FitNavContext.Provider,{value:{desktop:true,page,tabKey:tab,seq:1,setTabCrumb(){}}},el))));
 const phone=(el,s,uid)=>renderToStaticMarkup(h(F.HccContext.Provider,{value:ctxFor(s,uid,true)},el));
 const subs=page=>F.SUB_SCREENS.filter(x=>x.page===page).map(x=>x.id);
 const root=html=>(html.match(/^<section class="([^"]+)" data-fit-page="([^"]+)"/)||[]).slice(1);
@@ -68,8 +70,8 @@ export function register({test,assert}){
     html=desk(h(F.HrDesk),s,'owner','staff','settings');assert.match(html,/Statutory rates and versions/);assert.match(html,/Versions/);
     html=desk(h(F.HrDesk),s,'owner','staff','leave');assert.match(html,/Leave calendar/);
     html=desk(h(F.DayClosing),s,'owner','closing','closing-summary');assert.equal(currentStep(html),'Closing summary');assert.match(html,/Earlier closing records/);
-    html=desk(h(F.DayClosing),s,'owner','closing','reopen-and-corrections');assert.match(html,/Closed-date corrections/);assert.match(html,/Reopen a closed day/,'the Owner sees the reopen form');
-    assert.doesNotMatch(desk(h(F.DayClosing),s,'manager','closing','reopen-and-corrections'),/Reopen a closed day/,'others do not (no reopened day)');
+    html=desk(h(F.DayClosing),s,'owner','closing','reopen-and-corrections');assert.match(html,/Closed-date corrections/);assert.match(html,/>Reopen a closed day<\/h2>/,'the Owner sees the reopen form');
+    assert.doesNotMatch(desk(h(F.DayClosing),s,'manager','closing','reopen-and-corrections'),/>Reopen a closed day<\/h2>/,'others do not (no reopened day)');
     html=desk(h(F.CompliancePage),s,'owner','compliance','dashboard');assert.equal(selectedTab(html),'dashboard');
     assert.equal(selectedTab(desk(h(F.HrDesk),s,'owner','staff','nope')),'people','unknown tab → default');
   });

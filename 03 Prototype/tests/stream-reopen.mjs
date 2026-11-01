@@ -163,6 +163,7 @@ export function render(s:any,uid:string,what:'panel'|'desktop'|'phone',phone=fal
   const user=s.users.find((u:any)=>u.id===uid);const noop=()=>{};
   const ctx:any={s,uid,user,m:metrics(s),page:'closing',go:noop,open:noop,booking:noop,busy:false,run:async()=>false,toast:noop,permission:(p:any)=>can(s,uid,p),
     display:{isMobile:phone,mode:phone?'mobile':'desktop',setMode:noop}};
+  if(what==='desktop'&&!step)try{sessionStorage.removeItem('hcc-fit-tab:closing');}catch{/* no step asked = a fresh session */}
   const el=what==='panel'?<ReopenDay phone={phone}/>:what==='desktop'?<FitNavContext.Provider value={{desktop:true,page:'closing',tabKey:step,seq:1,setTabCrumb:noop}}><DayClosing/></FitNavContext.Provider>:<MaClosing/>;
   return renderToStaticMarkup(<HccContext.Provider value={ctx}>{el}</HccContext.Provider>);
 }`);
