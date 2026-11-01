@@ -11,9 +11,12 @@ import {registration} from '../../src/features/accounting/register';
 import {AccountingPage} from '../../src/features/accounting/Accounting';
 import {AccountingMobile} from '../../src/features/accounting/Mobile';
 import {PlView,BalanceSheetView,OutstandingView,GstSummaryView,CashRatioView,ExportsView,TallyMastersPanel} from '../../src/features/accounting/reports3';
+import {AssetPutModal,AssetDisposeModal,VendorReallocModal,TdsForm168Modal,GstAdvancesModal} from '../../src/features/accounting/carry-ui';
+import {AssetsView} from '../../src/features/accounting/tds';
+import {GstMonthView} from '../../src/features/accounting/gst';
 import {navRoleOk,PAGE_CATEGORY,PAGE_KEYWORDS} from '../../src/app/navmap';
 export {registration,navRoleOk,PAGE_CATEGORY,PAGE_KEYWORDS};
-const C:any={AccountingPage,AccountingMobile,PlView,BalanceSheetView,OutstandingView,GstSummaryView,CashRatioView,ExportsView,TallyMastersPanel};
+const C:any={AccountingPage,AccountingMobile,PlView,BalanceSheetView,OutstandingView,GstSummaryView,CashRatioView,ExportsView,TallyMastersPanel,AssetPutModal,AssetDisposeModal,VendorReallocModal,TdsForm168Modal,GstAdvancesModal,AssetsView,GstMonthView};
 export function render(name:string,props:any,s:any,uid:string,mobile=false){
   const noop=()=>{};const user=s.users.find((u:any)=>u.id===uid);
   const ctx:any={s,uid,user,m:metrics(s),page:'accounting',go:noop,modal:{type:'x',key:'k1'},open:noop,closeModal:noop,booking:noop,error:'',busy:false,run:async()=>false,toast:noop,
@@ -88,5 +91,34 @@ export function render(name:string,props:any,s:any,uid:string,mobile=false){
   test('[ACC3-UI] the Tally tab (desktop and phone) carries the masters panel above the voucher export',()=>{
     const s=M.seed();assert.ok(true);
     assert.match(text(render('TallyMastersPanel',{},s,'owner')),/Masters \(groups and ledgers\)/);
+  });
+
+  // ── carry-over dialogs (contract §7) ──
+  const withAssets=()=>{const s=M.seed();return {...s,accountingX:{...(s.accountingX??{}),assets:[{id:'a1',no:'FA-2026-001',ledger:'1510',name:'Lobby sofa set (fictional)',cost:8500000,date:'2026-10-02',vendor:'Sample Furnishings',expense:'EXP-9',itc:0}]}};};
+  const withPay=()=>{const s=M.seed();s.expensesX={...(s.expensesX??{}),vendorPayments:[{id:'VP-1',vendor:'Morning Supplies',date:'2026-10-08',amount:300000,method:'UPI',reference:'UTR1',by:'owner',at:'2026-10-08T10:00',allocations:[]}]};return s;};
+  test('[ACC3-UI] assets: Put to use and Dispose actions for Owner and Accountant only, desktop and phone',()=>{
+    const s=withAssets();
+    for(const u of ['owner','accountant']){assert.match(text(render('AssetsView',{},s,u)),/Put to use…[\s\S]*Dispose…/,u);assert.match(text(render('AssetsView',{phone:true},s,u,true)),/Put to use · FA-2026-001/,u);}
+    assert.doesNotMatch(text(render('AssetsView',{},s,'manager')),/Dispose…/);
+  });
+  test('[ACC3-UI] asset dialogs: put-to-use date, disposal with sale value and tender; a stranger role is told why',()=>{
+    const s=withAssets();
+    assert.match(text(render('AssetPutModal',{id:'a1'},s,'owner')),/Date first used/);
+    const d=text(render('AssetDisposeModal',{id:'a1'},s,'owner'));assert.match(d,/Sale value/);assert.match(d,/Record disposal/);
+    assert.match(text(render('AssetPutModal',{id:'a1'},s,'manager')),/Only the Owner or the Accountant/);
+    assert.match(text(render('AssetDisposeModal',{id:'zz'},s,'owner')),/Asset not found/);
+  });
+  test('[ACC3-UI] vendor payment re-allocate dialog: allocations editor, role note, unknown payment',()=>{
+    const s=withPay();
+    const t=text(render('VendorReallocModal',{id:'VP-1'},s,'owner'));assert.match(t,/Re-allocate VP-1/);assert.match(t,/Save allocation/);assert.match(t,/Allocated/);
+    assert.match(text(render('VendorReallocModal',{id:'VP-1'},s,'cashier')),/Owner, Manager or Accountant/);
+    assert.match(text(render('VendorReallocModal',{id:'nope'},s,'owner')),/Payment not found/);
+  });
+  test('[ACC3-UI] Form 168 dialog and the dated GST-on-advances switch',()=>{
+    const s=M.seed();
+    assert.match(text(render('TdsForm168Modal',{id:'nope'},s,'owner')),/Remittance not found/);
+    const g=text(render('GstAdvancesModal',{},s,'owner'));assert.match(g,/GST on booking advances/);assert.match(g,/Charge GST on booking advances/);
+    assert.match(text(render('GstAdvancesModal',{},s,'accountant')),/Only the Owner changes this switch/);
+    assert.match(text(render('GstMonthView',{},s,'owner')),/GST on advances \(off\)/);assert.doesNotMatch(text(render('GstMonthView',{},s,'accountant')),/GST on advances/);
   });
 }

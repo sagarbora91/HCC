@@ -16,7 +16,7 @@ import {CashGuardNote,cashGuardToast} from '../accounting/cashguard';
 
 type View='bills'|'ageing'|'payments';
 export function ExpVendors({phone=false}:{phone?:boolean}){
-  const {s,uid,open,toast}=useHcc();const {canVendorPay}=useAccPerms();
+  const {s,uid,open,toast,user}=useHcc();const {canVendorPay}=useAccPerms();
   const ageing=useMemo(()=>expVendorAgeingRows(s),[s]);const pays=expVendorPaymentList(s);
   const [view,setView]=useState<View>('bills');
   const [vendor,setVendor]=useState(ageing[0]?.vendor??'');const v=ageing.some(a=>a.vendor===vendor)?vendor:ageing[0]?.vendor??'';
@@ -42,14 +42,15 @@ export function ExpVendors({phone=false}:{phone?:boolean}){
         {ageing.map(r=><tr key={r.vendor}><td>{r.vendor}</td><td className="number">{money(r.b0)}</td><td className="number">{money(r.b31)}</td><td className="number">{money(r.b61)}</td><td className="number">{money(r.b90)}</td><td className="number"><strong>{money(r.total)}</strong></td><td className="number">{r.advance?money(r.advance):'—'}</td></tr>)}
         <tr className="acc-total"><td><strong>Total</strong></td><td className="number">{money(tot.b0)}</td><td className="number">{money(tot.b31)}</td><td className="number">{money(tot.b61)}</td><td className="number">{money(tot.b90)}</td><td className="number"><strong>{money(tot.total)}</strong></td><td className="number">{money(tot.advance)}</td></tr></tbody></table></div>}
     <p className="muted">Age is counted from the bill date over the bills still open after the payments allocated to them.</p>{csvBtn}</>;
-  const paymentsView=!pays.length?<Empty title="No vendor payments yet" body="Payments made from here appear with the bills they settled."/>:phone?pays.slice(0,50).map(p=>
-      <ListCard key={p.id} title={`${p.vendor} · ${money(p.amount)}`} sub={`${shortDate(p.date)} · ${p.method} · ${p.reference||'no reference'}${p.void?' · void':''}`}
-        meta={p.allocations.length?`Settled ${p.allocations.map(a=>a.expense).join(', ')}`:'Advance'} right={p.void?<span className="pill neutral">Void</span>:<span className="pill green">Paid</span>} onClick={()=>open({type:'exp-vendor-void',id:p.id})}/>)
+  const paymentsView=!pays.length?<Empty title="No vendor payments yet" body="Payments made from here appear with the bills they settled."/>:phone?pays.slice(0,50).map(p=><React.Fragment key={p.id}>
+      <ListCard title={`${p.vendor} · ${money(p.amount)}`} sub={`${shortDate(p.date)} · ${p.method} · ${p.reference||'no reference'}${p.void?' · void':''}`}
+        meta={p.allocations.length?`Settled ${p.allocations.map(a=>a.expense).join(', ')}`:'Advance'} right={p.void?<span className="pill neutral">Void</span>:<span className="pill green">Paid</span>} onClick={()=>open({type:'exp-vendor-void',id:p.id})}/>
+      {!p.void&&['Owner','Manager','Accountant'].includes(user.role)&&<button type="button" className="btn full" onClick={()=>open({type:'exp-vendor-realloc',id:p.id})}>Re-allocate {p.id}…</button>}</React.Fragment>)
     :<div className="table-wrap"><table><thead><tr><th>Payment</th><th>Vendor</th><th>Method / reference</th><th className="number">Amount</th><th>Settles</th><th>Status</th><th/></tr></thead><tbody>
       {pays.slice(0,100).map(p=>{const used=p.allocations.reduce((a,x)=>a+x.amount,0);return <tr key={p.id}><td><strong>{p.id}</strong><small>{dateLabel(p.date)} · {accUserName(s,p.by)}</small></td><td>{p.vendor}</td><td>{p.method}<small>{p.reference||'—'}</small></td>
         <td className="number">{money(p.amount)}</td><td>{p.allocations.map(a=><small key={a.expense}>{a.expense} · {money(a.amount)}</small>)}{p.amount>used&&<small>Advance {money(p.amount-used)}</small>}</td>
         <td>{p.void?<span className="pill neutral">Void</span>:<span className="pill green">Paid</span>}{p.void&&p.voidReason&&<small>{p.voidReason}</small>}</td>
-        <td>{!p.void&&<button type="button" className="text-btn danger-text" onClick={()=>open({type:'exp-vendor-void',id:p.id})}>Void…</button>}</td></tr>;})}</tbody></table></div>;
+        <td>{!p.void&&<button type="button" className="text-btn danger-text" onClick={()=>open({type:'exp-vendor-void',id:p.id})}>Void…</button>}{!p.void&&['Owner','Manager','Accountant'].includes(user.role)&&<button type="button" className="text-btn" onClick={()=>open({type:'exp-vendor-realloc',id:p.id})}>Re-allocate…</button>}</td></tr>;})}</tbody></table></div>;
   return <section className={phone?'mm-vendors':'card exp-vendors'}>
     <div className="section-title"><h2>Vendor payments</h2><span className="muted">Pay open bills, oldest first</span></div>
     <div className={phone?undefined:'padded'}>{kpis}{views}

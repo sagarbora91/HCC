@@ -7,6 +7,7 @@ import {AccVoucherModal,AccLockModal,AccUnlockModal,AccMapModal,AccLedgerModal,A
 import {ManualModal,ManualDecideModal,ManualVoidModal} from './manual';
 import {GstPayModal,StatRemitModal,MonthLockModal,MonthUnlockModal} from './gst';
 import {TdsRemitModal,LoanModal} from './tds';
+import {AssetPutModal,AssetDisposeModal,VendorReallocModal,TdsForm168Modal,GstAdvancesModal} from './carry-ui';
 export const registration:FeatureRegistration={
   pages:{'accounting':AccountingPage},
   nav:[
@@ -30,6 +31,12 @@ export const registration:FeatureRegistration={
     'acc-month-unlock':p=><MonthUnlockModal id={p.id}/>,    // id = YYYY-MM (Owner, reason)
     'acc-tds-remit':p=><TdsRemitModal id={p.id}/>,          // id = YYYY-MM
     'acc-loan':()=><LoanModal/>,                            // Owner: Add loan under 2400
+    // ACC-3 (acc3-ui)
+    'acc-asset-put':p=><AssetPutModal id={p.id}/>,           // id = asset id (Owner, Accountant)
+    'acc-asset-dispose':p=><AssetDisposeModal id={p.id}/>,   // id = asset id (Owner, Accountant)
+    'exp-vendor-realloc':p=><VendorReallocModal id={p.id}/>, // id = vendor payment id (Owner, Manager, Accountant)
+    'acc-tds-form168':p=><TdsForm168Modal id={p.id}/>,       // id = TDS remittance voucher id (Owner, Accountant)
+    'acc-gst-advances':()=><GstAdvancesModal/>,              // Owner
   },
   mobile:{pages:{'accounting':AccountingMobile},modals:{}},
 };
