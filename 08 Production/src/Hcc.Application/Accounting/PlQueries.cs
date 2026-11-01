@@ -1,4 +1,5 @@
 using Hcc.Application.Access;
+using Hcc.Application.Billing;
 using Hcc.Application.Import;
 using Hcc.Contracts.Accounting;
 using Hcc.Domain.Accounting;
