@@ -31,7 +31,7 @@ html:has(.app-shell),html:has(.app-shell) body,html:has(.app-shell) #root{height
 .fit-demo-pill{display:inline-flex;align-items:center;gap:6px;min-height:32px;padding:0 10px;border-radius:999px;border:1px solid var(--c-e5d5b3);background:var(--c-fbf6ea);color:var(--c-7a5e33);font-weight:700;letter-spacing:1.2px;white-space:nowrap}
 .fit-demo-pill:hover{background:var(--c-fdf8ee)}
 .fit-demo-pill.armed{border-color:var(--c-c9773d);background:var(--c-fff1e4)}
-.fit-demo-pop{position:fixed;top:calc(var(--fit-topbar) - 4px);right:16px;z-index:90;width:min(460px,calc(100vw - 32px));max-height:calc(100dvh - var(--fit-topbar) - 16px);overflow:auto;background:var(--c-fbf6ea);border:1px solid var(--c-e5d5b3);border-radius:12px;box-shadow:0 12px 40px var(--c-2b1d1630);padding:12px}
+.fit-demo-pop{position:fixed;top:calc(var(--fit-topbar) - 4px);right:16px;z-index:90;width:min(460px,calc(100vw - 32px));max-height:calc(100vh - var(--fit-topbar) - 16px);max-height:calc(100dvh - var(--fit-topbar) - 16px);overflow:auto;background:var(--c-fbf6ea);border:1px solid var(--c-e5d5b3);border-radius:12px;box-shadow:0 12px 40px var(--c-2b1d1630);padding:12px}
 .fit-demo-notes{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
 .app-shell .fit-demo-pop .demo-toolbar{display:flex!important;flex-direction:column;align-items:stretch;flex-wrap:nowrap;padding:0;border:0;background:transparent;gap:8px}
 .app-shell .fit-demo-pop .demo-spacer{display:none}
