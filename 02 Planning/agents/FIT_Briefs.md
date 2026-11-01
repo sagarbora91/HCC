@@ -1,6 +1,6 @@
 # FIT lane briefs — wave `claude/fit` (prepared 1 Nov 2026) — fit-to-screen desktop and tablet layout
 
-Read first, in order: this file; `02 Planning/agents/FIT-LAYOUT-CONTRACT.md` (the rules, component names, page assignments — copy, never reinterpret); `CLAUDE.md` (architecture rules, commands, colour tokens); `tools/README-agents.md` (the lock, the DONE file, the gate); the code of the pages in your lane. Owner rulings: DEC-194…180, APR-025.
+Read first, in order: this file; `02 Planning/agents/FIT-LAYOUT-CONTRACT.md` (the rules, component names, page assignments — copy, never reinterpret); `CLAUDE.md` (architecture rules, commands, colour tokens); `tools/README-agents.md` (the lock, the DONE file, the gate); the code of the pages in your lane. Owner rulings: DEC-194…196, APR-025.
 
 **When this wave starts:** after ACC-2 (W2) and W1a LG are on `main`. The coordinator then merges `main` into `claude/fit` (this setup commit), re-records the font baseline (lane fit-check, phase A) and cuts the lane worktrees. It does not overlap any other wave's batch on this PC.
 

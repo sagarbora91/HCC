@@ -208,12 +208,15 @@ def build_guests(ci: list[dict], lk: dict, latest_fy: str, today: date, warnings
         if ann and 1900 < ann.year and ann.date() <= today:
             note_parts.append(f"Anniversary: {ann.date().isoformat()}")
         notes = "; ".join(note_parts)[:1000]
+        gstin = R.valid_gstin(g(r, "GSTNo"))
+        if gstin and not company:
+            company = R.cap(R.title_case(w["name"]), 200)  # the masters importer needs a company on a GSTIN row
         return {
-            "name": R.title_case(w["name"]), "phone": w["pk"], "email": "",
+            "name": R.cap(R.title_case(w["name"]), 200), "phone": w["pk"], "email": "",
             "address": R.build_address(g(r, "Address1"), city.get(g(r, "Citycode1"), ""),
                                      lk["state"].get(lk["city_state"].get(g(r, "Citycode1"), "") or g(r, "Statecode"), ""), g(r, "PinNo1")),
             "nationality": R.nationality_for(g(r, "Nationality")), "company": company,
-            "gstin": R.valid_gstin(g(r, "GSTNo")), "notes": notes,
+            "gstin": gstin, "notes": notes,
         }
 
     guest_rows = []
@@ -234,9 +237,9 @@ def build_guests(ci: list[dict], lk: dict, latest_fy: str, today: date, warnings
         dob_by_gid[gid] = dob
         gm[gid] = {
             "legacy_guest_id": gid, "guest_id": "", "customer_key": ck, "phone_key": x["pk"],
-            "phone_valid": 1 if x["valid"] else 0, "name_snapshot": R.title_case(x["name"]),
-            "name_fold": R.name_fold(x["name"]), "deleted": 1 if x["deleted"] else 0, "source_fy": latest_fy,
-            "guest_name": R.title_case(w["name"]) if w else "", "guest_phone": w["pk"] if w else "",
+            "phone_valid": 1 if x["valid"] else 0, "name_snapshot": R.cap(R.title_case(x["name"]), 200),
+            "name_fold": R.cap(R.name_fold(x["name"]), 200), "deleted": 1 if x["deleted"] else 0, "source_fy": latest_fy,
+            "guest_name": R.cap(R.title_case(w["name"]), 200) if w else "", "guest_phone": w["pk"] if w else "",
             "is_primary": (1 if w and w["gid"] == gid else 0) if w else 0, "dob": dob,
         }
         gname = grp.get(g(r, "GroupID"), "")
@@ -364,12 +367,12 @@ def process_fy(src: Source, fy: str, gm: dict, tag_of_key: dict, lk: dict, is_la
         ref = f"{fy}|{bid}"
         stay = {
             "legacy_fy": fy, "legacy_booking_id": bid, "legacy_guest_id": gid, "customer_key": ck,
-            "guest_name_snapshot": nm, "arrival_date": R.date_text(fd), "arrival_utc": R.utc_text(fd),
+            "guest_name_snapshot": R.cap(nm, 200), "arrival_date": R.date_text(fd), "arrival_utc": R.utc_text(fd),
             "departure_date": R.date_text(dep) if dep else "", "departure_utc": R.utc_text(dep) if dep else "",
             "expected_departure_date": R.date_text(td) if td else "", "nights": nights, "adults": adults,
-            "children": children, "room_no": first_room or "?", "room_count": len(set(rooms)) or 1,
+            "children": children, "room_no": R.cap(first_room or "?", 20), "room_count": len(set(rooms)) or 1,
             "meal_plan": R.MEAL_PLAN.get(R.to_int(g(b, "FacilityID")), ""), "grc_no": grc if grc else "",
-            "purpose": pv[:100], "source_tag": tag_of_key.get(ck, ""), "status": status, "paid_flag": "",
+            "purpose": R.cap(pv, 100), "source_tag": R.cap(tag_of_key.get(ck, ""), 30), "status": status, "paid_flag": "",
             "legacy_bill_no": "", "notes": "; ".join(notes)[:1000],
         }
         o.stays.append(stay)
@@ -382,7 +385,7 @@ def process_fy(src: Source, fy: str, gm: dict, tag_of_key: dict, lk: dict, is_la
             pkg = room_pkg_by_name.get(rn, 0)
             single = len(dets) == 1 and not shifts.get(bid)
             o.segments.append({
-                "stay_ref": ref, "seq": seq, "room_no": rn, "room_type_code": R.ROOM_TYPE_BY_PACKAGE_NAME.get(pkg, ""),
+                "stay_ref": ref, "seq": seq, "room_no": R.cap(rn, 20), "room_type_code": R.ROOM_TYPE_BY_PACKAGE_NAME.get(pkg, ""),
                 "from_date": R.date_text(fd) if seq == 1 else "", "to_date": (R.date_text(end) if (single and end) else ""),
                 "adults": R.to_int(g(d, "Adult")), "children": R.to_int(g(d, "Childrens")),
                 "rate_paise": R.paise(g(d, "RoomCharges")), "extra_paise": R.paise(g(d, "ExtraCharges")), "kind": "booked"})
@@ -391,7 +394,7 @@ def process_fy(src: Source, fy: str, gm: dict, tag_of_key: dict, lk: dict, is_la
             rn = room_name_by_id.get(g(s, "ToRoom"), "") or "?"
             pkg = room_pkg_by_name.get(rn, 0)
             o.segments.append({
-                "stay_ref": ref, "seq": seq, "room_no": rn, "room_type_code": R.ROOM_TYPE_BY_PACKAGE_NAME.get(pkg, ""),
+                "stay_ref": ref, "seq": seq, "room_no": R.cap(rn, 20), "room_type_code": R.ROOM_TYPE_BY_PACKAGE_NAME.get(pkg, ""),
                 "from_date": "", "to_date": "", "adults": "", "children": "", "rate_paise": "", "extra_paise": "",
                 "kind": "shift"})
     stay_by_bid = {s["legacy_booking_id"]: s for s in o.stays}
@@ -434,10 +437,12 @@ def process_fy(src: Source, fy: str, gm: dict, tag_of_key: dict, lk: dict, is_la
             notes.append(f"Note: {R.real_text(g(t, 'Note'))}")
         if R.real_text(g(t, "DamagesRemark")):
             notes.append(f"Damages: {R.real_text(g(t, 'DamagesRemark'))}")
+        if len(room) > 20:
+            notes.insert(0, f"RoomNo: {room}")
         b = {
             "legacy_fy": fy, "legacy_bill_no": bn, "legacy_transaction_id": R.to_int(tid),
             "stay_ref": f"{fy}|{bk}" if stay else "", "legacy_guest_id": gid if gid is not None else "",
-            "customer_key": ck, "bill_date": R.date_text(dep), "bill_utc": R.utc_text(dep), "room_no": room,
+            "customer_key": ck, "bill_date": R.date_text(dep), "bill_utc": R.utc_text(dep), "room_no": R.cap(room, 20),
             "nights": stay["nights"] if stay else "",
             "room_charge_paise": R.paise(g(t, "RoomCharg")),
             "extra_paise": R.paise(g(t, "ExtraCharge")) + R.paise(g(t, "ACCharge")) + R.paise(g(t, "ElectricalExpCharges")),
@@ -450,7 +455,7 @@ def process_fy(src: Source, fy: str, gm: dict, tag_of_key: dict, lk: dict, is_la
             "advance_paise": R.paise(g(t, "Advance")), "net_paise": R.paise(g(t, "NetBill")),
             "balance_paise": R.paise(g(t, "BalanceDue")), "refund_paise": R.paise(g(t, "Refundamt")),
             "data_flag": dflag if dflag in ("C", "P") else "?", "paid_flag": pflag if pflag in ("Y", "N") else "?",
-            "gstin_snapshot": gst, "b2b": 1 if gr else 0, "out_of_fy": 0, "notes": "; ".join(notes)[:500],
+            "gstin_snapshot": R.cap(gst, 15), "b2b": 1 if gr else 0, "out_of_fy": 0, "notes": R.cap("; ".join(notes), 500),
             "_dep": dep, "_key": R.bill_key(dep, room, g(t, "NetBill")), "_src": sv,
             "_lt_slab": g(t, "LuxuryTaxPer"), "_disc_amt_paise": R.paise(g(t, "DiscountAmt")),
         }
@@ -493,7 +498,7 @@ def process_fy(src: Source, fy: str, gm: dict, tag_of_key: dict, lk: dict, is_la
             "bill_ref": f"{fy}|{bn}" if bn > 0 and bn in bill_by_no else "",
             "legacy_guest_id": gid if gid is not None else "", "customer_key": ck,
             "received_date": R.date_text(day), "received_utc": R.utc_text(when), "method": method,
-            "reference": "" if cheq in ("", "-", "0") else cheq, "bank_name": R.real_text(g(d, "BankName")),
+            "reference": R.cap("" if cheq in ("", "-", "0") else cheq, 100), "bank_name": R.cap(R.real_text(g(d, "BankName")), 100),
             "notes": "; ".join(notes)[:300], "_day": day, "_key": R.receipt_key(day, g(d, "DepositAmt"), cust),
         }
         if ptype == "advance":
@@ -526,8 +531,8 @@ def process_fy(src: Source, fy: str, gm: dict, tag_of_key: dict, lk: dict, is_la
             "bill_ref": f"{fy}|{bn}" if bn > 0 and bn in bill_by_no else "", "legacy_guest_id": gid,
             "customer_key": gm[gid]["customer_key"] if gid in gm else "", "received_date": R.date_text(day),
             "received_utc": R.utc_text(when), "kind": "refund", "method": R.cash_method(g(rf, "CashType"), cheq),
-            "amount_paise": R.paise(ra) + R.paise(sa), "reference": "" if cheq in ("", "-", "0") else cheq,
-            "bank_name": R.real_text(g(rf, "BankName")), "notes": R.real_text(g(rf, "Remark"))[:300],
+            "amount_paise": R.paise(ra) + R.paise(sa), "reference": R.cap("" if cheq in ("", "-", "0") else cheq, 100),
+            "bank_name": R.cap(R.real_text(g(rf, "BankName")), 100), "notes": R.real_text(g(rf, "Remark"))[:300],
             "_day": day, "_key": None, "_src_amt": ra + sa, "_primary": True})
     return o
 
@@ -797,6 +802,9 @@ def run(a, log=print) -> int:
 
     # ---- masters CSVs
     n_guest = write_csv(out / "guests.csv", ["name", "phone", "email", "address", "nationality", "company", "gstin", "notes"], guest_rows)
+    gh = ["name", "phone", "email", "address", "nationality", "company", "gstin", "notes"]
+    for i in range(0, len(guest_rows), 5000):  # the masters importer takes at most 5,000 rows per upload
+        write_csv(out / f"guests-{i // 5000 + 1}.csv", gh, guest_rows[i:i + 5000])
     comp_rows, comp_review = companies_from(guest_rows)
     write_csv(out / "companies.csv", ["name", "gstin", "contact", "phone", "email", "city", "creditLimit", "negotiatedRates"], comp_rows)
     with open(out / "companies-review.md", "w", encoding="utf-8", newline="") as fh:

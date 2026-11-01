@@ -52,3 +52,9 @@ Receipt rows: one per `CustomerDeposit` row (kind `advance` or `payment`), an ex
 - Money is `Decimal(printed value)` times 100, half away from zero; dates are IST wall clock, UTC = IST minus 5:30.
 - `bill.extra_paise` = ExtraCharge + ACCharge + ElectricalExpCharges; `other_paise` = Others + Telephone + Addition + WaterDonation + Damages; `discount_paise` = DiscountAmt + BillDiscount (the summed DiscountAmt alone is `discountAmtOnlyPaise` in `totals.json`).
 - The fixture is invented; no real row, name, phone, GSTIN or ID number appears in this folder.
+
+## Cut-over facts the masters importer enforces (LG-R14)
+
+- `guests.csv` is uploaded in parts of at most 5,000 rows: the extractor also writes `guests-1.csv`, `guests-2.csv` ... (same header) next to the full `guests.csv`.
+- A guest row with a GSTIN must carry a company name: when `CompanyN` is empty the extractor sets `company` to the guest's own name.
+- Every text that targets a bounded `lgc` column is cut to that length (name-form `customer_key` 80, room numbers 20, purpose 100, source tag 30, notes 1000 / 500 / 300, reference and bank 100, GSTIN 15, names 200). A bill `RoomNo` longer than 20 characters keeps its first 20 in `room_no` and the full text at the front of the bill's notes.
