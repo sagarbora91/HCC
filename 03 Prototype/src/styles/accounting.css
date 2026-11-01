@@ -2,3 +2,5 @@
 .app-shell .acc-fit-toolbar{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:8px}
 .app-shell .acc-fit-toolbar .acc-statusbar{margin:0;gap:6px 12px}
 .app-shell .acc-fit-toolbar .acc-statusbar>.muted{min-width:0;flex:1 1 240px}
+/* In-page action bars (Opening balances: Add line / Save draft / Submit; Reopen form) stay in view at the bottom of the section panel (DEC-194: nothing that commits work sits below a scroll). */
+.app-shell .fit-page[data-fit-page="accounting"] .fit-panel-body .modal-actions{position:sticky;bottom:0;z-index:2;background:var(--c-ffffff);border-top:1px solid var(--line);padding-top:8px;padding-bottom:8px}

@@ -80,7 +80,8 @@ function ReportsPage(){
   const report=<ScrollPanel title={label} label={label+' — report'} actions={tab==='history'?undefined:exports}
       footer={tab==='history'||tab==='dictionary'?undefined:<FitNote text={<><Info size={14} aria-hidden/> Charges follow service date, receipts follow receipt date, expenses follow business date. Daily cash need not equal daily revenue. GST from the dated GST master (illustrative — CA to confirm).</>}/>}>
     <div className="f-report-body">{body}</div></ScrollPanel>;
-  return <FitPage title="Reports" sub={process.env.HCC_BUILD==='production'?'Figures from the hotel server · '+dateLabel(s.date):'Every figure derived from source records · fictional data · '+dateLabel(s.date)} layout="split"
+  // layout stays 'fill': FitPage's root class fit-split would collide with SplitView's own .fit-split grid (Integration needed in the DONE file).
+  return <FitPage title="Reports" sub={process.env.HCC_BUILD==='production'?'Figures from the hotel server · '+dateLabel(s.date):'Every figure derived from source records · fictional data · '+dateLabel(s.date)}
       toolbar={<section className="f-filters f-fit-filters" aria-label="Report filters">
       <label>From (business date)<input type="date" value={from} max={s.date} onChange={e=>{setFrom(e.target.value);setDrill(null);}}/></label>
       <label>To<input type="date" value={to} max={s.date} onChange={e=>{setTo(e.target.value);setDrill(null);}}/></label>

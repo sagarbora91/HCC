@@ -35,7 +35,7 @@ const tabIds=html=>[...html.matchAll(/role="tab" id="fit-tab-[^"]+" data-tab="([
 
 export function register({test,assert}){
   test('[FIT-PEOPLE-B] every lane page renders a fit-page root with data-fit-page on the desktop layout',()=>{
-    for(const [Page,page,layout] of [[F.AccountingPage,'accounting','fill'],[F.Reports,'reports','split'],[F.PlansExtrasPage,'plans-extras','fill'],[F.AssistantPage,'assistant','fill']]){
+    for(const [Page,page,layout] of [[F.AccountingPage,'accounting','fill'],[F.Reports,'reports','fill'],[F.PlansExtrasPage,'plans-extras','fill'],[F.AssistantPage,'assistant','fill']]){
       const html=render(Page,page);
       assert.match(html,new RegExp(`^<section class="fit-page fit-${layout}" data-fit-page="${page}"`),page);
       assert.ok(html.includes('<h1 id="fit-page-h1">'),page+' h1 in the FitPage header');
