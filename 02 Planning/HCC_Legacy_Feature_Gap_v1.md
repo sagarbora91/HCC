@@ -27,7 +27,7 @@
 | A6 | **Check-out time rule**: 24-hour check-out (from the check-in time) or the fixed noon check-out, per booking, plus "Check-out time adjust hours" | `RoomBooking.DaycloseType`, `Hours`; `CheckOutTimeHours` setting | Fixed check-out time; day-use rates exist only in yield | Per-booking check-out basis (24-hour / fixed time), late-check-out hours, the night count following that basis |
 | A7 | **Direct bill**: a bill for a party that is not staying (services, hall, sundry) without a room | `DirectBill`: 22 in 25-26, 13 in 26-27 | Restaurant walk-in bills only | "Counter bill" in Cash & Billing: any catalogue item to a named party, GST invoice from the INV series, paid or on credit |
 | A8 | **Function keys** on the front desk (the live install uses F-keys for its main screens) | Live F-key settings | Ctrl + K search only | Keyboard shortcuts on the desktop layout for the main desk actions (new booking, check-in, payment, check-out, room board), listed in the user menu |
-| A9 | **Reference / agent on a booking and commission to referrers** (Reference and Booking Wise report, Commission Payment Detail, Payment Commission master) | `RoomBooking.ReferenceCode` | Booking sources and OTA commission; no local referrer (agent, driver, company contact) with commission | Referrer master, referrer on a booking, commission due / paid, report. **Owner: confirm this is still used** |
+| A9 | **Reference / agent on a booking and commission to referrers** (Reference and Booking Wise report, Commission Payment Detail, Payment Commission master) | `RoomBooking.ReferenceCode` | Booking sources and OTA commission; no local referrer (agent, driver, company contact) with commission | **Not needed:** owner, 1 Nov 2026: "the hotel doesn't use referrers or agents with commission". Not built; the legacy `ReferenceCode` stays in the read-only history |
 
 ## B. Partly in HCC: small additions
 
@@ -92,7 +92,7 @@ Old reports that HCC has no single screen for yet. Each becomes a catalogue entr
 1. **Desk and legal:** A3 purpose, A4 vehicle, A5 Form C, A6 check-out basis. These are small fields with clear rules, and Form C is a legal duty.
 2. **Money:** A1 rate change, A2 bill correction, A7 counter bill, B2 credit guests. They touch billing and GST, so these are Opus lanes.
 3. **Speed and comfort:** A8 function keys, B1 regular guest rate, B3 wake-up alert, B4 reminders, B6 invoice notes.
-4. **Owner to confirm first:** A9 referrers.
+4. A9 referrers: dropped (owner, 1 Nov 2026).
 5. B7 / E reports go into W7 RPT; B8 into the GL stand-ins.
 
 Proposed as wave **LF (legacy feature parity)** after FIT: about 6 lanes, prototype and server, contract and briefs in the usual ETP form.
