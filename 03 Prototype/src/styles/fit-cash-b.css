@@ -1,0 +1,66 @@
+/* FIT · lane fit-cash-b — desktop / tablet layout of the POS ("pos") and Expenses ("expenses") pages (DEC-194…196, contract 02 Planning/agents/FIT-LAYOUT-CONTRACT.md).
+   Layout only: no font-size, no colour change. Every rule sits under .app-shell (the phone shell never renders it), so the phone POS / Expenses pages are untouched.
+   File name sorts before z-touch.css, so the FIT-SHELL bundle order (z-touch, z-fit, zz-print) is unchanged; every selector here has a higher specificity than the m-pos.css / m-expenses-scc.css rules it overrides. */
+
+/* ── POS · orders view: tables | menu | check, each column scrolls on its own ─────────────────────────────────────────────────────────────── */
+.app-shell .fit-page .pos-fit-card{flex:1 1 0;min-height:0;min-width:0;display:flex;flex-direction:column;margin:0;overflow:hidden;padding:0}
+.app-shell .pos-fit-card .pos-layout{flex:1;min-height:0;display:grid;grid-template-columns:minmax(180px,220px) minmax(0,1fr) minmax(300px,360px);grid-template-rows:minmax(0,1fr)}
+.app-shell .pos-fit-card .pos-col{min-height:0;min-width:0;overflow:auto;scrollbar-width:thin;position:relative}
+.app-shell .pos-fit-card .pos-col:focus-visible{outline:3px solid var(--primary);outline-offset:-3px}
+/* the check column is a flex column: the lines scroll under a header, the KOT / Settle bar is sticky at the bottom of the column */
+.app-shell .pos-fit-card .pos-col-check{display:flex;flex-direction:column}
+.app-shell .pos-fit-card .pos-col-check>.pos-check{flex:1 0 auto;display:flex;flex-direction:column;min-height:100%}
+.app-shell .pos-fit-card .pos-check .pos-actions{position:sticky;bottom:0;z-index:2;margin-top:auto;padding:10px 0 4px;background:var(--c-fdfbf8);border-top:1px solid var(--line)}
+.app-shell .pos-fit-card .pos-check .pos-hint{margin-bottom:0}
+.app-shell .pos-fit-card .pos-col-check>.pos-row-actions.pos-pad{position:sticky;bottom:0;margin-top:auto;background:var(--c-fdfbf8);border-top:1px solid var(--line)}
+.app-shell .pos-fit-card .pos-seg{margin-bottom:10px}
+@media (max-width:899.98px){
+  /* portrait tablet: tables + menu side by side on top, the check full width below — all three keep a definite height */
+  .app-shell .pos-fit-card .pos-layout{grid-template-columns:minmax(150px,200px) minmax(0,1fr);grid-template-rows:minmax(160px,1fr) minmax(220px,1fr)}
+  .app-shell .pos-fit-card .pos-col-check{grid-column:1 / -1;border-left:0;border-top:1px solid var(--line)}
+}
+.app-shell .fit-page .pos-fit-empty{flex:none}
+
+/* ── POS · kitchen view ──────────────────────────────────────────────────────────────────────────────────────────────────────────────── */
+.app-shell .fit-page .pos-fit-stations{flex:none;margin:0;overflow-x:auto;flex-wrap:nowrap;scrollbar-width:thin}
+.app-shell .fit-page .pos-fit-stations button{flex:none}
+.app-shell .fit-page .fit-board-col .pos-kot{margin-bottom:8px}
+.app-shell .fit-page .pos-86{flex:none;margin-top:0;position:relative}
+/* opened, the 86 list floats over the bottom of the board so the board keeps its height */
+.app-shell .fit-page .pos-86 .pos-86-grid{min-height:160px}
+.app-shell .fit-page .pos-86[open] .pos-86-grid{position:absolute;left:0;right:0;bottom:100%;z-index:6;margin:0 0 6px;padding:10px 14px;max-height:min(40vh,300px);overflow:auto;scrollbar-width:thin;background:var(--c-ffffff);border:1px solid var(--line);border-radius:8px;box-shadow:0 8px 24px var(--c-2b1d1620)}
+.app-shell .fit-page>.fit-page-toolbar .pos-mst-links{margin:0 0 0 auto;display:flex;flex-wrap:wrap;gap:4px 14px;align-items:center}
+
+/* ── POS · day summary ───────────────────────────────────────────────────────────────────────────────────────────────────────────────── */
+.app-shell .fit-page .pos-sum-head{flex:none;margin:0}
+.app-shell .fit-page .fit-panel-body .pos-h3{margin-top:14px}
+
+/* ── Expenses ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── */
+.app-shell .fit-page .exp-banner{flex:none;margin:0}
+.app-shell .fit-page .exp-banner-fit{display:flex;align-items:center;gap:8px}
+.app-shell .fit-page .exp-banner-fit>.fit-note{flex:1 1 auto;min-width:0;margin:0}
+/* register: card with fixed head + status tabs + filters, one scrolling table body, footer */
+.app-shell .fit-page .exp-reg-top{display:flex;align-items:center;gap:8px;min-width:0}
+.app-shell .fit-page .exp-reg-top .exp-reg-title{flex:none;border:0}
+.app-shell .fit-page .exp-reg-top .tabs{flex:1 1 0}
+.app-shell .fit-page .exp-subbar{flex:none;border-bottom:1px solid var(--line)}
+.app-shell .fit-page .exp-subbar .tabs{margin:0;overflow-x:auto;overflow-y:hidden;flex-wrap:nowrap;scrollbar-width:thin}
+.app-shell .fit-page .exp-subbar .tabs button{flex:none;white-space:nowrap}
+.app-shell .fit-page .exp-subbar .exp-filters{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;padding:4px 16px;margin:0}
+.app-shell .fit-page .exp-subbar .exp-filters label{flex:1 1 150px;min-width:0;flex-direction:row;align-items:center;gap:8px;white-space:nowrap}
+.app-shell .fit-page .exp-subbar .exp-filters label>select,.app-shell .fit-page .exp-subbar .exp-filters label>input{flex:1 1 auto;min-width:0;width:auto}
+.app-shell .fit-page .exp-register .fit-panel-foot:empty{display:none}
+.app-shell .fit-page .exp-register .fit-panel-foot{min-height:0;padding-top:4px;padding-bottom:4px}
+.app-shell .fit-page .exp-register .show-more{display:flex;flex-direction:row;align-items:center;gap:12px;margin:0;padding:0}
+.app-shell .fit-page .exp-register .show-more>span{min-width:0}
+/* the other sections are existing cards: shown flat inside one scrolling panel */
+.app-shell .fit-page[data-fit-page="expenses"] .fit-panel-body>.card,.app-shell .fit-page[data-fit-page="expenses"] .fit-panel-body>section{border:0;box-shadow:none;border-radius:0;margin:0;background:transparent}
+.app-shell .fit-page .exp-fit-cols{flex:1;min-height:0}
+.app-shell .fit-page .exp-fit-cols .request-list{padding:0}
+
+.app-shell .fit-page .pos-sum-note{margin:12px 0 0}
+/* "Lists & photos": the master links and the bill-photo hint of the old register head, one button in the filter row */
+.app-shell .fit-page .exp-lists{position:relative;flex:none;margin-left:auto}
+.app-shell .fit-page .exp-lists>summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center}
+.app-shell .fit-page .exp-lists>summary::-webkit-details-marker{display:none}
+.app-shell .fit-page .exp-lists-pop{position:absolute;right:0;top:calc(100% + 6px);z-index:30;min-width:220px;display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding:10px 12px;background:var(--c-ffffff);border:1px solid var(--line);border-radius:8px;box-shadow:0 8px 24px var(--c-2b1d1620)}
