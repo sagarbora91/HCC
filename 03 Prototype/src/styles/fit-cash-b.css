@@ -1,6 +1,6 @@
 /* FIT · lane fit-cash-b — desktop / tablet layout of the POS ("pos") and Expenses ("expenses") pages (DEC-194…196, contract 02 Planning/agents/FIT-LAYOUT-CONTRACT.md).
-   Layout only: no font-size, no colour change. Every rule sits under .app-shell (the phone shell never renders it), so the phone POS / Expenses
-   pages are untouched. Loaded after z-fit.css (name order: z-fit is placed after z-touch, "zy-" sorts after it and before zz-print.css). */
+   Layout only: no font-size, no colour change. Every rule sits under .app-shell (the phone shell never renders it), so the phone POS / Expenses pages are untouched.
+   File name sorts before z-touch.css, so the FIT-SHELL bundle order (z-touch, z-fit, zz-print) is unchanged; every selector here has a higher specificity than the m-pos.css / m-expenses-scc.css rules it overrides. */
 
 /* ── POS · orders view: tables | menu | check, each column scrolls on its own ─────────────────────────────────────────────────────────────── */
 .app-shell .fit-page .pos-fit-card{flex:1 1 0;min-height:0;min-width:0;display:flex;flex-direction:column;margin:0;overflow:hidden;padding:0}

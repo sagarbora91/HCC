@@ -29,7 +29,7 @@ const subIds=pg=>F.SUB_SCREENS.filter(x=>x.page===pg).map(x=>x.id);
 export function register({test,assert}){
   test('[FIT-CASH-B] pos renders a fit-page root with the three view tabs = SUB_SCREENS, default Orders, three scrolling columns',()=>{
     const html=page(F.PosPage,'pos');
-    assert.match(html,/^<section class="fit-page fit-board" data-fit-page="pos"/);
+    assert.match(html,/^<section class="fit-page fit-fill" data-fit-page="pos"/);
     assert.deepEqual(tabIds(html),['orders','kitchen','summary']);assert.deepEqual(subIds('pos'),['orders','kitchen','summary']);
     assert.match(html,/id="fit-tab-pos-orders"[^>]*aria-selected="true"/,'default tab Orders');
     for(const c of ['pos-col-spots','pos-col-menu','pos-col-check']){
@@ -46,7 +46,7 @@ export function register({test,assert}){
     if(rst){const r=page(F.PosPage,'pos',rst.id,'summary');assert.ok(!r.includes('id="fit-tab-pos-summary"'),'summary tab hidden');assert.ok(r.includes('pos-col-check'),'falls back to Orders');}
   });
   test('[FIT-CASH-B] pos: the Charge / KOT bar is sticky in the check column and PosCheck still renders Send KOT / Settle',()=>{
-    const css=read('src/styles/zy-fit-cash-b.css');
+    const css=read('src/styles/fit-cash-b.css');
     assert.match(css,/\.pos-check \.pos-actions\{position:sticky;bottom:0/);
     assert.match(css,/\.pos-col-check\{display:flex;flex-direction:column\}/);
     const src=read('src/features/pos/parts.tsx');
@@ -54,7 +54,7 @@ export function register({test,assert}){
   });
   test('[FIT-CASH-B] expenses renders a fit-page root; section tabs = SUB_SCREENS, default Register; status tab ids unchanged',()=>{
     const html=page(F.Expenses,'expenses');
-    assert.match(html,/^<section class="fit-page fit-split" data-fit-page="expenses"/);
+    assert.match(html,/^<section class="fit-page fit-fill" data-fit-page="expenses"/);
     assert.deepEqual(tabIds(html),['register','recurring','petty','budgets','udhaar','vendors','month']);
     assert.deepEqual(subIds('expenses'),['register','recurring','petty','budgets','udhaar','vendors','month']);
     assert.match(html,/id="fit-tab-expenses-register"[^>]*aria-selected="true"/);
@@ -73,12 +73,12 @@ export function register({test,assert}){
     if(!nb)return;const html=page(F.Expenses,'expenses',nb.id,'vendors');
     if(!html.includes('id="fit-tab-expenses-vendors"'))assert.match(html,/id="fit-tab-expenses-register"[^>]*aria-selected="true"/);
   });
-  test('[FIT-CASH-B] stylesheet: every rule is under .app-shell, no font-size, no hex colour, loads after z-fit.css',()=>{
-    const css=read('src/styles/zy-fit-cash-b.css').replace(/\/\*[^]*?\*\//g,'');
+  test('[FIT-CASH-B] stylesheet: every rule is under .app-shell, no font-size, no hex colour, keeps the FIT bundle order',()=>{
+    const css=read('src/styles/fit-cash-b.css').replace(/\/\*[^]*?\*\//g,'');
     assert.ok(!/font-size/.test(css),'DEC-195: no font-size');assert.ok(!/#[0-9a-fA-F]{3,8}\b/.test(css),'colours are tokens');
     const sel=css.replace(/@media[^{]*\{/g,'').split('}').map(x=>x.split('{')[0].trim()).filter(Boolean);
     for(const group of sel)for(const one of group.split(','))assert.ok(one.trim().startsWith('.app-shell'),'unguarded selector: '+one);
-    assert.ok('zy-fit-cash-b.css'>'z-fit.css'&&'zy-fit-cash-b.css'<'zz-print.css');
+    assert.ok(!('fit-cash-b.css'>'z-touch.css'),'sorts before z-touch.css so the bundle order z-touch, z-fit, zz-print of FIT-SHELL is untouched (rules are .app-shell scoped, so they still win)');
   });
   test('[FIT-CASH-B] ExpBanners: the phone keeps the info-note markup, the desktop (fit) uses a one-line FitNote',()=>{
     const src=read('src/features/expenses/Scc.tsx');

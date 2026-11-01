@@ -86,7 +86,7 @@ export function Expenses(){
   const body=section==='register'?register:section==='recurring'?flat('Recurring expenses',<ExpRecurring/>):section==='petty'?flat('Petty cash',<ExpPetty/>):section==='budgets'?flat('Monthly budgets',<ExpBudgets/>):section==='udhaar'?flat('Udhaar credit register',<ExpUdhaar/>):section==='vendors'?flat('Vendor payments',<ExpVendors/>):flat('Month and tax',<ExpMonth/>);
   const stats=[{title:'Posted today (net)',value:money(today.reduce((a,e)=>a+e.amount,0))},{title:'Drawer cash today',value:money(today.filter(e=>mnyIsDrawer(s,e.method)).reduce((a,e)=>a+e.amount,0))},
     {title:'Pending approval',value:String(s.expenses.filter(e=>e.status==='Pending').length)},{title:'Drafts',value:String(s.expenses.filter(e=>e.status==='Draft').length)},{title:'GST paid this month',value:money(expGstPaid(s,expYm(s.date)))}];
-  return <FitPage title="Expenses & approvals" sub="Every expense accounted for. Every adjustment traceable." layout="split"
+  return <FitPage title="Expenses & approvals" sub="Every expense accounted for. Every adjustment traceable." layout="fill"
       actions={canSubmit?<button className="btn primary" disabled={busy} onClick={()=>open({type:'expense'})}>+ Add expense</button>:null}
       toolbar={<StatStrip items={stats}/>}
       tabs={<FitTabs page="expenses" value={section} onChange={setSection} tabs={expSectionsFor(books).map(([id,label])=>({id,label}))}/>}>

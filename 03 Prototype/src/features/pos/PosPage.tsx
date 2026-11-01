@@ -24,7 +24,7 @@ export function PosPage(){
   if(!posOutletList(s).length)return <FitPage title="Restaurant & room service" sub="Outlet checks, KOTs and room-service charges" toolbar={<PosMasterLinks/>}><div className="card pos-fit-empty"><Empty title="No outlets configured" body={p.outlets.length?'Every outlet is retired — reactivate one or add an outlet in Master configuration.':'Load a demo scenario to get the fictional restaurant and room-service menu.'}/></div></FitPage>;
   const tabs:{id:PosView;label:string;count?:number}[]=[{id:'orders',label:'Orders',count:posOpenOrders(s).length},{id:'kitchen',label:'Kitchen (KOT)',count:kitchenOpen},
     ...(sales?[{id:'summary' as PosView,label:'Day summary'}]:[])];
-  return <FitPage title="Restaurant & room service" sub={sub} layout="board"
+  return <FitPage title="Restaurant & room service" sub={sub} layout="fill"
       actions={<span className="pos-sim"><Info size={14}/>KOT printer & card terminal simulated</span>}
       toolbar={<>{isDayClosed(s)&&<FitNote text="The business day is closed — checks are read-only until the next day is opened."/>}<PosMasterLinks/></>}
       tabs={<FitTabs page="pos" value={view} onChange={setView} tabs={tabs}/>}>
