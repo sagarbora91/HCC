@@ -2,8 +2,8 @@
 // Rule source (read-only reference): ETP OpenXmlReportExporter.cs — header row, numbers as numbers, ₹ number format, ISO dates as date serials.
 // Money in HCC is integer paise: pass {paise:n} and it is written as the rupee number n/100 with a ₹ format.
 
-export type XCell=string|number|null|undefined|{paise:number}|{date:string}|{int:number}|/** Fraction (0.494 = 49.4%), shown with a 0.0% format. */{pct:number};
-export type XSheet={name:string;rows:XCell[][];/** First row is a bold header (default true). */header?:boolean;/** Column widths in characters. */widths?:number[]};
+export type XCell=string|number|null|undefined|{paise:number}|{date:string}|{int:number}|/** Fraction (0.494 = 49.4%), shown with a 0.0% format. */{pct:number}|/** ACC-3 reports: integer paise written as the rupee number with a plain `#,##0.00` format (no symbol). */{amt:number}|/** ACC-3 reports: bold text (title rows, column headers below a title block). */{b:string};
+export type XSheet={name:string;rows:XCell[][];/** First row is a bold header (default true). */header?:boolean;/** Column widths in characters. */widths?:number[];/** Rows kept visible above the scrolling body (default 1 when `header`, else none). ACC-3 report sheets put a title block above the header row. */freeze?:number};
 
 const esc=(t:string)=>t.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g,'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 /** Excel sheet names: ≤ 31 chars, none of : \ / ? * [ ], no leading/trailing apostrophe, not the reserved name History, unique. */
@@ -17,8 +17,8 @@ export function sheetName(n:string,used:string[]=[]):string{
 export const colRef=(i:number)=>{let s='';for(let n=i+1;n>0;n=Math.floor((n-1)/26))s=String.fromCharCode(65+(n-1)%26)+s;return s;};
 /** Excel date serial for an ISO yyyy-mm-dd (1900 date system). */
 export const dateSerial=(iso:string)=>Math.round(Date.parse(iso.slice(0,10)+'T00:00:00Z')/86400000)+25569;
-// Style indexes (cellXfs): 0 text · 1 bold header · 2 ₹ money · 3 date · 4 integer · 5 percent (0.0%)
-const S={text:0,head:1,money:2,date:3,int:4,pct:5};
+// Style indexes (cellXfs): 0 text · 1 bold header · 2 ₹ money · 3 date · 4 integer · 5 percent (0.0%) · 6 amount #,##0.00 · 7 bold
+const S={text:0,head:1,money:2,date:3,int:4,pct:5,amt:6,bold:7};
 
 /** Number text Excel accepts: finite only (NaN / Infinity would make the workbook "corrupt" — written as an empty cell), ≤ 15 significant digits. */
 const num=(n:number)=>Number.isFinite(n)?String(Number.isInteger(n)?n:+n.toPrecision(15)):undefined;
@@ -30,6 +30,8 @@ function cellXml(c:XCell,ref:string,head:boolean):string{
   if('paise' in c)return v(c.paise/100,S.money);
   if('int' in c)return v(c.int,S.int);
   if('pct' in c)return v(c.pct,S.pct);
+  if('amt' in c)return v(c.amt/100,S.amt);
+  if('b' in c)return c.b===''?'':`<c r="${ref}" s="${S.bold}" t="inlineStr"><is><t xml:space="preserve">${esc(c.b)}</t></is></c>`;
   return v(dateSerial(c.date),S.date);
 }
 /** Rows per encoded chunk: a full-FY workbook is never held as one huge string (W05 review F6). */
@@ -37,7 +39,8 @@ const ROW_CHUNK=2000;
 function sheetXml(sh:XSheet,enc:TextEncoder):Uint8Array[]{
   const head=sh.header!==false;
   const cols=sh.widths?.length?`<cols>${sh.widths.map((w,i)=>`<col min="${i+1}" max="${i+1}" width="${w}" customWidth="1"/>`).join('')}</cols>`:'';
-  const pane=head?'<sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>':'';
+  const fr=sh.freeze??(head?1:0);
+  const pane=fr>0?`<sheetViews><sheetView workbookViewId="0"><pane ySplit="${fr}" topLeftCell="A${fr+1}" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>`:'';
   const out=[enc.encode(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">${pane}${cols}<sheetData>`)];
   for(let i=0;i<sh.rows.length;i+=ROW_CHUNK){
     let t='';
@@ -47,7 +50,7 @@ function sheetXml(sh:XSheet,enc:TextEncoder):Uint8Array[]{
   out.push(enc.encode('</sheetData></worksheet>'));
   return out;
 }
-const STYLES=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><numFmts count="3"><numFmt numFmtId="164" formatCode="&quot;₹&quot;#,##0.00"/><numFmt numFmtId="165" formatCode="yyyy\\-mm\\-dd"/><numFmt numFmtId="166" formatCode="0.0%"/></numFmts><fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font></fonts><fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="6"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/><xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf numFmtId="165" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf numFmtId="1" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf numFmtId="166" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/></cellXfs></styleSheet>`;
+const STYLES=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><numFmts count="3"><numFmt numFmtId="164" formatCode="&quot;₹&quot;#,##0.00"/><numFmt numFmtId="165" formatCode="yyyy\\-mm\\-dd"/><numFmt numFmtId="166" formatCode="0.0%"/></numFmts><fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font></fonts><fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="8"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/><xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf numFmtId="165" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf numFmtId="1" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf numFmtId="166" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf numFmtId="4" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/></cellXfs></styleSheet>`;
 
 // ── ZIP (method 0 = stored) ──
 const CRC=(()=>{const t=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0;}return t;})();
