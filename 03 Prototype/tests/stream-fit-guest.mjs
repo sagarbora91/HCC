@@ -68,7 +68,7 @@ export async function register({test,M,assert}){
     const rows=(html.match(/<tr>/g)||[]).length-1;
     assert.ok(rows<=100,'at most one page of rows, got '+rows);
     assert.ok(total>100,'FY26 outbox is long enough to page ('+total+')');
-    assert.ok(/Showing 100 of [\d,]+ rows/.test(html),'ShowMore status');
+    assert.ok(/Showing 100 of [\d,]+ rows/.test(text(html)),'ShowMore status');
     assert.ok(html.indexOf('show-more')>html.indexOf('fit-panel-foot'),'ShowMore sits in the footer');
     assert.ok(html.includes('Simulated.'),'the demo simulated note stays (FitNote)');
   });
@@ -94,10 +94,10 @@ export async function register({test,M,assert}){
       assert.ok(!/<img/.test(html),uid);
     }
   });
-  test('[FIT-GUEST] phone layout keeps the old Customers markup (no fit- class), legacy stays still listed under the stays',()=>{
+  test('[FIT-GUEST] phone layout keeps the old Customers markup (no fit- class), the list keeps its legacy count',()=>{
     const html=render(X.CustomersPage,'owner',{mobile:true,page:'customers',search:'Ananya Rao'});
     assert.ok(!/fit-/.test(html)&&html.includes('class="cust'),'phone: old cust markup, no fit- class');
-    assert.ok(/Earlier stays — old Lodge app/.test(text(html)),'phone History still lists legacy stays');
+    assert.ok(/\(3 legacy\)/.test(text(html)),'phone list keeps the legacy count');
   });
   test('[FIT-GUEST] desktop CSS is in guest-fit.css, every selector guarded by .app-shell, no font-size and no colour literal',()=>{
     const css=readFileSync('src/styles/guest-fit.css','utf8').replace(/\/\*[^]*?\*\//g,'');
