@@ -5,7 +5,8 @@
 import React from 'react';
 import {LogIn,CalendarPlus,FileText,Clock,Printer} from 'lucide-react';
 import {useHcc} from '../../app/context';
-import {PageTitle,Pill,Empty,dateLabel,shortDate} from '../../components/ui';
+import {Pill,Empty,dateLabel,shortDate} from '../../components/ui';
+import {FitPage,ScrollPanel,FitNote} from '../../components/fit';
 import {ListCard,KpiCard,StickyFooter} from '../../app/mobile/components';
 import {
   money,isDayClosed,hrSlice,hrStaffOfUser,hrShiftFor,hrShiftInfo,hrMonday,hrWeek,hrKey,hrDayStatus,hrCounts,hrLeaveBalance,hrVisiblePayslips,
@@ -39,8 +40,8 @@ function todayText(me:HRStaff,s:ReturnType<typeof useHcc>['s']){
 
 export function MyHr({phone=false}:{phone?:boolean}){
   const {ctx,me,att,shift,leave,canCheckin}=useMine();const {s,uid,run,open,busy}=ctx;
-  if(!me)return <>{!phone&&<PageTitle title="My shifts & pay" sub="Self-service for staff with a demo login"/>}
-    <Empty title="No staff record linked" body="Your demo user is not linked to a staff record. Switch to a staff member such as Ravi (Housekeeper) or Meera (Manager)."/></>;
+  if(!me){const none=<Empty title="No staff record linked" body="Your demo user is not linked to a staff record. Switch to a staff member such as Ravi (Housekeeper) or Meera (Manager)."/>;
+    return phone?<>{none}</>:<FitPage title="My shifts & pay" sub="Self-service for staff with a demo login">{none}</FitPage>;}
   const checkin=()=>run({type:'HR_ATT_MARK',staffId:me.id},`Checked in at ${s.clock.slice(11)} · ${HR_ATT_LABEL[hrCheckinStatus(s.clock,shift!,s)]}`);
   const week=hrWeek(hrMonday(s.date)),ym=s.date.slice(0,7),c=hrCounts(s,me,ym,s.date);
   const myLeaves=hrSlice(s).leaves.filter(l=>l.staffId===me.id).sort((a,b)=>b.date.localeCompare(a.date));
@@ -70,28 +71,35 @@ export function MyHr({phone=false}:{phone?:boolean}){
       :<button className="btn primary" onClick={()=>open({type:'hr-leave'})}><CalendarPlus size={18}/> Request leave</button>}</StickyFooter>
   </div>;
 
-  return <><PageTitle title="My shifts & pay" sub={`${me.name} · ${me.designation} · your own roster, attendance, leave and payslips`}
-      action={<div className="inline">{canCheckin&&<button className="btn primary" disabled={busy} onClick={checkin}><LogIn size={16}/> Check in now</button>}<button className="btn" onClick={()=>open({type:'hr-leave'})}><CalendarPlus size={16}/> Request leave</button></div>}/>
-    <div className="closing-banner"><div><div className="eyebrow">TODAY · {dateLabel(s.date)} · SIMULATED CLOCK {s.clock.slice(11)}</div><h2>{todayText(me,s)}</h2><p>Check-in after shift start + 15 minutes is recorded as late. Corrections are made by a manager.</p></div>{todayStatus}</div>
-    <div className="two-col">
-      <section className="card"><div className="section-title"><h2>My week</h2><span className="muted">{shortDate(week[0])} – {shortDate(week[6])}</span></div>
+  // FIT (desktop): today's banner on top, then three panels side by side (they stack below 900 px): my week + this month, my leave, payslips.
+  const openSlip=()=>latest&&open({type:'hr-payslip',id:latest.run.id+'|'+me.id});
+  const slipRows:[string,number][]=latest?[['Gross earnings',latest.line.gross],['Provident Fund',-latest.line.pf],['ESIC',-latest.line.esic],['Professional tax',-latest.line.pt],...(latest.line.advance?[['Advance recovery',-latest.line.advance] as [string,number]]:[])]:[];
+  return <FitPage title="My shifts & pay" sub={`${me.name} · ${me.designation} · your own roster, attendance, leave and payslips`}
+      actions={<>{canCheckin&&<button className="btn primary" disabled={busy} onClick={checkin}><LogIn size={16}/> Check in now</button>}<button className="btn" onClick={()=>open({type:'hr-leave'})}><CalendarPlus size={16}/> Request leave</button></>}>
+    <div className="closing-banner hr-fit-banner"><div><div className="eyebrow">TODAY · {dateLabel(s.date)} · SIMULATED CLOCK {s.clock.slice(11)}</div><h2>{todayText(me,s)}</h2><p>Check-in after shift start + 15 minutes is recorded as late. Corrections are made by a manager.</p></div>{todayStatus}</div>
+    <div className="fit-cols hr-fit-3">
+      <div><ScrollPanel title="My week" label="My week and this month" actions={<span className="muted">{shortDate(week[0])} – {shortDate(week[6])}</span>}>
         <div className="table-wrap"><table><thead><tr><th>Day</th><th>Shift</th><th>Attendance</th></tr></thead><tbody>{week.map(d=>{const {sh,st}=dayCell(d);
-          return <tr key={d} className={d===s.date?'hr-row-today':''}><td><strong>{HR_WEEKDAYS[new Date(d+'T12:00:00Z').getUTCDay()]} {shortDate(d)}</strong></td><td>{sh.code==='OFF'?'Weekly off':`${sh.label} ${sh.start}–${sh.end}`}</td><td>{st}</td></tr>;})}</tbody></table></div></section>
-      <section className="card"><div className="section-title"><h2>{hrMonthLabel(ym)} so far</h2><Clock size={18}/></div>
-        <div className="summary-list padded">{[['Present',c.P],['Late',c.L],['Half-days',c.H],['Absent',c.A],['Paid leave',c.paidLeave],['Leave without pay',c.lopLeave],['Weekly offs',c.off],['Overtime',`${Math.round(c.otMin/6)/10} h`]].map(([k,v])=><div key={k}><span>{k}</span><strong>{v}</strong></div>)}</div></section>
-    </div>
-    {latest&&<PayslipCard phone={false} run={latest.run} line={latest.line} onOpen={()=>open({type:'hr-payslip',id:latest.run.id+'|'+me.id})}/>}
-    <div className="two-col">
-      <section className="card"><div className="section-title"><div><h2>My leave · {fy}</h2><p>Balance: {bal.map(b=>`${b.type} ${b.left} of ${b.entitled}${b.over?` (over by ${b.over})`:''}`).join(' · ')} (SCC entitlements, April–March; approved days only)</p></div></div>
+          return <tr key={d} className={d===s.date?'hr-row-today':''}><td><strong>{HR_WEEKDAYS[new Date(d+'T12:00:00Z').getUTCDay()]} {shortDate(d)}</strong></td><td>{sh.code==='OFF'?'Weekly off':`${sh.label} ${sh.start}–${sh.end}`}</td><td>{st}</td></tr>;})}</tbody></table></div>
+        <div className="section-title"><h2>{hrMonthLabel(ym)} so far</h2><Clock size={18}/></div>
+        <div className="summary-list padded">{[['Present',c.P],['Late',c.L],['Half-days',c.H],['Absent',c.A],['Paid leave',c.paidLeave],['Leave without pay',c.lopLeave],['Weekly offs',c.off],['Overtime',`${Math.round(c.otMin/6)/10} h`]].map(([k,v])=><div key={k}><span>{k}</span><strong>{v}</strong></div>)}</div></ScrollPanel></div>
+      <div><ScrollPanel title={`My leave · ${fy}`} label="My leave"
+          footer={<FitNote text={`Balance: ${bal.map(b=>`${b.type} ${b.left} of ${b.entitled}${b.over?` (over by ${b.over})`:''}`).join(' · ')} (SCC entitlements, April–March; approved days only)`}/>}>
         {myLeaves.length?<div className="table-wrap"><table><thead><tr><th>Date</th><th>Leave</th><th>Status</th><th></th></tr></thead><tbody>{myLeaves.map(l=><tr key={l.id}>
           <td><strong>{shortDate(l.date)}</strong><small>{l.from!==l.to?`request ${shortDate(l.from)} – ${shortDate(l.to)} · `:''}approver {hrLeaveApproverName(s,l)||'—'}{l.reason?' · '+l.reason:''}</small></td><td>{kind(l,s)}</td><td><Pill tone={hrLeaveTone(l.status)}>{statusText(l)}</Pill></td>
           <td>{l.status==='Pending'&&<button className="text-btn" disabled={busy} onClick={()=>{if(window.confirm('Remove this leave record?'))run({type:'HR_LEAVE_CANCEL',id:l.id},'Leave removed');}}>Remove</button>}</td></tr>)}</tbody></table></div>
-          :<Empty title="No leave requests" body="Use Request leave to ask for time off."/>}</section>
-      <section className="card"><div className="section-title"><h2>My payslips</h2><FileText size={18}/></div>
+          :<Empty title="No leave requests" body="Use Request leave to ask for time off."/>}</ScrollPanel></div>
+      <div><ScrollPanel title={latest?`Payslip · ${hrMonthLabel(latest.run.month)}`:'My payslips'} label="My payslips" actions={<FileText size={18}/>}
+          footer={latest?<button className="btn primary hr-slip-btn" onClick={openSlip}><Printer size={16}/> Payslip PDF</button>:undefined}>
+        {latest&&<div className="hr-slip-card"><div className="section-title hr-fit-slip-sub"><div><p>{latest.line.payableDays} payable days · locked pay-run</p></div></div>
+          <div className="summary-list padded">{slipRows.map(([k,v])=><div key={k}><span>{k}</span><strong className="number">{v<0?'− '+money(-v):money(v)}</strong></div>)}
+            <div className="hr-slip-net"><span>Net pay</span><strong className="number">{money(latest.line.net)}</strong></div></div>
+          <div className="section-title"><h2>My payslips</h2></div></div>}
         {slips.length?<div className="table-wrap"><table><thead><tr><th>Month</th><th className="number">Net pay</th><th></th></tr></thead><tbody>{slips.map(p=><tr key={p.run.id}>
           <td><strong>{hrMonthLabel(p.run.month)}</strong><small>{p.line.payableDays} payable days</small></td><td className="number">{money(p.line.net)}</td>
           <td><button className="text-btn" onClick={()=>open({type:'hr-payslip',id:p.run.id+'|'+me.id})}>View / print</button></td></tr>)}</tbody></table></div>
-          :<Empty title="No payslips yet" body="Payslips appear here after payroll is locked."/>}</section>
-    </div></>;
+          :<Empty title="No payslips yet" body="Payslips appear here after payroll is locked."/>}</ScrollPanel></div>
+    </div>
+  </FitPage>;
 }
 export const MyHrMobile=()=><MyHr phone/>;

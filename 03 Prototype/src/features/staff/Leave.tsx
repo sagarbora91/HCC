@@ -7,6 +7,7 @@ import React from 'react';
 import {ChevronLeft,ChevronRight,Plus,Check,X,Printer,Download,Upload,Trash2,Settings2,CalendarDays,ListChecks,FileSpreadsheet,Info} from 'lucide-react';
 import {useHcc} from '../../app/context';
 import {Pill,Empty,shortDate} from '../../components/ui';
+import {ScrollPanel,FitNote} from '../../components/fit';
 import {ListCard,KpiCard,StickyFooter} from '../../app/mobile/components';
 import {saveCsv,saveTextFile} from '../../app/native';
 import {MstLink} from '../masters/MasterList';
@@ -80,13 +81,16 @@ export function LeaveDeskView({phone,ym,setYm,asOf,setAsOf}:{phone:boolean;ym:st
     {legend}
     {mgr&&<button className="btn lv-appr-m" onClick={()=>open({type:'hr-leave-approvals',room:asOf})}><ListChecks size={18}/> Approvals · {pending}</button>}
     <div className="lv-actions-m">{actions}</div></>;
+  // FIT (desktop): month nav + actions in one fixed row; the stats, 7-day strip, month grid and legend scroll in one panel whose head keeps
+  // "View as of" and Approvals.
   return <>
     <ReadOnlyBanner s={s} asOf={asOf}/>
-    <section className="card lv-head-card"><div className="section-title"><div><h2>Leave calendar</h2><p>SCC LeaveDesk: one record per date (full day, morning or afternoon), decided date by date. Pending records hold a place; rejected ones stay for audit off the calendar; removed ones are cancelled and kept for audit.</p></div>
-      <div className="inline">{asof}{mgr&&<button className="btn" onClick={()=>open({type:'hr-leave-approvals',room:asOf})}><ListChecks size={16}/> Approvals<span className="lv-badge">{pending}</span></button>}</div></div>
-      <div className="lv-toolbar padded">{nav}{actions}</div></section>
-    {statsRow}{stripRow}
-    <section className="card"><div className="lv-cal" role="grid" aria-label={`Leave calendar ${hrLeaveMonthName(view)}`}>
+    <div className="lv-toolbar lv-fit-bar">{nav}{actions}</div>
+    <ScrollPanel title="Leave calendar" label="Leave calendar month view"
+      actions={<div className="inline">{asof}{mgr&&<button className="btn" onClick={()=>open({type:'hr-leave-approvals',room:asOf})}><ListChecks size={16}/> Approvals<span className="lv-badge">{pending}</span></button>}</div>}>
+    <div className="padded lv-fit-intro"><FitNote text="SCC LeaveDesk: one record per date (full day, morning or afternoon), decided date by date. Pending records hold a place; rejected ones stay for audit off the calendar; removed ones are cancelled and kept for audit."/></div>
+    <div className="padded lv-fit-top">{statsRow}{stripRow}</div>
+    <div className="lv-cal" role="grid" aria-label={`Leave calendar ${hrLeaveMonthName(view)}`}>
       {['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(w=><div key={w} className="lv-head" role="columnheader">{w}</div>)}
       {Array.from({length:cal.lead},(_,i)=><div key={'b'+i} className="lv-cell other"/>)}
       {cal.cells.map(c=><div role="gridcell" key={c.date} tabIndex={0} onClick={()=>day(c.date)} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();day(c.date);}}}
@@ -97,7 +101,7 @@ export function LeaveDeskView({phone,ym,setYm,asOf,setAsOf}:{phone:boolean;ym:st
           {(ch.pending?'? ':'')+ch.name}</span>)}
         {c.more>0&&<span className="lv-more">+{c.more} more</span>}
         {c.agendas.length>0&&<span className="lv-agenda-mini">📌 {c.agendas[0].title}</span>}</div>)}
-    </div>{legend}</section></>;
+    </div>{legend}</ScrollPanel></>;
 }
 
 /** SCC renderApprovals: every pending DATE record (badge = their number); approve / reject one by one. HCC (DEC-119): nobody decides their own leave. */
@@ -111,11 +115,11 @@ export function LeaveApprovalsView({phone,asOf}:{phone:boolean;asOf:string}){
   if(phone)return <><ReadOnlyBanner s={s} asOf={asOf}/><p className="hr-m-note">{sub}. Decide each date within 7 days of the leave date (SCC).</p>
     {pend.length?pend.map(l=><div key={l.id} className="hr-m-leave"><ListCard title={`${staffName(s,l.staffId)} — ${hrLeaveDateShort(l.date)}`} sub={meta(l)}/><div className="hr-m-actions">{btns(l)}</div></div>)
       :<Empty title="No pending leave requests."/>}</>;
-  return <><ReadOnlyBanner s={s} asOf={asOf}/><section className="card"><div className="section-title"><div><h2>Leave approvals</h2><p>{sub}. One row per date (SCC); approve or reject each. Nobody approves their own leave (DEC-119).</p></div></div>
+  return <><ReadOnlyBanner s={s} asOf={asOf}/><ScrollPanel title="Leave approvals" label="Leave approvals" footer={<FitNote text={`${sub}. One row per date (SCC); approve or reject each. Nobody approves their own leave (DEC-119).`}/>}>
     {pend.length?<div className="table-wrap"><table><thead><tr><th>Staff — date</th><th>Leave</th><th>Requested by</th><th></th></tr></thead><tbody>{pend.map(l=><tr key={l.id}>
       <td><strong>{staffName(s,l.staffId)} — {hrLeaveDateShort(l.date)}</strong><small>{l.id}{l.from!==l.to?` · request ${shortDate(l.from)} – ${shortDate(l.to)}`:''}</small></td><td>{meta(l)}</td>
       <td>{s.users.find(u=>u.id===l.requestedBy)?.name.split(' · ')[0]??l.requestedBy}<small>{l.requestedAt.slice(0,10)} {l.requestedAt.slice(11)}</small></td>
-      <td className="hr-actions">{btns(l)}</td></tr>)}</tbody></table></div>:<Empty title="No pending leave requests."/>}</section></>;
+      <td className="hr-actions">{btns(l)}</td></tr>)}</tbody></table></div>:<Empty title="No pending leave requests."/>}</ScrollPanel></>;
 }
 
 /** SCC openReport + exportReportCSV + printCalendar for the month. */
@@ -131,13 +135,15 @@ export function LeaveReportView({phone,ym,setYm}:{phone:boolean;ym:string;setYm:
       meta={`${x.pending?`Pending ${x.pending} · `:''}${x.cats.map(c=>hrLeaveName(s,c)).join(', ')||'—'} · ${x.balance}`}/>):<Empty title="No leave records for this month."/>}
     {r.rows.length>0&&<ListCard title="TOTAL" sub={`Full ${r.total.full} · Half AM ${r.total.halfAM} · Half PM ${r.total.halfPM} · Leave days ${hrLeaveFmt(r.total.leaveDays)}`} meta={`Pending ${r.total.pending}`}/>}
     <StickyFooter>{btns}</StickyFooter></>;
-  return <section className="card"><div className="section-title"><div><h2>{title}</h2><p>Employee-wise breakdown · {hrLeaveMonthName(view)} · approved (and legacy) days; pending counted apart; rejected and removed left out.</p></div><div className="inline">{nav}{btns}</div></div>
+  return <ScrollPanel title={title} label="Leave report" actions={<div className="inline">{nav}{btns}</div>}
+      footer={<><FitNote text={`Employee-wise breakdown · ${hrLeaveMonthName(view)} · approved (and legacy) days; pending counted apart; rejected and removed left out.`}/>
+        <FitNote text={`FY balance for ${r.fy}: approved days used / the staff member’s quota (an override, else the default). The CSV quotes every cell as SCC does.`}/></>}>
     {r.rows.length?<div className="table-wrap"><table className="lv-report"><thead><tr><th>Employee</th><th className="number">Full Days</th><th className="number">Half AM</th><th className="number">Half PM</th><th className="number">Leave Days</th><th className="number">Pending</th><th>Categories</th><th>FY Balance (used/quota)</th></tr></thead>
       <tbody>{r.rows.map(x=><tr key={x.staffId}><td><strong>{x.name}</strong></td><td className="number">{x.full}</td><td className="number">{x.halfAM}</td><td className="number">{x.halfPM}</td><td className="number"><b>{hrLeaveFmt(x.leaveDays)}</b></td>
         <td className={'number'+(x.pending?' lv-amber':'')}>{x.pending}</td><td><small>{x.cats.map(c=>hrLeaveName(s,c)).join(', ')||'—'}</small></td><td><small>{x.balance}</small></td></tr>)}</tbody>
       <tfoot><tr><td>TOTAL</td><td className="number">{r.total.full}</td><td className="number">{r.total.halfAM}</td><td className="number">{r.total.halfPM}</td><td className="number"><b>{hrLeaveFmt(r.total.leaveDays)}</b></td><td className="number">{r.total.pending}</td><td></td><td></td></tr></tfoot></table></div>
       :<Empty title="No leave records for this month."/>}
-    <p className="footnote padded">FY balance for {r.fy}: approved days used / the staff member’s quota (an override, else the default). The CSV quotes every cell as SCC does.</p></section>;
+  </ScrollPanel>;
 }
 
 /** SCC Staff Master settings: entitlement defaults, per-staff ⚙ overrides, week-off days, advisory department caps, blackouts / store holidays. */
@@ -166,16 +172,21 @@ export function LeaveSettingsView({phone,asOf}:{phone:boolean;asOf:string}){
     <div className="info-note"><Info size={16}/><span>{HR_SCC_DAYS}</span></div>
     {!owner&&<p className="hr-m-note">Only the Owner changes leave settings (DEC-058).</p>}
     {edit&&<StickyFooter>{edit}</StickyFooter>}</>;
+  // FIT (desktop): the three settings cards side by side, one scroll panel per column (they stack below 900 px). DEC-058: `owner` gates every edit as before.
   return <><ReadOnlyBanner s={s} asOf={asOf}/>
-    <section className="card"><div className="section-title"><div><h2>Leave settings</h2><p>SCC LeaveDesk settings (Owner, DEC-058). New leave only; recorded leave keeps its dates.</p></div>{edit}</div>
+    <div className="fit-cols hr-fit-3">
+    <div><ScrollPanel title="Leave settings" label="Leave settings" actions={edit}
+        footer={<><FitNote text="SCC LeaveDesk settings (Owner, DEC-058). New leave only; recorded leave keeps its dates."/><MstLink spec="leaveTypes"/> <MstLink spec="holidays"/></>}>
       <div className="summary-list padded">{rows.map(([k,v])=><div key={k}><span>{k}</span><strong>{v}</strong></div>)}</div>
-      <div className="info-note"><Info size={16}/><span>{HR_SCC_DAYS}</span></div>
-      <p className="footnote padded"><MstLink spec="leaveTypes"/> <MstLink spec="holidays"/></p></section>
-    <section className="card"><div className="section-title"><div><h2>Blackouts and store holidays</h2><p>A hard blackout refuses leave; a soft one (and a store holiday) asks for confirmation (SCC). Scope: every department or one.</p></div></div>
+      <div className="info-note"><Info size={16}/><span>{HR_SCC_DAYS}</span></div></ScrollPanel></div>
+    <div><ScrollPanel title="Blackouts and store holidays" label="Blackouts and store holidays"
+        footer={<FitNote text="A hard blackout refuses leave; a soft one (and a store holiday) asks for confirmation (SCC). Scope: every department or one."/>}>
       {bks.length?<div className="table-wrap"><table><thead><tr><th>Label</th><th>Dates · scope · kind</th><th></th></tr></thead><tbody>{bks.map(b=><tr key={b.id}><td><strong>{b.label||(b.kind==='holiday'?'Store Holiday':'Blackout')}</strong></td><td>{bkText(b)}</td>
         <td className="hr-actions">{owner&&<button className="text-btn" disabled={busy} onClick={()=>removeBk(b.id)}>Remove</button>}</td></tr>)}</tbody></table></div>
-        :<p className="footnote padded">No blackout dates or store holidays set.</p>}</section>
-    <section className="card"><div className="section-title"><div><h2>Staff entitlements</h2><p>CL · SL · EL per financial year (April–March): the staff member’s override, else the defaults. ⚙ sets an override; all blank = back to the defaults.</p></div></div>
+        :<p className="footnote padded">No blackout dates or store holidays set.</p>}</ScrollPanel></div>
+    <div><ScrollPanel title="Staff entitlements" label="Staff entitlements"
+        footer={<FitNote text="CL · SL · EL per financial year (April–March): the staff member’s override, else the defaults. ⚙ sets an override; all blank = back to the defaults."/>}>
       <div className="table-wrap"><table><thead><tr><th>Staff</th><th>Entitlement</th><th></th></tr></thead><tbody>{overrides.map(t=><tr key={t.id}><td><strong>{t.name}</strong><small>{t.id} · {x.depts.find(d=>d.id===t.dept)?.name??t.dept}</small></td><td>{ent(t.id)}</td>
-        <td className="hr-actions">{owner&&<button className="text-btn" onClick={()=>open({type:'hr-leave-ent',id:t.id})}>⚙ Set</button>}</td></tr>)}</tbody></table></div></section></>;
+        <td className="hr-actions">{owner&&<button className="text-btn" onClick={()=>open({type:'hr-leave-ent',id:t.id})}>⚙ Set</button>}</td></tr>)}</tbody></table></div></ScrollPanel></div>
+    </div></>;
 }
