@@ -5,7 +5,9 @@ import React,{useState} from 'react';
 import {Printer,Hotel,ShieldCheck,UserPlus,Lock} from 'lucide-react';
 import {useHcc} from '../../app/context';
 import {Guest,Booking,guestView,guestAccess,guestById,guestStays,guestSearch,guestDuplicates,guestComplete,totals,money,nights,staySegmentLabel,plural} from '../../services/mock';
-import {PageTitle,SearchBox,Pill,Empty,shortDate,dateLabel} from '../../components/ui';
+import {SearchBox,Pill,Empty,shortDate,dateLabel} from '../../components/ui';
+import {FitPage,ScrollPanel,SplitView,FitNote} from '../../components/fit';
+import {useWideSplit} from './useWideSplit';
 import {GuestForm,emptyDraft,draftOf,hashOf} from './GuestForm';
 import {GuestIdValue} from './GuestId';
 
@@ -89,25 +91,28 @@ export function RegistrationCard({id}:{id?:string}){
 export function GuestsPage(){
   const {s,uid,open,search,setSearch}=useHcc();const access=guestAccess(s,uid);
   const list=guestSearch(s,search,uid).sort((a,b)=>a.name.localeCompare(b.name));
-  const [sel,setSel]=useState<string>('');const g=guestById(s,sel)||list[0];
-  return <><PageTitle title="Guests" sub="Fictional guest profiles, accompanying guests and stay history." action={access.edit?<button className="btn primary" onClick={()=>open({type:'guest-profile',id:'new'})}><UserPlus size={16}/>New guest</button>:undefined}/>
-    <div className="toolbar"><SearchBox value={search} onChange={setSearch} placeholder={access.contact?'Search name, phone or booking…':'Search name or booking…'}/>{!access.idDetails&&<span className="muted"><Lock size={12}/> ID and contact fields are masked for your role</span>}</div>
-    {!(s.guests||[]).length?<section className="card"><Empty title="No guest profiles yet" body="Profiles are created at registration or with New guest."/></section>:
-    <div className="gs-split">
-      <section className="card"><div className="section-title"><h2>Profiles</h2><span className="muted">{list.length} shown</span></div>
-        {list.length?<ul className="gs-list">{list.map(x=>{const v=guestView(s,uid,x);const dup=guestDuplicates(s,x).length>0;const stays=guestStays(s,x.id);
-          return <li key={x.id}><button className={'gs-list-item '+(g?.id===x.id?'active':'')} aria-pressed={g?.id===x.id} onClick={()=>setSel(x.id)}>
-            <span className="avatar">{x.name.split(' ').map(p=>p[0]).slice(0,2).join('')}</span>
-            <span className="gs-list-main"><strong>{x.name}</strong><small>{x.id} · {v.phone} · {stays.length} stay{stays.length===1?'':'s'}</small></span>
-            <span className="gs-list-tags">{x.verified?<Pill tone="green">Verified</Pill>:<Pill tone="orange">Unverified</Pill>}{dup&&<Pill tone="orange">Possible duplicate</Pill>}</span></button></li>;})}</ul>
-          :<Empty title="No matching guests" body="Try another name, phone or booking ID."/>}</section>
-      {g&&<GuestPanel g={g}/>}
-    </div>}
-    <p className="footnote">All guest records are fictional. Duplicate suggestions compare normalised phone numbers and names; they never merge records automatically.</p></>;
+  const wide=useWideSplit();
+  const [sel,setSel]=useState<string>('');const g=guestById(s,sel)||(wide?list[0]:undefined);
+  // FIT (contract §6 'guests' = fill; profile beside the list as a split, slide-over below 900 px).
+  const listPanel=<ScrollPanel title="Profiles" label="Guest profiles" actions={<span className="muted">{list.length} shown</span>}>
+    {list.length?<ul className="gs-list" style={{maxHeight:'none',overflow:'visible'}}>{list.map(x=>{const v=guestView(s,uid,x);const dup=guestDuplicates(s,x).length>0;const stays=guestStays(s,x.id);
+      return <li key={x.id}><button className={'gs-list-item '+(g?.id===x.id?'active':'')} aria-pressed={g?.id===x.id} onClick={()=>setSel(x.id)}>
+        <span className="avatar">{x.name.split(' ').map(p=>p[0]).slice(0,2).join('')}</span>
+        <span className="gs-list-main"><strong>{x.name}</strong><small>{x.id} · {v.phone} · {stays.length} stay{stays.length===1?'':'s'}</small></span>
+        <span className="gs-list-tags">{x.verified?<Pill tone="green">Verified</Pill>:<Pill tone="orange">Unverified</Pill>}{dup&&<Pill tone="orange">Possible duplicate</Pill>}</span></button></li>;})}</ul>
+      :<Empty title="No matching guests" body="Try another name, phone or booking ID."/>}</ScrollPanel>;
+  return <FitPage title="Guests" sub="Fictional guest profiles, accompanying guests and stay history." layout="split"
+      actions={access.edit?<button className="btn primary" onClick={()=>open({type:'guest-profile',id:'new'})}><UserPlus size={16}/>New guest</button>:undefined}
+      toolbar={<><SearchBox value={search} onChange={setSearch} placeholder={access.contact?'Search name, phone or booking…':'Search name or booking…'}/>{!access.idDetails&&<span className="muted"><Lock size={12}/> ID and contact fields are masked for your role</span>}</>}>
+    {!(s.guests||[]).length?<ScrollPanel label="Guest profiles"><Empty title="No guest profiles yet" body="Profiles are created at registration or with New guest."/></ScrollPanel>:
+    <SplitView label="Guest profiles" ratio="2fr 3fr" onCloseDetail={()=>setSel('')} list={listPanel} detail={g?<GuestPanel g={g}/>:null}
+      empty={<Empty title="Pick a guest" body="Their details, accompanying guests, duplicates and stay history open here."/>}/>}
+    <FitNote text="All guest records are fictional. Duplicate suggestions compare normalised phone numbers and names; they never merge records automatically."/>
+  </FitPage>;
 }
 function GuestPanel({g}:{g:Guest}){
   const {s,uid,open}=useHcc();const access=guestAccess(s,uid);const dups=guestDuplicates(s,g);const latest:Booking|undefined=guestStays(s,g.id).find(b=>b.registered);
-  return <section className="card"><div className="section-title"><div><div className="eyebrow">{g.id}</div><h2>{g.name}</h2></div><div className="inline"><VerifiedPill g={g}/></div></div>
+  return <section className="gs-record"><div className="section-title"><div><div className="eyebrow">{g.id}</div><h2>{g.name}</h2></div><div className="inline"><VerifiedPill g={g}/></div></div>
     <div className="gs-panel">
       {dups.length>0&&<div className="gs-dup" role="status"><ShieldCheck size={17}/><div><strong>Possible match: {dups.map(m=>`${m.guest.id} (${m.reason==='phone'?'same phone':'same name'})`).join(', ')}</strong>
         <div className="inline">{dups.map(m=><button key={m.guest.id} className="text-btn" onClick={()=>open({type:'guest-profile',id:m.guest.id})}>Open {m.guest.id}</button>)}</div></div></div>}
