@@ -65,6 +65,7 @@ export type ExpMonthUnlock={at:string;by:string;reason:string};
 /** ACC-2 (contract §3.2): a payment to a vendor, allocated to open bills oldest-first by default; the unallocated rest is an advance (the party goes Dr). */
 export type ExpVendorPayment={id:string;vendor:string;date:string;amount:number;method:string;reference:string;by:string;at:string;allocations:{expense:string;amount:number}[];
   void?:boolean;voidReason?:string;voidBy?:string;voidAt?:string;
+  /** ACC-3 C3: earlier allocation lists replaced by EXP_VENDOR_PAY_REALLOCATE (oldest first). */ reallocations?:{at:string;by:string;before:{expense:string;amount:number}[]}[];
   /** ACC-2 integration (contract §7 B10): cash above the payment limit to this vendor on the day — the income-tax deduction is lost. */ cashDeductionLost?:boolean};
 export type EXPState={
   /** ACC-2 */ vendorPayments?:ExpVendorPayment[];

@@ -1,0 +1,1075 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SIMULATED EXPORT · Hotel Control Centre · nothing was sent to Tally · saving this file does not mean it was imported -->
+<!-- MASTERS · import this file into the Tally company first (Import › Masters), then the vouchers files. Tally's own 28 groups are not created; ledger opening balances use Tally's sign (credit positive, debit negative) as at the start of the financial year; party ledgers under Sundry Debtors / Creditors are bill-wise, their opening kept as one bill named "Opening balance". The opening journal of HCC is not in the vouchers files (it would count twice). -->
+<ENVELOPE>
+ <HEADER>
+  <TALLYREQUEST>Import Data</TALLYREQUEST>
+ </HEADER>
+ <BODY>
+  <IMPORTDATA>
+   <REQUESTDESC>
+    <REPORTNAME>All Masters</REPORTNAME>
+    <STATICVARIABLES>
+     <SVCURRENTCOMPANY>Rulebook Hotels Pvt Ltd (fictional)</SVCURRENTCOMPANY>
+    </STATICVARIABLES>
+   </REQUESTDESC>
+   <REQUESTDATA>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Cash in hand" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Cash in hand</NAME>
+      </NAME.LIST>
+      <PARENT>Cash-in-Hand</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Front-desk cash drawer" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Front-desk cash drawer</NAME>
+      </NAME.LIST>
+      <PARENT>Cash-in-Hand</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+      <OPENINGBALANCE>-20000.00</OPENINGBALANCE>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Petty cash float" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Petty cash float</NAME>
+      </NAME.LIST>
+      <PARENT>Cash-in-Hand</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="UPI clearing" ACTION="Create">
+      <NAME.LIST>
+       <NAME>UPI clearing</NAME>
+      </NAME.LIST>
+      <PARENT>Bank Accounts</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Card clearing" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Card clearing</NAME>
+      </NAME.LIST>
+      <PARENT>Bank Accounts</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Bank accounts" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Bank accounts</NAME>
+      </NAME.LIST>
+      <PARENT>Bank Accounts</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="HDFC" ACTION="Create">
+      <NAME.LIST>
+       <NAME>HDFC</NAME>
+      </NAME.LIST>
+      <PARENT>Bank Accounts</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+      <OPENINGBALANCE>-300000.00</OPENINGBALANCE>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Hotel current account" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Hotel current account</NAME>
+      </NAME.LIST>
+      <PARENT>Bank Accounts</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Guest ledger (in-house folios)" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Guest ledger (in-house folios)</NAME>
+      </NAME.LIST>
+      <PARENT>Sundry Debtors</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Company receivables (city ledger)" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Company receivables (city ledger)</NAME>
+      </NAME.LIST>
+      <PARENT>Sundry Debtors</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Deccan Pharma Distributors (fictional)" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Deccan Pharma Distributors (fictional)</NAME>
+      </NAME.LIST>
+      <PARENT>Sundry Debtors</PARENT>
+      <ISBILLWISEON>Yes</ISBILLWISEON>
+      <GSTREGISTRATIONTYPE>Regular</GSTREGISTRATIONTYPE>
+      <PARTYGSTIN>27ZZFIC0001F1Z5</PARTYGSTIN>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Deccan Agro Ltd" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Deccan Agro Ltd</NAME>
+      </NAME.LIST>
+      <PARENT>Sundry Debtors</PARENT>
+      <ISBILLWISEON>Yes</ISBILLWISEON>
+      <OPENINGBALANCE>-40000.00</OPENINGBALANCE>
+      <GSTREGISTRATIONTYPE>Regular</GSTREGISTRATIONTYPE>
+      <PARTYGSTIN>27ZZFIC0004F1Z2</PARTYGSTIN>
+      <BILLALLOCATIONS.LIST>
+       <NAME>Opening balance</NAME>
+       <BILLDATE>20260331</BILLDATE>
+       <OPENINGBALANCE>-40000.00</OPENINGBALANCE>
+      </BILLALLOCATIONS.LIST>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Godavari Agro Inputs (fictional)" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Godavari Agro Inputs (fictional)</NAME>
+      </NAME.LIST>
+      <PARENT>Sundry Debtors</PARENT>
+      <ISBILLWISEON>Yes</ISBILLWISEON>
+      <GSTREGISTRATIONTYPE>Regular</GSTREGISTRATIONTYPE>
+      <PARTYGSTIN>27ZZFIC0002F1Z4</PARTYGSTIN>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Sahyadri Infra Projects (fictional)" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Sahyadri Infra Projects (fictional)</NAME>
+      </NAME.LIST>
+      <PARENT>Sundry Debtors</PARENT>
+      <ISBILLWISEON>Yes</ISBILLWISEON>
+      <GSTREGISTRATIONTYPE>Regular</GSTREGISTRATIONTYPE>
+      <PARTYGSTIN>27ZZFIC0003F1Z3</PARTYGSTIN>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="OTA receivables" ACTION="Create">
+      <NAME.LIST>
+       <NAME>OTA receivables</NAME>
+      </NAME.LIST>
+      <PARENT>Sundry Debtors</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="BookNest" ACTION="Create">
+      <NAME.LIST>
+       <NAME>BookNest</NAME>
+      </NAME.LIST>
+      <PARENT>Sundry Debtors</PARENT>
+      <ISBILLWISEON>Yes</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Goibibo" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Goibibo</NAME>
+      </NAME.LIST>
+      <PARENT>Sundry Debtors</PARENT>
+      <ISBILLWISEON>Yes</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="RoomRaahi" ACTION="Create">
+      <NAME.LIST>
+       <NAME>RoomRaahi</NAME>
+      </NAME.LIST>
+      <PARENT>Sundry Debtors</PARENT>
+      <ISBILLWISEON>Yes</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="StayHub" ACTION="Create">
+      <NAME.LIST>
+       <NAME>StayHub</NAME>
+      </NAME.LIST>
+      <PARENT>Sundry Debtors</PARENT>
+      <ISBILLWISEON>Yes</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="TripKart" ACTION="Create">
+      <NAME.LIST>
+       <NAME>TripKart</NAME>
+      </NAME.LIST>
+      <PARENT>Sundry Debtors</PARENT>
+      <ISBILLWISEON>Yes</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Udhaar receivables (customer credit)" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Udhaar receivables (customer credit)</NAME>
+      </NAME.LIST>
+      <PARENT>Sundry Debtors</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Staff advances" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Staff advances</NAME>
+      </NAME.LIST>
+      <PARENT>Loans &amp; Advances (Asset)</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Meera Kulkarni" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Meera Kulkarni</NAME>
+      </NAME.LIST>
+      <PARENT>Loans &amp; Advances (Asset)</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Aarav Joshi" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Aarav Joshi</NAME>
+      </NAME.LIST>
+      <PARENT>Loans &amp; Advances (Asset)</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Priya Nair" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Priya Nair</NAME>
+      </NAME.LIST>
+      <PARENT>Loans &amp; Advances (Asset)</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Neha Gaikwad" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Neha Gaikwad</NAME>
+      </NAME.LIST>
+      <PARENT>Loans &amp; Advances (Asset)</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Ravi Shinde" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Ravi Shinde</NAME>
+      </NAME.LIST>
+      <PARENT>Loans &amp; Advances (Asset)</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Kavya Patil" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Kavya Patil</NAME>
+      </NAME.LIST>
+      <PARENT>Loans &amp; Advances (Asset)</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Farhan Qureshi" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Farhan Qureshi</NAME>
+      </NAME.LIST>
+      <PARENT>Loans &amp; Advances (Asset)</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Joseph D’Souza" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Joseph D’Souza</NAME>
+      </NAME.LIST>
+      <PARENT>Loans &amp; Advances (Asset)</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Suresh Pawar" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Suresh Pawar</NAME>
+      </NAME.LIST>
+      <PARENT>Loans &amp; Advances (Asset)</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Imran Shaikh" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Imran Shaikh</NAME>
+      </NAME.LIST>
+      <PARENT>Loans &amp; Advances (Asset)</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Balu Jadhav" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Balu Jadhav</NAME>
+      </NAME.LIST>
+      <PARENT>Loans &amp; Advances (Asset)</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Ganesh More" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Ganesh More</NAME>
+      </NAME.LIST>
+      <PARENT>Loans &amp; Advances (Asset)</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Staff 13 (fictional)" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Staff 13 (fictional)</NAME>
+      </NAME.LIST>
+      <PARENT>Loans &amp; Advances (Asset)</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Staff 14 (fictional)" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Staff 14 (fictional)</NAME>
+      </NAME.LIST>
+      <PARENT>Loans &amp; Advances (Asset)</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Recoverable from leavers (F&amp;F)" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Recoverable from leavers (F&amp;F)</NAME>
+      </NAME.LIST>
+      <PARENT>Loans &amp; Advances (Asset)</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Meera Kulkarni (2)" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Meera Kulkarni (2)</NAME>
+      </NAME.LIST>
+      <PARENT>Loans &amp; Advances (Asset)</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Aarav Joshi (2)" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Aarav Joshi (2)</NAME>
+      </NAME.LIST>
+      <PARENT>Loans &amp; Advances (Asset)</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Priya Nair (2)" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Priya Nair (2)</NAME>
+      </NAME.LIST>
+      <PARENT>Loans &amp; Advances (Asset)</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Neha Gaikwad (2)" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Neha Gaikwad (2)</NAME>
+      </NAME.LIST>
+      <PARENT>Loans &amp; Advances (Asset)</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Ravi Shinde (2)" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Ravi Shinde (2)</NAME>
+      </NAME.LIST>
+      <PARENT>Loans &amp; Advances (Asset)</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Kavya Patil (2)" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Kavya Patil (2)</NAME>
+      </NAME.LIST>
+      <PARENT>Loans &amp; Advances (Asset)</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Farhan Qureshi (2)" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Farhan Qureshi (2)</NAME>
+      </NAME.LIST>
+      <PARENT>Loans &amp; Advances (Asset)</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Joseph D’Souza (2)" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Joseph D’Souza (2)</NAME>
+      </NAME.LIST>
+      <PARENT>Loans &amp; Advances (Asset)</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Suresh Pawar (2)" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Suresh Pawar (2)</NAME>
+      </NAME.LIST>
+      <PARENT>Loans &amp; Advances (Asset)</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Imran Shaikh (2)" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Imran Shaikh (2)</NAME>
+      </NAME.LIST>
+      <PARENT>Loans &amp; Advances (Asset)</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Balu Jadhav (2)" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Balu Jadhav (2)</NAME>
+      </NAME.LIST>
+      <PARENT>Loans &amp; Advances (Asset)</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Ganesh More (2)" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Ganesh More (2)</NAME>
+      </NAME.LIST>
+      <PARENT>Loans &amp; Advances (Asset)</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Staff 13 (fictional) (2)" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Staff 13 (fictional) (2)</NAME>
+      </NAME.LIST>
+      <PARENT>Loans &amp; Advances (Asset)</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Staff 14 (fictional) (2)" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Staff 14 (fictional) (2)</NAME>
+      </NAME.LIST>
+      <PARENT>Loans &amp; Advances (Asset)</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="GST input credit (legacy, locked snapshots only)" ACTION="Create">
+      <NAME.LIST>
+       <NAME>GST input credit (legacy, locked snapshots only)</NAME>
+      </NAME.LIST>
+      <PARENT>Duties &amp; Taxes</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Input CGST" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Input CGST</NAME>
+      </NAME.LIST>
+      <PARENT>Duties &amp; Taxes</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Input SGST" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Input SGST</NAME>
+      </NAME.LIST>
+      <PARENT>Duties &amp; Taxes</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Input IGST" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Input IGST</NAME>
+      </NAME.LIST>
+      <PARENT>Duties &amp; Taxes</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="GST electronic cash ledger" ACTION="Create">
+      <NAME.LIST>
+       <NAME>GST electronic cash ledger</NAME>
+      </NAME.LIST>
+      <PARENT>Duties &amp; Taxes</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="GST paid on advances (adjustable)" ACTION="Create">
+      <NAME.LIST>
+       <NAME>GST paid on advances (adjustable)</NAME>
+      </NAME.LIST>
+      <PARENT>Duties &amp; Taxes</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="TDS receivable" ACTION="Create">
+      <NAME.LIST>
+       <NAME>TDS receivable</NAME>
+      </NAME.LIST>
+      <PARENT>Loans &amp; Advances (Asset)</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Prepaid expenses" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Prepaid expenses</NAME>
+      </NAME.LIST>
+      <PARENT>Loans &amp; Advances (Asset)</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Opening-balance difference" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Opening-balance difference</NAME>
+      </NAME.LIST>
+      <PARENT>Suspense A/c</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Buildings" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Buildings</NAME>
+      </NAME.LIST>
+      <PARENT>Fixed Assets</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+      <OPENINGBALANCE>-6000000.00</OPENINGBALANCE>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Furniture, fittings &amp; electrical fittings" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Furniture, fittings &amp; electrical fittings</NAME>
+      </NAME.LIST>
+      <PARENT>Fixed Assets</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+      <OPENINGBALANCE>-800000.00</OPENINGBALANCE>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Plant &amp; machinery" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Plant &amp; machinery</NAME>
+      </NAME.LIST>
+      <PARENT>Fixed Assets</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+      <OPENINGBALANCE>-500000.00</OPENINGBALANCE>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Computers, software &amp; POS hardware" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Computers, software &amp; POS hardware</NAME>
+      </NAME.LIST>
+      <PARENT>Fixed Assets</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+      <OPENINGBALANCE>-80000.00</OPENINGBALANCE>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Vehicles" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Vehicles</NAME>
+      </NAME.LIST>
+      <PARENT>Fixed Assets</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Advance deposits (guest and group)" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Advance deposits (guest and group)</NAME>
+      </NAME.LIST>
+      <PARENT>Current Liabilities</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+      <OPENINGBALANCE>10000.00</OPENINGBALANCE>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Synthetic tax payable (legacy)" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Synthetic tax payable (legacy)</NAME>
+      </NAME.LIST>
+      <PARENT>Duties &amp; Taxes</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Output CGST" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Output CGST</NAME>
+      </NAME.LIST>
+      <PARENT>Duties &amp; Taxes</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Output SGST" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Output SGST</NAME>
+      </NAME.LIST>
+      <PARENT>Duties &amp; Taxes</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Output IGST" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Output IGST</NAME>
+      </NAME.LIST>
+      <PARENT>Duties &amp; Taxes</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="GST payable under reverse charge" ACTION="Create">
+      <NAME.LIST>
+       <NAME>GST payable under reverse charge</NAME>
+      </NAME.LIST>
+      <PARENT>Duties &amp; Taxes</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="TDS payable" ACTION="Create">
+      <NAME.LIST>
+       <NAME>TDS payable</NAME>
+      </NAME.LIST>
+      <PARENT>Duties &amp; Taxes</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Vendor payables" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Vendor payables</NAME>
+      </NAME.LIST>
+      <PARENT>Sundry Creditors</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Kaveri Textiles" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Kaveri Textiles</NAME>
+      </NAME.LIST>
+      <PARENT>Sundry Creditors</PARENT>
+      <ISBILLWISEON>Yes</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Morning Supplies" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Morning Supplies</NAME>
+      </NAME.LIST>
+      <PARENT>Sundry Creditors</PARENT>
+      <ISBILLWISEON>Yes</ISBILLWISEON>
+      <OPENINGBALANCE>25000.00</OPENINGBALANCE>
+      <BILLALLOCATIONS.LIST>
+       <NAME>Opening balance</NAME>
+       <BILLDATE>20260331</BILLDATE>
+       <OPENINGBALANCE>25000.00</OPENINGBALANCE>
+      </BILLALLOCATIONS.LIST>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="State Electricity Board (fictional)" ACTION="Create">
+      <NAME.LIST>
+       <NAME>State Electricity Board (fictional)</NAME>
+      </NAME.LIST>
+      <PARENT>Sundry Creditors</PARENT>
+      <ISBILLWISEON>Yes</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Salaries payable (net)" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Salaries payable (net)</NAME>
+      </NAME.LIST>
+      <PARENT>Current Liabilities</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="PF payable" ACTION="Create">
+      <NAME.LIST>
+       <NAME>PF payable</NAME>
+      </NAME.LIST>
+      <PARENT>Duties &amp; Taxes</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="ESIC payable" ACTION="Create">
+      <NAME.LIST>
+       <NAME>ESIC payable</NAME>
+      </NAME.LIST>
+      <PARENT>Duties &amp; Taxes</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Professional tax payable" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Professional tax payable</NAME>
+      </NAME.LIST>
+      <PARENT>Duties &amp; Taxes</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Other payroll deductions" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Other payroll deductions</NAME>
+      </NAME.LIST>
+      <PARENT>Current Liabilities</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Bank loans (secured)" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Bank loans (secured)</NAME>
+      </NAME.LIST>
+      <PARENT>Secured Loans</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="HDFC term loan" ACTION="Create">
+      <NAME.LIST>
+       <NAME>HDFC term loan</NAME>
+      </NAME.LIST>
+      <PARENT>Secured Loans</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+      <OPENINGBALANCE>2000000.00</OPENINGBALANCE>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Unsecured loans" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Unsecured loans</NAME>
+      </NAME.LIST>
+      <PARENT>Unsecured Loans</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Owner's drawings" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Owner's drawings</NAME>
+      </NAME.LIST>
+      <PARENT>Capital Account</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Owner's capital" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Owner's capital</NAME>
+      </NAME.LIST>
+      <PARENT>Capital Account</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+      <OPENINGBALANCE>5705000.00</OPENINGBALANCE>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Room revenue" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Room revenue</NAME>
+      </NAME.LIST>
+      <PARENT>Sales Accounts</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Other services revenue" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Other services revenue</NAME>
+      </NAME.LIST>
+      <PARENT>Sales Accounts</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Food &amp; beverage revenue" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Food &amp; beverage revenue</NAME>
+      </NAME.LIST>
+      <PARENT>Sales Accounts</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Cancellation, no-show &amp; attrition charges" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Cancellation, no-show &amp; attrition charges</NAME>
+      </NAME.LIST>
+      <PARENT>Sales Accounts</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Banquet &amp; events revenue" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Banquet &amp; events revenue</NAME>
+      </NAME.LIST>
+      <PARENT>Sales Accounts</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Discounts allowed" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Discounts allowed</NAME>
+      </NAME.LIST>
+      <PARENT>Sales Accounts</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Refunds, reversals &amp; credit notes" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Refunds, reversals &amp; credit notes</NAME>
+      </NAME.LIST>
+      <PARENT>Sales Accounts</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Cash over" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Cash over</NAME>
+      </NAME.LIST>
+      <PARENT>Indirect Incomes</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Interest &amp; other income" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Interest &amp; other income</NAME>
+      </NAME.LIST>
+      <PARENT>Indirect Incomes</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Housekeeping &amp; guest supplies" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Housekeeping &amp; guest supplies</NAME>
+      </NAME.LIST>
+      <PARENT>Direct Expenses</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Linen &amp; laundry" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Linen &amp; laundry</NAME>
+      </NAME.LIST>
+      <PARENT>Direct Expenses</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Kitchen provisions &amp; beverages" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Kitchen provisions &amp; beverages</NAME>
+      </NAME.LIST>
+      <PARENT>Direct Expenses</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Repairs &amp; maintenance" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Repairs &amp; maintenance</NAME>
+      </NAME.LIST>
+      <PARENT>Indirect Expenses</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Electricity, water &amp; fuel" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Electricity, water &amp; fuel</NAME>
+      </NAME.LIST>
+      <PARENT>Direct Expenses</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Petty cash &amp; sundry" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Petty cash &amp; sundry</NAME>
+      </NAME.LIST>
+      <PARENT>Indirect Expenses</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="General &amp; administrative expenses" ACTION="Create">
+      <NAME.LIST>
+       <NAME>General &amp; administrative expenses</NAME>
+      </NAME.LIST>
+      <PARENT>Indirect Expenses</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Rent &amp; licence fees" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Rent &amp; licence fees</NAME>
+      </NAME.LIST>
+      <PARENT>Indirect Expenses</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="OTA commission" ACTION="Create">
+      <NAME.LIST>
+       <NAME>OTA commission</NAME>
+      </NAME.LIST>
+      <PARENT>Indirect Expenses</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Bank &amp; card charges" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Bank &amp; card charges</NAME>
+      </NAME.LIST>
+      <PARENT>Indirect Expenses</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Interest on loans" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Interest on loans</NAME>
+      </NAME.LIST>
+      <PARENT>Indirect Expenses</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Salaries &amp; wages" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Salaries &amp; wages</NAME>
+      </NAME.LIST>
+      <PARENT>Indirect Expenses</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Employer PF &amp; ESIC" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Employer PF &amp; ESIC</NAME>
+      </NAME.LIST>
+      <PARENT>Indirect Expenses</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Staff welfare" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Staff welfare</NAME>
+      </NAME.LIST>
+      <PARENT>Indirect Expenses</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Depreciation" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Depreciation</NAME>
+      </NAME.LIST>
+      <PARENT>Indirect Expenses</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Bad debts written off" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Bad debts written off</NAME>
+      </NAME.LIST>
+      <PARENT>Indirect Expenses</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="GST / TDS interest &amp; late fees" ACTION="Create">
+      <NAME.LIST>
+       <NAME>GST / TDS interest &amp; late fees</NAME>
+      </NAME.LIST>
+      <PARENT>Indirect Expenses</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Cash short" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Cash short</NAME>
+      </NAME.LIST>
+      <PARENT>Indirect Expenses</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Suspense (unmapped)" ACTION="Create">
+      <NAME.LIST>
+       <NAME>Suspense (unmapped)</NAME>
+      </NAME.LIST>
+      <PARENT>Suspense A/c</PARENT>
+      <ISBILLWISEON>No</ISBILLWISEON>
+     </LEDGER>
+    </TALLYMESSAGE>
+   </REQUESTDATA>
+  </IMPORTDATA>
+ </BODY>
+</ENVELOPE>

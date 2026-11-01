@@ -235,6 +235,7 @@ public static partial class ManualVoucherRules
         if (type == "Contra" && cb.Any(v => !v)) out_.Add(MsgContra);
         if (type == "Payment" && (!ls.Where((l, i) => cb[i] && l.CreditPaise > 0).Any() || ls.Where((l, i) => cb[i] && l.DebitPaise > 0).Any())) out_.Add(MsgPayment);
         if (type == "Receipt" && (!ls.Where((l, i) => cb[i] && l.DebitPaise > 0).Any() || ls.Where((l, i) => cb[i] && l.CreditPaise > 0).Any())) out_.Add(MsgReceipt);
+        if (CashGuard.LoanCashRefusal(ls.Select(l => (l.Account, chart.Find(l.Account) is { } x && chart.IsUnder(x.GroupId, "cash"), l.DebitPaise + l.CreditPaise))) is { } b11) out_.Add(b11); // ACC-3 C8 (rulebook B11)
         return out_;
     }
 

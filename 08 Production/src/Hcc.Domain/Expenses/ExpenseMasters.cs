@@ -14,7 +14,8 @@ public sealed record ExpenseCategoryRow(string Code, string Name, bool Active, b
 /// <summary>One row of the Expense vendors master (ops.expense_vendor, MA-3).</summary>
 public sealed record ExpenseVendorRow(int VendorId, string Code, string Name, bool Active,
     // ACC-2 (acc2-purchase, contract §3, §5; migration 4231): GST state (MH / null = intra), TDS flag and section.
-    string? State = null, bool Tds = false, string? TdsSection = null);
+    string? State = null, bool Tds = false, string? TdsSection = null,
+    string? Gstin = null); // ACC-3 C4: the GSTIN, checked against the state (warning only, DEC-136)
 
 /// <summary>
 /// The expense commands' master checks — the server gaps the SCC gap report found (§4): the category must be an active row of the Expense

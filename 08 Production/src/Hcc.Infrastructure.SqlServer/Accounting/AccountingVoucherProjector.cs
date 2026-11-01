@@ -292,7 +292,7 @@ public sealed class AccountingVoucherProjector(SqlConnectionFactory connections,
         var inflow = e.Kind == "deposit";
         if (!inflow && e.Kind is not ("deposit-apply" or "deposit-return")) return null;
         if (e.AmountPaise <= 0) return null;
-        if (await SqlGstMonthStore.AdvanceContextAsync(c, t, propertyId, e.FolioId, ct).ConfigureAwait(false) is not { } ctx) return null;
+        if (await SqlGstMonthStore.AdvanceContextAsync(c, t, propertyId, e.FolioId, ct, inflow ? e.BusinessDate : null).ConfigureAwait(false) is not { } ctx) return null; // ACC-3 C10: dated switch
         var bps = ctx.Bps ?? (ctx.RatePaise > 0
             ? new Hcc.Domain.Tax.GstMaster(await new Hcc.Infrastructure.SqlServer.Tax.SqlGstMasterStore(connections).ActiveVersionsAsync(null, propertyId, ct).ConfigureAwait(false))
                 .RoomNight(ctx.Arrival, new Hcc.Domain.Money.Paise(ctx.RatePaise)).Bps

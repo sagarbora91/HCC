@@ -171,6 +171,10 @@ export function accGstSetoffVouchers(s:State,date:string):Omit<ACCVoucher,'no'>[
 // ── GST on booking advances (A6 / A6a / A6b; DEC-142 switch, default off) ──
 /** The firm profile's switch (Owner-only money setting). Off when no profile exists. */
 export const accGstOnAdvances=(s:State)=>cmpSlice(s).profile?.gstOnAdvances===true;
+/** ACC-3 C10 (contract §7): the date the switch applies from ('' = every advance while it is on). */
+export const accGstOnAdvancesFrom=(s:State)=>accGstOnAdvances(s)?cmpSlice(s).profile?.gstOnAdvancesFrom??'':'';
+/** True when an advance dated `date` carries GST: the switch is on and the date is on or after its from-date. */
+export const accGstOnAdvanceOn=(s:State,date:string)=>accGstOnAdvances(s)&&date>=accGstOnAdvancesFrom(s);
 /** GST inside a cum-tax amount at `bps` (half away from zero), split CGST / SGST as output GST (gstSplit). Signed. */
 export function accCumTaxGst(amount:number,bps:number):{tax:number;cgst:number;sgst:number}{
   if(!bps||!amount)return {tax:0,cgst:0,sgst:0};
@@ -192,7 +196,8 @@ export function accAdvanceGstVouchers(s:State,date:string):Omit<ACCVoucher,'no'>
     const bps=accAdvanceGstBps(s,b);let held=0;
     for(const {r} of rs){
       const g=accCumTaxGst(r.amount,bps);
-      if(ADV_IN.includes(r.kind)){held+=g.tax;
+      if(ADV_IN.includes(r.kind)){if(!accGstOnAdvanceOn(s,r.date))continue; // ACC-3 C10: an advance dated before the switch date has no GST
+        held+=g.tax;
         if(r.date===date&&g.tax)out.push({date,type:'Journal',narration:`GST on advance (receipt voucher, GSTR-1 11A) · ${b.guest} · ${b.id} · ${money(r.amount)} at ${bps/100} %`,
           source:{kind:'tax',id:`advance-gst:${b.id}/${r.id}`,sub:ACC_ADVANCE_GST_SUB,booking:b.id},
           entries:[{account:L.advance,debit:g.tax,credit:0},{account:L.outCgst,debit:0,credit:g.cgst},{account:L.outSgst,debit:0,credit:g.sgst}],unmapped:[]});

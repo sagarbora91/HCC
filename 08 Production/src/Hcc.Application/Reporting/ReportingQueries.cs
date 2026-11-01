@@ -25,6 +25,9 @@ public sealed class ReportingQueries(IReportSource reports, IClosingStore closin
     {
         ArgumentNullException.ThrowIfNull(caller);
         await policy.RequireAsync(caller.PropertyId, caller.PrincipalId, ClosingPermissions.ReportFinance, ct: ct).ConfigureAwait(false);
+        // ACC-3 integrator: the daily pack is the operations + finance report of the whole property — PERM-RPT-001 as declared in ClosingPermissions
+        // (Owner, Manager, Accountant); the Cashier keeps the own-shift collections (PERM-RPT-002 scope S) and no longer reads the full pack.
+        await policy.RequireAsync(caller.PropertyId, caller.PrincipalId, ClosingPermissions.ReportOperations, ct: ct).ConfigureAwait(false);
         if (to < from) throw HccException.Validation("'to' must be on or after 'from'.");
         if (to.DayNumber - from.DayNumber + 1 > MaxRangeDays) throw HccException.Validation($"Choose at most {MaxRangeDays} business dates.");
         var bd = await closing.BusinessDateAsync(null, caller.PropertyId, ct).ConfigureAwait(false) ?? throw new HccException(HccErrorCode.NOT_FOUND, "Property not found.");

@@ -13,6 +13,17 @@ export type GuestDraft=Partial<Omit<Guest,'id'|'verified'|'origin'|'version'>>;
 
 export const guestIdTypes=['Aadhaar (demo)','Passport (demo)','Driving licence (demo)','Voter ID (demo)','PAN (demo)','Other (demo)'];
 export const guestAgeBands=['Adult','Child','Infant','Senior'];
+/** DEC-193: age bands whose party members must have their own ID before registration / check-in. OP-21 (children) is open with the owner:
+ *  Child / Infant default to "not required" — this one constant switches it (server twin GuestRules.PartyIdRequiredBands). */
+export const GUEST_PARTY_ID_REQUIRED_BANDS:readonly string[]=['Adult','Senior'];
+export const guestPartyIdRequired=(ageBand:string|undefined)=>GUEST_PARTY_ID_REQUIRED_BANDS.includes(String(ageBand||''));
+/** DEC-193: members whose ID is required but not on file (no last 4 and no new number). The photo is optional everywhere: never checked. */
+export function guestPartyIdMissing(party:readonly {name:string;ageBand:string;idLast4?:string;idNumber?:string}[]|undefined):string[]{
+  const t=(v:unknown)=>String(v??'').trim();
+  return (party||[]).filter(p=>guestPartyIdRequired(p.ageBand)&&!t(p.idLast4)&&!t(p.idNumber)).map(p=>t(p.name));
+}
+/** "ID missing for <name>" for the first incomplete member, '' when complete (REGISTER / CHECKIN refusal; server GuestRules.PartyIdMissing). */
+export const guestPartyIdMessage=(party:Parameters<typeof guestPartyIdMissing>[0])=>{const m=guestPartyIdMissing(party);return m.length?'ID missing for '+m[0]:'';};
 export const guestFieldLabels:Record<string,string>={name:'Name',phone:'Phone',email:'Email',address:'Address',nationality:'Nationality',idType:'ID type',idLast4:'ID last 4',idNumber:'ID number',gstin:'GSTIN',party:'Party',preferences:'Preferences',notes:'Notes',dob:'Date of birth'};
 
 // ── Full ID number (DEC-068): stored for every ID type, validated per type, shown masked (last 4) everywhere ──
@@ -126,7 +137,11 @@ export function guestValidate(d:GuestDraft,registration=false):Record<string,str
   if(t(d.idLast4)&&!/^[A-Za-z0-9]{4}$/.test(t(d.idLast4)))e.idLast4='Enter exactly the last 4 letters or digits of the ID (the full number goes in the ID number field).';
   if((t(d.idLast4)||t(d.idNumber))&&!t(d.idType))e.idType='Choose the ID type.';
   if(t(d.idNumber)&&t(d.idType)){const m=guestIdNumberError(d.idType,d.idNumber);if(m)e.idNumber=m;}
-  (d.party||[]).forEach((p,i)=>{if(t(p.name).length<2)e.party=`Party member ${i+1}: enter a name.`;else if(!guestAgeBands.includes(p.ageBand))e.party=`Party member ${i+1}: choose an age band.`;});
+  (d.party||[]).forEach((p,i)=>{if(t(p.name).length<2)e.party=`Party member ${i+1}: enter a name.`;else if(!guestAgeBands.includes(p.ageBand))e.party=`Party member ${i+1}: choose an age band.`;
+    // DEC-193: the member's own ID, same per-type checks as the registered guest (messages never echo the number).
+    else if(t(p.idLast4)&&!/^[A-Za-z0-9]{4}$/.test(t(p.idLast4)))e.party=`Party member ${i+1}: enter exactly the last 4 letters or digits of the ID.`;
+    else if((t(p.idNumber)||t(p.idLast4))&&!t(p.idType))e.party=`Party member ${i+1}: choose the ID type.`;
+    else if(t(p.idNumber)){const m=guestIdNumberError(p.idType,p.idNumber);if(m)e.party=`Party member ${i+1}: ${m}`;}});
   // LG (DEC-162 Q4): optional date of birth, yyyy-mm-dd from 1900 (the form also bounds it by the business date).
   if(t(d.dob)&&(!/^\d{4}-\d{2}-\d{2}$/.test(t(d.dob))||Number.isNaN(Date.parse(t(d.dob)))||t(d.dob)<'1900-01-01'))e.dob='Enter the date of birth as a valid date from 1900 (or leave it blank).';
   if((d.party||[]).length>6)e.party='At most 6 accompanying guests in this demo.';
@@ -135,6 +150,8 @@ export function guestValidate(d:GuestDraft,registration=false):Record<string,str
     if(!t(d.idType))e.idType='Choose the ID type.';
     // Profiles saved before DEC-068 hold only the last 4 characters; they stay valid.
     if(!t(d.idNumber)&&!t(d.idLast4))e.idNumber='Enter the ID number.';
+    // DEC-193: every adult / senior in the party has their own ID (the photo is optional and never required).
+    if(!e.party){const m=guestPartyIdMessage(d.party);if(m)e.party=m;}
   }
   // A07-05: no full ID number in free text — it would be stored and shown in clear, around the protected ID field (server GuestRules.Validate, same order).
   if(!e.address&&guestLooksLikeIdNumber(d.address))e.address=GUEST_FREE_TEXT_ID_MESSAGE;
@@ -154,7 +171,13 @@ export function guestClean(d:GuestDraft):GuestDraft{
     ...(t(d.idNumber)?{idNumber:guestIdNormalise(d.idNumber)}:{}),
     ...(t(d.company)?{company:t(d.company)}:{}),...(t(d.gstin)?{gstin:t(d.gstin).toUpperCase()}:{}),preferences:t(d.preferences),notes:t(d.notes),
     ...(t(d.dob)?{dob:t(d.dob)}:{}),
-    party:(d.party||[]).map(p=>({name:t(p.name),ageBand:p.ageBand,relation:t(p.relation)}))};
+    party:(d.party||[]).map(guestCleanMember)};
+}
+/** DEC-193: a party member trimmed — ID number normalised, last 4 derived from it; ID fields omitted when blank (older saves round-trip unchanged). */
+export function guestCleanMember(p:GuestParty):GuestParty{
+  const t=(v:unknown)=>String(v??'').trim();const n=t(p.idNumber)?guestIdNormalise(p.idNumber):'';
+  const last4=(n?guestIdLast4(n):t(p.idLast4)).toUpperCase();
+  return {name:t(p.name),ageBand:p.ageBand,relation:t(p.relation),...(t(p.idType)?{idType:t(p.idType)}:{}),...(last4?{idLast4:last4}:{}),...(n?{idNumber:n}:{})};
 }
 
 // ── Field masking (REQ-GUEST-006; intended PERM-GST-003 guest.idDetails.view) ──
@@ -165,15 +188,24 @@ export const guestMaskPhone=(p:string)=>{const d=String(p||'').replace(/\D/g,'')
 export const guestMaskEmail=(e:string)=>{if(!e)return '—';const [u,dom]=e.split('@');return (u?.[0]||'')+'•••@'+(dom||'');};
 /** The profile as the given user may see it: ID → masked last 4 ("Restricted" without the ID permission), phone → masked last 4, email masked.
  *  The full ID number is NEVER part of the view; `idOnFile` says whether one is stored. Reveal it only via guestRevealId after GUEST_ID_VIEW (audited). */
-export function guestView(s:State,uid:string,g:Guest):Omit<Guest,'idNumber'>&{masked:boolean;idMasked:string;idOnFile:boolean;canShowId:boolean}{
+/** DEC-193: a party member as the viewer may see it — never the number; masked last 4 or "Restricted"; idRequired / idOnFile flags. */
+export type GuestPartyView=Omit<GuestParty,'idNumber'>&{idMasked:string;idRequired:boolean;idOnFile:boolean;canShowId:boolean};
+export function guestPartyView(a:GuestAccess,p:GuestParty):GuestPartyView{
+  const {idNumber,...rest}=p;
+  return {...rest,...(rest.idType!==undefined?{idType:a.idDetails?rest.idType:'Restricted'}:{}),...(rest.idLast4!==undefined?{idLast4:a.idDetails?rest.idLast4:'Restricted'}:{}),
+    idMasked:a.idDetails?guestIdMask(p.idLast4):'Restricted',idRequired:guestPartyIdRequired(p.ageBand),idOnFile:!!idNumber,canShowId:a.idDetails&&!!idNumber};
+}
+export function guestView(s:State,uid:string,g:Guest):Omit<Guest,'idNumber'|'party'>&{party:GuestPartyView[];masked:boolean;idMasked:string;idOnFile:boolean;canShowId:boolean}{
   const a=guestAccess(s,uid);const {idNumber,...rest}=g;
-  return {...rest,masked:!a.idDetails,idMasked:a.idDetails?guestIdMask(g.idLast4):'Restricted',idOnFile:!!idNumber,canShowId:a.idDetails&&!!idNumber,
+  return {...rest,party:(g.party||[]).map(p=>guestPartyView(a,p)),masked:!a.idDetails,idMasked:a.idDetails?guestIdMask(g.idLast4):'Restricted',idOnFile:!!idNumber,canShowId:a.idDetails&&!!idNumber,
     phone:a.contact?g.phone:guestMaskPhone(g.phone),email:a.contact?g.email:guestMaskEmail(g.email),
     idType:a.idDetails?g.idType:'Restricted',idLast4:a.idDetails?g.idLast4:'Restricted'};
 }
 
 /** The full ID number for the deliberate "Show ID" action — only for roles with the ID-view permission, else undefined. The caller must have run GUEST_ID_VIEW (audit) first. */
 export const guestRevealId=(s:State,uid:string,g:Guest):string|undefined=>guestAccess(s,uid).idDetails?g.idNumber:undefined;
+/** DEC-193: a party member's full number (seq 1–6) for the deliberate "Show ID" — after GUEST_ID_VIEW {id, seq} (audited with the seq). */
+export const guestRevealPartyId=(s:State,uid:string,g:Guest,seq:number):string|undefined=>guestAccess(s,uid).idDetails?g.party[seq-1]?.idNumber:undefined;
 
 // ── Lookups ──
 export const guestById=(s:State,id?:string)=>id?(s.guests||[]).find(g=>g.id===id):undefined;

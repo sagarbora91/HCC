@@ -67,6 +67,12 @@ public interface IGstMonthStore
 
     /// <summary>Sets the switch; false when the property has no firm profile yet.</summary>
     Task<bool> SetGstOnAdvancesAsync(ICommandTransaction tx, int propertyId, bool on, int by, DateTime now, CancellationToken ct);
+
+    /// <summary>ACC-3 C10: the date the switch applies from (null = every advance while it is on, or the switch is off).</summary>
+    Task<DateOnly?> GstOnAdvancesFromAsync(ICommandTransaction? tx, int propertyId, CancellationToken ct) => Task.FromResult<DateOnly?>(null);
+
+    /// <summary>ACC-3 C10: sets (on) or clears (off, null) the date.</summary>
+    Task SetGstOnAdvancesFromAsync(ICommandTransaction tx, int propertyId, DateOnly? from, CancellationToken ct) => Task.CompletedTask;
 }
 
 /// <summary>A manual voucher this lane asks the manual-voucher module (acc2-manual, contract §2) to save.</summary>
@@ -139,14 +145,24 @@ public sealed class ExpenseMonthLockAdapter(IExpenseStore store, IExpenseRegiste
 public interface IPayRunMonthCheck
 {
     Task<string?> BlockerAsync(ICommandTransaction tx, int propertyId, string month, CancellationToken ct);
+
+    /// <summary>ACC-3 C9: the same check for the month view (no command transaction). Null = nothing blocks.</summary>
+    Task<string?> ViewBlockerAsync(int propertyId, string month, CancellationToken ct) => Task.FromResult<string?>(null);
 }
 
 /// <summary><see cref="IPayRunMonthCheck"/> over the payroll store (no staff on the property = no pay run to wait for, as in the prototype).</summary>
 public sealed class PayRunMonthCheck(Payroll.IPayrollStore payroll) : IPayRunMonthCheck
 {
-    public async Task<string?> BlockerAsync(ICommandTransaction tx, int propertyId, string month, CancellationToken ct)
+    public Task<string?> BlockerAsync(ICommandTransaction tx, int propertyId, string month, CancellationToken ct) => CheckAsync(payroll.In(tx), propertyId, month, ct);
+
+    public async Task<string?> ViewBlockerAsync(int propertyId, string month, CancellationToken ct)
     {
-        var db = payroll.In(tx);
+        await using var db = await payroll.OpenReadAsync(ct).ConfigureAwait(false);
+        return await CheckAsync(db, propertyId, month, ct).ConfigureAwait(false);
+    }
+
+    private static async Task<string?> CheckAsync(Payroll.IPayrollDb db, int propertyId, string month, CancellationToken ct)
+    {
         if ((await db.AllStaffAsync(propertyId, ct).ConfigureAwait(false)).Count == 0) return null;
         var m = Hcc.Domain.Payroll.PayMonth.Parse(month);
         var run = (await db.RunsAsync(propertyId, ct).ConfigureAwait(false)).FirstOrDefault(r => r.Month == m);
@@ -324,6 +340,11 @@ public sealed class GstMonthService(ICommandRunner runner, IAccountingStore acco
 
     private static MonthLockRow? Current(IEnumerable<MonthLockRow> rows, string month) => rows.LastOrDefault(r => r.Month == month && r.UnlockedUtc is null);
 
+    /// <summary>ACC-3 C9: the blocker when the posted set-off no longer matches the live figures of its month (null = it matches or none is posted).</summary>
+    public static string? StaleSetoff(string month, StoredGstSetoff? posted, GstSetOffResult live)
+        => posted is null || posted.Figures == live ? null
+            : $"The GST figures for {month} changed after the set-off of {D(posted.PostedOn)} (challan now {Rs(live.Challan)}, was {Rs(posted.Figures.Challan)}) — post the set-off again; it replaces the earlier one.";
+
     internal static string LockedMessage(string month) => $"Month {month} is locked (GST set-off posted, books closed) — the Owner unlocks the month first (DEC-131).";
 
     // ── Query ──
@@ -343,6 +364,10 @@ public sealed class GstMonthService(ICommandRunner runner, IAccountingStore acco
         {
             var bd = await accounting.BusinessDateAsync(null, caller.PropertyId, ct).ConfigureAwait(false) ?? f.To;
             blocker = f.To >= bd ? $"The month {m} is not over: its last day {D(f.To)} must be a closed business day." : p is null ? $"Post the GST set-off for {m} first (rulebook E1)." : null;
+            // ACC-3 C9 (contract §7): the figures above are live until the month lock (as the prototype); a set-off posted on figures that have
+            // changed since is shown as such, and the pay-run blocker (ruling 6) is shown here as LockMonthAsync enforces it.
+            blocker ??= StaleSetoff(m, p, f.Setoff);
+            if (blocker is null && payRuns is not null) blocker = await payRuns.ViewBlockerAsync(caller.PropertyId, m, ct).ConfigureAwait(false);
         }
 
         static GstHeadsView H(GstHeads h) => new(h.Igst, h.Cgst, h.Sgst);
@@ -361,7 +386,8 @@ public sealed class GstMonthService(ICommandRunner runner, IAccountingStore acco
             locks.Select(l => new AccountingMonthLockView(l.Month, l.LockedUtc, l.LockedBy, l.SetoffKey, l.UnlockedUtc, l.UnlockedBy, l.UnlockReason)).ToList(),
             await store.OpenMonthLockRequestsAsync(null, caller.PropertyId, ct).ConfigureAwait(false),
             (await store.SetoffsAsync(null, caller.PropertyId, ct).ConfigureAwait(false)).Select(View).ToList(),
-            await store.GstOnAdvancesAsync(null, caller.PropertyId, ct).ConfigureAwait(false));
+            await store.GstOnAdvancesAsync(null, caller.PropertyId, ct).ConfigureAwait(false),
+            await store.GstOnAdvancesFromAsync(null, caller.PropertyId, ct).ConfigureAwait(false) is { } from ? D(from) : null); // ACC-3 C10
     }
 
     private static GstSetoffView View(StoredGstSetoff p)
@@ -530,6 +556,8 @@ public sealed class GstMonthService(ICommandRunner runner, IAccountingStore acco
         if (Current(await store.MonthLocksAsync(tx, propertyId, ct).ConfigureAwait(false), month) is not null) return ($"The month {month} is already locked.", [], null);
         var setoff = (await store.SetoffsAsync(tx, propertyId, ct).ConfigureAwait(false)).FirstOrDefault(p => p.Month == month);
         if (setoff is null) return ($"Post the GST set-off for {month} first (rulebook E1).", [], null);
+        var live = await FiguresAsync(tx, propertyId, month, await store.SetoffsAsync(tx, propertyId, ct).ConfigureAwait(false), ct).ConfigureAwait(false);
+        if (StaleSetoff(month, setoff, live.Setoff) is { } stale) return (stale, [], null); // ACC-3 C9
         var pending = await manualVouchers.PendingAsync(tx, propertyId, from, to, ct).ConfigureAwait(false);
         if (pending > 0) return ($"{pending} manual voucher{(pending == 1 ? " is" : "s are")} pending approval in {month} — the Owner decides {(pending == 1 ? "it" : "them")} first.", [], null);
         if (payRuns is not null && await payRuns.BlockerAsync(tx, propertyId, month, ct).ConfigureAwait(false) is { } payWhy) return (payWhy, [], null); // ruling 6
@@ -641,14 +669,22 @@ public sealed class GstMonthService(ICommandRunner runner, IAccountingStore acco
         await policy.RequireAsync(caller.PropertyId, caller.PrincipalId, TaxPermissions.Configuration, ct: ct).ConfigureAwait(false);
         return await runner.RunAsync(Ctx(caller, OpAdvances, idempotencyKey), req, async (tx, ct2) =>
         {
-            if (await store.GstOnAdvancesAsync(tx, caller.PropertyId, ct2).ConfigureAwait(false) == req.On)
+            // ACC-3 C10 (contract §7): a dated switch — From (default the business date) = the first advance date it applies to.
+            DateOnly? from = null;
+            if (req.On)
+                from = string.IsNullOrWhiteSpace(req.From) ? await accounting.BusinessDateAsync(tx, caller.PropertyId, ct2).ConfigureAwait(false)
+                    : DateOnly.TryParseExact(req.From.Trim(), "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var d) ? d
+                    : throw HccException.Validation("Enter the date GST on advances applies from (YYYY-MM-DD).");
+            var wasOn = await store.GstOnAdvancesAsync(tx, caller.PropertyId, ct2).ConfigureAwait(false);
+            if (wasOn == req.On && (!req.On || await store.GstOnAdvancesFromAsync(tx, caller.PropertyId, ct2).ConfigureAwait(false) == from))
                 throw new HccException(HccErrorCode.INVALID_TRANSITION, $"GST on advances is already {(req.On ? "on" : "off")}.");
             if (!await store.SetGstOnAdvancesAsync(tx, caller.PropertyId, req.On, caller.PrincipalId, Now, ct2).ConfigureAwait(false))
                 throw new HccException(HccErrorCode.INVALID_TRANSITION, "Set the compliance firm profile first (Owner: Compliance calendar › Firm profile).");
+            await store.SetGstOnAdvancesFromAsync(tx, caller.PropertyId, from, ct2).ConfigureAwait(false);
             await tx.AuditAsync("ACC_GST_ON_ADVANCES_SET", "cmp-profile:gst-on-advances",
-                req.On ? "GST on booking advances switched ON — deposits received post Dr 1350 · Cr 2110 · Cr 2120 at the booked room's rate (A6)"
+                req.On ? $"GST on booking advances switched ON from {D(from!.Value)} — deposits received on or after it post Dr 1350 · Cr 2110 · Cr 2120 at the booked room's rate (A6)"
                     : "GST on booking advances switched OFF — no GST on advances (DEC-142)", ct2).ConfigureAwait(false);
-            return new GstOnAdvancesResult(req.On);
+            return new GstOnAdvancesResult(req.On, from is { } f ? D(f) : null);
         }, ct).ConfigureAwait(false);
     }
 }

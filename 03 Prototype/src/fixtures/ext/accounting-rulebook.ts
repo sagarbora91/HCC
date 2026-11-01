@@ -327,3 +327,53 @@ export const scenarioPatches:Record<string,(s:State)=>void>={
 export const scenarioInfo:ScenarioInfo[]=[
   {id:ACC_RULEBOOK,name:'Accounting rulebook month (April 2026)',purpose:'The rulebook golden month, the whole of §8.2: hand-entered opening balances (₹77,40,000) with the HDFC loan as a party, 20 stays (one from Goibibo), restaurant and walk-in bills, company credit and payments net of TDS, the Goibibo payout, the opening advance applied, a May advance, vendor bills and a vendor payment, electricity, the April pay run, UPI and card settlements, the Owner\'s drawing, the loan EMI and bank charges — April 2026 closed day by day, opened on 1 May. Fictional.',available:true},
 ];
+
+// ───────────────────────────── ACC-3 (lane acc3-tests): April 2026 report EXPECTATIONS ─────────────────────────────
+// Hand-computed from rulebook §8.1–§8.6 (never exported from the code under test). Paise, signed as the contract shapes of
+// 02 Planning/agents/ACC3-REPORTS-CONTRACT.md §2–§3 (income positive on the P&L). tests/stream-accounting-golden3.mjs and
+// 08 Production/tests/Hcc.Accounting.Tests/Golden/rulebook-reports.json carry the same figures. Expectations only: no code reads them but the tests.
+// The pay run is locked on 1 May in the prototype scenario (a month is paid once complete), so every "April" report is read to 1 May (nothing else posts on 1 May).
+const RP=(r:number)=>Math.round(r*100);
+export const ACC_RB_REPORTS={
+  from:'2026-04-01',to:'2026-04-30',readTo:'2026-05-01',fy:'2026-27',
+  /** §8.4 profit & loss. Lines by ledger code (revenue and discounts signed: income positive). */
+  pl:{
+    revenue:{lines:{'4000':RP(430000),'4200':RP(160000),'4900':-RP(10000)} as Record<string,number>,total:RP(580000)},
+    otherIncome:{lines:{} as Record<string,number>,total:0},
+    consumption:{lines:{'5000':RP(59000),'5010':RP(42000)} as Record<string,number>,total:RP(101000)},
+    employee:{lines:{'5100':RP(240000),'5110':RP(24500)} as Record<string,number>,total:RP(264500)},
+    finance:{lines:{'5080':RP(2360),'5090':RP(15000)} as Record<string,number>,total:RP(17360)},
+    depreciation:{lines:{} as Record<string,number>,total:0},   // depreciation is a year-end entry (§8.7)
+    other:{lines:{'5030':RP(45000),'5040':RP(8000),'5070':RP(3540),'5900':RP(200)} as Record<string,number>,total:RP(56740)},
+    expensesTotal:RP(439600),profitBeforeTax:RP(140400),
+  },
+  /** §8.5 balance sheet at 30 April (fixed assets at WDV: depreciation is a year-end entry). Block totals follow contract §2 (Duties & Taxes in current liabilities). */
+  balanceSheet:{
+    ownersFunds:{total:RP(5795400),lines:{'3100':RP(5705000),'3000':-RP(50000)} as Record<string,number>,profit:RP(140400)},
+    nonCurrentLiabilities:{total:RP(1960000),lines:{'2400':RP(1960000)} as Record<string,number>},
+    currentLiabilities:{total:RP(172500),lines:{'2200':RP(66000),'2000':RP(31500),'2110':RP(14500),'2120':RP(14500),'2310':RP(36000),'2320':RP(8000),'2330':RP(2000)} as Record<string,number>},
+    liabilitiesTotal:RP(7927900),
+    nonCurrentAssets:{total:RP(7380000),lines:{'1500':RP(6000000),'1510':RP(800000),'1520':RP(500000),'1530':RP(80000)} as Record<string,number>},
+    currentAssets:{total:RP(547900),lines:{'1000':RP(40300),'1030':RP(501500),'1360':RP(6000),'1340':RP(100)} as Record<string,number>},
+    assetsTotal:RP(7927900),suspense:0,openingDifference:0,
+  },
+  /** §7.6 ageing. Deccan Agro's April bill (63,000 = 60,000 + GST 3,000, dated 6 April) is paid in full on 30 April (T7b), so at 30 April nothing is receivable:
+   *  the ₹60,000 + GST in 0–30 of the brief is the position on 28 April (the Goibibo folio of 21,000, dated 17 April, is then also open). */
+  ageing:{
+    receivable30Apr:{rows:{} as Record<string,{open:number}>,open:0},
+    receivable28Apr:{rows:{'1110':{party:'Deccan Agro Ltd',open:RP(63000),b0_30:RP(63000),days:22,ref:'bill'},'1115':{party:'Goibibo',open:RP(21000),b0_30:RP(21000),days:11}} as Record<string,any>,open:RP(84000),b0_30:RP(84000)},
+    /** Payables at 30 April: Morning 24,000 (the 5 April bill, 35,000 paid after the 25,000 opening: oldest first), Kaveri 42,000 (12 April). */
+    payable30Apr:{rows:{'EV-MORNING':{name:'Morning Supplies',open:RP(24000),days:25},'EV-KAVERI':{name:'Kaveri Textiles',open:RP(42000),days:18}} as Record<string,any>,open:RP(66000),b0_30:RP(66000)},
+    /** The same open bills later: bucket by days since the bill date (5 and 12 April). */
+    payableLater:[
+      {asOf:'2026-05-31',morning:{days:56,bucket:'b31_60'},kaveri:{days:49,bucket:'b31_60'}},
+      {asOf:'2026-06-30',morning:{days:86,bucket:'b61_90'},kaveri:{days:79,bucket:'b61_90'}},
+      {asOf:'2026-07-15',morning:{days:101,bucket:'b90'},kaveri:{days:94,bucket:'b90'}},
+    ],
+  },
+  /** §8.6 GST for April. Taxable: rooms 4,00,000 (T1) + 20,000 (T4) + restaurant 1,00,000 (T2) + 60,000 (T3) = 5,80,000, all at 5 %; B2B = Deccan Agro 60,000. */
+  gst:{month:'2026-04',output:{cgst:RP(14500),sgst:RP(14500),igst:0,total:RP(29000)},rate5Taxable:RP(580000),rate18Taxable:0,b2bTaxable:RP(60000),b2csTaxable:RP(520000),
+    advances:0,creditNotes:0,itc:{cgst:0,sgst:0,igst:0},rcm:0,tcsCredit:RP(100),cashLedgerBalance:RP(100),challan:RP(28900),payable:RP(29000)},
+  /** §7.9 cash ratio: money RECEIVED by Receipt vouchers (the cash / bank / clearing legs): total 5,97,860 = T5c 4,52,000 + T6 31,500 + T7a 40,000 + T7b 57,000 (net of TDS) + T19 17,360 (net of commission and TCS); cash = the T5c cash 1,52,000 (walk-in POS bills T3 are Sales vouchers, not Receipts). Payments: cash 13,000 (T12 8,000 + T13a 5,000) of all Payment vouchers (T10 45,000 · T11 60,000 · T12 8,000 · T13a 5,000 · T13c 2,13,500 · T16 50,000 · T17 55,000 · T18 590 = 4,37,090). Percent to two decimals; the report returns basis points. */
+  cashRatio:{cashReceipts:RP(152000),totalReceipts:RP(597860),cashPayments:RP(13000),totalPayments:RP(437090),receiptsPct:25.42,paymentsPct:2.97,flagged:true},
+};

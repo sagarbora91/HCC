@@ -37,6 +37,78 @@ public sealed class SqlGuestIdStore(SqlConnectionFactory connections) : IGuestId
         await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
     }
 
+    public async Task UpsertPartyAsync(ICommandTransaction tx, long guestId, int seq, SealedGuestId sealedId, DateTime utc, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(sealedId);
+        // DEC-193 (4620): one sealed number per party member; the guest row is already locked by the caller.
+        await using var cmd = Sql(tx).Command("""
+            IF EXISTS (SELECT 1 FROM gst.guest_party_id_secret WITH (UPDLOCK, HOLDLOCK) WHERE guest_id = @g AND seq = @s)
+              UPDATE gst.guest_party_id_secret SET key_id = @k, sealed = @b, updated_utc = @utc WHERE guest_id = @g AND seq = @s;
+            ELSE
+              INSERT gst.guest_party_id_secret(guest_id, seq, key_id, sealed, created_utc, updated_utc) VALUES (@g, @s, @k, @b, @utc, @utc);
+            """);
+        cmd.Parameters.Add("@g", SqlDbType.BigInt).Value = guestId;
+        cmd.Parameters.Add("@s", SqlDbType.TinyInt).Value = (byte)seq;
+        cmd.Parameters.Add("@k", SqlDbType.VarChar, 40).Value = sealedId.KeyId;
+        cmd.Parameters.Add("@b", SqlDbType.VarBinary, 64).Value = sealedId.Sealed;
+        cmd.Parameters.Add("@utc", SqlDbType.DateTime2).Value = utc;
+        await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+    }
+
+    private const string ReadPartySql = """
+        SELECT p.id_type, p.id_last4, s.key_id, s.sealed
+        FROM gst.guest g JOIN gst.guest_party p ON p.guest_id = g.guest_id
+        LEFT JOIN gst.guest_party_id_secret s ON s.guest_id = p.guest_id AND s.seq = p.seq
+        WHERE g.guest_id = @g AND g.property_id = @p AND p.seq = @s;
+        """;
+
+    public async Task<(string? IdType, string? Last4, SealedGuestId? Sealed)?> ReadPartyAsync(ICommandTransaction? tx, int propertyId, long guestId, int seq, CancellationToken ct = default)
+    {
+        SqlConnection? own = null;
+        try
+        {
+            SqlCommand cmd;
+            if (tx is not null) cmd = Sql(tx).Command(ReadPartySql);
+            else
+            {
+                own = await connections.OpenAsync(ct).ConfigureAwait(false);
+                cmd = connections.Command(ReadPartySql, own);
+            }
+
+            await using (cmd)
+            {
+                cmd.Parameters.Add("@g", SqlDbType.BigInt).Value = guestId;
+                cmd.Parameters.Add("@p", SqlDbType.Int).Value = propertyId;
+                cmd.Parameters.Add("@s", SqlDbType.TinyInt).Value = (byte)seq;
+                await using var rd = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+                if (!await rd.ReadAsync(ct).ConfigureAwait(false)) return null;
+                var type = rd.IsDBNull(0) ? null : rd.GetString(0);
+                var last4 = rd.IsDBNull(1) ? null : rd.GetString(1);
+                var sealedId = rd.IsDBNull(2) ? null : new SealedGuestId(rd.GetString(2), (byte[])rd[3]);
+                return (type, last4, sealedId);
+            }
+        }
+        finally
+        {
+            if (own is not null) await own.DisposeAsync().ConfigureAwait(false);
+        }
+    }
+
+    public async Task<IReadOnlyList<(long GuestId, int Seq, SealedGuestId Sealed)>> LockStalePartyAsync(ICommandTransaction tx, int propertyId, string currentKeyId, CancellationToken ct = default)
+    {
+        await using var cmd = Sql(tx).Command("""
+            SELECT s.guest_id, s.seq, s.key_id, s.sealed FROM gst.guest_party_id_secret s WITH (UPDLOCK, HOLDLOCK)
+            JOIN gst.guest g ON g.guest_id = s.guest_id
+            WHERE g.property_id = @p AND s.key_id <> @k ORDER BY s.guest_id, s.seq;
+            """);
+        cmd.Parameters.Add("@p", SqlDbType.Int).Value = propertyId;
+        cmd.Parameters.Add("@k", SqlDbType.VarChar, 40).Value = currentKeyId;
+        var list = new List<(long, int, SealedGuestId)>();
+        await using var rd = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+        while (await rd.ReadAsync(ct).ConfigureAwait(false)) list.Add((rd.GetInt64(0), rd.GetByte(1), new SealedGuestId(rd.GetString(2), (byte[])rd[3])));
+        return list;
+    }
+
     private const string ReadSql = """
         SELECT g.id_type, g.id_last4, s.key_id, s.sealed
         FROM gst.guest g LEFT JOIN gst.guest_id_secret s ON s.guest_id = g.guest_id

@@ -44,7 +44,8 @@ public sealed record ReservationRecord(
     bool AllocationIntact);
 
 /// <summary>A stored profile. <see cref="Draft"/> never carries the full ID number; <see cref="IdOnFile"/> says whether one is stored (DEC-068).</summary>
-public sealed record GuestRecord(long GuestId, int PropertyId, GuestDraft Draft, bool Verified, string Origin, byte[] Version, bool IdOnFile = false, long? LegacyGuestId = null);
+public sealed record GuestRecord(long GuestId, int PropertyId, GuestDraft Draft, bool Verified, string Origin, byte[] Version, bool IdOnFile = false, long? LegacyGuestId = null,
+    IReadOnlySet<int>? PartyIdsOnFile = null);   // DEC-193: party seqs with a sealed number on file (never the number)
 
 public sealed record RoomRecord(int RoomId, int PropertyId, string RoomNo, string Hk, long? OccupyingStayId, byte[] Version);
 

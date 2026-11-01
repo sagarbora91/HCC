@@ -446,6 +446,7 @@ function builtins(){
       ...(isProductionBuild()?{patternMsg:'A GSTIN has 15 capital letters and digits.',unit:'15 characters, required for tax invoices',
         help:'Printed on invoices and required before the first tax invoice. Format and check character are verified; the GST portal is not queried.',
         affects:'Tax invoices and document headers generated after the change.',validate:(v:unknown)=>String(v??'').trim()?gstinProblem(v):undefined}:{})},
+    {key:'brand.legalName',label:'Legal name (Tally company)',type:'text',maxLength:100,allowEmpty:true,default:'',approver:'Owner',unit:'text, ≤ 100 chars, optional',help:'The registered name of the firm, exactly as the company is named in Tally. Empty = the property display name.',affects:'Tally masters and vouchers files exported after the change.'},
     {key:'brand.invoiceHeader',label:'Invoice header line',type:'text',maxLength:80,default:'HCC Demo Residency · fictional property',unit:'text, ≤ 80 chars',help:'Second line of the invoice header.'},
     {key:'brand.invoiceFooter',label:'Invoice footer',type:'text',maxLength:120,default:'Thank you for staying with us.',unit:'text, ≤ 120 chars',help:isProductionBuild()?'Last line of invoices and receipts.':'The demonstration watermark is always printed as well.'},
     {key:'brand.printFormat',label:'Print format',type:'choice',options:['A4','A5','80 mm thermal'],default:'A4',unit:'choice',help:'Default paper for invoices and receipts.'},
