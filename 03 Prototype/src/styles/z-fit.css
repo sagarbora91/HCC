@@ -40,8 +40,9 @@ html:has(.app-shell),html:has(.app-shell) body,html:has(.app-shell) #root{height
 
 /* ── Content: fills, never scrolls; its single child is the page root ─────────────────────────────────────────────── */
 .app-shell .content{flex:1;min-height:0;width:100%;max-width:1580px;margin:0 auto;overflow:hidden;display:flex;flex-direction:column;padding:12px 16px 12px}
+.app-shell .content{position:relative} /* absolutely placed helpers (screen-reader-only labels) stay inside the clipped content box */
 @media (pointer:fine) and (min-width:1280px){.app-shell .content{padding:16px 24px 16px}}
-.app-shell .content>.fit-legacy{flex:1;min-height:0;overflow:auto} /* a page not converted yet: scrolls here (check tool: not-converted) */
+.app-shell .content>.fit-legacy{flex:1;min-height:0;overflow:auto;position:relative} /* a page not converted yet: scrolls here (check tool: not-converted) */
 .app-shell .content>.fit-legacy>.page-footer{display:none}
 
 /* ── PageTitle (older pages) and FitPage header: 22 px heading, one-line sub ──────────────────────────────────────── */
@@ -80,7 +81,7 @@ html:has(.app-shell),html:has(.app-shell) body,html:has(.app-shell) #root{height
 /* ── ScrollPanel ─────────────────────────────────────────────────────────────────────────────────────────────────── */
 .app-shell .fit-panel{flex:1 1 0;min-height:0;min-width:0;display:flex;flex-direction:column;margin:0}
 .fit-panel-head{flex:none}
-.fit-panel-body{flex:1 1 auto;min-height:0;overflow:auto;scrollbar-width:thin}
+.fit-panel-body{flex:1 1 auto;min-height:0;overflow:auto;scrollbar-width:thin;position:relative}
 .fit-panel-body:focus-visible,.fit-split-pane:focus-visible,.fit-form-body:focus-visible,.fit-home-grid:focus-visible,.modal-body:focus-visible{outline:3px solid var(--primary);outline-offset:-3px}
 .fit-panel-body .table-wrap{overflow:visible}
 .fit-panel-body thead th{position:sticky;top:0;z-index:1}
@@ -91,7 +92,7 @@ html:has(.app-shell),html:has(.app-shell) body,html:has(.app-shell) #root{height
 /* ── SplitView: side by side; below 900 px the record slides over the list with a Back button ─────────────────────── */
 .fit-split{flex:1;min-height:0;min-width:0;display:grid;grid-template-columns:var(--fit-split-cols,minmax(0,2fr) minmax(0,3fr));gap:12px;position:relative}
 .fit-split-list,.fit-split-detail{min-height:0;min-width:0;display:flex;flex-direction:column;gap:8px}
-.fit-split-pane{flex:1;min-height:0;overflow:auto;background:var(--c-ffffff);border:1px solid var(--line);border-radius:9px;scrollbar-width:thin}
+.fit-split-pane{flex:1;min-height:0;overflow:auto;position:relative;background:var(--c-ffffff);border:1px solid var(--line);border-radius:9px;scrollbar-width:thin}
 .fit-split-back{display:none}
 @media (max-width:899.98px){
   .fit-split{grid-template-columns:minmax(0,1fr)}
@@ -138,7 +139,7 @@ html:has(.app-shell),html:has(.app-shell) body,html:has(.app-shell) #root{height
 .fit-form-nav button.on{background:var(--c-f3e4e6);border-color:var(--primary);font-weight:600}
 .fit-dirty{color:var(--primary);margin-left:auto}
 .fit-form-main{min-height:0;min-width:0;display:flex;flex-direction:column;background:var(--c-ffffff);border:1px solid var(--line);border-radius:9px}
-.fit-form-body{flex:1;min-height:0;overflow:auto;padding:16px}
+.fit-form-body{flex:1;min-height:0;overflow:auto;padding:16px;position:relative}
 .app-shell .fit-form-main>.fit-form-actions{flex:none;margin:0;padding:10px 16px}
 @media (max-width:899.98px){.fit-form{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr)}
   .fit-form-nav ul{flex-direction:row;overflow-x:auto}.fit-form-nav li{flex:none}}
