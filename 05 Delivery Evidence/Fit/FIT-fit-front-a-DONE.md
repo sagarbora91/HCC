@@ -42,7 +42,7 @@ All through the lock (label `fit-front-a`), output in `E:\Projects\HCC\worktrees
 
 First run (owner, tab-land / tab-port / lap-1366, text 1): tab-land PASS for all three pages and all four sub-screens. Findings then: `cramped 124` at tab-port on overview (the legend in the rooms panel footer squeezed the body — fixed by moving the legend into the panel body, commit abcbfc5a); `font-changed label` at lap-1366 on rooms (14 px, was 11 px) and calendar (10 px, was 11 px) — both are the known artifact of the baseline: on `main` the first visible `label` on a fine-pointer viewport was the demo toolbar's 11 px field, now inside the Demo pill; no font was changed by this lane (Calendar's `From` label keeps its 10 px from `reservations.css`). Report of that run: `.scratch\c1\fit-check-20261101-1352.md`.
 
-FULL_CHECK_PLACEHOLDER
+**Full run** (after the legend fix; all nine roles, five viewports, text 1 and 1.3, modal samples): `05 Delivery Evidence/Fit/front-a-check/fit-check-20261101-1759.md` (+ .json): 304 checks, 27 failing, **all `font-changed label`** (rooms, calendar at lap-1366 / lap-1280 / desk-1920 for owner, manager, reception — the baseline artifact above; no font changed). 0 page-scroll, 0 content-scroll, 0 cramped, 0 touch-size, 0 hidden-action, 0 not-converted; tab-land and tab-port fully PASS; overview and its three sub-screens PASS everywhere; text scale 1.3 PASS everywhere.
 
 ## Modal openers for `tools/fit-modals.json`
 
