@@ -38,3 +38,8 @@
 - Groups re-run after the fit-split fix passes; yield/channels/booking-site not re-run after; remaining font-changed on 4 sub-screens unverified vs main (integrator's full run decides).
 - New sheet src/styles/fit-revenue.css; touched `channels()` helper in stream-wd5-gaps.mjs (passes tab via FitNavContext, assertions unchanged).
 - A static server for its checks may still run on port 4197 (stop was denied to the agent) — coordinator to ask the user / check at integration time.
+
+## From front-a (head a6487969, UNFINISHED checks)
+- Final `npm test` and the full check (overview, rooms, calendar; all viewports, roles, scale 1 + 1.3) have NOT run: it waited ~3 h on the lock. A full run is queued (.scratch\full.ps1, report to fit-front-a\.scratch\c2\). The Overview tab-id fix and the legend move (abcbfc5a, fixes cramped 124 at tab-port) are unchecked. DONE file has FULL_CHECK_PLACEHOLDER.
+- Dashboard "Front desk today" now lists all rows of the chosen tab (was first 5) inside a scroll panel: coordinator decision = keep (no content hidden, in line with the contract); fit-review to confirm it is layout-only.
+- 4 modal openers for fit-modals.json in its DONE file.
