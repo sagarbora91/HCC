@@ -1,6 +1,6 @@
 # HCC — Session handoff (updated 24 Oct 2026, session 2: MB-00…04)
 
-> **Current status (1 Nov 2026): read Session 13m (ACC-2 on main; W1a LG legacy data integrated), including its end-of-morning state (1 Nov, 12:30: ACC-3 and FIT interrupted by the PC restart, resumed from the Fable coordinator session), at the very end of this file, then 13l; Session 13n (FIT started, DEC-194…202, LF planned, report catalogue) follows it.** Everything earlier is history: the "Next", "Waiting on the owner", "running" and "launched" lines in Session 13 and 13e–13i were all carried out or superseded by later sessions, and are left unmarked on purpose. The open owner/CA points are only the ones listed in 13j. New sessions start by reading `E:\Projects\HCC\Resume.md`, which points here.
+> **Current status (1 Nov 2026): read Session 13m (ACC-2 on main; W1a LG legacy data integrated), including its end-of-morning state (1 Nov, 12:30: ACC-3 and FIT interrupted by the PC restart, resumed from the Fable coordinator session), at the very end of this file, then 13l; Session 13n (FIT started, DEC-194…202, LF planned, report catalogue) follows it, then Session 13o (ACC-3 on main 83df0300), the newest, at the very end of this file.** Everything earlier is history: the "Next", "Waiting on the owner", "running" and "launched" lines in Session 13 and 13e–13i were all carried out or superseded by later sessions, and are left unmarked on purpose. The open owner/CA points are only the ones listed in 13j. New sessions start by reading `E:\Projects\HCC\Resume.md`, which points here.
 
 ## Status
 - **M0** planning package: done (`02 Planning/`), approved (APR-003).
@@ -527,3 +527,10 @@ Single agent, one milestone per session; owner runs `npm test`/`npm start` and s
 - **Main:** the docs of `claude/fit` were fast-forwarded to main as 3ac89dba earlier. This commit brings in the remaining docs of fit / lf / rpt (DEC-201, DEC-202, LF, catalogue, FIT review and section 11). Nothing here is code.
 - **Waiting on the owner / CA:** CA to confirm 18 % room GST, the s.34(2) 30-Nov bill-correction window, and the half-day charge slab. Physical tablet test: per the APK ruling in 13m (v19 after FIT and ACC-3).
 - **Next:** as in the 13m end-of-morning resume order: ACC-3, then FIT (shell fixes first), then APK v19, then LF, then the rest.
+
+## Session 13o (1 Nov 2026) — ACC-3 on main 83df0300 (not pushed)
+- **ACC-3 (W3, `claude/acc3`) passed its gate; main = 83df0300** (fast-forward). Gate report `05 Delivery Evidence/Gates/acc3-gate-20261101-1303.md` (PASS, 49 min, secret scan clean); DONE file `05 Delivery Evidence/Accounting/ACC3-DONE.md`.
+- **Built:** P&L, balance sheet and cash ratio; outstanding with ageing; GST summary; Tally masters + vouchers with bill allocations; report exports (CSV / Excel / zip, both sides); ACC-2 carry items C1–C11; DEC-193 party IDs end to end. Rulings ACC3-R1…R6 proposed as DEC-203…208.
+- **Counts:** prototype 2176/2176, server 3697/3697 in 36 projects, 0 warnings. SCHEMA 12 unchanged. The gate found and fixed a Tally masters idempotency bug.
+- **Open (ACC3-DONE §7):** CA: asset disposal treatment (F4), TDS sub-section split, B11 threshold Rs 20,000, cash-ratio definition, full-Aadhaar storage for party members. Owner: OP-21 (ID for children / infants), import the golden Tally files into a fresh TallyPrime company, open the exported workbooks in Excel. Carried to ACC-4: server vendor-return allocation, GST tie vs set-off journal, server ageing source.
+- **Next:** resume FIT (shell fixes first), then APK v19 (versionCode 19), then LF, then the rest.
