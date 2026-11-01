@@ -55,7 +55,7 @@ public sealed class StaysCommands(ICommandRunner runner, IAccessPolicy policy, I
             if (req.Guest is not null)
             {
                 var draft = ToDraft(req.Guest);
-                var errors = GuestRules.Validate(draft, registration: true, IstToday);
+                var errors = DeferPartyIdCheck(GuestRules.Validate(draft, registration: true, IstToday), req.GuestId ?? linked);
                 if (errors.Count > 0) throw HccException.Validation(GuestRules.Summary(errors));
                 var clean = GuestRules.Clean(draft);
                 var target = req.GuestId ?? linked;
@@ -67,6 +67,7 @@ public sealed class StaysCommands(ICommandRunner runner, IAccessPolicy policy, I
                     VersionToken.EnsureMatches(g.Version, guestExpected, "This guest profile");
                     if (guestIds is not null) clean = await guestIds.ApplyAsync(tx, ctx.PropertyId, g.GuestId, clean, g.Draft, c).ConfigureAwait(false);
                     clean = GuestIdService.CarryPartyIds(clean, g.Draft);
+                    if (GuestRules.PartyIdMissing(clean.Party) is { } missingId) throw HccException.Validation(missingId);
                     await store.UpdateGuestAsync(tx, g.GuestId, guestExpected, clean, verified: true, c).ConfigureAwait(false);
                     if (guestIds is not null) await guestIds.ApplyPartyAsync(tx, ctx.PropertyId, g.GuestId, clean, c).ConfigureAwait(false);
                     guestId = g.GuestId;
@@ -118,7 +119,7 @@ public sealed class StaysCommands(ICommandRunner runner, IAccessPolicy policy, I
         return await runner.RunAsync(ctx with { Operation = OpSaveGuestProfile }, hashed, async (tx, c) =>
         {
             var draft = ToDraft(req.Guest);
-            var errors = GuestRules.Validate(draft, registration: req.Verified, IstToday);
+            var errors = DeferPartyIdCheck(GuestRules.Validate(draft, registration: req.Verified, IstToday), req.GuestId);
             if (errors.Count > 0) throw HccException.Validation(GuestRules.Summary(errors));
             var clean = GuestRules.Clean(draft);
             long guestId;
@@ -130,6 +131,7 @@ public sealed class StaysCommands(ICommandRunner runner, IAccessPolicy policy, I
                 VersionToken.EnsureMatches(g.Version, guestExpected!, "This guest profile");
                 if (guestIds is not null) clean = await guestIds.ApplyAsync(tx, ctx.PropertyId, g.GuestId, clean, g.Draft, c).ConfigureAwait(false);
                 clean = GuestIdService.CarryPartyIds(clean, g.Draft);
+                if (req.Verified && GuestRules.PartyIdMissing(clean.Party) is { } missingId) throw HccException.Validation(missingId);
                 verified = req.Verified || (g.Verified && !string.IsNullOrEmpty(clean.IdLast4) && !string.IsNullOrEmpty(clean.Address));
                 await store.UpdateGuestAsync(tx, g.GuestId, guestExpected!, clean, verified, c).ConfigureAwait(false);
                 if (guestIds is not null) await guestIds.ApplyPartyAsync(tx, ctx.PropertyId, g.GuestId, clean, c).ConfigureAwait(false);
@@ -221,6 +223,16 @@ public sealed class StaysCommands(ICommandRunner runner, IAccessPolicy policy, I
                 new StayDepartedEvent(stay.StayId, res.ReservationId, ctx.PropertyId, room.RoomId, StayDates.ToWire(bd)), c).ConfigureAwait(false);
             return new CheckoutStayResult(stay.StayId, res.ReservationId, room.RoomId, room.RoomNo, RoomHk.Dirty, StayDates.ToWire(bd), outboxId, VersionToken.ToWire(version));
         }, ct).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// DEC-193: on an edit of an existing profile the "ID missing for &lt;name&gt;" check waits until the stored member IDs are carried over
+    /// (GuestIdService.CarryPartyIds): an edit that does not retype a member's number keeps it. New profiles are checked at once.
+    /// </summary>
+    private static IReadOnlyDictionary<string, string> DeferPartyIdCheck(IReadOnlyDictionary<string, string> errors, long? existingGuestId)
+    {
+        if (existingGuestId is null || !errors.TryGetValue("party", out var m) || !m.StartsWith("ID missing for ", StringComparison.Ordinal)) return errors;
+        return errors.Where(e => e.Key != "party").ToDictionary(e => e.Key, e => e.Value);
     }
 
     internal static GuestDraft ToDraft(GuestDraftDto d) => new(d.Name, d.Phone, d.Email, d.Address, d.Nationality, d.IdType, d.IdLast4,
