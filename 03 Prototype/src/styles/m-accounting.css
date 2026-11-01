@@ -54,7 +54,3 @@
 .acc-m-entries>div:last-child{border-bottom:0}
 .acc-m-entries span{display:flex;flex-direction:column;min-width:0}.acc-m-entries small{font-size:13px;color:var(--muted)}
 .acc-m-entries b{font-weight:600;text-align:right;color:var(--ink)}
-/* FIT (DEC-194, lane fit-people-b): desktop layout only (.app-shell). Toolbar = business date + day status (row 1) and the StatStrip (row 2). */
-.app-shell .acc-fit-toolbar{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:8px}
-.app-shell .acc-fit-toolbar .acc-statusbar{margin:0;gap:6px 12px}
-.app-shell .acc-fit-toolbar .acc-statusbar>.muted{min-width:0;flex:1 1 240px}

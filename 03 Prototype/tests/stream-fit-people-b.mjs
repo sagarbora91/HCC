@@ -89,7 +89,7 @@ export function register({test,assert}){
     assert.ok(html.includes('class="fit-cols ai-fit-cols"'));
   });
   test('[FIT-PEOPLE-B] lane CSS: every added rule is scoped to .app-shell (desktop) and sets no font size',()=>{
-    const added=[['src/styles/m-accounting.css','/* FIT (DEC-194, lane fit-people-b)'],['src/styles/m-assistant.css','/* FIT (DEC-194, lane fit-people-b)'],['src/styles/m-catalogue.css','/* FIT (DEC-194, lane fit-people-b)'],['src/styles/reports.css','/* FIT (DEC-194, lane fit-people-b)']];
+    const added=[['src/styles/accounting.css','/* FIT (DEC-194, lane fit-people-b)'],['src/styles/assistant.css','/* FIT (DEC-194, lane fit-people-b)'],['src/styles/catalogue.css','/* FIT (DEC-194, lane fit-people-b)'],['src/styles/reports.css','/* FIT (DEC-194, lane fit-people-b)']];
     for(const [f,mark] of added){const t=read(f);const i=t.indexOf(mark);assert.ok(i>=0,f);
       const rules=t.slice(i).replace(/\/\*[^]*?\*\//g,'').replace(/@media print\{[^{}]*\{[^}]*\}\}/g,'').split('}').map(x=>x.trim()).filter(Boolean);
       for(const r of rules){const sel=r.split('{')[0];for(const part of sel.split(','))assert.ok(part.trim().startsWith('.app-shell '),f+': '+part);}
