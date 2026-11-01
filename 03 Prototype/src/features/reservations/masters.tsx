@@ -29,7 +29,7 @@ export function FdmIdTypeNote({type,nationality}:{type?:string;nationality?:stri
   const {s}=useHcc();const r=fdmIdType(s,type);
   if(!type)return null;
   const why=fdmIdTypeProblem(s,type,nationality);
-  return <small className={why?'gs-field-error':'muted fdm-id-note'}>{why||<>Check: {fdmIdCheck(type)}{r?.needsPhoto?<> · <Camera size={12} aria-hidden="true"/> photo of the document needed</>:null}</>}</small>;
+  return <small className={why?'gs-field-error':'muted fdm-id-note'}>{why||<>Check: {fdmIdCheck(type)}{r?.needsPhoto?<> · <Camera size={12} aria-hidden="true"/> photo of the document suggested (optional)</>:null}</>}</small>;
 }
 
 /** Reports › Occupancy: bookings by source and market segment for arrivals in the range (prototype figures from the bookings). */

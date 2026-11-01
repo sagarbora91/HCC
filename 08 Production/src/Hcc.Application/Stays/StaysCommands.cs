@@ -39,7 +39,7 @@ public sealed class StaysCommands(ICommandRunner runner, IAccessPolicy policy, I
         var expected = VersionToken.Parse(req.ExpectedVersion);
         var guestExpected = req.GuestExpectedVersion is null ? null : VersionToken.Parse(req.GuestExpectedVersion, "guestExpectedVersion");
         await policy.RequireAsync(ctx.PropertyId, ctx.PrincipalId, StaysPermissions.GuestRegister, null, null, ct).ConfigureAwait(false);
-        if (guestIds is null && GuestIdService.HasNumber(req.Guest))
+        if (guestIds is null && (GuestIdService.HasNumber(req.Guest) || GuestIdService.HasPartyNumber(req.Guest)))
             throw HccException.NotConfigured("guest-id", "Full ID numbers cannot be stored: guest ID encryption is not configured on this server.");
         var hashed = guestIds?.HashablePayload(req) ?? req;
 
@@ -66,13 +66,16 @@ public sealed class StaysCommands(ICommandRunner runner, IAccessPolicy policy, I
                     if (guestExpected is null) throw HccException.Validation("guestExpectedVersion is required to change an existing guest profile.");
                     VersionToken.EnsureMatches(g.Version, guestExpected, "This guest profile");
                     if (guestIds is not null) clean = await guestIds.ApplyAsync(tx, ctx.PropertyId, g.GuestId, clean, g.Draft, c).ConfigureAwait(false);
+                    clean = GuestIdService.CarryPartyIds(clean, g.Draft);
                     await store.UpdateGuestAsync(tx, g.GuestId, guestExpected, clean, verified: true, c).ConfigureAwait(false);
+                    if (guestIds is not null) await guestIds.ApplyPartyAsync(tx, ctx.PropertyId, g.GuestId, clean, c).ConfigureAwait(false);
                     guestId = g.GuestId;
                 }
                 else
                 {
                     guestId = await store.InsertGuestAsync(tx, ctx.PropertyId, clean, verified: true, "manual", UtcNow, c).ConfigureAwait(false);
                     if (guestIds is not null) await guestIds.ApplyAsync(tx, ctx.PropertyId, guestId, clean, null, c).ConfigureAwait(false);
+                    if (guestIds is not null) await guestIds.ApplyPartyAsync(tx, ctx.PropertyId, guestId, clean, c).ConfigureAwait(false);
                 }
             }
             else
@@ -108,7 +111,7 @@ public sealed class StaysCommands(ICommandRunner runner, IAccessPolicy policy, I
         var guestExpected = req.GuestExpectedVersion is null ? null : VersionToken.Parse(req.GuestExpectedVersion, "guestExpectedVersion");
         if (req.GuestId is not null && guestExpected is null) throw HccException.Validation("guestExpectedVersion is required to change an existing guest profile.");
         await policy.RequireAsync(ctx.PropertyId, ctx.PrincipalId, StaysPermissions.GuestRegister, null, null, ct).ConfigureAwait(false);
-        if (guestIds is null && GuestIdService.HasNumber(req.Guest))
+        if (guestIds is null && (GuestIdService.HasNumber(req.Guest) || GuestIdService.HasPartyNumber(req.Guest)))
             throw HccException.NotConfigured("guest-id", "Full ID numbers cannot be stored: guest ID encryption is not configured on this server.");
         var hashed = guestIds?.HashablePayload(req) ?? req;
 
@@ -126,8 +129,10 @@ public sealed class StaysCommands(ICommandRunner runner, IAccessPolicy policy, I
                     ?? throw new HccException(HccErrorCode.NOT_FOUND, "Guest profile not found.");
                 VersionToken.EnsureMatches(g.Version, guestExpected!, "This guest profile");
                 if (guestIds is not null) clean = await guestIds.ApplyAsync(tx, ctx.PropertyId, g.GuestId, clean, g.Draft, c).ConfigureAwait(false);
+                clean = GuestIdService.CarryPartyIds(clean, g.Draft);
                 verified = req.Verified || (g.Verified && !string.IsNullOrEmpty(clean.IdLast4) && !string.IsNullOrEmpty(clean.Address));
                 await store.UpdateGuestAsync(tx, g.GuestId, guestExpected!, clean, verified, c).ConfigureAwait(false);
+                if (guestIds is not null) await guestIds.ApplyPartyAsync(tx, ctx.PropertyId, g.GuestId, clean, c).ConfigureAwait(false);
                 guestId = g.GuestId;
                 created = false;
             }
@@ -136,6 +141,7 @@ public sealed class StaysCommands(ICommandRunner runner, IAccessPolicy policy, I
                 verified = req.Verified;
                 guestId = await store.InsertGuestAsync(tx, ctx.PropertyId, clean, verified, "manual", UtcNow, c).ConfigureAwait(false);
                 if (guestIds is not null) await guestIds.ApplyAsync(tx, ctx.PropertyId, guestId, clean, null, c).ConfigureAwait(false);
+                if (guestIds is not null) await guestIds.ApplyPartyAsync(tx, ctx.PropertyId, guestId, clean, c).ConfigureAwait(false);
                 created = true;
             }
 
@@ -171,6 +177,9 @@ public sealed class StaysCommands(ICommandRunner runner, IAccessPolicy policy, I
 
             StayRules.AssertCanCheckIn(new CheckInFacts(res.Status, res.Arrival, res.Departure, bd, guestId is not null,
                 room?.Hk, blocked, room?.OccupyingStayId is not null, res.AllocationIntact));
+            // DEC-193: every adult / senior in the registered party has their own ID on file (the photo is never required).
+            var registered = await store.LockGuestAsync(tx, ctx.PropertyId, guestId!.Value, c).ConfigureAwait(false);
+            if (GuestRules.PartyIdMissing(registered?.Draft.Party) is { } missing) throw HccException.Validation(missing);
 
             var folioId = await folios.EnsureFolioAsync(tx, res.ReservationId, c).ConfigureAwait(false);
             await store.SetReservationStatusAsync(tx, res.ReservationId, res.Version, ReservationStatus.InHouse, c).ConfigureAwait(false);
@@ -215,7 +224,7 @@ public sealed class StaysCommands(ICommandRunner runner, IAccessPolicy policy, I
     }
 
     internal static GuestDraft ToDraft(GuestDraftDto d) => new(d.Name, d.Phone, d.Email, d.Address, d.Nationality, d.IdType, d.IdLast4,
-        d.Company, d.Gstin, d.Preferences, d.Notes, d.Party?.Select(p => new GuestPartyMember(p.Name, p.AgeBand, p.Relation)).ToList(), d.IdNumber, d.Dob);
+        d.Company, d.Gstin, d.Preferences, d.Notes, d.Party?.Select(p => new GuestPartyMember(p.Name, p.AgeBand, p.Relation, p.IdType, p.IdLast4, p.IdNumber)).ToList(), d.IdNumber, d.Dob);
 
     /// <summary>The hotel's calendar date now (IST, fixed +05:30) for the date-of-birth check.</summary>
     private DateOnly IstToday => DateOnly.FromDateTime(UtcNow.AddHours(5.5));
@@ -264,7 +273,10 @@ public sealed class StaysQueries(IAccessPolicy policy, IStaysReadStore reads)
             idDetails ? d.IdType : GuestRules.Restricted,
             idDetails ? d.IdLast4 : GuestRules.Restricted,
             d.Company, d.Gstin,
-            (d.Party ?? []).Select(p => new GuestPartyDto(p.Name, p.AgeBand, p.Relation)).ToList(),
+            (d.Party ?? []).Select((p, i) => new GuestPartyDto(p.Name, p.AgeBand, p.Relation,
+                idDetails ? p.IdType : GuestRules.Restricted, null, idDetails ? p.IdLast4 : GuestRules.Restricted,
+                idDetails ? Domain.GuestIds.GuestIdRules.Mask(p.IdLast4) : GuestRules.Restricted, GuestRules.PartyIdRequired(p.AgeBand),
+                g.PartyIdsOnFile?.Contains(i + 1) == true)).ToList(),
             g.Verified, !idDetails, VersionToken.ToWire(g.Version),
             idDetails ? Domain.GuestIds.GuestIdRules.Mask(d.IdLast4) : GuestRules.Restricted,
             g.IdOnFile, idDetails && g.IdOnFile, d.Preferences, d.Notes, g.Origin, contact ? d.Dob : null, g.LegacyGuestId);
