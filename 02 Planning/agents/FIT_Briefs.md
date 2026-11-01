@@ -1,0 +1,72 @@
+# FIT lane briefs — wave `claude/fit` (prepared 1 Nov 2026) — fit-to-screen desktop and tablet layout
+
+Read first, in order: this file; `02 Planning/agents/FIT-LAYOUT-CONTRACT.md` (the rules, component names, page assignments — copy, never reinterpret); `CLAUDE.md` (architecture rules, commands, colour tokens); `tools/README-agents.md` (the lock, the DONE file, the gate); the code of the pages in your lane. Owner rulings: DEC-194…196, APR-025.
+
+**When this wave starts:** after ACC-2 (W2) and W1a LG are on `main`. The coordinator then merges `main` into `claude/fit` (this setup commit), re-records the font baseline (lane fit-check, phase A) and cuts the lane worktrees. It does not overlap any other wave's batch on this PC.
+
+**Started 1 Nov 2026** (owner: "start FIT"). ACC-2 is on `main`; W1a LG has passed its gate but waits for its real-data dry run, so `claude/lg` (1b62e85b) is merged into `claude/fit` as well. FIT therefore lands on `main` only after LG does: the integrator merges `main` again then and re-runs the check.
+
+**Approved mockups (owner, 1 Nov 2026: "mockups: approved"):** https://claude.ai/artifact/LxcHQEcgwBJGJsCTRyFC2g (private canvas, five Tab S7 landscape boards at 1138 × 640): Reservations (fill), Guests & folios (split + sub-screen tabs + sticky action bar), Day closing (steps), Housekeeping (board), Check-in dialog (modal with scrolling body + sticky actions). Match them; the contract's numbers win where they differ. The canvas is the owner's private page: lanes cannot open it, so this file and the contract carry everything they need.
+
+## Rules every lane follows
+
+1. **Work only in your worktree** `E:\Projects\HCC\worktrees\<lane>` on branch `claude/<lane>`. Commit early and often; **never push**; never use bare `git stash`; never touch `.claude/launch.json`. New worktrees need the `03 Prototype\node_modules` junction to `E:\Projects\HCC\worktrees\fixwave-a\03 Prototype\node_modules` (remove the junction with `rmdir` before removing a worktree; never a recursive delete).
+2. **Edit only the files in your ownership** (contract §7). A change needed elsewhere goes in your DONE file under "Integration needed" with the exact edit. `src/app/subscreens.ts` is append-only: one line per sub-screen inside your `// FIT-<LANE>` block.
+3. **Every build, test and browser check goes through the lock:** `pwsh -NoProfile -File "E:\Projects\HCC\worktrees\fit\tools\Invoke-Serialized.ps1" -WorkingDirectory "<your worktree>\03 Prototype" -Label <lane> -Command "npm test"` (likewise `npx tsc --noEmit`, `npm run build`, and `node tools/fit-screen-check.mjs --pages <your pages>` with a server on your own port: `PORT=<4190 + lane number>`). Exit 75 = busy: wait and retry the same call. Never filter test output; send it to `<worktree>\.scratch\` and read it there. One heavy job at a time on this PC, no emulator in any lane.
+4. **Owner's condition (DEC-195): never reduce a font size** except the page `h1` (22 px, done by fit-shell); never reduce a touch size below 44 / 48 px (DEC-060); never hide or drop content to make a page fit — move it into a tab, a split pane or a scroll panel. If a page cannot fit without breaking this, stop on that page and write it in your DONE file.
+5. **Layout only.** No change to selectors, stream functions, commands, handlers, permissions, fixtures, `types.ts` / `SCHEMA`, money or GST code. A Sonnet lane that finds it must touch one of these stops and writes it in the DONE file.
+6. **Phone layout untouched:** nothing under `src/mobile/**`, `src/app/mobile/**`, any `*Mobile.tsx` / `Mobile.tsx`, phone-only CSS rules. Desktop CSS for your feature goes in that feature's stylesheet in `src/styles/`, guarded so it does not apply under the phone layout (use the `.app-shell` ancestor — the phone shell does not render it). Colours only as tokens (CLAUDE.md); after a colour change run `node tools/themes.mjs --write`.
+7. **Tests:** `npm test` stays green. A test that asserted the old page structure (e.g. text that now sits in a non-default tab) is **updated to open the right tab**, never deleted or loosened; list every such update in the DONE file. New tests in `03 Prototype/tests/stream-fit-<lane>.mjs` (`register({test,M,assert})`, names prefixed `[FIT-<LANE>]`): each converted page renders a `fit-page` root, its `useFitTab` ids match `SUB_SCREENS`, default tabs / filters as you set them.
+8. **Your pages must pass the check** (contract §8) at all five viewports for every role that can open them, every sub-screen included, before you write DONE. Attach the check's report path in the DONE file. Name 2–4 modal openers of your pages for `tools/fit-modals.json` in the DONE file.
+9. **DONE file** `05 Delivery Evidence/Fit/FIT-<LANE>-DONE.md` (template in `tools/README-agents.md` §4), plus per page: pattern used, sub-screens, default tab / filter changed (old → new), check result. Write it even if you stop early.
+10. Commit messages end with: `Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>` (Opus lanes: `Claude Opus 5.5`).
+
+## Phase A — two lanes in parallel, from the setup head (after `main` is merged in)
+
+### Lane fit-shell (Opus) — shell, components, sub-screen registry
+
+Contract §2, §3, §4, §5 (global spacing rows), §7.
+- `z-fit.css` + `build.mjs` order; the height chain; the 56 px one-row top bar with the priority hiding; the `Demo` pill + popover holding the unchanged `DemoToolbar` controls; `SyncStatus` in the flex column; `.content` fill + the `legacy` fallback (`data-fit-scroll="legacy"` on unconverted page roots); footer → user menu "About this build".
+- `components/fit.tsx`: every component of §4 with exactly those props; keyboard (tablist arrows, Home / End; scroll panels focusable); `SplitView` slide-over below 900 px with Back (Android Back closes the slide-over first: hook into the existing step-back mechanism `hasStepBack` / `runStepBack` in `app/native.ts` usage in `App.tsx`); `useFitTab` with `sessionStorage` + `go(page,{tab})` (the existing `opts.tab` / `tabKey` in `App.tsx` — make the desktop branch pass `tabKey` to pages through context, the way the phone shell does).
+- `ModalHost` + `ModalFrame`: max-height, scrolling body, sticky `.modal-actions` for **every** desktop modal (most modals render `.modal-actions` already — make the rule generic in CSS, wrap only where needed). This also covers V17-1's clipped modal footer on the tablet.
+- `PageTitle` 22 px header on the desktop layout; Modules Home, category pages, sign-in fit (§3).
+- `subscreens.ts` with the seven empty lane blocks; `SearchPalette` lists sub-screens; breadcrumb shows the tab crumb.
+- Convert **one reference page end to end** as the pattern for the module lanes: `arrivals` (fill) — and write `02 Planning/agents/FIT_Component_Guide.md`: one short example per pattern (fill, split, tabs, board, steps, form) with the exact JSX, 10–20 lines each.
+- Tests `tests/stream-fit-shell.mjs`: components render, `useFitTab` persistence + fallback, registry ↔ palette, modal action bar class present, print rule present, phone shell unaffected (render the phone shell, assert no `fit-` classes).
+- Done when fit-check's tool passes Home, category pages, sign-in, `arrivals` and the modal sample at all five viewports, and the unconverted pages show only `not-converted` failures (no page-scroll).
+
+**Resume note (1 Nov 2026):** the lane was stopped by a PC restart before its final test run (head `7d4c3803`, plus an uncommitted `position:relative` change in `z-fit.css` that is kept). The read-only review `05 Delivery Evidence/Fit/FIT-shell-review-20261101.md` lists what to fix before DONE: blockers B1 (modal rules leak into `DayPack` / `ServerDayPack` / guest-ID dialog and the phone → `.fit-modal`, contract §11.1) and B2 (Assistant still scrolls the document → `.app-shell{position:relative}`, re-run `assistant`), should-fix S1–S7, the minor items, and contract §11. Then run tsc, `npm test`, both builds, `check-print-layout`, `check-tablet-back` and `check-overlay-compat` through the lock; run the check tool on `home`, `arrivals` and `assistant`; open the Day pack on desktop and phone; add the three tests the review names; restore CRLF in `CheckIn.tsx`; write `FIT-fit-shell-DONE.md`.
+
+### Lane fit-check (Sonnet) — the check tool and the font baseline
+
+Contract §2 (baseline), §8.
+- **First, before anything else in the wave:** build the merged base (`main` with ACC-2 + W1a, no FIT code) and record `tools/fit-baseline/fonts-<viewport>.json` for the five viewports (Owner + Housekeeper, every page). Commit it alone ("FIT baseline from <main hash>"). Every later run compares against it.
+- `tools/fit-screen-check.mjs` **already exists** (written in the setup commit and run once on `main` c8f91d45 → `05 Delivery Evidence/Fit/fit-check-before-*.md`). Your job is to harden it to §8 in full: modal sample per lane, check 9 at text scale 1.3, sub-screen navigation once `useFitTab` exists (it sets `sessionStorage hcc-fit-tab:<page>` before opening the page — confirm that matches fit-shell's implementation), and the role-cannot-open detection (today: breadcrumb + title heuristic; replace it with the drawer's `.drawer-sub[data-page]` list per role). Options `--pages a,b`, `--roles`, `--viewports`, `--out`, `--no-shots`, `--text-scale`; the Capacitor mock and touch for `tab-*` (copy the mock from `tests/check-tablet-back.mjs`); navigation to a page and a sub-screen by the app's own `go` (expose nothing new in production code: drive the search palette or the drawer, or use the history-state pattern the app already listens to — `history.pushState({hcc:'page',page,idx})` + a `popstate` event); FAIL kinds and numbers as listed; the report and screenshots under `05 Delivery Evidence/Fit/`.
+- `tools/fit-modals.json` (starts with the shell's sample; module lanes add theirs through their DONE files → the integrator appends).
+- `tests/stream-fit.mjs` (static rules of §8) — tests for converted pages are skipped with a clear message until the page's root has `fit-page`, then enforced; the integrator flips the skip list off (`FIT_ENFORCE_ALL=true`) at the end.
+- Run the tool on the base once and commit the report as `05 Delivery Evidence/Fit/fit-check-baseline-<stamp>.md` (it will fail almost everywhere — that is the "before").
+- Never edit production code.
+
+## Phase B — seven module lanes in parallel, from the head of `claude/fit` after phase A is merged (fit-shell + fit-check)
+
+Each lane: convert every page of its row in contract §6 with the named pattern and sub-screens, append its `SUB_SCREENS` lines, add `tests/stream-fit-<lane>.mjs`, run the check on its pages, write DONE. Read `FIT_Component_Guide.md` and the converted `arrivals` page first.
+
+| Lane | Model | Pages (contract §6) | Watch out for |
+|---|---|---|---|
+| fit-front | Sonnet | `overview`, `rooms`, `calendar`, `reservations`, `arrivals` (polish only), `inhouse`, `guests` | Rooms "All floors" grid keeps the tile size and all tile content; Calendar scrolls both ways with sticky room column + date row; Reservations row → existing modal |
+| fit-cash | Sonnet | `folios`, `cashier`, `cashbook`, `pos`, `expenses` | Folio split must keep every action the full-width folio has; POS Charge / KOT bar sticky; Expenses: SCC features (bill photo, Udhaar, void) stay reachable in the right pane; the expense status tab ids unchanged |
+| fit-ops | Sonnet | `housekeeping`, `maintenance`, `handover`, `inventory` | Housekeeping/maintenance never see money (DEC-061) — do not move any panel that would put a money component on their screens; handover run = `StepFlow`, sign-off button always visible |
+| fit-guest | Sonnet | `guest-services`, `gsv-my-requests`, `messages`, `documents`, `customers` | Messages needs `usePaged` (1,350 rows today); Customers 360 profile tabs include W1a's Legacy section; ID images stay behind their existing reveal rules |
+| fit-revenue | Sonnet | `yield`, `groups`, `channels`, `booking-site` | Tariff grid: sticky first column; Groups' record pane holds rooming list + billing (scroll inside the pane) |
+| fit-people | **Opus** | `staff`, `my-hr`, `closing`, `reports`, `plans-extras`, `accounting`, `assistant`, `compliance` | Money / statutory screens: layout only, but Opus because a mis-moved control here is costly. Day closing `StepFlow`: the close action's enabling rule is untouched; Accounting tabs follow the sections on `main` after ACC-2; Payroll / leave screens keep DEC-058 owner-only gating |
+| fit-admin | Sonnet | `syshealth`, `prefs`, `access`, `settings` (Master configuration + every master), `approvals`, `backup`, `roadmap`, `legacy-import` (W1a) | Masters already use list / detail — wrap in `SplitView`, `FormSections` for multi-section masters; dated-money master forms keep the `tablet-masters-check.mjs` widths (≥ 240 px inputs); Prefs page must keep working at the largest text size |
+
+## Integrator (Opus, after the seven DONE files)
+
+Merge in the order fit-front → fit-cash → fit-ops → fit-guest → fit-revenue → fit-people → fit-admin into `claude/fit`; apply every "Integration needed" edit and append the modal openers to `tools/fit-modals.json`; set `FIT_ENFORCE_ALL=true` in `stream-fit.mjs`; remove the `legacy` fallback branch only if no page uses it; then through the lock: `npx tsc --noEmit`, `npm test`, `npm run build`, `npm run build:production`, `node tests/check-print-layout.mjs`, `node tests/check-tablet-back.mjs`, `node tools/tablet-masters-check.mjs`, and the **full** `node tools/fit-screen-check.mjs` (all viewports, all roles, every page and sub-screen, text scale 1 and 1.3). Fix fallout (layout only). Confirm `git diff main -- "03 Prototype/src/mobile" "03 Prototype/src/app/mobile"` and every `*Mobile.tsx` is empty. Write `05 Delivery Evidence/Fit/FIT-DONE.md` with the before / after table (document height in screens per page at `tab-land`, from the baseline report and the final report) and the screenshot folder for the owner.
+
+Then the coordinator: `tools\Start-Gate.ps1 -Repo E:\Projects\HCC\worktrees\fit -Wave fit` (server suite included, unchanged), owner look at the screenshots, fast-forward `main`, tag `wave/fit`, HANDOFF / CLAUDE.md / memory / graph. **APK v18 (W0) is built after this wave**, so the tablet test covers it.
+
+## Timing on this PC
+
+Phase A: 2 agents, about half a day. Phase B: 7 agents together (well under the 16-agent limit; builds serialised by the lock), about a day. Integrator + gate: half a day. No emulator in any lane; the emulator / physical-tablet check is W0's.
