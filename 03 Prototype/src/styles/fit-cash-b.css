@@ -40,7 +40,6 @@
 .app-shell .fit-page .exp-banner-fit{display:flex;align-items:center;gap:8px}
 .app-shell .fit-page .exp-banner-fit>.fit-note{flex:1 1 auto;min-width:0;margin:0}
 /* register: card with fixed head + status tabs + filters, one scrolling table body, footer */
-.app-shell .fit-page .exp-register{overflow:hidden}
 .app-shell .fit-page .exp-reg-top{display:flex;align-items:center;gap:8px;min-width:0}
 .app-shell .fit-page .exp-reg-top .exp-reg-title{flex:none;border:0}
 .app-shell .fit-page .exp-reg-top .tabs{flex:1 1 0}
@@ -48,7 +47,7 @@
 .app-shell .fit-page .exp-subbar .tabs{margin:0;overflow-x:auto;overflow-y:hidden;flex-wrap:nowrap;scrollbar-width:thin}
 .app-shell .fit-page .exp-subbar .tabs button{flex:none;white-space:nowrap}
 .app-shell .fit-page .exp-subbar .exp-filters{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;padding:4px 16px;margin:0}
-.app-shell .fit-page .exp-subbar .exp-filters label{flex:1 1 200px;min-width:0;flex-direction:row;align-items:center;gap:8px;white-space:nowrap}
+.app-shell .fit-page .exp-subbar .exp-filters label{flex:1 1 150px;min-width:0;flex-direction:row;align-items:center;gap:8px;white-space:nowrap}
 .app-shell .fit-page .exp-subbar .exp-filters label>select,.app-shell .fit-page .exp-subbar .exp-filters label>input{flex:1 1 auto;min-width:0;width:auto}
 .app-shell .fit-page .exp-register .fit-panel-foot:empty{display:none}
 .app-shell .fit-page .exp-register .fit-panel-foot{min-height:0;padding-top:4px;padding-bottom:4px}
@@ -60,3 +59,8 @@
 .app-shell .fit-page .exp-fit-cols .request-list{padding:0}
 
 .app-shell .fit-page .pos-sum-note{margin:12px 0 0}
+/* "Lists & photos": the master links and the bill-photo hint of the old register head, one button in the filter row */
+.app-shell .fit-page .exp-lists{position:relative;flex:none;margin-left:auto}
+.app-shell .fit-page .exp-lists>summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center}
+.app-shell .fit-page .exp-lists>summary::-webkit-details-marker{display:none}
+.app-shell .fit-page .exp-lists-pop{position:absolute;right:0;top:calc(100% + 6px);z-index:30;min-width:220px;display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding:10px 12px;background:var(--c-ffffff);border:1px solid var(--line);border-radius:8px;box-shadow:0 8px 24px var(--c-2b1d1620)}

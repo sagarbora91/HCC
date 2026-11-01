@@ -60,7 +60,9 @@ export function Expenses(){
           <div className="tabs" role="tablist" aria-label="Expense status">{tabs.map(t=><button key={t} role="tab" aria-selected={t===tab} className={t===tab?'active':''} onClick={()=>setTab(t)}>{t}<span>{t==='All'?s.expenses.length:s.expenses.filter(e=>e.status===t).length}</span></button>)}</div></div>
           <div className="form-row exp-filters"><label>Mode<select value={mode} onChange={e=>setMode(e.target.value)}><option value="">All</option>{mnyNames(s,'expenses').map(m=><option key={m}>{m}</option>)}</select></label>
             <label>Month<input type="month" value={month} onChange={e=>setMonth(e.target.value)}/></label>
-            <label>Search<input value={q} onChange={e=>setQ(e.target.value)} placeholder="description / vendor / category"/></label></div></div>
+            <label>Search<input value={q} onChange={e=>setQ(e.target.value)} placeholder="description / vendor / category"/></label>
+            <details className="exp-lists"><summary className="btn small-btn">Lists &amp; photos</summary><div className="exp-lists-pop"><Pill>Bill photos up to 4 MB</Pill>
+              <MstLink spec="expenseCategories" label="Categories…"/><MstLink spec="expenseVendors" label="Vendors…"/><MstLink spec="paymentMethods" label="Funding sources…"/></div></details></div></div>
         <div className="fit-panel-body" data-fit-scroll="" tabIndex={0} aria-label="Expense register rows"><div className="table-wrap"><table><thead><tr><th>Description / reference</th><th>Category</th><th>Funding</th><th className="number">Amount</th><th>Status</th><th>Action</th></tr></thead><tbody>
           {pg.shown.map(e=><tr key={e.id}><td><strong>{expDescription(e)}</strong>{e.vendor&&!mnyVendor(s,e.vendor)&&<small>Not in the vendor list</small>}<ExpRowExtras e={e}/>
               <small>{e.id} · {shortDate(e.date)} · by {name(e.actor)}{e.reversalOf?` · reverses ${e.reversalOf}`:''}{e.reversedBy?` · reversed by ${e.reversedBy}`:''}</small>
@@ -87,8 +89,7 @@ export function Expenses(){
     {title:'Pending approval',value:String(s.expenses.filter(e=>e.status==='Pending').length)},{title:'Drafts',value:String(s.expenses.filter(e=>e.status==='Draft').length)},{title:'GST paid this month',value:money(expGstPaid(s,expYm(s.date)))}];
   return <FitPage title="Expenses & approvals" sub="Every expense accounted for. Every adjustment traceable." layout="fill"
       actions={<>{canSubmit&&<button className="btn primary" disabled={busy} onClick={()=>open({type:'expense'})}>+ Add expense</button>}
-        {section==='register'&&<><Pill>Bill photos up to 4 MB</Pill>{(permission('admin')||permission('masters'))&&<><MstLink spec="expenseCategories" label="Categories…"/><MstLink spec="expenseVendors" label="Vendors…"/><MstLink spec="paymentMethods" label="Funding sources…"/></>}
-          {canDecide&&<button type="button" className="btn small-btn" onClick={()=>csv('ledger')}><Download size={15}/> Ledger CSV</button>}</>}</>}
+        {section==='register'&&canDecide&&<button type="button" className="btn small-btn" onClick={()=>csv('ledger')}><Download size={15}/> Ledger CSV</button>}</>}
       toolbar={<StatStrip items={stats}/>}
       tabs={<FitTabs page="expenses" value={section} onChange={setSection} tabs={expSectionsFor(books).map(([id,label])=>({id,label}))}/>}>
     <ExpBanners onSection={setSection} fit/>
