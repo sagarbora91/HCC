@@ -34,9 +34,9 @@ export function Overview(){
       <ScrollPanel title="Front desk today" label={`Front desk today: ${OV_TABS.find(t=>t.id===tab)!.label}`} actions={act('reservations',()=>go('reservations'),'All reservations ↗','text-btn')}>
         <BookingTable list={stayList} compact/>
       </ScrollPanel>
-      <ScrollPanel title="A view across your rooms" label="Rooms by floor and status" actions={act('reservations',()=>go('rooms'),'Open room board ↗','text-btn')}
-        footer={<div className="legend">{['Occupied','Ready','Dirty','Cleaning','Inspection','Blocked'].map(v=><span key={v}><i className={'dot '+v.toLowerCase()}/>{v} ({ROOM_CODE[v]})</span>)}</div>}>
+      <ScrollPanel title="A view across your rooms" label="Rooms by floor and status" actions={act('reservations',()=>go('rooms'),'Open room board ↗','text-btn')}>
         <div className="floor-overview">{mstFloorGroups(s).map(({floor:f,label})=><div className="floor-line" key={f}><span>{label}</span><div>{s.rooms.filter(r=>r.floor===f&&rmsListed(r)).map(r=><button className={'mini-room '+roomStatus(r).toLowerCase()} key={r.id} aria-label={`Room ${r.id}: ${roomStatus(r)}`} onClick={()=>open({type:'room',id:r.id})}>{r.id}<span className="mr-code" aria-hidden="true">{ROOM_CODE[roomStatus(r)]}</span></button>)}</div></div>)}</div>
+        <div className="legend">{['Occupied','Ready','Dirty','Cleaning','Inspection','Blocked'].map(v=><span key={v}><i className={'dot '+v.toLowerCase()}/>{v} ({ROOM_CODE[v]})</span>)}</div>
       </ScrollPanel>
       <ScrollPanel title="Needs your attention" label="Attention, cash and balances, compliance and backup" actions={<span className="count">{pending+inspection}</span>}>
         <div className="attention fit-ov-attention">
