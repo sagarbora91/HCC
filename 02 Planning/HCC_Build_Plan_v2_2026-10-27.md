@@ -159,7 +159,7 @@ Borrowed whole from ETP: `scripts\build-windows-release.ps1` → `build-windows-
 | OP-16 | GitHub repository **private** before the push (DEC-087 says private; `sagarbora91/HCC` is public today) | Owner |
 | OP-17 | Hall-booking spec approval (W5) — written while W2–W4 run | Owner |
 | OP-18 | **Rack-rate card** for the room types SUITE / PREMIUM / DELUXE / TWIN (single, double, extra person; GST-exclusive) — the legacy rates are not loaded (DEC-163) | Owner |
-| OP-19 | ~~Ask the CA whether the HCC invoice series must continue the legacy bill numbers~~ **Closed 1 Nov 2026 (DEC-181):** fresh series `PREFIX/2627/0001` from go-live; legacy bills keep their numbers; both series in GSTR-1 Table 13 | Owner (done) |
+| OP-19 | ~~Ask the CA whether the HCC invoice series must continue the legacy bill numbers~~ **Closed 1 Nov 2026 (DEC-181):** fresh series `HPE/2627/0001` from go-live; legacy bills keep their numbers; both series in GSTR-1 Table 13 | Owner (done) |
 
 ## 6. What you do, when
 
