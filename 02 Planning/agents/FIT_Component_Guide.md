@@ -4,10 +4,11 @@ Read with `FIT-LAYOUT-CONTRACT.md` (the rules win over this guide) and the conve
 
 ## What the shell already does for you
 
-- **Height chain.** `.content` is a flex column that never scrolls. Your page root must be **one element**: the `<FitPage>` section. Until then the shell wraps the page in `<div class="fit-legacy" data-fit-scroll="legacy">` (it still scrolls, the check reports `not-converted`).
-- **Page heading.** `FitPage` renders `.page-title` markup, so the `h1` is 22 px and every other text keeps its old size. Do not set any `font-size` in your CSS (DEC-179). Never put a `PageTitle` inside a `FitPage`.
-- **Dialogs.** Every desktop modal opened through `open({type})` already has a scrolling `.modal-body` and a sticky `.modal-actions` bar. Keep rendering `.modal-heading` … `.modal-actions` as today; nothing to wrap. `ModalFrame` is only for a dialog you render yourself outside `ModalHost`. Wide forms (≥ 8 fields): put the fields in `<div className="form fit-form-2col">` (two columns at ≥ 900 px; `.full` spans both).
-- **Breadcrumb + search.** `FitTabs` shows the selected tab as the last crumb; your `SUB_SCREENS` lines make each tab a search result "Page › Tab".
+- **Height chain.** `.content` is a flex column that never scrolls. Your page root must be **one element**: the `<FitPage>` section. Until then the shell marks the page's own root `data-fit-scroll="legacy"` (no wrapper, so the page never remounts) and it scrolls there; a page that still returns a fragment makes `.content` itself the legacy scroller. The check reports both as `not-converted` (contract §11.3).
+- **Page heading.** `FitPage` renders `.page-title` markup, so the `h1` is 22 px and every other text keeps its old size. Do not set any `font-size` in your CSS (DEC-195). Never put a `PageTitle` inside a `FitPage`.
+- **Dialogs.** Every desktop modal opened through `open({type})` gets the class `.fit-modal` (desktop layout only), a scrolling `.modal-body` and a sticky `.modal-actions` bar. Keep rendering `.modal-heading` … `.modal-actions` as today; nothing to wrap. Never write CSS for a bare `.modal` (phone sheets and the phone Day pack share it): desktop dialog rules target `.modal.fit-modal` (§11.1). `ModalFrame` with its `dialog` prop is only for a dialog you render yourself outside `ModalHost` (as `DayPack`, `ServerDayPack` and the guest-ID dialog do): it renders the overlay + `.modal fit-modal` shell on the desktop layout and the dialog's old markup on the phone. Pass `heading` and `actions` as complete elements there (e.g. `<div className="modal-actions no-print">…</div>`). Wide forms (≥ 8 fields): put the fields in `<div className="form fit-form-2col">` (two columns at ≥ 900 px; `.full` spans both).
+- **Breadcrumb + search.** The page's own `FitTabs` (passed in the `FitPage` `tabs` slot) shows the selected tab as the last crumb; a nested `FitTabs` inside the page body (e.g. Customers 360's Overview / Stays / …) never takes the crumb and is not in `SUB_SCREENS` (§11.5). Your `SUB_SCREENS` lines make each page tab a search result "Page › Tab" — on the desktop layout only (§11.2).
+- **Header actions.** `FitPage` `actions` = the primary action **first**, then the rest. The row never wraps: what does not fit moves into a **More** menu (§11.9). The 56 px top bar shows the user button on touch tablets too (§11.8).
 - **Touch sizes.** Buttons, inputs and tabs get the DEC-060 minimums from `z-tablet.css` / `z-fit.css`; do not override `min-height`.
 
 ## Rules of thumb
@@ -15,7 +16,7 @@ Read with `FIT-LAYOUT-CONTRACT.md` (the rules win over this guide) and the conve
 - Each `ScrollPanel` / `SplitView` pane / board column must be **≥ 160 px tall** at 1138 × 640 (check 4, `cramped`). Two stacked panels is the most a body holds at that size; use `fit-cols` (side by side) or `FitTabs` for more.
 - A tab bar, toolbar or `StatStrip` never gets `data-fit-scroll` (they may scroll sideways, but the check would call them cramped).
 - Lists that render every row adopt `usePaged` + `ShowMore`; the `ShowMore` goes in the panel `footer`.
-- Footnotes go in the panel `footer` as one `p.footnote` line; info notes (`.info-note`) go in the tab's empty area or the footer. Text unchanged.
+- Footnotes go in the panel `footer` as `<FitNote text="…"/>`: one line plus a **More** button that opens the full text in place (§11.4; a `title`-only tooltip is not allowed, touch cannot reach it). Long info notes (`.info-note`): `FitNote` too (`lines={2}` if needed) or the tab's empty area. Text unchanged.
 - A row that opens a modal today keeps the modal.
 - Layout only: never touch selectors, commands, handlers, permissions, fixtures or money code.
 
@@ -23,14 +24,14 @@ Read with `FIT-LAYOUT-CONTRACT.md` (the rules win over this guide) and the conve
 
 | Class | Use |
 |---|---|
-| `fit-cols` | Two columns of panels inside a body: main `3fr`, side `minmax(240px, 1fr)`; each child is a flex column. Stacks below 900 px. |
+| `fit-cols` | Two columns of panels inside a body: main `3fr`, side `minmax(240px, 1fr)`; each child is a flex column. Below 900 px the columns stack as grid rows of at least 160 px each (a column with two panels splits its row), so a table panel never collapses (§11.11). Pattern: `<div className="fit-cols"><div>{table}</div><div>{sideA}{sideB}</div></div>`. |
 | `fit-stack` | A plain column of panels (gap 12 px) when a body needs a wrapper. |
 | `fit-form-2col` | Two field columns in a wide dialog form at ≥ 900 px. |
 
 ## 1. Fill — one list (the `arrivals` pattern)
 
 ```tsx
-import {FitPage,ScrollPanel,StatStrip} from '../../components/fit';
+import {FitPage,ScrollPanel,StatStrip,FitNote} from '../../components/fit';
 export function CashbookPage(){
   const {s,search,setSearch}=useHcc();
   const {rows,more}=usePaged(list);                       // existing hook, unchanged
@@ -38,7 +39,7 @@ export function CashbookPage(){
       actions={<button className="btn primary" onClick={()=>open({type:'cash'})}>Record cash</button>}
       toolbar={<><SearchBox value={search} onChange={setSearch} placeholder="Search…"/>
         <StatStrip items={[{title:'Opening',value:money(o)},{title:'In',value:money(i)},{title:'Closing',value:money(c),tone:'ok'}]}/></>}>
-    <ScrollPanel label="Cash movements" footer={<>{more}<p className="footnote" title={NOTE}>{NOTE}</p></>}>
+    <ScrollPanel label="Cash movements" footer={<>{more}<FitNote text={NOTE}/></>}>
       <div className="table-wrap"><table>…unchanged rows…</table></div>
     </ScrollPanel>
   </FitPage>;
@@ -67,7 +68,7 @@ export function FoliosPage(){
 
 The record pane scrolls itself (`data-fit-scroll`). Below 900 px the record slides over the list with **Back to list**; Android Back closes it first. Keep every action the full-width record had.
 
-## 3. Tabs — several sections (sub-screens, DEC-180)
+## 3. Tabs — several sections (sub-screens, DEC-196)
 
 ```tsx
 import {FitPage,FitTabs,useFitTab,ScrollPanel} from '../../components/fit';
@@ -147,6 +148,6 @@ The section list sits left, one section scrolls on the right, the Save bar (`.mo
 
 ## Tests and the check
 
-- `tests/stream-fit-<lane>.mjs`, names `[FIT-<LANE>]`: each converted page renders a `fit-page` root (render with the harness in `tests/stream-fit-shell.mjs`: `HccContext` + `FitNavContext` providers), its `useFitTab` ids equal its `SUB_SCREENS` lines, defaults as you set them.
+- `tests/stream-fit-<lane>.mjs`, names `[FIT-<LANE>]`: each converted page renders a `fit-page` root (render with the harness in `tests/stream-fit-shell.mjs`: `HccContext` + `FitNavContext` providers with `{desktop:true,page,tabKey,seq,setTabCrumb}`), its `useFitTab` ids equal its `SUB_SCREENS` lines, defaults as you set them.
 - A test that read text now in a non-default tab: render with `FitNavContext` `{page, tabKey:'<tab>'}` (or set `sessionStorage hcc-fit-tab:<page>`) — never delete or loosen it.
 - Browser check: build, `PORT=<4190+n> node serve.mjs`, then through the lock `node tools/fit-screen-check.mjs --pages <your pages>`.

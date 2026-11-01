@@ -1,0 +1,1110 @@
+[
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "home",
+  "tab": "",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "arrivals",
+  "tab": "",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "assistant",
+  "tab": "",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "FAIL",
+  "fails": [
+   "not-converted legacy-scroll",
+   "not-converted"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "reservations",
+  "tab": "modal:+ New reservation",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "expenses",
+  "tab": "modal:+ Add expense",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "access",
+  "tab": "modal:New user",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "overview",
+  "tab": "modal:user menu",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "reception",
+  "page": "home",
+  "tab": "",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "reception",
+  "page": "arrivals",
+  "tab": "",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "reception",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "reception",
+  "page": "reservations",
+  "tab": "modal:+ New reservation",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "reception",
+  "page": "expenses",
+  "tab": "modal:+ Add expense",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "housekeeper",
+  "page": "home",
+  "tab": "",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "housekeeper",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "owner",
+  "page": "home",
+  "tab": "",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "owner",
+  "page": "arrivals",
+  "tab": "",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "owner",
+  "page": "assistant",
+  "tab": "",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "FAIL",
+  "fails": [
+   "not-converted legacy-scroll",
+   "not-converted"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "owner",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "owner",
+  "page": "reservations",
+  "tab": "modal:+ New reservation",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "owner",
+  "page": "expenses",
+  "tab": "modal:+ Add expense",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "owner",
+  "page": "access",
+  "tab": "modal:New user",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "owner",
+  "page": "overview",
+  "tab": "modal:user menu",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "reception",
+  "page": "home",
+  "tab": "",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "reception",
+  "page": "arrivals",
+  "tab": "",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "reception",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "reception",
+  "page": "reservations",
+  "tab": "modal:+ New reservation",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "reception",
+  "page": "expenses",
+  "tab": "modal:+ Add expense",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "housekeeper",
+  "page": "home",
+  "tab": "",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "housekeeper",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "home",
+  "tab": "",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "arrivals",
+  "tab": "",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "assistant",
+  "tab": "",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "not-converted legacy-scroll",
+   "not-converted",
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "reservations",
+  "tab": "modal:+ New reservation",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "expenses",
+  "tab": "modal:+ Add expense",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "access",
+  "tab": "modal:New user",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "overview",
+  "tab": "modal:user menu",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "reception",
+  "page": "home",
+  "tab": "",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "reception",
+  "page": "arrivals",
+  "tab": "",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "reception",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "reception",
+  "page": "reservations",
+  "tab": "modal:+ New reservation",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "reception",
+  "page": "expenses",
+  "tab": "modal:+ Add expense",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "housekeeper",
+  "page": "home",
+  "tab": "",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "housekeeper",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "owner",
+  "page": "home",
+  "tab": "",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "owner",
+  "page": "arrivals",
+  "tab": "",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "owner",
+  "page": "assistant",
+  "tab": "",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "not-converted legacy-scroll",
+   "not-converted",
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "owner",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "owner",
+  "page": "reservations",
+  "tab": "modal:+ New reservation",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "owner",
+  "page": "expenses",
+  "tab": "modal:+ Add expense",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "owner",
+  "page": "access",
+  "tab": "modal:New user",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "owner",
+  "page": "overview",
+  "tab": "modal:user menu",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "reception",
+  "page": "home",
+  "tab": "",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "reception",
+  "page": "arrivals",
+  "tab": "",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "reception",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "reception",
+  "page": "reservations",
+  "tab": "modal:+ New reservation",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "reception",
+  "page": "expenses",
+  "tab": "modal:+ Add expense",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "housekeeper",
+  "page": "home",
+  "tab": "",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "housekeeper",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "owner",
+  "page": "home",
+  "tab": "",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "owner",
+  "page": "arrivals",
+  "tab": "",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "owner",
+  "page": "assistant",
+  "tab": "",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "not-converted legacy-scroll",
+   "not-converted",
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "owner",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "owner",
+  "page": "reservations",
+  "tab": "modal:+ New reservation",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "owner",
+  "page": "expenses",
+  "tab": "modal:+ Add expense",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "owner",
+  "page": "access",
+  "tab": "modal:New user",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "owner",
+  "page": "overview",
+  "tab": "modal:user menu",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "reception",
+  "page": "home",
+  "tab": "",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "reception",
+  "page": "arrivals",
+  "tab": "",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "reception",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "reception",
+  "page": "reservations",
+  "tab": "modal:+ New reservation",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "reception",
+  "page": "expenses",
+  "tab": "modal:+ Add expense",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "housekeeper",
+  "page": "home",
+  "tab": "",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "housekeeper",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "home",
+  "tab": "",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "arrivals",
+  "tab": "",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "assistant",
+  "tab": "",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "FAIL",
+  "fails": [
+   "not-converted legacy-scroll"
+  ]
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "reservations",
+  "tab": "modal:+ New reservation",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "expenses",
+  "tab": "modal:+ Add expense",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "access",
+  "tab": "modal:New user",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "overview",
+  "tab": "modal:user menu",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "reception",
+  "page": "home",
+  "tab": "",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "reception",
+  "page": "arrivals",
+  "tab": "",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "reception",
+  "page": "reservations",
+  "tab": "modal:+ New reservation",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "reception",
+  "page": "expenses",
+  "tab": "modal:+ Add expense",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "housekeeper",
+  "page": "home",
+  "tab": "",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "home",
+  "tab": "",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "arrivals",
+  "tab": "",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "assistant",
+  "tab": "",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "not-converted legacy-scroll"
+  ]
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "reservations",
+  "tab": "modal:+ New reservation",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "expenses",
+  "tab": "modal:+ Add expense",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "access",
+  "tab": "modal:New user",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "overview",
+  "tab": "modal:user menu",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "reception",
+  "page": "home",
+  "tab": "",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "reception",
+  "page": "arrivals",
+  "tab": "",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "reception",
+  "page": "reservations",
+  "tab": "modal:+ New reservation",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "reception",
+  "page": "expenses",
+  "tab": "modal:+ Add expense",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "housekeeper",
+  "page": "home",
+  "tab": "",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ }
+]

@@ -1,0 +1,123 @@
+{
+ "lap-1366 fit": {
+  "date": "2026-10-23",
+  "cls": "modal wide fit-modal",
+  "overlay": "modal-overlay fit-modal-overlay",
+  "padding": "0px",
+  "overflowY": "hidden",
+  "display": "flex",
+  "box": [
+   268,
+   16,
+   830,
+   625
+  ],
+  "scroller": ".modal-body auto 2214/625",
+  "docLeft": 30,
+  "actions": {
+   "pos": "sticky",
+   "inView": true
+  }
+ },
+ "lap-1366 base-css": {
+  "date": "2026-10-23",
+  "cls": "modal wide fit-modal",
+  "overlay": "modal-overlay fit-modal-overlay",
+  "padding": "30px",
+  "overflowY": "auto",
+  "display": "block",
+  "box": [
+   268,
+   28,
+   830,
+   601
+  ],
+  "scroller": ".modal-body visible 2164/2164",
+  "docLeft": 30,
+  "actions": {
+   "pos": "static",
+   "inView": false
+  }
+ },
+ "tab-land fit": {
+  "date": "2026-10-23",
+  "cls": "modal wide fit-modal",
+  "overlay": "modal-overlay fit-modal-overlay",
+  "padding": "0px",
+  "overflowY": "hidden",
+  "display": "flex",
+  "box": [
+   154,
+   16,
+   830,
+   608
+  ],
+  "scroller": ".modal-body auto 2224/608",
+  "docLeft": 30,
+  "actions": {
+   "pos": "sticky",
+   "inView": true
+  }
+ },
+ "tab-land base-css": {
+  "date": "2026-10-23",
+  "cls": "modal wide fit-modal",
+  "overlay": "modal-overlay fit-modal-overlay",
+  "padding": "30px",
+  "overflowY": "auto",
+  "display": "block",
+  "box": [
+   154,
+   28,
+   830,
+   584
+  ],
+  "scroller": ".modal-body visible 2174/2174",
+  "docLeft": 30,
+  "actions": {
+   "pos": "static",
+   "inView": false
+  }
+ },
+ "phone fit": {
+  "date": "2026-10-23",
+  "cls": "modal wide",
+  "overlay": "modal-overlay",
+  "padding": "25px 20px 20px",
+  "overflowY": "auto",
+  "display": "block",
+  "box": [
+   12,
+   12,
+   366,
+   820
+  ],
+  "scroller": ".modal auto 2527/820",
+  "docLeft": 20,
+  "actions": {
+   "pos": "static",
+   "inView": false
+  }
+ },
+ "phone markup identical to the pre-FIT markup (no fit- class)": true,
+ "phone base-css": {
+  "date": "2026-10-23",
+  "cls": "modal wide",
+  "overlay": "modal-overlay",
+  "padding": "25px 20px 20px",
+  "overflowY": "auto",
+  "display": "block",
+  "box": [
+   12,
+   12,
+   366,
+   820
+  ],
+  "scroller": ".modal auto 2527/820",
+  "docLeft": 20,
+  "actions": {
+   "pos": "static",
+   "inView": false
+  }
+ }
+}
