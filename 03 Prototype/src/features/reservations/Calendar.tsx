@@ -1,9 +1,10 @@
 // Stream A · Calendar timeline (SCR-03, REQ-RACK-004/005): rooms grouped by type × 14 nights.
 import React,{useState} from 'react';
-import {ChevronLeft,ChevronRight,Info} from 'lucide-react';
+import {ChevronLeft,ChevronRight} from 'lucide-react';
 import {addDays,resCalendar,RES_CAPACITY} from '../../services/mock';
 import {useHcc} from '../../app/context';
-import {PageTitle,Empty,shortDate,dateLabel} from '../../components/ui';
+import {Empty,shortDate,dateLabel} from '../../components/ui';
+import {FitPage,ScrollPanel,FitNote} from '../../components/fit';
 
 const DAYS=14,DATE=/^\d{4}-\d{2}-\d{2}$/;
 const weekday=(d:string)=>new Date(d+'T12:00:00').toLocaleDateString('en-IN',{weekday:'short'});
@@ -15,23 +16,25 @@ export function Calendar(){
   const cal=resCalendar(s,start,DAYS,type),canBook=permission('reservations');
   const rows=cal.groups.reduce((n,g)=>n+g.rows.length,0);
   const cols={'--res-days':DAYS} as React.CSSProperties;
-  return <><PageTitle title="Calendar" sub="Rooms by type across two weeks. Select an empty night to book, or a bar to open the booking." action={act('reservations',()=>open({type:'new'}),'+ New reservation','btn primary')}/>
-    <div className="toolbar res-cal-toolbar">
-      <div className="res-cal-nav" role="group" aria-label="Date navigation">
-        <button className="btn" onClick={()=>setStart(addDays(start,-7))}><ChevronLeft size={15}/> Previous week</button>
-        <button className="btn" disabled={start===s.date} onClick={()=>setStart(s.date)} title="Jump to the business date">Today</button>
-        <button className="btn" onClick={()=>setStart(addDays(start,7))}>Next week <ChevronRight size={15}/></button>
-      </div>
-      <div className="res-cal-filters">
-        <label>From<input type="date" value={start} onChange={e=>{if(DATE.test(e.target.value))setStart(e.target.value);}}/></label>
-        <label>Room type<select value={type} onChange={e=>setType(e.target.value)}><option value="All">All types</option>{Object.keys(RES_CAPACITY).map(t=><option key={t}>{t}</option>)}</select></label>
-      </div>
-    </div>
-    <p className="muted res-cal-range">{dateLabel(start)} — {dateLabel(addDays(cal.end,-1))} · {DAYS} nights · business date {shortDate(s.date)}</p>
-    <div className="res-legend" aria-label="Legend">{[['held','Held (time left)'],['confirmed','Confirmed'],['inhouse','In house'],['departed','Departed'],['block','Blocked']].map(([k,l])=><span key={k}><i className={'res-swatch '+k}/>{l}</span>)}</div>
-    <section className="card res-cal-card">
+  // FIT (DEC-194, contract §6 'calendar' = fill): header + one toolbar row; ONE panel scrolls both ways (room column and date row sticky);
+  // the range line, legend and the note sit in the panel footer.
+  const legend=<div className="res-legend" aria-label="Legend">{[['held','Held (time left)'],['confirmed','Confirmed'],['inhouse','In house'],['departed','Departed'],['block','Blocked']].map(([k,l])=><span key={k}><i className={'res-swatch '+k}/>{l}</span>)}</div>;
+  return <FitPage title="Calendar" sub="Rooms by type across two weeks. Select an empty night to book, or a bar to open the booking."
+      actions={act('reservations',()=>open({type:'new'}),'+ New reservation','btn primary')}
+      toolbar={<>
+        <div className="res-cal-nav" role="group" aria-label="Date navigation">
+          <button className="btn" onClick={()=>setStart(addDays(start,-7))}><ChevronLeft size={15}/> Previous week</button>
+          <button className="btn" disabled={start===s.date} onClick={()=>setStart(s.date)} title="Jump to the business date">Today</button>
+          <button className="btn" onClick={()=>setStart(addDays(start,7))}>Next week <ChevronRight size={15}/></button>
+        </div>
+        <div className="res-cal-filters">
+          <label>From<input type="date" value={start} onChange={e=>{if(DATE.test(e.target.value))setStart(e.target.value);}}/></label>
+          <label>Room type<select value={type} onChange={e=>setType(e.target.value)}><option value="All">All types</option>{Object.keys(RES_CAPACITY).map(t=><option key={t}>{t}</option>)}</select></label>
+        </div></>}>
+    <ScrollPanel label="Room calendar, scrolls in both directions" title={<>{dateLabel(start)} — {dateLabel(addDays(cal.end,-1))}</>} actions={<span className="muted">{DAYS} nights · business date {shortDate(s.date)}</span>}
+      footer={<div className="fit-cal-foot">{legend}<FitNote text="Bars cover nights from arrival up to (not including) departure. To move a confirmed reservation or change its dates, open its bar and choose “Move / extend” — the whole new interval is revalidated and a conflict keeps the original. Expired holds are not shown because they no longer reserve the room."/></div>}>
       {!rows?<Empty title="No rooms to show" body="No rooms match this room type."/>:
-      <div className="res-cal-scroll" tabIndex={0} aria-label="Room calendar, scrolls horizontally">
+      <div className="res-cal-scroll">
         <div className="res-cal" style={cols} role="grid" aria-rowcount={rows+1}>
           <div className="res-cal-row res-cal-head" role="row"><div className="res-cal-room" role="columnheader">Room</div>
             {cal.dates.map(d=><div key={d} role="columnheader" className={'res-cal-day'+(d===s.date?' today':'')+(d<s.date?' past':'')}><small>{weekday(d)}</small><strong>{d.slice(8)}</strong><small>{shortDate(d).split(' ')[1]}</small></div>)}</div>
@@ -51,6 +54,6 @@ export function Calendar(){
           </React.Fragment>)}
         </div>
       </div>}
-    </section>
-    <div className="info-note"><Info size={16}/>Bars cover nights from arrival up to (not including) departure. To move a confirmed reservation or change its dates, open its bar and choose “Move / extend” — the whole new interval is revalidated and a conflict keeps the original. Expired holds are not shown because they no longer reserve the room.</div></>;
+    </ScrollPanel>
+  </FitPage>;
 }
