@@ -17,3 +17,11 @@
 - New stylesheet src/styles/fit-ops.css (picked up by name order).
 - Baseline should be recorded from every element, not the first visible one (36 font-changed false positives: hk/mnt filter labels 10px etc.).
 - Append the 4 modal openers from FIT-fit-ops-DONE.md to tools/fit-modals.json.
+
+## From people-a (done, 9fc55aee)
+- Shell defects: (1) FitPage layout="steps" puts `fit-steps` grid class on the page root (squeezes page into 260 px column) — overridden in closing-fit.css, remove override once shell fixed; (2) `HeaderActions` never moves buttons into More (overflow goes to the left where it is not measured).
+- Compliance: contract's "Filings / Licences" tabs don't exist on main; used Calendar + Dashboard.
+- New hint text on Day closing (close/next-day buttons are in header, step-rail counts): flagged for review — fit-review must confirm it is layout-only copy.
+- Reopened-day charge form not seen in a browser (no reopened day in FY26): integrator/review to check by test.
+- stream-reopen.mjs updated to open the right step (not loosened).
+- New stylesheets staff-fit.css, closing-fit.css, compliance-fit.css; 4 modal openers for fit-modals.json.
