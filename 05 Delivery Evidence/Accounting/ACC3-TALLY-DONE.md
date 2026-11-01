@@ -17,7 +17,7 @@ Lane acc3-tally · Sonnet 5.5 (written by) · branch `claude/acc3-tally` · work
 - Golden: 239 vouchers, 44 party ledgers; the prototype test and the C# test both rebuild the files from the shared `input.json` and compare bytes; the prototype also rebuilds them straight from the scenario state.
 
 ## Tests
-See the counts block below (filled after the runs). Commands: `dotnet test tests/Hcc.Accounting.Tests -maxcpucount:1` in `08 Production`, `node tests/_one.mjs tests/stream-accounting-tally.mjs` / `npm test` in `03 Prototype`, all through `Invoke-Serialized.ps1`.
+Prototype: `npx tsc --noEmit` clean; `npm test` 2105/2105 (10 new `[ACC3-TALLY]`). Server: `Hcc.Accounting.Tests` 254/254 (19 new in `Tally/TallyExportTests.cs`, incl. golden byte equality for masters and vouchers, chart parity, REMOTEID, bill allocation, real engine month). Not run: other server projects, `dotnet build Hcc.slnx` (only Accounting.Tests + its references built). Commands: `dotnet test tests/Hcc.Accounting.Tests -maxcpucount:1` in `08 Production`, `node tests/_one.mjs tests/stream-accounting-tally.mjs` / `npm test` in `03 Prototype`, all through `Invoke-Serialized.ps1`.
 
 ## Owner: import into a fresh TallyPrime company (gate step)
 1. Create a new empty company in TallyPrime named exactly as the company shown in the files (golden: `Rulebook Hotels Pvt Ltd (fictional)`), financial year starting 1-4-2026, books beginning 1-4-2026; GST can stay off (GST ledgers import as plain duty ledgers).
