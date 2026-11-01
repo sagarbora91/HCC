@@ -42,6 +42,31 @@
       "rollback_method": "Delete CalendarDate.cs and its tests."
     },
     {
+      "candidate_id": "ACC3-EXPORTS-OPENXML",
+      "source_repository": "E:/ETP/Code/SaagarCC-V6-ETP-Source-and-Report-Engine-605002f (ETP; git 8d65d83fc7428b8f69069233aea47d0d66e43cc0)",
+      "source_paths": [
+        "src/Etp.Reporting.Reporting/OpenXmlReportExporter.cs"
+      ],
+      "source_hashes": {
+        "src/Etp.Reporting.Reporting/OpenXmlReportExporter.cs": "6e438e9bf588c66cf20c5bee5523d70a2ab52248786a73275176cd166a3ececb"
+      },
+      "license_and_notices": "ETP is the owner's own platform (DEC-054); no third-party licence applies. Provenance note in the file header.",
+      "destination_paths": [
+        "08 Production/src/Hcc.Infrastructure.SqlServer/Reporting/OpenXmlExporter.cs"
+      ],
+      "destination_hashes": {
+        "08 Production/src/Hcc.Infrastructure.SqlServer/Reporting/OpenXmlExporter.cs": "1281911609148c94729d74961b37950d31183119c4e2d8414c4c911f1f14f8e1 (at commit time; recompute after edits)"
+      },
+      "derivation": "adapted (layout and styles kept; DocumentFormat.OpenXml replaced by System.IO.Compression)",
+      "modifications_and_rationale": "ETP writes the workbook with the DocumentFormat.OpenXml package. HCC keeps no new NuGet package (Directory.Packages.props is minimal; the package is not in the local cache), so the same OOXML parts are written directly: workbook, styles (bold, #,##0.00 money, date, integer, percent), worksheet with frozen pane, inline strings, numbers as numbers, column widths. ETP's one-sheet metadata block is replaced by a caller-supplied title block; several sheets per workbook; output is byte-stable (fixed entry times). Mirrors the prototype src/app/xlsx.ts.",
+      "imported_dependencies": [],
+      "HCC_tests_run": "tests/Hcc.Accounting.Tests/Exports/ExportsTests.cs",
+      "unrun_tests": "Opening the workbook in desktop Excel (owner step at the W3 gate).",
+      "accepted_use": "Excel export of ACC-1 statements, the bulk statements zip and the ACC-3 reports.",
+      "excluded_uses": "ETP report catalogue, rule versions, report status model.",
+      "rollback_method": "Delete OpenXmlExporter.cs, StatementExports.cs, AccountingExportEndpoints.cs and the ACC-3 registration line."
+    },
+    {
       "candidate_id": "ETP-TALLY",
       "source_repository": "E:/ETP/Code/SaagarCC-V6-ETP-Source-and-Report-Engine-605002f (owner's own code, DEC-054)",
       "pinned_commit": "8d65d83fc7428b8f69069233aea47d0d66e43cc0",
