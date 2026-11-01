@@ -136,6 +136,7 @@ public sealed class CarrySqlTests(AccountingDb db) : IClassFixture<AccountingDb>
             var ravi = await store.ReceiptTotalsAsync(tx, db.PropertyId, new CashParty(CashParty.Udhaar, a), D, c);
             var asha = await store.ReceiptTotalsAsync(tx, db.PropertyId, new CashParty(CashParty.Udhaar, other), D, c);
             var gopal = await store.ReceiptTotalsAsync(tx, db.PropertyId, new CashParty(CashParty.Udhaar, noMobile), D, c);
+            await tx.AuditAsync("TEST_C5", "test", "C5 totals read", c);
             return new[] { ravi.Day, ravi.Scope, asha.Day, gopal.Day, gopal.Scope };
         }, Ct);
         Assert.Equal([30_000_000L, 15_000_000L, 100L, 10_000_000L, 5_000_000L], r.Value);
