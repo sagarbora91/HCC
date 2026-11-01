@@ -148,6 +148,7 @@ public static class HccComposition
         // ACC-2 end
         // ACC-3 lanes: add ONE api.MapAccounting<Lane>Endpoints(); line below (append only).
         api.MapAccountingPlEndpoints(); // acc3-pl (contract §2)
+        api.MapAccountingAgeingEndpoints(); // ACC-3 acc3-ageing (contract §3: ageing, GST summary)
         // ACC-3 end
         api.MapComplianceEndpoints();    // W2-5
         api.MapPosEndpoints();           // W2-6

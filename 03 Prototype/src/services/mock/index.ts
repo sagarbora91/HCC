@@ -50,6 +50,7 @@ export * from '../../domain/streams/accounting-payroll'; // acc2-parity (contrac
 // ACC-2 end
 // ACC-3 lanes: add ONE `export * from '../../domain/streams/accounting-<lane>'` line below (append only).
 export * from '../../domain/streams/accounting-pl'; // acc3-pl (contract §2)
+export * from '../../domain/streams/accounting-ageing'; export * from '../../domain/streams/accounting-gst-summary'; // acc3-ageing (contract §3)
 // ACC-3 end
 export * from '../../domain/streams/assistant';
 export * from '../../domain/streams/compliance';
