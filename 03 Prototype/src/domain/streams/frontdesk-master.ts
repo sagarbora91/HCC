@@ -187,7 +187,7 @@ export const FDM_ID_SPEC:MasterSpec<FDMIdTypeRow>={
     {key:'code',label:'Code',type:'text',required:true,maxLength:20,placeholder:'AADHAAR'},
     {key:'name',label:'Name',type:'text',required:true,maxLength:60,placeholder:'Aadhaar',help:'Starts with the document word so the right number check applies.'},
     {key:'accepted',label:'Accepted at check-in (on / off)',type:'toggle',help:'Off = not offered on new registrations; guests who already used it keep it.'},
-    {key:'needsPhoto',label:'Needs a photo of the document',type:'toggle',help:'Registration asks for a photo capture (ID capture on the server / APK).'},
+    {key:'needsPhoto',label:'Suggest a photo of the document (optional)',type:'toggle',help:'Registration suggests a photo capture (ID capture on the server / APK). DEC-193: a photo is optional — never required.'},
     {key:'foreignerOnly',label:'Foreign nationals only',type:'toggle',help:'Offered only when the nationality is not Indian (Form C).'},
     {key:'sortOrder',label:'Sort order',type:'number',min:0,max:1_000_000},
     {key:'active',label:'Active',type:'toggle'},

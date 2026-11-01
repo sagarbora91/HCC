@@ -3,10 +3,11 @@ import React,{useState} from 'react';
 import {AlertTriangle,Plus,Trash2,Info} from 'lucide-react';
 import {useHcc} from '../../app/context';
 import {GuestDraft,Guest,guestValidate,guestDuplicates,guestAgeBands,guestView,guestIdKind,guestIdMask,fdmIdTypeChoices} from '../../services/mock';
+import {guestPartyIdRequired} from '../../domain/streams/guests';
 import {FdmIdTypeNote} from '../reservations/masters';
 
 export const emptyDraft=(over:GuestDraft={}):GuestDraft=>({name:'',phone:'',email:'',address:'',nationality:'Indian',idType:'',idLast4:'',idNumber:'',company:'',gstin:'',preferences:'',notes:'',party:[],...over});
-export const draftOf=(g:Guest):GuestDraft=>emptyDraft({name:g.name,phone:g.phone,email:g.email,address:g.address,nationality:g.nationality,idType:g.idType,idLast4:g.idLast4,company:g.company||'',gstin:g.gstin||'',preferences:g.preferences,notes:g.notes,party:g.party.map(p=>({...p})),...(g.dob?{dob:g.dob}:{})});
+export const draftOf=(g:Guest):GuestDraft=>emptyDraft({name:g.name,phone:g.phone,email:g.email,address:g.address,nationality:g.nationality,idType:g.idType,idLast4:g.idLast4,company:g.company||'',gstin:g.gstin||'',preferences:g.preferences,notes:g.notes,party:g.party.map(({idNumber,...p})=>({...p})),...(g.dob?{dob:g.dob}:{})});
 /** Small stable hash for idempotency keys derived from form content. */
 export const hashOf=(v:unknown)=>{const t=JSON.stringify(v);let h=0;for(let i=0;i<t.length;i++)h=(h*31+t.charCodeAt(i))|0;return (h>>>0).toString(36);};
 
@@ -45,15 +46,20 @@ export function GuestForm({initial,guestId,registration,submitLabel,onSubmit,onU
     {f('gstin','Company GSTIN (optional, fictional format)',{maxLength:15,placeholder:'27ABCDE1234F1Z5'})}
     <div className="form-row">{f('preferences','Preferences',{maxLength:160})}{f('notes','Notes',{maxLength:200})}</div>
     <fieldset className="gs-party"><legend>Accompanying guests ({party.length})</legend>
-      {party.map((p,i)=><div className="gs-party-row" key={i}>
-        <label>Name<input value={p.name} maxLength={60} onChange={e=>setParty(i,'name',e.target.value)} disabled={disabled}/></label>
-        <label>Age band<select value={p.ageBand} onChange={e=>setParty(i,'ageBand',e.target.value)} disabled={disabled}>{guestAgeBands.map(x=><option key={x}>{x}</option>)}</select></label>
-        <label>Relation<input value={p.relation} maxLength={30} onChange={e=>setParty(i,'relation',e.target.value)} disabled={disabled}/></label>
-        <button type="button" className="icon-btn" aria-label={`Remove party member ${i+1}`} disabled={disabled} onClick={()=>setD({...d,party:party.filter((_,j)=>j!==i)})}><Trash2 size={16}/></button></div>)}
+      {party.map((p,i)=>{const was=stored?.party[i];const kept=!!was&&was.name.trim().toLowerCase()===p.name.trim().toLowerCase()&&!!was.idLast4;const req=guestPartyIdRequired(p.ageBand);
+        return <div className="gs-party-row" key={i} style={{flexWrap:'wrap'}}>
+        <label>Name<input value={p.name} maxLength={60} style={{minHeight:48}} onChange={e=>setParty(i,'name',e.target.value)} disabled={disabled}/></label>
+        <label>Age band<select value={p.ageBand} style={{minHeight:48}} onChange={e=>setParty(i,'ageBand',e.target.value)} disabled={disabled}>{guestAgeBands.map(x=><option key={x}>{x}</option>)}</select></label>
+        <label>Relation<input value={p.relation} maxLength={30} style={{minHeight:48}} onChange={e=>setParty(i,'relation',e.target.value)} disabled={disabled}/></label>
+        {/* DEC-193: each accompanying guest has their own ID (required for adults / seniors); the full number is stored sealed and shown masked. */}
+        <label>ID type{registration&&req&&<span className="gs-req" aria-hidden> *</span>}<select name={`party-${i}-idType`} value={p.idType||''} style={{minHeight:48}} onChange={e=>setParty(i,'idType',e.target.value)} disabled={disabled}><option value="">{req?'Choose…':'Not needed'}</option>{fdmIdTypeChoices(s,d.nationality,p.idType).map(x=><option key={x}>{x}</option>)}</select></label>
+        <label>ID number{kept?' (blank = keep)':req?'':' (optional)'}<input name={`party-${i}-idNumber`} value={p.idNumber||''} maxLength={24} autoComplete="off" style={{minHeight:48}} placeholder={kept?guestIdMask(was!.idLast4):idHint[guestIdKind(p.idType)]} inputMode={guestIdKind(p.idType)==='aadhaar'?'numeric':undefined} onChange={e=>setParty(i,'idNumber',e.target.value)} disabled={disabled}/></label>
+        <button type="button" className="icon-btn" style={{minWidth:48,minHeight:48}} aria-label={`Remove party member ${i+1}`} disabled={disabled} onClick={()=>setD({...d,party:party.filter((_,j)=>j!==i)})}><Trash2 size={16}/></button></div>;})}
       {shown.party&&<span className="gs-field-error">{shown.party}</span>}
-      <button type="button" className="text-btn" disabled={disabled||party.length>=6} onClick={()=>setD({...d,party:[...party,{name:'',ageBand:'Adult',relation:''}]})}><Plus size={14}/>Add accompanying guest</button>
+      <small className="muted">Every adult and senior in the party needs their own ID (children and infants: not needed). A photo is optional.</small>
+      <button type="button" className="text-btn" style={{minHeight:48}} disabled={disabled||party.length>=6} onClick={()=>setD({...d,party:[...party,{name:'',ageBand:'Adult',relation:''}]})}><Plus size={14}/>Add accompanying guest</button>
     </fieldset>
-    <div className="info-note"><Info size={16}/>Fictional data only. The full ID number is stored (DEC-068) but always shown masked; roles with ID access can use "Show ID", which is logged. No ID images.</div>
+    <div className="info-note"><Info size={16}/>Fictional data only. The full ID number is stored (DEC-068) but always shown masked; roles with ID access can use "Show ID", which is logged. An ID photo is optional — never required.</div>
     {tried&&errCount>0&&<div className="gs-form-summary" role="alert">{errCount} field{errCount>1?'s need':' needs'} attention before saving.</div>}
     <div className="modal-actions">{secondary}<button className="btn primary" disabled={busy||disabled}>{submitLabel}</button></div>
   </form>;

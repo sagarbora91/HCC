@@ -166,6 +166,7 @@
     {"version": 4270, "file": "4270_acc_fixed_asset_put_to_use_disposal.sql", "sha256": "455A6C560483C3AFF9C8DB244B766237D6C9784591348F28EB0B654E76BA5F17"},
     {"version": 4271, "file": "4271_ops_vendor_payment_realloc.sql", "sha256": "2CF17BC1A869290F58C63CEE29A50C6B2DDEA958D3EEC9F3532EF462D1AA108C"},
     {"version": 4272, "file": "4272_acc_tds_remit_subsection_form168.sql", "sha256": "B7F74938F38AD78608CAFC8C5C2CBA8A03D39BE289E98D4E19436BC56E920A82"},
-    {"version": 4273, "file": "4273_cmp_profile_gst_on_advances_from.sql", "sha256": "628C784D84D0A5FE73FCBD2A33A8443A03349604369340306583A86292F4F02D"}
+    {"version": 4273, "file": "4273_cmp_profile_gst_on_advances_from.sql", "sha256": "628C784D84D0A5FE73FCBD2A33A8443A03349604369340306583A86292F4F02D"},
+    {"version": 4620, "file": "4620_guest_party_ids.sql", "sha256": "43C06D27267530BC5A65131E14AF6A9DA493C60D1F97E50BC3887C7DA9A6FB89"}
   ]
 }

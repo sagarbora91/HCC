@@ -3,7 +3,13 @@ namespace Hcc.Contracts.Stays;
 // Wire contracts for the Stays module (contracts package §3). Dates are YYYY-MM-DD strings; versions are base64 rowversion.
 // The actor always comes from the session, never from these bodies.
 
-public sealed record GuestPartyDto(string Name, string AgeBand, string? Relation);
+/// <summary>
+/// An accompanying guest. DEC-193: each member has their own ID. <c>IdNumber</c> is write-only (validated per type, sealed per member, never
+/// returned); <c>IdLast4</c> / <c>IdMasked</c> (XXXX-XXXX-1234 for PERM-GST-003, "Restricted" otherwise) come back on reads; <c>IdRequired</c>
+/// (read-only) = the age band needs an ID (Adult / Senior); <c>IdOnFile</c> (read-only) = a full number is stored for this member.
+/// </summary>
+public sealed record GuestPartyDto(string Name, string AgeBand, string? Relation, string? IdType = null, string? IdNumber = null, string? IdLast4 = null,
+    string? IdMasked = null, bool IdRequired = false, bool IdOnFile = false);
 
 /// <summary>
 /// Registration fields a receptionist may enter. <c>IdNumber</c> = the full ID number (DEC-068; write-only: validated per type,

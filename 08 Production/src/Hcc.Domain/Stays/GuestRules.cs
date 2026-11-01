@@ -4,8 +4,11 @@ using System.Text.RegularExpressions;
 
 namespace Hcc.Domain.Stays;
 
-/// <summary>An accompanying guest (prototype <c>Guest.party[]</c>).</summary>
-public sealed record GuestPartyMember(string Name, string AgeBand, string? Relation);
+/// <summary>
+/// An accompanying guest (prototype <c>Guest.party[]</c>). DEC-193: each member has their own ID — <see cref="IdType"/>, the display
+/// <see cref="IdLast4"/> and the write-only full <see cref="IdNumber"/> (sealed per member with the seq in the associated data, never read back).
+/// </summary>
+public sealed record GuestPartyMember(string Name, string AgeBand, string? Relation, string? IdType = null, string? IdLast4 = null, string? IdNumber = null);
 
 /// <summary>
 /// Editable guest fields (prototype <c>GuestDraft</c>, <c>03 Prototype/src/domain/streams/guests.ts</c>). DEC-068: the full ID
@@ -36,6 +39,23 @@ public static partial class GuestRules
     public const int MaxParty = 6;
 
     public static readonly IReadOnlyList<string> AgeBands = ["Adult", "Child", "Infant", "Senior"];
+
+    /// <summary>
+    /// DEC-193: age bands whose party members must carry their own ID (gst.guest_party.id_required). OP-21 (children) is open with the owner:
+    /// the default is "not required" for Child / Infant — change this one constant (and the prototype's GUEST_PARTY_ID_REQUIRED_BANDS) to switch.
+    /// </summary>
+    public static readonly IReadOnlyList<string> PartyIdRequiredBands = ["Adult", "Senior"];
+
+    /// <summary>True when a member of this age band must have an ID on file before registration / check-in.</summary>
+    public static bool PartyIdRequired(string? ageBand) => PartyIdRequiredBands.Contains(ageBand ?? string.Empty);
+
+    /// <summary>"ID missing for &lt;name&gt;" for the first member whose ID is required but not on file (no last 4 and no new number); null when complete.</summary>
+    public static string? PartyIdMissing(IReadOnlyList<GuestPartyMember>? party)
+    {
+        foreach (var p in party ?? [])
+            if (PartyIdRequired(p.AgeBand) && T(p.IdLast4).Length == 0 && T(p.IdNumber).Length == 0) return "ID missing for " + T(p.Name);
+        return null;
+    }
 
     public static readonly IReadOnlyDictionary<string, string> FieldLabels = new Dictionary<string, string>
     {
@@ -87,6 +107,9 @@ public static partial class GuestRules
         {
             if (T(party[i].Name).Length < 2) e["party"] = $"Party member {i + 1}: enter a name.";
             else if (!AgeBands.Contains(party[i].AgeBand)) e["party"] = $"Party member {i + 1}: choose an age band.";
+            else if (T(party[i].IdLast4).Length > 0 && !Last4().IsMatch(T(party[i].IdLast4))) e["party"] = $"Party member {i + 1}: enter exactly the last 4 letters or digits of the ID.";
+            else if ((T(party[i].IdNumber).Length > 0 || T(party[i].IdLast4).Length > 0) && T(party[i].IdType).Length == 0) e["party"] = $"Party member {i + 1}: choose the ID type.";
+            else if (T(party[i].IdNumber).Length > 0 && GuestIds.GuestIdRules.Error(party[i].IdType, party[i].IdNumber) is { Length: > 0 } pe) e["party"] = $"Party member {i + 1}: {pe}";
         }
 
         if (DobError(d.Dob, today) is { } dobError) e["dob"] = dobError;
@@ -97,6 +120,8 @@ public static partial class GuestRules
             if (T(d.IdType).Length == 0) e["idType"] = "Choose the ID type.";
             // Profiles saved before DEC-068 hold only the last 4 characters; they stay valid.
             if (T(d.IdNumber).Length == 0 && T(d.IdLast4).Length == 0) e["idNumber"] = "Enter the ID number.";
+            // DEC-193: every adult / senior in the party has their own ID (the photo is optional and never required).
+            if (!e.ContainsKey("party") && PartyIdMissing(party) is { } missing) e["party"] = missing;
         }
 
         // A07-05: no full ID number in free text — it would be stored and shown in clear, around the sealed ID storage (prototype guestValidate, same order).
@@ -143,9 +168,19 @@ public static partial class GuestRules
         var number = N(d.IdNumber) is null ? null : GuestIds.GuestIdRules.Normalise(d.IdNumber);
         return new GuestDraft(T(d.Name), T(d.Phone), N(d.Email), N(d.Address), N(d.Nationality) ?? "Indian", N(d.IdType),
             number is not null ? GuestIds.GuestIdRules.Last4(number) : N(d.IdLast4)?.ToUpperInvariant(), N(d.Company), N(d.Gstin)?.ToUpperInvariant(), N(d.Preferences), N(d.Notes),
-            (d.Party ?? []).Select(p => new GuestPartyMember(T(p.Name), p.AgeBand, N(p.Relation))).ToList(), number,
+            (d.Party ?? []).Select(CleanMember).ToList(), number,
             // LG-R6: an omitted dob (null) stays null = "keep the stored date"; an explicit blank becomes "" = "clear it".
             d.Dob is null ? null : T(d.Dob));
+    }
+
+    /// <summary>A party member trimmed: ID number normalised, last 4 derived from it (else the given last 4, upper-case); blanks become null.</summary>
+    public static GuestPartyMember CleanMember(GuestPartyMember p)
+    {
+        ArgumentNullException.ThrowIfNull(p);
+        static string? N(string? v) => T(v).Length == 0 ? null : T(v);
+        var number = N(p.IdNumber) is null ? null : GuestIds.GuestIdRules.Normalise(p.IdNumber);
+        return new GuestPartyMember(T(p.Name), p.AgeBand, N(p.Relation), N(p.IdType),
+            number is not null ? GuestIds.GuestIdRules.Last4(number) : N(p.IdLast4)?.ToUpperInvariant(), number);
     }
 
     /// <summary>"••••••1041" (last 4 digits) or "—".</summary>

@@ -7,8 +7,19 @@ import {Booking,Room,money,nights,addDays,totals,gstForRoomNight,gstStayTax,gstP
 import {PageTitle,Pill,Empty,shortDate,SearchBox} from '../../components/ui';
 import {GuestForm,emptyDraft,draftOf,hashOf} from './GuestForm';
 import {GuestDetails,statusTone} from './GuestProfile';
+import {GuestPartyIdValue} from './GuestId';
 import {PrintListButton} from './FrontDeskList';
 import {bookingIdLookup} from '../../domain/streams/customers';
+import {guestPartyIdMissing} from '../../domain/streams/guests';
+import type {Guest} from '../../domain/streams/guests';
+
+/** DEC-193: a red "ID missing" chip per adult / senior of the party without an ID on file (check-in is refused until each has one). Photo never asked. */
+export function PartyIdChips({g}:{g:Guest|undefined}){
+  const missing=guestPartyIdMissing(g?.party);
+  if(!missing.length)return null;
+  return <div className="inline gs-party-idmissing" role="status" aria-label="Party members without an ID" style={{flexWrap:'wrap',gap:8}}>
+    {missing.map((n,i)=><Pill key={i} tone="red"><AlertCircle size={13} aria-hidden="true"/> ID missing · {n}</Pill>)}</div>;
+}
 
 const stepNames=['Find reservation','Verify guest','Room eligibility','Confirm tariff','Advance / deposit','Check in'];
 
@@ -78,7 +89,7 @@ export function CheckinModal({id}:{id?:string}){
       <div className="modal-actions"><button type="button" className="btn" onClick={()=>open({type:'guest-walkin'})}><UserPlus size={15}/>Walk-in instead</button>{next}</div></>;}
   else if(b&&step===2){
     const register=(d:ReturnType<typeof emptyDraft>,gid?:string)=>run({type:'REGISTER',id:b.id,guestId:gid??g?.id,guest:d,key:`${modal!.key}:register:${hashOf([d,gid])}`},'Guest verified. Registration saved.',{after:()=>{setEditGuest(false);setStep(3);}});
-    body=regDone&&!editGuest&&g?<><GuestDetails g={g}/>{g.origin==='auto'&&<div className="info-note"><Info size={16}/>Minimal demo profile created from the booking name. Add real-looking fictional details with Edit details.</div>}
+    body=regDone&&!editGuest&&g?<><GuestDetails g={g}/>{g.party.length>0&&<><h3 className="gs-sub">Party IDs</h3><ul className="gs-party-list">{g.party.map((p,i)=><li key={i}><strong>{p.name}</strong><span><GuestPartyIdValue g={g} seq={i+1}/></span></li>)}</ul></>}{g.origin==='auto'&&<div className="info-note"><Info size={16}/>Minimal demo profile created from the booking name. Add real-looking fictional details with Edit details.</div>}
         <div className="modal-actions">{prev}<button type="button" className="btn" onClick={()=>setEditGuest(true)}>Edit details</button>{next}</div></>
       :<GuestForm key={g?.id||'new'} initial={g&&g.origin!=='auto'?draftOf(g):emptyDraft({name:b.guest.replace(/\s*\(fictional\)\s*/,''),phone:b.phone||'',email:b.email,party:g?.party})} guestId={g?.id} registration
         submitLabel={regDone?'Save and continue':'Verify registration'} onSubmit={d=>register(d)} onUseExisting={x=>register(draftOf(x),x.id)}
@@ -107,7 +118,7 @@ export function CheckinModal({id}:{id?:string}){
     body=<><div className="summary-list"><div><span>Guest</span><strong>{b.guest}</strong></div><div><span>Room</span><strong>{b.room} · {room?.type}</strong></div><div><span>Stay</span><strong>{shortDate(b.arrival)} — {shortDate(b.departure)}</strong></div><div><span>Tariff</span><strong>{money(b.rate)}/night</strong></div></div>
       {missing.length>0&&<div className="gs-deny" role="alert"><AlertCircle size={18}/><div><strong>Complete these steps first:</strong> {missing.join(', ')}.</div></div>}
       <div className="modal-actions">{prev}<button type="button" className="btn primary" disabled={busy||missing.length>0} onClick={()=>run({type:'CHECKIN',id:b.id,key:'checkin:'+b.id},`Checked in to room ${b.room}. Room board updated.`)}><DoorOpen size={16}/>Check in</button></div></>;}
-  return <><div className="modal-heading"><div className="eyebrow">ARRIVALS · GUIDED CHECK-IN{b?' · '+bookingRef(b):''}</div><h2>{b?b.guest:'Find the reservation'}</h2>{b&&<p>Room {b.room} · {shortDate(b.arrival)} — {shortDate(b.departure)} · {b.people} guest{b.people>1?'s':''}</p>}</div>
+  return <><div className="modal-heading"><div className="eyebrow">ARRIVALS · GUIDED CHECK-IN{b?' · '+bookingRef(b):''}</div><h2>{b?b.guest:'Find the reservation'}</h2>{b&&<p>Room {b.room} · {shortDate(b.arrival)} — {shortDate(b.departure)} · {b.people} guest{b.people>1?'s':''}</p>}{b&&b.status!=='In house'&&<PartyIdChips g={g}/>}</div>
     {b?.status!=='In house'&&<Progress step={step} done={done} setStep={setStep} reachable={reachable}/>}
     <div className="gs-step-body"><h3 className="gs-sub">{b?.status==='In house'?'Checked in':`Step ${step} of 6 · ${stepNames[step-1]}`}</h3>{body}</div></>;
 }

@@ -179,5 +179,6 @@
     <File Path="database/migrations/4600_legacy_history.sql" />
     <File Path="database/migrations/4601_legacy_rbac_seed.sql" />
     <File Path="database/migrations/4605_legacy_capture_kind.sql" />
+    <File Path="database/migrations/4620_guest_party_ids.sql" />
   </Folder>
 </Solution>

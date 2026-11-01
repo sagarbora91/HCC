@@ -120,13 +120,9 @@ public sealed class SqlStaysStore : IStaysStore
         AddGuestFields(cmd, clean, verified);
         cmd.Add("@dobKeep", SqlDbType.Bit, clean.Dob is null);   // LG-R6: a save that omits dob leaves the stored date unchanged
         SqlValues.EnsureVersionMatched(await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false), "This guest profile");
-        await using (var del = sql.Command("DELETE gst.guest_party WHERE guest_id = @g;"))
-        {
-            del.Add("@g", SqlDbType.BigInt, guestId);
-            await del.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
-        }
-
-        await WritePartyAsync(sql, guestId, clean.Party ?? [], ct).ConfigureAwait(false);
+        // DEC-193 (4620): WritePartyAsync keeps a member's sealed number only while the member at that seq keeps its name and last 4 and no new
+        // number was typed (GuestIdService.CarryPartyIds kept the last 4); every other secret row of the guest goes before its party row changes.
+        await WritePartyAsync(sql, guestId, clean.Party ?? [], ct, replace: true).ConfigureAwait(false);
     }
 
     public async Task<byte[]> GuestVersionAsync(ICommandTransaction tx, long guestId, CancellationToken ct = default)
@@ -267,16 +263,39 @@ public sealed class SqlStaysStore : IStaysStore
         cmd.Add("@verified", SqlDbType.Bit, verified);
     }
 
-    private static async Task WritePartyAsync(SqlCommandTransaction sql, long guestId, IReadOnlyList<GuestPartyMember> party, CancellationToken ct)
+    /// <summary>
+    /// Writes the party rows (DEC-193: with id_type, id_last4 and id_required from the age band — never the number). <paramref name="replace"/>:
+    /// rows past the new count go, existing seqs are updated in place (a kept sealed number references its row), new seqs are inserted.
+    /// </summary>
+    private static async Task WritePartyAsync(SqlCommandTransaction sql, long guestId, IReadOnlyList<GuestPartyMember> party, CancellationToken ct, bool replace = false)
     {
+        if (replace)
+        {
+            await using var del = sql.Command("DELETE gst.guest_party_id_secret WHERE guest_id = @g AND seq > @n; DELETE gst.guest_party WHERE guest_id = @g AND seq > @n;");
+            del.Add("@g", SqlDbType.BigInt, guestId);
+            del.Add("@n", SqlDbType.Int, party.Count);
+            await del.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+        }
+
         for (var i = 0; i < party.Count; i++)
         {
-            await using var cmd = sql.Command("INSERT gst.guest_party(guest_id, seq, name, age_band, relation) VALUES (@g, @s, @n, @a, @r);");
+            await using var cmd = sql.Command(replace
+                ? """
+                  DELETE gst.guest_party_id_secret WHERE guest_id = @g AND seq = @s AND (@keep = 0 OR NOT EXISTS (
+                    SELECT 1 FROM gst.guest_party WHERE guest_id = @g AND seq = @s AND name = @n AND ISNULL(id_last4, '') = ISNULL(@l, '')));
+                  UPDATE gst.guest_party SET name = @n, age_band = @a, relation = @r, id_type = @t, id_last4 = @l, id_required = @q WHERE guest_id = @g AND seq = @s;
+                  IF @@ROWCOUNT = 0 INSERT gst.guest_party(guest_id, seq, name, age_band, relation, id_type, id_last4, id_required) VALUES (@g, @s, @n, @a, @r, @t, @l, @q);
+                  """
+                : "INSERT gst.guest_party(guest_id, seq, name, age_band, relation, id_type, id_last4, id_required) VALUES (@g, @s, @n, @a, @r, @t, @l, @q);");
             cmd.Add("@g", SqlDbType.BigInt, guestId);
             cmd.Add("@s", SqlDbType.TinyInt, (byte)(i + 1));
             cmd.Add("@n", SqlDbType.NVarChar, party[i].Name, 200);
             cmd.Add("@a", SqlDbType.VarChar, party[i].AgeBand, 10);
             cmd.Add("@r", SqlDbType.NVarChar, party[i].Relation, 60);
+            cmd.Add("@t", SqlDbType.NVarChar, party[i].IdType, 40);
+            cmd.Add("@l", SqlDbType.VarChar, party[i].IdLast4, 4);
+            cmd.Add("@q", SqlDbType.Bit, GuestRules.PartyIdRequired(party[i].AgeBand));
+            if (replace) cmd.Add("@keep", SqlDbType.Bit, party[i].IdNumber is null && party[i].IdLast4 is not null);
             await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
         }
     }
@@ -290,7 +309,8 @@ public sealed class SqlStaysReadStore(SqlConnectionFactory connections) : IStays
                CASE WHEN EXISTS (SELECT 1 FROM gst.guest_id_secret s WHERE s.guest_id = gst.guest.guest_id) THEN 1 ELSE 0 END, -- DEC-068: on file? (never the number)
                CONVERT(CHAR(10), dob, 23), legacy_guest_id
         FROM gst.guest {hint} WHERE guest_id = @g AND property_id = @p;
-        SELECT name, age_band, relation FROM gst.guest_party WHERE guest_id = @g ORDER BY seq;
+        SELECT p.name, p.age_band, p.relation, p.id_type, p.id_last4, CASE WHEN s.seq IS NULL THEN 0 ELSE 1 END
+        FROM gst.guest_party p LEFT JOIN gst.guest_party_id_secret s ON s.guest_id = p.guest_id AND s.seq = p.seq WHERE p.guest_id = @g ORDER BY p.seq;
         """;
 
     public async Task<GuestRecord?> GetGuestAsync(int propertyId, long guestId, CancellationToken ct = default)
@@ -310,7 +330,8 @@ public sealed class SqlStaysReadStore(SqlConnectionFactory connections) : IStays
                    CASE WHEN EXISTS (SELECT 1 FROM gst.guest_id_secret s WHERE s.guest_id = g.guest_id) THEN 1 ELSE 0 END,
                    CONVERT(CHAR(10), g.dob, 23), g.legacy_guest_id
             FROM #g x JOIN gst.guest g ON g.guest_id = x.guest_id ORDER BY x.ord;
-            SELECT p.guest_id, p.name, p.age_band, p.relation FROM #g x JOIN gst.guest_party p ON p.guest_id = x.guest_id ORDER BY x.ord, p.seq;
+            SELECT p.guest_id, p.name, p.age_band, p.relation, p.id_type, p.id_last4, CASE WHEN s.seq IS NULL THEN 0 ELSE 1 END, p.seq
+            FROM #g x JOIN gst.guest_party p ON p.guest_id = x.guest_id LEFT JOIN gst.guest_party_id_secret s ON s.guest_id = p.guest_id AND s.seq = p.seq ORDER BY x.ord, p.seq;
             DROP TABLE #g;
             """;
         await using var conn = await connections.OpenAsync(ct).ConfigureAwait(false);
@@ -331,13 +352,16 @@ public sealed class SqlStaysReadStore(SqlConnectionFactory connections) : IStays
                 rd.IsDBNull(18) ? null : rd.GetInt64(18)));
         await rd.NextResultAsync(ct).ConfigureAwait(false);
         var parties = new Dictionary<long, List<GuestPartyMember>>();
+        var onFile = new Dictionary<long, HashSet<int>>();
         while (await rd.ReadAsync(ct).ConfigureAwait(false))
         {
             var id = rd.GetInt64(0);
             if (!parties.TryGetValue(id, out var list)) parties[id] = list = [];
-            list.Add(new GuestPartyMember(rd.GetString(1), rd.GetString(2), P3Sql.StrOrNull(rd, 3)));
+            list.Add(new GuestPartyMember(rd.GetString(1), rd.GetString(2), P3Sql.StrOrNull(rd, 3), P3Sql.StrOrNull(rd, 4), P3Sql.StrOrNull(rd, 5)));
+            if (rd.GetInt32(6) == 1) (onFile.TryGetValue(id, out var set) ? set : onFile[id] = []).Add(rd.GetByte(7));
         }
-        IReadOnlyList<GuestRecord> items = heads.Select(h => new GuestRecord(h.Id, h.Prop, h.Draft with { Party = parties.TryGetValue(h.Id, out var p) ? p : [] }, h.Verified, h.Origin, h.Ver, h.IdOnFile, h.Legacy)).ToList();
+        IReadOnlyList<GuestRecord> items = heads.Select(h => new GuestRecord(h.Id, h.Prop, h.Draft with { Party = parties.TryGetValue(h.Id, out var p) ? p : [] }, h.Verified, h.Origin, h.Ver, h.IdOnFile, h.Legacy,
+            onFile.TryGetValue(h.Id, out var f) ? f : null)).ToList();
         return (total, items);
     }
 
@@ -368,8 +392,15 @@ public sealed class SqlStaysReadStore(SqlConnectionFactory connections) : IStays
         var dob = P3Sql.StrOrNull(rd, 17);
         long? legacy = rd.IsDBNull(18) ? null : rd.GetInt64(18);
         var party = new List<GuestPartyMember>();
+        var partyOnFile = new HashSet<int>();
         await rd.NextResultAsync(ct).ConfigureAwait(false);
-        while (await rd.ReadAsync(ct).ConfigureAwait(false)) party.Add(new GuestPartyMember(rd.GetString(0), rd.GetString(1), P3Sql.StrOrNull(rd, 2)));
-        return new GuestRecord(id, prop, new GuestDraft(name, phone, email, address, nat, idt, id4, company, gstin, pref, notes, party, Dob: dob), verified, origin, ver, idOnFile, legacy);
+        while (await rd.ReadAsync(ct).ConfigureAwait(false))
+        {
+            party.Add(new GuestPartyMember(rd.GetString(0), rd.GetString(1), P3Sql.StrOrNull(rd, 2), P3Sql.StrOrNull(rd, 3), P3Sql.StrOrNull(rd, 4)));
+            if (rd.GetInt32(5) == 1) partyOnFile.Add(party.Count);
+        }
+
+        return new GuestRecord(id, prop, new GuestDraft(name, phone, email, address, nat, idt, id4, company, gstin, pref, notes, party, Dob: dob), verified, origin, ver, idOnFile, legacy,
+            partyOnFile.Count > 0 ? partyOnFile : null);
     }
 }

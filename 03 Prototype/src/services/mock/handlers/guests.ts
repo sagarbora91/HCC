@@ -4,7 +4,20 @@ import type {Handler,Kit} from '../commands';
 import type {Booking} from '../../../domain/types';
 import {blockedTonight,available,occupant} from '../../../domain/selectors';
 import {nights} from '../../../domain/money';
-import {Guest,GuestDraft,guestValidate,guestClean,guestFieldLabels,staySegments,guestIdNumberError,guestDobCleared} from '../../../domain/streams/guests';
+import {Guest,GuestDraft,guestValidate,guestClean,guestFieldLabels,staySegments,guestIdNumberError,guestDobCleared,guestPartyIdMessage,guestIdKind} from '../../../domain/streams/guests';
+import type {GuestParty} from '../../../domain/streams/guests';
+
+/** DEC-193: an edit that does not retype a member's number keeps that member's stored ID while the member at the same seq keeps the same
+ *  name and ID kind (the edit form never carries the number); otherwise the old member's ID goes with them. */
+function carryParty(before:GuestParty[]|undefined,now:GuestParty[]):GuestParty[]{
+  return now.map((p,i)=>{
+    const o=before?.[i];
+    if(p.idNumber||!o||o.name.trim().toLowerCase()!==p.name.trim().toLowerCase())return p;
+    if(p.idType&&o.idType&&guestIdKind(p.idType)!==guestIdKind(o.idType))return p;
+    if(p.idLast4&&o.idLast4&&p.idLast4!==o.idLast4)return p;
+    return {...p,...(o.idType&&!p.idType?{idType:o.idType}:{}),...(o.idLast4?{idLast4:o.idLast4}:{}),...(o.idNumber?{idNumber:o.idNumber}:{})};
+  });
+}
 
 /** Throws VALIDATION with the first message, prefixed by its field label. */
 function validate(k:Kit,d:GuestDraft,registration:boolean){
@@ -24,6 +37,7 @@ function upsert(k:Kit,d:GuestDraft,existingId:string|undefined,verified:boolean)
       k.assert(!guestIdNumberError(clean.idType,g!.idNumber),'The ID type changed — enter the ID number for the new type.');
       clean.idNumber=g!.idNumber;clean.idLast4=g!.idLast4;
     }else if(!clean.idNumber&&g!.idType===clean.idType)clean.idLast4=clean.idLast4||g!.idLast4;
+    clean.party=carryParty(g!.party,clean.party||[]);
     if(guestDobCleared(d))delete g!.dob;   // LG-R6: omitted dob = unchanged (Object.assign keeps it); explicit empty = cleared
     Object.assign(g!,clean,{verified:verified||(g!.verified&&!!clean.idLast4&&!!clean.address),origin:g!.origin==='auto'?'manual':g!.origin,version:(g!.version||1)+1});
     return g!;
@@ -52,6 +66,12 @@ export const handlers:Record<string,Handler>={
   /** Deliberate "Show ID" (DEC-068): logs who/when in the audit trail — never the number. {id:guestId}. Intended PERM-GST-003 (guest.idDetails.view). */
   GUEST_ID_VIEW:k=>{
     k.req('checkin');const g=(k.s.guests||[]).find(x=>x.id===k.cmd.id);k.assert(g,'Guest profile not found.','NOT_FOUND');
+    // DEC-193: {seq} reveals an accompanying guest's own ID; the audit names the seq — never the number or its last 4.
+    if(k.cmd.seq!==undefined){
+      const seq=Number(k.cmd.seq),p=Number.isInteger(seq)?g!.party[seq-1]:undefined;
+      k.assert(p,'Party member not found.','NOT_FOUND');k.assert(p!.idNumber,'No full ID number is on file for this party member.','NOT_FOUND');
+      return `${g!.id} · party member ${seq} · ID number viewed (${p!.idType||'ID'})`;
+    }
     k.assert(g!.idNumber,'The full ID number is not on file for this guest.','NOT_FOUND');
     return `${g!.id} · ID number viewed (${g!.idType})`;
   },
@@ -77,6 +97,9 @@ export const handlers:Record<string,Handler>={
     k.assert(x.status==='Confirmed','Only a confirmed reservation can check in.','INVALID_TRANSITION');
     k.assert(x.arrival<=s.date&&x.departure>s.date,'Check-in must fall within the booked dates.','INVALID_TRANSITION');
     k.assert(x.registered,'Verify the fictional guest registration first.');
+    // DEC-193: every adult / senior of the registered party has their own ID (photo never required).
+    const pg=x.guestId?(s.guests||[]).find(g=>g.id===x.guestId):undefined;
+    if(pg){const m=guestPartyIdMessage(pg.party);k.assert(!m,m);}
     k.assert(!blockedTonight(s,r)&&r.hk==='Ready'&&!occupant(s,r.id),'The room must be vacant, ready and unblocked.','NOT_AVAILABLE');
     k.assert(available(s,r.id,x.arrival,x.departure,x.id),'The room allocation conflicts with another booking.','NOT_AVAILABLE');
     x.status='In house';x.segments=[{room:r.id,from:s.date}];x.version++;return x.guest+' → room '+r.id;
