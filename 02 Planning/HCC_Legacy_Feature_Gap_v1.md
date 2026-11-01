@@ -2,7 +2,7 @@
 
 **Purpose:** list what the old VB6 "Lodge" software (live at Hotel Parth Executive) does that HCC does not, so the missing pieces can be built.
 
-**Build:** wave **W2b LF** (DEC-184) — contract `02 Planning/agents/LF-CONTRACT.md`, briefs `02 Planning/agents/LF_Briefs.md` (A1–A8, B1–B7, G1 and the separate documents database; A9 and B8 not in LF; §E reports → W7).
+**Build:** wave **W2b LF** (DEC-200) — contract `02 Planning/agents/LF-CONTRACT.md`, briefs `02 Planning/agents/LF_Briefs.md` (A1–A8, B1–B7, G1 and the separate documents database; A9 and B8 not in LF; §E reports → W7).
 
 **Sources (old software):**
 - `Existing Software\HTML Demo\FUNCTION_MAP.md`: 137 forms, every button probed.
@@ -41,7 +41,7 @@
 | B4 | User-defined alerts and alert days (reminders before due dates) | Compliance calendar for statutory dates | Desk reminders: free-text alerts with a date and a role (e.g. "AMC renewal", "advance due") |
 | B5 | Several photos and ID proofs per booking (one per guest in the room) | ID capture per guest record | Check that every guest in a room, not only the primary one, can carry an ID and a photo; add if not |
 | B6 | Notes printed on the bill, bill header / footer titles (`NoteMaster`, `MainTitle`, `SubTitle`) | Invoice print settings (hotel name, GSTIN, address) | Owner-editable footer notes / terms on invoices and receipts |
-| B7 | Summary of Documents Issued (GSTR-1 Table 13), SAC summary | GSTR-1 working summary | Table 13 must also list the legacy bill series for FY 2026-27 (DEC-181); add the SAC summary |
+| B7 | Summary of Documents Issued (GSTR-1 Table 13), SAC summary | GSTR-1 working summary | Table 13 must also list the legacy bill series for FY 2026-27 (DEC-197); add the SAC summary |
 | B8 | SMS to the guest and owner, e-mail the bill (SMS API and e-mail settings are configured) | Messaging module, simulated in production | Already planned: GL go-live stand-ins (real SMS / WhatsApp / e-mail) |
 
 ## C. Already in HCC (no work)
