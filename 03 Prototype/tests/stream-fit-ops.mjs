@@ -37,7 +37,7 @@ export function register({test,assert}){
   }
   test('[FIT-OPS] housekeeping is a board for supervisors (4 status columns + attendant load, each scrolling) and a filled list for the housekeeper',()=>{
     store.clear();const sup=render('housekeeping','supervisor');
-    assert.match(sup,/^<section class="fit-page fit-board"/);
+    assert.match(sup,/^<section class="fit-page fit-fill"/);
     for(const c of ['To do','In progress','Awaiting inspection','Done','Attendant load'])assert.ok(sup.includes(`<h2>${c}</h2>`),c);
     assert.equal((sup.match(/class="card fit-board-col"/g)||[]).length,5);
     assert.ok(sup.includes('aria-label="Filter tasks"')&&sup.includes('class="fit-stats"'),'filters + StatStrip in the toolbar');

@@ -40,7 +40,7 @@ export function Housekeeping(){
       <ul>{load.map(l=><li key={l.user}><strong>{l.name}</strong><span>{l.rooms} room{l.rooms===1?'':'s'} · {hkFmtMinutes(l.minutes)} planned{l.running?` · ${l.running} running`:''}</span>{l.over&&<Pill tone="orange">Over guide of {l.guide} rooms</Pill>}</li>)}
         <li><strong>Supervisor</strong><span>{insp.rooms} awaiting inspection · {hkFmtMinutes(insp.minutes)}</span></li></ul>
       <FitNote lines={3} text="Standard minutes come from the task types (Housekeeping and maintenance). Guide: rooms per attendant in Master configuration."/></section>;
-  return <FitPage title="Housekeeping" sub="A well-kept room is the beginning of a good stay." layout="board" actions={generate}
+  return <FitPage title="Housekeeping" sub="A well-kept room is the beginning of a good stay." actions={generate}
     toolbar={<><div className="hk-filters" role="group" aria-label="Filter tasks">
       <label>Floor<select value={floor} onChange={e=>setFloor(e.target.value)}><option value="All">All floors</option>{floors.map(f=><option key={f.floor} value={String(f.floor)}>{f.label}</option>)}</select></label><MstLink spec="floors"/>
       <label>Assignee<select value={assignee} onChange={e=>setAssignee(e.target.value)}><option value="All">Everyone</option>{s.tasks.some(t=>!t.assignee)&&<option value="">Unassigned</option>}{assignees.map(u=><option key={u.id} value={u.id}>{first(u.name)} · {u.role}</option>)}</select></label>

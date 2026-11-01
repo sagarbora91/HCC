@@ -154,7 +154,7 @@ export function HandoverPage(){
   const {s,uid}=useHcc();const tabs=useHovTabs();const [tab,setTab]=useFitTab<HovTab>('handover',HOV_TAB_IDS,'checklists');
   if(!hovHasAccess(s,uid))return <FitPage title="Checklists & handover" sub="Shift checklists and handover notes"><Empty title="No checklists for your role" body="Checklists are for front desk, cashier, housekeeping, maintenance and managers."/></FitPage>;
   const cur=tabs.some(t=>t.id===tab)?tab:'checklists';
-  return <FitPage title="Checklists & handover" sub={`${dateLabel(s.date)} · ${hovShiftAt(s.clock)} shift · simulated clock ${hovTime(s.clock)} IST`} actions={<HovClockDemo/>} layout={cur==='checklists'?'steps':'fill'}
+  return <FitPage title="Checklists & handover" sub={`${dateLabel(s.date)} · ${hovShiftAt(s.clock)} shift · simulated clock ${hovTime(s.clock)} IST`} actions={<HovClockDemo/>}
       tabs={<FitTabs page="handover" value={cur} onChange={setTab} tabs={tabs.map(t=>({id:t.id,label:t.label,count:t.count}))}/>}>
     {cur==='checklists'&&<Checklists/>}{cur==='handover'&&<Handover/>}{cur==='dashboard'&&<HovDashboardBody fit/>}{cur==='templates'&&<HovTemplatesBody fit/>}
   </FitPage>;}
