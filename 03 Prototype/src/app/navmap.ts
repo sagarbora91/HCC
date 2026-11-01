@@ -28,7 +28,7 @@ export const categoryOf=(id:CategoryId)=>NAV_CATEGORIES.find(c=>c.id===id)!;
 
 /** Page ID (nav item ID) → category. `overview` is the pinned Dashboard tile and has no category. */
 export const PAGE_CATEGORY:Record<string,CategoryId>={
-  rooms:'front',calendar:'front',reservations:'front',arrivals:'front',
+  rooms:'front',calendar:'front',reservations:'front',arrivals:'front',keys:'front', // KEYS room keys
   folios:'cash',cashier:'cash',cashbook:'cash',pos:'cash',expenses:'cash',
   housekeeping:'hkm',maintenance:'hkm',handover:'hkm',
   inhouse:'guestsvc','guest-services':'guestsvc','gsv-my-requests':'guestsvc',messages:'guestsvc',documents:'guestsvc',
@@ -77,6 +77,7 @@ export const PAGE_BLURB:Record<string,string>={
   'plans-extras':'Catalogue vs free-text charges, meal plans, discount reasons',
   access:'Users, roles and permissions',settings:'All settings in one place: 12 groups, modules on/off',approvals:'Pending approvals and the audit trail',backup:'Backup and restore data',syshealth:'Stuck background work and the last backups',roadmap:'What is planned next',
   'legacy-import':'Load guests, history and opening balances from the old software',
+  keys:'Room key cards: issue, re-issue, reactivate, cancel, key log and counts',
   prefs:'Text size, motion, start page, lists, messages (this device)',
 };
 
@@ -119,6 +120,7 @@ export const PAGE_KEYWORDS:Record<string,string[]>={
   approvals:['approval','approvals','audit','audit log','pending','discount approval','history','who did'],
   backup:['backup','restore','recovery','export data'],
   syshealth:['system health','health','parked','stuck','retry','outbox','event log','alerts','errors','backup failed','last backup','restore drill'],
+  keys:['key','keys','room key','key card','keycard','card','encoder','lock','lost card','reissue','re-issue','reactivate','recharge','extend key','manual key','chabi','chaabi','key log','door lock','bis'],
   'legacy-import':['legacy import','old software','lodge','old data','import history','dry run','migration','legacy','previous software'],
   roadmap:['roadmap','future','planned','modules','phases'],
   prefs:['appearance','display','text size','font','font size','bigger text','larger text','zoom','motion','animation','density','compact','start page','home page','page size','rows','toast','messages','preferences','my settings','theme'],
