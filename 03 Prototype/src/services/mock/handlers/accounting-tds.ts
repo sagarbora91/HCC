@@ -45,7 +45,7 @@ export const handlers:Record<string,Handler>={
     assert(month<=s.date.slice(0,7),'The month cannot be after the business date.');
     // ACC-3 C6: a sub-section code (rent:plant = 194-I(a), professional:technical = 194J(a)) is remitted on its own.
     const code=String(cmd.section??'').trim(),section=tdsBaseSection(code);assert(section,'Choose the TDS section (rent, contractor, professional or commission).');
-    const what=`${tdsCodeLabel(code).toLowerCase()} (old ${tdsOldOf(code)})`;
+    const what=code.includes(':')?`${tdsCodeLabel(code).toLowerCase()} (old ${tdsOldOf(code)})`:tdsCodeLabel(code).toLowerCase();
     positive(cmd.amount);const amount=cmd.amount as number;
     const challan=String(cmd.challan??'').trim();assert(challan.length>=3&&challan.length<=40,'Enter the challan number (3–40 characters).');
     const date=String(cmd.date??s.date);assert(DATE.test(date),'Enter the payment date.');

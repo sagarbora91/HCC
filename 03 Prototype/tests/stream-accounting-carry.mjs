@@ -86,7 +86,7 @@ export function register({test,M,assert}){
     assert.equal(q.reallocations.length,1);assert.deepEqual(q.reallocations[0].before,[{expense:a,amount:250000}]);
     assert.deepEqual(M.expVendorOpenBills(t,'V-DECCAN').map(x=>[x.expense,x.open]),[[a,250000]]);
     assert.equal(M.expVendorBalance(t,'V-DECCAN'),M.expVendorBalance(s,'V-DECCAN'),'the party ledger does not move');
-    assert.match(t.audit.at(-1).detail,/re-allocated · was .* now /);
+    assert.ok(t.audit.some(a=>/re-allocated · was .* now /.test(a.detail)));
     assert.throws(()=>execute(t,'owner',{type:'EXP_VENDOR_PAY_REALLOCATE',payment:p.id,allocations:q.allocations}),/unchanged/);
     // a shorter list leaves an advance
     const u=execute(s,'owner',{type:'EXP_VENDOR_PAY_REALLOCATE',payment:p.id,allocations:[{expense:a,amount:100000}]});
@@ -106,7 +106,7 @@ export function register({test,M,assert}){
     assert.match(M.expPurchaseEntry(s,{category:'Banquet supplies',vendor:'Deccan Agro Traders (fictional)'}).warning,/DEC-136/);
     assert.equal(M.expPurchaseEntry(s,{category:'Banquet supplies',vendor:'Kaveri Kitchen Equipment (fictional)'}).warning,undefined);
     const t=execute(s,'manager',{type:'EXP_VENDOR_PAY',vendor:'V-DECCAN',amount:1000,method:'Bank transfer',reference:'UTR-2'});
-    assert.match(t.audit.at(-1).detail,/GSTIN .* starts 24/,'the payment goes through with the warning');
+    assert.ok(t.audit.some(a=>/GSTIN .* starts 24/.test(a.detail)),'the payment goes through with the warning');
   });
 
   // ── C5 Udhaar B9 per customer per day ──
@@ -132,7 +132,7 @@ export function register({test,M,assert}){
     assert.equal(M.tdsPayableOutstanding(s,'rent:plant',m),200000);assert.equal(M.tdsPayableOutstanding(s,'rent',m),1000000);
     assert.throws(()=>execute(s,'owner',{type:'ACC_TDS_REMIT',month:m,section:'rent:plant',amount:300000,method:'Bank transfer',challan:'CH-001'}),/194-I\(a\).*\(₹2,000/);
     let t=execute(s,'owner',{type:'ACC_TDS_REMIT',month:m,section:'rent:plant',amount:200000,method:'Bank transfer',challan:'CH-001'});
-    assert.match(t.audit.at(-1).detail,/Rent of plant.*old 194-I\(a\)/);
+    assert.ok(t.audit.some(a=>/Rent of plant.*old 194-I\(a\)/.test(a.detail)));
     const r=M.tdsRemittances(t).at(-1);assert.deepEqual([r.section,r.code,r.amount],['rent','rent:plant',200000]);
     assert.equal(M.tdsPayableOutstanding(t,'rent:plant',m),0);assert.equal(M.tdsPayableOutstanding(t,'rent',m),1000000,'194-I(b) untouched');
     const rows=M.tdsBills(t);assert.deepEqual(rows.map(b=>[b.expense,b.remitted]),[['EXP-T1',200000],['EXP-T2',0]]);

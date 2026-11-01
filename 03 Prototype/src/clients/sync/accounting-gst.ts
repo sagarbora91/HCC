@@ -70,6 +70,6 @@ export const accountingGst:SyncArea={
     {type:'ACC_MONTH_UNLOCK',reload:['accountingX','expensesX'],precheck:cmd=>month(cmd)??(txt(cmd.reason).length>=3?undefined:'A reason is required to unlock a month.'),
       async send(c){await c.api.command('UnlockAccountingMonth',{month:txt(c.cmd.month),reason:txt(c.cmd.reason)});}},
     {type:'ACC_GST_ADVANCES_SET',reload:['complianceX','accountingX'],
-      async send(c){await c.api.command('SetGstOnAdvances',{on:c.cmd.on===true,from:typeof c.cmd.from==='string'&&c.cmd.from?c.cmd.from:null});}}, // ACC-3 C10: dated switch
+      async send(c){await c.api.command('SetGstOnAdvances',{on:c.cmd.on===true,...(typeof c.cmd.from==='string'&&c.cmd.from?{from:c.cmd.from}:{})});}}, // ACC-3 C10: dated switch
   ],
 };
