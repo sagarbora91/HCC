@@ -10,4 +10,7 @@ export const SUB_SCREENS:SubScreen[]=[
   // FIT-REVENUE
   // FIT-PEOPLE
   // FIT-ADMIN
+  // FIT-CASH-A
+  {page:'folios',id:'folios',label:'Folios',keywords:['folio list','balances']},
+  {page:'folios',id:'folio-requests',label:'Folio requests',keywords:['refund','company credit','correction','credit note','discount approval']},
 ];

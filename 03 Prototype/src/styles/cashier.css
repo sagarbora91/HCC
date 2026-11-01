@@ -1,0 +1,13 @@
+/* FIT · Cashier shift desktop / tablet layout (lane fit-cash-a, DEC-194…196, contract §6 'cashier' = split). Desktop shell only (.app-shell;
+   the phone shell never renders it). Layout only: no font size, colours as tokens. */
+.app-shell .fit-cols.cashier-cols{grid-template-columns:minmax(0,2fr) minmax(0,3fr)}
+@media (max-width:899.98px){.app-shell .fit-cols.cashier-cols{grid-template-columns:minmax(0,1fr)}}
+.app-shell .cashier-cols .padded{padding:12px 16px}
+.app-shell .cashier-cols .cashier-status{padding-bottom:0}
+.app-shell .cashier-cols .closing-banner{margin:0;padding:12px 16px}
+.app-shell .cashier-cols .f-formula{padding-top:12px;padding-bottom:12px}
+.app-shell .cashier-cols .form.padded{padding:0}
+/* The count / decision / open-shift buttons stay visible: their action bar sticks to the bottom of the panel while the form scrolls. */
+.app-shell .cashier-shift .modal-actions{position:sticky;bottom:0;z-index:1;background:var(--c-ffffff);margin-bottom:0;padding-top:10px;padding-bottom:4px}
+.app-shell .cashier-cols .cx-fit-note{padding-bottom:0}
+.app-shell .cashier-cols .cx-fit-note>p{margin:0 0 8px}

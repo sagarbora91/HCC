@@ -1,0 +1,19 @@
+/* FIT · Cash book desktop / tablet layout (lane fit-cash-a, DEC-194…196, contract §6 'cashbook' = fill). Desktop shell only (.app-shell; the
+   phone shell never renders it). Layout only: no font size, no colour except tokens. The cb- classes themselves live in m-cashbook.css. */
+.app-shell .fit-page-toolbar .cb-range{flex:none;margin:0;flex-wrap:nowrap;align-items:center}
+.app-shell .fit-page-toolbar .cb-range label{flex-direction:row;align-items:center;gap:8px;white-space:nowrap}
+.app-shell .fit-page-toolbar .cb-daybar{flex:none;margin:0;flex-wrap:nowrap}
+.app-shell .fit-page-toolbar .cb-daybar h2{white-space:nowrap}
+.app-shell .fit-page-toolbar>.fit-stats{flex:1 1 auto}
+/* cb-sums as a one-row strip (font sizes from m-cashbook.css unchanged; only spacing) */
+.app-shell .fit-page-toolbar>.cb-sums{display:flex;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;margin:0;gap:10px;min-width:0}
+.app-shell .fit-page-toolbar>.cb-sums>div{flex:none;padding:6px 12px;gap:2px;white-space:nowrap}
+.app-shell .fit-cols.cb-cols{grid-template-columns:minmax(0,3fr) minmax(300px,1fr)}
+.app-shell .cb-settle{flex:1 1 0;min-height:0;overflow:auto;position:relative;scrollbar-width:thin;border-radius:9px}
+.app-shell .cb-settle>.card{margin:0}
+.app-shell .cb-lock-body>:first-child{margin-top:0}
+.app-shell .cb-lock-body .cb-recon{margin-bottom:12px}
+.app-shell .cb-out-in{margin-top:16px;border-top:1px solid var(--line)}
+.app-shell .cb-out-in>.section-title{padding-left:0;padding-right:0}
+@media (max-width:899.98px){.app-shell .fit-cols.cb-cols{grid-template-columns:minmax(0,1fr)}
+  .app-shell .fit-page-toolbar .cb-daybar,.app-shell .fit-page-toolbar .cb-range{flex-wrap:wrap}}
