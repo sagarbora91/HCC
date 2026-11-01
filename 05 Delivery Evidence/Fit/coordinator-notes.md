@@ -31,3 +31,10 @@
 - No CSS touched (guests.css/reservations.css are token-checked sheets); two small inline overrides; alternative z-fit.css rules are in its DONE file — integrator to move to a desktop-only sheet.
 - Modal openers: `+ New reservation`, `Print in-house list`, `Walk-in`, `New guest`.
 - Lock contention: ~4 h of retries for this lane.
+
+## From revenue (done, f080c76a)
+- Booking-site has only Bookings + Preview tabs (page has no content for Settings / Rooms & rates) — review to confirm nothing dropped vs main.
+- Yield "publish requests" card became a sub-screen shown only while a request exists — review to confirm nothing hidden.
+- Groups re-run after the fit-split fix passes; yield/channels/booking-site not re-run after; remaining font-changed on 4 sub-screens unverified vs main (integrator's full run decides).
+- New sheet src/styles/fit-revenue.css; touched `channels()` helper in stream-wd5-gaps.mjs (passes tab via FitNavContext, assertions unchanged).
+- A static server for its checks may still run on port 4197 (stop was denied to the agent) — coordinator to ask the user / check at integration time.
