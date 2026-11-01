@@ -14,6 +14,9 @@ namespace Hcc.Application.Accounting;
 public sealed record NewTallyFile(int PropertyId, string Kind, DateOnly From, DateOnly To, int Items, int Bytes, string Sha256, bool Provisional, int ExportedBy, DateTime ExportedUtc);
 
 /// <summary>The last file of a kind for a range start (re-export note of the masters).</summary>
+/// <summary>Result of the masters export command (stored as the idempotency result).</summary>
+public sealed record TallyFileRef(long FileId);
+
 public sealed record TallyFileLogRow(long FileId, DateTime ExportedUtc, int ExportedBy, string Sha256);
 
 /// <summary>Log of the Tally files (<c>acc.tally_file</c>, migration 4266). Append-only.</summary>
@@ -148,9 +151,9 @@ public sealed class TallyQueries(IAccountingStore store, IAccessPolicy policy, I
                     var id = await log.RecordAsync(tx, row, ct2).ConfigureAwait(false);
                     await tx.AuditAsync("TALLY_MASTERS_EXPORTED", "acc-tally-file:" + id.ToString(CultureInfo.InvariantCulture),
                         $"FY {FyLabel(start)} · {book.Groups.Count} group(s), {book.Ledgers.Count} ledger(s) · sha256 {sha[..12]}…" + (provisional ? " · provisional" : ""), ct2).ConfigureAwait(false);
-                    return id;
+                    return new TallyFileRef(id); // an object: plat.idempotency stores JSON objects only (CK_idempotency_result)
                 }, ct).ConfigureAwait(false);
-            fileId = r.Value;
+            fileId = r.Value.FileId;
         }
 
         return new TallyMastersView(FyLabel(start), start, end, book.Groups.Count, book.Ledgers.Count, book.Ledgers.Count(l => l.Party), provisional,

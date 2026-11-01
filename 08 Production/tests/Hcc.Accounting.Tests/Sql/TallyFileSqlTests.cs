@@ -46,8 +46,8 @@ public sealed class TallyFileSqlTests(AccountingDb db) : IClassFixture<Accountin
         var second = await q.MastersAsync(db.As("OWN"), "2026-27", Ct);
         Assert.Contains(second.Notes, n => n.StartsWith("RE-EXPORT", StringComparison.Ordinal));
 
-        var row = await db.ScalarAsync("SELECT COUNT(*) FROM acc.tally_file WHERE property_id = @p AND kind = 'masters' AND sha256 = @s AND bytes = @b;",
-            ("@p", SqlDbType.Int, db.PropertyId), ("@s", SqlDbType.VarChar, first.Sha256), ("@b", SqlDbType.Int, first.Bytes));
+        var row = await db.ScalarAsync("SELECT COUNT(*) FROM acc.tally_file WHERE property_id = @p AND kind = 'masters' AND sha256 = @s AND byte_count = @b;",
+            ("@p", SqlDbType.Int, db.PropertyId), ("@s", SqlDbType.Char, first.Sha256), ("@b", SqlDbType.Int, first.Bytes));
         Assert.Equal(1, Convert.ToInt32(row));
         Assert.Equal(2, Convert.ToInt32(await db.ScalarAsync("SELECT COUNT(*) FROM acc.tally_file WHERE property_id = @p AND kind = 'masters';", ("@p", SqlDbType.Int, db.PropertyId))));
 
