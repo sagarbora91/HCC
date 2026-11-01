@@ -1,0 +1,6 @@
+[
+  {"page":"reservations","opener":"+ New reservation","lane":"shell-sample","roles":["owner","reception","manager"]},
+  {"page":"expenses","opener":"+ Add expense","lane":"shell-sample","roles":["owner","manager","reception","cashier"]},
+  {"page":"access","opener":"New user","lane":"shell-sample","roles":["owner"]},
+  {"page":"overview","selector":".current-user-btn","label":"user menu","lane":"shell-sample"}
+]
