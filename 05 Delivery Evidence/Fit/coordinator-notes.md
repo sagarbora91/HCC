@@ -63,3 +63,8 @@
 - HeaderActions overflow bug confirmed (primary action clipped with 6 items; lane kept 2).
 - Open: register table body ~168 px at tab-land (min 160) — tight; integrator to re-check.
 - Own `// FIT-CASH-B` block was added at end of subscreens.ts; new sheet src/styles/fit-cash-b.css; modal openers: POS table tile, expense row "Text".
+
+## From cash-a (done, 3f9fe2e2)
+- folios: contract did not list sub-screen tabs; added Folios / Folio requests (requests card would not fit under the list). Right pane = the same folio as BookingModal so every action stays.
+- cashier: cash-out buttons moved to the page header; count panel buttons in a sticky bar. cashbook: did not use StatStrip (its label class is smaller than the cash book's 12 px labels); Lock/Reopen in the Day lock panel header.
+- New sheets folios.css, cashier.css, cashbook.css; 3 modal openers in its DONE file.
