@@ -171,6 +171,7 @@
     <File Path="database/migrations/4257_acc_ledger_month_balance.sql" />
     <File Path="database/migrations/4258_bill_charge_kind_food.sql" />
     <File Path="database/migrations/4259_acc_ledger_1210_control.sql" />
+    <File Path="database/migrations/4266_acc_tally_file_log.sql" />
     <File Path="database/migrations/4600_legacy_history.sql" />
     <File Path="database/migrations/4601_legacy_rbac_seed.sql" />
     <File Path="database/migrations/4605_legacy_capture_kind.sql" />

@@ -42,6 +42,21 @@
       "rollback_method": "Delete CalendarDate.cs and its tests."
     },
     {
+      "candidate_id": "ETP-TALLY",
+      "source_repository": "E:/ETP/Code/SaagarCC-V6-ETP-Source-and-Report-Engine-605002f (owner's own code, DEC-054)",
+      "pinned_commit": "8d65d83fc7428b8f69069233aea47d0d66e43cc0",
+      "source_paths": ["src/Etp.Reporting.Infrastructure.SqlServer/AccountingAndSharingServices.cs"],
+      "source_hashes": {"src/Etp.Reporting.Infrastructure.SqlServer/AccountingAndSharingServices.cs": "8e44c104933d18228c560fe9d2f82c45391f6110979ff4e52bf55ab3ffe45cdf"},
+      "destination_paths": ["08 Production/src/Hcc.Domain/ThirdParty/Etp/EtpTallyXml.cs"],
+      "derivation": "adapted (three ideas of TallyXmlExportService, not the class)",
+      "modifications_and_rationale": "XmlWriter settings (UTF-8 no BOM, indent), the Tally amount rule (debit negative / credit positive, two decimals) over integer paise, SHA-256 of the written bytes. Synchronous, in memory, CRLF, one-space indent.",
+      "imported_dependencies": [],
+      "HCC_tests_run": "tests/Hcc.Accounting.Tests/Tally/TallyExportTests.cs",
+      "accepted_use": "Tally masters and vouchers XML (ACC-3 contract section 4).",
+      "excluded_uses": "ETP batch composer, file move, mapping types.",
+      "rollback_method": "Delete EtpTallyXml.cs and inline VoucherExport.Tally.cs helpers."
+    },
+    {
       "candidate_id": "ETP",
       "derivation": "pending (not available on this PC)",
       "imported": false,

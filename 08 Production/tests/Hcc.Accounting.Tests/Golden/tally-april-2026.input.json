@@ -1,0 +1,7774 @@
+{
+ "company": "Rulebook Hotels Pvt Ltd (fictional)",
+ "identity": "GOLDEN",
+ "fyStart": "2026-04-01",
+ "from": "2026-04-01",
+ "to": "2026-04-30",
+ "chart": {
+  "groups": [
+   {
+    "id": "capital",
+    "name": "Capital Account",
+    "nature": "Cr",
+    "side": "BS"
+   },
+   {
+    "id": "reserves",
+    "name": "Reserves & Surplus",
+    "parent": "capital",
+    "nature": "Cr",
+    "side": "BS"
+   },
+   {
+    "id": "current-assets",
+    "name": "Current Assets",
+    "nature": "Dr",
+    "side": "BS"
+   },
+   {
+    "id": "bank",
+    "name": "Bank Accounts",
+    "parent": "current-assets",
+    "nature": "Dr",
+    "side": "BS"
+   },
+   {
+    "id": "cash",
+    "name": "Cash-in-Hand",
+    "parent": "current-assets",
+    "nature": "Dr",
+    "side": "BS"
+   },
+   {
+    "id": "deposits-asset",
+    "name": "Deposits (Asset)",
+    "parent": "current-assets",
+    "nature": "Dr",
+    "side": "BS"
+   },
+   {
+    "id": "loans-advances",
+    "name": "Loans & Advances (Asset)",
+    "parent": "current-assets",
+    "nature": "Dr",
+    "side": "BS"
+   },
+   {
+    "id": "stock",
+    "name": "Stock-in-Hand",
+    "parent": "current-assets",
+    "nature": "Dr",
+    "side": "BS"
+   },
+   {
+    "id": "debtors",
+    "name": "Sundry Debtors",
+    "parent": "current-assets",
+    "nature": "Dr",
+    "side": "BS"
+   },
+   {
+    "id": "current-liabilities",
+    "name": "Current Liabilities",
+    "nature": "Cr",
+    "side": "BS"
+   },
+   {
+    "id": "duties-taxes",
+    "name": "Duties & Taxes",
+    "parent": "current-liabilities",
+    "nature": "Cr",
+    "side": "BS"
+   },
+   {
+    "id": "provisions",
+    "name": "Provisions",
+    "parent": "current-liabilities",
+    "nature": "Cr",
+    "side": "BS"
+   },
+   {
+    "id": "creditors",
+    "name": "Sundry Creditors",
+    "parent": "current-liabilities",
+    "nature": "Cr",
+    "side": "BS"
+   },
+   {
+    "id": "fixed-assets",
+    "name": "Fixed Assets",
+    "nature": "Dr",
+    "side": "BS"
+   },
+   {
+    "id": "investments",
+    "name": "Investments",
+    "nature": "Dr",
+    "side": "BS"
+   },
+   {
+    "id": "loans",
+    "name": "Loans (Liability)",
+    "nature": "Cr",
+    "side": "BS"
+   },
+   {
+    "id": "bank-od",
+    "name": "Bank OD A/c",
+    "parent": "loans",
+    "nature": "Cr",
+    "side": "BS"
+   },
+   {
+    "id": "secured-loans",
+    "name": "Secured Loans",
+    "parent": "loans",
+    "nature": "Cr",
+    "side": "BS"
+   },
+   {
+    "id": "unsecured-loans",
+    "name": "Unsecured Loans",
+    "parent": "loans",
+    "nature": "Cr",
+    "side": "BS"
+   },
+   {
+    "id": "suspense",
+    "name": "Suspense A/c",
+    "nature": "Dr",
+    "side": "BS"
+   },
+   {
+    "id": "misc-expenses-asset",
+    "name": "Misc. Expenses (Asset)",
+    "nature": "Dr",
+    "side": "BS"
+   },
+   {
+    "id": "branches",
+    "name": "Branch / Divisions",
+    "nature": "Dr",
+    "side": "BS"
+   },
+   {
+    "id": "sales",
+    "name": "Sales Accounts",
+    "nature": "Cr",
+    "side": "PL"
+   },
+   {
+    "id": "purchases",
+    "name": "Purchase Accounts",
+    "nature": "Dr",
+    "side": "PL"
+   },
+   {
+    "id": "direct-income",
+    "name": "Direct Incomes",
+    "nature": "Cr",
+    "side": "PL"
+   },
+   {
+    "id": "direct-expenses",
+    "name": "Direct Expenses",
+    "nature": "Dr",
+    "side": "PL"
+   },
+   {
+    "id": "indirect-income",
+    "name": "Indirect Incomes",
+    "nature": "Cr",
+    "side": "PL"
+   },
+   {
+    "id": "indirect-expenses",
+    "name": "Indirect Expenses",
+    "nature": "Dr",
+    "side": "PL"
+   }
+  ],
+  "ledgers": [
+   {
+    "code": "1000",
+    "name": "Cash in hand",
+    "group": "cash"
+   },
+   {
+    "code": "1005",
+    "name": "Petty cash float",
+    "group": "cash"
+   },
+   {
+    "code": "1010",
+    "name": "UPI clearing",
+    "group": "bank"
+   },
+   {
+    "code": "1020",
+    "name": "Card clearing",
+    "group": "bank"
+   },
+   {
+    "code": "1030",
+    "name": "Bank accounts",
+    "group": "bank"
+   },
+   {
+    "code": "1100",
+    "name": "Guest ledger (in-house folios)",
+    "group": "debtors"
+   },
+   {
+    "code": "1110",
+    "name": "Company receivables (city ledger)",
+    "group": "debtors"
+   },
+   {
+    "code": "1115",
+    "name": "OTA receivables",
+    "group": "debtors"
+   },
+   {
+    "code": "1120",
+    "name": "Udhaar receivables (customer credit)",
+    "group": "debtors"
+   },
+   {
+    "code": "1200",
+    "name": "Staff advances",
+    "group": "loans-advances"
+   },
+   {
+    "code": "1210",
+    "name": "Recoverable from leavers (F&F)",
+    "group": "loans-advances"
+   },
+   {
+    "code": "1300",
+    "name": "GST input credit (legacy, locked snapshots only)",
+    "group": "duties-taxes"
+   },
+   {
+    "code": "1310",
+    "name": "Input CGST",
+    "group": "duties-taxes"
+   },
+   {
+    "code": "1320",
+    "name": "Input SGST",
+    "group": "duties-taxes"
+   },
+   {
+    "code": "1330",
+    "name": "Input IGST",
+    "group": "duties-taxes"
+   },
+   {
+    "code": "1340",
+    "name": "GST electronic cash ledger",
+    "group": "duties-taxes"
+   },
+   {
+    "code": "1350",
+    "name": "GST paid on advances (adjustable)",
+    "group": "duties-taxes"
+   },
+   {
+    "code": "1360",
+    "name": "TDS receivable",
+    "group": "loans-advances"
+   },
+   {
+    "code": "1370",
+    "name": "Prepaid expenses",
+    "group": "loans-advances"
+   },
+   {
+    "code": "1400",
+    "name": "Opening-balance difference",
+    "group": "suspense"
+   },
+   {
+    "code": "1500",
+    "name": "Buildings",
+    "group": "fixed-assets"
+   },
+   {
+    "code": "1510",
+    "name": "Furniture, fittings & electrical fittings",
+    "group": "fixed-assets"
+   },
+   {
+    "code": "1520",
+    "name": "Plant & machinery",
+    "group": "fixed-assets"
+   },
+   {
+    "code": "1530",
+    "name": "Computers, software & POS hardware",
+    "group": "fixed-assets"
+   },
+   {
+    "code": "1540",
+    "name": "Vehicles",
+    "group": "fixed-assets"
+   },
+   {
+    "code": "2000",
+    "name": "Advance deposits (guest and group)",
+    "group": "current-liabilities"
+   },
+   {
+    "code": "2100",
+    "name": "Synthetic tax payable (legacy)",
+    "group": "duties-taxes"
+   },
+   {
+    "code": "2110",
+    "name": "Output CGST",
+    "group": "duties-taxes"
+   },
+   {
+    "code": "2120",
+    "name": "Output SGST",
+    "group": "duties-taxes"
+   },
+   {
+    "code": "2130",
+    "name": "Output IGST",
+    "group": "duties-taxes"
+   },
+   {
+    "code": "2140",
+    "name": "GST payable under reverse charge",
+    "group": "duties-taxes"
+   },
+   {
+    "code": "2150",
+    "name": "TDS payable",
+    "group": "duties-taxes"
+   },
+   {
+    "code": "2200",
+    "name": "Vendor payables",
+    "group": "creditors"
+   },
+   {
+    "code": "2300",
+    "name": "Salaries payable (net)",
+    "group": "current-liabilities"
+   },
+   {
+    "code": "2310",
+    "name": "PF payable",
+    "group": "duties-taxes"
+   },
+   {
+    "code": "2320",
+    "name": "ESIC payable",
+    "group": "duties-taxes"
+   },
+   {
+    "code": "2330",
+    "name": "Professional tax payable",
+    "group": "duties-taxes"
+   },
+   {
+    "code": "2340",
+    "name": "Other payroll deductions",
+    "group": "current-liabilities"
+   },
+   {
+    "code": "2400",
+    "name": "Bank loans (secured)",
+    "group": "secured-loans"
+   },
+   {
+    "code": "2400/LN-HDFC",
+    "name": "HDFC term loan",
+    "group": "secured-loans"
+   },
+   {
+    "code": "2410",
+    "name": "Unsecured loans",
+    "group": "unsecured-loans"
+   },
+   {
+    "code": "3000",
+    "name": "Owner's drawings",
+    "group": "capital"
+   },
+   {
+    "code": "3100",
+    "name": "Owner's capital",
+    "group": "capital"
+   },
+   {
+    "code": "4000",
+    "name": "Room revenue",
+    "group": "sales"
+   },
+   {
+    "code": "4100",
+    "name": "Other services revenue",
+    "group": "sales"
+   },
+   {
+    "code": "4200",
+    "name": "Food & beverage revenue",
+    "group": "sales"
+   },
+   {
+    "code": "4300",
+    "name": "Cancellation, no-show & attrition charges",
+    "group": "sales"
+   },
+   {
+    "code": "4400",
+    "name": "Banquet & events revenue",
+    "group": "sales"
+   },
+   {
+    "code": "4900",
+    "name": "Discounts allowed",
+    "group": "sales"
+   },
+   {
+    "code": "4910",
+    "name": "Refunds, reversals & credit notes",
+    "group": "sales"
+   },
+   {
+    "code": "4950",
+    "name": "Cash over",
+    "group": "indirect-income"
+   },
+   {
+    "code": "4960",
+    "name": "Interest & other income",
+    "group": "indirect-income"
+   },
+   {
+    "code": "5000",
+    "name": "Housekeeping & guest supplies",
+    "group": "direct-expenses"
+   },
+   {
+    "code": "5010",
+    "name": "Linen & laundry",
+    "group": "direct-expenses"
+   },
+   {
+    "code": "5015",
+    "name": "Kitchen provisions & beverages",
+    "group": "direct-expenses"
+   },
+   {
+    "code": "5020",
+    "name": "Repairs & maintenance",
+    "group": "indirect-expenses"
+   },
+   {
+    "code": "5030",
+    "name": "Electricity, water & fuel",
+    "group": "direct-expenses"
+   },
+   {
+    "code": "5040",
+    "name": "Petty cash & sundry",
+    "group": "indirect-expenses"
+   },
+   {
+    "code": "5050",
+    "name": "General & administrative expenses",
+    "group": "indirect-expenses"
+   },
+   {
+    "code": "5060",
+    "name": "Rent & licence fees",
+    "group": "indirect-expenses"
+   },
+   {
+    "code": "5070",
+    "name": "OTA commission",
+    "group": "indirect-expenses"
+   },
+   {
+    "code": "5080",
+    "name": "Bank & card charges",
+    "group": "indirect-expenses"
+   },
+   {
+    "code": "5090",
+    "name": "Interest on loans",
+    "group": "indirect-expenses"
+   },
+   {
+    "code": "5100",
+    "name": "Salaries & wages",
+    "group": "indirect-expenses"
+   },
+   {
+    "code": "5110",
+    "name": "Employer PF & ESIC",
+    "group": "indirect-expenses"
+   },
+   {
+    "code": "5120",
+    "name": "Staff welfare",
+    "group": "indirect-expenses"
+   },
+   {
+    "code": "5200",
+    "name": "Depreciation",
+    "group": "indirect-expenses"
+   },
+   {
+    "code": "5300",
+    "name": "Bad debts written off",
+    "group": "indirect-expenses"
+   },
+   {
+    "code": "5400",
+    "name": "GST / TDS interest & late fees",
+    "group": "indirect-expenses"
+   },
+   {
+    "code": "5900",
+    "name": "Cash short",
+    "group": "indirect-expenses"
+   },
+   {
+    "code": "9999",
+    "name": "Suspense (unmapped)",
+    "group": "suspense"
+   }
+  ]
+ },
+ "opening": {
+  "1500": 600000000,
+  "1510": 80000000,
+  "1520": 50000000,
+  "1530": 8000000,
+  "2000": -1000000,
+  "3100": -570500000,
+  "1000/TILL": 2000000,
+  "1030/BA-HDFC": 30000000,
+  "1110/CO-1142": 4000000,
+  "2200/EV-MORNING": -2500000,
+  "2400/LN-HDFC": -200000000
+ },
+ "parties": {
+  "1000/TILL": {
+   "name": "Front-desk cash drawer"
+  },
+  "1030/BA-HDFC": {
+   "name": "HDFC"
+  },
+  "1030/BANK-1": {
+   "name": "Hotel current account"
+  },
+  "1110/CO-1": {
+   "name": "Deccan Pharma Distributors (fictional)",
+   "gstin": "27ZZFIC0001F1Z5"
+  },
+  "1110/CO-1142": {
+   "name": "Deccan Agro Ltd",
+   "gstin": "27ZZFIC0004F1Z2"
+  },
+  "1110/CO-2": {
+   "name": "Godavari Agro Inputs (fictional)",
+   "gstin": "27ZZFIC0002F1Z4"
+  },
+  "1110/CO-3": {
+   "name": "Sahyadri Infra Projects (fictional)",
+   "gstin": "27ZZFIC0003F1Z3"
+  },
+  "1115/booknest": {
+   "name": "BookNest"
+  },
+  "1115/goibibo": {
+   "name": "Goibibo"
+  },
+  "1115/roomraahi": {
+   "name": "RoomRaahi"
+  },
+  "1115/stayhub": {
+   "name": "StayHub"
+  },
+  "1115/tripkart": {
+   "name": "TripKart"
+  },
+  "1200/HR-S01": {
+   "name": "Meera Kulkarni"
+  },
+  "1200/HR-S02": {
+   "name": "Aarav Joshi"
+  },
+  "1200/HR-S03": {
+   "name": "Priya Nair"
+  },
+  "1200/HR-S04": {
+   "name": "Neha Gaikwad"
+  },
+  "1200/HR-S05": {
+   "name": "Ravi Shinde"
+  },
+  "1200/HR-S06": {
+   "name": "Kavya Patil"
+  },
+  "1200/HR-S07": {
+   "name": "Farhan Qureshi"
+  },
+  "1200/HR-S08": {
+   "name": "Joseph D’Souza"
+  },
+  "1200/HR-S09": {
+   "name": "Suresh Pawar"
+  },
+  "1200/HR-S10": {
+   "name": "Imran Shaikh"
+  },
+  "1200/HR-S11": {
+   "name": "Balu Jadhav"
+  },
+  "1200/HR-S12": {
+   "name": "Ganesh More"
+  },
+  "1200/HR-S13": {
+   "name": "Staff 13 (fictional)"
+  },
+  "1200/HR-S14": {
+   "name": "Staff 14 (fictional)"
+  },
+  "1210/HR-S01": {
+   "name": "Meera Kulkarni"
+  },
+  "1210/HR-S02": {
+   "name": "Aarav Joshi"
+  },
+  "1210/HR-S03": {
+   "name": "Priya Nair"
+  },
+  "1210/HR-S04": {
+   "name": "Neha Gaikwad"
+  },
+  "1210/HR-S05": {
+   "name": "Ravi Shinde"
+  },
+  "1210/HR-S06": {
+   "name": "Kavya Patil"
+  },
+  "1210/HR-S07": {
+   "name": "Farhan Qureshi"
+  },
+  "1210/HR-S08": {
+   "name": "Joseph D’Souza"
+  },
+  "1210/HR-S09": {
+   "name": "Suresh Pawar"
+  },
+  "1210/HR-S10": {
+   "name": "Imran Shaikh"
+  },
+  "1210/HR-S11": {
+   "name": "Balu Jadhav"
+  },
+  "1210/HR-S12": {
+   "name": "Ganesh More"
+  },
+  "1210/HR-S13": {
+   "name": "Staff 13 (fictional)"
+  },
+  "1210/HR-S14": {
+   "name": "Staff 14 (fictional)"
+  },
+  "2200/EV-KAVERI": {
+   "name": "Kaveri Textiles"
+  },
+  "2200/EV-MORNING": {
+   "name": "Morning Supplies"
+  },
+  "2200/V-STATE-ELECTRICITY": {
+   "name": "State Electricity Board (fictional)"
+  },
+  "2400/LN-HDFC": {
+   "name": "HDFC term loan"
+  }
+ },
+ "seen": [
+  "1000/TILL",
+  "1010",
+  "1020",
+  "1030/BA-HDFC",
+  "1100",
+  "1110/CO-1142",
+  "1115/goibibo",
+  "1200/HR-S07",
+  "1340",
+  "1360",
+  "2000",
+  "2110",
+  "2120",
+  "2200/EV-KAVERI",
+  "2200/EV-MORNING",
+  "2300",
+  "2310",
+  "2320",
+  "2330",
+  "2400/LN-HDFC",
+  "3000",
+  "4000",
+  "4200",
+  "4900",
+  "5000",
+  "5010",
+  "5030",
+  "5040",
+  "5070",
+  "5080",
+  "5090",
+  "5100",
+  "5110",
+  "5900"
+ ],
+ "stream": [
+  {
+   "no": "SAL/20260401/001",
+   "date": "2026-04-01",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1149/night:HCC-1149:2026-04-01",
+   "narration": "Room night · 2026-04-01 · Deccan Agro delegate 1 (fictional) · room 101",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260401/002",
+   "date": "2026-04-01",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1154/night:HCC-1154:2026-04-01",
+   "narration": "Room night · 2026-04-01 · Deccan Agro delegate 2 (fictional) · room 102",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260401/003",
+   "date": "2026-04-01",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1159/night:HCC-1159:2026-04-01",
+   "narration": "Room night · 2026-04-01 · Deccan Agro delegate 3 (fictional) · room 105",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260401/004",
+   "date": "2026-04-01",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1164/night:HCC-1164:2026-04-01",
+   "narration": "Room night · 2026-04-01 · Deccan Agro delegate 4 (fictional) · room 108",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260401/005",
+   "date": "2026-04-01",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1169/night:HCC-1169:2026-04-01",
+   "narration": "Room night · 2026-04-01 · Deccan Agro delegate 5 (fictional) · room 201",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260401/006",
+   "date": "2026-04-01",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1174/night:HCC-1174:2026-04-01",
+   "narration": "Room night · 2026-04-01 · Deccan Agro delegate 6 (fictional) · room 202",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260401/007",
+   "date": "2026-04-01",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1179/night:HCC-1179:2026-04-01",
+   "narration": "Room night · 2026-04-01 · Guest A (fictional) · room 205",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260401/008",
+   "date": "2026-04-01",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1184/night:HCC-1184:2026-04-01",
+   "narration": "Room night · 2026-04-01 · Guest B (fictional) · room 208",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260401/009",
+   "date": "2026-04-01",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1189/night:HCC-1189:2026-04-01",
+   "narration": "Room night · 2026-04-01 · Guest C (fictional) · room 301",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260401/010",
+   "date": "2026-04-01",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1194/night:HCC-1194:2026-04-01",
+   "narration": "Room night · 2026-04-01 · Guest D (fictional) · room 302",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260401/011",
+   "date": "2026-04-01",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1199/night:HCC-1199:2026-04-01",
+   "narration": "Room night · 2026-04-01 · Guest E (fictional) · room 305",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260401/012",
+   "date": "2026-04-01",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1204/night:HCC-1204:2026-04-01",
+   "narration": "Room night · 2026-04-01 · Guest F (fictional) · room 308",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260401/013",
+   "date": "2026-04-01",
+   "type": "Sales",
+   "sub": "food",
+   "sourceId": "HCC-1209/posline:POS-1258",
+   "narration": "Room service · bill POS/2604/0003 · 12 items · Guest G (fictional) · room 103",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 525000,
+     "credit": 0
+    },
+    {
+     "account": "4200",
+     "debit": 0,
+     "credit": 500000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 12500
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 12500
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260401/014",
+   "date": "2026-04-01",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1209/night:HCC-1209:2026-04-01",
+   "narration": "Room night · 2026-04-01 · Guest G (fictional) · room 103",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 315000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 300000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 7500
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 7500
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260401/015",
+   "date": "2026-04-01",
+   "type": "Sales",
+   "sub": "food",
+   "sourceId": "HCC-1214/posline:POS-1269",
+   "narration": "Room service · bill POS/2604/0004 · 12 items · Guest H (fictional) · room 104",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 525000,
+     "credit": 0
+    },
+    {
+     "account": "4200",
+     "debit": 0,
+     "credit": 500000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 12500
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 12500
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260401/016",
+   "date": "2026-04-01",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1214/night:HCC-1214:2026-04-01",
+   "narration": "Room night · 2026-04-01 · Guest H (fictional) · room 104",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 315000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 300000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 7500
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 7500
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260401/017",
+   "date": "2026-04-01",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1219/night:HCC-1219:2026-04-01",
+   "narration": "Room night · 2026-04-01 · Guest I (fictional) · room 107",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 315000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 300000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 7500
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 7500
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260401/018",
+   "date": "2026-04-01",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1224/night:HCC-1224:2026-04-01",
+   "narration": "Room night · 2026-04-01 · Guest J (fictional) · room 203",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 315000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 300000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 7500
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 7500
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260401/019",
+   "date": "2026-04-01",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1229/night:HCC-1229:2026-04-01",
+   "narration": "Room night · 2026-04-01 · Guest K (fictional) · room 204",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 315000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 300000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 7500
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 7500
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260401/020",
+   "date": "2026-04-01",
+   "type": "Sales",
+   "sub": "food",
+   "sourceId": "HCC-1234/posline:POS-1280",
+   "narration": "Room service · bill POS/2604/0005 · 12 items · Guest L (fictional) · room 106",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 525000,
+     "credit": 0
+    },
+    {
+     "account": "4200",
+     "debit": 0,
+     "credit": 500000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 12500
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 12500
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260401/021",
+   "date": "2026-04-01",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1234/night:HCC-1234:2026-04-01",
+   "narration": "Room night · 2026-04-01 · Guest L (fictional) · room 106",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 472500,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 450000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 11250
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 11250
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260401/022",
+   "date": "2026-04-01",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1239/night:HCC-1239:2026-04-01",
+   "narration": "Room night · 2026-04-01 · Guest M (fictional) · room 206",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 472500,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 450000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 11250
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 11250
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260402/001",
+   "date": "2026-04-02",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1149/night:HCC-1149:2026-04-02",
+   "narration": "Room night · 2026-04-02 · Deccan Agro delegate 1 (fictional) · room 101",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260402/002",
+   "date": "2026-04-02",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1154/night:HCC-1154:2026-04-02",
+   "narration": "Room night · 2026-04-02 · Deccan Agro delegate 2 (fictional) · room 102",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260402/003",
+   "date": "2026-04-02",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1159/night:HCC-1159:2026-04-02",
+   "narration": "Room night · 2026-04-02 · Deccan Agro delegate 3 (fictional) · room 105",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260402/004",
+   "date": "2026-04-02",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1164/night:HCC-1164:2026-04-02",
+   "narration": "Room night · 2026-04-02 · Deccan Agro delegate 4 (fictional) · room 108",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260402/005",
+   "date": "2026-04-02",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1169/night:HCC-1169:2026-04-02",
+   "narration": "Room night · 2026-04-02 · Deccan Agro delegate 5 (fictional) · room 201",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260402/006",
+   "date": "2026-04-02",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1174/night:HCC-1174:2026-04-02",
+   "narration": "Room night · 2026-04-02 · Deccan Agro delegate 6 (fictional) · room 202",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260402/007",
+   "date": "2026-04-02",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1179/night:HCC-1179:2026-04-02",
+   "narration": "Room night · 2026-04-02 · Guest A (fictional) · room 205",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260402/008",
+   "date": "2026-04-02",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1184/night:HCC-1184:2026-04-02",
+   "narration": "Room night · 2026-04-02 · Guest B (fictional) · room 208",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260402/009",
+   "date": "2026-04-02",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1189/night:HCC-1189:2026-04-02",
+   "narration": "Room night · 2026-04-02 · Guest C (fictional) · room 301",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260402/010",
+   "date": "2026-04-02",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1194/night:HCC-1194:2026-04-02",
+   "narration": "Room night · 2026-04-02 · Guest D (fictional) · room 302",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260402/011",
+   "date": "2026-04-02",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1199/night:HCC-1199:2026-04-02",
+   "narration": "Room night · 2026-04-02 · Guest E (fictional) · room 305",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260402/012",
+   "date": "2026-04-02",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1204/night:HCC-1204:2026-04-02",
+   "narration": "Room night · 2026-04-02 · Guest F (fictional) · room 308",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260402/013",
+   "date": "2026-04-02",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1209/night:HCC-1209:2026-04-02",
+   "narration": "Room night · 2026-04-02 · Guest G (fictional) · room 103",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 315000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 300000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 7500
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 7500
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260402/014",
+   "date": "2026-04-02",
+   "type": "Sales",
+   "sub": "food",
+   "sourceId": "HCC-1214/posline:POS-1310",
+   "narration": "Room service · bill POS/2604/0006 · 12 items · Guest H (fictional) · room 104",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 525000,
+     "credit": 0
+    },
+    {
+     "account": "4200",
+     "debit": 0,
+     "credit": 500000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 12500
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 12500
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260402/015",
+   "date": "2026-04-02",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1214/night:HCC-1214:2026-04-02",
+   "narration": "Room night · 2026-04-02 · Guest H (fictional) · room 104",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 315000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 300000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 7500
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 7500
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260402/016",
+   "date": "2026-04-02",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1219/night:HCC-1219:2026-04-02",
+   "narration": "Room night · 2026-04-02 · Guest I (fictional) · room 107",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 315000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 300000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 7500
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 7500
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260402/017",
+   "date": "2026-04-02",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1224/night:HCC-1224:2026-04-02",
+   "narration": "Room night · 2026-04-02 · Guest J (fictional) · room 203",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 315000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 300000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 7500
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 7500
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260402/018",
+   "date": "2026-04-02",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1229/night:HCC-1229:2026-04-02",
+   "narration": "Room night · 2026-04-02 · Guest K (fictional) · room 204",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 315000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 300000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 7500
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 7500
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260402/019",
+   "date": "2026-04-02",
+   "type": "Sales",
+   "sub": "food",
+   "sourceId": "HCC-1234/posline:POS-1321",
+   "narration": "Room service · bill POS/2604/0007 · 12 items · Guest L (fictional) · room 106",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 525000,
+     "credit": 0
+    },
+    {
+     "account": "4200",
+     "debit": 0,
+     "credit": 500000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 12500
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 12500
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260402/020",
+   "date": "2026-04-02",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1234/night:HCC-1234:2026-04-02",
+   "narration": "Room night · 2026-04-02 · Guest L (fictional) · room 106",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 472500,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 450000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 11250
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 11250
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260402/021",
+   "date": "2026-04-02",
+   "type": "Sales",
+   "sub": "food",
+   "sourceId": "HCC-1239/posline:POS-1332",
+   "narration": "Room service · bill POS/2604/0008 · 12 items · Guest M (fictional) · room 206",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 525000,
+     "credit": 0
+    },
+    {
+     "account": "4200",
+     "debit": 0,
+     "credit": 500000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 12500
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 12500
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260402/022",
+   "date": "2026-04-02",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1239/night:HCC-1239:2026-04-02",
+   "narration": "Room night · 2026-04-02 · Guest M (fictional) · room 206",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 472500,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 450000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 11250
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 11250
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260402/023",
+   "date": "2026-04-02",
+   "type": "Sales",
+   "sub": "sale",
+   "sourceId": "POSR-1353",
+   "narration": "Outlet bill · restaurant · Cash · Outlet cash · POS-1343",
+   "entries": [
+    {
+     "account": "1000/TILL",
+     "debit": 630000,
+     "credit": 0
+    },
+    {
+     "account": "4200",
+     "debit": 0,
+     "credit": 600000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 15000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 15000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260403/001",
+   "date": "2026-04-03",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1149/night:HCC-1149:2026-04-03",
+   "narration": "Room night · 2026-04-03 · Deccan Agro delegate 1 (fictional) · room 101",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260403/002",
+   "date": "2026-04-03",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1154/night:HCC-1154:2026-04-03",
+   "narration": "Room night · 2026-04-03 · Deccan Agro delegate 2 (fictional) · room 102",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260403/003",
+   "date": "2026-04-03",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1159/night:HCC-1159:2026-04-03",
+   "narration": "Room night · 2026-04-03 · Deccan Agro delegate 3 (fictional) · room 105",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260403/004",
+   "date": "2026-04-03",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1164/night:HCC-1164:2026-04-03",
+   "narration": "Room night · 2026-04-03 · Deccan Agro delegate 4 (fictional) · room 108",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260403/005",
+   "date": "2026-04-03",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1169/night:HCC-1169:2026-04-03",
+   "narration": "Room night · 2026-04-03 · Deccan Agro delegate 5 (fictional) · room 201",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260403/006",
+   "date": "2026-04-03",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1174/night:HCC-1174:2026-04-03",
+   "narration": "Room night · 2026-04-03 · Deccan Agro delegate 6 (fictional) · room 202",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260403/007",
+   "date": "2026-04-03",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1179/night:HCC-1179:2026-04-03",
+   "narration": "Room night · 2026-04-03 · Guest A (fictional) · room 205",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260403/008",
+   "date": "2026-04-03",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1184/night:HCC-1184:2026-04-03",
+   "narration": "Room night · 2026-04-03 · Guest B (fictional) · room 208",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260403/009",
+   "date": "2026-04-03",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1189/night:HCC-1189:2026-04-03",
+   "narration": "Room night · 2026-04-03 · Guest C (fictional) · room 301",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260403/010",
+   "date": "2026-04-03",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1194/night:HCC-1194:2026-04-03",
+   "narration": "Room night · 2026-04-03 · Guest D (fictional) · room 302",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260403/011",
+   "date": "2026-04-03",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1199/night:HCC-1199:2026-04-03",
+   "narration": "Room night · 2026-04-03 · Guest E (fictional) · room 305",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260403/012",
+   "date": "2026-04-03",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1204/night:HCC-1204:2026-04-03",
+   "narration": "Room night · 2026-04-03 · Guest F (fictional) · room 308",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260403/013",
+   "date": "2026-04-03",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1209/night:HCC-1209:2026-04-03",
+   "narration": "Room night · 2026-04-03 · Guest G (fictional) · room 103",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 315000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 300000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 7500
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 7500
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260403/014",
+   "date": "2026-04-03",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1214/night:HCC-1214:2026-04-03",
+   "narration": "Room night · 2026-04-03 · Guest H (fictional) · room 104",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 315000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 300000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 7500
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 7500
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260403/015",
+   "date": "2026-04-03",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1219/night:HCC-1219:2026-04-03",
+   "narration": "Room night · 2026-04-03 · Guest I (fictional) · room 107",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 315000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 300000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 7500
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 7500
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260403/016",
+   "date": "2026-04-03",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1224/night:HCC-1224:2026-04-03",
+   "narration": "Room night · 2026-04-03 · Guest J (fictional) · room 203",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 315000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 300000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 7500
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 7500
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260403/017",
+   "date": "2026-04-03",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1229/night:HCC-1229:2026-04-03",
+   "narration": "Room night · 2026-04-03 · Guest K (fictional) · room 204",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 315000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 300000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 7500
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 7500
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260403/018",
+   "date": "2026-04-03",
+   "type": "Sales",
+   "sub": "food",
+   "sourceId": "HCC-1234/posline:POS-1374",
+   "narration": "Room service · bill POS/2604/0010 · 12 items · Guest L (fictional) · room 106",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 525000,
+     "credit": 0
+    },
+    {
+     "account": "4200",
+     "debit": 0,
+     "credit": 500000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 12500
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 12500
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260403/019",
+   "date": "2026-04-03",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1234/night:HCC-1234:2026-04-03",
+   "narration": "Room night · 2026-04-03 · Guest L (fictional) · room 106",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 472500,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 450000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 11250
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 11250
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260403/020",
+   "date": "2026-04-03",
+   "type": "Sales",
+   "sub": "food",
+   "sourceId": "HCC-1239/posline:POS-1385",
+   "narration": "Room service · bill POS/2604/0011 · 12 items · Guest M (fictional) · room 206",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 525000,
+     "credit": 0
+    },
+    {
+     "account": "4200",
+     "debit": 0,
+     "credit": 500000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 12500
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 12500
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260403/021",
+   "date": "2026-04-03",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1239/night:HCC-1239:2026-04-03",
+   "narration": "Room night · 2026-04-03 · Guest M (fictional) · room 206",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 472500,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 450000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 11250
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 11250
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260404/001",
+   "date": "2026-04-04",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1149/night:HCC-1149:2026-04-04",
+   "narration": "Room night · 2026-04-04 · Deccan Agro delegate 1 (fictional) · room 101",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260404/002",
+   "date": "2026-04-04",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1154/night:HCC-1154:2026-04-04",
+   "narration": "Room night · 2026-04-04 · Deccan Agro delegate 2 (fictional) · room 102",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260404/003",
+   "date": "2026-04-04",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1159/night:HCC-1159:2026-04-04",
+   "narration": "Room night · 2026-04-04 · Deccan Agro delegate 3 (fictional) · room 105",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260404/004",
+   "date": "2026-04-04",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1164/night:HCC-1164:2026-04-04",
+   "narration": "Room night · 2026-04-04 · Deccan Agro delegate 4 (fictional) · room 108",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260404/005",
+   "date": "2026-04-04",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1169/night:HCC-1169:2026-04-04",
+   "narration": "Room night · 2026-04-04 · Deccan Agro delegate 5 (fictional) · room 201",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260404/006",
+   "date": "2026-04-04",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1174/night:HCC-1174:2026-04-04",
+   "narration": "Room night · 2026-04-04 · Deccan Agro delegate 6 (fictional) · room 202",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260404/007",
+   "date": "2026-04-04",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1179/night:HCC-1179:2026-04-04",
+   "narration": "Room night · 2026-04-04 · Guest A (fictional) · room 205",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260404/008",
+   "date": "2026-04-04",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1184/night:HCC-1184:2026-04-04",
+   "narration": "Room night · 2026-04-04 · Guest B (fictional) · room 208",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260404/009",
+   "date": "2026-04-04",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1189/night:HCC-1189:2026-04-04",
+   "narration": "Room night · 2026-04-04 · Guest C (fictional) · room 301",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260404/010",
+   "date": "2026-04-04",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1194/night:HCC-1194:2026-04-04",
+   "narration": "Room night · 2026-04-04 · Guest D (fictional) · room 302",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260404/011",
+   "date": "2026-04-04",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1199/night:HCC-1199:2026-04-04",
+   "narration": "Room night · 2026-04-04 · Guest E (fictional) · room 305",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260404/012",
+   "date": "2026-04-04",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1204/night:HCC-1204:2026-04-04",
+   "narration": "Room night · 2026-04-04 · Guest F (fictional) · room 308",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260404/013",
+   "date": "2026-04-04",
+   "type": "Sales",
+   "sub": "food",
+   "sourceId": "HCC-1209/posline:POS-1426",
+   "narration": "Room service · bill POS/2604/0013 · 12 items · Guest G (fictional) · room 103",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 525000,
+     "credit": 0
+    },
+    {
+     "account": "4200",
+     "debit": 0,
+     "credit": 500000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 12500
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 12500
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260404/014",
+   "date": "2026-04-04",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1209/night:HCC-1209:2026-04-04",
+   "narration": "Room night · 2026-04-04 · Guest G (fictional) · room 103",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 315000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 300000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 7500
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 7500
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260404/015",
+   "date": "2026-04-04",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1214/night:HCC-1214:2026-04-04",
+   "narration": "Room night · 2026-04-04 · Guest H (fictional) · room 104",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 315000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 300000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 7500
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 7500
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260404/016",
+   "date": "2026-04-04",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1219/night:HCC-1219:2026-04-04",
+   "narration": "Room night · 2026-04-04 · Guest I (fictional) · room 107",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 315000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 300000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 7500
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 7500
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260404/017",
+   "date": "2026-04-04",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1224/night:HCC-1224:2026-04-04",
+   "narration": "Room night · 2026-04-04 · Guest J (fictional) · room 203",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 315000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 300000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 7500
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 7500
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260404/018",
+   "date": "2026-04-04",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1229/night:HCC-1229:2026-04-04",
+   "narration": "Room night · 2026-04-04 · Guest K (fictional) · room 204",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 315000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 300000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 7500
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 7500
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260404/019",
+   "date": "2026-04-04",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1234/night:HCC-1234:2026-04-04",
+   "narration": "Room night · 2026-04-04 · Guest L (fictional) · room 106",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 472500,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 450000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 11250
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 11250
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260404/020",
+   "date": "2026-04-04",
+   "type": "Sales",
+   "sub": "food",
+   "sourceId": "HCC-1239/posline:POS-1415",
+   "narration": "Room service · bill POS/2604/0012 · 12 items · Guest M (fictional) · room 206",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 525000,
+     "credit": 0
+    },
+    {
+     "account": "4200",
+     "debit": 0,
+     "credit": 500000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 12500
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 12500
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260404/021",
+   "date": "2026-04-04",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1239/night:HCC-1239:2026-04-04",
+   "narration": "Room night · 2026-04-04 · Guest M (fictional) · room 206",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 472500,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 450000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 11250
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 11250
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260404/022",
+   "date": "2026-04-04",
+   "type": "Sales",
+   "sub": "sale",
+   "sourceId": "POSR-1447",
+   "narration": "Outlet bill · restaurant · UPI · DEMO-UPI-OUTLET-2 · POS-1437",
+   "entries": [
+    {
+     "account": "1010",
+     "debit": 630000,
+     "credit": 0
+    },
+    {
+     "account": "4200",
+     "debit": 0,
+     "credit": 600000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 15000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 15000
+    }
+   ]
+  },
+  {
+   "no": "PMT/20260405/001",
+   "date": "2026-04-05",
+   "type": "Payment",
+   "sub": "loan-emi",
+   "sourceId": "MV-1479",
+   "narration": "HDFC term loan EMI, April (fictional) · EMI-DEMO-0405 · manual MV-1479",
+   "entries": [
+    {
+     "account": "2400/LN-HDFC",
+     "debit": 4000000,
+     "credit": 0
+    },
+    {
+     "account": "5090",
+     "debit": 1500000,
+     "credit": 0
+    },
+    {
+     "account": "1030/BA-HDFC",
+     "debit": 0,
+     "credit": 5500000
+    }
+   ]
+  },
+  {
+   "no": "PUR/20260405/001",
+   "date": "2026-04-05",
+   "type": "Purchase",
+   "sub": "expense",
+   "sourceId": "EXP-1476",
+   "narration": "Morning Supplies · Supplies · Vendor credit",
+   "entries": [
+    {
+     "account": "5000",
+     "debit": 5900000,
+     "credit": 0
+    },
+    {
+     "account": "2200/EV-MORNING",
+     "debit": 0,
+     "credit": 5900000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260405/001",
+   "date": "2026-04-05",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1149/night:HCC-1149:2026-04-05",
+   "narration": "Room night · 2026-04-05 · Deccan Agro delegate 1 (fictional) · room 101",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260405/002",
+   "date": "2026-04-05",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1154/night:HCC-1154:2026-04-05",
+   "narration": "Room night · 2026-04-05 · Deccan Agro delegate 2 (fictional) · room 102",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260405/003",
+   "date": "2026-04-05",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1159/night:HCC-1159:2026-04-05",
+   "narration": "Room night · 2026-04-05 · Deccan Agro delegate 3 (fictional) · room 105",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260405/004",
+   "date": "2026-04-05",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1164/night:HCC-1164:2026-04-05",
+   "narration": "Room night · 2026-04-05 · Deccan Agro delegate 4 (fictional) · room 108",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260405/005",
+   "date": "2026-04-05",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1169/night:HCC-1169:2026-04-05",
+   "narration": "Room night · 2026-04-05 · Deccan Agro delegate 5 (fictional) · room 201",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260405/006",
+   "date": "2026-04-05",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1174/night:HCC-1174:2026-04-05",
+   "narration": "Room night · 2026-04-05 · Deccan Agro delegate 6 (fictional) · room 202",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260405/007",
+   "date": "2026-04-05",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1179/night:HCC-1179:2026-04-05",
+   "narration": "Room night · 2026-04-05 · Guest A (fictional) · room 205",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260405/008",
+   "date": "2026-04-05",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1184/night:HCC-1184:2026-04-05",
+   "narration": "Room night · 2026-04-05 · Guest B (fictional) · room 208",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260405/009",
+   "date": "2026-04-05",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1189/night:HCC-1189:2026-04-05",
+   "narration": "Room night · 2026-04-05 · Guest C (fictional) · room 301",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260405/010",
+   "date": "2026-04-05",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1194/night:HCC-1194:2026-04-05",
+   "narration": "Room night · 2026-04-05 · Guest D (fictional) · room 302",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260405/011",
+   "date": "2026-04-05",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1199/night:HCC-1199:2026-04-05",
+   "narration": "Room night · 2026-04-05 · Guest E (fictional) · room 305",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260405/012",
+   "date": "2026-04-05",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1204/night:HCC-1204:2026-04-05",
+   "narration": "Room night · 2026-04-05 · Guest F (fictional) · room 308",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260405/013",
+   "date": "2026-04-05",
+   "type": "Sales",
+   "sub": "food",
+   "sourceId": "HCC-1209/posline:POS-1454",
+   "narration": "Room service · bill POS/2604/0015 · 12 items · Guest G (fictional) · room 103",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 525000,
+     "credit": 0
+    },
+    {
+     "account": "4200",
+     "debit": 0,
+     "credit": 500000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 12500
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 12500
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260405/014",
+   "date": "2026-04-05",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1209/night:HCC-1209:2026-04-05",
+   "narration": "Room night · 2026-04-05 · Guest G (fictional) · room 103",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 315000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 300000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 7500
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 7500
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260405/015",
+   "date": "2026-04-05",
+   "type": "Sales",
+   "sub": "food",
+   "sourceId": "HCC-1214/posline:POS-1465",
+   "narration": "Room service · bill POS/2604/0016 · 12 items · Guest H (fictional) · room 104",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 525000,
+     "credit": 0
+    },
+    {
+     "account": "4200",
+     "debit": 0,
+     "credit": 500000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 12500
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 12500
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260405/016",
+   "date": "2026-04-05",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1214/night:HCC-1214:2026-04-05",
+   "narration": "Room night · 2026-04-05 · Guest H (fictional) · room 104",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 315000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 300000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 7500
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 7500
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260405/017",
+   "date": "2026-04-05",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1219/night:HCC-1219:2026-04-05",
+   "narration": "Room night · 2026-04-05 · Guest I (fictional) · room 107",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 315000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 300000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 7500
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 7500
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260405/018",
+   "date": "2026-04-05",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1224/night:HCC-1224:2026-04-05",
+   "narration": "Room night · 2026-04-05 · Guest J (fictional) · room 203",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 315000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 300000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 7500
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 7500
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260405/019",
+   "date": "2026-04-05",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1229/night:HCC-1229:2026-04-05",
+   "narration": "Room night · 2026-04-05 · Guest K (fictional) · room 204",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 315000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 300000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 7500
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 7500
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260405/020",
+   "date": "2026-04-05",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1234/night:HCC-1234:2026-04-05",
+   "narration": "Room night · 2026-04-05 · Guest L (fictional) · room 106",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 472500,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 450000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 11250
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 11250
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260405/021",
+   "date": "2026-04-05",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1239/night:HCC-1239:2026-04-05",
+   "narration": "Room night · 2026-04-05 · Guest M (fictional) · room 206",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 472500,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 450000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 11250
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 11250
+    }
+   ]
+  },
+  {
+   "no": "JRN/20260406/001",
+   "date": "2026-04-06",
+   "type": "Journal",
+   "sub": "company-credit",
+   "sourceId": "HCC-1149/RCPT-1537",
+   "narration": "Company credit · Deccan Agro Ltd · APR-1534 · Deccan Agro delegate 1 (fictional)",
+   "entries": [
+    {
+     "account": "1110/CO-1142",
+     "debit": 1050000,
+     "credit": 0
+    },
+    {
+     "account": "1100",
+     "debit": 0,
+     "credit": 1050000
+    }
+   ]
+  },
+  {
+   "no": "JRN/20260406/002",
+   "date": "2026-04-06",
+   "type": "Journal",
+   "sub": "company-credit",
+   "sourceId": "HCC-1154/RCPT-1543",
+   "narration": "Company credit · Deccan Agro Ltd · APR-1540 · Deccan Agro delegate 2 (fictional)",
+   "entries": [
+    {
+     "account": "1110/CO-1142",
+     "debit": 1050000,
+     "credit": 0
+    },
+    {
+     "account": "1100",
+     "debit": 0,
+     "credit": 1050000
+    }
+   ]
+  },
+  {
+   "no": "JRN/20260406/003",
+   "date": "2026-04-06",
+   "type": "Journal",
+   "sub": "company-credit",
+   "sourceId": "HCC-1159/RCPT-1549",
+   "narration": "Company credit · Deccan Agro Ltd · APR-1546 · Deccan Agro delegate 3 (fictional)",
+   "entries": [
+    {
+     "account": "1110/CO-1142",
+     "debit": 1050000,
+     "credit": 0
+    },
+    {
+     "account": "1100",
+     "debit": 0,
+     "credit": 1050000
+    }
+   ]
+  },
+  {
+   "no": "JRN/20260406/004",
+   "date": "2026-04-06",
+   "type": "Journal",
+   "sub": "company-credit",
+   "sourceId": "HCC-1164/RCPT-1555",
+   "narration": "Company credit · Deccan Agro Ltd · APR-1552 · Deccan Agro delegate 4 (fictional)",
+   "entries": [
+    {
+     "account": "1110/CO-1142",
+     "debit": 1050000,
+     "credit": 0
+    },
+    {
+     "account": "1100",
+     "debit": 0,
+     "credit": 1050000
+    }
+   ]
+  },
+  {
+   "no": "JRN/20260406/005",
+   "date": "2026-04-06",
+   "type": "Journal",
+   "sub": "company-credit",
+   "sourceId": "HCC-1169/RCPT-1561",
+   "narration": "Company credit · Deccan Agro Ltd · APR-1558 · Deccan Agro delegate 5 (fictional)",
+   "entries": [
+    {
+     "account": "1110/CO-1142",
+     "debit": 1050000,
+     "credit": 0
+    },
+    {
+     "account": "1100",
+     "debit": 0,
+     "credit": 1050000
+    }
+   ]
+  },
+  {
+   "no": "JRN/20260406/006",
+   "date": "2026-04-06",
+   "type": "Journal",
+   "sub": "company-credit",
+   "sourceId": "HCC-1174/RCPT-1567",
+   "narration": "Company credit · Deccan Agro Ltd · APR-1564 · Deccan Agro delegate 6 (fictional)",
+   "entries": [
+    {
+     "account": "1110/CO-1142",
+     "debit": 1050000,
+     "credit": 0
+    },
+    {
+     "account": "1100",
+     "debit": 0,
+     "credit": 1050000
+    }
+   ]
+  },
+  {
+   "no": "JRN/20260406/007",
+   "date": "2026-04-06",
+   "type": "Journal",
+   "sub": "deposit-apply",
+   "sourceId": "HCC-1204/RCPT-1570",
+   "narration": "Deposit applied at check-out · Advance from the opening balance applied at check-out · Guest F (fictional)",
+   "entries": [
+    {
+     "account": "2000",
+     "debit": 1000000,
+     "credit": 0
+    },
+    {
+     "account": "1100",
+     "debit": 0,
+     "credit": 1000000
+    }
+   ]
+  },
+  {
+   "no": "RCT/20260406/001",
+   "date": "2026-04-06",
+   "type": "Receipt",
+   "sub": "payment",
+   "sourceId": "HCC-1204/RCPT-1572",
+   "narration": "Payment received · Cash · Demo cash · Guest F (fictional)",
+   "entries": [
+    {
+     "account": "1000/TILL",
+     "debit": 50000,
+     "credit": 0
+    },
+    {
+     "account": "1100",
+     "debit": 0,
+     "credit": 50000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260406/001",
+   "date": "2026-04-06",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1179/night:HCC-1179:2026-04-06",
+   "narration": "Room night · 2026-04-06 · Guest A (fictional) · room 205",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260406/002",
+   "date": "2026-04-06",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1184/night:HCC-1184:2026-04-06",
+   "narration": "Room night · 2026-04-06 · Guest B (fictional) · room 208",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260406/003",
+   "date": "2026-04-06",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1189/night:HCC-1189:2026-04-06",
+   "narration": "Room night · 2026-04-06 · Guest C (fictional) · room 301",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260406/004",
+   "date": "2026-04-06",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1194/night:HCC-1194:2026-04-06",
+   "narration": "Room night · 2026-04-06 · Guest D (fictional) · room 302",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260406/005",
+   "date": "2026-04-06",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1199/night:HCC-1199:2026-04-06",
+   "narration": "Room night · 2026-04-06 · Guest E (fictional) · room 305",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260406/006",
+   "date": "2026-04-06",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1209/night:HCC-1209:2026-04-06",
+   "narration": "Room night · 2026-04-06 · Guest G (fictional) · room 103",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 315000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 300000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 7500
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 7500
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260406/007",
+   "date": "2026-04-06",
+   "type": "Sales",
+   "sub": "food",
+   "sourceId": "HCC-1214/posline:POS-1500",
+   "narration": "Room service · bill POS/2604/0017 · 12 items · Guest H (fictional) · room 104",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 525000,
+     "credit": 0
+    },
+    {
+     "account": "4200",
+     "debit": 0,
+     "credit": 500000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 12500
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 12500
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260406/008",
+   "date": "2026-04-06",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1214/night:HCC-1214:2026-04-06",
+   "narration": "Room night · 2026-04-06 · Guest H (fictional) · room 104",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 315000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 300000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 7500
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 7500
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260406/009",
+   "date": "2026-04-06",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1219/night:HCC-1219:2026-04-06",
+   "narration": "Room night · 2026-04-06 · Guest I (fictional) · room 107",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 315000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 300000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 7500
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 7500
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260406/010",
+   "date": "2026-04-06",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1224/night:HCC-1224:2026-04-06",
+   "narration": "Room night · 2026-04-06 · Guest J (fictional) · room 203",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 315000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 300000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 7500
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 7500
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260406/011",
+   "date": "2026-04-06",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1229/night:HCC-1229:2026-04-06",
+   "narration": "Room night · 2026-04-06 · Guest K (fictional) · room 204",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 315000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 300000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 7500
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 7500
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260406/012",
+   "date": "2026-04-06",
+   "type": "Sales",
+   "sub": "food",
+   "sourceId": "HCC-1234/posline:POS-1511",
+   "narration": "Room service · bill POS/2604/0018 · 12 items · Guest L (fictional) · room 106",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 525000,
+     "credit": 0
+    },
+    {
+     "account": "4200",
+     "debit": 0,
+     "credit": 500000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 12500
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 12500
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260406/013",
+   "date": "2026-04-06",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1234/night:HCC-1234:2026-04-06",
+   "narration": "Room night · 2026-04-06 · Guest L (fictional) · room 106",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 472500,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 450000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 11250
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 11250
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260406/014",
+   "date": "2026-04-06",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1239/night:HCC-1239:2026-04-06",
+   "narration": "Room night · 2026-04-06 · Guest M (fictional) · room 206",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 472500,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 450000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 11250
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 11250
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260406/015",
+   "date": "2026-04-06",
+   "type": "Sales",
+   "sub": "sale",
+   "sourceId": "POSR-1532",
+   "narration": "Outlet bill · restaurant · Cash · Outlet cash · POS-1522",
+   "entries": [
+    {
+     "account": "1000/TILL",
+     "debit": 630000,
+     "credit": 0
+    },
+    {
+     "account": "4200",
+     "debit": 0,
+     "credit": 600000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 15000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 15000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260407/001",
+   "date": "2026-04-07",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1179/night:HCC-1179:2026-04-07",
+   "narration": "Room night · 2026-04-07 · Guest A (fictional) · room 205",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260407/002",
+   "date": "2026-04-07",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1184/night:HCC-1184:2026-04-07",
+   "narration": "Room night · 2026-04-07 · Guest B (fictional) · room 208",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260407/003",
+   "date": "2026-04-07",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1189/night:HCC-1189:2026-04-07",
+   "narration": "Room night · 2026-04-07 · Guest C (fictional) · room 301",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260407/004",
+   "date": "2026-04-07",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1194/night:HCC-1194:2026-04-07",
+   "narration": "Room night · 2026-04-07 · Guest D (fictional) · room 302",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260407/005",
+   "date": "2026-04-07",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1199/night:HCC-1199:2026-04-07",
+   "narration": "Room night · 2026-04-07 · Guest E (fictional) · room 305",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260407/006",
+   "date": "2026-04-07",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1209/night:HCC-1209:2026-04-07",
+   "narration": "Room night · 2026-04-07 · Guest G (fictional) · room 103",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 315000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 300000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 7500
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 7500
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260407/007",
+   "date": "2026-04-07",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1214/night:HCC-1214:2026-04-07",
+   "narration": "Room night · 2026-04-07 · Guest H (fictional) · room 104",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 315000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 300000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 7500
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 7500
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260407/008",
+   "date": "2026-04-07",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1219/night:HCC-1219:2026-04-07",
+   "narration": "Room night · 2026-04-07 · Guest I (fictional) · room 107",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 315000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 300000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 7500
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 7500
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260407/009",
+   "date": "2026-04-07",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1224/night:HCC-1224:2026-04-07",
+   "narration": "Room night · 2026-04-07 · Guest J (fictional) · room 203",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 315000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 300000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 7500
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 7500
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260407/010",
+   "date": "2026-04-07",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1229/night:HCC-1229:2026-04-07",
+   "narration": "Room night · 2026-04-07 · Guest K (fictional) · room 204",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 315000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 300000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 7500
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 7500
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260407/011",
+   "date": "2026-04-07",
+   "type": "Sales",
+   "sub": "food",
+   "sourceId": "HCC-1234/posline:POS-1601",
+   "narration": "Room service · bill POS/2604/0020 · 12 items · Guest L (fictional) · room 106",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 525000,
+     "credit": 0
+    },
+    {
+     "account": "4200",
+     "debit": 0,
+     "credit": 500000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 12500
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 12500
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260407/012",
+   "date": "2026-04-07",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1234/night:HCC-1234:2026-04-07",
+   "narration": "Room night · 2026-04-07 · Guest L (fictional) · room 106",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 472500,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 450000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 11250
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 11250
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260407/013",
+   "date": "2026-04-07",
+   "type": "Sales",
+   "sub": "food",
+   "sourceId": "HCC-1239/posline:POS-1612",
+   "narration": "Room service · bill POS/2604/0021 · 12 items · Guest M (fictional) · room 206",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 525000,
+     "credit": 0
+    },
+    {
+     "account": "4200",
+     "debit": 0,
+     "credit": 500000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 12500
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 12500
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260407/014",
+   "date": "2026-04-07",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1239/night:HCC-1239:2026-04-07",
+   "narration": "Room night · 2026-04-07 · Guest M (fictional) · room 206",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 472500,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 450000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 11250
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 11250
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260407/015",
+   "date": "2026-04-07",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1623/night:HCC-1623:2026-04-07",
+   "narration": "Room night · 2026-04-07 · Goibibo guest (fictional) · room 101",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "PMT/20260408/001",
+   "date": "2026-04-08",
+   "type": "Payment",
+   "sub": "advance",
+   "sourceId": "advance:HR-ADV-1681",
+   "narration": "Salary advance given · Cash · advance HR-ADV-1681 · staff HR-S07",
+   "entries": [
+    {
+     "account": "1200/HR-S07",
+     "debit": 500000,
+     "credit": 0
+    },
+    {
+     "account": "1000/TILL",
+     "debit": 0,
+     "credit": 500000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260408/001",
+   "date": "2026-04-08",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1179/night:HCC-1179:2026-04-08",
+   "narration": "Room night · 2026-04-08 · Guest A (fictional) · room 205",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260408/002",
+   "date": "2026-04-08",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1184/night:HCC-1184:2026-04-08",
+   "narration": "Room night · 2026-04-08 · Guest B (fictional) · room 208",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260408/003",
+   "date": "2026-04-08",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1189/night:HCC-1189:2026-04-08",
+   "narration": "Room night · 2026-04-08 · Guest C (fictional) · room 301",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260408/004",
+   "date": "2026-04-08",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1194/night:HCC-1194:2026-04-08",
+   "narration": "Room night · 2026-04-08 · Guest D (fictional) · room 302",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260408/005",
+   "date": "2026-04-08",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1199/night:HCC-1199:2026-04-08",
+   "narration": "Room night · 2026-04-08 · Guest E (fictional) · room 305",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260408/006",
+   "date": "2026-04-08",
+   "type": "Sales",
+   "sub": "food",
+   "sourceId": "HCC-1209/posline:POS-1658",
+   "narration": "Room service · bill POS/2604/0023 · 12 items · Guest G (fictional) · room 103",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 525000,
+     "credit": 0
+    },
+    {
+     "account": "4200",
+     "debit": 0,
+     "credit": 500000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 12500
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 12500
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260408/007",
+   "date": "2026-04-08",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1209/night:HCC-1209:2026-04-08",
+   "narration": "Room night · 2026-04-08 · Guest G (fictional) · room 103",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 315000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 300000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 7500
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 7500
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260408/008",
+   "date": "2026-04-08",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1214/night:HCC-1214:2026-04-08",
+   "narration": "Room night · 2026-04-08 · Guest H (fictional) · room 104",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 315000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 300000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 7500
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 7500
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260408/009",
+   "date": "2026-04-08",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1219/night:HCC-1219:2026-04-08",
+   "narration": "Room night · 2026-04-08 · Guest I (fictional) · room 107",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 315000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 300000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 7500
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 7500
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260408/010",
+   "date": "2026-04-08",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1224/night:HCC-1224:2026-04-08",
+   "narration": "Room night · 2026-04-08 · Guest J (fictional) · room 203",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 315000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 300000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 7500
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 7500
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260408/011",
+   "date": "2026-04-08",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1229/night:HCC-1229:2026-04-08",
+   "narration": "Room night · 2026-04-08 · Guest K (fictional) · room 204",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 315000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 300000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 7500
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 7500
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260408/012",
+   "date": "2026-04-08",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1234/night:HCC-1234:2026-04-08",
+   "narration": "Room night · 2026-04-08 · Guest L (fictional) · room 106",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 472500,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 450000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 11250
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 11250
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260408/013",
+   "date": "2026-04-08",
+   "type": "Sales",
+   "sub": "food",
+   "sourceId": "HCC-1239/posline:POS-1647",
+   "narration": "Room service · bill POS/2604/0022 · 12 items · Guest M (fictional) · room 206",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 525000,
+     "credit": 0
+    },
+    {
+     "account": "4200",
+     "debit": 0,
+     "credit": 500000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 12500
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 12500
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260408/014",
+   "date": "2026-04-08",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1239/night:HCC-1239:2026-04-08",
+   "narration": "Room night · 2026-04-08 · Guest M (fictional) · room 206",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 472500,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 450000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 11250
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 11250
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260408/015",
+   "date": "2026-04-08",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1623/night:HCC-1623:2026-04-08",
+   "narration": "Room night · 2026-04-08 · Goibibo guest (fictional) · room 101",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260408/016",
+   "date": "2026-04-08",
+   "type": "Sales",
+   "sub": "sale",
+   "sourceId": "POSR-1679",
+   "narration": "Outlet bill · restaurant · UPI · DEMO-UPI-OUTLET-4 · POS-1669",
+   "entries": [
+    {
+     "account": "1010",
+     "debit": 630000,
+     "credit": 0
+    },
+    {
+     "account": "4200",
+     "debit": 0,
+     "credit": 600000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 15000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 15000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260409/001",
+   "date": "2026-04-09",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1179/night:HCC-1179:2026-04-09",
+   "narration": "Room night · 2026-04-09 · Guest A (fictional) · room 205",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260409/002",
+   "date": "2026-04-09",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1184/night:HCC-1184:2026-04-09",
+   "narration": "Room night · 2026-04-09 · Guest B (fictional) · room 208",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260409/003",
+   "date": "2026-04-09",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1189/night:HCC-1189:2026-04-09",
+   "narration": "Room night · 2026-04-09 · Guest C (fictional) · room 301",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260409/004",
+   "date": "2026-04-09",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1194/night:HCC-1194:2026-04-09",
+   "narration": "Room night · 2026-04-09 · Guest D (fictional) · room 302",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260409/005",
+   "date": "2026-04-09",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1199/night:HCC-1199:2026-04-09",
+   "narration": "Room night · 2026-04-09 · Guest E (fictional) · room 305",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260409/006",
+   "date": "2026-04-09",
+   "type": "Sales",
+   "sub": "food",
+   "sourceId": "HCC-1209/posline:POS-1702",
+   "narration": "Room service · bill POS/2604/0025 · 12 items · Guest G (fictional) · room 103",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 525000,
+     "credit": 0
+    },
+    {
+     "account": "4200",
+     "debit": 0,
+     "credit": 500000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 12500
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 12500
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260409/007",
+   "date": "2026-04-09",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1209/night:HCC-1209:2026-04-09",
+   "narration": "Room night · 2026-04-09 · Guest G (fictional) · room 103",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 315000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 300000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 7500
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 7500
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260409/008",
+   "date": "2026-04-09",
+   "type": "Sales",
+   "sub": "food",
+   "sourceId": "HCC-1214/posline:POS-1713",
+   "narration": "Room service · bill POS/2604/0026 · 12 items · Guest H (fictional) · room 104",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 525000,
+     "credit": 0
+    },
+    {
+     "account": "4200",
+     "debit": 0,
+     "credit": 500000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 12500
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 12500
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260409/009",
+   "date": "2026-04-09",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1214/night:HCC-1214:2026-04-09",
+   "narration": "Room night · 2026-04-09 · Guest H (fictional) · room 104",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 315000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 300000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 7500
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 7500
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260409/010",
+   "date": "2026-04-09",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1219/night:HCC-1219:2026-04-09",
+   "narration": "Room night · 2026-04-09 · Guest I (fictional) · room 107",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 315000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 300000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 7500
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 7500
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260409/011",
+   "date": "2026-04-09",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1224/night:HCC-1224:2026-04-09",
+   "narration": "Room night · 2026-04-09 · Guest J (fictional) · room 203",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 315000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 300000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 7500
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 7500
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260409/012",
+   "date": "2026-04-09",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1229/night:HCC-1229:2026-04-09",
+   "narration": "Room night · 2026-04-09 · Guest K (fictional) · room 204",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 315000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 300000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 7500
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 7500
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260409/013",
+   "date": "2026-04-09",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1234/night:HCC-1234:2026-04-09",
+   "narration": "Room night · 2026-04-09 · Guest L (fictional) · room 106",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 472500,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 450000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 11250
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 11250
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260409/014",
+   "date": "2026-04-09",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1239/night:HCC-1239:2026-04-09",
+   "narration": "Room night · 2026-04-09 · Guest M (fictional) · room 206",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 472500,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 450000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 11250
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 11250
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260409/015",
+   "date": "2026-04-09",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1623/night:HCC-1623:2026-04-09",
+   "narration": "Room night · 2026-04-09 · Goibibo guest (fictional) · room 101",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "RCT/20260410/001",
+   "date": "2026-04-10",
+   "type": "Receipt",
+   "sub": "company-payment",
+   "sourceId": "company-payment:GCP-1755",
+   "narration": "Company payment received · Deccan Agro Ltd · Bank transfer · NEFT-DEMO-0410 · payment GCP-1755",
+   "entries": [
+    {
+     "account": "1030/BA-HDFC",
+     "debit": 4000000,
+     "credit": 0
+    },
+    {
+     "account": "1110/CO-1142",
+     "debit": 0,
+     "credit": 4000000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260410/001",
+   "date": "2026-04-10",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1179/night:HCC-1179:2026-04-10",
+   "narration": "Room night · 2026-04-10 · Guest A (fictional) · room 205",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260410/002",
+   "date": "2026-04-10",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1184/night:HCC-1184:2026-04-10",
+   "narration": "Room night · 2026-04-10 · Guest B (fictional) · room 208",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260410/003",
+   "date": "2026-04-10",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1189/night:HCC-1189:2026-04-10",
+   "narration": "Room night · 2026-04-10 · Guest C (fictional) · room 301",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260410/004",
+   "date": "2026-04-10",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1194/night:HCC-1194:2026-04-10",
+   "narration": "Room night · 2026-04-10 · Guest D (fictional) · room 302",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260410/005",
+   "date": "2026-04-10",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1199/night:HCC-1199:2026-04-10",
+   "narration": "Room night · 2026-04-10 · Guest E (fictional) · room 305",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260410/006",
+   "date": "2026-04-10",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1209/night:HCC-1209:2026-04-10",
+   "narration": "Room night · 2026-04-10 · Guest G (fictional) · room 103",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 315000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 300000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 7500
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 7500
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260410/007",
+   "date": "2026-04-10",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1214/night:HCC-1214:2026-04-10",
+   "narration": "Room night · 2026-04-10 · Guest H (fictional) · room 104",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 315000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 300000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 7500
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 7500
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260410/008",
+   "date": "2026-04-10",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1219/night:HCC-1219:2026-04-10",
+   "narration": "Room night · 2026-04-10 · Guest I (fictional) · room 107",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 315000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 300000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 7500
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 7500
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260410/009",
+   "date": "2026-04-10",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1224/night:HCC-1224:2026-04-10",
+   "narration": "Room night · 2026-04-10 · Guest J (fictional) · room 203",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 315000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 300000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 7500
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 7500
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260410/010",
+   "date": "2026-04-10",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1229/night:HCC-1229:2026-04-10",
+   "narration": "Room night · 2026-04-10 · Guest K (fictional) · room 204",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 315000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 300000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 7500
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 7500
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260410/011",
+   "date": "2026-04-10",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1234/night:HCC-1234:2026-04-10",
+   "narration": "Room night · 2026-04-10 · Guest L (fictional) · room 106",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 472500,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 450000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 11250
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 11250
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260410/012",
+   "date": "2026-04-10",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1239/night:HCC-1239:2026-04-10",
+   "narration": "Room night · 2026-04-10 · Guest M (fictional) · room 206",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 472500,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 450000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 11250
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 11250
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260410/013",
+   "date": "2026-04-10",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1623/night:HCC-1623:2026-04-10",
+   "narration": "Room night · 2026-04-10 · Goibibo guest (fictional) · room 101",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260410/014",
+   "date": "2026-04-10",
+   "type": "Sales",
+   "sub": "sale",
+   "sourceId": "POSR-1753",
+   "narration": "Outlet bill · restaurant · Cash · Outlet cash · POS-1743",
+   "entries": [
+    {
+     "account": "1000/TILL",
+     "debit": 630000,
+     "credit": 0
+    },
+    {
+     "account": "4200",
+     "debit": 0,
+     "credit": 600000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 15000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 15000
+    }
+   ]
+  },
+  {
+   "no": "RCT/20260411/001",
+   "date": "2026-04-11",
+   "type": "Receipt",
+   "sub": "payment",
+   "sourceId": "HCC-1179/RCPT-1778",
+   "narration": "Payment received · Cash · Demo cash · Guest A (fictional)",
+   "entries": [
+    {
+     "account": "1000/TILL",
+     "debit": 2100000,
+     "credit": 0
+    },
+    {
+     "account": "1100",
+     "debit": 0,
+     "credit": 2100000
+    }
+   ]
+  },
+  {
+   "no": "RCT/20260411/002",
+   "date": "2026-04-11",
+   "type": "Receipt",
+   "sub": "payment",
+   "sourceId": "HCC-1184/RCPT-1782",
+   "narration": "Payment received · Cash · Demo cash · Guest B (fictional)",
+   "entries": [
+    {
+     "account": "1000/TILL",
+     "debit": 2100000,
+     "credit": 0
+    },
+    {
+     "account": "1100",
+     "debit": 0,
+     "credit": 2100000
+    }
+   ]
+  },
+  {
+   "no": "RCT/20260411/003",
+   "date": "2026-04-11",
+   "type": "Receipt",
+   "sub": "payment",
+   "sourceId": "HCC-1189/RCPT-1786",
+   "narration": "Payment received · Cash · Demo cash · Guest C (fictional)",
+   "entries": [
+    {
+     "account": "1000/TILL",
+     "debit": 2100000,
+     "credit": 0
+    },
+    {
+     "account": "1100",
+     "debit": 0,
+     "credit": 2100000
+    }
+   ]
+  },
+  {
+   "no": "RCT/20260411/004",
+   "date": "2026-04-11",
+   "type": "Receipt",
+   "sub": "payment",
+   "sourceId": "HCC-1194/RCPT-1790",
+   "narration": "Payment received · Cash · Demo cash · Guest D (fictional)",
+   "entries": [
+    {
+     "account": "1000/TILL",
+     "debit": 2100000,
+     "credit": 0
+    },
+    {
+     "account": "1100",
+     "debit": 0,
+     "credit": 2100000
+    }
+   ]
+  },
+  {
+   "no": "RCT/20260411/005",
+   "date": "2026-04-11",
+   "type": "Receipt",
+   "sub": "payment",
+   "sourceId": "HCC-1199/RCPT-1794",
+   "narration": "Payment received · Cash · Demo cash · Guest E (fictional)",
+   "entries": [
+    {
+     "account": "1000/TILL",
+     "debit": 2100000,
+     "credit": 0
+    },
+    {
+     "account": "1100",
+     "debit": 0,
+     "credit": 2100000
+    }
+   ]
+  },
+  {
+   "no": "RCT/20260411/006",
+   "date": "2026-04-11",
+   "type": "Receipt",
+   "sub": "payment",
+   "sourceId": "HCC-1209/RCPT-1799",
+   "narration": "Payment received · Cash · Demo cash · Guest G (fictional)",
+   "entries": [
+    {
+     "account": "1000/TILL",
+     "debit": 4650000,
+     "credit": 0
+    },
+    {
+     "account": "1100",
+     "debit": 0,
+     "credit": 4650000
+    }
+   ]
+  },
+  {
+   "no": "RCT/20260411/007",
+   "date": "2026-04-11",
+   "type": "Receipt",
+   "sub": "payment",
+   "sourceId": "HCC-1209/RCPT-1800",
+   "narration": "Payment received · UPI · DEMO-UPI-1 · Guest G (fictional)",
+   "entries": [
+    {
+     "account": "1010",
+     "debit": 1125000,
+     "credit": 0
+    },
+    {
+     "account": "1100",
+     "debit": 0,
+     "credit": 1125000
+    }
+   ]
+  },
+  {
+   "no": "RCT/20260411/008",
+   "date": "2026-04-11",
+   "type": "Receipt",
+   "sub": "payment",
+   "sourceId": "HCC-1214/RCPT-1804",
+   "narration": "Payment received · UPI · DEMO-UPI-2 · Guest H (fictional)",
+   "entries": [
+    {
+     "account": "1010",
+     "debit": 5775000,
+     "credit": 0
+    },
+    {
+     "account": "1100",
+     "debit": 0,
+     "credit": 5775000
+    }
+   ]
+  },
+  {
+   "no": "RCT/20260411/009",
+   "date": "2026-04-11",
+   "type": "Receipt",
+   "sub": "payment",
+   "sourceId": "HCC-1219/RCPT-1808",
+   "narration": "Payment received · UPI · DEMO-UPI-3 · Guest I (fictional)",
+   "entries": [
+    {
+     "account": "1010",
+     "debit": 3150000,
+     "credit": 0
+    },
+    {
+     "account": "1100",
+     "debit": 0,
+     "credit": 3150000
+    }
+   ]
+  },
+  {
+   "no": "RCT/20260411/010",
+   "date": "2026-04-11",
+   "type": "Receipt",
+   "sub": "payment",
+   "sourceId": "HCC-1224/RCPT-1812",
+   "narration": "Payment received · UPI · DEMO-UPI-4 · Guest J (fictional)",
+   "entries": [
+    {
+     "account": "1010",
+     "debit": 3150000,
+     "credit": 0
+    },
+    {
+     "account": "1100",
+     "debit": 0,
+     "credit": 3150000
+    }
+   ]
+  },
+  {
+   "no": "RCT/20260411/011",
+   "date": "2026-04-11",
+   "type": "Receipt",
+   "sub": "payment",
+   "sourceId": "HCC-1229/RCPT-1817",
+   "narration": "Payment received · UPI · DEMO-UPI-5 · Guest K (fictional)",
+   "entries": [
+    {
+     "account": "1010",
+     "debit": 1800000,
+     "credit": 0
+    },
+    {
+     "account": "1100",
+     "debit": 0,
+     "credit": 1800000
+    }
+   ]
+  },
+  {
+   "no": "RCT/20260411/012",
+   "date": "2026-04-11",
+   "type": "Receipt",
+   "sub": "payment",
+   "sourceId": "HCC-1229/RCPT-1818",
+   "narration": "Payment received · Card · DEMO-CARD-6 · Guest K (fictional)",
+   "entries": [
+    {
+     "account": "1020",
+     "debit": 1350000,
+     "credit": 0
+    },
+    {
+     "account": "1100",
+     "debit": 0,
+     "credit": 1350000
+    }
+   ]
+  },
+  {
+   "no": "RCT/20260411/013",
+   "date": "2026-04-11",
+   "type": "Receipt",
+   "sub": "payment",
+   "sourceId": "HCC-1234/RCPT-1822",
+   "narration": "Payment received · Card · DEMO-CARD-7 · Guest L (fictional)",
+   "entries": [
+    {
+     "account": "1020",
+     "debit": 7350000,
+     "credit": 0
+    },
+    {
+     "account": "1100",
+     "debit": 0,
+     "credit": 7350000
+    }
+   ]
+  },
+  {
+   "no": "RCT/20260411/014",
+   "date": "2026-04-11",
+   "type": "Receipt",
+   "sub": "payment",
+   "sourceId": "HCC-1239/RCPT-1826",
+   "narration": "Payment received · Card · DEMO-CARD-8 · Guest M (fictional)",
+   "entries": [
+    {
+     "account": "1020",
+     "debit": 6300000,
+     "credit": 0
+    },
+    {
+     "account": "1100",
+     "debit": 0,
+     "credit": 6300000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260411/001",
+   "date": "2026-04-11",
+   "type": "Sales",
+   "sub": "discount",
+   "sourceId": "HCC-1239/discount-1776",
+   "narration": "Discount · Service recovery (fictional) · Guest M (fictional) · room 206",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 0,
+     "credit": 1050000
+    },
+    {
+     "account": "4900",
+     "debit": 1000000,
+     "credit": 0
+    },
+    {
+     "account": "2110",
+     "debit": 25000,
+     "credit": 0
+    },
+    {
+     "account": "2120",
+     "debit": 25000,
+     "credit": 0
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260411/002",
+   "date": "2026-04-11",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1623/night:HCC-1623:2026-04-11",
+   "narration": "Room night · 2026-04-11 · Goibibo guest (fictional) · room 101",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "PUR/20260412/001",
+   "date": "2026-04-12",
+   "type": "Purchase",
+   "sub": "expense",
+   "sourceId": "EXP-1847",
+   "narration": "Kaveri Textiles · Laundry · Vendor credit",
+   "entries": [
+    {
+     "account": "5010",
+     "debit": 4200000,
+     "credit": 0
+    },
+    {
+     "account": "2200/EV-KAVERI",
+     "debit": 0,
+     "credit": 4200000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260412/001",
+   "date": "2026-04-12",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1623/night:HCC-1623:2026-04-12",
+   "narration": "Room night · 2026-04-12 · Goibibo guest (fictional) · room 101",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260412/002",
+   "date": "2026-04-12",
+   "type": "Sales",
+   "sub": "sale",
+   "sourceId": "POSR-1845",
+   "narration": "Outlet bill · restaurant · UPI · DEMO-UPI-OUTLET-6 · POS-1835",
+   "entries": [
+    {
+     "account": "1010",
+     "debit": 630000,
+     "credit": 0
+    },
+    {
+     "account": "4200",
+     "debit": 0,
+     "credit": 600000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 15000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 15000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260413/001",
+   "date": "2026-04-13",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1623/night:HCC-1623:2026-04-13",
+   "narration": "Room night · 2026-04-13 · Goibibo guest (fictional) · room 101",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "PMT/20260414/001",
+   "date": "2026-04-14",
+   "type": "Payment",
+   "sub": "expense",
+   "sourceId": "EXP-1900",
+   "narration": "Sundry cash expenses (1 of 2, fictional) · Petty cash · Cash",
+   "entries": [
+    {
+     "account": "5040",
+     "debit": 400000,
+     "credit": 0
+    },
+    {
+     "account": "1000/TILL",
+     "debit": 0,
+     "credit": 400000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260414/001",
+   "date": "2026-04-14",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1623/night:HCC-1623:2026-04-14",
+   "narration": "Room night · 2026-04-14 · Goibibo guest (fictional) · room 101",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260414/002",
+   "date": "2026-04-14",
+   "type": "Sales",
+   "sub": "sale",
+   "sourceId": "POSR-1898",
+   "narration": "Outlet bill · restaurant · Cash · Outlet cash · POS-1888",
+   "entries": [
+    {
+     "account": "1000/TILL",
+     "debit": 630000,
+     "credit": 0
+    },
+    {
+     "account": "4200",
+     "debit": 0,
+     "credit": 600000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 15000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 15000
+    }
+   ]
+  },
+  {
+   "no": "PMT/20260415/001",
+   "date": "2026-04-15",
+   "type": "Payment",
+   "sub": "expense",
+   "sourceId": "EXP-1922",
+   "narration": "State Electricity Board (fictional) · Utilities · Bank transfer",
+   "entries": [
+    {
+     "account": "5030",
+     "debit": 4500000,
+     "credit": 0
+    },
+    {
+     "account": "1030/BA-HDFC",
+     "debit": 0,
+     "credit": 4500000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260415/001",
+   "date": "2026-04-15",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1623/night:HCC-1623:2026-04-15",
+   "narration": "Room night · 2026-04-15 · Goibibo guest (fictional) · room 101",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260416/001",
+   "date": "2026-04-16",
+   "type": "Sales",
+   "sub": "room",
+   "sourceId": "HCC-1623/night:HCC-1623:2026-04-16",
+   "narration": "Room night · 2026-04-16 · Goibibo guest (fictional) · room 101",
+   "entries": [
+    {
+     "account": "1100",
+     "debit": 210000,
+     "credit": 0
+    },
+    {
+     "account": "4000",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 5000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 5000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260416/002",
+   "date": "2026-04-16",
+   "type": "Sales",
+   "sub": "sale",
+   "sourceId": "POSR-1956",
+   "narration": "Outlet bill · restaurant · UPI · DEMO-UPI-OUTLET-8 · POS-1946",
+   "entries": [
+    {
+     "account": "1010",
+     "debit": 630000,
+     "credit": 0
+    },
+    {
+     "account": "4200",
+     "debit": 0,
+     "credit": 600000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 15000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 15000
+    }
+   ]
+  },
+  {
+   "no": "JRN/20260417/001",
+   "date": "2026-04-17",
+   "type": "Journal",
+   "sub": "ota-credit",
+   "sourceId": "HCC-1623/RCPT-1977",
+   "narration": "OTA credit · Goibibo · Goibibo · paid by the OTA · Goibibo guest (fictional)",
+   "entries": [
+    {
+     "account": "1115/goibibo",
+     "debit": 2100000,
+     "credit": 0
+    },
+    {
+     "account": "1100",
+     "debit": 0,
+     "credit": 2100000
+    }
+   ]
+  },
+  {
+   "no": "PMT/20260418/001",
+   "date": "2026-04-18",
+   "type": "Payment",
+   "sub": "expense",
+   "sourceId": "EXP-2011",
+   "narration": "Sundry cash expenses (2 of 2, fictional) · Petty cash · Cash",
+   "entries": [
+    {
+     "account": "5040",
+     "debit": 400000,
+     "credit": 0
+    },
+    {
+     "account": "1000/TILL",
+     "debit": 0,
+     "credit": 400000
+    }
+   ]
+  },
+  {
+   "no": "PMT/20260418/002",
+   "date": "2026-04-18",
+   "type": "Payment",
+   "sub": "vendor-payment",
+   "sourceId": "vendor-payment:VP-2014",
+   "narration": "Vendor payment · Morning Supplies · Bank transfer · NEFT-DEMO-0418 · payment VP-2014",
+   "entries": [
+    {
+     "account": "2200/EV-MORNING",
+     "debit": 6000000,
+     "credit": 0
+    },
+    {
+     "account": "1030/BA-HDFC",
+     "debit": 0,
+     "credit": 6000000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260418/001",
+   "date": "2026-04-18",
+   "type": "Sales",
+   "sub": "sale",
+   "sourceId": "POSR-2009",
+   "narration": "Outlet bill · restaurant · Cash · Outlet cash · POS-1999",
+   "entries": [
+    {
+     "account": "1000/TILL",
+     "debit": 630000,
+     "credit": 0
+    },
+    {
+     "account": "4200",
+     "debit": 0,
+     "credit": 600000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 15000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 15000
+    }
+   ]
+  },
+  {
+   "no": "RCT/20260420/001",
+   "date": "2026-04-20",
+   "type": "Receipt",
+   "sub": "deposit",
+   "sourceId": "HCC-2052/RCPT-2054",
+   "narration": "Deposit received · UPI · DEMO-UPI-ADVANCE-0420 · May guest (fictional)",
+   "entries": [
+    {
+     "account": "1010",
+     "debit": 3150000,
+     "credit": 0
+    },
+    {
+     "account": "2000",
+     "debit": 0,
+     "credit": 3150000
+    }
+   ]
+  },
+  {
+   "no": "SAL/20260420/001",
+   "date": "2026-04-20",
+   "type": "Sales",
+   "sub": "sale",
+   "sourceId": "POSR-2050",
+   "narration": "Outlet bill · restaurant · UPI · DEMO-UPI-OUTLET-10 · POS-2040",
+   "entries": [
+    {
+     "account": "1010",
+     "debit": 630000,
+     "credit": 0
+    },
+    {
+     "account": "4200",
+     "debit": 0,
+     "credit": 600000
+    },
+    {
+     "account": "2110",
+     "debit": 0,
+     "credit": 15000
+    },
+    {
+     "account": "2120",
+     "debit": 0,
+     "credit": 15000
+    }
+   ]
+  },
+  {
+   "no": "JRN/20260425/001",
+   "date": "2026-04-25",
+   "type": "Journal",
+   "sub": "bank-deposit",
+   "sourceId": "banking:BNK-2151",
+   "narration": "Cash deposited in bank · HDFC · slip SLIP-20260425 · deposit BNK-2151",
+   "entries": [
+    {
+     "account": "1030/BA-HDFC",
+     "debit": 15000000,
+     "credit": 0
+    },
+    {
+     "account": "1000/TILL",
+     "debit": 0,
+     "credit": 15000000
+    }
+   ]
+  },
+  {
+   "no": "JRN/20260426/001",
+   "date": "2026-04-26",
+   "type": "Journal",
+   "sub": "cash-difference",
+   "sourceId": "CLOSE/2026-04-26/cash-difference",
+   "narration": "Cash short accepted at shift close · 2026-04-26",
+   "entries": [
+    {
+     "account": "5900",
+     "debit": 20000,
+     "credit": 0
+    },
+    {
+     "account": "1000/TILL",
+     "debit": 0,
+     "credit": 20000
+    }
+   ]
+  },
+  {
+   "no": "CTR/20260427/001",
+   "date": "2026-04-27",
+   "type": "Contra",
+   "sub": "contra",
+   "sourceId": "MV-2180",
+   "narration": "UPI settlements to HDFC, April (fictional) · UPI-SETTLE-APR · manual MV-2180",
+   "entries": [
+    {
+     "account": "1030/BA-HDFC",
+     "debit": 21300000,
+     "credit": 0
+    },
+    {
+     "account": "1010",
+     "debit": 0,
+     "credit": 21300000
+    }
+   ]
+  },
+  {
+   "no": "JRN/20260427/001",
+   "date": "2026-04-27",
+   "type": "Journal",
+   "sub": "journal",
+   "sourceId": "MV-2182",
+   "narration": "Card settlement less MDR 1 % and GST 18 % (fictional) · CARD-SETTLE-APR · manual MV-2182",
+   "entries": [
+    {
+     "account": "1030/BA-HDFC",
+     "debit": 14823000,
+     "credit": 0
+    },
+    {
+     "account": "5080",
+     "debit": 177000,
+     "credit": 0
+    },
+    {
+     "account": "1020",
+     "debit": 0,
+     "credit": 15000000
+    }
+   ]
+  },
+  {
+   "no": "PMT/20260428/001",
+   "date": "2026-04-28",
+   "type": "Payment",
+   "sub": "owner-drawing-bank",
+   "sourceId": "MV-2203",
+   "narration": "Owner drawing from the bank (fictional) · DRAW-DEMO-0428 · manual MV-2203",
+   "entries": [
+    {
+     "account": "3000",
+     "debit": 5000000,
+     "credit": 0
+    },
+    {
+     "account": "1030/BA-HDFC",
+     "debit": 0,
+     "credit": 5000000
+    }
+   ]
+  },
+  {
+   "no": "RCT/20260429/001",
+   "date": "2026-04-29",
+   "type": "Receipt",
+   "sub": "ota-payout",
+   "sourceId": "ota-payout:CHPO-2224",
+   "narration": "OTA payout · Goibibo · statement GOI-STMT-2026-04-A · 1 booking(s) · payout CHPO-2224",
+   "entries": [
+    {
+     "account": "1030/BA-HDFC",
+     "debit": 1736000,
+     "credit": 0
+    },
+    {
+     "account": "5070",
+     "debit": 354000,
+     "credit": 0
+    },
+    {
+     "account": "1340",
+     "debit": 10000,
+     "credit": 0
+    },
+    {
+     "account": "1115/goibibo",
+     "debit": 0,
+     "credit": 2100000
+    }
+   ]
+  },
+  {
+   "no": "JRN/20260430/001",
+   "date": "2026-04-30",
+   "type": "Journal",
+   "sub": "payrun",
+   "sourceId": "payroll:HR-PAY-2254",
+   "narration": "Pay run 2026-04 · run HR-PAY-2254 · locked 2026-05-01",
+   "entries": [
+    {
+     "account": "5100",
+     "debit": 24000000,
+     "credit": 0
+    },
+    {
+     "account": "5110",
+     "debit": 1800000,
+     "credit": 0
+    },
+    {
+     "account": "5110",
+     "debit": 650000,
+     "credit": 0
+    },
+    {
+     "account": "2300",
+     "debit": 0,
+     "credit": 21350000
+    },
+    {
+     "account": "2310",
+     "debit": 0,
+     "credit": 3600000
+    },
+    {
+     "account": "2320",
+     "debit": 0,
+     "credit": 800000
+    },
+    {
+     "account": "2330",
+     "debit": 0,
+     "credit": 200000
+    },
+    {
+     "account": "1200/HR-S07",
+     "debit": 0,
+     "credit": 500000
+    }
+   ]
+  },
+  {
+   "no": "PMT/20260430/001",
+   "date": "2026-04-30",
+   "type": "Payment",
+   "sub": "payment",
+   "sourceId": "payroll-paid:HR-PAY-2254",
+   "narration": "Net pay paid · Bank transfer · Bank file 1 · April 2026 · run HR-PAY-2254 · paid 2026-05-01",
+   "entries": [
+    {
+     "account": "2300",
+     "debit": 21350000,
+     "credit": 0
+    },
+    {
+     "account": "1030/BA-HDFC",
+     "debit": 0,
+     "credit": 21350000
+    }
+   ]
+  },
+  {
+   "no": "PMT/20260430/002",
+   "date": "2026-04-30",
+   "type": "Payment",
+   "sub": "bank-charges",
+   "sourceId": "MV-2247",
+   "narration": "Bank charges ₹500 + GST ₹90, April (fictional) · BANKCHG-DEMO-0430 · manual MV-2247",
+   "entries": [
+    {
+     "account": "5080",
+     "debit": 59000,
+     "credit": 0
+    },
+    {
+     "account": "1030/BA-HDFC",
+     "debit": 0,
+     "credit": 59000
+    }
+   ]
+  },
+  {
+   "no": "RCT/20260430/001",
+   "date": "2026-04-30",
+   "type": "Receipt",
+   "sub": "company-payment",
+   "sourceId": "company-payment:GCP-2245",
+   "narration": "Company payment received · Deccan Agro Ltd · Bank transfer · NEFT-DEMO-0430 · payment GCP-2245 · TDS ₹6000.00 deducted",
+   "entries": [
+    {
+     "account": "1030/BA-HDFC",
+     "debit": 5700000,
+     "credit": 0
+    },
+    {
+     "account": "1360",
+     "debit": 600000,
+     "credit": 0
+    },
+    {
+     "account": "1110/CO-1142",
+     "debit": 0,
+     "credit": 6300000
+    }
+   ]
+  }
+ ],
+ "emit": [
+  "HCC-1149/night:HCC-1149:2026-04-01",
+  "HCC-1154/night:HCC-1154:2026-04-01",
+  "HCC-1159/night:HCC-1159:2026-04-01",
+  "HCC-1164/night:HCC-1164:2026-04-01",
+  "HCC-1169/night:HCC-1169:2026-04-01",
+  "HCC-1174/night:HCC-1174:2026-04-01",
+  "HCC-1179/night:HCC-1179:2026-04-01",
+  "HCC-1184/night:HCC-1184:2026-04-01",
+  "HCC-1189/night:HCC-1189:2026-04-01",
+  "HCC-1194/night:HCC-1194:2026-04-01",
+  "HCC-1199/night:HCC-1199:2026-04-01",
+  "HCC-1204/night:HCC-1204:2026-04-01",
+  "HCC-1209/posline:POS-1258",
+  "HCC-1209/night:HCC-1209:2026-04-01",
+  "HCC-1214/posline:POS-1269",
+  "HCC-1214/night:HCC-1214:2026-04-01",
+  "HCC-1219/night:HCC-1219:2026-04-01",
+  "HCC-1224/night:HCC-1224:2026-04-01",
+  "HCC-1229/night:HCC-1229:2026-04-01",
+  "HCC-1234/posline:POS-1280",
+  "HCC-1234/night:HCC-1234:2026-04-01",
+  "HCC-1239/night:HCC-1239:2026-04-01",
+  "HCC-1149/night:HCC-1149:2026-04-02",
+  "HCC-1154/night:HCC-1154:2026-04-02",
+  "HCC-1159/night:HCC-1159:2026-04-02",
+  "HCC-1164/night:HCC-1164:2026-04-02",
+  "HCC-1169/night:HCC-1169:2026-04-02",
+  "HCC-1174/night:HCC-1174:2026-04-02",
+  "HCC-1179/night:HCC-1179:2026-04-02",
+  "HCC-1184/night:HCC-1184:2026-04-02",
+  "HCC-1189/night:HCC-1189:2026-04-02",
+  "HCC-1194/night:HCC-1194:2026-04-02",
+  "HCC-1199/night:HCC-1199:2026-04-02",
+  "HCC-1204/night:HCC-1204:2026-04-02",
+  "HCC-1209/night:HCC-1209:2026-04-02",
+  "HCC-1214/posline:POS-1310",
+  "HCC-1214/night:HCC-1214:2026-04-02",
+  "HCC-1219/night:HCC-1219:2026-04-02",
+  "HCC-1224/night:HCC-1224:2026-04-02",
+  "HCC-1229/night:HCC-1229:2026-04-02",
+  "HCC-1234/posline:POS-1321",
+  "HCC-1234/night:HCC-1234:2026-04-02",
+  "HCC-1239/posline:POS-1332",
+  "HCC-1239/night:HCC-1239:2026-04-02",
+  "POSR-1353",
+  "HCC-1149/night:HCC-1149:2026-04-03",
+  "HCC-1154/night:HCC-1154:2026-04-03",
+  "HCC-1159/night:HCC-1159:2026-04-03",
+  "HCC-1164/night:HCC-1164:2026-04-03",
+  "HCC-1169/night:HCC-1169:2026-04-03",
+  "HCC-1174/night:HCC-1174:2026-04-03",
+  "HCC-1179/night:HCC-1179:2026-04-03",
+  "HCC-1184/night:HCC-1184:2026-04-03",
+  "HCC-1189/night:HCC-1189:2026-04-03",
+  "HCC-1194/night:HCC-1194:2026-04-03",
+  "HCC-1199/night:HCC-1199:2026-04-03",
+  "HCC-1204/night:HCC-1204:2026-04-03",
+  "HCC-1209/night:HCC-1209:2026-04-03",
+  "HCC-1214/night:HCC-1214:2026-04-03",
+  "HCC-1219/night:HCC-1219:2026-04-03",
+  "HCC-1224/night:HCC-1224:2026-04-03",
+  "HCC-1229/night:HCC-1229:2026-04-03",
+  "HCC-1234/posline:POS-1374",
+  "HCC-1234/night:HCC-1234:2026-04-03",
+  "HCC-1239/posline:POS-1385",
+  "HCC-1239/night:HCC-1239:2026-04-03",
+  "HCC-1149/night:HCC-1149:2026-04-04",
+  "HCC-1154/night:HCC-1154:2026-04-04",
+  "HCC-1159/night:HCC-1159:2026-04-04",
+  "HCC-1164/night:HCC-1164:2026-04-04",
+  "HCC-1169/night:HCC-1169:2026-04-04",
+  "HCC-1174/night:HCC-1174:2026-04-04",
+  "HCC-1179/night:HCC-1179:2026-04-04",
+  "HCC-1184/night:HCC-1184:2026-04-04",
+  "HCC-1189/night:HCC-1189:2026-04-04",
+  "HCC-1194/night:HCC-1194:2026-04-04",
+  "HCC-1199/night:HCC-1199:2026-04-04",
+  "HCC-1204/night:HCC-1204:2026-04-04",
+  "HCC-1209/posline:POS-1426",
+  "HCC-1209/night:HCC-1209:2026-04-04",
+  "HCC-1214/night:HCC-1214:2026-04-04",
+  "HCC-1219/night:HCC-1219:2026-04-04",
+  "HCC-1224/night:HCC-1224:2026-04-04",
+  "HCC-1229/night:HCC-1229:2026-04-04",
+  "HCC-1234/night:HCC-1234:2026-04-04",
+  "HCC-1239/posline:POS-1415",
+  "HCC-1239/night:HCC-1239:2026-04-04",
+  "POSR-1447",
+  "MV-1479",
+  "EXP-1476",
+  "HCC-1149/night:HCC-1149:2026-04-05",
+  "HCC-1154/night:HCC-1154:2026-04-05",
+  "HCC-1159/night:HCC-1159:2026-04-05",
+  "HCC-1164/night:HCC-1164:2026-04-05",
+  "HCC-1169/night:HCC-1169:2026-04-05",
+  "HCC-1174/night:HCC-1174:2026-04-05",
+  "HCC-1179/night:HCC-1179:2026-04-05",
+  "HCC-1184/night:HCC-1184:2026-04-05",
+  "HCC-1189/night:HCC-1189:2026-04-05",
+  "HCC-1194/night:HCC-1194:2026-04-05",
+  "HCC-1199/night:HCC-1199:2026-04-05",
+  "HCC-1204/night:HCC-1204:2026-04-05",
+  "HCC-1209/posline:POS-1454",
+  "HCC-1209/night:HCC-1209:2026-04-05",
+  "HCC-1214/posline:POS-1465",
+  "HCC-1214/night:HCC-1214:2026-04-05",
+  "HCC-1219/night:HCC-1219:2026-04-05",
+  "HCC-1224/night:HCC-1224:2026-04-05",
+  "HCC-1229/night:HCC-1229:2026-04-05",
+  "HCC-1234/night:HCC-1234:2026-04-05",
+  "HCC-1239/night:HCC-1239:2026-04-05",
+  "HCC-1149/RCPT-1537",
+  "HCC-1154/RCPT-1543",
+  "HCC-1159/RCPT-1549",
+  "HCC-1164/RCPT-1555",
+  "HCC-1169/RCPT-1561",
+  "HCC-1174/RCPT-1567",
+  "HCC-1204/RCPT-1570",
+  "HCC-1204/RCPT-1572",
+  "HCC-1179/night:HCC-1179:2026-04-06",
+  "HCC-1184/night:HCC-1184:2026-04-06",
+  "HCC-1189/night:HCC-1189:2026-04-06",
+  "HCC-1194/night:HCC-1194:2026-04-06",
+  "HCC-1199/night:HCC-1199:2026-04-06",
+  "HCC-1209/night:HCC-1209:2026-04-06",
+  "HCC-1214/posline:POS-1500",
+  "HCC-1214/night:HCC-1214:2026-04-06",
+  "HCC-1219/night:HCC-1219:2026-04-06",
+  "HCC-1224/night:HCC-1224:2026-04-06",
+  "HCC-1229/night:HCC-1229:2026-04-06",
+  "HCC-1234/posline:POS-1511",
+  "HCC-1234/night:HCC-1234:2026-04-06",
+  "HCC-1239/night:HCC-1239:2026-04-06",
+  "POSR-1532",
+  "HCC-1179/night:HCC-1179:2026-04-07",
+  "HCC-1184/night:HCC-1184:2026-04-07",
+  "HCC-1189/night:HCC-1189:2026-04-07",
+  "HCC-1194/night:HCC-1194:2026-04-07",
+  "HCC-1199/night:HCC-1199:2026-04-07",
+  "HCC-1209/night:HCC-1209:2026-04-07",
+  "HCC-1214/night:HCC-1214:2026-04-07",
+  "HCC-1219/night:HCC-1219:2026-04-07",
+  "HCC-1224/night:HCC-1224:2026-04-07",
+  "HCC-1229/night:HCC-1229:2026-04-07",
+  "HCC-1234/posline:POS-1601",
+  "HCC-1234/night:HCC-1234:2026-04-07",
+  "HCC-1239/posline:POS-1612",
+  "HCC-1239/night:HCC-1239:2026-04-07",
+  "HCC-1623/night:HCC-1623:2026-04-07",
+  "advance:HR-ADV-1681",
+  "HCC-1179/night:HCC-1179:2026-04-08",
+  "HCC-1184/night:HCC-1184:2026-04-08",
+  "HCC-1189/night:HCC-1189:2026-04-08",
+  "HCC-1194/night:HCC-1194:2026-04-08",
+  "HCC-1199/night:HCC-1199:2026-04-08",
+  "HCC-1209/posline:POS-1658",
+  "HCC-1209/night:HCC-1209:2026-04-08",
+  "HCC-1214/night:HCC-1214:2026-04-08",
+  "HCC-1219/night:HCC-1219:2026-04-08",
+  "HCC-1224/night:HCC-1224:2026-04-08",
+  "HCC-1229/night:HCC-1229:2026-04-08",
+  "HCC-1234/night:HCC-1234:2026-04-08",
+  "HCC-1239/posline:POS-1647",
+  "HCC-1239/night:HCC-1239:2026-04-08",
+  "HCC-1623/night:HCC-1623:2026-04-08",
+  "POSR-1679",
+  "HCC-1179/night:HCC-1179:2026-04-09",
+  "HCC-1184/night:HCC-1184:2026-04-09",
+  "HCC-1189/night:HCC-1189:2026-04-09",
+  "HCC-1194/night:HCC-1194:2026-04-09",
+  "HCC-1199/night:HCC-1199:2026-04-09",
+  "HCC-1209/posline:POS-1702",
+  "HCC-1209/night:HCC-1209:2026-04-09",
+  "HCC-1214/posline:POS-1713",
+  "HCC-1214/night:HCC-1214:2026-04-09",
+  "HCC-1219/night:HCC-1219:2026-04-09",
+  "HCC-1224/night:HCC-1224:2026-04-09",
+  "HCC-1229/night:HCC-1229:2026-04-09",
+  "HCC-1234/night:HCC-1234:2026-04-09",
+  "HCC-1239/night:HCC-1239:2026-04-09",
+  "HCC-1623/night:HCC-1623:2026-04-09",
+  "company-payment:GCP-1755",
+  "HCC-1179/night:HCC-1179:2026-04-10",
+  "HCC-1184/night:HCC-1184:2026-04-10",
+  "HCC-1189/night:HCC-1189:2026-04-10",
+  "HCC-1194/night:HCC-1194:2026-04-10",
+  "HCC-1199/night:HCC-1199:2026-04-10",
+  "HCC-1209/night:HCC-1209:2026-04-10",
+  "HCC-1214/night:HCC-1214:2026-04-10",
+  "HCC-1219/night:HCC-1219:2026-04-10",
+  "HCC-1224/night:HCC-1224:2026-04-10",
+  "HCC-1229/night:HCC-1229:2026-04-10",
+  "HCC-1234/night:HCC-1234:2026-04-10",
+  "HCC-1239/night:HCC-1239:2026-04-10",
+  "HCC-1623/night:HCC-1623:2026-04-10",
+  "POSR-1753",
+  "HCC-1179/RCPT-1778",
+  "HCC-1184/RCPT-1782",
+  "HCC-1189/RCPT-1786",
+  "HCC-1194/RCPT-1790",
+  "HCC-1199/RCPT-1794",
+  "HCC-1209/RCPT-1799",
+  "HCC-1209/RCPT-1800",
+  "HCC-1214/RCPT-1804",
+  "HCC-1219/RCPT-1808",
+  "HCC-1224/RCPT-1812",
+  "HCC-1229/RCPT-1817",
+  "HCC-1229/RCPT-1818",
+  "HCC-1234/RCPT-1822",
+  "HCC-1239/RCPT-1826",
+  "HCC-1239/discount-1776",
+  "HCC-1623/night:HCC-1623:2026-04-11",
+  "EXP-1847",
+  "HCC-1623/night:HCC-1623:2026-04-12",
+  "POSR-1845",
+  "HCC-1623/night:HCC-1623:2026-04-13",
+  "EXP-1900",
+  "HCC-1623/night:HCC-1623:2026-04-14",
+  "POSR-1898",
+  "EXP-1922",
+  "HCC-1623/night:HCC-1623:2026-04-15",
+  "HCC-1623/night:HCC-1623:2026-04-16",
+  "POSR-1956",
+  "HCC-1623/RCPT-1977",
+  "EXP-2011",
+  "vendor-payment:VP-2014",
+  "POSR-2009",
+  "HCC-2052/RCPT-2054",
+  "POSR-2050",
+  "banking:BNK-2151",
+  "CLOSE/2026-04-26/cash-difference",
+  "MV-2180",
+  "MV-2182",
+  "MV-2203",
+  "ota-payout:CHPO-2224",
+  "payroll:HR-PAY-2254",
+  "payroll-paid:HR-PAY-2254",
+  "MV-2247",
+  "company-payment:GCP-2245"
+ ]
+}
