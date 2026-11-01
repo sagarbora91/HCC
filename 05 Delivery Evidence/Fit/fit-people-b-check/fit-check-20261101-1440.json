@@ -1,0 +1,9924 @@
+[
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "vouchers",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "manual",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "gst",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "tds",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "assets",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "tb",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "statements",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "pl",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "bs",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "ageing",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "gstsum",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "cashratio",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "exports",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "daybook",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "chart",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "parties",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "opening",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "FAIL",
+  "fails": [
+   "hidden-action Add line|Save draft",
+   "font-changed td 10px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "exceptions",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "recon",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "mapping",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "tally",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "reports",
+  "tab": "",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "plans-extras",
+  "tab": "",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "plans-extras",
+  "tab": "service-charges",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "plans-extras",
+  "tab": "stays-by-meal-plan",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "plans-extras",
+  "tab": "discounts-by-reason",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "assistant",
+  "tab": "",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "reservations",
+  "tab": "modal:+ New reservation",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "expenses",
+  "tab": "modal:+ Add expense",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "access",
+  "tab": "modal:New user",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "overview",
+  "tab": "modal:user menu",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "modal:accounting voucher",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "modal:New voucher",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "modal:Add ledger",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "reports",
+  "tab": "modal:Print",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "vouchers",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "manual",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "gst",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "tds",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "assets",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "tb",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "statements",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "pl",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "bs",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "ageing",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "gstsum",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "cashratio",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "exports",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "daybook",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "chart",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "parties",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "opening",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "FAIL",
+  "fails": [
+   "hidden-action Add line|Save draft",
+   "font-changed td 10px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "exceptions",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "recon",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "mapping",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "tally",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "manager",
+  "page": "reports",
+  "tab": "",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "manager",
+  "page": "plans-extras",
+  "tab": "",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "manager",
+  "page": "plans-extras",
+  "tab": "service-charges",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "manager",
+  "page": "plans-extras",
+  "tab": "stays-by-meal-plan",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "manager",
+  "page": "plans-extras",
+  "tab": "discounts-by-reason",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "manager",
+  "page": "assistant",
+  "tab": "",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "manager",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "manager",
+  "page": "reservations",
+  "tab": "modal:+ New reservation",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "manager",
+  "page": "expenses",
+  "tab": "modal:+ Add expense",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "manager",
+  "page": "overview",
+  "tab": "modal:user menu",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "manager",
+  "page": "reports",
+  "tab": "modal:Print",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "reception",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "reception",
+  "page": "reservations",
+  "tab": "modal:+ New reservation",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "reception",
+  "page": "expenses",
+  "tab": "modal:+ Add expense",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "cashier",
+  "page": "reports",
+  "tab": "",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "FAIL",
+  "fails": [
+   "cramped 100"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "cashier",
+  "page": "plans-extras",
+  "tab": "",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "cashier",
+  "page": "plans-extras",
+  "tab": "service-charges",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "cashier",
+  "page": "plans-extras",
+  "tab": "stays-by-meal-plan",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "cashier",
+  "page": "plans-extras",
+  "tab": "discounts-by-reason",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "cashier",
+  "page": "assistant",
+  "tab": "",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "cashier",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "cashier",
+  "page": "expenses",
+  "tab": "modal:+ Add expense",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "cashier",
+  "page": "overview",
+  "tab": "modal:user menu",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "supervisor",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "housekeeper",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "vouchers",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "manual",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "gst",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "tds",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "assets",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "tb",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "statements",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "pl",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "bs",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "ageing",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "gstsum",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "cashratio",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "exports",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "daybook",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "chart",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "parties",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "opening",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "FAIL",
+  "fails": [
+   "hidden-action Add line|Save draft",
+   "font-changed td 10px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "exceptions",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "recon",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "mapping",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "tally",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "accountant",
+  "page": "reports",
+  "tab": "",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "FAIL",
+  "fails": [
+   "cramped 150"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "accountant",
+  "page": "plans-extras",
+  "tab": "",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "accountant",
+  "page": "plans-extras",
+  "tab": "service-charges",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "accountant",
+  "page": "plans-extras",
+  "tab": "stays-by-meal-plan",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "accountant",
+  "page": "plans-extras",
+  "tab": "discounts-by-reason",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "accountant",
+  "page": "assistant",
+  "tab": "",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "accountant",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "accountant",
+  "page": "overview",
+  "tab": "modal:user menu",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "modal:accounting voucher",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "accountant",
+  "page": "reports",
+  "tab": "modal:Print",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "maint",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "techadmin",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "vouchers",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "manual",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "gst",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "tds",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "assets",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "tb",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "statements",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "pl",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "bs",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "ageing",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "gstsum",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "cashratio",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "exports",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "daybook",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "chart",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "parties",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "opening",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "FAIL",
+  "fails": [
+   "font-changed td 10px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "exceptions",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "recon",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "mapping",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "tally",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "owner",
+  "page": "reports",
+  "tab": "",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "FAIL",
+  "fails": [
+   "cramped 79"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "owner",
+  "page": "plans-extras",
+  "tab": "",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "owner",
+  "page": "plans-extras",
+  "tab": "service-charges",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "owner",
+  "page": "plans-extras",
+  "tab": "stays-by-meal-plan",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "owner",
+  "page": "plans-extras",
+  "tab": "discounts-by-reason",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "owner",
+  "page": "assistant",
+  "tab": "",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "owner",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "owner",
+  "page": "reservations",
+  "tab": "modal:+ New reservation",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "owner",
+  "page": "expenses",
+  "tab": "modal:+ Add expense",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "owner",
+  "page": "access",
+  "tab": "modal:New user",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "owner",
+  "page": "overview",
+  "tab": "modal:user menu",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "modal:accounting voucher",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "modal:New voucher",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "modal:Add ledger",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "owner",
+  "page": "reports",
+  "tab": "modal:Print",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "vouchers",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "manual",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "gst",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "tds",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "assets",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "tb",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "statements",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "pl",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "bs",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "ageing",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "gstsum",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "cashratio",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "exports",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "daybook",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "chart",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "parties",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "opening",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "FAIL",
+  "fails": [
+   "font-changed td 10px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "exceptions",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "recon",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "mapping",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "tally",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "manager",
+  "page": "reports",
+  "tab": "",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "FAIL",
+  "fails": [
+   "cramped 79"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "manager",
+  "page": "plans-extras",
+  "tab": "",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "manager",
+  "page": "plans-extras",
+  "tab": "service-charges",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "manager",
+  "page": "plans-extras",
+  "tab": "stays-by-meal-plan",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "manager",
+  "page": "plans-extras",
+  "tab": "discounts-by-reason",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "manager",
+  "page": "assistant",
+  "tab": "",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "manager",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "manager",
+  "page": "reservations",
+  "tab": "modal:+ New reservation",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "manager",
+  "page": "expenses",
+  "tab": "modal:+ Add expense",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "manager",
+  "page": "overview",
+  "tab": "modal:user menu",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "manager",
+  "page": "reports",
+  "tab": "modal:Print",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "reception",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "reception",
+  "page": "reservations",
+  "tab": "modal:+ New reservation",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "reception",
+  "page": "expenses",
+  "tab": "modal:+ Add expense",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "cashier",
+  "page": "reports",
+  "tab": "",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "FAIL",
+  "fails": [
+   "cramped 103"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "cashier",
+  "page": "plans-extras",
+  "tab": "",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "cashier",
+  "page": "plans-extras",
+  "tab": "service-charges",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "cashier",
+  "page": "plans-extras",
+  "tab": "stays-by-meal-plan",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "cashier",
+  "page": "plans-extras",
+  "tab": "discounts-by-reason",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "cashier",
+  "page": "assistant",
+  "tab": "",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "cashier",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "cashier",
+  "page": "expenses",
+  "tab": "modal:+ Add expense",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "cashier",
+  "page": "overview",
+  "tab": "modal:user menu",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "supervisor",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "housekeeper",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "vouchers",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "manual",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "gst",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "tds",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "assets",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "tb",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "statements",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "pl",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "bs",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "ageing",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "gstsum",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "cashratio",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "exports",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "daybook",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "chart",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "parties",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "opening",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "FAIL",
+  "fails": [
+   "font-changed td 10px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "exceptions",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "recon",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "mapping",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "tally",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "accountant",
+  "page": "reports",
+  "tab": "",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "FAIL",
+  "fails": [
+   "cramped 71"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "accountant",
+  "page": "plans-extras",
+  "tab": "",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "accountant",
+  "page": "plans-extras",
+  "tab": "service-charges",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "accountant",
+  "page": "plans-extras",
+  "tab": "stays-by-meal-plan",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "accountant",
+  "page": "plans-extras",
+  "tab": "discounts-by-reason",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "accountant",
+  "page": "assistant",
+  "tab": "",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "accountant",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "accountant",
+  "page": "overview",
+  "tab": "modal:user menu",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "modal:accounting voucher",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "accountant",
+  "page": "reports",
+  "tab": "modal:Print",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "maint",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "techadmin",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "vouchers",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "manual",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "gst",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "tds",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "assets",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "tb",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "statements",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "pl",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "bs",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "ageing",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "gstsum",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "cashratio",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "exports",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "daybook",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "chart",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "parties",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "opening",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "hidden-action Add line|Save draft",
+   "font-changed td 10px (was 11px)",
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "exceptions",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "recon",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "mapping",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "tally",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "reports",
+  "tab": "",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "cramped 103"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "plans-extras",
+  "tab": "",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "plans-extras",
+  "tab": "service-charges",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "plans-extras",
+  "tab": "stays-by-meal-plan",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "plans-extras",
+  "tab": "discounts-by-reason",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "assistant",
+  "tab": "",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "reservations",
+  "tab": "modal:+ New reservation",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "expenses",
+  "tab": "modal:+ Add expense",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "access",
+  "tab": "modal:New user",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "overview",
+  "tab": "modal:user menu",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "modal:accounting voucher",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "modal:New voucher",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "modal:Add ledger",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "reports",
+  "tab": "modal:Print",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "vouchers",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "manual",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "gst",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "tds",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "assets",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "tb",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "statements",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "pl",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "bs",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "ageing",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "gstsum",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "cashratio",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "exports",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "daybook",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "chart",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "parties",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "opening",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "hidden-action Add line|Save draft",
+   "font-changed td 10px (was 11px)",
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "exceptions",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "recon",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "mapping",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "tally",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "manager",
+  "page": "reports",
+  "tab": "",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "cramped 103"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "manager",
+  "page": "plans-extras",
+  "tab": "",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "manager",
+  "page": "plans-extras",
+  "tab": "service-charges",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "manager",
+  "page": "plans-extras",
+  "tab": "stays-by-meal-plan",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "manager",
+  "page": "plans-extras",
+  "tab": "discounts-by-reason",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "manager",
+  "page": "assistant",
+  "tab": "",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "manager",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "manager",
+  "page": "reservations",
+  "tab": "modal:+ New reservation",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "manager",
+  "page": "expenses",
+  "tab": "modal:+ Add expense",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "manager",
+  "page": "overview",
+  "tab": "modal:user menu",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "manager",
+  "page": "reports",
+  "tab": "modal:Print",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "reception",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "reception",
+  "page": "reservations",
+  "tab": "modal:+ New reservation",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "reception",
+  "page": "expenses",
+  "tab": "modal:+ Add expense",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "cashier",
+  "page": "reports",
+  "tab": "",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "cashier",
+  "page": "plans-extras",
+  "tab": "",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "cashier",
+  "page": "plans-extras",
+  "tab": "service-charges",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "cashier",
+  "page": "plans-extras",
+  "tab": "stays-by-meal-plan",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "cashier",
+  "page": "plans-extras",
+  "tab": "discounts-by-reason",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "cashier",
+  "page": "assistant",
+  "tab": "",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "cashier",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "cashier",
+  "page": "expenses",
+  "tab": "modal:+ Add expense",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "cashier",
+  "page": "overview",
+  "tab": "modal:user menu",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "supervisor",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "housekeeper",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "vouchers",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "manual",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "gst",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "tds",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "assets",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "tb",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "statements",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "pl",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "bs",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "ageing",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "gstsum",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "cashratio",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "exports",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "daybook",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "chart",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "parties",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "opening",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "hidden-action Add line|Save draft",
+   "font-changed td 10px (was 11px)",
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "exceptions",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "recon",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "mapping",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "tally",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "accountant",
+  "page": "reports",
+  "tab": "",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "cramped 91"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "accountant",
+  "page": "plans-extras",
+  "tab": "",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "accountant",
+  "page": "plans-extras",
+  "tab": "service-charges",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "accountant",
+  "page": "plans-extras",
+  "tab": "stays-by-meal-plan",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "accountant",
+  "page": "plans-extras",
+  "tab": "discounts-by-reason",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "accountant",
+  "page": "assistant",
+  "tab": "",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "accountant",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "accountant",
+  "page": "overview",
+  "tab": "modal:user menu",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "modal:accounting voucher",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "accountant",
+  "page": "reports",
+  "tab": "modal:Print",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "maint",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "techadmin",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "vouchers",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "manual",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "gst",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "tds",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "assets",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "tb",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "statements",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "pl",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "bs",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "ageing",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "gstsum",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "cashratio",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "exports",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "daybook",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "chart",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "parties",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "opening",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "hidden-action Add line|Save draft",
+   "font-changed td 10px (was 11px)",
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "exceptions",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "recon",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "mapping",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "tally",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "owner",
+  "page": "reports",
+  "tab": "",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "cramped 112"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "owner",
+  "page": "plans-extras",
+  "tab": "",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "owner",
+  "page": "plans-extras",
+  "tab": "service-charges",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "owner",
+  "page": "plans-extras",
+  "tab": "stays-by-meal-plan",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "owner",
+  "page": "plans-extras",
+  "tab": "discounts-by-reason",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "owner",
+  "page": "assistant",
+  "tab": "",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "owner",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "owner",
+  "page": "reservations",
+  "tab": "modal:+ New reservation",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "owner",
+  "page": "expenses",
+  "tab": "modal:+ Add expense",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "owner",
+  "page": "access",
+  "tab": "modal:New user",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "owner",
+  "page": "overview",
+  "tab": "modal:user menu",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "modal:accounting voucher",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "modal:New voucher",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "modal:Add ledger",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "owner",
+  "page": "reports",
+  "tab": "modal:Print",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "vouchers",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "manual",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "gst",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "tds",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "assets",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "tb",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "statements",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "pl",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "bs",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "ageing",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "gstsum",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "cashratio",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "exports",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "daybook",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "chart",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "parties",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "opening",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "hidden-action Add line|Save draft",
+   "font-changed td 10px (was 11px)",
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "exceptions",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "recon",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "mapping",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "tally",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "manager",
+  "page": "reports",
+  "tab": "",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "cramped 112"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "manager",
+  "page": "plans-extras",
+  "tab": "",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "manager",
+  "page": "plans-extras",
+  "tab": "service-charges",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "manager",
+  "page": "plans-extras",
+  "tab": "stays-by-meal-plan",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "manager",
+  "page": "plans-extras",
+  "tab": "discounts-by-reason",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "manager",
+  "page": "assistant",
+  "tab": "",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "manager",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "manager",
+  "page": "reservations",
+  "tab": "modal:+ New reservation",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "manager",
+  "page": "expenses",
+  "tab": "modal:+ Add expense",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "manager",
+  "page": "overview",
+  "tab": "modal:user menu",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "manager",
+  "page": "reports",
+  "tab": "modal:Print",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "reception",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "reception",
+  "page": "reservations",
+  "tab": "modal:+ New reservation",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "reception",
+  "page": "expenses",
+  "tab": "modal:+ Add expense",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "cashier",
+  "page": "reports",
+  "tab": "",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "cashier",
+  "page": "plans-extras",
+  "tab": "",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "cashier",
+  "page": "plans-extras",
+  "tab": "service-charges",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "cashier",
+  "page": "plans-extras",
+  "tab": "stays-by-meal-plan",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "cashier",
+  "page": "plans-extras",
+  "tab": "discounts-by-reason",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "cashier",
+  "page": "assistant",
+  "tab": "",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "cashier",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "cashier",
+  "page": "expenses",
+  "tab": "modal:+ Add expense",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "cashier",
+  "page": "overview",
+  "tab": "modal:user menu",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "supervisor",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "housekeeper",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "vouchers",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "manual",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "gst",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "tds",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "assets",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "tb",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "statements",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "pl",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "bs",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "ageing",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "gstsum",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "cashratio",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "exports",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "daybook",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "chart",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "parties",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "opening",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "hidden-action Add line|Save draft",
+   "font-changed td 10px (was 11px)",
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "exceptions",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "recon",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "mapping",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "tally",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "accountant",
+  "page": "reports",
+  "tab": "",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "cramped 101"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "accountant",
+  "page": "plans-extras",
+  "tab": "",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "accountant",
+  "page": "plans-extras",
+  "tab": "service-charges",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "accountant",
+  "page": "plans-extras",
+  "tab": "stays-by-meal-plan",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "accountant",
+  "page": "plans-extras",
+  "tab": "discounts-by-reason",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "accountant",
+  "page": "assistant",
+  "tab": "",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "accountant",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "accountant",
+  "page": "overview",
+  "tab": "modal:user menu",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "modal:accounting voucher",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "accountant",
+  "page": "reports",
+  "tab": "modal:Print",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "maint",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "techadmin",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "vouchers",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "manual",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "gst",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "tds",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "assets",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "tb",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "statements",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "pl",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "bs",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "ageing",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "gstsum",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "cashratio",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "exports",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "daybook",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "chart",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "parties",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "opening",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed td 10px (was 11px)",
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "exceptions",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "recon",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "mapping",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "tally",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "owner",
+  "page": "reports",
+  "tab": "",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "owner",
+  "page": "plans-extras",
+  "tab": "",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "owner",
+  "page": "plans-extras",
+  "tab": "service-charges",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "owner",
+  "page": "plans-extras",
+  "tab": "stays-by-meal-plan",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "owner",
+  "page": "plans-extras",
+  "tab": "discounts-by-reason",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "owner",
+  "page": "assistant",
+  "tab": "",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "owner",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "owner",
+  "page": "reservations",
+  "tab": "modal:+ New reservation",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "owner",
+  "page": "expenses",
+  "tab": "modal:+ Add expense",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "owner",
+  "page": "access",
+  "tab": "modal:New user",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "owner",
+  "page": "overview",
+  "tab": "modal:user menu",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "modal:accounting voucher",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "modal:New voucher",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "modal:Add ledger",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "owner",
+  "page": "reports",
+  "tab": "modal:Print",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "vouchers",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "manual",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "gst",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "tds",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "assets",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "tb",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "statements",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "pl",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "bs",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "ageing",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "gstsum",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "cashratio",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "exports",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "daybook",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "chart",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "parties",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "opening",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed td 10px (was 11px)",
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "exceptions",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "recon",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "mapping",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "tally",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "manager",
+  "page": "reports",
+  "tab": "",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "manager",
+  "page": "plans-extras",
+  "tab": "",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "manager",
+  "page": "plans-extras",
+  "tab": "service-charges",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "manager",
+  "page": "plans-extras",
+  "tab": "stays-by-meal-plan",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "manager",
+  "page": "plans-extras",
+  "tab": "discounts-by-reason",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "manager",
+  "page": "assistant",
+  "tab": "",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "manager",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "manager",
+  "page": "reservations",
+  "tab": "modal:+ New reservation",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "manager",
+  "page": "expenses",
+  "tab": "modal:+ Add expense",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "manager",
+  "page": "overview",
+  "tab": "modal:user menu",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "manager",
+  "page": "reports",
+  "tab": "modal:Print",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "reception",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "reception",
+  "page": "reservations",
+  "tab": "modal:+ New reservation",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "reception",
+  "page": "expenses",
+  "tab": "modal:+ Add expense",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "cashier",
+  "page": "reports",
+  "tab": "",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "cashier",
+  "page": "plans-extras",
+  "tab": "",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "cashier",
+  "page": "plans-extras",
+  "tab": "service-charges",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "cashier",
+  "page": "plans-extras",
+  "tab": "stays-by-meal-plan",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "cashier",
+  "page": "plans-extras",
+  "tab": "discounts-by-reason",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "cashier",
+  "page": "assistant",
+  "tab": "",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "cashier",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "cashier",
+  "page": "expenses",
+  "tab": "modal:+ Add expense",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "cashier",
+  "page": "overview",
+  "tab": "modal:user menu",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "supervisor",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "housekeeper",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "vouchers",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "manual",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "gst",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "tds",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "assets",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "tb",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "statements",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "pl",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "bs",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "ageing",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "gstsum",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "cashratio",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "exports",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "daybook",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "chart",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "parties",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "opening",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed td 10px (was 11px)",
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "exceptions",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "recon",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "mapping",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "tally",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed select 12px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "accountant",
+  "page": "reports",
+  "tab": "",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "accountant",
+  "page": "plans-extras",
+  "tab": "",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "accountant",
+  "page": "plans-extras",
+  "tab": "service-charges",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "accountant",
+  "page": "plans-extras",
+  "tab": "stays-by-meal-plan",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "accountant",
+  "page": "plans-extras",
+  "tab": "discounts-by-reason",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "accountant",
+  "page": "assistant",
+  "tab": "",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "accountant",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "accountant",
+  "page": "overview",
+  "tab": "modal:user menu",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "modal:accounting voucher",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "accountant",
+  "page": "reports",
+  "tab": "modal:Print",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "maint",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "techadmin",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "vouchers",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "manual",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "gst",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "tds",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "assets",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "tb",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "statements",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "pl",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "bs",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "ageing",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "gstsum",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "cashratio",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "exports",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "daybook",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "chart",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "parties",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "opening",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "FAIL",
+  "fails": [
+   "hidden-action Add line|Save draft"
+  ]
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "exceptions",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "recon",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "mapping",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "tally",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "reports",
+  "tab": "",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "plans-extras",
+  "tab": "",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "plans-extras",
+  "tab": "service-charges",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "plans-extras",
+  "tab": "stays-by-meal-plan",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "plans-extras",
+  "tab": "discounts-by-reason",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "assistant",
+  "tab": "",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "reservations",
+  "tab": "modal:+ New reservation",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "expenses",
+  "tab": "modal:+ Add expense",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "access",
+  "tab": "modal:New user",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "overview",
+  "tab": "modal:user menu",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "modal:accounting voucher",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "modal:New voucher",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "modal:Add ledger",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "reports",
+  "tab": "modal:Print",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "vouchers",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "manual",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "gst",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "tds",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "assets",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "tb",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "statements",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "pl",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "bs",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "ageing",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "gstsum",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "cashratio",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "exports",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "daybook",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "chart",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "parties",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "opening",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "FAIL",
+  "fails": [
+   "hidden-action Add line|Save draft"
+  ]
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "exceptions",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "recon",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "mapping",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "tally",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "manager",
+  "page": "reports",
+  "tab": "",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "manager",
+  "page": "plans-extras",
+  "tab": "",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "manager",
+  "page": "plans-extras",
+  "tab": "service-charges",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "manager",
+  "page": "plans-extras",
+  "tab": "stays-by-meal-plan",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "manager",
+  "page": "plans-extras",
+  "tab": "discounts-by-reason",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "manager",
+  "page": "assistant",
+  "tab": "",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "manager",
+  "page": "reservations",
+  "tab": "modal:+ New reservation",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "manager",
+  "page": "expenses",
+  "tab": "modal:+ Add expense",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "manager",
+  "page": "overview",
+  "tab": "modal:user menu",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "manager",
+  "page": "reports",
+  "tab": "modal:Print",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "reception",
+  "page": "reservations",
+  "tab": "modal:+ New reservation",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "reception",
+  "page": "expenses",
+  "tab": "modal:+ Add expense",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "cashier",
+  "page": "reports",
+  "tab": "",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "cashier",
+  "page": "plans-extras",
+  "tab": "",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "cashier",
+  "page": "plans-extras",
+  "tab": "service-charges",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "cashier",
+  "page": "plans-extras",
+  "tab": "stays-by-meal-plan",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "cashier",
+  "page": "plans-extras",
+  "tab": "discounts-by-reason",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "cashier",
+  "page": "assistant",
+  "tab": "",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "cashier",
+  "page": "expenses",
+  "tab": "modal:+ Add expense",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "cashier",
+  "page": "overview",
+  "tab": "modal:user menu",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "vouchers",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "manual",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "gst",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "tds",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "assets",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "tb",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "statements",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "pl",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "bs",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "ageing",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "gstsum",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "cashratio",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "exports",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "daybook",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "chart",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "parties",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "opening",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "FAIL",
+  "fails": [
+   "hidden-action Add line|Save draft"
+  ]
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "exceptions",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "recon",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "mapping",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "tally",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "accountant",
+  "page": "reports",
+  "tab": "",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "accountant",
+  "page": "plans-extras",
+  "tab": "",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "accountant",
+  "page": "plans-extras",
+  "tab": "service-charges",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "accountant",
+  "page": "plans-extras",
+  "tab": "stays-by-meal-plan",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "accountant",
+  "page": "plans-extras",
+  "tab": "discounts-by-reason",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "accountant",
+  "page": "assistant",
+  "tab": "",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "accountant",
+  "page": "overview",
+  "tab": "modal:user menu",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "modal:accounting voucher",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "accountant",
+  "page": "reports",
+  "tab": "modal:Print",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "vouchers",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "manual",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "gst",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "tds",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "assets",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "tb",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "statements",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "pl",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "bs",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "ageing",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "gstsum",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "cashratio",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "exports",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "daybook",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "chart",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "parties",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "opening",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "hidden-action Add line|Save draft"
+  ]
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "exceptions",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "recon",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "mapping",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "tally",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "reports",
+  "tab": "",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "plans-extras",
+  "tab": "",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "plans-extras",
+  "tab": "service-charges",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "plans-extras",
+  "tab": "stays-by-meal-plan",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "plans-extras",
+  "tab": "discounts-by-reason",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "assistant",
+  "tab": "",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "reservations",
+  "tab": "modal:+ New reservation",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "expenses",
+  "tab": "modal:+ Add expense",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "access",
+  "tab": "modal:New user",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "overview",
+  "tab": "modal:user menu",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "modal:accounting voucher",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "modal:New voucher",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "accounting",
+  "tab": "modal:Add ledger",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "reports",
+  "tab": "modal:Print",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "vouchers",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "manual",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "gst",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "tds",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "assets",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "tb",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "statements",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "pl",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "bs",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "ageing",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "gstsum",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "cashratio",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "exports",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "daybook",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "chart",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "parties",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "opening",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "hidden-action Add line|Save draft"
+  ]
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "exceptions",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "recon",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "mapping",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "manager",
+  "page": "accounting",
+  "tab": "tally",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "manager",
+  "page": "reports",
+  "tab": "",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "manager",
+  "page": "plans-extras",
+  "tab": "",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "manager",
+  "page": "plans-extras",
+  "tab": "service-charges",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "manager",
+  "page": "plans-extras",
+  "tab": "stays-by-meal-plan",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "manager",
+  "page": "plans-extras",
+  "tab": "discounts-by-reason",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "manager",
+  "page": "assistant",
+  "tab": "",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "manager",
+  "page": "reservations",
+  "tab": "modal:+ New reservation",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "manager",
+  "page": "expenses",
+  "tab": "modal:+ Add expense",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "manager",
+  "page": "overview",
+  "tab": "modal:user menu",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "manager",
+  "page": "reports",
+  "tab": "modal:Print",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "reception",
+  "page": "reservations",
+  "tab": "modal:+ New reservation",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "reception",
+  "page": "expenses",
+  "tab": "modal:+ Add expense",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "cashier",
+  "page": "reports",
+  "tab": "",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "cashier",
+  "page": "plans-extras",
+  "tab": "",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "cashier",
+  "page": "plans-extras",
+  "tab": "service-charges",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "cashier",
+  "page": "plans-extras",
+  "tab": "stays-by-meal-plan",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "cashier",
+  "page": "plans-extras",
+  "tab": "discounts-by-reason",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "cashier",
+  "page": "assistant",
+  "tab": "",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "cashier",
+  "page": "expenses",
+  "tab": "modal:+ Add expense",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "cashier",
+  "page": "overview",
+  "tab": "modal:user menu",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "vouchers",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "manual",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "gst",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "tds",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "assets",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "tb",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "statements",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "pl",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "bs",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "ageing",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "gstsum",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "cashratio",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "exports",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "daybook",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "chart",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "parties",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "opening",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "hidden-action Add line|Save draft"
+  ]
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "exceptions",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "recon",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "mapping",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "tally",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "accountant",
+  "page": "reports",
+  "tab": "",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "accountant",
+  "page": "plans-extras",
+  "tab": "",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "accountant",
+  "page": "plans-extras",
+  "tab": "service-charges",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "accountant",
+  "page": "plans-extras",
+  "tab": "stays-by-meal-plan",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "accountant",
+  "page": "plans-extras",
+  "tab": "discounts-by-reason",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "accountant",
+  "page": "assistant",
+  "tab": "",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "accountant",
+  "page": "overview",
+  "tab": "modal:user menu",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "accountant",
+  "page": "accounting",
+  "tab": "modal:accounting voucher",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "accountant",
+  "page": "reports",
+  "tab": "modal:Print",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ }
+]

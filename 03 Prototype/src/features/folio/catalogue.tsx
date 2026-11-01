@@ -12,6 +12,7 @@ import type {FeatureRegistration} from '../../app/registry';
 import {bookingRef} from '../../domain/bookingRef';
 import {useHcc} from '../../app/context';
 import {PageTitle,Empty,Pill,shortDate} from '../../components/ui';
+import {FitPage,FitTabs,useFitTab,ScrollPanel,FitNote} from '../../components/fit';
 import {MstLink} from '../masters/MasterList';
 import {saveCsv} from '../../app/native';
 
@@ -127,10 +128,15 @@ export function CatPlanModal({id}:{id?:string}){
     </form></>;
 }
 
+/** FIT (DEC-196): the page's three sections are sub-screens (src/app/subscreens.ts lists the same ids). Desktop layout only. */
+const CAT_TAB_IDS=['service-charges','stays-by-meal-plan','discounts-by-reason'] as const;
+type CatTab=typeof CAT_TAB_IDS[number];
+const CAT_TABS:{id:CatTab;label:string}[]=[{id:'service-charges',label:'Service charges'},{id:'stays-by-meal-plan',label:'Stays by meal plan'},{id:'discounts-by-reason',label:'Discounts by reason'}];
 /** Page 'plans-extras' (Closing & reports): catalogue vs free-text charges, stays by meal plan, discounts by reason, CSV. */
 export function PlansExtrasPage(){
   const {s,toast,display}=useHcc();
   const [from,setFrom]=useState(s.date.slice(0,8)+'01');const [to,setTo]=useState(s.date);
+  const [tab,setTab]=useFitTab<CatTab>('plans-extras',CAT_TAB_IDS,'service-charges');
   const ok=/^\d{4}-\d{2}-\d{2}$/.test(from)&&/^\d{4}-\d{2}-\d{2}$/.test(to)&&from<=to;
   const split=ok?catChargeSplit(s,from,to):undefined,plans=ok?catPlanReport(s,from,to):[],disc=ok?catDiscountReport(s,from,to):[];
   const phone=display.isMobile;
@@ -138,33 +144,52 @@ export function PlansExtrasPage(){
     ?<div className="cat-cards">{rows.map((r,i)=><div key={i} className="cat-card"><strong>{r[0]}</strong>{r.slice(1).map((v,j)=><span key={j}><small>{head[j+1]}</small> {money_[j+1]?money(Number(v)):v}</span>)}</div>)}</div>
     :<div className="table-wrap"><table><thead><tr>{head.map((h,i)=><th key={h} className={i?'number':''}>{h}</th>)}</tr></thead>
       <tbody>{rows.map((r,i)=><tr key={i}>{r.map((v,j)=><td key={j} className={j?'number':''}>{money_[j]?money(Number(v)):v}</td>)}</tr>)}</tbody></table></div>;
-  return <div className="cat-page">
-    <PageTitle title="Plans & extras" sub="Catalogue vs free-text charges, stays by meal plan, discounts by reason (amounts before GST)"
-      action={<button className="btn" disabled={!ok} onClick={()=>{void saveCsv(`HCC-plans-extras-${from}_${to}.csv`,catReportCsv(s,from,to));toast('CSV saved · plans & extras');}}><Download size={16}/> CSV</button>}/>
-    <section className="card cat-filters" aria-label="Report dates">
+  const csv=<button className="btn" disabled={!ok} onClick={()=>{void saveCsv(`HCC-plans-extras-${from}_${to}.csv`,catReportCsv(s,from,to));toast('CSV saved · plans & extras');}}><Download size={16}/> CSV</button>;
+  const dates=<>
       <label>From<input type="date" value={from} max={s.date} onChange={e=>setFrom(e.target.value)}/></label>
       <label>To<input type="date" value={to} max={s.date} onChange={e=>setTo(e.target.value)}/></label>
-      {!ok&&<p className="field-error" role="alert">Choose a valid range (from on or before to).</p>}
-    </section>
-    {split&&<>
-      <section className="card"><div className="section-title"><h2>Service charges · catalogue vs free text</h2><span className="muted">{shortDate(from)} – {shortDate(to)}</span></div>
+      {!ok&&<p className="field-error" role="alert">Choose a valid range (from on or before to).</p>}</>;
+  const charges=split&&<>
         <div className="cat-sums"><div><span>From the catalogue</span><strong>{money(split.catalogue.amount)}</strong><small>{split.catalogue.count} lines</small></div>
           <div><span>Free text (“Other”)</span><strong>{money(split.freeText.amount)}</strong><small>{split.freeText.count} lines</small></div>
           <div><span>Meal plan lines</span><strong>{money(split.plans.amount)}</strong><small>{split.plans.count} lines</small></div></div>
         {split.catalogue.rows.length>0&&<><h3>Catalogue items</h3>{table(['Item','Lines','Amount'],split.catalogue.rows.map(r=>[r.label,r.count,r.amount]),[false,false,true])}</>}
         {split.freeText.rows.length>0&&<><h3>Free-text charges <Pill tone="orange">review</Pill></h3>{table(['Description','Lines','Amount'],split.freeText.rows.map(r=>[r.label,r.count,r.amount]),[false,false,true])}</>}
-        {!split.catalogue.rows.length&&!split.freeText.rows.length&&<Empty title="No service charges in this range"/>}
+        {!split.catalogue.rows.length&&!split.freeText.rows.length&&<Empty title="No service charges in this range"/>}</>;
+  const plansBody=plans.length?table(['Plan','Bookings','Room nights','Room revenue','Plan revenue'],plans.map(r=>[r.label,r.bookings,r.roomNights,r.roomRevenue,r.planRevenue]),[false,false,false,true,true])
+          :<Empty title="No room nights in this range"/>;
+  const discBody=disc.length?table(['Reason','Discounts','Amount'],disc.map(r=>[r.label,r.count,r.amount]),[false,false,true]):<Empty title="No discounts in this range"/>;
+  if(phone)return <div className="cat-page">
+    <PageTitle title="Plans & extras" sub="Catalogue vs free-text charges, stays by meal plan, discounts by reason (amounts before GST)" action={csv}/>
+    <section className="card cat-filters" aria-label="Report dates">{dates}</section>
+    {split&&<>
+      <section className="card"><div className="section-title"><h2>Service charges · catalogue vs free text</h2><span className="muted">{shortDate(from)} – {shortDate(to)}</span></div>
+        {charges}
         <div className="cat-manage"><MstLink spec="extras" label="Manage list… · Extras and services"/></div></section>
       <section className="card"><div className="section-title"><h2>Stays by meal plan</h2></div>
-        {plans.length?table(['Plan','Bookings','Room nights','Room revenue','Plan revenue'],plans.map(r=>[r.label,r.bookings,r.roomNights,r.roomRevenue,r.planRevenue]),[false,false,false,true,true])
-          :<Empty title="No room nights in this range"/>}
+        {plansBody}
         <p className="footnote">GST treatment of meal plans: {GST_ILLUSTRATIVE}.</p>
         <div className="cat-manage"><MstLink spec="mealPlans" label="Manage list… · Meal plans"/></div></section>
       <section className="card"><div className="section-title"><h2>Discounts by reason</h2></div>
-        {disc.length?table(['Reason','Discounts','Amount'],disc.map(r=>[r.label,r.count,r.amount]),[false,false,true]):<Empty title="No discounts in this range"/>}
+        {discBody}
         <div className="cat-manage"><MstLink spec="discountReasons" label="Manage list… · Discount reasons"/></div></section>
     </>}
   </div>;
+  // FIT (contract §6 'plans-extras' = FitTabs per section): dates in the toolbar, CSV in the header, one section per tab in a ScrollPanel
+  // whose header keeps the section title and its "Manage list…" link; the meal-plan GST note is a FitNote in that tab's footer.
+  const sec={
+    'service-charges':{title:<>Service charges · catalogue vs free text</>,body:charges,spec:'extras',manage:'Manage list… · Extras and services'},
+    'stays-by-meal-plan':{title:<>Stays by meal plan</>,body:plansBody,spec:'mealPlans',manage:'Manage list… · Meal plans'},
+    'discounts-by-reason':{title:<>Discounts by reason</>,body:discBody,spec:'discountReasons',manage:'Manage list… · Discount reasons'},
+  }[tab];
+  return <FitPage title="Plans & extras" sub="Catalogue vs free-text charges, stays by meal plan, discounts by reason (amounts before GST)" actions={csv}
+      toolbar={<div className="cat-filters cat-fit-filters" role="group" aria-label="Report dates">{dates}<span className="muted">{shortDate(from)} – {shortDate(to)}</span></div>}
+      tabs={<FitTabs<CatTab> page="plans-extras" value={tab} onChange={setTab} tabs={CAT_TABS}/>}>
+    <ScrollPanel title={sec.title} label={CAT_TABS.find(x=>x.id===tab)!.label} actions={<div className="cat-manage"><MstLink spec={sec.spec} label={sec.manage}/></div>}
+        footer={tab==='stays-by-meal-plan'?<FitNote text={<>GST treatment of meal plans: {GST_ILLUSTRATIVE}.</>}/>:undefined}>
+      <div className="cat-page cat-fit-body">{split?sec.body:null}</div>
+    </ScrollPanel>
+  </FitPage>;
 }
 
 export const registration:FeatureRegistration={
