@@ -374,8 +374,6 @@ export const ACC_RB_REPORTS={
   /** §8.6 GST for April. Taxable: rooms 4,00,000 (T1) + 20,000 (T4) + restaurant 1,00,000 (T2) + 60,000 (T3) = 5,80,000, all at 5 %; B2B = Deccan Agro 60,000. */
   gst:{month:'2026-04',output:{cgst:RP(14500),sgst:RP(14500),igst:0,total:RP(29000)},rate5Taxable:RP(580000),rate18Taxable:0,b2bTaxable:RP(60000),b2csTaxable:RP(520000),
     advances:0,creditNotes:0,itc:{cgst:0,sgst:0,igst:0},rcm:0,tcsCredit:RP(100),cashLedgerBalance:RP(100),challan:RP(28900),payable:RP(29000)},
-  /** §7.9 cash ratio (classification stated in the DONE file): cash receipts = Receipt vouchers' cash legs on 1000 (T3 31,500 + T5c 1,52,000 = 1,83,500) of all Receipt
-   *  vouchers (T3 63,000 · T5c 4,52,000 · T6 31,500 · T7a 40,000 · T7b 63,000 · T19 21,000 = 6,70,500); cash payments = 13,000 (T12 8,000 + T13a 5,000) of all Payment vouchers
-   *  (T10 45,000 · T11 60,000 · T12 8,000 · T13a 5,000 · T13c 2,13,500 · T16 50,000 · T17 55,000 · T18 590 = 4,37,090). Percent to two decimals; bps = percent × 100. */
-  cashRatio:{cashReceipts:RP(183500),totalReceipts:RP(670500),cashPayments:RP(13000),totalPayments:RP(437090),receiptsPct:27.37,paymentsPct:2.97,flagged:true},
+  /** §7.9 cash ratio: money RECEIVED by Receipt vouchers (the cash / bank / clearing legs): total 5,97,860 = T5c 4,52,000 + T6 31,500 + T7a 40,000 + T7b 57,000 (net of TDS) + T19 17,360 (net of commission and TCS); cash = the T5c cash 1,52,000 (walk-in POS bills T3 are Sales vouchers, not Receipts). Payments: cash 13,000 (T12 8,000 + T13a 5,000) of all Payment vouchers (T10 45,000 · T11 60,000 · T12 8,000 · T13a 5,000 · T13c 2,13,500 · T16 50,000 · T17 55,000 · T18 590 = 4,37,090). Percent to two decimals; the report returns basis points. */
+  cashRatio:{cashReceipts:RP(152000),totalReceipts:RP(597860),cashPayments:RP(13000),totalPayments:RP(437090),receiptsPct:25.42,paymentsPct:2.97,flagged:true},
 };

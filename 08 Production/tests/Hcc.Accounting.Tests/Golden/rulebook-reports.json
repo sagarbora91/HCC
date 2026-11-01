@@ -208,11 +208,11 @@
    "payable": 2900000
   },
   "cashRatio": {
-   "cashReceipts": 18350000,
-   "totalReceipts": 67050000,
+   "cashReceipts": 15200000,
+   "totalReceipts": 59786000,
    "cashPayments": 1300000,
    "totalPayments": 43709000,
-   "receiptsPct": 27.37,
+   "receiptsPct": 25.42,
    "paymentsPct": 2.97,
    "flagged": true
   }

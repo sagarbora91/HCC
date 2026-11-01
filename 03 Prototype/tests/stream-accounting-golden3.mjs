@@ -79,7 +79,7 @@ export function register({test,M,assert}){
     const s=month(),b=call('accBalanceSheet',s,'2026-04-01');
     assert.equal(b.assets.total,b.liabilities.total);assert.equal(b.balanced,true);
   });
-  test(T+'Cash ratio FY 2026-27 (§7.9): cash receipts 1,83,500 of 6,70,500; cash payments 13,000 of 4,37,090; receipts flagged above 5 %',()=>{
+  test(T+'Cash ratio FY 2026-27 (§7.9): cash receipts 1,52,000 of 5,97,860 received; cash payments 13,000 of 4,37,090; receipts flagged above 5 %',()=>{
     const s=month(),c=call('accCashRatio',s,X.fy),E=X.cashRatio;
     assert.equal(c.cashReceipts,E.cashReceipts);assert.equal(c.totalReceipts,E.totalReceipts);assert.equal(c.cashPayments,E.cashPayments);assert.equal(c.totalPayments,E.totalPayments);
     assert.ok(near(c.receiptsPct,E.receiptsPct),'receipts % '+c.receiptsPct);assert.ok(near(c.paymentsPct,E.paymentsPct),'payments % '+c.paymentsPct);
@@ -99,7 +99,7 @@ export function register({test,M,assert}){
     assert.ok(d&&g,'Deccan Agro and Goibibo rows');
     assert.equal(d.open,E.rows['1110'].open);assert.equal(d.b0_30,E.rows['1110'].b0_30);assert.equal(d.b31_60+d.b61_90+d.b90,0);
     assert.equal(g.open,E.rows['1115'].open);assert.equal(g.b0_30,E.rows['1115'].b0_30);
-    const bill=d.bills.filter(b=>b.open>0);assert.equal(bill.length,1,'one open Deccan bill');assert.equal(bill[0].open,R(63000));assert.equal(bill[0].days,E.rows['1110'].days);
+    const bill=d.bills.filter(b=>b.open>0);assert.equal(bill.length,6,'six company folios (one per delegate room), 10,500 each');assert.equal(bill.reduce((a,b)=>a+b.open,0),R(63000));assert.ok(bill.every(b=>b.days===E.rows['1110'].days));
     assert.ok(!d.bills.some(b=>b.ref==='opening'&&b.open>0),'the opening ₹40,000 was paid on 10 April (oldest first)');
     assert.equal(g.bills.filter(b=>b.open>0)[0].days,E.rows['1115'].days);
     assert.equal(a.totals.open,E.open);assert.equal(a.totals.b0_30,E.b0_30);assert.equal(a.rows.reduce((x,r)=>x+r.open,0),a.totals.open);
@@ -132,9 +132,9 @@ export function register({test,M,assert}){
   test(T+'GST summary April 2026 (§8.6): output ₹29,000, ITC nil, RCM nil, TCS ₹100, challan ₹28,900, B2B Deccan Agro ₹60,000, no advances, ties to GSTR-1 and the GST month',()=>{
     const s=month(),g=call('accGstSummary',s,X.gst.month),E=X.gst;
     assert.equal(g.month,E.month);
-    assert.equal(num(g.output.rate5),E.rate5Taxable,'5 % taxable ₹5,80,000');assert.equal(num(g.output.rate18)||0,0);
-    assert.equal(num(g.output.b2b),E.b2bTaxable);assert.equal(num(g.output.b2cs),E.b2csTaxable);
-    assert.equal(num(g.output.advances11A)||0,0,'DEC-142: no GST on advances');assert.equal(num(g.output.advances11B)||0,0);assert.equal(num(g.output.creditNotes)||0,0);
+    assert.equal(num(g.outputTaxable.rate5),E.rate5Taxable,'5 % taxable ₹5,80,000');assert.equal(num(g.outputTaxable.rate18)||0,0);
+    assert.equal(num(g.outputTaxable.b2b),E.b2bTaxable);assert.equal(num(g.outputTaxable.b2cs),E.b2csTaxable);
+    assert.equal(num(g.outputTaxable.advances11A)||0,0,'DEC-142: no GST on advances');assert.equal(num(g.outputTaxable.advances11B)||0,0);assert.equal(num(g.outputTaxable.creditNotes)||0,0);
     assert.deepEqual([g.itc.cgst,g.itc.sgst,g.itc.igst],[0,0,0],'§4.4: no ITC on any bill');assert.equal(g.rcm||0,0);
     assert.equal(g.tcsCredit,E.tcsCredit);assert.equal(g.cashLedgerBalance,E.cashLedgerBalance);
     assert.equal(g.setoff.challan,E.challan);assert.equal(g.setoff.payable,E.payable);
@@ -143,8 +143,8 @@ export function register({test,M,assert}){
   });
 
   // ───────── Tally (acc3-tally): counts, Σ Dr = Σ Cr, REMOTEID stability, byte equality ─────────
-  const tallyVouchers=s=>String(call('accTallyVouchers',s,X.from,X.to));
-  const tallyMasters=s=>String(call('accTallyMasters',s,X.fy));
+  const tallyVouchers=s=>call('accTallyVouchers',s,X.from,X.to).xml;
+  const tallyMasters=s=>call('accTallyMasters',s,X.fy).xml;
   const count=(x,re)=>(x.match(re)||[]).length;
   test(T+'Tally vouchers April 2026: well-formed, one VOUCHER per HCC voucher, every voucher Σ Dr = Σ Cr, GUID = REMOTEID',()=>{
     const s=month(),xml=tallyVouchers(s);
@@ -168,7 +168,7 @@ export function register({test,M,assert}){
     assert.ok(!/GROUP NAME="Current Assets"/.test(m1),"Tally's primary groups are not created");
   });
   test(T+'Tally: a range over 31 days is refused, and a second scenario load exports the same bytes',()=>{
-    const s=month();assert.throws(()=>call('accTallyVouchers',s,'2026-04-01','2026-05-15'),/31|range/i);
+    const s=month();const over=call('accTallyVouchers',s,'2026-04-01','2026-05-15');assert.ok(/31 days/.test(over.error)&&over.count===0);
     const first=tallyVouchers(s);cache=undefined;assert.equal(tallyVouchers(month()),first,'same scenario → same bytes');
   });
 }

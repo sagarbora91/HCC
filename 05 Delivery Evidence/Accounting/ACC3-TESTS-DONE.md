@@ -1,25 +1,21 @@
 # ACC3-TESTS-DONE — lane acc3-tests (Sonnet), branch claude/acc3-tests
 
-Status: **written against the contract; UNVERIFIED against the report lanes.** At hand-off none of ACC3-PL-DONE.md, ACC3-AGEING-DONE.md, ACC3-TALLY-DONE.md existed, so nothing was merged and the engine tests have not run against real selectors.
+Status: **verified against the landed lanes.** Merged claude/acc3-pl (7401d6b7), claude/acc3-ageing (26a6195e), claude/acc3-tally (6fa6ee7c); append-only `// ACC-3` lines of every lane kept (ageing/tally lines landed just after the `// ACC-3 end` marker in `services/mock/index.ts` and `HccComposition.cs`; the integrator may tidy placement), csproj copy items kept.
 
 ## Files
-- `03 Prototype/src/fixtures/ext/accounting-rulebook.ts`: appended `ACC_RB_REPORTS` (expectations only, paise, hand-computed from rulebook 8.1-8.6).
+- `03 Prototype/src/fixtures/ext/accounting-rulebook.ts`: `ACC_RB_REPORTS` (expectations only, hand-computed from rulebook 8.1-8.6).
 - `03 Prototype/tests/stream-accounting-golden3.mjs`: 15 tests `[ACC3-TESTS]`.
-- `08 Production/tests/Hcc.Accounting.Tests/Golden/rulebook-reports.json` (same figures) and `RulebookReportsTests.cs`.
+- `08 Production/tests/Hcc.Accounting.Tests/Golden/rulebook-reports.json` + `RulebookReportsTests.cs` (9 tests; the ACC3_REPORTS guard is gone, no csproj constant needed).
 
-## Test counts
-- Prototype `npm test`: 2095 (before) -> 2096 pass / 2110 total. 1 self-check passes; 14 fail on purpose with "waits for lane acc3-pl / acc3-ageing / acc3-tally" (selectors not exported yet): accPl, accBalanceSheet, accCashRatio, accAgeing, accGstSummary, accTallyMasters, accTallyVouchers. The failing run is expected until the lanes are merged.
-- Server: `RulebookReportsTests.cs` is wrapped in `#if ACC3_REPORTS`, so it compiles to nothing and cannot break the build. Not run. After merging the lanes: add `<DefineConstants>ACC3_REPORTS</DefineConstants>` to Hcc.Accounting.Tests.csproj and point the `Adapter` class at the real PlQueries / AgeingQueries / GstSummaryQueries signatures (guessed names there). Server Tally golden assertions (byte equality with tally-april-2026.*.xml) are NOT written; the prototype Tally tests cover counts, sum Dr = sum Cr per voucher, GUID = REMOTEID, uniqueness, re-export byte equality, 31-day refusal.
+## Counts
+- Prototype `npm test`: 2132/2132 (before my lane: 2095; ACC-3 lanes add the rest; mine = 15).
+- `dotnet test tests/Hcc.Accounting.Tests -maxcpucount:1`: 282/282 (mine = 9). Byte equality of the Tally golden files vs the server builders is already asserted by acc3-tally's `TallyExportTests`; my test adds counts (239 = emit list), sum Dr = sum Cr per voucher, GUID = REMOTEID, unique ids, Windows line ends. Prototype: well-formed, one VOUCHER per HCC voucher, REMOTEID stable/unique, re-export byte equality, 31-day refusal.
 
-## Findings the integrator must read
-1. **Brief/contract vs rulebook (stop-and-note):** the briefs say "Deccan Agro receivable 60,000 + GST in 0-30". Rulebook 8.3 has 1110/Deccan = 0 at 30 April (T7b pays the 63,000 on 30 April). Expectations therefore: receivable ageing at 30 April = empty; at 28 April Deccan 63,000 (6 April bill, 22 days) + Goibibo 21,000 (17 April, 11 days), both 0-30. Payables at 30 April match the brief (Morning 24,000 = 5 April bill, 25 days; Kaveri 42,000, 18 days). Extra bucket checks at 31 May / 30 Jun / 15 Jul.
-2. Prototype pay run is locked on 1 May, so April reports are read to 2026-05-01 (the existing convention); server events date it 30 April.
-3. Assumed argument shapes (change `call()` only): accPl(s,from,to), accBalanceSheet(s,asOf), accCashRatio(s,fy '2026-27'), accAgeing(s,asOf,side), accGstSummary(s,month), accTallyMasters(s,fy), accTallyVouchers(s,from,to). GST summary: rate5/b2b/b2cs expected as taxable values (5,80,000 / 60,000 / 5,20,000; number or {taxable}); setoff.challan 28,900, tcsCredit and cashLedgerBalance 100.
-4. Cash-ratio classification is mine, to be confirmed: receipts = Receipt vouchers (T3, T5c, T6, T7a, T7b, T19 = 6,70,500; cash 1,83,500 = 27.37 %, flagged); payments = Payment vouchers (T10, T11, T12, T13a, T13c, T16, T17, T18 = 4,37,090; cash 13,000 = 2.97 %). Percent or bps accepted.
-5. Balance sheet block membership follows contract 2 (TDS 1360 and GST cash 1340 under current assets; duties and advance deposits in current liabilities): owner's funds 57,95,400 / secured loan 19,60,000 / current 1,72,500; assets 73,80,000 + 5,47,900.
-
-## Integration needed
-Merge order pl -> ageing -> tally -> tests; then re-run `npm test` and the C# project; fix `call()` / `Adapter` names; enable ACC3_REPORTS. A defect found by these tests goes to the owning lane with the expected figure above.
+## Findings (no production defects found)
+1. Brief vs rulebook: Deccan Agro is nil at 30 April (T7b pays the 63,000); the 63,000 (six 10,500 company folios, 22 days) + Goibibo 21,000 (11 days) is the position on 28 April. Tests assert both.
+2. Cash ratio definition (as built, matches my hand calc once stated): receipts = money received by Receipt vouchers (cash/bank/clearing legs) = 5,97,860 (T5c 4,52,000 + T6 31,500 + T7a 40,000 + T7b 57,000 net of TDS + T19 17,360 net), cash 1,52,000 (walk-in POS bills are Sales vouchers) = 25.42 % (2542 bps), flagged; payments 13,000 of 4,37,090 = 2.97 % (297 bps). Server returns integer basis points.
+3. Prototype reads April to 1 May (pay run locked 1 May); server month dates the pay run 30 April.
+4. Deccan's 63,000 is six separate bills in the prototype (one per folio), not one.
 
 ## HANDOFF bullet
-ACC-3 golden reports: expectations ACC_RB_REPORTS + stream-accounting-golden3.mjs (15 tests, 14 waiting for the report lanes) + RulebookReportsTests (behind ACC3_REPORTS); Deccan receivable is nil at 30 April (open 63,000 only until 29 April).
+ACC-3 golden reports verified both sides: P&L profit 1,40,400, balance sheet 79,27,900, ageing (Deccan nil on 30 April), GST 29,000 / challan 28,900, cash ratio, Tally golden counts; prototype 2132, Accounting.Tests 282.

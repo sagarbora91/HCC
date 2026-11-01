@@ -1,11 +1,12 @@
-// ACC-3 (lane acc3-tests): April 2026 through the ACC-3 reports on the server, expectations in rulebook-reports.json (hand-computed from rulebook 8.1-8.6).
-// STATUS AT WRITING: acc3-pl / acc3-ageing / acc3-tally had not landed, so this file is behind the symbol ACC3_REPORTS (add <DefineConstants>ACC3_REPORTS</DefineConstants>
-// to the test project once the lanes are merged and the ADAPTER methods at the bottom are pointed at the real query classes). Without the symbol the file compiles to nothing
-// and cannot break the build. Contract names: PlView, BalanceSheetView, CashRatioView (AccountingReportContracts.cs), PlQueries, AgeingQueries, GstSummaryQueries.
-#if ACC3_REPORTS
+// ACC-3 (lane acc3-tests): April 2026 through the ACC-3 report builders on the server. Expectations: rulebook-reports.json, hand-computed from rulebook 8.1-8.6
+// (mirrors ACC_RB_REPORTS in the prototype fixture). The month is the production engine's full month (RulebookMonthTests.FullMonthVouchers, pay run dated 30 April).
+using System.Globalization;
+using System.Text;
 using System.Text.Json;
+using System.Xml.Linq;
 using Hcc.Application.Accounting;
 using Hcc.Contracts.Accounting;
+using Hcc.Contracts.Invoices;
 using Hcc.Domain.Accounting;
 
 namespace Hcc.Accounting.Tests.Golden;
@@ -17,14 +18,21 @@ public sealed class RulebookReportsTests
     private static readonly DateOnly From = new(2026, 4, 1), To = new(2026, 4, 30);
     private static long L(JsonElement e, string p) => e.GetProperty(p).GetInt64();
     private static IReadOnlyList<Voucher> Month => RulebookMonthTests.FullMonthVouchers();
-    private static long Sum(JsonElement lines) => lines.EnumerateObject().Sum(p => p.Value.GetInt64());
+    private static long ByCode(IEnumerable<PlLineView> lines, string code) => lines.Where(l => l.Code == code).Sum(l => l.Paise);
+    private static long ByCode(IEnumerable<BsLineView> lines, string code) => lines.Where(l => l.Code.Split('/')[0] == code).Sum(l => l.Paise);
+
+    private static PlView Pl(DateOnly from, DateOnly to)
+    {
+        var (_, period) = AccountingReports.Split(Month, from, to);
+        return PlReports.Pl(from, to, period);
+    }
 
     [Fact]
     public void Expectations_tie_to_the_rulebook()
     {
         var pl = X.GetProperty("pl");
         Assert.Equal(14_040_000, L(pl, "profitBeforeTax"));
-        Assert.Equal(L(pl, "expensesTotal"), L(pl.GetProperty("consumption"), "total") + L(pl.GetProperty("employee"), "total") + L(pl.GetProperty("finance"), "total") + L(pl.GetProperty("other"), "total"));
+        Assert.Equal(L(pl, "expensesTotal"), new[] { "consumption", "employee", "finance", "depreciation", "other" }.Sum(k => L(pl.GetProperty(k), "total")));
         var bs = X.GetProperty("balanceSheet");
         Assert.Equal(792_790_000, L(bs, "liabilitiesTotal"));
         Assert.Equal(L(bs, "liabilitiesTotal"), L(bs, "assetsTotal"));
@@ -34,23 +42,26 @@ public sealed class RulebookReportsTests
     [Fact]
     public void Pl_april_every_line_and_profit()
     {
-        var pl = Adapter.Pl(Month, From, To);
+        var pl = Pl(From, To);
         var e = X.GetProperty("pl");
         Assert.Equal(L(e, "profitBeforeTax"), pl.ProfitBeforeTax);
         Assert.Equal(L(e.GetProperty("revenue"), "total"), pl.Revenue.Total);
+        Assert.Equal(0, pl.OtherIncome.Total);
+        foreach (var p in e.GetProperty("revenue").GetProperty("lines").EnumerateObject()) Assert.Equal(p.Value.GetInt64(), ByCode(pl.Revenue.Lines, p.Name));
         foreach (var (name, group) in new[] { ("consumption", pl.Expenses.Consumption), ("employee", pl.Expenses.Employee), ("finance", pl.Expenses.Finance), ("depreciation", pl.Expenses.Depreciation), ("other", pl.Expenses.Other) })
         {
             Assert.Equal(L(e.GetProperty(name), "total"), group.Total);
-            foreach (var p in e.GetProperty(name).GetProperty("lines").EnumerateObject()) Assert.Equal(p.Value.GetInt64(), group.Lines.Where(l => l.Code == p.Name).Sum(l => l.Paise));
+            foreach (var p in e.GetProperty(name).GetProperty("lines").EnumerateObject()) Assert.Equal(p.Value.GetInt64(), ByCode(group.Lines, p.Name));
         }
-        foreach (var p in e.GetProperty("revenue").GetProperty("lines").EnumerateObject()) Assert.Equal(p.Value.GetInt64(), pl.Revenue.Lines.Where(l => l.Code == p.Name).Sum(l => l.Paise));
+
         Assert.Equal(L(e, "expensesTotal"), pl.Expenses.Total);
+        Assert.NotEmpty(pl.ByTallyGroup);
     }
 
     [Fact]
     public void Balance_sheet_30_april_both_sides_every_block()
     {
-        var b = Adapter.BalanceSheet(Month, To);
+        var b = PlReports.BalanceSheet(To, Month);
         var e = X.GetProperty("balanceSheet");
         Assert.True(b.Balanced);
         Assert.Equal((792_790_000L, 792_790_000L), (b.Liabilities.Total, b.Assets.Total));
@@ -60,54 +71,105 @@ public sealed class RulebookReportsTests
         Assert.Equal(L(e.GetProperty("currentLiabilities"), "total"), b.Liabilities.Current.Total);
         Assert.Equal(L(e.GetProperty("nonCurrentAssets"), "total"), b.Assets.NonCurrent.Total);
         Assert.Equal(L(e.GetProperty("currentAssets"), "total"), b.Assets.Current.Total);
+        foreach (var p in e.GetProperty("currentAssets").GetProperty("lines").EnumerateObject()) Assert.Equal(p.Value.GetInt64(), ByCode(b.Assets.Current.Lines, p.Name));
+        foreach (var p in e.GetProperty("nonCurrentAssets").GetProperty("lines").EnumerateObject()) Assert.Equal(p.Value.GetInt64(), ByCode(b.Assets.NonCurrent.Lines, p.Name));
+        foreach (var p in e.GetProperty("currentLiabilities").GetProperty("lines").EnumerateObject()) Assert.Equal(p.Value.GetInt64(), ByCode(b.Liabilities.Current.Lines, p.Name));
+        Assert.Equal(L(e.GetProperty("nonCurrentLiabilities").GetProperty("lines"), "2400"), ByCode(b.Liabilities.NonCurrent.Lines, "2400"));
+        Assert.Equal(L(e.GetProperty("ownersFunds").GetProperty("lines"), "3100"), ByCode(b.Liabilities.OwnersFunds.Lines, "3100"));
     }
 
     [Fact]
-    public void Cash_ratio_and_flag()
+    public void Cash_ratio_in_basis_points_and_flag()
     {
-        var c = Adapter.CashRatio(Month, "2026-27");
+        var (_, period) = AccountingReports.Split(Month, From, To);
+        var c = PlReports.CashRatio("2026-27", period);
         var e = X.GetProperty("cashRatio");
         Assert.Equal((L(e, "cashReceipts"), L(e, "totalReceipts"), L(e, "cashPayments"), L(e, "totalPayments")), (c.CashReceipts, c.TotalReceipts, c.CashPayments, c.TotalPayments));
+        Assert.Equal((int)Math.Round(e.GetProperty("receiptsPct").GetDouble() * 100), c.ReceiptsPct);
+        Assert.Equal((int)Math.Round(e.GetProperty("paymentsPct").GetDouble() * 100), c.PaymentsPct);
         Assert.True(c.Flagged);
     }
 
     [Fact]
     public void Ageing_payables_30_april_oldest_first()
     {
-        var a = Adapter.Ageing(Month, To, "payable");
+        var a = AgeingRules.Build(To, "payable", Month);
         var e = X.GetProperty("ageing").GetProperty("payable30Apr");
-        Assert.Equal(L(e, "open"), a.Totals.Open);
-        Assert.Equal(L(e, "b0_30"), a.Totals.B0To30);
-        Assert.Equal(L(e.GetProperty("rows").GetProperty("EV-MORNING"), "open"), a.Rows.Single(r => r.Party == "EV-MORNING").Open);
-        Assert.Equal(L(e.GetProperty("rows").GetProperty("EV-KAVERI"), "open"), a.Rows.Single(r => r.Party == "EV-KAVERI").Open);
+        Assert.Equal((L(e, "open"), L(e, "b0_30"), 0L, 0L, 0L), (a.Totals.Open, a.Totals.B0_30, a.Totals.B31_60, a.Totals.B61_90, a.Totals.B90));
+        foreach (var party in new[] { "EV-MORNING", "EV-KAVERI" })
+        {
+            var row = a.Rows.Single(r => r.Party == party);
+            Assert.Equal(L(e.GetProperty("rows").GetProperty(party), "open"), row.Open);
+            Assert.Equal(row.Open, row.B0_30);
+            Assert.Equal(e.GetProperty("rows").GetProperty(party).GetProperty("days").GetInt32(), row.Bills.Single(x => x.Open > 0).Days);
+        }
+
+        var morning = a.Rows.Single(r => r.Party == "EV-MORNING").Bills.Single(x => x.Open > 0);
+        Assert.Equal((5_900_000L, 3_500_000L, 2_400_000L), (morning.Amount, morning.Paid, morning.Open));   // the opening 25,000 is cleared first
     }
 
     [Fact]
-    public void Ageing_receivables_28_april_deccan_and_goibibo()
+    public void Ageing_buckets_move_with_the_as_of_date()
     {
-        var a = Adapter.Ageing(Month, new DateOnly(2026, 4, 28), "receivable");
-        Assert.Equal(L(X.GetProperty("ageing").GetProperty("receivable28Apr"), "open"), a.Totals.Open);
-        Assert.Equal(0, Adapter.Ageing(Month, To, "receivable").Totals.Open);   // Deccan Agro paid in full on 30 April
+        foreach (var w in X.GetProperty("ageing").GetProperty("payableLater").EnumerateArray())
+        {
+            var a = AgeingRules.Build(DateOnly.Parse(w.GetProperty("asOf").GetString()!, CultureInfo.InvariantCulture), "payable", Month);
+            var bucket = w.GetProperty("morning").GetProperty("bucket").GetString();
+            var got = bucket switch { "b31_60" => a.Totals.B31_60, "b61_90" => a.Totals.B61_90, _ => a.Totals.B90 };
+            Assert.Equal(6_600_000, got);
+            Assert.Equal(6_600_000, a.Totals.Open);
+        }
+    }
+
+    [Fact]
+    public void Ageing_receivables_nil_on_30_april_and_deccan_plus_goibibo_on_28_april()
+    {
+        Assert.Equal(0, AgeingRules.Build(To, "receivable", Month).Totals.Open);   // Deccan Agro paid in full on 30 April (T7b)
+        var a = AgeingRules.Build(new DateOnly(2026, 4, 28), "receivable", Month);
+        var e = X.GetProperty("ageing").GetProperty("receivable28Apr");
+        Assert.Equal((L(e, "open"), L(e, "b0_30")), (a.Totals.Open, a.Totals.B0_30));
+        Assert.Equal(L(e.GetProperty("rows").GetProperty("1110"), "open"), a.Rows.Where(r => r.Control == "1110").Sum(r => r.Open));
+        Assert.Equal(L(e.GetProperty("rows").GetProperty("1115"), "open"), a.Rows.Where(r => r.Control == "1115").Sum(r => r.Open));
     }
 
     [Fact]
     public void Gst_summary_april()
     {
-        var g = Adapter.GstSummary(Month, "2026-04");
         var e = X.GetProperty("gst");
-        Assert.Equal((L(e, "tcsCredit"), L(e, "challan")), (g.TcsCredit, g.Setoff.Challan));
-        Assert.Equal((0L, 0L, 0L), (g.Itc.Cgst, g.Itc.Sgst, g.Itc.Igst));
+        var (b2b, b2cs) = (L(e, "b2bTaxable"), L(e, "b2csTaxable"));
+        Gstr1View gstr1 = new(From, To, [new("B2B", 500, b2b, b2b / 40, b2b / 40, 0, 1), new("B2CS", 500, b2cs, b2cs / 40, b2cs / 40, 0, 9)], [], [], "Fictional");
+        var g = GstSummaryRules.Build("2026-04", Month, [], gstr1);
+        Assert.Equal((L(e.GetProperty("output"), "cgst"), L(e.GetProperty("output"), "sgst"), 0L), (g.BookOutput.CgstPaise, g.BookOutput.SgstPaise, g.BookOutput.IgstPaise));
+        Assert.Equal((L(e, "rate5Taxable"), 0L, b2b, b2cs), (g.OutputTaxable.Rate5, g.OutputTaxable.Rate18, g.OutputTaxable.B2b, g.OutputTaxable.B2cs));
+        Assert.Equal((0L, 0L, 0L), (g.OutputTaxable.Advances11A, g.OutputTaxable.Advances11B, g.OutputTaxable.CreditNotes));
+        Assert.Equal((L(e, "tcsCredit"), L(e, "cashLedgerBalance"), L(e, "challan"), L(e, "payable")), (g.TcsCredit, g.CashLedgerBalance, g.Setoff.Challan, g.Setoff.Payable));
+        Assert.Equal((0L, 0L, 0L), (g.Itc.CgstPaise, g.Itc.SgstPaise, g.Itc.IgstPaise));
+        Assert.Equal(0, g.Rcm);
+        Assert.True(g.Ties.Gstr1);
+        Assert.True(g.Ties.Gstr3b);
         Assert.Empty(g.Ties.Differences);
     }
 
-    /// <summary>ADAPTER: the only place that names the lanes' query classes; point these at the real signatures after the merge.</summary>
-    private static class Adapter
+    // ───────── Tally golden assertions (acc3-tally): counts, Σ Dr = Σ Cr, REMOTEID stability ─────────
+    private static string GoldenPath(string name) => Path.Combine(AppContext.BaseDirectory, "Golden", name);
+
+    [Fact]
+    public void Tally_golden_vouchers_counts_balance_and_remoteid()
     {
-        public static PlView Pl(IReadOnlyList<Voucher> all, DateOnly from, DateOnly to) { var (o, p) = AccountingReports.Split(all, from, to); return PlQueries.Pl(from, to, o, p); }
-        public static BalanceSheetView BalanceSheet(IReadOnlyList<Voucher> all, DateOnly asOf) => PlQueries.BalanceSheet(asOf, all);
-        public static CashRatioView CashRatio(IReadOnlyList<Voucher> all, string fy) => PlQueries.CashRatio(fy, all);
-        public static AgeingView Ageing(IReadOnlyList<Voucher> all, DateOnly asOf, string side) => AgeingQueries.Build(asOf, side, all);
-        public static GstSummaryView GstSummary(IReadOnlyList<Voucher> all, string month) => GstSummaryQueries.Build(month, all);
+        var input = JsonDocument.Parse(File.ReadAllText(GoldenPath("tally-april-2026.input.json"))).RootElement;
+        var text = new UTF8Encoding(false).GetString(File.ReadAllBytes(GoldenPath("tally-april-2026.vouchers.xml")));
+        var vouchers = XDocument.Parse(text).Descendants("VOUCHER").ToList();            // well-formed
+        Assert.Equal(input.GetProperty("emit").GetArrayLength(), vouchers.Count);        // one Tally voucher per emitted HCC voucher
+        Assert.Equal(239, vouchers.Count);                                               // the April month: 239 vouchers
+        foreach (var v in vouchers)
+        {
+            var amounts = v.Elements("ALLLEDGERENTRIES.LIST").Select(x => (Dr: x.Element("ISDEEMEDPOSITIVE")!.Value == "Yes", A: Math.Abs(decimal.Parse(x.Element("AMOUNT")!.Value, CultureInfo.InvariantCulture)))).ToList();
+            Assert.Equal(amounts.Where(a => a.Dr).Sum(a => a.A), amounts.Where(a => !a.Dr).Sum(a => a.A));   // sum Dr = sum Cr per voucher
+            Assert.Equal(v.Attribute("REMOTEID")!.Value, v.Element("GUID")!.Value);                          // GUID = REMOTEID
+        }
+
+        var ids = vouchers.Select(v => v.Attribute("REMOTEID")!.Value).ToList();
+        Assert.Equal(ids.Count, ids.Distinct().Count());
+        Assert.Contains("\r\n", text, StringComparison.Ordinal);                         // Windows line ends
     }
 }
-#endif
