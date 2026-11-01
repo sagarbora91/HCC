@@ -21,7 +21,8 @@ public static class AccountingTallyEndpoints
         var tally = sp.GetService<SqlTallyStore>() ?? new SqlTallyStore(platform.Connections);
         return new TallyQueries(sp.GetRequiredService<IAccountingStore>(), sp.GetRequiredService<IAccessPolicy>(),
             sp.GetService<IReportPartyNames>(), sp.GetService<ITallyPartyGstin>() ?? tally, sp.GetService<IReportOpeningSource>(), sp.GetService<IOpeningBalanceSource>(),
-            sp.GetService<ITallyFileLog>() ?? tally, platform.Commands, sp.GetService<TimeProvider>());
+            sp.GetService<ITallyFileLog>() ?? tally, platform.Commands, sp.GetService<TimeProvider>(),
+            sp.GetService<Hcc.Application.Configuration.ISettingsReader>(), sp.GetService<IAgeingAllocationSource>() ?? new SqlAgeingAllocationSource(platform.Connections));
     }
 
     public static RouteGroupBuilder MapAccountingTallyEndpoints(this RouteGroupBuilder api)

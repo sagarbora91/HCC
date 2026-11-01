@@ -10,7 +10,7 @@ namespace Hcc.Application.Accounting;
 /// <summary>
 /// ACC-3 lane acc3-pl: profit &amp; loss, balance sheet and cash-ratio report (02 Planning/agents/ACC3-REPORTS-CONTRACT.md §1, §2, §9; rulebook §7.4,
 /// §7.5, §7.9). Reads the postings only, the same way as <see cref="AccountingReportQueries"/> (lock snapshots for locked dates, live elsewhere,
-/// the opening entry or the imported opening, the month-balance opening when composed). PERM-ACC-003 view as the trial balance.
+/// the opening entry or the imported opening, one shared opening loader <see cref="ReportOpeningLoader"/>). PERM-ACC-001 view as the trial balance (ruling ACC3-R1).
 /// </summary>
 public sealed class PlQueries(IAccountingStore store, IAccessPolicy policy, IOpeningBalanceSource? imported = null,
     IReportOpeningSource? openingEntry = null, IReportPartyNames? partyNames = null)
@@ -47,10 +47,8 @@ public sealed class PlQueries(IAccountingStore store, IAccessPolicy policy, IOpe
         await policy.RequireAsync(caller.PropertyId, caller.PrincipalId, AccountingPermissions.View, ct: ct).ConfigureAwait(false);
         var days = await AccountingDays.RangeWithLocksAsync(store, caller.PropertyId, DateOnly.MinValue, to, ct).ConfigureAwait(false);
         var all = days.SelectMany(x => x.Vouchers).ToList();
-        var entry = openingEntry is null ? null : await openingEntry.GetAsync(caller.PropertyId, ct).ConfigureAwait(false);
         var extra = new Dictionary<string, (string Name, string Group)>(StringComparer.Ordinal);
-        if (entry?.Voucher is { } ov) all.Add(ov);
-        else if (imported is not null && AccountingReports.ImportedVoucher(await imported.GetAsync(caller.PropertyId, ct).ConfigureAwait(false), extra) is { } iv) all.Add(iv);
+        var entry = await ReportOpeningLoader.AddOpeningAsync(all, caller.PropertyId, openingEntry, imported, extra, ct).ConfigureAwait(false);
         var parties = partyNames is null ? null : await partyNames.GetAsync(caller.PropertyId, ct).ConfigureAwait(false);
         var chart = await store.ChartAsync(null, caller.PropertyId, ct).ConfigureAwait(false);
         return new Loaded(all, chart, new LedgerNames(parties, extra, chart), AccountingReports.OpeningPending(entry),

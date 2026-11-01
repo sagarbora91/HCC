@@ -12,14 +12,18 @@ namespace Hcc.Api.Endpoints;
 /// <summary>
 /// ACC-3 acc3-ageing (02 Planning/agents/ACC3-REPORTS-CONTRACT.md §3): <c>GET /accounting/ageing?asOf&amp;side=receivable|payable</c> and
 /// <c>GET /accounting/gst/summary?month=YYYY-MM</c>, permission as the trial balance. Queries are built per request (no registration needed);
-/// the GSTR-1 port runs <see cref="InvoiceQueries.Gstr1Async"/> as the caller.
+/// the GSTR-1 port reads <see cref="InvoiceQueries.Gstr1UncheckedAsync"/> under the accounting view permission already checked (ruling ACC3-R3).
 /// </summary>
 public static class AccountingAgeingEndpoints
 {
     private sealed class Gstr1Port(InvoiceQueries q) : IGstr1Source
     {
-        public Task<Gstr1View> GetAsync(Caller caller, DateOnly from, DateOnly to, CancellationToken ct = default) => q.Gstr1Async(caller.PropertyId, caller.PrincipalId, from, to, ct);
+        public Task<Gstr1View> GetAsync(Caller caller, DateOnly from, DateOnly to, CancellationToken ct = default) => q.Gstr1UncheckedAsync(caller.PropertyId, from, to, ct); // ACC3-R3: GstSummaryQueries has required PERM-ACC-001
     }
+
+    internal static AgeingQueries AgeingQueriesOf(IServiceProvider sp) => Ageing(sp);
+
+    internal static GstSummaryQueries GstQueriesOf(IServiceProvider sp) => Gst(sp);
 
     private static AgeingQueries Ageing(IServiceProvider sp) => new(sp.GetRequiredService<IAccountingStore>(), sp.GetRequiredService<IAccessPolicy>(),
         sp.GetService<IOpeningBalanceSource>(), sp.GetService<IReportOpeningSource>(), sp.GetService<IReportPartyNames>(),

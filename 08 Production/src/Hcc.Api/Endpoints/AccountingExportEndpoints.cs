@@ -59,6 +59,52 @@ public static class AccountingExportEndpoints
             var (bytes, _) = StatementExports.StatementsZip(prop, statements, fmt);
             return Results.File(bytes, "application/zip", StatementExports.FileName(prop, "statements-" + (parties ?? "all").Trim().ToLowerInvariant(), from, to, "zip"));
         });
+        // ACC-3 integration: the §2–§3 report views through OpenXmlExporter / CSV — PERM-ACC-005 (export) plus the report's own PERM-ACC-001 (view).
+        g.MapGet("/accounting/export/report", async (string kind, DateOnly? from, DateOnly? to, DateOnly? asOf, string? month, string? fy, string? format, HttpContext http, CancellationToken ct) =>
+        {
+            var sp = http.RequestServices;
+            var caller = http.HccCaller();
+            var fmt = (format ?? "xlsx").Trim().ToLowerInvariant();
+            if (fmt is not ("csv" or "xlsx")) throw HccException.Validation("format must be csv or xlsx.");
+            await sp.GetRequiredService<IAccessPolicy>().RequireAsync(caller.PropertyId, caller.PrincipalId, AccountingPermissions.Export, ct: ct).ConfigureAwait(false);
+            var store = sp.GetRequiredService<IAccountingStore>();
+            var prop = StatementExports.PropertyCode(await store.PropertyNameAsync(caller.PropertyId, ct).ConfigureAwait(false));
+            DateOnly Need(DateOnly? d, string n) => d ?? throw HccException.Validation(n + " is required for this report.");
+            var pl = new PlQueries(store, sp.GetRequiredService<IAccessPolicy>(), sp.GetService<IOpeningBalanceSource>(), sp.GetService<IReportOpeningSource>(), sp.GetService<IReportPartyNames>());
+            IReadOnlyList<StatementExports.Table> tables;
+            string report;
+            DateOnly a, b;
+            switch ((kind ?? "").Trim().ToLowerInvariant())
+            {
+                case "pl":
+                    (a, b) = (Need(from, "from"), Need(to, "to"));
+                    tables = ReportExports.Pl(prop, await pl.PlAsync(caller, a, b, ct).ConfigureAwait(false)); report = "pl"; break;
+                case "balance-sheet":
+                    a = b = Need(asOf, "asOf");
+                    tables = [ReportExports.BalanceSheet(prop, await pl.BalanceSheetAsync(caller, a, ct).ConfigureAwait(false))]; report = "balance-sheet"; break;
+                case "cash-ratio":
+                    var c = await pl.CashRatioAsync(caller, fy ?? "", ct).ConfigureAwait(false);
+                    (a, b) = PlReports.FyRange(fy ?? "");
+                    tables = [ReportExports.CashRatio(prop, c)]; report = "cash-ratio"; break;
+                case "ageing-receivable" or "ageing-payable":
+                    a = b = Need(asOf, "asOf");
+                    var side = kind!.Trim().ToLowerInvariant()["ageing-".Length..];
+                    tables = ReportExports.Ageing(prop, await AccountingAgeingEndpoints.AgeingQueriesOf(sp).AgeingAsync(caller, a, side, ct).ConfigureAwait(false)); report = "ageing-" + side; break;
+                case "gst-summary":
+                    var g = await AccountingAgeingEndpoints.GstQueriesOf(sp).SummaryAsync(caller, month, ct).ConfigureAwait(false);
+                    a = b = new DateOnly(int.Parse(g.Month[..4], System.Globalization.CultureInfo.InvariantCulture), int.Parse(g.Month[5..7], System.Globalization.CultureInfo.InvariantCulture), 1);
+                    tables = [ReportExports.GstSummary(prop, g)]; report = "gst-summary"; break;
+                default:
+                    throw HccException.Validation("kind must be pl, balance-sheet, cash-ratio, ageing-receivable, ageing-payable or gst-summary.");
+            }
+
+            var name = StatementExports.FileName(prop, report, a, b, fmt);
+            return fmt == "xlsx"
+                ? Results.File(StatementExports.Xlsx(tables), OpenXmlExporter.Mime, name)
+                : Results.File(System.Text.Encoding.UTF8.GetBytes(string.Join("
+
+", tables.Select(StatementExports.Csv))), "text/csv", name);
+        });
         return api;
     }
 }

@@ -43,11 +43,24 @@ public sealed record TallyVouchersView(DateOnly From, DateOnly To, int Dates, in
 /// the masters of a financial year (Owner sub-groups, every ledger of the chart, every party sub-ledger with the opening balance at the FY start, bill-wise
 /// on debtors / creditors, GSTIN on companies / vendors) and the vouchers of a range with bill allocations (New Ref / Agst Ref / On Account). Nothing is sent to Tally.
 /// The DEC-077 re-export / provisional flags and the A03b-05 pending / legacy notes of the old vouchers export apply unchanged; every file is logged with its SHA-256.
-/// Bill allocations here are oldest-first over the financial year's vouchers; the ageing lane's explicit vendor allocations are an integration step (DONE file).
+/// Bill allocations: acc3-ageing's explicit ACC-2 vendor-payment allocations first (<see cref="IAgeingAllocationSource"/>), the rest oldest-first over the financial year.
 /// </summary>
 public sealed class TallyQueries(IAccountingStore store, IAccessPolicy policy, IReportPartyNames? partyNames = null, ITallyPartyGstin? gstins = null,
-    IReportOpeningSource? openingEntry = null, IOpeningBalanceSource? imported = null, ITallyFileLog? log = null, ICommandRunner? runner = null, TimeProvider? clock = null)
+    IReportOpeningSource? openingEntry = null, IOpeningBalanceSource? imported = null, ITallyFileLog? log = null, ICommandRunner? runner = null, TimeProvider? clock = null,
+    Hcc.Application.Configuration.ISettingsReader? settings = null, IAgeingAllocationSource? allocations = null)
 {
+    /// <summary>Company name in the files (SVCURRENTCOMPANY): Master configuration <c>brand.legalName</c> (Owner) when set, else the property name.</summary>
+    private async Task<string?> CompanyAsync(int propertyId, CancellationToken ct)
+    {
+        if (settings is not null)
+        {
+            var legal = (await settings.GetAsync(propertyId, "brand.legalName", null, ct).ConfigureAwait(false)).Text;
+            if (!string.IsNullOrWhiteSpace(legal)) return legal.Trim();
+        }
+
+        return await store.PropertyNameAsync(propertyId, ct).ConfigureAwait(false);
+    }
+
     public const string OpExportTallyMasters = "ExportTallyMasters";
 
     public const string OpExportTallyVouchers = "ExportTallyVouchers";
@@ -121,7 +134,7 @@ public sealed class TallyQueries(IAccountingStore store, IAccessPolicy policy, I
         var last = log is null ? null : await log.LastAsync(caller.PropertyId, "masters", start, ct).ConfigureAwait(false);
         if (last is not null)
             notes.Add($"RE-EXPORT · the masters of FY {FyLabel(start)} were exported before (last on {Iso(DateOnly.FromDateTime(last.ExportedUtc))}). Tally creates masters that do not exist yet and does not create a master twice; an opening balance already in the company is not changed by importing again.");
-        var company = await store.PropertyNameAsync(caller.PropertyId, ct).ConfigureAwait(false);
+        var company = await CompanyAsync(caller.PropertyId, ct).ConfigureAwait(false);
         var xml = VoucherExport.TallyMastersXml(book, company, start, notes);
         var (sha, bytes) = Fingerprint(xml);
         long? fileId = null;
@@ -180,8 +193,9 @@ public sealed class TallyQueries(IAccountingStore store, IAccessPolicy policy, I
         var parties = await PartiesAsync(caller.PropertyId, ct).ConfigureAwait(false);
         var book = TallyBook.Build(chart, Balances(opening), parties, stream.SelectMany(v => v.Entries.Select(e => e.Account)));
         var identity = await store.TallyIdentityAsync(null, caller.PropertyId, now, ct).ConfigureAwait(false);
-        var company = await store.PropertyNameAsync(caller.PropertyId, ct).ConfigureAwait(false);
-        var xml = VoucherExport.TallyVouchersXml(stream, emit, book, chart, company, identity, notes);
+        var company = await CompanyAsync(caller.PropertyId, ct).ConfigureAwait(false);
+        var explicitAllocations = allocations is null ? null : await allocations.GetAsync(caller.PropertyId, ct).ConfigureAwait(false);
+        var xml = VoucherExport.TallyVouchersXml(stream, emit, book, chart, company, identity, notes, explicitAllocations);
         var (sha, bytes) = Fingerprint(xml);
         var emitted = stream.Where(v => emit.Contains(v.SourceKey)).ToList();
         var (d, c) = VoucherBuilder.Totals(emitted);

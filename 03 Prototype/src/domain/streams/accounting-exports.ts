@@ -2,7 +2,7 @@
 // ONE row model per report (a `Cell[][]` table with a title block) is rendered twice: as an Excel sheet through src/app/xlsx.ts (title row bold,
 // money as numbers `#,##0.00`, dates as dates) and as formula-guarded CSV (csvMinimal = the shared csvSafe guard). The ACC-1 statements keep their
 // own existing CSV builders (accStatementCsv, accTrialBalance6Csv, accDayBookCsv); the sheets here carry the same figures.
-// The §2–§3 report shapes are typed against `_acc3-stubs.ts` until the report lanes land (the integrator re-points the type imports).
+// The §2–§3 report shapes are the real ones of accounting-pl.ts / accounting-ageing.ts / accounting-gst-summary.ts (stubs removed at integration).
 // Pure builders: nothing here reads the clock or State beyond the statements and the party list.
 import {csvMinimal} from '../csv';
 import type {State} from '../types';
@@ -10,7 +10,9 @@ import {buildXlsx,XLSX_MIME,type XCell,type XSheet} from '../../app/xlsx';
 import {zipFiles} from '../../app/zip';
 import {accDrCr,accStatement,type ACCDayBook,type ACCStatement,type ACCTB6} from './accounting-reports';
 import {accPartyLedgers} from './accounting-parties';
-import type {ACCAgeing,ACCBalanceSheet,ACCCashRatio,ACCGstSummary,ACCPl,ACCPlGroup} from './_acc3-stubs';
+import type {ACCBalanceSheet,ACCCashRatio,ACCPl,ACCPlGroup} from './accounting-pl';
+import type {ACCAgeing} from './accounting-ageing';
+import type {ACCGstSummary} from './accounting-gst-summary';
 
 /** A table cell: text, a plain number, a date (ISO), money in paise (`#,##0.00`), an integer, a fraction (percent) or bold text. */
 export type ExCell=XCell;
@@ -92,7 +94,7 @@ export function accBalanceSheetTable(prop:string,bs:ACCBalanceSheet):ExTable{
 }
 export function accCashRatioTable(prop:string,c:ACCCashRatio):ExTable{
   return table('Cash ratio',block(prop,'Cash ratio',{label:'FY '+c.fy},false,c.flagged?['FLAGGED: a ratio is above 5 %.']:[]),head('Measure','Amount','Ratio'),
-    [['Cash receipts',money(c.cashReceipts),{pct:c.receiptsPct}],['Total receipts',money(c.totalReceipts),''],['Cash payments',money(c.cashPayments),{pct:c.paymentsPct}],['Total payments',money(c.totalPayments),''],['Flagged',c.flagged?'Yes':'No','']],[24,18,12]);
+    [['Cash receipts',money(c.cashReceipts),{pct:c.receiptsPct/10000}],['Total receipts',money(c.totalReceipts),''],['Cash payments',money(c.cashPayments),{pct:c.paymentsPct/10000}],['Total payments',money(c.totalPayments),''],['Flagged',c.flagged?'Yes':'No','']],[24,18,12]);
 }
 
 // ── §3 outstanding with ageing, GST summary ──
@@ -104,12 +106,13 @@ export function accAgeingTables(prop:string,a:ACCAgeing):ExTable[]{
     table('Bills',block(prop,side+' open bills',{asOf:a.asOf},false),head('Party','Name','Bill ref','Bill date','Due','Amount','Paid','Open','Days'),
       a.rows.flatMap(r=>r.bills.map(b=>[r.party,r.name,b.ref,date(b.date),date(b.due),money(b.amount),money(b.paid),money(b.open),{int:b.days}] as ExCell[])),[18,36,24,12,12,16,16,16,8])];
 }
+const hs=(h:{igst:number;cgst:number;sgst:number})=>h.igst+h.cgst+h.sgst;
 export function accGstSummaryTable(prop:string,g:ACCGstSummary):ExTable{
   const o=g.output,i=g.itc;
   return table('GST summary',block(prop,'GST summary',{label:g.month},false,g.ties.differences.slice()),head('Item','Amount'),
     [[{b:'Output tax'},''],['5 % slab',money(o.rate5)],['18 % slab',money(o.rate18)],['B2B',money(o.b2b)],['B2C small',money(o.b2cs)],['Advances received (11A)',money(o.advances11A)],['Advances adjusted (11B)',money(o.advances11B)],['Credit notes',money(o.creditNotes)],
      [{b:'Input tax credit'},''],['CGST',money(i.cgst)],['SGST',money(i.sgst)],['IGST',money(i.igst)],
-     [{b:'Other'},''],['Reverse charge',money(g.rcm)],...Object.keys(g.setoff).map(k=>['Set-off · '+k,money(g.setoff[k])] as ExCell[]),['Paid in cash (challan)',money(g.cashPaid)],['TCS credit',money(g.tcsCredit)],['Cash ledger balance (1340)',money(g.cashLedgerBalance)],
+     [{b:'Other'},''],['Reverse charge',money(g.rcm)],['Set-off · output tax',money(hs(g.setoff.output))],['Set-off · credit used',money(hs(g.setoff.credit)-hs(g.setoff.creditLeft))],['Set-off · payable in cash',money(g.setoff.payable)],['Set-off · challan',money(g.setoff.challan)],['Credit carried forward',money(hs(g.setoff.creditLeft))],['Paid in cash (challan)',money(g.cashPaid)],['TCS credit',money(g.tcsCredit)],['Cash ledger balance (1340)',money(g.cashLedgerBalance)],
      [{b:'Ties'},''],['Agrees with GSTR-1 summary',g.ties.gstr1?'Yes':'No'],['Agrees with GST month (GSTR-3B)',g.ties.gstr3b?'Yes':'No']],[34,18]);
 }
 

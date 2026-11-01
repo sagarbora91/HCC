@@ -1,16 +1,15 @@
 // ACC-3 · acc3-ui — the report tabs of contract §6: P&L, Balance sheet, Outstanding, GST summary, Cash ratio, Tally masters, Exports.
 // One component per report; `phone` switches tables to cards (48 px targets, 16 px text, no sideways scroll at 360 px). Figures come from the
-// contract selectors (stubbed in acc3-views.ts); no rule lives here. Money is shown only to the books roles (Owner / Manager / Accountant), as the trial balance.
+// contract selectors (re-exported by acc3-views.ts); no rule lives here. Money is shown only to the books roles (Owner / Manager / Accountant), as the trial balance.
 import React,{useMemo,useState} from 'react';
 import {Download,Info,AlertTriangle,CheckCircle2} from 'lucide-react';
 import {useHcc} from '../../app/context';
 import {money,rbacSeesBooks,rbacCanExportVouchers,rbacCanTally} from '../../services/mock';
-import {saveBinaryFile,saveTextFile,saveCsv,saveAndReport} from '../../app/native';
-import {XLSX_MIME} from '../../app/xlsx';
+import {saveBinaryFile,saveTextFile,saveAndReport} from '../../app/native';
 import {ListCard,KpiCard} from '../../app/mobile/components';
 import {Empty} from '../../components/ui';
 import {RangeBar,fyStart,monthChoices,monthLabel,type AccRange} from './shared';
-import {accPl,accBalanceSheet,accAgeing,accGstSummary,accCashRatio,accTallyMasters,accReportTable,accReportCsv,accReportXlsx,accReportsZip,ACC3_REPORTS,
+import {accPl,accBalanceSheet,accAgeing,accGstSummary,accCashRatio,accTallyMasters,accTallyCompany,accReportFile,accReportsZip,ACC3_REPORTS,
   type ACCPlGroup,type ACCBsBlock,type Acc3Report,type Acc3Args} from './acc3-views';
 
 const fmt=(n:number)=>n<0?`(${money(-n)})`:money(n);
@@ -27,10 +26,10 @@ function Tie({ok,label}:{ok:boolean;label:string}){return ok?<span className="pi
 /** CSV + Excel buttons for one report (export permission only). */
 export function ExportBar({kind,args}:{kind:Acc3Report;args:Acc3Args}){
   const {s,toast}=useHcc();const {canExport}=useBooks();if(!canExport)return null;
-  const t=()=>accReportTable(s,kind,args),name=`HCC-Demo-${kind}`;
+  const save=(fmt:'csv'|'xlsx')=>{const f=accReportFile(s,kind,args,fmt);void saveAndReport(saveBinaryFile(f.name,f.bytes,f.mime),toast,fmt==='csv'?'CSV saved':'Excel workbook saved',fmt==='csv'?'the CSV':'the Excel workbook');};
   return <div className="inline acc-export-bar">
-    <button type="button" className="btn" onClick={()=>{void saveAndReport(saveCsv(`${name}.csv`,accReportCsv(t())),toast,'CSV saved','the CSV');}}><Download size={16}/> Export CSV</button>
-    <button type="button" className="btn" onClick={()=>{void saveAndReport(saveBinaryFile(`${name}.xlsx`,accReportXlsx(t()),XLSX_MIME),toast,'Excel workbook saved','the Excel workbook');}}><Download size={16}/> Export Excel</button></div>;
+    <button type="button" className="btn" onClick={()=>save('csv')}><Download size={16}/> Export CSV</button>
+    <button type="button" className="btn" onClick={()=>save('xlsx')}><Download size={16}/> Export Excel</button></div>;
 }
 const useArgs=(range?:AccRange,asOf?:string,month?:string,fy?:string):Acc3Args=>{const {s}=useHcc();return {from:range?.from??fyStart(s.date),to:range?.to??s.date,asOf:asOf??s.date,month:month??s.date.slice(0,7),fy:fy??fyStart(s.date)};};
 
@@ -101,7 +100,7 @@ export function GstSummaryView({phone}:{phone?:boolean}){
   const g=useMemo(()=>accGstSummary(s,month),[s,month]);const args=useArgs(undefined,undefined,month);
   if(!ok)return NOT_FOR_ROLE;
   const rows:[string,number][]=[['Output tax at 5 %',g.output.rate5],['Output tax at 18 %',g.output.rate18],['Business to business (B2B)',g.output.b2b],['Business to consumer, small (B2CS)',g.output.b2cs],['Advances received (11A)',g.output.advances11A],['Advances adjusted (11B)',g.output.advances11B],['Credit notes',g.output.creditNotes],
-    ['Input credit: CGST',g.itc.cgst],['Input credit: SGST',g.itc.sgst],['Input credit: IGST',g.itc.igst],['Reverse charge',g.rcm],['Set-off',g.setoff],['Paid in cash (challan)',g.cashPaid],['TCS credit',g.tcsCredit],['Cash ledger balance (1340)',g.cashLedgerBalance]];
+    ['Input credit: CGST',g.itc.cgst],['Input credit: SGST',g.itc.sgst],['Input credit: IGST',g.itc.igst],['Reverse charge',g.rcm],['Set-off: payable in cash',g.setoff.payable],['Set-off: challan to deposit',g.setoff.challan],['Paid in cash (challan)',g.cashPaid],['TCS credit',g.tcsCredit],['Cash ledger balance (1340)',g.cashLedgerBalance]];
   return <div className={phone?'':'padded'}>
     <div className="acc-subbar"><label className="acc-date">Month<select value={month} onChange={e=>setMonth(e.target.value)}>{months.map(m=><option key={m} value={m}>{monthLabel(m)}</option>)}</select></label>
       <Tie ok={g.ties.gstr1} label="GSTR-1"/><Tie ok={g.ties.gstr3b} label="GSTR-3B"/><ExportBar kind="gst" args={args}/></div>
@@ -119,22 +118,23 @@ export function CashRatioView({phone}:{phone?:boolean}){
   return <div className={phone?'':'padded'}>
     <div className="acc-subbar"><label className="acc-date">Financial year<select value={fy} onChange={e=>setFy(e.target.value)}>{[cur,cur-1,cur-2].map(y=><option key={y} value={`${y}-04-01`}>{y}-{String(y+1).slice(2)}</option>)}</select></label>
       {c.flagged?<span className="pill acc-sev-error"><AlertTriangle size={12}/>Flagged: cash is above 5 %</span>:<span className="pill green"><CheckCircle2 size={12}/>Within 5 %</span>}<ExportBar kind="cash" args={args}/></div>
-    {phone?rows.map(([l,cash,tot,pct])=><ListCard key={l} title={l} sub={`Cash ${money(cash)} of ${money(tot)}`} right={<strong className="number">{pct.toFixed(2)} %</strong>}/>)
+    {phone?rows.map(([l,cash,tot,pct])=><ListCard key={l} title={l} sub={`Cash ${money(cash)} of ${money(tot)}`} right={<strong className="number">{(pct/100).toFixed(2)} %</strong>}/>)
       :<div className="table-wrap"><table className="acc-table"><thead><tr><th>Measure</th><th className="acc-num">Cash</th><th className="acc-num">All</th><th className="acc-num">Cash share</th></tr></thead><tbody>
-        {rows.map(([l,cash,tot,pct])=><tr key={l}><td>{l}</td><td className="acc-num number">{money(cash)}</td><td className="acc-num number">{money(tot)}</td><td className="acc-num number">{pct.toFixed(2)} %</td></tr>)}</tbody></table></div>}
+        {rows.map(([l,cash,tot,pct])=><tr key={l}><td>{l}</td><td className="acc-num number">{money(cash)}</td><td className="acc-num number">{money(tot)}</td><td className="acc-num number">{(pct/100).toFixed(2)} %</td></tr>)}</tbody></table></div>}
     <p className="muted">Cash means entries on the cash ledgers 1000 and 1005. The flag shows when either share is above 5 %.</p></div>;
 }
 
 // ── Tally masters (shown above the voucher export) ──
 export function TallyMastersPanel(){
   const {s,toast}=useHcc();const {canTally}=useBooks();const cur=+fyStart(s.date).slice(0,4);const [fy,setFy]=useState(fyStart(s.date));
-  const m=useMemo(()=>accTallyMasters(s,fy),[s,fy]);
+  const m=useMemo(()=>accTallyMasters(s,fy,accTallyCompany(s)),[s,fy]);
   if(!canTally)return null;
   return <div className="padded exp-tally exp-tally-masters">
     <h3>Masters (groups and ledgers)</h3>
     <div className="inline exp-tally-range"><label className="acc-date">Financial year<select value={fy} onChange={e=>setFy(e.target.value)}>{[cur,cur-1].map(y=><option key={y} value={`${y}-04-01`}>{y}-{String(y+1).slice(2)}</option>)}</select></label>
-      <button type="button" className="btn" disabled={!m.count} onClick={()=>{void saveAndReport(saveTextFile(`HCC-Demo-tally-masters-${fy}.xml`,m.xml,'application/xml'),toast,'Tally masters XML saved · not imported into Tally','the Tally masters');}}><Download size={16}/> Download masters XML</button></div>
-    <p className="muted">{m.count} ledger{m.count===1?'':'s'}. Import the masters before the vouchers.</p>
+      <button type="button" className="btn" disabled={!m.ledgers||!!m.error} onClick={()=>{void saveAndReport(saveTextFile(m.fileName,m.xml,'application/xml'),toast,'Tally masters XML saved · not imported into Tally','the Tally masters');}}><Download size={16}/> Download masters XML</button></div>
+    {m.error?<p className="f-why" role="alert">{m.error}</p>:<p className="muted">{m.groups} group{m.groups===1?'':'s'} and {m.ledgers} ledger{m.ledgers===1?'':'s'} ({m.partyLedgers} part{m.partyLedgers===1?'y':'ies'}). Import the masters before the vouchers.</p>}
+    <p className="muted">Tally’s 28 primary groups are not created; they exist in every company. Opening balances are as at the start of the financial year.</p>
     {m.notes.map(n=><p key={n} className="muted">{n}</p>)}</div>;
 }
 
@@ -144,11 +144,11 @@ export function ExportsView({phone}:{phone?:boolean}){
   const args=useArgs(range);
   if(!ok)return NOT_FOR_ROLE;
   if(!canExport)return <Empty title="Exports are not available for your role" body="Ask the Owner or the Accountant for the files."/>;
-  const one=(k:Acc3Report,xlsx:boolean)=>{const t=accReportTable(s,k,args);void saveAndReport(xlsx?saveBinaryFile(`HCC-Demo-${k}.xlsx`,accReportXlsx(t),XLSX_MIME):saveCsv(`HCC-Demo-${k}.csv`,accReportCsv(t)),toast,xlsx?'Excel workbook saved':'CSV saved','the file');};
+  const one=(k:Acc3Report,xlsx:boolean)=>{const f=accReportFile(s,k,{...args,asOf:range.to},xlsx?'xlsx':'csv');void saveAndReport(saveBinaryFile(f.name,f.bytes,f.mime),toast,xlsx?'Excel workbook saved':'CSV saved','the file');};
   return <div className={phone?'':'padded'}>
     <RangeBar s={s} range={range} setRange={setRange} phone={phone}/>
     <p className="muted">One file per report for the range above (as-of reports use the end date).</p>
     {ACC3_REPORTS.map(([k,label])=><div key={k} className="inline acc-export-row"><strong>{label}</strong>
       <button type="button" className="btn" onClick={()=>one(k,false)}><Download size={16}/> CSV</button><button type="button" className="btn" onClick={()=>one(k,true)}><Download size={16}/> Excel</button></div>)}
-    <button type="button" className="btn primary full" onClick={()=>{void saveAndReport(saveBinaryFile(`HCC-Demo-reports-${range.from}_${range.to}.zip`,accReportsZip(ACC3_REPORTS.map(([k])=>accReportTable(s,k,{...args,asOf:range.to}))),'application/zip'),toast,'Zip saved · every report as CSV','the zip');}}><Download size={16}/> Download all (zip)</button></div>;
+    <button type="button" className="btn primary full" onClick={()=>{const z=accReportsZip(s,{...args,asOf:range.to});void saveAndReport(saveBinaryFile(z.name,z.bytes,z.mime),toast,'Zip saved · every report as CSV','the zip');}}><Download size={16}/> Download all (zip)</button></div>;
 }

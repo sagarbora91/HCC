@@ -34,7 +34,7 @@ type Bill=ACCAgeingBill&{order:number};
 const rupees=(p:number)=>(p/100).toFixed(2);
 
 /** Explicit targets of a payable credit (prototype records): a return / reversal record → its bill; a vendor payment → its allocations. */
-function payableTargets(s:State,v:ACCVoucher):Pick<ACCAgeingCredit,'target'|'explicit'>{
+export function accAgeingPayableTargets(s:State,v:ACCVoucher):Pick<ACCAgeingCredit,'target'|'explicit'>{
   if(v.source.kind==='expense'){const e=s.expenses.find(x=>x.id===v.source.id);if(!e)return {};
     if(e.reversalOf)return {target:e.reversalOf};
     if(typeof e.sourceRef==='string'&&e.sourceRef.startsWith('ret:'))return {target:e.sourceRef.slice(4)};
@@ -80,7 +80,7 @@ export function accAgeing(s:State,asOf:string,side:ACCAgeingSide):ACCAgeing{
       if(amt>0&&v.source.id.endsWith('/void')){const k=v.source.id.slice(0,-5),c=x.credits.find(c=>c.key===k&&c.amount>0);
         if(c){const n=Math.min(c.amount,amt);c.amount-=n;if(n<amt)x.bills.push({ref,date:v.date,amount:amt-n});continue;}}
       if(amt>0)x.bills.push({ref,date:v.date,amount:amt});
-      else x.credits.push({key:v.source.id,date:v.date,amount:-amt,...(side==='payable'?payableTargets(s,v):{})});
+      else x.credits.push({key:v.source.id,date:v.date,amount:-amt,...(side==='payable'?accAgeingPayableTargets(s,v):{})});
     }
   }
   const rows:ACCAgeingRow[]=[];

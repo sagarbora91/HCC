@@ -305,15 +305,19 @@ public static partial class VoucherExport
     public sealed class TallyBills
     {
         private readonly TallyBook book;
-        private readonly Dictionary<string, List<(string Name, long Left)>> open = new(StringComparer.Ordinal);
+        private readonly Dictionary<string, List<(string Name, long Left, string Key)>> open = new(StringComparer.Ordinal);
+        private readonly IReadOnlyDictionary<string, IReadOnlyList<(string Ref, long Paise)>>? explicitAllocations;
 
-        public TallyBills(TallyBook book)
+        /// <summary>Bill-wise allocations. <paramref name="explicitAllocations"/> (ACC-3 integration, acc3-ageing's ACC-2 vendor allocations) = per payment
+        /// voucher source key, the bills it pays (ref = the bill voucher's source key, or <c>opening</c>); they apply first, the rest oldest-first.</summary>
+        public TallyBills(TallyBook book, IReadOnlyDictionary<string, IReadOnlyList<(string Ref, long Paise)>>? explicitAllocations = null)
         {
             this.book = book ?? throw new ArgumentNullException(nameof(book));
+            this.explicitAllocations = explicitAllocations;
             foreach (var l in book.Ledgers.Where(l => l.BillWise && l.OpeningNet != 0))
             {
                 var natural = l.Nature == "Dr" ? 1 : -1;
-                if (l.OpeningNet * natural > 0) open[l.Id] = [(TallyOpeningBill, Math.Abs(l.OpeningNet))];
+                if (l.OpeningNet * natural > 0) open[l.Id] = [(TallyOpeningBill, Math.Abs(l.OpeningNet), "opening")];
             }
         }
 
@@ -341,18 +345,30 @@ public static partial class VoucherExport
                     var name = names[l.Id] == 1 ? v.Number : v.Number + "/" + names[l.Id].ToString(CultureInfo.InvariantCulture);
                     list.Add(new TallyBillAllocation(name, "New Ref", net));
                     if (!open.TryGetValue(l.Id, out var bills)) open[l.Id] = bills = [];
-                    bills.Add((name, Math.Abs(net)));
+                    bills.Add((name, Math.Abs(net), v.SourceKey));
                 }
                 else
                 {
                     var need = Math.Abs(net);
                     if (open.TryGetValue(l.Id, out var bills))
                     {
+                        if (explicitAllocations is not null && explicitAllocations.TryGetValue(v.SourceKey, out var targets))
+                            foreach (var (reference, paise) in targets)
+                            {
+                                var i = bills.FindIndex(b => b.Key == reference && b.Left > 0);
+                                if (i < 0 || need <= 0) continue;
+                                var take = Math.Min(Math.Min(need, paise), bills[i].Left);
+                                if (take <= 0) continue;
+                                list.Add(new TallyBillAllocation(bills[i].Name, "Agst Ref", side * take));
+                                bills[i] = (bills[i].Name, bills[i].Left - take, bills[i].Key);
+                                need -= take;
+                            }
+
                         for (var i = 0; i < bills.Count && need > 0; i++)
                         {
                             var take = Math.Min(need, bills[i].Left);
                             list.Add(new TallyBillAllocation(bills[i].Name, "Agst Ref", side * take));
-                            bills[i] = (bills[i].Name, bills[i].Left - take);
+                            bills[i] = (bills[i].Name, bills[i].Left - take, bills[i].Key);
                             need -= take;
                         }
 
@@ -376,7 +392,7 @@ public static partial class VoucherExport
     /// <see cref="RemoteId"/>; no VCHKEY (Tally's own key is never invented here).
     /// </summary>
     public static string TallyVouchersXml(IReadOnlyList<Voucher> stream, IReadOnlySet<string> emit, TallyBook book, EffectiveChart? chart, string? company, string identity,
-        IReadOnlyList<string>? notes = null)
+        IReadOnlyList<string>? notes = null, IReadOnlyDictionary<string, IReadOnlyList<(string Ref, long Paise)>>? explicitAllocations = null)
     {
         ArgumentNullException.ThrowIfNull(stream);
         ArgumentNullException.ThrowIfNull(emit);
@@ -385,7 +401,7 @@ public static partial class VoucherExport
         var ids = written.Select(v => RemoteId(identity, v.SourceKey)).ToList();
         if (ids.Distinct(StringComparer.Ordinal).Count() != ids.Count)
             throw new InvalidOperationException("Two vouchers in one Tally export share a source key; every REMOTEID must be unique.");
-        var bills = new TallyBills(book);
+        var bills = new TallyBills(book, explicitAllocations);
         var comments = new List<string> { Inner(TallyComment), Inner(TallyIdNote) };
         comments.AddRange(notes ?? []);
         return Render(comments, w => Envelope(w, "Vouchers", company, m =>

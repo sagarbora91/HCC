@@ -17,6 +17,7 @@ import {GstMonthView} from './gst';
 import {TdsView,AssetsView} from './tds';
 import {accManualList} from './acc2-views';
 import {PlView,BalanceSheetView,OutstandingView,GstSummaryView,CashRatioView,ExportsView,TallyMastersPanel} from './reports3';
+import {accTallyVouchers,accTallyCompany} from './acc3-views';
 
 export type AccTab='vouchers'|'manual'|'gst'|'tds'|'assets'|'tb'|'statements'|'daybook'|'chart'|'parties'|'opening'|'exceptions'|'recon'|'mapping'|'tally'|'pl'|'bs'|'ageing'|'gstsum'|'cashratio'|'exports';
 type Tab=AccTab;
@@ -106,7 +107,10 @@ export function TallyExport(){
   const {s,toast,run,busy}=useHcc();
   const [to,setTo]=useState(s.date);const [from,setFrom]=useState(addDays(s.date,-6));
   const p=useMemo(()=>accTallyXml(s,from,to),[s,from,to]);
-  const lines=p.xml.split(String.fromCharCode(10)),shown=lines.slice(0,60).join(String.fromCharCode(10));
+  // ACC-3 integration: the file is acc3-tally's vouchers export (bill allocations, explicit vendor allocations first); accTallyXml keeps the
+  // DEC-077 re-export / pending / legacy notes and the ACC_TALLY_EXPORT log of the same dates.
+  const tv=useMemo(()=>accTallyVouchers(s,from,to,accTallyCompany(s)),[s,from,to]);
+  const lines=(tv.error?p.xml:tv.xml).split(String.fromCharCode(10)),shown=lines.slice(0,60).join(String.fromCharCode(10));
   return <div className="padded exp-tally">
     <TallyMastersPanel/>
     <div className="exp-tally-head"><span className="pill orange" role="status">Simulated</span><span className="muted">No file is sent to Tally. Saving this XML does not mean it was imported — only Tally's own import confirms that.</span></div>
@@ -114,8 +118,8 @@ export function TallyExport(){
       <label className="acc-date">To<input type="date" value={to} max={s.date} onChange={e=>setTo(e.target.value)}/></label>
       {/* DEC-077: the download is recorded (ACC_TALLY_EXPORT) so a later reopen of an exported day flags it for re-export. Production: the
           server builds, records and returns the file (GET /accounting/export/tally) and the mapper saves it. */}
-      <button className="btn" disabled={busy||!p.count} onClick={()=>{void run({type:'ACC_TALLY_EXPORT',from,to},'Simulated Tally XML saved · not imported into Tally',
-        {after:()=>{if(process.env.HCC_BUILD!=='production')void saveAndReport(saveTextFile(`HCC-Demo-tally-${from}_${to}.xml`,p.xml,'application/xml'),toast,'Simulated Tally XML saved · not imported into Tally','the Tally XML');}});}}><Download size={16}/> Download XML</button></div>
+      <button className="btn" disabled={busy||!p.count||!!tv.error} onClick={()=>{void run({type:'ACC_TALLY_EXPORT',from,to},'Simulated Tally XML saved · not imported into Tally',
+        {after:()=>{if(process.env.HCC_BUILD!=='production')void saveAndReport(saveTextFile(tv.fileName,tv.xml,'application/xml'),toast,'Simulated Tally XML saved · not imported into Tally','the Tally XML');}});}}><Download size={16}/> Download XML</button></div>
     {/* A03b-05: every voucher carries a fixed REMOTEID, so a re-import replaces instead of duplicating; provisional while events are pending. */}
     <p className="muted">Every voucher carries a fixed voucher ID (REMOTEID): importing a day again replaces its vouchers in Tally instead of adding them twice — set “Overwrite vouchers when a voucher with same GUID exists” to Yes in Tally’s import.{process.env.HCC_BUILD==='production'?' The downloaded file is built by the hotel server with the hotel’s own voucher IDs.':''}</p>
     {p.reexport.length>0&&<div className="info-note f-warn" role="status"><AlertTriangle size={16}/><span>Re-export: {p.reexport.join(', ')} changed after {p.reexport.length===1?'it was':'they were'} exported and {p.reexport.length===1?'is':'are'} carried again in this file. The vouchers keep their IDs, so importing it replaces them in Tally and adds the new ones — nothing needs deleting first.{p.reopened.length?` ${p.reopened.join(', ')} is still reopened and may change again.`:''}</span></div>}

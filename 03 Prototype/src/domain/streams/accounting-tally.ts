@@ -8,13 +8,16 @@ import {accChart,accGroups} from './accounting-chart';
 import {accPartyLedgers} from './accounting-parties';
 import {accOpeningPending} from './accounting-opening';
 import {accRptIsOpening} from './accounting-reports';
+import {accAgeingPayableTargets} from './accounting-ageing';
 
 // ── Neutral inputs (what the server's TallyBook / TallyVouchersXml take) ──
 export type TallyGroupIn={id:string;name:string;parent?:string;nature:'Dr'|'Cr';side:'BS'|'PL';custom?:boolean};
 export type TallyLedgerIn={code:string;name:string;tallyName?:string;group:string};
 export type TallyChartIn={groups:TallyGroupIn[];ledgers:TallyLedgerIn[]};
 export type TallyPartyIn={name:string;gstin?:string};
-export type TallyVoucherIn={no:string;date:string;type:string;sub:string;sourceId:string;narration:string;entries:{account:string;debit:number;credit:number}[]};
+export type TallyVoucherIn={no:string;date:string;type:string;sub:string;sourceId:string;narration:string;entries:{account:string;debit:number;credit:number}[];
+  /** ACC-3 integration: explicit bill targets of a payment / return (acc3-ageing's ACC-2 vendor allocations; ref = the bill voucher's source id or 'opening'), applied before oldest-first. */
+  alloc?:{ref:string;amount:number}[]};
 export type TallyGroupMaster={name:string;parent:string};
 export type TallyLedgerMaster={id:string;name:string;group:string;billWise:boolean;openingNet:number;gstin?:string;nature:'Dr'|'Cr';party:boolean};
 export type TallyBook={groups:TallyGroupMaster[];ledgers:TallyLedgerMaster[];profitCarryNet:number};
@@ -114,10 +117,10 @@ export function tallyVoucherType(v:TallyVoucherIn,chart:TallyChartIn):string{
 
 // ── Bill allocations (server TallyBills) ──
 export class TallyBills{
-  private open=new Map<string,{name:string;left:number}[]>();
+  private open=new Map<string,{name:string;left:number;key:string}[]>();
   constructor(private book:TallyBook){
     for(const l of book.ledgers.filter(l=>l.billWise&&l.openingNet!==0)){
-      const nat=l.nature==='Dr'?1:-1;if(l.openingNet*nat>0)this.open.set(l.id,[{name:TALLY_OPENING_BILL,left:Math.abs(l.openingNet)}]);
+      const nat=l.nature==='Dr'?1:-1;if(l.openingNet*nat>0)this.open.set(l.id,[{name:TALLY_OPENING_BILL,left:Math.abs(l.openingNet),key:'opening'}]);
     }
   }
   allocate(v:TallyVoucherIn):TallyBill[][]{
@@ -129,10 +132,12 @@ export class TallyBills{
       if(side===nat){
         const k=(names.get(l.id)??0)+1;names.set(l.id,k);const name=k===1?v.no:`${v.no}/${k}`;
         list.push({name,type:'New Ref',net});
-        const b=this.open.get(l.id)??[];b.push({name,left:Math.abs(net)});this.open.set(l.id,b);
+        const b=this.open.get(l.id)??[];b.push({name,left:Math.abs(net),key:v.sourceId});this.open.set(l.id,b);
       }else{
         let need=Math.abs(net);const b=this.open.get(l.id);
         if(b){
+          for(const a of v.alloc??[]){if(need<=0)break;const x=b.find(y=>y.key===a.ref&&y.left>0);if(!x)continue;
+            const take=Math.min(need,a.amount,x.left);if(take<=0)continue;list.push({name:x.name,type:'Agst Ref',net:side*take});x.left-=take;need-=take;}
           for(let i=0;i<b.length&&need>0;i++){const take=Math.min(need,b[i].left);list.push({name:b[i].name,type:'Agst Ref',net:side*take});b[i].left-=take;need-=take;}
           this.open.set(l.id,b.filter(x=>x.left!==0));
         }
@@ -176,7 +181,11 @@ export function accTallyFy(fy:string):{start:string;end:string;label:string}|und
   return {start:`${y}-04-01`,end:`${y+1}-03-31`,label:`${y}-${String(y+1).slice(2)}`};
 }
 const fyStartOf=(d:string)=>{const y=+d.slice(0,4),m=+d.slice(5,7);return `${m>=4?y:y-1}-04-01`;};
-const toIn=(v:ACCVoucher):TallyVoucherIn=>({no:v.no,date:v.date,type:v.type,sub:v.source.sub,sourceId:v.source.id,narration:v.narration,entries:v.entries.map(e=>({account:e.account,debit:e.debit,credit:e.credit}))});
+const toIn=(v:ACCVoucher,s?:State):TallyVoucherIn=>{
+  const x:TallyVoucherIn={no:v.no,date:v.date,type:v.type,sub:v.source.sub,sourceId:v.source.id,narration:v.narration,entries:v.entries.map(e=>({account:e.account,debit:e.debit,credit:e.credit}))};
+  // explicit ACC-2 vendor allocations only; a return's own-bill target is not used (the server has none yet, ACC3-R4)
+  if(s){const t=accAgeingPayableTargets(s,v);const alloc=(t.explicit??[]).map(a=>({ref:a.ref,amount:a.amount}));if(alloc.length)x.alloc=alloc;}
+  return x;};
 export function accTallyChartIn(s:State):TallyChartIn{
   return {groups:accGroups(s).map(g=>({id:g.id,name:g.name,parent:g.parent,nature:g.nature,side:g.side,custom:g.custom})),
     ledgers:accChart(s).map(l=>({code:l.code,name:l.name,tallyName:l.tallyName,group:l.group}))};
@@ -224,7 +233,7 @@ export function accTallyVouchers(s:State,from:string,to:string,companyName?:stri
   const stream=accVouchersUpTo(s,to).filter(v=>!accRptIsOpening(v)&&v.date>=start).sort(cmp),period=stream.filter(v=>v.date>=from&&v.date<=to);
   const {chart,book}=bookFor(s,start,stream);
   const tag=identity??'DEMO';
-  const xml=tallyVouchersXml(stream.map(toIn),new Set(period.map(v=>v.source.id)),book,chart,company(s,companyName),tag);
+  const xml=tallyVouchersXml(stream.map(v=>toIn(v,s)),new Set(period.map(v=>v.source.id)),book,chart,company(s,companyName),tag);
   const debit=period.reduce((a,v)=>a+v.entries.reduce((x,e)=>x+e.debit,0),0),credit=period.reduce((a,v)=>a+v.entries.reduce((x,e)=>x+e.credit,0),0);
   void accDates;void accTallyPendingReason;
   return {xml,fileName:`HCC-tally-vouchers-SIMULATED-${from}_${to}.xml`,bytes:bytes(xml),from,to,count:period.length,debit,credit,dates:new Set(period.map(v=>v.date)).size,provisional:[],reexport:[]};
@@ -242,5 +251,5 @@ export function accTallyGoldenInput(s:State,from:string,to:string,companyName:st
   }
   const seen=[...new Set(stream.flatMap(v=>v.entries.map(e=>e.account)))].sort(ord);
   return {company:companyName,identity,fyStart,from,to,chart:accTallyChartIn(s),opening:Object.fromEntries(Object.entries(opening).filter(([,n])=>n!==0).sort(([a],[b])=>ord(a,b))),
-    parties:Object.fromEntries(Object.entries(partiesOf(s)).sort(([a],[b])=>ord(a,b))),seen,stream:stream.map(toIn),emit:stream.filter(v=>v.date>=from&&v.date<=to).map(v=>v.source.id)};
+    parties:Object.fromEntries(Object.entries(partiesOf(s)).sort(([a],[b])=>ord(a,b))),seen,stream:stream.map(v=>toIn(v,s)),emit:stream.filter(v=>v.date>=from&&v.date<=to).map(v=>v.source.id)};
 }
