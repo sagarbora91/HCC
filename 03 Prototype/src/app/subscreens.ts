@@ -25,6 +25,14 @@ export const SUB_SCREENS:SubScreen[]=[
   {page:'inventory',id:'par-minimums',label:'Par & minimums'},
   {page:'inventory',id:'movements',label:'Movements'},
   // FIT-GUEST
+  {page:'guest-services',id:'requests',label:'Requests'},
+  {page:'guest-services',id:'complaints',label:'Complaints'},
+  {page:'guest-services',id:'lost-found',label:'Lost & found',keywords:['lost and found','found items']},
+  {page:'guest-services',id:'reports',label:'Reports'},
+  {page:'messages',id:'outbox',label:'Outbox'},
+  {page:'messages',id:'triggers',label:'Triggers'},
+  {page:'messages',id:'templates',label:'Templates'},
+  {page:'messages',id:'consent',label:'Consent'},
   // FIT-REVENUE
   // FIT-PEOPLE
   // FIT-ADMIN

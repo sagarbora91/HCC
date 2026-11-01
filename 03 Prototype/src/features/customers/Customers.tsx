@@ -9,11 +9,17 @@ import {getLegacyLookup,ensureLegacy} from './legacy-source';
 import {PageTitle,SearchBox,Pill,Empty,shortDate,dateLabel} from '../../components/ui';
 import {usePaged,ShowMore,DESKTOP_PAGE,PHONE_PAGE} from '../../components/ShowMore';
 import {GuestDetails,VerifiedPill,statusTone} from '../guests/GuestProfile';
+import {FitPage,FitTabs,ScrollPanel,SplitView,FitNote} from '../../components/fit';
 
 type Tab='history'|'profile'|'service';
 const initials=(n:string)=>n.split(' ').map(p=>p[0]).slice(0,2).join('').toUpperCase();
 
-export function CustomersPage(){
+/** FIT (contract §6 `customers`): the desktop / tablet layout gets the split page below; the phone layout (display.isMobile) keeps the old page
+ *  and panel exactly as they were (DEC-194: phones scroll by design, nothing under the phone paths changes). */
+export function CustomersPage(){const {display}=useHcc();return display.isMobile?<CustomersPhonePage/>:<CustomersFitPage/>;}
+export function CustomerPanel(p:{c:Customer;onBack:()=>void;onLegacy:()=>void;initialTab?:InnerTab}){const {display}=useHcc();return display.isMobile?<CustomerPanelPhone {...p}/>:<CustomerPanelFit {...p}/>;}
+
+function CustomersPhonePage(){
   const {s,uid,search,setSearch,display}=useHcc();
   const access=guestAccess(s,uid);
   const [legacyRev,setLegacyRev]=useState(0); // LG-UI: bumps when a profile read brought legacy stays (production)
@@ -37,12 +43,12 @@ export function CustomersPage(){
           {x.current?<Pill tone="green">In house</Pill>:x.completed.length+x.legacyCount>1?<Pill tone="blue">Repeat</Pill>:null}</button></li>)}</ul><ShowMore p={paged}/></>
           :<Empty title="No matching customers" body={digitsOnly&&!access.contact?'Mobile search is not available for your role. Search by name.':digitsOnly?'Type at least 3 digits of the mobile number, or search by name.':'Try fewer letters or another spelling. Booking IDs are searched from Arrivals & check-in.'}/>}
       </section>
-      {c?<CustomerPanel key={c.key} c={c} onBack={()=>setSel('')} onLegacy={()=>setLegacyRev(n=>n+1)}/>:<section className="card cust-empty"><Empty title="Choose a customer" body="Their full stay history appears here."/></section>}
+      {c?<CustomerPanelPhone key={c.key} c={c} onBack={()=>setSel('')} onLegacy={()=>setLegacyRev(n=>n+1)}/>:<section className="card cust-empty"><Empty title="Choose a customer" body="Their full stay history appears here."/></section>}
     </div>
     <p className="footnote">All customer records are fictional. Customers are matched by mobile number; the same person with two different numbers appears twice.</p></>;
 }
 
-export function CustomerPanel({c,onBack,onLegacy}:{c:Customer;onBack:()=>void;onLegacy:()=>void}){
+function CustomerPanelPhone({c,onBack,onLegacy}:{c:Customer;onBack:()=>void;onLegacy:()=>void}){
   const {s,uid,permission,open}=useHcc();
   const [tab,setTab]=useState<Tab>('history');
   useEffect(()=>{let live=true;void ensureLegacy(c.key).then(ch=>{if(live&&ch)onLegacy();});return ()=>{live=false;};},[c.key]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -69,10 +75,12 @@ export function CustomerPanel({c,onBack,onLegacy}:{c:Customer;onBack:()=>void;on
   </section>;
 }
 
-function History({c,showMoney}:{c:Customer;showMoney:boolean}){
+function History({c,showMoney,part='all'}:{c:Customer;showMoney:boolean;part?:'all'|'stays'|'legacy'}){
   const {booking,display}=useHcc();
   const paged=usePaged(c.stays,display.isMobile?PHONE_PAGE:DESKTOP_PAGE);
   const lp=usePaged(c.legacyStays,display.isMobile?PHONE_PAGE:DESKTOP_PAGE);
+  if(part==='legacy')return <LegacyStays c={c} lp={lp} showMoney={showMoney}/>;
+  if(part==='stays')return !c.stays.length?<p className="muted padded">No stays yet.</p>:<><StayRows paged={paged} showMoney={showMoney}/><ShowMore p={paged}/></>;
   return <>{!c.stays.length&&!c.legacyStays.length?<p className="muted padded">No stays yet.</p>:!c.stays.length?null:
     <ul className="cust-stays">{paged.shown.map(b=><li key={b.id}><button type="button" className="cust-stay" onClick={()=>booking(b.id)}>
       <span className="cust-stay-main"><strong>{shortDate(b.arrival)} — {dateLabel(b.departure)}</strong><small>Room {staySegmentLabel(b)||b.room} · {nights(b.arrival,b.departure)} night{nights(b.arrival,b.departure)===1?'':'s'} · {b.source} · {b.id}</small></span>
@@ -105,4 +113,106 @@ function Service({c,svc,onOpen}:{c:Customer;svc:ReturnType<typeof customerServic
     <span className="cust-stay-main"><strong>{r.type}</strong><small>Room {r.room} · {r.detail||r.id}</small></span><span className="cust-stay-right"><Pill tone={r.status==='Done'?'green':r.status==='Cancelled'?'neutral':'orange'}>{r.status}</Pill></span></button></li>)}</ul></>}
     {svc.complaints.length>0&&<><h3 className="gs-sub">Complaints</h3><ul className="cust-stays">{svc.complaints.slice(0,50).map(k=><li key={k.id}><button type="button" className="cust-stay" onClick={()=>onOpen({type:'gsv-complaint',id:k.id})}>
     <span className="cust-stay-main"><strong>{k.category} · {k.severity}</strong><small>{k.description}</small></span><span className="cust-stay-right"><Pill tone={k.status==='Resolved'||k.status==='Closed'?'green':'orange'}>{k.status}</Pill></span></button></li>)}</ul></>}</>;
+}
+
+// ───────────────────────── FIT: desktop / tablet layout (DEC-194…196) ─────────────────────────
+type InnerTab='overview'|'stays'|'legacy'|'money'|'notes';
+const INNER_PAGE='customers'; // inner bar of the record pane: never a breadcrumb crumb or a search-palette sub-screen (contract §11.5)
+/** Stay rows (booking dialog on click) — the markup the phone History uses. */
+function StayRows({paged,showMoney}:{paged:{shown:readonly Customer['stays'][number][]};showMoney:boolean}){
+  const {booking}=useHcc();
+  return <ul className="cust-stays">{paged.shown.map(b=><li key={b.id}><button type="button" className="cust-stay" onClick={()=>booking(b.id)}>
+      <span className="cust-stay-main"><strong>{shortDate(b.arrival)} — {dateLabel(b.departure)}</strong><small>Room {staySegmentLabel(b)||b.room} · {nights(b.arrival,b.departure)} night{nights(b.arrival,b.departure)===1?'':'s'} · {b.source} · {b.id}</small></span>
+      <span className="cust-stay-right"><Pill tone={statusTone(b.status)}>{b.status}</Pill>{showMoney&&(b.status==='In house'||b.status==='Departed')&&<b>{money(totals(b).total)}</b>}</span></button></li>)}</ul>;
+}
+function LegacyStays({c,lp,showMoney}:{c:Customer;lp:{shown:readonly Customer['legacyStays'][number][];total:number;more:boolean;showMore:()=>void;step:number};showMoney:boolean}){
+  if(!c.legacyStays.length)return <p className="muted padded">No earlier stays from the old Lodge app.</p>;
+  return <><h3 className="gs-sub">Earlier stays — old Lodge app ({c.legacyStays.length})</h3>
+    <ul className="cust-stays" aria-label="Legacy stays">{lp.shown.map(l=><li key={l.fy+'/'+l.bookingId}><div className="cust-stay" style={{cursor:'default'}}>
+      <span className="cust-stay-main"><strong>{shortDate(l.arrival)} — {l.departure?dateLabel(l.departure):'—'}</strong><small>Room {l.room}{l.roomCount>1?` (${l.roomCount} rooms)`:''} · {l.nights} night{l.nights===1?'':'s'} · FY {l.fy}{l.billNo!==undefined?` · Old bill no. ${l.billNo}`:' · No bill'}</small></span>
+      <span className="cust-stay-right"><span className="inline"><Pill>Legacy</Pill><Pill tone={statusTone(l.status)}>{l.status}</Pill></span>{showMoney&&l.net!==undefined&&<b>{money(l.net)}</b>}</span></div></li>)}</ul>
+    <ShowMore p={lp}/></>;
+}
+
+function useWide(){
+  const q=()=>typeof window!=='undefined'&&typeof window.matchMedia==='function'?window.matchMedia('(min-width: 900px)').matches:true;
+  const [w,setW]=useState(q);
+  useEffect(()=>{if(typeof window==='undefined'||typeof window.matchMedia!=='function')return;const m=window.matchMedia('(min-width: 900px)');const on=()=>setW(m.matches);on();
+    m.addEventListener?.('change',on);return ()=>m.removeEventListener?.('change',on);},[]);
+  return w;
+}
+
+function CustomersFitPage(){
+  const {s,uid,search,setSearch}=useHcc();
+  const access=guestAccess(s,uid);
+  const [legacyRev,setLegacyRev]=useState(0); // LG-UI: bumps when a profile read brought legacy stays (production)
+  const all=useMemo(()=>customerIndex(s,getLegacyLookup()),[s.bookings,s.guests,s.date,legacyRev]); // eslint-disable-line react-hooks/exhaustive-deps
+  const list=useMemo(()=>customerSearch(all,search,access.contact),[all,search,access.contact]);
+  const paged=usePaged(list,DESKTOP_PAGE);
+  const wide=useWide();
+  const [sel,setSel]=useState('');
+  const picked=all.find(c=>c.key===sel);
+  const c=picked??(wide?list[0]:undefined); // wide: the first customer is open as before; narrow: the list first, the customer slides over it
+  const digitsOnly=search.trim()!==''&&!/[a-z]/i.test(search);
+  const sub=`Everyone who has booked with us — ${all.length.toLocaleString('en-IN')} customers. Search by name or mobile number.`;
+  return <FitPage title="Customers" sub={sub} layout="split"
+      toolbar={<><SearchBox value={search} onChange={setSearch} placeholder={access.contact?'Search name or mobile number…':'Search by name…'}/>
+        {!access.contact&&<span className="muted"><Lock size={12}/> Mobile numbers are masked for your role</span>}</>}>
+    <SplitView label="Customers" ratio="2fr 3fr" onCloseDetail={()=>setSel('')}
+      list={<ScrollPanel title="Customers" label="Customer list" actions={<span className="muted">{list.length.toLocaleString('en-IN')} shown</span>}
+          footer={<><ShowMore p={paged}/><FitNote text="All customer records are fictional. Customers are matched by mobile number; the same person with two different numbers appears twice."/></>}>
+        {list.length?<ul className="cust-list">{paged.shown.map(x=><li key={x.key}><button type="button" className={'cust-item'+(c?.key===x.key?' active':'')} aria-pressed={c?.key===x.key} onClick={()=>setSel(x.key)}>
+          <span className="avatar" aria-hidden="true">{initials(x.name)}</span>
+          <span className="cust-main"><strong>{x.name}</strong><small>{access.contact?x.phone||'No mobile':guestMaskPhone(x.phone)} · {x.completed.length+x.legacyCount} stay{x.completed.length+x.legacyCount===1?'':'s'}{x.legacyCount>0&&<span className="muted"> ({x.legacyCount} legacy)</span>}{x.lastStay?' · last '+shortDate(x.lastStay):''}</small></span>
+          {x.current?<Pill tone="green">In house</Pill>:x.completed.length+x.legacyCount>1?<Pill tone="blue">Repeat</Pill>:null}</button></li>)}</ul>
+          :<Empty title="No matching customers" body={digitsOnly&&!access.contact?'Mobile search is not available for your role. Search by name.':digitsOnly?'Type at least 3 digits of the mobile number, or search by name.':'Try fewer letters or another spelling. Booking IDs are searched from Arrivals & check-in.'}/>}
+      </ScrollPanel>}
+      detail={c?<CustomerPanelFit key={c.key} c={c} onBack={()=>setSel('')} onLegacy={()=>setLegacyRev(n=>n+1)}/>:null}
+      empty={<section className="card cust-empty"><Empty title="Choose a customer" body="Their full stay history appears here."/></section>}/>
+  </FitPage>;
+}
+
+/** Customers 360 record pane: header + three facts, then the inner tabs Overview / Stays / Legacy (W1a) / Money / Notes & requests. */
+function CustomerPanelFit({c,onLegacy,initialTab}:{c:Customer;onBack:()=>void;onLegacy:()=>void;initialTab?:InnerTab}){
+  const {s,uid,permission,open,booking}=useHcc();
+  const [tab,setTab]=useState<InnerTab>(initialTab??'overview');
+  useEffect(()=>{let live=true;void ensureLegacy(c.key).then(ch=>{if(live&&ch)onLegacy();});return ()=>{live=false;};},[c.key]); // eslint-disable-line react-hooks/exhaustive-deps
+  const access=guestAccess(s,uid),money_=permission('billing');
+  const svc=customerService(s,c);const svcCount=svc.requests.length+svc.complaints.length;
+  const paged=usePaged(c.stays,DESKTOP_PAGE);
+  const lp=usePaged(c.legacyStays,DESKTOP_PAGE);
+  const moneyStays=c.stays.filter(b=>b.status==='In house'||b.status==='Departed');
+  const mp=usePaged(moneyStays,DESKTOP_PAGE);
+  const stat=(Icon:React.ComponentType<{size?:number}>,k:string,v:string)=><div className="cust-stat"><Icon size={16}/><span>{k}</span><strong>{v}</strong></div>;
+  const ids:{id:InnerTab;label:string;count?:number}[]=[{id:'overview',label:'Overview'},{id:'stays',label:'Stays',count:c.stays.length},{id:'legacy',label:'Legacy',count:c.legacyStays.length},
+    ...(money_?[{id:'money' as InnerTab,label:'Money'}]:[]),{id:'notes',label:'Notes & requests',count:svcCount||undefined}];
+  const shown=ids.some(x=>x.id===tab)?tab:'overview';
+  return <section className="card cust-panel cust-fit" aria-label={'Customer '+c.name}>
+    <div className="cust-head"><span className="avatar big" aria-hidden="true">{initials(c.name)}</span>
+      <div><h2>{c.name}</h2>
+        <div className="inline">{c.guest&&<VerifiedPill g={c.guest}/>}{c.current&&<Pill tone="green">In house · room {c.current.room}</Pill>}{c.completed.length+c.legacyCount>1&&<Pill tone="blue"><Repeat size={11}/> Repeat customer</Pill>}{c.upcoming.length>0&&<Pill tone="orange">Upcoming {shortDate(c.upcoming[0].arrival)}</Pill>}</div>
+        <p className="cust-contact"><span><Phone size={13}/> {access.contact?c.phone||'—':guestMaskPhone(c.phone)}</span>{c.email&&<span><Mail size={13}/> {access.contact?c.email:c.email[0]+'•••@'+(c.email.split('@')[1]||'')}</span>}</p></div></div>
+    <div className="cust-stats">
+      {stat(BedDouble,'Stays',String(c.completed.length+c.legacyCount))}{stat(CalendarClock,'Nights',String(c.nights))}
+      {stat(CalendarClock,'First / last stay',c.firstStay?`${shortDate(c.firstStay)} / ${shortDate(c.lastStay!)}`:'—')}
+    </div>
+    {(c.topRooms.length>0||c.topSources.length>0||c.cancelled>0)&&<p className="cust-habits">{c.topRooms.length>0&&<span>Usually books room {c.topRooms.join(', ')}</span>}{c.topSources.length>0&&<span>Via {c.topSources.join(', ')}</span>}{c.cancelled>0&&<span>{c.cancelled} cancelled / no-show</span>}</p>}
+    <FitTabs<InnerTab> page={INNER_PAGE} value={shown} onChange={setTab} tabs={ids}/>
+    <div className="cust-tab-body">
+      {shown==='overview'&&<Profile c={c}/>}
+      {shown==='stays'&&(!c.stays.length?<p className="muted padded">No stays yet.</p>:<><StayRows paged={paged} showMoney={money_}/><ShowMore p={paged}/></>)}
+      {shown==='legacy'&&<LegacyStays c={c} lp={lp} showMoney={money_}/>}
+      {shown==='money'&&<>
+        <div className="cust-stats">{stat(IndianRupee,'Lifetime spend',money(c.lifetime))}{c.avgRate?stat(IndianRupee,'Average tariff',money(c.avgRate)+'/night'):null}</div>
+        {!moneyStays.length&&!c.legacyStays.some(l=>l.net!==undefined)?<p className="muted padded">No billed stays yet.</p>:<>
+          {moneyStays.length>0&&<><h3 className="gs-sub">Bills</h3><ul className="cust-stays">{mp.shown.map(b=><li key={b.id}><button type="button" className="cust-stay" onClick={()=>booking(b.id)}>
+            <span className="cust-stay-main"><strong>{shortDate(b.arrival)} — {dateLabel(b.departure)}</strong><small>Room {staySegmentLabel(b)||b.room} · {b.source} · {b.id}</small></span>
+            <span className="cust-stay-right"><Pill tone={statusTone(b.status)}>{b.status}</Pill><b>{money(totals(b).total)}</b></span></button></li>)}</ul><ShowMore p={mp}/></>}
+          {c.legacyStays.some(l=>l.net!==undefined)&&<><h3 className="gs-sub">Earlier bills — old Lodge app</h3><ul className="cust-stays">{c.legacyStays.filter(l=>l.net!==undefined).map(l=><li key={l.fy+'/'+l.bookingId}><div className="cust-stay" style={{cursor:'default'}}>
+            <span className="cust-stay-main"><strong>{shortDate(l.arrival)} — {l.departure?dateLabel(l.departure):'—'}</strong><small>FY {l.fy}{l.billNo!==undefined?` · Old bill no. ${l.billNo}`:' · No bill'}</small></span>
+            <span className="cust-stay-right"><Pill>Legacy</Pill><b>{money(l.net!)}</b></span></div></li>)}</ul></>}</>}
+      </>}
+      {shown==='notes'&&<Service c={c} svc={svc} onOpen={open}/>}
+    </div>
+  </section>;
 }
