@@ -51,7 +51,7 @@ export function register({test,assert}){
     assert.ok(d.includes('aria-label="Work orders"'));
     const pm=render('maintenance','owner','pm');assert.ok(/data-tab="pm"[^>]*aria-selected="true"/.test(pm)&&pm.includes('PM schedule'));
     store.clear();store.set('hcc-fit-tab:maintenance','vendors');const v=render('maintenance','owner');assert.ok(v.includes('AMC contracts')&&v.includes('class="fit-cols fit-cols-even"'));
-    store.clear();const rep=render('maintenance','owner','reports');assert.ok(rep.includes('class="fit-ops-grid"')&&rep.includes('Mean time to repair'));
+    store.clear();const rep=render('maintenance','owner','reports');assert.ok(rep.includes('class="fit-ops-report"')&&rep.includes('aria-label="Maintenance report"')&&rep.includes('Mean time to repair'));
     store.clear();assert.ok(render('maintenance','maint').includes('<h1 id="fit-page-h1">My work orders</h1>'));
     assert.ok(render('maintenance','housekeeper').includes('aria-label="Open repairs on your rooms"'));
   });

@@ -32,12 +32,12 @@ function MntTechView(){
   const {s,uid,open,run,busy}=useHcc();
   const mine=mntSort(mntVisibleOrders(s,uid));const repairs=mntPendingRepairs(s).filter(t=>t.assignee===uid);
   const active=mine.filter(w=>mntIsActive(w)),done=mine.filter(w=>!mntIsActive(w)).slice(0,6);
-  const main=<ScrollPanel title="Open work orders" label="Open work orders"><div className="mnt-cards">{active.map(w=><MntWoCard key={w.id} w={w} large/>)}{!active.length&&<Empty title="No open work orders" body="Nothing is assigned to you right now."/>}</div></ScrollPanel>;
-  const side=<>{repairs.length>0&&<ScrollPanel title="Repair requests for you" label="Repair requests for you" footer={<FitNote text="Turn each request into a work order to track parts, SLA and downtime."/>}>
-      <div className="request-list">{repairs.map(t=><div className="request" key={t.id}><div><strong>Room {t.room} · {t.note}</strong><p>Reported {t.createdAt?mntWhen(t.createdAt):''}</p></div><button className="btn" disabled={busy} onClick={()=>run({type:'MNT_WO_FROM_REPAIR',taskId:t.id},'Work order created from the repair request')}>Create work order <ArrowRight size={14}/></button></div>)}</div></ScrollPanel>}
-    {done.length>0&&<ScrollPanel title="Recently finished" label="Recently finished work orders"><div className="mnt-cards">{done.map(w=><MntWoCard key={w.id} w={w}/>)}</div></ScrollPanel>}</>;
+  const main=<ScrollPanel title="Open work orders" label="Open work orders"><div className="mnt-cards">{active.map(w=><MntWoCard key={w.id} w={w} large/>)}{!active.length&&<Empty title="No open work orders" body="Nothing is assigned to you right now."/>}</div>
+    {done.length>0&&<><h2 className="mnt-subhead">Recently finished</h2><div className="mnt-cards">{done.map(w=><MntWoCard key={w.id} w={w}/>)}</div></>}</ScrollPanel>;
+  const side=<ScrollPanel title="Repair requests for you" label="Repair requests for you" footer={<FitNote text="Turn each request into a work order to track parts, SLA and downtime."/>}>
+      <div className="request-list">{repairs.map(t=><div className="request" key={t.id}><div><strong>Room {t.room} · {t.note}</strong><p>Reported {t.createdAt?mntWhen(t.createdAt):''}</p></div><button className="btn" disabled={busy} onClick={()=>run({type:'MNT_WO_FROM_REPAIR',taskId:t.id},'Work order created from the repair request')}>Create work order <ArrowRight size={14}/></button></div>)}</div></ScrollPanel>;
   return <FitPage title="My work orders" sub="Your assigned jobs, most urgent first. Rooms stay blocked until a supervisor verifies the work." actions={<button className="btn primary" onClick={()=>open({type:'mnt-new'})}><Wrench size={16}/> Report a fault</button>}>
-    {repairs.length>0||done.length>0?<div className="fit-cols"><div>{main}</div><div>{side}</div></div>:main}
+    {repairs.length>0?<div className="fit-cols fit-cols-side"><div>{main}</div><div>{side}</div></div>:main}
   </FitPage>;
 }
 
@@ -80,7 +80,7 @@ function MntOrdersTab(){
         <label className="mnt-grow">Search<input value={q} onChange={e=>setQ(e.target.value)} placeholder="WO, room, asset…"/></label>
         <span className="muted">{list.length} of {x.orders.length}</span>
     </div>
-    {repairs.length>0?<div className="fit-cols"><div>{table}</div><div>{requests}</div></div>:table}
+    {repairs.length>0?<div className="fit-cols fit-cols-side"><div>{table}</div><div>{requests}</div></div>:table}
   </>;
 }
 
@@ -171,7 +171,8 @@ function MntReportsTab(){
   </div>;
 }
 
-/** FIT: the Reports tab on the desktop layout — the same figures as MntReportsTab (which stays for the print dialog), in one row of stats and four panels. */
+/** FIT: the Reports tab on the desktop layout — the same figures as MntReportsTab (which stays for the print dialog): the four key figures and the
+ *  print button stay fixed, the four report cards scroll together in one panel. */
 function MntReportsFit(){
   const {s,uid}=useHcc();const r=mntReportData(s);const cost=mntCanSeeCost(s,uid);const max=Math.max(1,...r.buckets.map(b=>b.count));
   const x=mntSlice(s);const breached=x.orders.filter(w=>mntSla(w,s.clock)==='Breached');
@@ -184,17 +185,23 @@ function MntReportsFit(){
       cost?{title:'Parts cost this month',value:money(r.parts),sub:`Work orders completed in ${s.date.slice(0,7)}`}
         :{title:'Open work orders',value:String(r.sum.open+r.sum.inProgress+r.sum.onHold),sub:`${r.sum.done} awaiting verification`}]}/>
       <button className="btn mnt-noprint" onClick={()=>{void printDocument();}}><Printer size={15}/> Print report</button></div>
-    <div className="fit-ops-grid">
-      <ScrollPanel title="Open work orders by age" label="Open work orders by age" footer={<FitNote text="Open, in progress and on hold."/>}>
-        <div className="bar-chart">{r.buckets.map(b=><div className="bar-row mnt-bar" key={b.label}><div><span>{b.label}</span><strong>{b.count}</strong></div><div className="track"><span style={{width:`${b.count*100/max}%`}}/></div></div>)}</div></ScrollPanel>
-      <ScrollPanel title="Room downtime" label="Room downtime" footer={<FitNote text="From a maintenance block until verification or unblock."/>}>
-        {r.down.length?<div className="table-wrap"><table className="mnt-table"><thead><tr><th>Room</th><th>Downtime</th><th>Work orders</th><th>Now</th></tr></thead><tbody>
-          {r.down.map(d=><tr key={d.room}><td><strong>Room {d.room}</strong></td><td className="number">{mntDuration(d.minutes)}</td><td className="number">{d.orders}</td><td>{d.running?<Pill tone="orange">Blocked</Pill>:<Pill tone="green">Back in use</Pill>}</td></tr>)}</tbody></table></div>:<Empty title="No room downtime recorded"/>}</ScrollPanel>
-      <ScrollPanel title="Work orders by asset type" label="Work orders by asset type">
-        <div className="table-wrap"><table className="mnt-table"><thead><tr><th>Type</th><th>Open</th><th>Total</th></tr></thead><tbody>{r.kinds.map(k=><tr key={k.kind}><td>{k.kind}</td><td className="number">{k.open}</td><td className="number">{k.total}</td></tr>)}</tbody></table></div></ScrollPanel>
-      <ScrollPanel title="SLA breaches" label="SLA breaches">
-        {breached.length?<div className="table-wrap"><table className="mnt-table"><thead><tr><th>WO</th><th>Priority</th><th>Status</th>{cost&&<th>Parts</th>}</tr></thead><tbody>{breached.map(w=><tr key={w.id}><td><strong>{w.id}</strong><small>{w.title} · {mntWhere(s,w)}</small></td><td>{w.priority}</td><td>{w.status}</td>{cost&&<td className="number">{money(mntPartsCost(w))}</td>}</tr>)}</tbody></table></div>:<Empty title="No SLA breaches"/>}</ScrollPanel>
-    </div>
+    <ScrollPanel label="Maintenance report">
+      <div className="fit-ops-report">
+        <div className="two-col mnt-two">
+          <div className="card"><div className="section-title"><div><h2>Open work orders by age</h2><p>Open, in progress and on hold.</p></div></div>
+            <div className="bar-chart">{r.buckets.map(b=><div className="bar-row mnt-bar" key={b.label}><div><span>{b.label}</span><strong>{b.count}</strong></div><div className="track"><span style={{width:`${b.count*100/max}%`}}/></div></div>)}</div></div>
+          <div className="card"><div className="section-title"><div><h2>Room downtime</h2><p>From a maintenance block until verification or unblock.</p></div></div>
+            {r.down.length?<div className="table-wrap"><table className="mnt-table"><thead><tr><th>Room</th><th>Downtime</th><th>Work orders</th><th>Now</th></tr></thead><tbody>
+              {r.down.map(d=><tr key={d.room}><td><strong>Room {d.room}</strong></td><td className="number">{mntDuration(d.minutes)}</td><td className="number">{d.orders}</td><td>{d.running?<Pill tone="orange">Blocked</Pill>:<Pill tone="green">Back in use</Pill>}</td></tr>)}</tbody></table></div>:<Empty title="No room downtime recorded"/>}</div>
+        </div>
+        <div className="two-col mnt-two">
+          <div className="card"><div className="section-title"><div><h2>Work orders by asset type</h2></div></div>
+            <div className="table-wrap"><table className="mnt-table"><thead><tr><th>Type</th><th>Open</th><th>Total</th></tr></thead><tbody>{r.kinds.map(k=><tr key={k.kind}><td>{k.kind}</td><td className="number">{k.open}</td><td className="number">{k.total}</td></tr>)}</tbody></table></div></div>
+          <div className="card"><div className="section-title"><div><h2>SLA breaches</h2></div></div>
+            {breached.length?<div className="table-wrap"><table className="mnt-table"><thead><tr><th>WO</th><th>Priority</th><th>Status</th>{cost&&<th>Parts</th>}</tr></thead><tbody>{breached.map(w=><tr key={w.id}><td><strong>{w.id}</strong><small>{w.title} · {mntWhere(s,w)}</small></td><td>{w.priority}</td><td>{w.status}</td>{cost&&<td className="number">{money(mntPartsCost(w))}</td>}</tr>)}</tbody></table></div>:<Empty title="No SLA breaches"/>}</div>
+        </div>
+      </div>
+    </ScrollPanel>
   </div>;
 }
 

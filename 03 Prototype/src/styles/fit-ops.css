@@ -31,11 +31,15 @@
 .app-shell .fit-panel-head .inv-range{align-items:flex-end}
 .app-shell .fit-panel-head .inline,.app-shell .fit-panel-actions{flex-wrap:wrap;justify-content:flex-end}
 .app-shell .fit-panel-head>h2{display:flex;align-items:center;gap:7px}
-/* two even columns (vendors / AMC) and the 2 x 2 report grid; below 900 px they stack with definite row heights (contract §11.11) */
+/* tiles of the four pages: label and value side by side (same fonts), so the strip is one short row */
+.app-shell .fit-page:is([data-fit-page="housekeeping"],[data-fit-page="maintenance"],[data-fit-page="handover"],[data-fit-page="inventory"]) .fit-stats .fit-stat{flex-direction:row;align-items:center;gap:4px 10px;flex-wrap:wrap}
+.app-shell .fit-page .mnt-filters.fit-ops-bar{padding:0;border:0}
+.app-shell .fit-panel-body .request{flex-wrap:wrap;gap:8px}
+.app-shell .fit-ops-report{padding:12px}
+.app-shell .fit-ops-report .two-col:last-child{margin-bottom:0}
+/* two even columns (vendors / AMC); a main column with a wider side column (repair requests); below 900 px they stack with definite row heights (contract §11.11) */
 .app-shell .fit-cols.fit-cols-even{grid-template-columns:repeat(2,minmax(0,1fr))}
-.app-shell .fit-ops-grid{flex:1;min-height:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:minmax(160px,1fr);gap:12px}
-.app-shell .fit-ops-grid>.fit-panel{min-height:160px}
+.app-shell .fit-cols.fit-cols-side{grid-template-columns:minmax(0,2fr) minmax(300px,1fr)}
 @media (max-width:899.98px){
-  .app-shell .fit-cols.fit-cols-even{grid-template-columns:minmax(0,1fr)}
-  .app-shell .fit-ops-grid{grid-template-columns:minmax(0,1fr)}
+  .app-shell .fit-cols.fit-cols-even,.app-shell .fit-cols.fit-cols-side{grid-template-columns:minmax(0,1fr)}
 }
