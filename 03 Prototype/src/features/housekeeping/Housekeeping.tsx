@@ -5,7 +5,8 @@ import {Clock,Brush,ArrowRight,Check,CheckCheck,Wrench,BedDouble,CalendarClock,I
 import {Task,assignedScopeRoles,mstFloorGroups,mstFloorLabel,hkTaskKind,hkKindLabel,hkArrivalToday,hkSortTasks,hkStayoverRooms,hkStayoverId,
   hkChecklistOf,hkTaskTiming,hkAttendantLoad,hkInspectionQueue,hkFmtMinutes,hkzOf,hkzAttendant,hkzGroups,HKZ,mstRows,type HkTiming} from '../../services/mock';
 import {useHcc} from '../../app/context';
-import {PageTitle,Pill,shortDate,clockTime} from '../../components/ui';
+import {Pill,shortDate,clockTime} from '../../components/ui';
+import {FitPage,ScrollPanel,StatStrip,BoardColumns,FitNote} from '../../components/fit';
 import {MstLink} from '../masters/MasterList';
 const columns=['To do','In progress','Inspection','Done'] as const;
 const columnLabel:Record<string,string>={'To do':'To do','In progress':'In progress','Inspection':'Awaiting inspection','Done':'Done'};
@@ -27,31 +28,30 @@ export function Housekeeping(){
   const pendingStay=hkStayoverRooms(s).filter(r=>!s.tasks.some(t=>t.id===hkStayoverId(r,s.date))).length;
   const generate=permission('inspect')?<button className="btn" disabled={busy||pendingStay===0} title={pendingStay?'':'Stayover tasks already exist for every in-house room today'} onClick={()=>run({type:'STAYOVER_GENERATE',key:'stayover:'+s.date+':'+s.sequence},'Stayover tasks generated')}><Sparkles size={15}/> Generate stayover tasks{pendingStay?` (${pendingStay})`:' · all created'}</button>:undefined;
 
-  if(scoped)return <><PageTitle title="My tasks" sub={user.role==='Maintenance'?'Your assigned repairs. Rooms stay blocked until a supervisor releases them.':'Your assigned rooms. One thoughtful detail at a time.'}/>
-    <div className="small-stats">{columns.map(c=><div key={c}><span>{columnLabel[c]}</span><strong>{taskList.filter(x=>x.status===c).length}</strong></div>)}</div>
-    <div className="hk-mine">{hkzGroups(s,hkSortTasks(s,taskList)).map((g,_i,all)=><React.Fragment key={g.zone?.id??'none'}>
+  const stats=columns.map(c=>({title:columnLabel[c],value:String((scoped?taskList:list).filter(x=>x.status===c).length)}));
+
+  if(scoped)return <FitPage title="My tasks" sub={user.role==='Maintenance'?'Your assigned repairs. Rooms stay blocked until a supervisor releases them.':'Your assigned rooms. One thoughtful detail at a time.'} toolbar={<StatStrip items={stats}/>}>
+    <ScrollPanel label="My tasks"><div className="hk-mine">{hkzGroups(s,hkSortTasks(s,taskList)).map((g,_i,all)=><React.Fragment key={g.zone?.id??'none'}>
       {all.length>1&&<h3 className="hk-zone-head">{g.label}<span>{g.tasks.length}</span></h3>}
       {g.tasks.map(t=><TaskCard key={t.id} t={t} large/>)}</React.Fragment>)}
-      {!taskList.length&&<p className="column-empty">No tasks are assigned to you right now.</p>}</div></>;
+      {!taskList.length&&<p className="column-empty">No tasks are assigned to you right now.</p>}</div></ScrollPanel></FitPage>;
 
-  return <><PageTitle title="Housekeeping" sub="A well-kept room is the beginning of a good stay." action={generate}/>
-    <div className="small-stats">{columns.map(c=><div key={c}><span>{columnLabel[c]}</span><strong>{list.filter(x=>x.status===c).length}</strong></div>)}</div>
-    <div className="hk-filters" role="group" aria-label="Filter tasks">
+  const loadBody=<section className="hk-load" aria-label="Attendant load"><div className="flex-between"><MstLink spec="hkTaskTypes" label="Manage list… · task types and standard minutes"/></div>
+      <ul>{load.map(l=><li key={l.user}><strong>{l.name}</strong><span>{l.rooms} room{l.rooms===1?'':'s'} · {hkFmtMinutes(l.minutes)} planned{l.running?` · ${l.running} running`:''}</span>{l.over&&<Pill tone="orange">Over guide of {l.guide} rooms</Pill>}</li>)}
+        <li><strong>Supervisor</strong><span>{insp.rooms} awaiting inspection · {hkFmtMinutes(insp.minutes)}</span></li></ul>
+      <FitNote lines={3} text="Standard minutes come from the task types (Housekeeping and maintenance). Guide: rooms per attendant in Master configuration."/></section>;
+  return <FitPage title="Housekeeping" sub="A well-kept room is the beginning of a good stay." layout="board" actions={generate}
+    toolbar={<><div className="hk-filters" role="group" aria-label="Filter tasks">
       <label>Floor<select value={floor} onChange={e=>setFloor(e.target.value)}><option value="All">All floors</option>{floors.map(f=><option key={f.floor} value={String(f.floor)}>{f.label}</option>)}</select></label><MstLink spec="floors"/>
       <label>Assignee<select value={assignee} onChange={e=>setAssignee(e.target.value)}><option value="All">Everyone</option>{s.tasks.some(t=>!t.assignee)&&<option value="">Unassigned</option>}{assignees.map(u=><option key={u.id} value={u.id}>{first(u.name)} · {u.role}</option>)}</select></label>
       <label>Zone<select value={zone} onChange={e=>setZone(e.target.value)}><option value="All">All zones</option>{zones.map(z=><option key={z.id} value={z.id}>{z.name}</option>)}<option value="none">No zone</option></select></label><MstLink spec="hkZones"/>
       {(floor!=='All'||assignee!=='All'||zone!=='All')&&<button className="text-btn" onClick={()=>{setFloor('All');setAssignee('All');setZone('All');}}>Clear filters</button>}
       <span className="muted">{list.length} of {taskList.length} tasks</span>
-    </div>
-    <section className="hk-load card" aria-label="Attendant load"><div className="flex-between"><h3><Clock size={15}/> Attendant load</h3><MstLink spec="hkTaskTypes" label="Manage list… · task types and standard minutes"/></div>
-      <ul>{load.map(l=><li key={l.user}><strong>{l.name}</strong><span>{l.rooms} room{l.rooms===1?'':'s'} · {hkFmtMinutes(l.minutes)} planned{l.running?` · ${l.running} running`:''}</span>{l.over&&<Pill tone="orange">Over guide of {l.guide} rooms</Pill>}</li>)}
-        <li><strong>Supervisor</strong><span>{insp.rooms} awaiting inspection · {hkFmtMinutes(insp.minutes)}</span></li></ul>
-      <small className="muted">Standard minutes come from the task types (Housekeeping and maintenance). Guide: rooms per attendant in Master configuration.</small></section>
-    <div className="kanban">{columns.map(status=><section className="kanban-col" key={status} aria-label={columnLabel[status]}>
-      <h3><i className={'dot '+dotFor[status]}/>{columnLabel[status]}<span>{list.filter(t=>t.status===status).length}</span></h3>
-      {hkSortTasks(s,list.filter(t=>t.status===status)).map(t=><TaskCard key={t.id} t={t}/>)}
-      {!list.some(t=>t.status===status)&&<p className="column-empty">No rooms here</p>}
-    </section>)}</div></>;
+    </div><StatStrip items={stats}/></>}>
+    <BoardColumns minColumn={205} columns={[...columns.map(status=>({id:status,title:columnLabel[status],count:list.filter(t=>t.status===status).length,
+      body:<>{hkSortTasks(s,list.filter(t=>t.status===status)).map(t=><TaskCard key={t.id} t={t}/>)}
+        {!list.some(t=>t.status===status)&&<p className="column-empty">No rooms here</p>}</>})),{id:'load',title:'Attendant load',body:loadBody}]}/>
+  </FitPage>;
 }
 
 function age(created:string|undefined,clock:string){
