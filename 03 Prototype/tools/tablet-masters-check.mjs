@@ -23,6 +23,8 @@ for(const [name,w,h] of [['portrait',800,1280],['landscape',1280,800]]){
   await page.goto(BASE);await page.waitForSelector('text=Modules',{timeout:20000}).catch(()=>{});await sleep(500);
   await page.getByRole('button',{name:/Admin & Setup/}).first().click();await sleep(350);
   await page.getByRole('button',{name:/Master configuration/}).first().click();await sleep(450);
+  // FIT-ADMIN-A: below 900 px the group opens over the list (SplitView slide-over): go Back to the list before picking another group.
+  const group=async n=>{const b=page.locator('.fit-split-back');if(await b.isVisible().catch(()=>false)){await b.click();await sleep(250);}await page.locator('.cfg-item',{hasText:n}).first().click();await sleep(350);};
   const measure=async(label,shotName)=>{
     const m=await page.evaluate(()=>{
       const vw=document.documentElement.clientWidth;
@@ -39,7 +41,7 @@ for(const [name,w,h] of [['portrait',800,1280],['landscape',1280,800]]){
     log.push(`${name} ${w}x${h} | ${label}: ${JSON.stringify(m)} ${ok?'OK':'FAIL'}`);
     if(shotName){await page.evaluate(()=>{const t=document.querySelector('.mst-detail')||document.querySelector('.mst-list');t?.scrollIntoView({block:'start'});});await sleep(150);await page.screenshot({path:join(OUT,`t-${name}-${shotName}.png`),fullPage:false});}
   };
-  await page.locator('.cfg-item',{hasText:'Rooms and rate plans'}).first().click();await sleep(350);
+  await group('Rooms and rate plans');
   const spec=async l=>{const b=page.locator('.mst-specs li').filter({has:page.locator('strong',{hasText:new RegExp('^'+l+'$')})}).first().locator('button.mst-spec');await b.click();await sleep(400);};
   await spec('Room types');
   await page.locator('.mst-row-main').first().click();await sleep(300);
@@ -52,12 +54,12 @@ for(const [name,w,h] of [['portrait',800,1280],['landscape',1280,800]]){
   await page.locator('.mst-row-main').first().click();await sleep(300);
   await measure('Rooms > row',null);
   await spec('Rooms');
-  await page.locator('.cfg-item',{hasText:'Money and tax'}).first().click();await sleep(350);
+  await group('Money and tax');
   await spec('Payment methods');
   await page.locator('.mst-list-head .btn.primary').first().click();await sleep(300);
   await measure('Payment methods > Add','paymethod-add');
   await spec('Payment methods');
-  await page.locator('.cfg-item',{hasText:'Rooms and rate plans'}).first().click();await sleep(350);
+  await group('Rooms and rate plans');
   await spec('Meal plans');
   await page.locator('.mst-row-main').first().click();await sleep(300);
   if(!await page.locator('.mst-dated').count()){bad++;log.push('no dated-money field found on Meal plans');}
