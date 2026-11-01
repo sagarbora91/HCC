@@ -73,7 +73,7 @@ export function register({test,assert}){
     html=desk(h(F.DayClosing),s,'owner','closing','reopen-and-corrections');assert.match(html,/Closed-date corrections/);assert.match(html,/>Reopen a closed day<\/h2>/,'the Owner sees the reopen form');
     assert.doesNotMatch(desk(h(F.DayClosing),s,'manager','closing','reopen-and-corrections'),/>Reopen a closed day<\/h2>/,'others do not (no reopened day)');
     html=desk(h(F.CompliancePage),s,'owner','compliance','dashboard');assert.equal(selectedTab(html),'dashboard');
-    assert.equal(selectedTab(desk(h(F.HrDesk),s,'owner','staff','nope')),'people','unknown tab → default');
+    forget('staff');assert.equal(selectedTab(desk(h(F.HrDesk),s,'owner','staff','nope')),'people','unknown tab (nothing remembered) → default');
   });
 
   test('[FIT-PEOPLE-A] Day closing: "Close <date>" is the first header action on every step, enabled exactly by the old rule (busy, close permission, blockers)',()=>{

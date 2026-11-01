@@ -121,8 +121,8 @@ export function CompliancePage(){
       toolbar={<div className="cmp-toolbar cmp-fit-toolbar"><FySelect c={c}/><FirmLine c={c}/>
         <span className="cmp-head-actions"><button className="btn" onClick={()=>open({type:'cmp-profile'})}><Building2 size={15}/>Firm profile</button>
           {c.manage&&<button className="btn" onClick={()=>open({type:'cmp-manage'})}><Settings2 size={15}/>Manage compliance</button>}</span></div>}
-      tabs={<FitTabs page="compliance" value={c.u.view} onChange={choose} tabs={CMP_VIEWS.map(id=>({id,label:CMP_VIEW_LABEL[id]}))}/>}>
-    {c.u.view==='dashboard'
+      tabs={<FitTabs page="compliance" value={fitView} onChange={choose} tabs={CMP_VIEWS.map(id=>({id,label:CMP_VIEW_LABEL[id]}))}/>}>
+    {fitView==='dashboard'
       ?<ScrollPanel label="Compliance dashboard" actions={tools} footer={<FitNote text={`${CMP_ILLUSTRATIVE} Nothing is filed from here: this is your tracker. Days left count from the business date.`}/>}><div className="padded cmp-fit-body"><CmpDashboard feed={c.feed}/></div></ScrollPanel>
       :<Calendar c={c} fit tools={tools}/>}
   </FitPage>;
