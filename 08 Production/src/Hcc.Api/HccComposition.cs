@@ -146,6 +146,9 @@ public static class HccComposition
         api.MapOtaPayoutEndpoints(); // acc2-flows: ApplyDeposit, SettleFolioToOta, RecordOtaPayout, SetChannelItc, ReverseUdhaarPayment, SetCompanyActive, GET /ota/payouts
         api.MapAccountingParityEndpoints(); // acc2-parity: BackfillUdhaarCredits (contract §8)
         // ACC-2 end
+        // ACC-3 lanes: add ONE api.MapAccounting<Lane>Endpoints(); line below (append only).
+        api.MapAccountingPlEndpoints(); // acc3-pl (contract §2)
+        // ACC-3 end
         api.MapComplianceEndpoints();    // W2-5
         api.MapPosEndpoints();           // W2-6
         api.MapMaintenanceEndpoints();   // W2-7

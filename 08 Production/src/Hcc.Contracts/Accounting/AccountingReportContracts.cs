@@ -28,3 +28,35 @@ public sealed record DayBookRowView(DateOnly Date, string No, string Type, strin
 
 /// <summary>Day book: every voucher in the range in date, number order, one row per entry.</summary>
 public sealed record DayBookView(DateOnly From, DateOnly To, IReadOnlyList<DayBookRowView> Rows, int Vouchers, long DebitPaise, long CreditPaise, bool Balanced);
+
+// ACC-3 lane acc3-pl: 02 Planning/agents/ACC3-REPORTS-CONTRACT.md §2 (prototype ACCPl, ACCBalanceSheet, cash ratio in
+// 03 Prototype/src/domain/streams/accounting-pl.ts). Same fields, PascalCase; money in paise ("Paise" suffix on scalar money fields).
+
+/// <summary>One P&L line. <see cref="Paise"/> signed as the ledger's balance movement (income positive, expense positive as a cost).</summary>
+public sealed record PlLineView(string Code, string Name, long Paise, string Group);
+
+public sealed record PlSectionView(IReadOnlyList<PlLineView> Lines, long Total);
+
+public sealed record PlGroupView(string Name, IReadOnlyList<PlLineView> Lines, long Total);
+
+public sealed record PlExpensesView(PlGroupView Consumption, PlGroupView Employee, PlGroupView Finance, PlGroupView Depreciation, PlGroupView Other, long Total);
+
+public sealed record PlTallyGroupView(string Group, string Name, long Paise);
+
+/// <summary>Profit &amp; loss, ICAI vertical (rulebook §7.4) plus the Tally-group view. <see cref="Warnings"/> names ledgers with no bucket.</summary>
+public sealed record PlView(DateOnly From, DateOnly To, bool Provisional, PlSectionView Revenue, PlSectionView OtherIncome, PlExpensesView Expenses,
+    long ProfitBeforeTax, IReadOnlyList<PlTallyGroupView> ByTallyGroup, IReadOnlyList<string>? Warnings = null);
+
+public sealed record BsLineView(string Code, string Name, long Paise);
+
+public sealed record BsBlockView(string Name, IReadOnlyList<BsLineView> Lines, long Total);
+
+public sealed record BsLiabilitiesView(BsBlockView OwnersFunds, BsBlockView NonCurrent, BsBlockView Current, long Total);
+
+public sealed record BsAssetsView(BsBlockView NonCurrent, BsBlockView Current, long Total);
+
+/// <summary>Balance sheet (rulebook §7.5) — an HCC view, not the statutory statement.</summary>
+public sealed record BalanceSheetView(DateOnly AsOf, bool Provisional, BsLiabilitiesView Liabilities, BsAssetsView Assets, bool Balanced, long Suspense, long OpeningDifference);
+
+/// <summary>Cash-ratio report (rulebook §7.9). Pct fields in basis points; <see cref="Flagged"/> when either &gt; 500.</summary>
+public sealed record CashRatioView(string Fy, long CashReceipts, long TotalReceipts, long CashPayments, long TotalPayments, int ReceiptsPct, int PaymentsPct, bool Flagged);
