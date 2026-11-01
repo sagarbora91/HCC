@@ -23,12 +23,12 @@ const page=(Comp,pageId,tabKey='',uid='owner')=>withSession(()=>{store.clear();r
 const read=f=>readFileSync(f,'utf8');
 
 export function register({test,assert}){
-  test('[FIT-ADMIN-A] settings renders a fit-page split root with the group list, search in the toolbar and the first group open',()=>{
+  test('[FIT-ADMIN-A] settings renders a fit-page root with a SplitView with the group list, search in the toolbar and the first group open',()=>{
     const html=page(F.HotelSettings,'settings');
-    assert.match(html,/^<section class="fit-page fit-split" data-fit-page="settings"/);
+    assert.match(html,/^<section class="fit-page fit-fill" data-fit-page="settings"/);
     assert.ok(html.includes('aria-label="Configuration groups"')&&html.includes('Property and branding')&&html.includes('Data and system'),'every group listed');
     assert.ok(html.includes('class="cfg-search"')&&html.includes('fit-page-toolbar'),'search is in the toolbar');
-    assert.ok(html.includes('class="cfg-detail"'),'the selected group is open beside the list');
+    assert.ok(html.includes('class="fit-split has-detail"')&&html.includes('class="cfg-detail"'),'the selected group is open beside the list');
   });
   test('[FIT-ADMIN-A] settings: go(settings,{tab}) opens that group; unknown tab falls back to property; ids match SUB_SCREENS',()=>{
     assert.ok(page(F.HotelSettings,'settings','money').includes('<h2>Money and tax</h2><p>'),'money group open');

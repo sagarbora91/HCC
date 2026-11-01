@@ -29,7 +29,7 @@ function useNarrow900(){
     m.addEventListener?.('change',on);return ()=>m.removeEventListener?.('change',on);},[]);
   return n;
 }
-// FIT (DEC-194, contract §6 'settings' = split): SplitView — the 12 groups with live summaries (ScrollPanel) on the left, the selected group's
+// FIT (DEC-194, contract §6 'settings' = split; FitPage keeps the default layout because .fit-page.fit-split would collide with SplitView's own .fit-split grid class): SplitView — the 12 groups with live summaries (ScrollPanel) on the left, the selected group's
 // settings and Lists (masters) in the scrolling record pane on the right. The group selection is a sub-screen (useFitTab 'settings').
 // Below 900 px the group opens over the list with Back. Search sits in the toolbar. Master lists keep their own list/form (MasterList).
 export function HotelSettings(){
@@ -51,7 +51,7 @@ export function HotelSettings(){
           {r.readOnly&&<span className="cfg-ro"><Lock size={12}/> Read only</span>}<ChevronRight size={16} aria-hidden="true"/></button></li>)}</ul></div>;})}
   </ScrollPanel>;
   const detail=current&&(!narrow||picked)?<div className="cfg-detail"><CfgGroupDetail g={current} q={q}/></div>:null;
-  return <FitPage title="Master configuration" sub="Every setting in one place — 12 groups, dated values, approvals, history and modules on/off." layout="split"
+  return <FitPage title="Master configuration" sub="Every setting in one place — 12 groups, dated values, approvals, history and modules on/off."
       actions={<Pill tone="orange">Fictional property · GST illustrative</Pill>}
       toolbar={<label className="cfg-search"><Search size={17}/><input type="search" aria-label="Search settings" placeholder="Search settings (e.g. GSTIN, deposit, PF)" value={q} onChange={e=>setQ(e.target.value)}/></label>}>
     <SplitView label="Master configuration" ratio="1fr 3fr" list={list} detail={detail} onCloseDetail={()=>setPicked(false)}
