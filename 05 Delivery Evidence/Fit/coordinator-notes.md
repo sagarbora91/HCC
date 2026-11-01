@@ -51,3 +51,8 @@
 - `sign-in-devices` tab only in production build (demo: palette entry opens Users).
 - Modal openers "New user" and "Edit" (access) for fit-modals.json.
 - `SUB_SCREENS` block name used is `// FIT-ADMIN` (admin-b) — check no collision with `// FIT-ADMIN-A`.
+
+## From guest (done, de6507c6)
+- Messages and Documents rows still open their existing dialogs (not a split record pane); Outbox pages 100 rows at a time (usePaged). Three layout choices differing from the brief are in its DONE file — fit-review to look.
+- Customers 360 uses a new optional `initialTab` prop (stream-customers-legacy.mjs updated, not loosened).
+- New sheet src/styles/guest-fit.css; 3 modal openers: guest-services "New request", messages "Compose", gsv-my-requests "Log found item".
