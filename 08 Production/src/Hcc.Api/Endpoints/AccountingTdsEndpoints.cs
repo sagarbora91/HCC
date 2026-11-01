@@ -40,6 +40,7 @@ public static class AccountingTdsEndpoints
         BillingEndpoints.Command<SetTdsSettingsRequest, TdsSettingsResult>(g, TdsService.OpSettings, (sp, c, k, r, ct) => Service(sp).SetSettingsAsync(c, k, r, ct));
         BillingEndpoints.Command<SetTdsRateRequest, TdsRateChangeResult>(g, TdsService.OpRate, (sp, c, k, r, ct) => Service(sp).SetRateAsync(c, k, r, ct));
         BillingEndpoints.Command<RecordTdsRemittanceRequest, TdsRemittanceResult>(g, TdsService.OpRemit, (sp, c, k, r, ct) => Service(sp).RecordRemittanceAsync(c, k, r, ct));
+        BillingEndpoints.Command<SetTdsForm168Request, TdsForm168Result>(g, TdsService.OpForm168, (sp, c, k, r, ct) => Service(sp).SetForm168Async(c, k, r, ct)); // ACC-3 C7
         g.MapGet("/accounting/tds", async (HttpContext http, CancellationToken ct)
             => Results.Ok(await Service(http.RequestServices).GetAsync(http.HccCaller(), ct).ConfigureAwait(false)));
         g.MapGet("/accounting/tds/deductees", async (HttpContext http, string? period, CancellationToken ct)

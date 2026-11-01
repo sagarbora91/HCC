@@ -42,6 +42,8 @@ public sealed class TdsSqlTests(AccountingDb db) : IClassFixture<AccountingDb>
         public Task<TdsVendor?> VendorAsync(ICommandTransaction? tx, int p, string v, CancellationToken ct) => inner.VendorAsync(tx, p, v, ct);
         public Task<IReadOnlyList<TdsPriorBill>> VendorBillsAsync(ICommandTransaction? tx, int p, string v, DateOnly f, DateOnly t, long? x, CancellationToken ct) => inner.VendorBillsAsync(tx, p, v, f, t, x, ct);
         public Task<IReadOnlyList<TdsReceivablePayment>> ReceivablePaymentsAsync(ICommandTransaction? tx, int p, DateOnly f, DateOnly t, CancellationToken ct) => inner.ReceivablePaymentsAsync(tx, p, f, t, ct);
+        public Task SetForm168Async(ICommandTransaction tx, int p, long id, string j, CancellationToken ct) => inner.SetForm168Async(tx, p, id, j, ct); // ACC-3 C7
+        public Task<IReadOnlySet<long>> CompanyIdsAsync(ICommandTransaction? tx, int p, CancellationToken ct) => inner.CompanyIdsAsync(tx, p, ct);
     }
 
     private sealed class Poster : ITdsRemittancePoster

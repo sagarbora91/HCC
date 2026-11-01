@@ -26,7 +26,9 @@ export type SrvVendorPayment={paymentId:number;vendorCode:string;vendor:string;b
   allocations:{expenseId:number;amountPaise:number;opening?:boolean}[];voided:boolean;voidReason?:string|null;voidedBy?:number|null;voidedDate?:string|null};
 /** GET /accounting/assets (Hcc.Contracts.Accounting.FixedAssetView). */
 export type SrvFixedAsset={assetId:number;assetNo:string;ledger:string;name:string;costPaise:number;itcPaise:number;purchaseDate:string;vendor:string;expenseId:number;
-  putToUse?:string|null;disposedDate?:string|null;disposedAmountPaise?:number|null;disposedVoucher?:string|null};
+  putToUse?:string|null;disposedDate?:string|null;disposedAmountPaise?:number|null;disposedVoucher?:string|null;
+  /** ACC-3 C1 / C2 (optional): the purchase cost before returns, the returned total, the disposal tender and the F4 flag. */
+  originalCostPaise?:number|null;returnedPaise?:number|null;disposalMethod?:string|null;disposalFlag?:string|null};
 
 /** Server payment → the prototype's ExpVendorPayment (ids as strings; voidAt = the business date of the void, as the prototype keeps it). */
 export function vendorPaymentFromServer(p:SrvVendorPayment):ExpVendorPayment{
@@ -37,10 +39,12 @@ export function vendorPaymentFromServer(p:SrvVendorPayment):ExpVendorPayment{
   return v;
 }
 export function assetFromServer(a:SrvFixedAsset):ACCAsset{
-  const x:ACCAsset={id:String(a.assetId),no:a.assetNo,ledger:a.ledger,name:a.name,cost:paise(a.costPaise,'costPaise'),date:isoDate(a.purchaseDate,'purchaseDate'),vendor:a.vendor,
+  // ACC-3 C2: the prototype derives the net cost from the returns (accAssets), so the register keeps the purchase cost.
+  const x:ACCAsset={id:String(a.assetId),no:a.assetNo,ledger:a.ledger,name:a.name,cost:paise(a.originalCostPaise??a.costPaise,'costPaise'),date:isoDate(a.purchaseDate,'purchaseDate'),vendor:a.vendor,
     expense:String(a.expenseId),itc:paise(a.itcPaise,'itcPaise')};
   if(a.putToUse)x.putToUse=isoDate(a.putToUse,'putToUse');
-  if(a.disposedDate)x.disposed={date:isoDate(a.disposedDate,'disposedDate'),amount:paise(a.disposedAmountPaise??0,'disposedAmountPaise'),voucher:a.disposedVoucher??''};
+  if(a.disposedDate)x.disposed={date:isoDate(a.disposedDate,'disposedDate'),amount:paise(a.disposedAmountPaise??0,'disposedAmountPaise'),voucher:a.disposedVoucher??'',
+    ...(a.disposalMethod?{method:a.disposalMethod}:{}),...(a.disposalFlag?{flag:a.disposalFlag}:{})};
   return x;
 }
 /** Purchase fields of a server expense (SrvExpense gains them, all optional) → the prototype record's fields. */
@@ -61,11 +65,17 @@ function currentTill(c:CommandCtx):number{
   const known=c.ids.list('till');if(known.length===1){const t=c.ids.server('till',known[0]);if(t)return t;}
   throw new HccClientError('VALIDATION','Open cash shift required: the till with the open shift is not known on this device yet. Open Cashier, refresh and try again.');
 }
+/** Allocation lines with server expense ids (the opening balance = expenseId 0, opening). */
+export const allocationsWire=(x:unknown)=>(x as {expense:string;amount:number}[]).map(a=>a.expense==='opening'?{expenseId:0,amountPaise:a.amount,opening:true}:{expenseId:serverId(a.expense,'Bill'),amountPaise:a.amount});
+/** ACC-3 C1: asset command bodies. */
+export const assetPutToUseBody=(cmd:Command)=>({assetId:serverId(String(cmd.asset),'Asset'),date:txt(cmd.date)||null});
+export const assetDisposeBody=(cmd:Command)=>({assetId:serverId(String(cmd.asset),'Asset'),date:txt(cmd.date)||null,proceedsPaise:Number.isSafeInteger(cmd.proceeds)?cmd.proceeds:0,
+  method:txt(cmd.method)||null,reason:txt(cmd.reason)||null});
 /** EXP_VENDOR_PAY body (allocations with server expense ids; omitted = the server allocates oldest first). */
 export function vendorPayBody(cmd:Command,cash:boolean,till?:number):Record<string,unknown>{
   const body:Record<string,unknown>={vendor:txt(cmd.vendor),amountPaise:cmd.amount,method:txt(cmd.method),reference:txt(cmd.reference)||null};
   if(typeof cmd.date==='string'&&cmd.date)body.businessDate=cmd.date;
-  if(Array.isArray(cmd.allocations))body.allocations=(cmd.allocations as {expense:string;amount:number}[]).map(a=>a.expense==='opening'?{expenseId:0,amountPaise:a.amount,opening:true}:{expenseId:serverId(a.expense,'Bill'),amountPaise:a.amount});
+  if(Array.isArray(cmd.allocations))body.allocations=allocationsWire(cmd.allocations);
   if(cash)body.tillId=till;
   return body;
 }
@@ -98,5 +108,11 @@ export const expensesVendor:SyncArea={
     {type:'EXP_VENDOR_RETURN',reload:['expenses','expensesX'],precheck:cmd=>txt(cmd.reason).length>=3?undefined:'A reason is required for a return.',
       async send(c){await c.api.command('RecordExpenseReturn',{expenseId:serverId(String(c.cmd.expense),'Bill'),amountPaise:c.cmd.amount,
         gstPaise:Number.isSafeInteger(c.cmd.gstPaise)?c.cmd.gstPaise:0,reason:txt(c.cmd.reason)});}},
+    // ACC-3 acc3-carry (contract §7): C3 re-allocation, C1 put to use / disposal.
+    {type:'EXP_VENDOR_PAY_REALLOCATE',reload:['expensesX'],precheck:cmd=>Array.isArray(cmd.allocations)?undefined:'Allocations: a list of {expense, amount}.',
+      async send(c){await c.api.command('ReallocateVendorPayment',{paymentId:serverId(String(c.cmd.payment??c.cmd.id),'Vendor payment'),allocations:allocationsWire(c.cmd.allocations)});}},
+    {type:'ACC_ASSET_PUT_TO_USE',reload:['accountingX'],async send(c){await c.api.command('SetAssetPutToUse',assetPutToUseBody(c.cmd));}},
+    {type:'ACC_ASSET_DISPOSE',reload:['accountingX'],precheck:cmd=>cmd.proceeds===undefined||Number.isSafeInteger(cmd.proceeds)?undefined:'Enter the sale value in paise.',
+      async send(c){await c.api.command('DisposeFixedAsset',assetDisposeBody(c.cmd));}},
   ],
 };
