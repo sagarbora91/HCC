@@ -1,0 +1,42 @@
+/* FIT (wave W2a, lane fit-admin-b, DEC-194, DEC-195, DEC-196): desktop / tablet layout of System health, Access control, Legacy import, Backup &
+   recovery and Appearance & display. A new sheet because admin.css, housekeeping.css and prefs.css are frozen by the colour-token round-trip tests
+   ([CT-C]). Every rule starts with .app-shell (the phone shell never renders it). Layout only: no font sizes, no colours. */
+.app-shell .adm-fit-banners{flex:1 1 auto;display:flex;flex-direction:column;gap:6px;min-width:0}
+.app-shell .adm-fit-banners .adm-banner{margin:0}
+.app-shell .adm-fit-filters{flex:none;min-width:0}
+.app-shell .adm-fit-filters .adm-filters{margin-bottom:0}
+.app-shell .adm-fit-filters .filters{flex-wrap:wrap}
+@media (min-width:900px){
+  .app-shell .fit-cols.adm-side-cols{grid-template-columns:minmax(0,1fr) minmax(360px,440px)}
+  .app-shell .fit-cols.adm-sys-cols{grid-template-columns:minmax(0,1fr) minmax(300px,340px)}
+  .app-shell .fit-cols.adm-lg-cols{grid-template-columns:minmax(380px,460px) minmax(0,1fr)}
+}
+/* the side panels hold forms and per-permission rows: one column of fields */
+.app-shell .adm-side-cols .adm-perm{grid-template-columns:1fr 1fr}
+.app-shell .adm-side-cols .adm-perm>div:first-child,.app-shell .adm-side-cols .adm-perm .adm-limit{grid-column:1/-1}
+.app-shell .adm-side-cols .adm-group{padding:0 4px 10px}
+.app-shell .adm-side-cols .adm-exc-form{border:0;background:transparent;padding:12px 16px;margin-bottom:0}
+.app-shell .adm-side-cols .form-row{grid-template-columns:1fr}
+.app-shell .adm-side-cols .section-title{padding:12px 16px}
+.app-shell .adm-side-cols .adm-matrix-wrap{max-height:none;border:0;overflow:visible}
+.app-shell .adm-side-cols .fit-panel-body>.adm-lock{margin:0 0 12px}
+.app-shell .adm-side-cols .permission-grid{padding:0 4px 12px}
+.app-shell .adm-lg-cols .fit-panel-body .padded{padding:12px 16px}
+.app-shell .adm-lg-cols .fit-panel-body .field{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}
+/* Backup & recovery toolbar: the simulation banner and the three facts side by side */
+.app-shell .hk-fit-top{flex:1 1 auto;min-width:0;display:flex;flex-wrap:wrap;gap:12px;align-items:stretch}
+.app-shell .hk-fit-top .hk-sim-banner{flex:1 1 300px;margin:0}
+.app-shell .hk-fit-top .hk-backup-stats{flex:2 1 460px;margin:0;gap:12px}
+.app-shell .fit-panel-body .hk-steps{padding-right:23px;padding-bottom:12px}
+/* Appearance & display as FormSections: one section at a time, Reset in the sticky bar */
+.app-shell .fit-form-body .pf-page{max-width:none}
+.app-shell .fit-form-body>.pf-page>.card{margin-bottom:0}
+.app-shell .fit-form-actions .pf-note{margin-right:auto;min-width:0;flex:1 1 auto}
+/* Legacy import: the Parts checkboxes keep their label text beside them; the Run button sits in the panel footer (always visible) */
+.app-shell .adm-lg-cols fieldset .inline{flex-wrap:nowrap;align-items:flex-start;margin-bottom:6px}
+.app-shell .adm-lg-cols .fit-panel-foot .inline{margin:0}
+/* Add exception: the form wraps the whole panel so the submit button can sit in its footer */
+.app-shell .adm-side-cols .adm-exc-wrap{flex:1 1 0;min-height:0;min-width:0;display:flex;flex-direction:column}
+.app-shell .adm-side-cols .adm-exc-wrap>.fit-panel{flex:1 1 0}
+/* layout="form" puts .fit-form on the page root too (FitPage); the real FormSections grid is the child, so the root stays a flex column */
+.app-shell .fit-page.fit-form{display:flex;flex-direction:column;grid-template-columns:none;gap:12px}

@@ -17,14 +17,18 @@ export {THEME_OPTIONS,themeHelp} from '../../src/features/prefs/parts';
 import {extraPages,mobilePages} from '../../src/app/registry';
 import {HccContext} from '../../src/app/context';
 import {can,metrics} from '../../src/services/mock';
-export function renderPrefs(s:any,uid:string,mobile:boolean){
+export function renderPrefs(s:any,uid:string,mobile:boolean,section?:string){
+  // FIT (lane fit-admin-b): the desktop page shows one section at a time (useFitTab 'prefs'); open it through the remembered tab.
+  const store:any=globalThis;const had='sessionStorage' in store,prev=store.sessionStorage;
+  if(section)store.sessionStorage={getItem:(k:string)=>k==='hcc-fit-tab:prefs'?section:null,setItem(){},removeItem(){}};
   const noop=()=>{};const user=s.users.find((u:any)=>u.id===uid);
   const ctx:any={s,uid,user,m:metrics(s),page:'prefs',go:noop,modal:null,open:noop,closeModal:noop,booking:noop,error:'',busy:false,run:async()=>false,toast:noop,
     permission:(p:any)=>can(s,uid,p),act:()=>null,search:'',setSearch:noop,filter:'All',setFilter:noop,tab:'Arrivals',setTab:noop,arrivals:[],departures:[],pending:0,taskList:[],
     roomStatus:noop,switchUser:noop,fault:'none',setFault:noop,loadScenario:noop,resetScenario:noop,display:{isMobile:mobile,mode:mobile?'mobile':'desktop',setMode:noop,framed:false},
     setDirty:noop,openSearch:noop,openMenu:noop,signOut:noop};
   const P=(mobile?mobilePages:extraPages)['prefs'];
-  return renderToStaticMarkup(<HccContext.Provider value={ctx}><P/></HccContext.Provider>);
+  try{return renderToStaticMarkup(<HccContext.Provider value={ctx}><P/></HccContext.Provider>);}
+  finally{if(section){if(had)store.sessionStorage=prev;else delete store.sessionStorage;}}
 }
 `);
 await build({entryPoints:['tests/.generated/themes-entry.tsx'],bundle:true,platform:'node',format:'esm',outfile:'tests/.generated/themes.mjs',logLevel:'error',jsx:'automatic',
@@ -172,7 +176,7 @@ export function register({test,assert,M}){
   test('[THEME] Appearance & display: the Theme row is a 4-way choice with a live 3-card preview (each card in its own data-theme) on desktop and phone',()=>{
     const s=M.seed();
     for(const mobile of [false,true]){
-      const html=X.renderPrefs(s,'housekeeper',mobile);
+      const html=X.renderPrefs(s,'housekeeper',mobile,'appearance');
       assert.match(html,/role="radiogroup" aria-label="Theme"/);
       for(const l of ['Light','Dark','High contrast','Follow device'])assert.ok(html.includes('>'+l+'<'),l);
       for(const t of ['light','dark','hc'])assert.match(html,new RegExp(`data-theme="${t}" class="pf-theme-card`));

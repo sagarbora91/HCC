@@ -131,4 +131,17 @@ export const SUB_SCREENS:SubScreen[]=[
   {page:'approvals',id:'approvals',label:'Approvals'},
   {page:'approvals',id:'expenses',label:'Pending expenses'},
   {page:'approvals',id:'audit',label:'Audit log'},
+  {page:'access',id:'users',label:'Users'},
+  {page:'access',id:'role-templates',label:'Role templates',keywords:['permissions','matrix']},
+  {page:'access',id:'effective-access',label:'Effective access'},
+  {page:'access',id:'exceptions',label:'Exceptions'},
+  {page:'access',id:'policy-history',label:'Policy history'},
+  {page:'access',id:'sign-in-devices',label:'Sign-in & devices',keywords:['password','pin','devices']}, // production build only; the demo build falls back to Users
+  {page:'backup',id:'history',label:'Backup history'},
+  {page:'backup',id:'restore',label:'Restore procedure'},
+  {page:'prefs',id:'text',label:'Text size',keywords:['font','zoom']},
+  {page:'prefs',id:'appearance',label:'Appearance',keywords:['theme','dark','density','motion']},
+  {page:'prefs',id:'display',label:'Device & display',keywords:['phone layout','desktop layout']},
+  {page:'prefs',id:'navigation',label:'Start & navigation',keywords:['start page','page size']},
+  {page:'prefs',id:'alerts',label:'Alerts',keywords:['message duration']},
 ];
