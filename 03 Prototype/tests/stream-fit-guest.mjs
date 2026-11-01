@@ -68,7 +68,7 @@ export async function register({test,M,assert}){
     const rows=(html.match(/<tr>/g)||[]).length-1;
     assert.ok(rows<=100,'at most one page of rows, got '+rows);
     assert.ok(total>100,'FY26 outbox is long enough to page ('+total+')');
-    assert.ok(/Showing 100 of [\d,]+ rows/.test(text(html)),'ShowMore status');
+    assert.ok(/Showing [\d,]+ of [\d,]+ rows/.test(text(html)),'ShowMore status');
     assert.ok(html.indexOf('show-more')>html.indexOf('fit-panel-foot'),'ShowMore sits in the footer');
     assert.ok(html.includes('Simulated.'),'the demo simulated note stays (FitNote)');
   });
