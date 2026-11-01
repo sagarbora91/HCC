@@ -1,0 +1,25 @@
+/* FIT · lane fit-guest (DEC-194…196, contract §6/§7): desktop / tablet rules for Guest services, My guest requests, Messages, Document capture and
+   Customers 360. Everything is guarded by .app-shell (the phone shell does not render it). No font-size, min-height or colour literal here (DEC-195). */
+
+/* Filter chips in a panel head (Guest services, My guest requests): one row, scrolls sideways rather than wrapping. */
+.app-shell .fit-panel-actions>.filters,.app-shell .fit-page-toolbar>.filters{display:flex;flex-wrap:nowrap;gap:6px;overflow-x:auto;min-width:0;scrollbar-width:thin}
+.app-shell .fit-panel-actions>.filters>button,.app-shell .fit-page-toolbar>.filters>button{flex:none;white-space:nowrap}
+
+/* My guest requests: request cards in a grid inside the panel. */
+.app-shell .fit-panel-body>.gsv-cards{margin:0;padding:12px;display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+.app-shell .fit-panel-body>.gsv-cards>.gsv-card{margin:0}
+
+/* Messages: template cards and the stacked trigger panels. */
+.app-shell .fit-panel-body>.msg-templates{padding:12px}
+.app-shell .fit-stack>.fit-panel{flex:1 1 0}
+
+/* Document capture: the sample grid and the review sit inside the panels. */
+.app-shell .fit-panel-body>.msg-samples{margin:0;padding:12px}
+.app-shell .fit-split-pane>.card{margin:0;border:0;box-shadow:none;background:transparent}
+
+/* Customers 360: the list lives in a ScrollPanel, the record in the split pane with its own sticky inner tab bar. */
+.app-shell .fit-panel-body>.cust-list{max-height:none;overflow:visible;padding:8px 12px 12px}
+.app-shell .fit-split-pane>.cust-panel,.app-shell .fit-split-pane>.cust-empty{margin:0;border:0;box-shadow:none;background:transparent}
+.app-shell .cust-fit .cust-back{display:none}
+.app-shell .cust-fit .fit-tabs-bar{position:sticky;top:0;z-index:2;background:var(--c-ffffff);margin:10px 0 12px}
+.app-shell .cust-fit .cust-tab-body{min-width:0}

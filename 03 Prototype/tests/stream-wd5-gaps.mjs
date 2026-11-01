@@ -98,7 +98,7 @@ export async function register({test,M,assert}){
     assert.deepEqual(chips(recDemo),['*Outbox','Triggers','Templates','Consent']);
     assert.ok(!recDemo.includes('Tap a template'),'templates tab not open by default');
     const desk=prod.messages(s,'techadmin',false);
-    assert.match(desk,/role="tab" aria-selected="true" class="active">Templates/,'desktop parity: Templates first for the Tech admin');
+    assert.match(desk,/data-tab="templates" aria-selected="true"[^>]*class="active">Templates/,'desktop parity: Templates first for the Tech admin (FIT: FitTabs markup)');
   });
 
   // ── D7: commission rate withheld ──

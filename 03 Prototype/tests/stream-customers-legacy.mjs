@@ -79,8 +79,11 @@ export function render(name:string,props:any,s:any,uid:string,mobile=false,searc
   });
   test('[LG-UI] Customers 360 desktop: Legacy badge rows with old bill number, money masked by the live-stay rule, no folio link',()=>{
     // render with the real legacy lookup the page uses (mock handler) – search narrows to Ananya Rao
-    const html=X.render('CustomersPage',{},s,'owner',false,'Ananya Rao'),t=text(html);
-    assert.ok(/Legacy/.test(t),'badge');assert.ok(/Old bill no\. 2210/.test(t));assert.ok(/\(3 legacy\)/.test(t),'list shows legacy count muted');
+    // FIT-GUEST (DEC-196): the desktop record pane has inner tabs; the legacy stays are on the Legacy tab (initialTab), the list still shows the count.
+    const page=text(X.render('CustomersPage',{},s,'owner',false,'Ananya Rao'));assert.ok(/\(3 legacy\)/.test(page),'list shows legacy count muted');
+    const ananya=pick(withL,A);
+    const html=X.render('CustomerPanel',{c:ananya,onBack(){},onLegacy(){},initialTab:'legacy'},s,'owner',false),t=text(html);
+    assert.ok(/Legacy/.test(t),'badge');assert.ok(/Old bill no\. 2210/.test(t));
     assert.ok(/₹6,900/.test(t.replace(/\s/g,'')||t)||/6,900/.test(t),'owner sees the net amount');
     const legacyBlock=html.slice(html.indexOf('aria-label="Legacy stays"'));
     assert.ok(!/<button/.test(legacyBlock.slice(0,legacyBlock.indexOf('</ul>'))),'legacy rows are not buttons (no folio link)');
