@@ -48,6 +48,8 @@ export * from '../../domain/streams/accounting-gst'; // ACC-2 gst lane
 export * from '../../domain/streams/accounting-guards'; // acc2-flows (contract §7 cash guards)
 export * from '../../domain/streams/accounting-payroll'; // acc2-parity (contract §8)
 // ACC-2 end
+// ACC-3
+export * from '../../domain/streams/accounting-ageing'; export * from '../../domain/streams/accounting-gst-summary'; // acc3-ageing (contract §3)
 export * from '../../domain/streams/assistant';
 export * from '../../domain/streams/compliance';
 export * from '../../domain/streams/rbac';
