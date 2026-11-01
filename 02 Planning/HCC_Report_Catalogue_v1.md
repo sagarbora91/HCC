@@ -4263,7 +4263,7 @@ Legacy reports with used = no, and every dormant file of Part B. One line each. 
 
 The hotel uses no referrers or agents with commission (owner, 1 Nov 2026; gap list A9 dropped). So Part A **A8** (Reference / booking-wise) and **A14** (Commission payment detail) are not carried over; the legacy `ReferenceCode` stays readable in the imported history only.
 
-## 5. Open questions for the owner
+## 5. Owner questions — all 8 accepted as recommended (owner, 1 Nov 2026: "Accept all 8"; DEC-202)
 
 Only business choices. Each has a recommendation.
 
