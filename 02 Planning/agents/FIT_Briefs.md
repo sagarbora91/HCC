@@ -35,6 +35,8 @@ Contract §2, §3, §4, §5 (global spacing rows), §7.
 - Tests `tests/stream-fit-shell.mjs`: components render, `useFitTab` persistence + fallback, registry ↔ palette, modal action bar class present, print rule present, phone shell unaffected (render the phone shell, assert no `fit-` classes).
 - Done when fit-check's tool passes Home, category pages, sign-in, `arrivals` and the modal sample at all five viewports, and the unconverted pages show only `not-converted` failures (no page-scroll).
 
+**Resume note (1 Nov 2026):** the lane was stopped by a PC restart before its final test run (head `7d4c3803`, plus an uncommitted `position:relative` change in `z-fit.css` that is kept). The read-only review `05 Delivery Evidence/Fit/FIT-shell-review-20261101.md` lists what to fix before DONE: blockers B1 (modal rules leak into `DayPack` / `ServerDayPack` / guest-ID dialog and the phone → `.fit-modal`, contract §11.1) and B2 (Assistant still scrolls the document → `.app-shell{position:relative}`, re-run `assistant`), should-fix S1–S7, the minor items, and contract §11. Then run tsc, `npm test`, both builds, `check-print-layout`, `check-tablet-back` and `check-overlay-compat` through the lock; run the check tool on `home`, `arrivals` and `assistant`; open the Day pack on desktop and phone; add the three tests the review names; restore CRLF in `CheckIn.tsx`; write `FIT-fit-shell-DONE.md`.
+
 ### Lane fit-check (Sonnet) — the check tool and the font baseline
 
 Contract §2 (baseline), §8.
