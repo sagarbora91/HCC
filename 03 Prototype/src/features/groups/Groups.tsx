@@ -22,7 +22,7 @@ export function GroupsPage(){
   const showFolio=(id:string)=>{setFolio(id);setTab('master-folio');};
   const creditNote=<FitNote text={<><b>Credit limits are enforced (DEC-076).</b> Used = what the company owes on company credit + the stays billed to it (estimated: agreed nights + GST − what the guest paid).
       A booking, company credit at checkout or a rooming list beyond the remaining credit is refused; only the Owner sets a limit (others send a request). A payment from the company frees credit.</>}/>;
-  return <FitPage title="Groups & corporate" sub={`Company accounts, group blocks and pickup · business date ${dateLabel(s.date)}`} layout={tab==='blocks'?'split':'fill'}
+  return <FitPage title="Groups & corporate" sub={`Company accounts, group blocks and pickup · business date ${dateLabel(s.date)}`}
       actions={permission('reservations')&&<><button className="btn primary" onClick={()=>open({type:'grp-block'})}><Plus size={16}/> New group block</button><button className="btn" onClick={()=>open({type:'grp-company'})}><Building size={16}/> New company</button></>}
       toolbar={<StatStrip items={[
         {title:'Open blocks',value:String(k.open),sub:`${k.dueSoon} with cut-off within 2 days`},

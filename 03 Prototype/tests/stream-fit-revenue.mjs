@@ -42,7 +42,7 @@ export function register({test,assert}){
   });
   test('[FIT-REVENUE] groups: fit-page split on Blocks, tab ids = SUB_SCREENS, every old tab reachable, Companies keeps the credit note',()=>{
     store.clear();const html=page(F.GroupsPage,'groups');
-    assert.match(html,/^<section class="fit-page fit-split" data-fit-page="groups"/);
+    assert.match(html,/^<section class="fit-page fit-fill" data-fit-page="groups"/,'FitPage layout stays fill: the page-root class fit-split would collide with the SplitView rule .fit-split (grid)');
     assert.deepEqual(tabIds(html),['blocks','companies','pickup-report','master-folio','limit-requests']);
     assert.deepEqual(subs('groups'),['blocks','companies','pickup-report','master-folio','limit-requests']);
     assert.match(html,/data-tab="blocks"[^>]*aria-selected="true"/,'default tab unchanged: Blocks');
