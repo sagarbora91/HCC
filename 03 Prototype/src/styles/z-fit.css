@@ -87,6 +87,18 @@ html:has(.app-shell),html:has(.app-shell) body,html:has(.app-shell) #root{height
   .fit-cols>*{display:grid;grid-auto-rows:minmax(0,1fr);gap:12px}
   .fit-cols>*>.fit-panel{min-height:160px}}
 
+/* fit-front-b's two overrides (were inline styles; guests.css / reservations.css are token-checked sheets): the list scrolls in its ScrollPanel */
+.app-shell :is([data-fit-page="guests"],[data-fit-page="inhouse"]) .gs-list{max-height:none;overflow:visible}
+.app-shell [data-fit-page="reservations"] .res-list-filters{margin:0;gap:12px}
+/* integrator: ≥ 900 px the toolbar stays one row — the status buttons scroll sideways, Source / Staying on / count never wrap into a column */
+@media (min-width:900px){
+  .app-shell [data-fit-page="reservations"] .fit-page-toolbar>.search{flex:0 1 240px}
+  .app-shell [data-fit-page="reservations"] .fit-page-toolbar>.filters{flex:1 1 auto;min-width:0;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:thin;margin:0}
+  .app-shell [data-fit-page="reservations"] .fit-page-toolbar>.filters>button{flex:none;white-space:nowrap}
+  .app-shell [data-fit-page="reservations"] .res-list-filters{flex:none;flex-wrap:nowrap}
+  .app-shell [data-fit-page="reservations"] .res-list-filters>.muted{white-space:nowrap}
+}
+
 /* §5 spacing on converted pages (comfortable); compact stays tighter */
 .app-shell .fit-page .section-title{padding:12px 16px}
 [data-density="compact"] .app-shell .fit-page .section-title{padding:8px 12px}
@@ -111,13 +123,16 @@ html:has(.app-shell),html:has(.app-shell) body,html:has(.app-shell) #root{height
 .fit-note>.fit-note-more{flex:none;padding:0 4px}
 .fit-panel-foot>.show-more,.fit-panel-foot>*{margin-top:0;margin-bottom:0}
 
+/* The page root carries fit-<layout> (FitPage layout) and the components below use the same names for their own grids: every component
+   grid rule is scoped with :where(:not(.fit-page)) (no added specificity) so a page with layout split / board / steps / form keeps the FitPage
+   column (header, toolbar, tabs, body) and only the component inside the body lays out as a grid. */
 /* ── SplitView: side by side; below 900 px the record slides over the list with a Back button ─────────────────────── */
-.fit-split{flex:1;min-height:0;min-width:0;display:grid;grid-template-columns:var(--fit-split-cols,minmax(0,2fr) minmax(0,3fr));gap:12px;position:relative}
+.fit-split:where(:not(.fit-page)){flex:1;min-height:0;min-width:0;display:grid;grid-template-columns:var(--fit-split-cols,minmax(0,2fr) minmax(0,3fr));gap:12px;position:relative}
 .fit-split-list,.fit-split-detail{min-height:0;min-width:0;display:flex;flex-direction:column;gap:8px}
 .fit-split-pane{flex:1;min-height:0;overflow:auto;position:relative;background:var(--c-ffffff);border:1px solid var(--line);border-radius:9px;scrollbar-width:thin}
 .fit-split-back{display:none}
 @media (max-width:899.98px){
-  .fit-split{grid-template-columns:minmax(0,1fr)}
+  .fit-split:where(:not(.fit-page)){grid-template-columns:minmax(0,1fr)}
   .fit-split-detail{display:none}
   .fit-split.has-detail .fit-split-detail{display:flex;position:absolute;top:0;right:0;bottom:0;left:0;z-index:5;background:var(--bg)}
   .fit-split.has-detail .fit-split-back{display:inline-flex;align-items:center;gap:6px;align-self:flex-start;flex:none}
@@ -133,13 +148,17 @@ html:has(.app-shell),html:has(.app-shell) body,html:has(.app-shell) #root{height
 .fit-stats{display:flex;flex-wrap:nowrap;gap:10px;overflow-x:auto;min-width:0;scrollbar-width:thin}
 .app-shell .fit-stats .fit-stat{flex:none;min-height:0;padding:8px 12px;display:flex;flex-direction:column;gap:2px}
 .fit-stat.ok{border-color:var(--c-436a41)}.fit-stat.warn{border-color:var(--c-c9773d)}.fit-stat.danger{border-color:var(--primary)}
+/* variant="small": the old .small-stats tiles in one row (their span / strong font rules of styles.css apply unchanged) */
+.app-shell .fit-small-stats{display:flex;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;gap:10px;margin:0;min-width:0;scrollbar-width:thin;grid-template-columns:none}
+.app-shell .fit-small-stats>div{flex:none;padding:6px 12px;gap:10px;white-space:nowrap;flex-direction:row;align-items:center}
+.app-shell .fit-small-stats>div.fit-tone-ok{border-color:var(--c-436a41)}.app-shell .fit-small-stats>div.fit-tone-warn{border-color:var(--c-c9773d)}.app-shell .fit-small-stats>div.fit-tone-danger{border-color:var(--primary)}
 
 /* ── BoardColumns ────────────────────────────────────────────────────────────────────────────────────────────────── */
-.fit-board{flex:1;min-height:0;min-width:0;display:grid;grid-auto-flow:column;grid-auto-columns:minmax(var(--fit-col,240px),1fr);gap:12px;overflow-x:auto;overflow-y:hidden}
+.fit-board:where(:not(.fit-page)){flex:1;min-height:0;min-width:0;display:grid;grid-auto-flow:column;grid-auto-columns:minmax(var(--fit-col,240px),1fr);gap:12px;overflow-x:auto;overflow-y:hidden}
 .app-shell .fit-board-col{display:flex;flex-direction:column;min-height:0;margin:0}
 
 /* ── StepFlow ────────────────────────────────────────────────────────────────────────────────────────────────────── */
-.fit-steps{flex:1;min-height:0;min-width:0;display:grid;grid-template-columns:minmax(200px,260px) minmax(0,1fr);gap:12px}
+.fit-steps:where(:not(.fit-page)){flex:1;min-height:0;min-width:0;display:grid;grid-template-columns:minmax(200px,260px) minmax(0,1fr);gap:12px}
 .fit-step-rail{list-style:none;margin:0;padding:6px;min-height:0;overflow:auto;background:var(--c-ffffff);border:1px solid var(--line);border-radius:9px;display:flex;flex-direction:column;gap:4px}
 .fit-step{width:100%;display:flex;align-items:flex-start;gap:10px;text-align:left;padding:10px 12px;border:1px solid transparent;border-radius:8px;background:transparent;color:var(--ink)}
 .fit-step:hover{background:var(--sand-2)}
@@ -149,11 +168,11 @@ html:has(.app-shell),html:has(.app-shell) body,html:has(.app-shell) #root{height
 .fit-step-text{display:flex;flex-direction:column;gap:2px;min-width:0}
 .fit-step-text small{color:var(--muted)}
 .fit-step-body{min-height:0;min-width:0;display:flex;flex-direction:column;gap:12px}
-@media (max-width:899.98px){.fit-steps{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr)}
+@media (max-width:899.98px){.fit-steps:where(:not(.fit-page)){grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr)}
   .fit-step-rail{flex-direction:row;overflow-x:auto;overflow-y:hidden}.fit-step-rail>li{flex:none}}
 
 /* ── FormSections ────────────────────────────────────────────────────────────────────────────────────────────────── */
-.fit-form{flex:1;min-height:0;min-width:0;display:grid;grid-template-columns:minmax(180px,240px) minmax(0,1fr);gap:12px}
+.fit-form:where(:not(.fit-page)){flex:1;min-height:0;min-width:0;display:grid;grid-template-columns:minmax(180px,240px) minmax(0,1fr);gap:12px}
 .fit-form-nav{min-height:0;overflow:auto;background:var(--c-ffffff);border:1px solid var(--line);border-radius:9px;padding:6px}
 .fit-form-nav ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}
 .fit-form-nav button{width:100%;text-align:left;padding:10px 12px;border:1px solid transparent;border-radius:8px;background:transparent;color:var(--ink);display:flex;align-items:center;gap:8px}
@@ -163,7 +182,7 @@ html:has(.app-shell),html:has(.app-shell) body,html:has(.app-shell) #root{height
 .fit-form-main{min-height:0;min-width:0;display:flex;flex-direction:column;background:var(--c-ffffff);border:1px solid var(--line);border-radius:9px}
 .fit-form-body{flex:1;min-height:0;overflow:auto;padding:16px;position:relative}
 .app-shell .fit-form-main>.fit-form-actions{flex:none;margin:0;padding:10px 16px}
-@media (max-width:899.98px){.fit-form{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr)}
+@media (max-width:899.98px){.fit-form:where(:not(.fit-page)){grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr)}
   .fit-form-nav ul{flex-direction:row;overflow-x:auto}.fit-form-nav li{flex:none}}
 
 /* ── Modules Home / category pages: tile grid in one scroll panel ──────────────────────────────────────────────────── */

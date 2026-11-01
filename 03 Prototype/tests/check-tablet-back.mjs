@@ -32,7 +32,9 @@ try{
     assert.ok(controls.every(x=>x.height>=48),JSON.stringify(controls));
     await page.screenshot({path:resolve(out,name+'-home.png')});
     await page.getByRole('button',{name:'Open menu',exact:true}).click();
-    const nav=await page.locator('.drawer-nav').boundingBox();assert.ok(nav.height>height*.55,JSON.stringify(nav));
+    // The drawer holds the nav and (since Wave C) a foot with "Change my password": together they fill the drawer, the nav most of it.
+    const nav=await page.locator('.drawer-nav').boundingBox();const foot=await page.locator('.drawer-foot').first().boundingBox().catch(()=>null);
+    assert.ok(nav.height>height*.45&&nav.height+(foot?.height??0)>height*.55,JSON.stringify({nav,foot}));
     await page.locator('.drawer-cat-btn').filter({hasText:'Front Desk'}).click();
     await page.locator('.drawer-sub[data-page="reservations"]').scrollIntoViewIfNeeded();
     await page.screenshot({path:resolve(out,name+'-drawer.png')});
@@ -46,8 +48,9 @@ try{
     await target.click();
   };
   await navigate('reservations');
-  const pageControls=await page.locator('.content button:visible,.content select:visible,.content input:visible').evaluateAll(xs=>xs.map(x=>({tag:x.tagName,height:x.getBoundingClientRect().height})));
-  assert.ok(pageControls.every(x=>x.height>=48),JSON.stringify(pageControls));
+  // DEC-060: primary actions 48 px, dense rows / filters / inputs 44 px on touch.
+  const pageControls=await page.locator('.content button:visible,.content select:visible,.content input:visible').evaluateAll(xs=>xs.map(x=>({tag:x.tagName,text:(x.textContent||x.getAttribute('aria-label')||'').trim().slice(0,24),need:x.matches('.btn.primary, .page-title .btn')?48:44,height:x.getBoundingClientRect().height})));
+  assert.ok(pageControls.every(x=>x.height>=x.need),JSON.stringify(pageControls.filter(x=>x.height<x.need)));
   results.push({reservationControls:pageControls});
   await page.screenshot({path:resolve(out,'landscape-reservations.png')});
   await navigate('calendar');

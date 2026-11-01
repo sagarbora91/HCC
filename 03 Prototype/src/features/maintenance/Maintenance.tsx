@@ -72,7 +72,7 @@ function MntOrdersTab(){
         <button className="btn" disabled={busy} onClick={()=>run({type:'MNT_WO_FROM_REPAIR',taskId:t.id,priority:'P2'},'Work order created from the repair request')}>Create work order <ArrowRight size={14}/></button></div>;})}</div></ScrollPanel>;
   return <>
     <StatStrip items={[{title:'Open',value:String(sum.open)},{title:'In progress',value:String(sum.inProgress)},{title:'On hold (parts)',value:String(sum.onHold)},{title:'Awaiting check',value:String(sum.done)},
-      {title:'SLA breached',value:String(sum.breached),tone:sum.breached?'danger':undefined}]}/>
+      {title:'SLA breached',value:String(sum.breached),tone:sum.breached?'danger':undefined}]} variant="small" className="mnt-stats"/>
     <div className="mnt-filters fit-ops-bar" role="group" aria-label="Filter work orders">
         <label>Status<select value={status} onChange={e=>setStatus(e.target.value as typeof status)}><option value="Active">Active + awaiting check</option><option value="All">All</option>{(['Open','In progress','On hold','Done','Verified','Cancelled'] as MNTStatus[]).map(v=><option key={v}>{v}</option>)}</select></label>
         <label>Priority<select value={prio} onChange={e=>setPrio(e.target.value)}><option value="All">All</option>{MNT_PRIORITIES.map(p=><option key={p} value={p}>{p} · {MNT_PRIORITY[p].label}</option>)}</select></label>
@@ -179,10 +179,10 @@ function MntReportsFit(){
   return <div className="mnt-report fit-stack">
     <div className="mnt-print-head"><strong>{s.settings.hotel} · Maintenance report</strong><span>Business date {dateLabel(s.date)} · simulated clock {s.clock.slice(11)} · fictional data</span></div>
     <div className="fit-ops-bar"><StatStrip items={[
-      {title:'Mean time to repair',value:r.mttr===null?'—':mntDuration(r.mttr),sub:'Corrective work orders, reported → done'},
-      {title:'PM compliance',value:r.pm.pct===null?'—':r.pm.pct+'%',sub:`${r.pm.onTime} of ${r.pm.due} due jobs done on time`},
+      {title:'Mean time to repair',money:true,value:r.mttr===null?'—':mntDuration(r.mttr),sub:'Corrective work orders, reported → done'},
+      {title:'PM compliance',value:<>{r.pm.pct===null?'—':r.pm.pct}<span>%</span></>,sub:`${r.pm.onTime} of ${r.pm.due} due jobs done on time`},
       {title:'SLA breaches',value:String(r.sum.breached),sub:'Open past due, or done late'},
-      cost?{title:'Parts cost this month',value:money(r.parts),sub:`Work orders completed in ${s.date.slice(0,7)}`}
+      cost?{title:'Parts cost this month',money:true,value:money(r.parts),sub:`Work orders completed in ${s.date.slice(0,7)}`}
         :{title:'Open work orders',value:String(r.sum.open+r.sum.inProgress+r.sum.onHold),sub:`${r.sum.done} awaiting verification`}]}/>
       <button className="btn mnt-noprint" onClick={()=>{void printDocument();}}><Printer size={15}/> Print report</button></div>
     <ScrollPanel label="Maintenance report">

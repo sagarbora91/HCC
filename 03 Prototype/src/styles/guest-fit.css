@@ -23,6 +23,3 @@
 .app-shell .cust-fit .fit-tabs-bar{position:sticky;top:0;z-index:2;background:var(--c-ffffff);margin:10px 0 12px}
 .app-shell .cust-fit .cust-tab-body{min-width:0}
 
-/* FitPage layout="split" puts the class .fit-split on the PAGE root, and z-fit.css styles .fit-split as the SplitView grid: undo that on the page root
-   (reported to fit-shell / the integrator in FIT-fit-guest-DONE.md; harmless once z-fit.css scopes the grid to the SplitView). */
-.app-shell .fit-page.fit-split{display:flex;flex-direction:column;grid-template-columns:none;gap:10px}

@@ -85,7 +85,7 @@ export function PosAvailability(){
 export function PosSummary(){
   const {s}=useHcc();const d=posDaySummary(s);
   return <>
-    <StatStrip items={[{title:'Outlet sales (incl. tax)',value:money(d.gross),sub:`${d.checks} bill${d.checks===1?'':'s'} · net ${money(d.net)}`},
+    <StatStrip money items={[{title:'Outlet sales (incl. tax)',value:money(d.gross),sub:`${d.checks} bill${d.checks===1?'':'s'} · net ${money(d.net)}`},
       {title:'Outlet cash',value:money(d.outletCash),sub:'Counted in the front-desk drawer'},
       {title:'Posted to room folios',value:money(d.byMode['Room folio']||0),sub:'Collected at checkout'},
       {title:'Open checks',value:String(d.open.count),sub:`${money(d.open.value)} running · ${d.pendingVoids} void request${d.pendingVoids===1?'':'s'} pending`}]}/>

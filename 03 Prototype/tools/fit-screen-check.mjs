@@ -4,7 +4,11 @@
 //                                   [--out <dir>] [--no-shots] [--no-scale-pass] [--no-modals] [--record-baseline]
 // Default run = pass A (text scale 1, every check, five viewports) + pass B (text scale 1.3 on tab-land and lap-1366, checks 1, 2, 5 only).
 // `--text-scale S` runs one pass at S (checks 1, 2, 5 only when S != 1). `--record-baseline` writes tools/fit-baseline/fonts-<viewport>.json
-// (roles default owner,housekeeper; every page the role can open + the drawer + the user-menu modal).
+// (roles default owner,manager,reception,housekeeper,maint,accountant; every page the role can open, every local tab of it clicked in turn, + the
+// drawer + the user-menu modal). Record on the BASE build (main), never on a FIT build: the baseline is what the fonts were before the wave.
+// Baseline format (integrator, 2 Nov 2026): {pages:{<page id>:{<kind>:[sizes]}}, all:{<kind>:[sizes]}} — every visible element of a kind
+// inside .content (not only the first one), per page; a page missing from the baseline is compared with "all". tools/fit-baseline/allow.json
+// lists the few sizes allowed on a page with the reason (each one checked by hand against main).
 // On the desktop layout the document and .content must never scroll; only [data-fit-scroll] panels may. Fonts must equal the
 // baseline except the page h1 (22 px). Sub-screens: sessionStorage `hcc-fit-tab:<page>` (lane fit-shell's useFitTab) is set before the page opens.
 // FAIL kinds: page-scroll, page-sideways, content-scroll, not-converted, cramped, hidden-action, font-changed, h1, touch-size,
@@ -30,24 +34,31 @@ const VIEWPORTS=[
   {id:'lap-1280',w:1280,h:720},
   {id:'desk-1920',w:1920,h:969},
 ].filter(v=>!opt('--viewports')||opt('--viewports').split(',').includes(v.id));
-const ROLES=(opt('--roles')||(RECORD?'owner,housekeeper':'owner,manager,reception,cashier,supervisor,housekeeper,accountant,maint,techadmin')).split(',');
+const ROLES=(opt('--roles')||(RECORD?'owner,manager,reception,housekeeper,maint,accountant':'owner,manager,reception,cashier,supervisor,housekeeper,accountant,maint,techadmin')).split(',');
 // Page ids: navmap.ts PAGE_CATEGORY (a test enforces every nav page is listed) + overview + Modules Home + the ten category pages.
 const navSrc=readFileSync(join(ROOT,'src','app','navmap.ts'),'utf8');
 const pcStart=navSrc.indexOf('export const PAGE_CATEGORY'),block=navSrc.slice(pcStart,navSrc.indexOf('};',pcStart));
 const CATS=[...navSrc.slice(navSrc.indexOf('export const NAV_CATEGORIES'),navSrc.indexOf('export const DASHBOARD')).matchAll(/\{id:'([a-z]+)'/g)].map(m=>m[1]);
 const ALL_PAGES=[...new Set(['home',...CATS.map(c=>'cat:'+c),'overview',...[...block.matchAll(/(?:^|[,{\s])'?([a-z][a-z0-9-]*)'?\s*:\s*'[a-z]+'/g)].map(m=>m[1])])];
 const CAT_LABEL=Object.fromEntries([...navSrc.matchAll(/\{id:'([a-z]+)',label:'([^']+)'/g)].map(m=>[m[1],m[2]]));
-const PAGES=opt('--pages')?opt('--pages').split(','):ALL_PAGES;
+// Pages with no nav item (no drawer entry) that are still opened by direct navigation / links: visited when the role reaches them.
+const EXTRA_PAGES=['guests'];
+const PAGES=opt('--pages')?opt('--pages').split(','):[...ALL_PAGES,...EXTRA_PAGES.filter(p=>!ALL_PAGES.includes(p))];
 // Sub-screens from src/app/subscreens.ts (lane fit-shell); absent or empty before the wave.
 const subPath=join(ROOT,'src','app','subscreens.ts');
 const SUBS=existsSync(subPath)?[...readFileSync(subPath,'utf8').matchAll(/^\s*\{\s*page:\s*'([^']+)'\s*,\s*id:\s*'([^']+)'/gm)].map(m=>({page:m[1],id:m[2]})):[];
 // Modal openers: [{page, opener:"button text" | selector:"css", label?, roles?:[..], tab?}]. Module lanes add theirs; the integrator appends them.
 const MODALS=!flag('--no-modals')&&!RECORD&&existsSync(join(HERE,'fit-modals.json'))?JSON.parse(readFileSync(join(HERE,'fit-modals.json'),'utf8')):[];
 // Contract §8 check 6: key = the name in the baseline file, value = the selector actually measured (first visible match).
+// Review B1: a plain count (.stat>strong) and the old small tiles (.small-stats) are kinds of their own, so a count turned into a money-stat shows.
 const FONT_SEL={'td':'td','th':'th','button.btn':'button.btn','input':'input:not([type=checkbox]):not([type=radio])','select':'select','label':'label','.pill':'.pill',
-  '.tabs button, .fit-tabs-bar button':'.tabs button, .fit-tabs-bar button','.stat-label':'.stat-label','.money-stat':'.money-stat','p':'p','.muted':'.muted',
+  '.tabs button, .fit-tabs-bar button':'.tabs button, .fit-tabs-bar button','.stat-label':'.stat-label','.money-stat':'.money-stat',
+  '.stat>strong':'.stat>strong:not(.money-stat)','.small-stats strong':'.small-stats strong','.small-stats span':'.small-stats>div>span','p':'p','.muted':'.muted',
   '.drawer a':'.drawer a, .drawer-sub, .drawer-item','.modal h2':'.modal h2'};
-const PAGE_FONT_KEYS=Object.keys(FONT_SEL).filter(k=>k!=='.drawer a'&&k!=='.modal h2');
+const CHROME_KEYS=['.drawer a','.modal h2'];
+const ALLOW=existsSync(join(HERE,'fit-baseline','allow.json'))?JSON.parse(readFileSync(join(HERE,'fit-baseline','allow.json'),'utf8')):[];
+const allowedFont=(page,k,v)=>ALLOW.some(a=>a.kind===k&&a.size===v&&(!a.pages||a.pages.includes(page)));
+const PAGE_FONT_KEYS=Object.keys(FONT_SEL).filter(k=>!CHROME_KEYS.includes(k));
 const prefFor=scale=>({textScale:scale,honourSystemFont:true,reduceMotion:'system',density:'comfortable',startPage:'',listPageSize:100,toastSeconds:6.5,theme:'light'});
 
 // Passes: A = scale 1, all checks; B = scale 1.3 on tab-land + lap-1366, checks 1, 2, 5.
@@ -91,13 +102,17 @@ async function drawerPages(page){
   await page.keyboard.press('Escape');await sleep(200);
   return out;
 }
-const measure=(page,touch)=>page.evaluate(({FONT_SEL,touch})=>{
+const measure=(page,touch)=>page.evaluate(({FONT_SEL,CHROME_KEYS,touch})=>{
   const de=document.documentElement,c=document.querySelector('.content');
   const vis=e=>{const r=e.getBoundingClientRect();const cs=getComputedStyle(e);return r.width>0&&r.height>0&&cs.visibility!=='hidden'&&cs.display!=='none';};
   const root=c&&c.firstElementChild;
   const panels=[...document.querySelectorAll('[data-fit-scroll]')].filter(vis).map(e=>({kind:e.getAttribute('data-fit-scroll')||'panel',sideways:e.matches('.fit-tabs-bar, [data-fit-scroll=x]'),h:Math.round(e.getBoundingClientRect().height)}));
   const actions=[...document.querySelectorAll('.fit-page-actions *:is(button,a), .modal-actions *:is(button,a)')].filter(vis).map(e=>{const r=e.getBoundingClientRect();return {t:(e.textContent||'').trim().slice(0,24),ok:r.top>=-1&&r.left>=-1&&r.bottom<=innerHeight+1&&r.right<=innerWidth+1};});
-  const fonts={};for(const [k,s] of Object.entries(FONT_SEL)){const all=[...document.querySelectorAll(s)].filter(vis);const e=(k==='.drawer a'||k==='.modal h2')?all[0]:(all.find(x=>x.closest('.content'))||all[0]);if(e)fonts[k]=getComputedStyle(e).fontSize;}
+  // Page kinds: every visible element of the kind inside .content (the Demo toolbar / popover and the top bar are outside it). Chrome kinds: the
+  // first visible one anywhere (drawer, user-menu dialog).
+  const fonts={};for(const [k,s] of Object.entries(FONT_SEL)){const all=[...document.querySelectorAll(s)].filter(vis);
+    if(CHROME_KEYS.includes(k)){if(all[0])fonts[k]=[getComputedStyle(all[0]).fontSize];continue;}
+    const inC=[...new Set(all.filter(x=>x.closest('.content')).map(x=>getComputedStyle(x).fontSize))].sort();if(inC.length)fonts[k]=inC;}
   const h1=[...document.querySelectorAll('.content h1')].find(vis);
   const modal=[...document.querySelectorAll('.modal')].find(vis);const mr=modal&&modal.getBoundingClientRect();
   const small=touch?[...document.querySelectorAll('.app-shell button, .app-shell input:not([type=checkbox]):not([type=radio]), .app-shell select, [role=tab]')].filter(vis)
@@ -105,7 +120,7 @@ const measure=(page,touch)=>page.evaluate(({FONT_SEL,touch})=>{
   return {docH:de.scrollHeight,docW:de.scrollWidth,vh:innerHeight,vw:innerWidth,contentH:c?c.scrollHeight:0,contentClient:c?c.clientHeight:0,
     fitRoot:!!(root&&root.classList.contains('fit-page')),panels,actions,fonts,h1:h1?getComputedStyle(h1).fontSize:null,
     contentText:c?c.innerText.slice(0,400):'',modalClipped:mr?(mr.top<-1||mr.bottom>innerHeight+1):false,small:small.slice(0,6),smallCount:small.length,title:document.title};
-},{FONT_SEL,touch:!!touch});
+},{FONT_SEL,CHROME_KEYS,touch:!!touch});
 
 // Checks 1, 2 and 5 (run in every pass).
 const baseFails=m=>{
@@ -122,7 +137,7 @@ for(const pass of PASSES){
   for(const vp of VIEWPORTS.filter(v=>!pass.vps||pass.vps.includes(v.id))){
     const baseFile=join(HERE,'fit-baseline',`fonts-${vp.id}.json`);
     const baseline=!RECORD&&pass.full&&existsSync(baseFile)?JSON.parse(readFileSync(baseFile,'utf8')):null;
-    const recorded={};
+    const recorded={pages:{},all:{}};const rec=(page,fonts)=>{for(const [k,vs] of Object.entries(fonts))for(const v of vs){((recorded.pages[page]??={})[k]??=new Set()).add(v);(recorded.all[k]??=new Set()).add(v);}};
     for(const role of ROLES){
       const ctx=await browser.newContext({viewport:{width:vp.w,height:vp.h},deviceScaleFactor:1,hasTouch:!!vp.touch,isMobile:false});
       await ctx.addInitScript(({role,PREF,vp})=>{
@@ -138,20 +153,36 @@ for(const pass of PASSES){
       const allowed=await drawerPages(page);
       const tag=r=>({scale:pass.scale,vp:vp.id,role,...r});
       for(const id of PAGES){
-        if(!allowed.has(id))continue; // the role cannot open this page (not in its drawer)
-        const tabs=[undefined,...SUBS.filter(s=>s.page===id).map(s=>s.id)];
+        if(!allowed.has(id)&&!EXTRA_PAGES.includes(id))continue; // the role cannot open this page (not in its drawer)
+        const tabs=RECORD?[undefined]:[undefined,...SUBS.filter(s=>s.page===id).map(s=>s.id)]; // the base build has no sub-screens (its local tabs are clicked instead)
         for(const tab of tabs){
           await openPage(page,id,tab);
           const m=await measure(page,vp.touch);
-          if(RECORD){for(const [k,v] of Object.entries(m.fonts))if(PAGE_FONT_KEYS.includes(k))(recorded[k]??=new Set()).add(v);continue;}
+          // a page with no drawer entry: measured only when the app really shows it for this role (FIT root, or on the base build a page title)
+          const extra=EXTRA_PAGES.includes(id)&&!allowed.has(id);
+          if(extra&&!await page.evaluate(id=>!!document.querySelector(`.content [data-fit-page="${id}"]`)||(!document.querySelector('.content .fit-page')&&history.state&&history.state.page===id&&!document.querySelector('.content .tiles')),id))continue;
+          if(RECORD){
+            const pf=o=>Object.fromEntries(Object.entries(o).filter(([k])=>PAGE_FONT_KEYS.includes(k)));rec(id,pf(m.fonts));
+            // the base build has no sub-screens: click every local tab of the page in turn so the fonts of every section are recorded
+            const n=await page.evaluate(()=>[...document.querySelectorAll('.content .tabs button, .content [role=tab]')].length);
+            for(let i=0;i<Math.min(n,30);i++){
+              const ok=await page.evaluate(i=>{const b=[...document.querySelectorAll('.content .tabs button, .content [role=tab]')][i];if(!b||b.disabled)return false;b.click();return true;},i);
+              if(!ok)continue;await sleep(220);
+              if(await page.evaluate(id=>!history.state||history.state.page===id,id))rec(id,pf((await measure(page,vp.touch)).fonts));
+              if(await page.locator('.modal').count()){await page.keyboard.press('Escape');await sleep(150);}
+            }
+            continue;
+          }
           const catLabel=id.startsWith('cat:')?CAT_LABEL[id.slice(4)]:null; // category pages have no page label in the title: look for the category name in the content
-          const reached=id==='home'||(catLabel?m.contentText.includes(catLabel):!/^Hotel Control Centre$/.test(m.title));
+          const reached=id==='home'||extra||(catLabel?m.contentText.includes(catLabel):!/^Hotel Control Centre$/.test(m.title));
           const f=baseFails(m);
           if(!reached)f.push('not-reached (in the drawer but the app showed Modules Home)');
           if(pass.full){
             if(!m.fitRoot)f.push('not-converted');
             const cramped=m.panels.filter(p=>p.kind!=='legacy'&&!p.sideways&&p.h<160);if(cramped.length)f.push(`cramped ${cramped.map(p=>p.h).join(',')}`);
-            if(baseline)for(const k of PAGE_FONT_KEYS){const v=m.fonts[k];if(v&&baseline[k]&&!baseline[k].includes(v))f.push(`font-changed ${k} ${v} (was ${baseline[k].join('/')})`);}
+            if(baseline){const bp=baseline.pages?.[id]??baseline.all??{};
+              for(const k of PAGE_FONT_KEYS){const vs=(m.fonts[k]||[]).filter(v=>!(bp[k]||[]).includes(v)&&!allowedFont(id,k,v));
+                if(vs.length)f.push(`font-changed ${k} ${vs.join('/')} (main on this page: ${(bp[k]||[]).join('/')||'none'}${(baseline.all?.[k]||[]).some(x=>vs.includes(x))?'; size used on other pages':''})`);}}
             if(m.fitRoot&&m.h1&&m.h1!=='22px')f.push(`h1 ${m.h1}`);
             if(vp.touch&&m.smallCount)f.push(`touch-size ${m.smallCount}: ${m.small.map(s=>s.t+' '+s.h).join('|')}`);
           }
@@ -166,10 +197,10 @@ for(const pass of PASSES){
         await openPage(page,'home');
         await clickEl(page,'button[aria-label="Open menu"]');await sleep(300);const dm=await measure(page,vp.touch);await page.keyboard.press('Escape');await sleep(200);
         await clickEl(page,'.current-user-btn');await sleep(400);const um=await measure(page,vp.touch);await page.keyboard.press('Escape');await sleep(250);
-        const fonts={'.drawer a':dm.fonts['.drawer a'],'.modal h2':um.fonts['.modal h2']};
-        if(RECORD){for(const [k,v] of Object.entries(fonts))if(v)(recorded[k]??=new Set()).add(v);}
+        const fonts={'.drawer a':dm.fonts['.drawer a']?.[0],'.modal h2':um.fonts['.modal h2']?.[0]};
+        if(RECORD){for(const [k,v] of Object.entries(fonts))if(v)(recorded.all[k]??=new Set()).add(v);}
         else{
-          const f=[];if(baseline)for(const [k,v] of Object.entries(fonts))if(v&&baseline[k]&&!baseline[k].includes(v))f.push(`font-changed ${k} ${v} (was ${baseline[k].join('/')})`);
+          const f=[];if(baseline)for(const [k,v] of Object.entries(fonts)){const b=baseline.all?.[k]||baseline[k];if(v&&b&&!b.includes(v))f.push(`font-changed ${k} ${v} (was ${b.join('/')})`);}
           rows.push(tag({page:'(chrome)',tab:'drawer + user menu',screens:0,result:f.length?'FAIL':'PASS',fails:f}));
         }
       }
@@ -193,7 +224,9 @@ for(const pass of PASSES){
       }
       await ctx.close();
     }
-    if(RECORD){mkdirSync(dirname(baseFile),{recursive:true});writeFileSync(baseFile,JSON.stringify(Object.fromEntries(Object.entries(recorded).map(([k,v])=>[k,[...v].sort()])),null,1));console.log('baseline',baseFile);}
+    if(RECORD){mkdirSync(dirname(baseFile),{recursive:true});const fix=o=>Object.fromEntries(Object.entries(o).sort().map(([k,v])=>[k,[...v].sort()]));
+      writeFileSync(baseFile,JSON.stringify({recorded:{base:process.env.BASE_LABEL||BASE,roles:ROLES,at:stamp,note:'every visible element of a kind inside .content, per page, each local tab clicked; record on the base build (main)'},
+        pages:Object.fromEntries(Object.entries(recorded.pages).sort().map(([p,o])=>[p,fix(o)])),all:fix(recorded.all)},null,1));console.log('baseline',baseFile);}
   }
 }
 await browser.close();

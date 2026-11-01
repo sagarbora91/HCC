@@ -7,7 +7,7 @@
 .app-shell .f-report-list{display:flex;flex-direction:column;gap:10px;padding:8px 10px 12px}
 .app-shell .f-report-group h3{margin:4px 6px 4px;color:var(--muted)}
 .app-shell .f-report-group ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
-.app-shell .f-report-item{display:flex;align-items:center;width:100%;min-height:44px;padding:8px 10px;border:1px solid transparent;border-radius:8px;background:transparent;color:var(--ink);text-align:left;cursor:pointer;font:inherit}
+.app-shell .f-report-item{display:flex;align-items:center;width:100%;min-height:44px;padding:8px 10px;border:1px solid transparent;border-radius:8px;background:var(--c-ffffff);color:var(--ink);text-align:left;cursor:pointer;font:inherit}
 .app-shell .f-report-item:hover{background:var(--primary-tint)}
 .app-shell .f-report-item.on{background:var(--primary-tint);border-color:var(--c-9e4a55);color:var(--primary-dark);font-weight:600}
 .app-shell .f-report-body{padding:12px 16px}

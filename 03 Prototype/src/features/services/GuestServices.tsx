@@ -32,7 +32,7 @@ export function GuestServicesPage(){
     :tab==='reports'?<button className="btn" onClick={()=>open({type:'gsv-print'})}><Printer size={16}/> Print report</button>
     :<button className="btn primary" onClick={()=>open({type:'gsv-request-new'})}><Plus size={16}/> New request</button>;
   return <FitPage title="Guest services" sub="Requests with SLA timers, complaints with recovery, and lost & found — on the simulated hotel clock." actions={action}
-      toolbar={<StatStrip items={[
+      toolbar={<StatStrip money items={[
         {title:'Open requests',value:String(counts.Requests),sub:`${t.overdue} overdue`},
         {title:'Within SLA',value:t.done?t.pct+'%':'—',sub:`avg ${t.avg} min · ${t.done} done`},
         {title:'Open complaints',value:String(counts.Complaints),sub:`${x.complaints.filter(c=>gsvFollowUpDue(s,c)).length} follow-up due`},

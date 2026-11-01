@@ -1,11 +1,6 @@
 /* FIT · lane fit-people-a — Day closing ('closing') on the desktop / tablet layout (DEC-194…196, APR-025; contract §6 'closing' = steps).
    Desktop only (.app-shell); spacing and grid only, no font size (DEC-195); colours as tokens. closing.css (stream F) stays as it is. */
 
-/* FitPage layout="steps" puts the class fit-steps on the page root, and z-fit.css's StepFlow grid (.fit-steps) then lays out the whole page as
-   a two-column grid (header, toolbar and body squeezed into a 260 px column). Keep the page root a flex column here; reported to the integrator
-   (DONE file, Integration needed) — the shell should scope that grid to the StepFlow element. */
-.app-shell .fit-page.fit-steps[data-fit-page="closing"]{display:flex;flex-direction:column;grid-template-columns:none;grid-template-rows:none}
-
 /* Toolbar: the business-date banner on one line, the read-only note beside it */
 .app-shell [data-fit-page="closing"] .fit-page-toolbar>.f-fit-banner{flex:1 1 auto;margin:0;padding:8px 16px;gap:12px}
 .app-shell .f-fit-banner>div{display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 12px;min-width:0}

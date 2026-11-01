@@ -1,6 +1,13 @@
 // FIT · sub-screen registry (DEC-196, contract §4). Every page tab made with FitTabs / useFitTab is listed here: the search palette shows
 // each as "Page › Tab" and opens it with go(page,{tab:id}); tests/stream-fit.mjs checks FitTabs ids ↔ this list. Ids = kebab-case of the label.
 // Module lanes append lines ONLY inside their own // FIT-<LANE> block, one sub-screen per line: {page:'<page id>',id:'<tab id>',label:'<Tab label>'},
+import type {State} from '../domain/types';
+import {hrCanManage,hrCanPay} from '../domain/streams/staff';
+import {cfgModuleOn} from '../domain/streams/config';
+import {chnCommissionHidden} from '../domain/streams/channels';
+import {rbacPosSeesDaySales,rbacTechAdminTemplates,rbacCanTally} from '../domain/streams/rbac';
+import {hovIsManager} from '../domain/streams/handover';
+import {yldProposals} from '../domain/streams/yield';
 export type SubScreen={page:string;id:string;label:string;keywords?:string[]};
 export const SUB_SCREENS:SubScreen[]=[
   // FIT-FRONT
@@ -116,6 +123,7 @@ export const SUB_SCREENS:SubScreen[]=[
   {page:'plans-extras',id:'service-charges',label:'Service charges',keywords:['catalogue','free text']},
   {page:'plans-extras',id:'stays-by-meal-plan',label:'Stays by meal plan',keywords:['meal plan']},
   {page:'plans-extras',id:'discounts-by-reason',label:'Discounts by reason',keywords:['discount reasons']},
+  // FIT-ADMIN-A
   {page:'settings',id:'property',label:'Property and branding'},
   {page:'settings',id:'rooms',label:'Rooms and rate plans'},
   {page:'settings',id:'frontdesk',label:'Front-desk policies'},
@@ -131,6 +139,7 @@ export const SUB_SCREENS:SubScreen[]=[
   {page:'approvals',id:'approvals',label:'Approvals'},
   {page:'approvals',id:'expenses',label:'Pending expenses'},
   {page:'approvals',id:'audit',label:'Audit log'},
+  // FIT-ADMIN-B
   {page:'access',id:'users',label:'Users'},
   {page:'access',id:'role-templates',label:'Role templates',keywords:['permissions','matrix']},
   {page:'access',id:'effective-access',label:'Effective access'},
@@ -145,3 +154,26 @@ export const SUB_SCREENS:SubScreen[]=[
   {page:'prefs',id:'navigation',label:'Start & navigation',keywords:['start page','page size']},
   {page:'prefs',id:'alerts',label:'Alerts',keywords:['message duration']},
 ];
+
+/** Review S3: sub-screens a role's page never shows (the page falls back to its default tab) are not listed in the search palette for that
+ *  role. Each rule is the page's own tab condition (HrDesk tabs, Accounting tally guard, expSectionsFor, chnTabsFor, PosPage sales, Messages
+ *  templatesOnly, useHovTabs, YieldPage publish tab, AccessControl production tab). A sub-screen without a rule is open to every role that can
+ *  open the page. Key: '<page>:<tab id>'. */
+const books=(s:State,uid:string)=>['Owner','Manager','Accountant'].includes(s.users.find(x=>x.id===uid)?.role??''); // = accounting/shared seesVendorBooks
+const hrDesk=(s:State,uid:string)=>hrCanManage(s,uid)||hrCanPay(s,uid);
+const hrPay=(s:State,uid:string)=>hrCanPay(s,uid)&&cfgModuleOn(s,'payroll');
+const notTemplatesOnly=(s:State,uid:string)=>!rbacTechAdminTemplates(s,uid);
+export const SUB_SCREEN_GATES:Record<string,(s:State,uid:string)=>boolean>={
+  'staff:people':hrDesk,'staff:roster':hrDesk,'staff:attendance':hrDesk,'staff:leave':hrDesk,
+  'staff:payroll':hrPay,'staff:advances':hrPay,'staff:fnf':hrPay,'staff:settings':hrPay,
+  'accounting:tally':rbacCanTally,
+  'expenses:vendors':books,
+  'channels:commission':s=>!chnCommissionHidden(s),'channels:payouts':books,
+  'pos:summary':rbacPosSeesDaySales,
+  'messages:outbox':notTemplatesOnly,'messages:consent':notTemplatesOnly,
+  'handover:dashboard':hovIsManager,'handover:templates':hovIsManager,
+  'yield:publish-requests':s=>yldProposals(s).length>0,
+  'access:sign-in-devices':()=>process.env.HCC_BUILD==='production',
+};
+/** May this role see sub-screen `tab` of `page` (palette filter; the page's own permission is checked separately). */
+export const subScreenOpen=(s:State,uid:string,page:string,tab:string)=>SUB_SCREEN_GATES[page+':'+tab]?.(s,uid)??true;

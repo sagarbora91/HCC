@@ -51,7 +51,7 @@ export function InHousePage(){
   const [sel,setSel]=useState('');const b=list.find(x=>x.id===sel)||(wide?list[0]:undefined);
   // FIT (contract §6 'inhouse' = fill; the stay record sits beside the list as a split, slide-over below 900 px).
   const listPanel=<ScrollPanel title="Stays" label="In-house stays" actions={<span className="muted">{list.length} shown</span>}>
-    {list.length?<ul className="gs-list" style={{maxHeight:'none',overflow:'visible'}}>{list.map(x=>{const due=x.departure<=s.date;return <li key={x.id}><button className={'gs-list-item '+(b?.id===x.id?'active':'')} aria-pressed={b?.id===x.id} onClick={()=>setSel(x.id)}>
+    {list.length?<ul className="gs-list">{list.map(x=>{const due=x.departure<=s.date;return <li key={x.id}><button className={'gs-list-item '+(b?.id===x.id?'active':'')} aria-pressed={b?.id===x.id} onClick={()=>setSel(x.id)}>
       <span className="room-number">{x.room}</span><span className="gs-list-main"><strong>{x.guest}</strong><small>{bookingRef(x)} · {staySegmentLabel(x)}</small></span>
       <span className="gs-list-tags">{due?<Pill tone="orange">Departure due</Pill>:<Pill tone="blue">to {shortDate(x.departure)}</Pill>}<span className="number">Balance {money(totals(x).balance)}</span></span></button></li>;})}</ul>
     :<Empty title="No matching stays" body="Try another guest, room or booking."/>}</ScrollPanel>;

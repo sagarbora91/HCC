@@ -40,7 +40,7 @@ export function register({test,assert}){
     assert.match(sup,/^<section class="fit-page fit-fill"/);
     for(const c of ['To do','In progress','Awaiting inspection','Done','Attendant load'])assert.ok(sup.includes(`<h2>${c}</h2>`),c);
     assert.equal((sup.match(/class="card fit-board-col"/g)||[]).length,5);
-    assert.ok(sup.includes('aria-label="Filter tasks"')&&sup.includes('class="fit-stats"'),'filters + StatStrip in the toolbar');
+    assert.ok(sup.includes('aria-label="Filter tasks"')&&sup.includes('class="small-stats fit-small-stats"'),'filters + StatStrip (old small-stats tiles, review S1) in the toolbar');
     const hk=render('housekeeping','housekeeper');
     assert.match(hk,/^<section class="fit-page fit-fill"/);assert.ok(hk.includes('<h1 id="fit-page-h1">My tasks</h1>')&&hk.includes('aria-label="My tasks"'));
   });
@@ -64,7 +64,7 @@ export function register({test,assert}){
     const body=d.slice(d.indexOf('class="fit-panel-body"'),d.indexOf('class="fit-panel-foot"'));
     assert.ok(!body.includes('Submit checklist'),'the sign-off button is not inside the scrolling body');
     const tpl=render('handover','owner','templates');assert.ok(tpl.includes('aria-label="Checklist templates"')&&tpl.includes('New template'));
-    const dash=render('handover','owner','dashboard');assert.ok(dash.includes('Overdue items')&&dash.includes('class="fit-stats"'));
+    const dash=render('handover','owner','dashboard');assert.ok(dash.includes('Overdue items')&&dash.includes('class="small-stats fit-small-stats hov-stats"'));
     const hn=render('handover','owner','handover');assert.ok(hn.includes('Write handover note')&&hn.includes('Open carry-forward')&&!hn.includes('modal-actions'),'no .modal-actions inside a page body');
     store.clear();assert.ok(!render('handover','housekeeper','templates').includes('Checklist templates'),'a role without the Templates tab falls back to My checklists');
   });

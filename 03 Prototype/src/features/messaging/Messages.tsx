@@ -49,8 +49,10 @@ export function MsgMessagesPage(){
       actions={<>{a.canAct&&<button className="btn primary" disabled={busy} onClick={()=>open({type:'msg-compose'})}><Send size={16}/> Compose</button>}
         {a.canAct&&<button className="btn" disabled={busy||!a.unfinished} onClick={a.simulateAll}><FastForward size={16}/> Simulate delivery</button>}</>}
       toolbar={<StatStrip items={[{title:'Queued / sent',value:String(c.Queued+c.Sent)},{title:'Delivered / read',value:String(c.Delivered+c.Read)},{title:'Failed',value:String(c.Failed)},
-        {title:'Not sent (consent)',value:String(c['Not sent'])},{title:'Pending triggers',value:String(a.pending.length)}]}/>}
+        {title:'Not sent (consent)',value:String(c['Not sent'])},{title:'Pending triggers',value:String(a.pending.length)}]} variant="small" className="msg-stats"/>}
       tabs={<FitTabs<DeskTab> page="messages" value={tab} onChange={setTab} tabs={shown.map(id=>({id,label:DESK_TAB_LABEL[id],count:count(id)}))}/>}>
+    {/* S2: the "Simulated" (demo) / "Messaging is off" (production) note on every tab, for every role (the Tech admin sees only Triggers / Templates) */}
+    <MsgSimulatedNote/>
     {tab==='outbox'&&<OutboxPanel/>}
     {tab==='triggers'&&<TriggersPanels/>}
     {tab==='templates'&&<TemplatesPanel/>}
@@ -61,7 +63,7 @@ export function MsgMessagesPage(){
 function OutboxPanel(){
   const {s,open,run,busy}=useHcc();const a=useMsgActions();const list=msgOutbox(s);
   const paged=usePaged(list,DESKTOP_PAGE);
-  return <ScrollPanel label="Outbox" footer={<><ShowMore p={paged}/><MsgSimulatedNote/></>}>
+  return <ScrollPanel label="Outbox" footer={paged.more?<ShowMore p={paged}/>:undefined}>
     {!list.length?<Empty title="Outbox is empty" body="Queued, sent and failed messages appear here."/>:<div className="table-wrap">
         <table><thead><tr><th>Queued</th><th>Guest</th><th>Channel</th><th>Message</th><th>Status</th><th>Action</th></tr></thead><tbody>
           {paged.shown.map(m=>{const st=msgStatus(m,s.clock);return <tr key={m.id}>

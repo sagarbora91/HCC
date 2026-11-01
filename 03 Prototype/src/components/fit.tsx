@@ -64,6 +64,14 @@ export function FitPage(p:{
 function flatItems(n:React.ReactNode):React.ReactNode[]{
   return React.Children.toArray(n).flatMap(x=>React.isValidElement(x)&&x.type===React.Fragment?flatItems((x.props as {children?:React.ReactNode}).children):[x]);
 }
+/** The actions row is right-aligned (justify-content:flex-end) with overflow hidden, so what does not fit spills to the LEFT, where scrollWidth
+ *  never counts it: compare each item's box with the row's box instead (either side), plus scrollWidth for a right-side spill. */
+function rowOverflows(el:HTMLElement){
+  if(el.scrollWidth>el.clientWidth+1)return true;
+  const r=el.getBoundingClientRect();
+  for(const k of Array.from(el.children)){const b=k.getBoundingClientRect();if(b.left<r.left-1||b.right>r.right+1)return true;}
+  return false;
+}
 /** FitPage header actions (contract §11.9): one row that never wraps. The first item (the page's primary action) always stays; when the row
  *  does not fit, the trailing items move, in order, into a "More" menu under a More button. Re-measured when the header's width changes. */
 function HeaderActions({children}:{children:React.ReactNode}){
@@ -74,7 +82,7 @@ function HeaderActions({children}:{children:React.ReactNode}){
   // Every render: start again from all items when asked (new items, new width), then drop one item at a time while the row overflows.
   useLayoutEffect(()=>{const el=row.current;if(!el)return;
     if(full.current){if(n!==total){setN(total);return;}full.current=false;}
-    if(n>1&&el.scrollWidth>el.clientWidth+1)setN(n-1);
+    if(n>1&&rowOverflows(el))setN(n-1);
     else if(n>total)setN(total);
   });
   useEffect(()=>{const head=row.current?.parentElement;if(!head||typeof ResizeObserver==='undefined')return;
@@ -113,6 +121,16 @@ function useNarrow(){
   useEffect(()=>{if(typeof window==='undefined'||typeof window.matchMedia!=='function')return;const m=window.matchMedia(NARROW);const on=()=>setN(m.matches);on();
     m.addEventListener?.('change',on);return ()=>m.removeEventListener?.('change',on);},[]);
   return n;
+}
+
+/** True while the SplitView shows list and record side by side (≥ 900 px); follows rotation / resize. `fallback` = the answer without a window
+ *  (static render). Review N4: one shared hook (Groups used a snapshot that never updated on rotation). */
+export function useWideSplit(fallback=true):boolean{
+  const q=()=>typeof window!=='undefined'&&typeof window.matchMedia==='function'?!window.matchMedia(NARROW).matches:fallback;
+  const [w,setW]=useState(q);
+  useEffect(()=>{if(typeof window==='undefined'||typeof window.matchMedia!=='function')return;const m=window.matchMedia(NARROW);const on=()=>setW(!m.matches);on();
+    m.addEventListener?.('change',on);return ()=>m.removeEventListener?.('change',on);},[]);
+  return w;
 }
 
 /** List + detail side by side. Below 900 px width the detail opens over the list as a slide-over with a Back button (never stacked below).
@@ -159,10 +177,17 @@ export function FitTabs<T extends string>(p:{page:string;tabs:{id:T;label:string
   </div>;
 }
 
-/** One-row KPI strip for the toolbar. Same Stat font sizes; less padding; scrolls sideways if too many (never wraps). */
-export function StatStrip(p:{items:{title:string;value:string;sub?:string;tone?:'ok'|'warn'|'danger'}[]}):React.JSX.Element{
-  return <div className="fit-stats" role="list" aria-label="Key figures">{p.items.map((x,i)=><div role="listitem" key={i} className={'stat fit-stat'+(x.tone?' '+x.tone:'')}>
-    <div className="stat-label">{x.title}</div><strong className="money-stat">{x.value}</strong>{x.sub&&<small>{x.sub}</small>}</div>)}</div>;
+export type StatItem={title:string;value:React.ReactNode;sub?:string;tone?:'ok'|'warn'|'danger';money?:boolean};
+/** One-row KPI strip for the toolbar. Same Stat font sizes as the markup it replaces (DEC-195); less padding; scrolls sideways if too many
+ *  (never wraps). Pick the variant that matches the old markup:
+ *  - default: the big ".stats" tiles (".stat > strong"). A value is a plain count (the 35 px ".stat>strong") unless the item — or the whole
+ *    strip with `money` — says money: then it is ".money-stat" (what the old `Stat` component and explicit money-stat tiles used).
+ *  - variant="small": the old ".small-stats" tiles (label span + strong, 25 / 23 px), with the old extra class (e.g. "hov-stats") in `className`. */
+export function StatStrip(p:{items:StatItem[];money?:boolean;variant?:'small';className?:string}):React.JSX.Element{
+  if(p.variant==='small')return <div className={'small-stats fit-small-stats'+(p.className?' '+p.className:'')} role="list" aria-label="Key figures">{p.items.map((x,i)=>
+    <div role="listitem" key={i} className={x.tone?'fit-tone-'+x.tone:undefined}><span>{x.title}</span><strong>{x.value}</strong>{x.sub&&<small>{x.sub}</small>}</div>)}</div>;
+  return <div className={'fit-stats'+(p.className?' '+p.className:'')} role="list" aria-label="Key figures">{p.items.map((x,i)=><div role="listitem" key={i} className={'stat fit-stat'+(x.tone?' '+x.tone:'')}>
+    <div className="stat-label">{x.title}</div><strong className={(x.money??p.money)?'money-stat':undefined}>{x.value}</strong>{x.sub&&<small>{x.sub}</small>}</div>)}</div>;
 }
 
 /** Columns that each scroll on their own (Housekeeping, Maintenance board, POS tickets). */

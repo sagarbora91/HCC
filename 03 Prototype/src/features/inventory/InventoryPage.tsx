@@ -28,7 +28,7 @@ export function InventoryPage(){
         {title:'Pieces at laundry',value:String(invPiecesOut(s))},
         {title:'Soiled, not yet sent',value:String(soiled)},
         {title:'Counts to review',value:String(pend.length)},
-        ...(showMoney?[{title:'Stock value (std cost)',value:money(x.items.reduce((a,i)=>a+invValue(i),0))}]:[])]}/>}
+        ...(showMoney?[{title:'Stock value (std cost)',value:money(x.items.reduce((a,i)=>a+invValue(i),0))}]:[])]} variant="small"/>}
       tabs={<FitTabs page="inventory" value={tab} onChange={setTab} tabs={TABS.map(t=>({id:t.id,label:t.label,count:counts[t.id]}))}/>}>
     {tab==='stock'&&<StockTab alerts={alerts} canGrn={canGrn}/>}{tab==='laundry'&&<LaundryTab/>}{tab==='counts'&&<CountsTab/>}{tab==='losses'&&<LossTab/>}
     {tab==='consumption'&&<ConsumptionTab/>}{tab==='par-minimums'&&<ParTab/>}{tab==='movements'&&<MovesTab/>}

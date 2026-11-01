@@ -60,7 +60,7 @@ export async function register({test,M,assert}){
     assert.ok(html.indexOf('Compose')<html.indexOf('Simulate delivery'),'primary action first');
     for(const [tab,needle] of [['triggers','Pending triggers'],['templates','Message templates'],['consent','Guest consent']])
       assert.ok(render(X.MsgMessagesPage,'owner',{page:'messages',tabKey:tab}).includes(needle),tab);
-    assert.ok(html.includes('class="fit-stats"')&&html.includes('Not sent (consent)')&&html.includes('Pending triggers'));
+    assert.ok(html.includes('class="small-stats fit-small-stats msg-stats"')&&html.includes('Not sent (consent)')&&html.includes('Pending triggers'));
   });
   test('[FIT-GUEST] messages: the outbox renders one page (usePaged) with ShowMore in the panel footer, not every row',()=>{
     const total=X.msgOutbox(s).length;

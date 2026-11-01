@@ -95,7 +95,7 @@ export function GuestsPage(){
   const [sel,setSel]=useState<string>('');const g=guestById(s,sel)||(wide?list[0]:undefined);
   // FIT (contract §6 'guests' = fill; profile beside the list as a split, slide-over below 900 px).
   const listPanel=<ScrollPanel title="Profiles" label="Guest profiles" actions={<span className="muted">{list.length} shown</span>}>
-    {list.length?<ul className="gs-list" style={{maxHeight:'none',overflow:'visible'}}>{list.map(x=>{const v=guestView(s,uid,x);const dup=guestDuplicates(s,x).length>0;const stays=guestStays(s,x.id);
+    {list.length?<ul className="gs-list">{list.map(x=>{const v=guestView(s,uid,x);const dup=guestDuplicates(s,x).length>0;const stays=guestStays(s,x.id);
       return <li key={x.id}><button className={'gs-list-item '+(g?.id===x.id?'active':'')} aria-pressed={g?.id===x.id} onClick={()=>setSel(x.id)}>
         <span className="avatar">{x.name.split(' ').map(p=>p[0]).slice(0,2).join('')}</span>
         <span className="gs-list-main"><strong>{x.name}</strong><small>{x.id} · {v.phone} · {stays.length} stay{stays.length===1?'':'s'}</small></span>

@@ -38,5 +38,3 @@
 /* Add exception: the form wraps the whole panel so the submit button can sit in its footer */
 .app-shell .adm-side-cols .adm-exc-wrap{flex:1 1 0;min-height:0;min-width:0;display:flex;flex-direction:column}
 .app-shell .adm-side-cols .adm-exc-wrap>.fit-panel{flex:1 1 0}
-/* layout="form" puts .fit-form on the page root too (FitPage); the real FormSections grid is the child, so the root stays a flex column */
-.app-shell .fit-page.fit-form{display:flex;flex-direction:column;grid-template-columns:none;gap:12px}

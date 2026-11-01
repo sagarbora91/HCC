@@ -41,7 +41,8 @@ export function register({test,assert}){
     assert.match(g,/^<section class="fit-page fit-split" data-fit-page="guests"/);assert.ok(g.includes('aria-label="Guest profiles"')&&g.includes('New guest'));
   });
   test('[FIT-FRONT-B] these pages have no sub-screens: nothing of them in SUB_SCREENS, no FitTabs, no PageTitle left',()=>{
-    for(const p of ['reservations','folios','arrivals','inhouse','guests'])assert.ok(!F.SUB_SCREENS.some(x=>x.page===p),p);
+    for(const p of ['reservations','arrivals','inhouse','guests']) // folios (fit-cash-a's page) has sub-screens Folios / Folio requests
+     assert.ok(!F.SUB_SCREENS.some(x=>x.page===p),p);
     for(const f of ['src/features/reservations/Reservations.tsx','src/features/guests/InHouse.tsx','src/features/guests/GuestProfile.tsx']){
       const src=read(f);assert.ok(!src.includes('<PageTitle')&&!src.includes('FitTabs'),f);}
   });

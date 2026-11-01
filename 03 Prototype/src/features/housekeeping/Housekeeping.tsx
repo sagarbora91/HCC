@@ -30,7 +30,7 @@ export function Housekeeping(){
 
   const stats=columns.map(c=>({title:columnLabel[c],value:String((scoped?taskList:list).filter(x=>x.status===c).length)}));
 
-  if(scoped)return <FitPage title="My tasks" sub={user.role==='Maintenance'?'Your assigned repairs. Rooms stay blocked until a supervisor releases them.':'Your assigned rooms. One thoughtful detail at a time.'} toolbar={<StatStrip items={stats}/>}>
+  if(scoped)return <FitPage title="My tasks" sub={user.role==='Maintenance'?'Your assigned repairs. Rooms stay blocked until a supervisor releases them.':'Your assigned rooms. One thoughtful detail at a time.'} toolbar={<StatStrip items={stats} variant="small"/>}>
     <ScrollPanel label="My tasks"><div className="hk-mine">{hkzGroups(s,hkSortTasks(s,taskList)).map((g,_i,all)=><React.Fragment key={g.zone?.id??'none'}>
       {all.length>1&&<h3 className="hk-zone-head">{g.label}<span>{g.tasks.length}</span></h3>}
       {g.tasks.map(t=><TaskCard key={t.id} t={t} large/>)}</React.Fragment>)}
@@ -47,7 +47,7 @@ export function Housekeeping(){
       <label>Zone<select value={zone} onChange={e=>setZone(e.target.value)}><option value="All">All zones</option>{zones.map(z=><option key={z.id} value={z.id}>{z.name}</option>)}<option value="none">No zone</option></select></label><MstLink spec="hkZones"/>
       {(floor!=='All'||assignee!=='All'||zone!=='All')&&<button className="text-btn" onClick={()=>{setFloor('All');setAssignee('All');setZone('All');}}>Clear filters</button>}
       <span className="muted">{list.length} of {taskList.length} tasks</span>
-    </div><StatStrip items={stats}/></>}>
+    </div><StatStrip items={stats} variant="small"/></>}>
     <BoardColumns minColumn={205} columns={[...columns.map(status=>({id:status,title:columnLabel[status],count:list.filter(t=>t.status===status).length,
       body:<>{hkSortTasks(s,list.filter(t=>t.status===status)).map(t=><TaskCard key={t.id} t={t}/>)}
         {!list.some(t=>t.status===status)&&<p className="column-empty">No rooms here</p>}</>})),{id:'load',title:'Attendant load',body:loadBody}]}/>

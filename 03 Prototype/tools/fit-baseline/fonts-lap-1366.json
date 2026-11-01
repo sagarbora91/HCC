@@ -1,58 +1,1323 @@
 {
- "select": [
-  "11px"
- ],
- "label": [
-  "11px"
- ],
- "p": [
-  "12px",
-  "14px"
- ],
- "td": [
-  "11px"
- ],
- "th": [
-  "10px",
-  "9px"
- ],
- "button.btn": [
-  "10px",
-  "11px",
-  "14px",
-  "16px"
- ],
- ".pill": [
-  "11px",
-  "8px",
-  "9px"
- ],
- ".tabs button, .fit-tabs-bar button": [
-  "11px",
-  "12px"
- ],
- ".stat-label": [
-  "11px"
- ],
- ".money-stat": [
-  "30px"
- ],
- "input": [
-  "11px",
-  "12px",
-  "13px",
-  "14px",
-  "15px",
-  "16px"
- ],
- ".muted": [
-  "10px",
-  "11px"
- ],
- ".drawer a": [
-  "16px"
- ],
- ".modal h2": [
-  "25px"
- ]
+ "recorded": {
+  "base": "main 649e4982 (= FIT base 3dac5afb code: ACC-3, no FIT)",
+  "roles": [
+   "owner",
+   "manager",
+   "reception",
+   "housekeeper",
+   "maint",
+   "accountant"
+  ],
+  "at": "20261101-2035",
+  "note": "every visible element of a kind inside .content, per page, each local tab clicked; record on the base build (main)"
+ },
+ "pages": {
+  "access": {
+   ".muted": [
+    "10px",
+    "11px"
+   ],
+   ".pill": [
+    "9px"
+   ],
+   "button.btn": [
+    "10px",
+    "11px"
+   ],
+   "input": [
+    "10px",
+    "11px",
+    "12px"
+   ],
+   "label": [
+    "10px",
+    "11px",
+    "14px"
+   ],
+   "p": [
+    "10px",
+    "11px",
+    "12px"
+   ],
+   "select": [
+    "11px",
+    "12px",
+    "14px"
+   ],
+   "td": [
+    "11px"
+   ],
+   "th": [
+    "9px"
+   ]
+  },
+  "accounting": {
+   ".money-stat": [
+    "30px"
+   ],
+   ".muted": [
+    "10px",
+    "11px"
+   ],
+   ".pill": [
+    "9px"
+   ],
+   ".stat-label": [
+    "11px"
+   ],
+   ".tabs button, .fit-tabs-bar button": [
+    "11px"
+   ],
+   "button.btn": [
+    "10px",
+    "11px"
+   ],
+   "input": [
+    "11px",
+    "12px"
+   ],
+   "label": [
+    "11px",
+    "12px",
+    "14px"
+   ],
+   "p": [
+    "10px",
+    "11px",
+    "12px"
+   ],
+   "select": [
+    "12px"
+   ],
+   "td": [
+    "10px",
+    "11px"
+   ],
+   "th": [
+    "9px"
+   ]
+  },
+  "approvals": {
+   ".muted": [
+    "10px"
+   ],
+   ".pill": [
+    "9px"
+   ],
+   "button.btn": [
+    "10px"
+   ],
+   "input": [
+    "11px"
+   ],
+   "label": [
+    "11px"
+   ],
+   "p": [
+    "10px",
+    "11px",
+    "12px"
+   ],
+   "select": [
+    "11px"
+   ],
+   "td": [
+    "11px"
+   ],
+   "th": [
+    "9px"
+   ]
+  },
+  "arrivals": {
+   ".muted": [
+    "10px"
+   ],
+   ".pill": [
+    "9px"
+   ],
+   "button.btn": [
+    "10px",
+    "11px"
+   ],
+   "input": [
+    "11px"
+   ],
+   "label": [
+    "14px"
+   ],
+   "p": [
+    "10px",
+    "12px"
+   ],
+   "td": [
+    "11px"
+   ],
+   "th": [
+    "9px"
+   ]
+  },
+  "assistant": {
+   ".pill": [
+    "9px"
+   ],
+   "button.btn": [
+    "11px"
+   ],
+   "input": [
+    "13px"
+   ],
+   "label": [
+    "14px"
+   ],
+   "p": [
+    "10px",
+    "11px",
+    "12px",
+    "13px"
+   ]
+  },
+  "backup": {
+   ".pill": [
+    "9px"
+   ],
+   ".stat-label": [
+    "11px"
+   ],
+   ".stat>strong": [
+    "18px"
+   ],
+   "button.btn": [
+    "11px"
+   ],
+   "p": [
+    "10px",
+    "12px"
+   ],
+   "td": [
+    "11px"
+   ],
+   "th": [
+    "9px"
+   ]
+  },
+  "booking-site": {
+   "button.btn": [
+    "16px"
+   ],
+   "input": [
+    "15px",
+    "18px"
+   ],
+   "label": [
+    "14px"
+   ],
+   "p": [
+    "10px",
+    "12px",
+    "14px"
+   ]
+  },
+  "calendar": {
+   ".muted": [
+    "10px"
+   ],
+   "button.btn": [
+    "11px"
+   ],
+   "input": [
+    "11px"
+   ],
+   "label": [
+    "10px"
+   ],
+   "p": [
+    "10px",
+    "12px"
+   ],
+   "select": [
+    "11px"
+   ]
+  },
+  "cashbook": {
+   ".muted": [
+    "10px"
+   ],
+   ".pill": [
+    "9px"
+   ],
+   "button.btn": [
+    "10px",
+    "11px"
+   ],
+   "input": [
+    "16px"
+   ],
+   "label": [
+    "13px"
+   ],
+   "p": [
+    "10px",
+    "12px"
+   ],
+   "td": [
+    "11px"
+   ],
+   "th": [
+    "9px"
+   ]
+  },
+  "cashier": {
+   ".muted": [
+    "10px",
+    "11px"
+   ],
+   ".pill": [
+    "9px"
+   ],
+   "button.btn": [
+    "11px"
+   ],
+   "input": [
+    "12px"
+   ],
+   "label": [
+    "11px"
+   ],
+   "p": [
+    "10px",
+    "11px",
+    "12px"
+   ],
+   "td": [
+    "11px"
+   ],
+   "th": [
+    "9px"
+   ]
+  },
+  "cat:accounts": {
+   "p": [
+    "14px"
+   ]
+  },
+  "cat:admin": {
+   "p": [
+    "14px"
+   ]
+  },
+  "cat:cash": {
+   "p": [
+    "14px"
+   ]
+  },
+  "cat:customers": {
+   "p": [
+    "14px"
+   ]
+  },
+  "cat:front": {
+   "p": [
+    "14px"
+   ]
+  },
+  "cat:guestsvc": {
+   "p": [
+    "14px"
+   ]
+  },
+  "cat:hkm": {
+   "p": [
+    "14px"
+   ]
+  },
+  "cat:people": {
+   "p": [
+    "14px"
+   ]
+  },
+  "cat:revenue": {
+   "p": [
+    "14px"
+   ]
+  },
+  "cat:stock": {
+   "p": [
+    "14px"
+   ]
+  },
+  "channels": {
+   ".muted": [
+    "10px"
+   ],
+   ".small-stats span": [
+    "11px"
+   ],
+   ".small-stats strong": [
+    "25px"
+   ],
+   ".tabs button, .fit-tabs-bar button": [
+    "12px"
+   ],
+   "button.btn": [
+    "10px",
+    "11px"
+   ],
+   "label": [
+    "14px"
+   ],
+   "p": [
+    "11px",
+    "12px"
+   ],
+   "select": [
+    "12px"
+   ],
+   "td": [
+    "11px"
+   ],
+   "th": [
+    "11px",
+    "9px"
+   ]
+  },
+  "closing": {
+   ".muted": [
+    "10px"
+   ],
+   ".pill": [
+    "9px"
+   ],
+   "button.btn": [
+    "10px",
+    "11px"
+   ],
+   "input": [
+    "12px"
+   ],
+   "label": [
+    "11px"
+   ],
+   "p": [
+    "10px",
+    "11px",
+    "12px",
+    "14px"
+   ],
+   "select": [
+    "12px"
+   ],
+   "td": [
+    "11px"
+   ],
+   "th": [
+    "9px"
+   ]
+  },
+  "compliance": {
+   "button.btn": [
+    "10px",
+    "11px"
+   ],
+   "label": [
+    "12px"
+   ],
+   "p": [
+    "12px",
+    "13px"
+   ],
+   "select": [
+    "12px"
+   ],
+   "td": [
+    "11px"
+   ],
+   "th": [
+    "9px"
+   ]
+  },
+  "customers": {
+   ".muted": [
+    "10px"
+   ],
+   ".pill": [
+    "9px"
+   ],
+   "button.btn": [
+    "11px"
+   ],
+   "input": [
+    "11px"
+   ],
+   "label": [
+    "14px"
+   ],
+   "p": [
+    "10px",
+    "12px",
+    "14px"
+   ]
+  },
+  "documents": {
+   ".muted": [
+    "10px"
+   ],
+   ".pill": [
+    "9px"
+   ],
+   "button.btn": [
+    "11px"
+   ],
+   "p": [
+    "11px",
+    "12px"
+   ],
+   "td": [
+    "11px"
+   ],
+   "th": [
+    "9px"
+   ]
+  },
+  "expenses": {
+   ".muted": [
+    "10px"
+   ],
+   ".pill": [
+    "9px"
+   ],
+   ".small-stats span": [
+    "11px"
+   ],
+   ".small-stats strong": [
+    "25px"
+   ],
+   ".tabs button, .fit-tabs-bar button": [
+    "11px"
+   ],
+   "button.btn": [
+    "10px",
+    "11px"
+   ],
+   "input": [
+    "11px",
+    "12px"
+   ],
+   "label": [
+    "11px"
+   ],
+   "p": [
+    "10px",
+    "11px",
+    "12px"
+   ],
+   "select": [
+    "11px",
+    "12px"
+   ],
+   "td": [
+    "11px"
+   ],
+   "th": [
+    "9px"
+   ]
+  },
+  "folios": {
+   ".muted": [
+    "10px"
+   ],
+   ".pill": [
+    "9px"
+   ],
+   ".small-stats span": [
+    "11px"
+   ],
+   ".small-stats strong": [
+    "25px"
+   ],
+   "button.btn": [
+    "11px"
+   ],
+   "input": [
+    "11px"
+   ],
+   "label": [
+    "14px"
+   ],
+   "p": [
+    "10px",
+    "11px",
+    "12px"
+   ],
+   "td": [
+    "11px"
+   ],
+   "th": [
+    "9px"
+   ]
+  },
+  "groups": {
+   ".money-stat": [
+    "30px"
+   ],
+   ".muted": [
+    "12px"
+   ],
+   ".pill": [
+    "9px"
+   ],
+   ".stat-label": [
+    "11px"
+   ],
+   ".tabs button, .fit-tabs-bar button": [
+    "11px"
+   ],
+   "button.btn": [
+    "10px",
+    "11px"
+   ],
+   "label": [
+    "13px"
+   ],
+   "p": [
+    "10px",
+    "12px",
+    "13px"
+   ],
+   "select": [
+    "11px"
+   ],
+   "td": [
+    "11px"
+   ],
+   "th": [
+    "9px"
+   ]
+  },
+  "gsv-my-requests": {
+   ".pill": [
+    "9px"
+   ],
+   "button.btn": [
+    "11px"
+   ],
+   "p": [
+    "11px",
+    "12px"
+   ]
+  },
+  "guest-services": {
+   ".money-stat": [
+    "30px"
+   ],
+   ".pill": [
+    "9px"
+   ],
+   ".small-stats span": [
+    "11px"
+   ],
+   ".small-stats strong": [
+    "25px"
+   ],
+   ".stat-label": [
+    "11px"
+   ],
+   ".tabs button, .fit-tabs-bar button": [
+    "11px"
+   ],
+   "button.btn": [
+    "11px"
+   ],
+   "p": [
+    "12px"
+   ],
+   "td": [
+    "11px"
+   ],
+   "th": [
+    "9px"
+   ]
+  },
+  "handover": {
+   ".muted": [
+    "10px",
+    "11px"
+   ],
+   ".pill": [
+    "11px",
+    "9px"
+   ],
+   ".small-stats span": [
+    "11px"
+   ],
+   ".small-stats strong": [
+    "22px"
+   ],
+   ".tabs button, .fit-tabs-bar button": [
+    "11px"
+   ],
+   "button.btn": [
+    "11px"
+   ],
+   "label": [
+    "12px"
+   ],
+   "p": [
+    "11px",
+    "12px",
+    "13px"
+   ],
+   "select": [
+    "12px"
+   ],
+   "td": [
+    "11px"
+   ],
+   "th": [
+    "9px"
+   ]
+  },
+  "home": {
+   "p": [
+    "14px"
+   ]
+  },
+  "housekeeping": {
+   ".muted": [
+    "10px"
+   ],
+   ".pill": [
+    "8px"
+   ],
+   ".small-stats span": [
+    "11px"
+   ],
+   ".small-stats strong": [
+    "25px"
+   ],
+   "button.btn": [
+    "11px",
+    "14px",
+    "9px"
+   ],
+   "label": [
+    "10px",
+    "13px"
+   ],
+   "p": [
+    "12px",
+    "9px"
+   ],
+   "select": [
+    "10px",
+    "11px"
+   ]
+  },
+  "inhouse": {
+   ".muted": [
+    "10px",
+    "11px"
+   ],
+   ".pill": [
+    "9px"
+   ],
+   "button.btn": [
+    "11px"
+   ],
+   "input": [
+    "11px"
+   ],
+   "label": [
+    "14px"
+   ],
+   "p": [
+    "10px",
+    "11px",
+    "12px"
+   ]
+  },
+  "inventory": {
+   ".muted": [
+    "10px",
+    "11px"
+   ],
+   ".pill": [
+    "9px"
+   ],
+   ".small-stats span": [
+    "11px"
+   ],
+   ".small-stats strong": [
+    "25px"
+   ],
+   ".tabs button, .fit-tabs-bar button": [
+    "11px"
+   ],
+   "button.btn": [
+    "10px",
+    "11px"
+   ],
+   "input": [
+    "11px"
+   ],
+   "label": [
+    "11px"
+   ],
+   "p": [
+    "10px",
+    "11px",
+    "12px"
+   ],
+   "td": [
+    "11px"
+   ],
+   "th": [
+    "9px"
+   ]
+  },
+  "legacy-import": {
+   ".muted": [
+    "10px"
+   ],
+   ".pill": [
+    "9px"
+   ],
+   "button.btn": [
+    "11px"
+   ],
+   "input": [
+    "14px"
+   ],
+   "label": [
+    "14px"
+   ],
+   "p": [
+    "12px"
+   ],
+   "td": [
+    "11px"
+   ],
+   "th": [
+    "9px"
+   ]
+  },
+  "maintenance": {
+   ".money-stat": [
+    "30px"
+   ],
+   ".muted": [
+    "10px"
+   ],
+   ".pill": [
+    "9px"
+   ],
+   ".small-stats span": [
+    "11px"
+   ],
+   ".small-stats strong": [
+    "25px"
+   ],
+   ".stat-label": [
+    "11px"
+   ],
+   ".stat>strong": [
+    "35px"
+   ],
+   ".tabs button, .fit-tabs-bar button": [
+    "11px"
+   ],
+   "button.btn": [
+    "11px",
+    "13px"
+   ],
+   "input": [
+    "11px"
+   ],
+   "label": [
+    "10px"
+   ],
+   "p": [
+    "10px",
+    "11px",
+    "12px"
+   ],
+   "select": [
+    "11px"
+   ],
+   "td": [
+    "11px"
+   ],
+   "th": [
+    "9px"
+   ]
+  },
+  "messages": {
+   ".muted": [
+    "10px"
+   ],
+   ".pill": [
+    "9px"
+   ],
+   ".small-stats span": [
+    "11px"
+   ],
+   ".small-stats strong": [
+    "25px"
+   ],
+   ".tabs button, .fit-tabs-bar button": [
+    "11px"
+   ],
+   "button.btn": [
+    "10px",
+    "11px"
+   ],
+   "label": [
+    "11px"
+   ],
+   "p": [
+    "12px",
+    "15px"
+   ],
+   "select": [
+    "11px"
+   ],
+   "td": [
+    "11px"
+   ],
+   "th": [
+    "9px"
+   ]
+  },
+  "my-hr": {
+   ".muted": [
+    "10px"
+   ],
+   ".pill": [
+    "9px"
+   ],
+   "button.btn": [
+    "11px"
+   ],
+   "p": [
+    "10px",
+    "11px",
+    "12px"
+   ],
+   "td": [
+    "11px"
+   ],
+   "th": [
+    "9px"
+   ]
+  },
+  "overview": {
+   ".money-stat": [
+    "30px"
+   ],
+   ".pill": [
+    "9px"
+   ],
+   ".small-stats span": [
+    "11px"
+   ],
+   ".small-stats strong": [
+    "22px"
+   ],
+   ".stat-label": [
+    "11px"
+   ],
+   ".stat>strong": [
+    "35px"
+   ],
+   ".tabs button, .fit-tabs-bar button": [
+    "11px"
+   ],
+   "button.btn": [
+    "11px"
+   ],
+   "p": [
+    "10px",
+    "11px",
+    "12px",
+    "9px"
+   ],
+   "td": [
+    "11px"
+   ],
+   "th": [
+    "9px"
+   ]
+  },
+  "plans-extras": {
+   ".muted": [
+    "10px"
+   ],
+   ".pill": [
+    "9px"
+   ],
+   "button.btn": [
+    "11px"
+   ],
+   "input": [
+    "14px"
+   ],
+   "label": [
+    "14px"
+   ],
+   "p": [
+    "10px",
+    "12px"
+   ],
+   "td": [
+    "11px"
+   ],
+   "th": [
+    "9px"
+   ]
+  },
+  "pos": {
+   ".money-stat": [
+    "30px"
+   ],
+   ".stat-label": [
+    "11px"
+   ],
+   ".tabs button, .fit-tabs-bar button": [
+    "11px"
+   ],
+   "button.btn": [
+    "11px"
+   ],
+   "label": [
+    "12px"
+   ],
+   "p": [
+    "10px",
+    "11px",
+    "12px",
+    "14px"
+   ],
+   "td": [
+    "11px"
+   ],
+   "th": [
+    "9px"
+   ]
+  },
+  "prefs": {
+   ".muted": [
+    "11px"
+   ],
+   "button.btn": [
+    "11px"
+   ],
+   "label": [
+    "14px"
+   ],
+   "p": [
+    "10px",
+    "11px",
+    "12px"
+   ],
+   "select": [
+    "13px"
+   ]
+  },
+  "reports": {
+   ".muted": [
+    "10px"
+   ],
+   ".tabs button, .fit-tabs-bar button": [
+    "11px"
+   ],
+   "button.btn": [
+    "10px",
+    "11px"
+   ],
+   "input": [
+    "11px"
+   ],
+   "label": [
+    "11px"
+   ],
+   "p": [
+    "10px",
+    "12px"
+   ],
+   "select": [
+    "11px"
+   ],
+   "td": [
+    "11px"
+   ],
+   "th": [
+    "9px"
+   ]
+  },
+  "reservations": {
+   ".muted": [
+    "10px"
+   ],
+   ".pill": [
+    "9px"
+   ],
+   "button.btn": [
+    "11px"
+   ],
+   "input": [
+    "11px"
+   ],
+   "label": [
+    "10px",
+    "14px"
+   ],
+   "p": [
+    "10px",
+    "12px"
+   ],
+   "select": [
+    "11px"
+   ],
+   "td": [
+    "11px"
+   ],
+   "th": [
+    "9px"
+   ]
+  },
+  "roadmap": {
+   ".pill": [
+    "9px"
+   ],
+   "p": [
+    "12px"
+   ],
+   "td": [
+    "11px"
+   ],
+   "th": [
+    "9px"
+   ]
+  },
+  "rooms": {
+   "button.btn": [
+    "11px"
+   ],
+   "input": [
+    "11px"
+   ],
+   "label": [
+    "14px"
+   ],
+   "p": [
+    "12px"
+   ]
+  },
+  "settings": {
+   ".pill": [
+    "9px"
+   ],
+   "button.btn": [
+    "10px"
+   ],
+   "input": [
+    "15px"
+   ],
+   "label": [
+    "14px"
+   ],
+   "p": [
+    "12px",
+    "14px"
+   ]
+  },
+  "staff": {
+   ".muted": [
+    "10px"
+   ],
+   ".pill": [
+    "9px"
+   ],
+   ".small-stats span": [
+    "11px"
+   ],
+   ".small-stats strong": [
+    "25px"
+   ],
+   ".tabs button, .fit-tabs-bar button": [
+    "11px"
+   ],
+   "button.btn": [
+    "11px"
+   ],
+   "input": [
+    "13px"
+   ],
+   "label": [
+    "13px",
+    "14px"
+   ],
+   "p": [
+    "10px",
+    "11px",
+    "12px"
+   ],
+   "select": [
+    "11px",
+    "14px"
+   ],
+   "td": [
+    "11px"
+   ],
+   "th": [
+    "9px"
+   ]
+  },
+  "syshealth": {
+   ".pill": [
+    "9px"
+   ],
+   "button.btn": [
+    "10px"
+   ],
+   "p": [
+    "10px",
+    "12px"
+   ],
+   "td": [
+    "11px"
+   ],
+   "th": [
+    "9px"
+   ]
+  },
+  "yield": {
+   ".muted": [
+    "11px"
+   ],
+   ".pill": [
+    "9px"
+   ],
+   ".small-stats span": [
+    "11px"
+   ],
+   ".small-stats strong": [
+    "25px"
+   ],
+   "button.btn": [
+    "11px"
+   ],
+   "input": [
+    "12px"
+   ],
+   "label": [
+    "11px"
+   ],
+   "p": [
+    "11px",
+    "12px"
+   ],
+   "select": [
+    "11px",
+    "12px"
+   ],
+   "td": [
+    "11px"
+   ],
+   "th": [
+    "10px",
+    "11px",
+    "9px"
+   ]
+  }
+ },
+ "all": {
+  ".drawer a": [
+   "16px"
+  ],
+  ".modal h2": [
+   "25px"
+  ],
+  ".money-stat": [
+   "30px"
+  ],
+  ".muted": [
+   "10px",
+   "11px",
+   "12px"
+  ],
+  ".pill": [
+   "11px",
+   "8px",
+   "9px"
+  ],
+  ".small-stats span": [
+   "11px"
+  ],
+  ".small-stats strong": [
+   "22px",
+   "25px"
+  ],
+  ".stat-label": [
+   "11px"
+  ],
+  ".stat>strong": [
+   "18px",
+   "35px"
+  ],
+  ".tabs button, .fit-tabs-bar button": [
+   "11px",
+   "12px"
+  ],
+  "button.btn": [
+   "10px",
+   "11px",
+   "13px",
+   "14px",
+   "16px",
+   "9px"
+  ],
+  "input": [
+   "10px",
+   "11px",
+   "12px",
+   "13px",
+   "14px",
+   "15px",
+   "16px",
+   "18px"
+  ],
+  "label": [
+   "10px",
+   "11px",
+   "12px",
+   "13px",
+   "14px"
+  ],
+  "p": [
+   "10px",
+   "11px",
+   "12px",
+   "13px",
+   "14px",
+   "15px",
+   "9px"
+  ],
+  "select": [
+   "10px",
+   "11px",
+   "12px",
+   "13px",
+   "14px"
+  ],
+  "td": [
+   "10px",
+   "11px"
+  ],
+  "th": [
+   "10px",
+   "11px",
+   "9px"
+  ]
+ }
 }

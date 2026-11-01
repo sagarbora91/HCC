@@ -5,7 +5,7 @@ import {money,grpSlice,grpKpis,grpLines,grpBlockTotals,grpStatus,grpCompany,grpC
 import type {GRPBlock} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {Empty,shortDate,dateLabel} from '../../components/ui';
-import {FitPage,FitTabs,FitNote,ScrollPanel,SplitView,StatStrip,useFitTab} from '../../components/fit';
+import {FitPage,FitTabs,FitNote,ScrollPanel,SplitView,StatStrip,useFitTab,useWideSplit} from '../../components/fit';
 import {usePaged,ShowMore,DESKTOP_PAGE} from '../../components/ShowMore';
 import {GrpStatusPill,GrpCreditPill,GrpCreditBar,grpCutoffText,grpUserName,grpSimNote,GrpRetiredPill} from './parts';
 
@@ -24,7 +24,7 @@ export function GroupsPage(){
       A booking, company credit at checkout or a rooming list beyond the remaining credit is refused; only the Owner sets a limit (others send a request). A payment from the company frees credit.</>}/>;
   return <FitPage title="Groups & corporate" sub={`Company accounts, group blocks and pickup · business date ${dateLabel(s.date)}`}
       actions={permission('reservations')&&<><button className="btn primary" onClick={()=>open({type:'grp-block'})}><Plus size={16}/> New group block</button><button className="btn" onClick={()=>open({type:'grp-company'})}><Building size={16}/> New company</button></>}
-      toolbar={<StatStrip items={[
+      toolbar={<StatStrip money items={[
         {title:'Open blocks',value:String(k.open),sub:`${k.dueSoon} with cut-off within 2 days`},
         {title:'Rooms picked up',value:`${k.picked} / ${k.allot}`,sub:'Open blocks · picked / held'},
         {title:'Unpicked rooms',value:String(k.remaining),sub:k.atRisk?`${k.atRisk} block${k.atRisk>1?'s':''} at risk (not enough free rooms)`:'All covered by free inventory'},
@@ -44,14 +44,14 @@ function BlocksTab({showFolio}:{showFolio:(id:string)=>void}){
   const pg=usePaged(blocks,DESKTOP_PAGE);
   // undefined = nothing chosen yet: on a wide screen the first block is shown, on a narrow one the list (the record slides over it).
   const [sel,setSel]=useState<string|null|undefined>(undefined);
-  const wide=useState(()=>typeof window!=='undefined'&&typeof window.matchMedia==='function'&&window.matchMedia('(min-width: 900px)').matches)[0];
+  const wide=useWideSplit(false); // follows rotation (review N4)
   const id=sel===undefined?(wide?blocks[0]?.id??null:null):sel;const blk=blocks.find(b=>b.id===id);
   const note=<FitNote text={<><b>Rooms held for groups are blocked.</b> Unpicked block rooms are assigned to specific rooms, shown as “Group hold” (Blocked) on the room board and calendar, and can only be booked through the block’s rooming list. Releasing or cancelling a block frees them.</>}/>;
   if(!blocks.length)return <ScrollPanel label="Group blocks" footer={note}><Empty title="No group blocks" body="Create a block to hold rooms for a group."/></ScrollPanel>;
   const list=<ScrollPanel label="Group blocks" title="Blocks" actions={<span className="muted">{blocks.length}</span>} footer={<>{note}<ShowMore p={pg}/></>}>
     <ul className="grp-list">{pg.shown.map(b=>{const t=grpBlockTotals(s,b),c=grpCompany(s,b.company);
-      return <li key={b.id}><button type="button" className={'grp-row'+(b.id===id?' active':'')} aria-current={b.id===id?'true':undefined} onClick={()=>setSel(b.id)}>
-        <span className="grp-row-main"><strong>{b.name}</strong><small>{b.id}{c?' · '+c.name:''}</small><small>{shortDate(b.arrival)} → {shortDate(b.departure)} · {t.picked} of {t.allot} picked up ({t.pct}%)</small></span>
+      return <li key={b.id}><button type="button" className={'grp-list-row'+(b.id===id?' active':'')} aria-current={b.id===id?'true':undefined} onClick={()=>setSel(b.id)}>
+        <span className="grp-list-row-main"><strong>{b.name}</strong><small>{b.id}{c?' · '+c.name:''}</small><small>{shortDate(b.arrival)} → {shortDate(b.departure)} · {t.picked} of {t.allot} picked up ({t.pct}%)</small></span>
         <GrpStatusPill s={s} blk={b}/></button></li>;})}</ul></ScrollPanel>;
   return <SplitView label="Group blocks" ratio="2fr 3fr" list={list} onCloseDetail={()=>setSel(null)}
     detail={blk?<BlockRecord key={blk.id} blk={blk} showFolio={showFolio}/>:null}

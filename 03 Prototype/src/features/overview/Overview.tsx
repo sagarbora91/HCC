@@ -25,10 +25,10 @@ export function Overview(){
   return <FitPage title="A little clarity for a busy day." sub={`Your hotel, at a glance · Welcome back, ${user.name.split(' · ')[0]}. Here’s what’s happening at ${s.settings.hotel}.`}
     actions={act('reservations',()=>open({type:'new'}),'+ New reservation','btn primary')}
     toolbar={<StatStrip items={[
-      {title:'Room occupancy',value:wait?PD:m.occupancy+'%',sub:wait?'Waiting for the server…':`${m.occupied} occupied of ${m.sellable} sellable rooms`},
+      {title:'Room occupancy',value:<>{wait?PD:m.occupancy}<span>%</span></>,sub:wait?'Waiting for the server…':`${m.occupied} occupied of ${m.sellable} sellable rooms`},
       {title:'Today’s arrivals',value:arrivals.length.toString().padStart(2,'0'),sub:`Expected check-ins · ${s.settings.checkin}`},
       {title:'Room ready',value:String(m.available).padStart(2,'0'),sub:'Vacant, clean and available now',tone:'ok'},
-      {title:'Payment receipts',value:wait?PD:money(m.collections),sub:'Today’s net receipts · deposits excluded'}]}/>}
+      {title:'Payment receipts',money:true,value:wait?PD:money(m.collections),sub:'Today’s net receipts · deposits excluded'}]}/>}
     tabs={<FitTabs page="overview" value={tab} onChange={setTab} tabs={OV_TABS.map(t=>({...t,count:counts[t.id]}))}/>}>
     <div className="fit-ov-cols">
       <ScrollPanel title="Front desk today" label={`Front desk today: ${OV_TABS.find(t=>t.id===tab)!.label}`} actions={act('reservations',()=>go('reservations'),'All reservations ↗','text-btn')}>

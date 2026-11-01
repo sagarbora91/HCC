@@ -9,9 +9,10 @@ import {writeFile,readFile,readdir} from 'node:fs/promises';
 import {existsSync,readFileSync,readdirSync,statSync} from 'node:fs';
 import {execFileSync} from 'node:child_process';
 import {pathToFileURL} from 'node:url';
-const ENFORCE=process.env.FIT_ENFORCE_ALL==='true';
-/** The FIT setup head (main + ACC-2 + claude/lg, no FIT code). Override with FIT_BASE after the integrator merges `main` again. */
-const FIT_BASE=process.env.FIT_BASE||'541bbff7';
+/** Integrator (2 Nov 2026): every page is converted, so every page is mandatory; FIT_ENFORCE_ALL=false brings back the in-progress skips. */
+const ENFORCE=process.env.FIT_ENFORCE_ALL!=='false';
+/** The pre-lane head of claude/fit (main + ACC-3 merged + fit-shell + fit-check, before the phase-B lanes). Override with FIT_BASE. */
+const FIT_BASE=process.env.FIT_BASE||'3dac5afb';
 /** Pages whose tab ids are generated at run time: only these ids are listed in SUB_SCREENS (contract §6). */
 const GENERATED_TABS={rooms:['all']};
 const walk=(d,o=[])=>{for(const f of readdirSync(d)){const p=d+'/'+f;if(statSync(p).isDirectory())walk(p,o);else if(/\.tsx?$/.test(p))o.push(p);}return o;};
@@ -100,6 +101,7 @@ export async function register({test,M,assert}){
 import '../../src/app/App';
 import React from 'react';import {renderToStaticMarkup} from 'react-dom/server';
 import {HccContext} from '../../src/app/context';
+import {FitNavContext} from '../../src/components/fit';
 import {can,metrics} from '../../src/services/mock';
 import {extraPages} from '../../src/app/registry';
 import {Overview} from '../../src/features/overview/Overview';
@@ -121,7 +123,8 @@ export function render(id:string,s:any,uid:string){
     permission:(p:any)=>can(s,uid,p),act:(p:any,fn:any,label:string,style='btn')=>can(s,uid,p)?<button className={style}>{label}</button>:null,
     filter:'All',setFilter:noop,tab:'',setTab:noop,arrivals,departures,pending:0,taskList:s.tasks,roomStatus:()=>'',
     display:{isMobile:false,mode:'desktop',setMode:noop},setDirty:noop,openSearch:noop,openMenu:noop,signOut:noop};
-  return renderToStaticMarkup(<HccContext.Provider value={ctx}>{pages[id]()}</HccContext.Provider>);
+  // the desktop shell's nav (App.tsx FitContent): FitPage writes data-fit-page from it
+  return renderToStaticMarkup(<HccContext.Provider value={ctx}><FitNavContext.Provider value={{desktop:true,page:id,tabKey:'',seq:1,setTabCrumb:noop}}>{pages[id]()}</FitNavContext.Provider></HccContext.Provider>);
 }`);
   let X=null,buildError='';
   try{

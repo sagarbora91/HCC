@@ -6,7 +6,7 @@ import {useHcc} from './context';
 import {navItems} from './nav';
 import {trapTab,useReturnFocus} from '../components/ui';
 import {buildSearchEntries,searchEntries,visibleEntries,categoryOf,PAGE_CATEGORY,DASHBOARD,navFilterModules,type SearchEntry} from './navmap';
-import {SUB_SCREENS,type SubScreen} from './subscreens';
+import {SUB_SCREENS,subScreenOpen,type SubScreen} from './subscreens';
 
 /** FIT (DEC-196): every sub-screen tab is a result "Page › Tab" that opens with go(page,{tab}). Same page permission as its page. */
 type Entry=SearchEntry&{tab?:string};
@@ -36,7 +36,8 @@ export function SearchPalette({onClose}:{onClose:()=>void}){
   // FIT §11.2: sub-screen results are desktop only (the phone shell has its own tab ids).
   const all=useMemo<Entry[]>(()=>paletteEntries(display.isMobile),[display.isMobile]);
   const allowed=new Set(navFilterModules(s,navItems,uid).filter(n=>permission(n.p)).map(n=>n.id));
-  const visible=visibleEntries(all,allowed,p=>permission(p));
+  // S3: a sub-screen the role's page never shows is not listed (same tab conditions as the page; subscreens.ts SUB_SCREEN_GATES)
+  const visible=visibleEntries(all,allowed,p=>permission(p)).filter(e=>!(e as Entry).tab||subScreenOpen(s,uid,e.page,(e as Entry).tab!));
   const terms=q.trim().toLowerCase().split(/\s+/).filter(Boolean);
   const hits:Entry[]=terms.length?searchEntries(visible,q).slice(0,12).map(h=>h.entry)
     :[...visible.filter(e=>e.kind==='action'),...visible.filter(e=>e.kind==='page'&&!(e as Entry).tab).slice(0,6)];

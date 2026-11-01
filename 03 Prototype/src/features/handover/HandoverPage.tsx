@@ -91,7 +91,7 @@ export function HovDashboardBody({compact,fit}:{compact?:boolean;fit?:boolean}){
       <div className="f-seg" role="group" aria-label="Group by">{(['role','desk'] as const).map(b=><button key={b} type="button" className={by===b?'on':''} aria-pressed={by===b} onClick={()=>setBy(b)}>By {b}</button>)}</div>
       <button className="btn" onClick={()=>{void printDocument();}}><Printer size={15}/>Print</button></div>
     <StatStrip items={[{title:'Completion',value:(total.items?Math.round(total.done*100/total.items):0)+'%'},{title:'Items overdue',value:String(over.length)},
-      {title:'Runs past shift end',value:String(lateRuns)},{title:'Notes not acknowledged',value:String(notes.length)}]}/>
+      {title:'Runs past shift end',value:String(lateRuns)},{title:'Notes not acknowledged',value:String(notes.length)}]} variant="small" className="hov-stats"/>
     <div className="fit-cols">
       <div><ScrollPanel title={`Completion by ${by} · ${dateLabel(date)}`} label={`Completion by ${by}`}>
         <div className="table-wrap"><table><thead><tr><th>{by==='role'?'Role':'Desk'}</th><th className="number">Checklists</th><th className="number">Submitted</th><th className="number">Not started</th><th className="number">Items done</th><th>Completion</th><th className="number">Overdue</th><th className="number">Past shift end</th></tr></thead>

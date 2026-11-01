@@ -43,7 +43,13 @@ export function register({test,assert}){
     const b=renderToStaticMarkup(h(F.BoardColumns,{columns:[{id:'a',title:'Dirty',count:3,body:'x'},{id:'b',title:'Ready',body:'y'}],minColumn:260}));
     assert.ok(b.includes('class="fit-board" style="--fit-col:260px"'),b);assert.equal((b.match(/data-fit-scroll=""/g)||[]).length,2);
     const st=renderToStaticMarkup(h(F.StatStrip,{items:[{title:'Arrivals',value:'4',sub:'today',tone:'warn'}]}));
-    assert.ok(st.includes('<div class="fit-stats" role="list" aria-label="Key figures"><div role="listitem" class="stat fit-stat warn"><div class="stat-label">Arrivals</div><strong class="money-stat">4</strong><small>today</small>'),st);
+    assert.ok(st.includes('<div class="fit-stats" role="list" aria-label="Key figures"><div role="listitem" class="stat fit-stat warn"><div class="stat-label">Arrivals</div><strong>4</strong><small>today</small>'),st);
+    // B1 (DEC-195): a count keeps the plain .stat>strong size; money values (per item or the whole strip) keep .money-stat
+    assert.ok(renderToStaticMarkup(h(F.StatStrip,{items:[{title:'Cash',value:'₹1',money:true}]})).includes('<strong class="money-stat">₹1</strong>'));
+    assert.ok(renderToStaticMarkup(h(F.StatStrip,{money:true,items:[{title:'Cash',value:'₹1'}]})).includes('<strong class="money-stat">₹1</strong>'));
+    // S1: variant small = the old .small-stats tiles (span + strong), one row
+    const sm=renderToStaticMarkup(h(F.StatStrip,{variant:'small',className:'hov-stats',items:[{title:'Open',value:'3'}]}));
+    assert.ok(sm.startsWith('<div class="small-stats fit-small-stats hov-stats" role="list" aria-label="Key figures"><div role="listitem"><span>Open</span><strong>3</strong></div>'),sm);
   });
   test('[FIT-SHELL] SplitView: list + empty pane, has-detail + Back button when a record is open, record pane scrolls (data-fit-scroll), ratio → grid columns',()=>{
     const empty=renderToStaticMarkup(h(F.SplitView,{list:'L',detail:null,empty:'Pick one',onCloseDetail(){},label:'Folios'}));
@@ -54,7 +60,9 @@ export function register({test,assert}){
     assert.ok(open.includes('class="fit-split-pane" data-fit-scroll="" tabindex="0" aria-label="Folios — record"'));
     assert.ok(read('src/components/fit.tsx').includes('useStepBack(narrow&&open,()=>close.current());'),'Android Back closes the slide-over first');
     assert.ok(!open.includes('aria-live'),'no live region re-reading the record');
-    assert.ok(css.includes('@media (max-width:899.98px){\n  .fit-split{grid-template-columns:minmax(0,1fr)}'),'below 900 px the record slides over the list');
+    assert.ok(css.includes('@media (max-width:899.98px){\n  .fit-split:where(:not(.fit-page)){grid-template-columns:minmax(0,1fr)}'),'below 900 px the record slides over the list');
+    // integrator: the component grids never apply to the FitPage root that carries the same layout name (fit-split / fit-board / fit-steps / fit-form)
+    for(const c of ['fit-split','fit-board','fit-steps','fit-form'])assert.ok(css.includes('.'+c+':where(:not(.fit-page)){flex:1;'),c+' grid scoped away from the page root');
     assert.ok(css.includes('@media (max-width:899.98px){.fit-cols{grid-template-columns:minmax(0,1fr);grid-auto-rows:minmax(160px,1fr)}'),'S1: stacked fit-cols keep a definite ≥ 160 px row');
     assert.ok(!/\.fit-cols\{display:flex;flex-direction:column\}/.test(css),'S1: no auto-height flex column around flex:1 1 0 panels');
   });

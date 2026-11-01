@@ -103,7 +103,7 @@ export function BookingSitePage(){
   const pending=all.filter(w=>chnWebStatus(s,w)==='Pending').length;
   const note=process.env.HCC_BUILD==='production'?null:<FitNote text={<><b>Simulated.</b> Preview — not published. No website is hosted and no payment is taken; requests are created in this demo only.</>}/>;
   return <FitPage title="Direct booking site" sub="Module 22 · in-app preview of the guest booking page. Requests become held bookings that the front desk confirms."
-      toolbar={<StatStrip items={[{title:'Web booking requests',value:String(all.length)},{title:'Pending confirmation',value:String(pending),sub:'holds last 2 simulated hours',tone:pending?'warn':undefined}]}/>}
+      toolbar={<StatStrip money items={[{title:'Web booking requests',value:String(all.length)},{title:'Pending confirmation',value:String(pending),sub:'holds last 2 simulated hours',tone:pending?'warn':undefined}]}/>}
       tabs={<FitTabs page="booking-site" value={tab} onChange={setTab} tabs={[{id:'bookings',label:'Bookings',count:pending>0?pending:undefined,badge:pending>0?'warn':undefined},{id:'preview',label:'Preview'}]}/>}>
     {tab==='bookings'&&<ScrollPanel label="Web booking requests" title="Web booking requests" actions={<span className="muted">{pending} pending confirmation</span>} footer={<>{note}<ShowMore p={pg}/></>}>
       <div className="padded"><WebRequests list={pg.shown}/></div></ScrollPanel>}

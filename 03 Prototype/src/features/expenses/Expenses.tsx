@@ -90,7 +90,7 @@ export function Expenses(){
   return <FitPage title="Expenses & approvals" sub="Every expense accounted for. Every adjustment traceable." layout="fill"
       actions={<>{canSubmit&&<button className="btn primary" disabled={busy} onClick={()=>open({type:'expense'})}>+ Add expense</button>}
         {section==='register'&&canDecide&&<button type="button" className="btn small-btn" onClick={()=>csv('ledger')}><Download size={15}/> Ledger CSV</button>}</>}
-      toolbar={<StatStrip items={stats}/>}
+      toolbar={<StatStrip items={stats} variant="small"/>}
       tabs={<FitTabs page="expenses" value={section} onChange={setSection} tabs={expSectionsFor(books).map(([id,label])=>({id,label}))}/>}>
     <ExpBanners onSection={setSection} fit/>
     {body}
