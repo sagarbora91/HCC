@@ -11,7 +11,6 @@
 
 /* Messages: template cards and the stacked trigger panels. */
 .app-shell .fit-panel-body>.msg-templates{padding:12px}
-.app-shell .fit-stack>.fit-panel{flex:1 1 0}
 
 /* Document capture: the sample grid and the review sit inside the panels. */
 .app-shell .fit-panel-body>.msg-samples{margin:0;padding:12px}

@@ -21,7 +21,7 @@ function History({docs,onOpen}:{docs:MSGDoc[];onOpen:(d:MSGDoc)=>void}){
   </tbody></table></div>;
 }
 
-// FIT (DEC-194…196, contract §6 `documents` = split): the sample documents and the capture history are the left pane (two panels), the review of
+// FIT (DEC-194…196, contract §6 `documents` = split): the sample documents and the capture history are the left pane (one panel), the review of
 // the capture being checked is the record pane (below 900 px it slides over the list with Back). Same three steps, same buttons and texts.
 export function MsgDocumentsPage(){
   const {s,run,busy,permission}=useHcc();
@@ -31,19 +31,23 @@ export function MsgDocumentsPage(){
   const active=docs.find(d=>d.id===sel&&d.status==='Extracted')||docs.find(d=>d.status==='Extracted');
   async function extract(sample:string){const id=nextDocId(s);if(await run({type:'MSG_DOC_EXTRACT',sample},'Fields extracted (simulated)')){setSel(id);setClosed('');}}
   const choose=(d:MSGDoc)=>{setSel(d.id);setClosed('');};
-  const samples=<ScrollPanel title="1 · Pick a sample document" label="Sample documents" actions={<Pill>Fictional samples</Pill>}
+  // The left pane is ONE panel (samples, then the capture history): two stacked panels would each be under the 160 px minimum on a 640 px tablet.
+  const left=<ScrollPanel label="Sample documents and capture history"
       footer={<MsgSimulatedNote>No camera, no upload and no real OCR — “Extract” returns fixture fields with confidence scores. No image or full ID number is stored.</MsgSimulatedNote>}>
+    <div className="section-title"><h2>1 · Pick a sample document</h2><Pill>Fictional samples</Pill></div>
     <div className="msg-samples">{msgSampleDocs.map(d=><article key={d.id} className="msg-sample">
         <MsgDocArt sample={d.id}/>
         <div className="msg-sample-foot"><div><MsgKindLabel kind={d.kind}/><small>{d.hint} · {msgLowFields(d.fields).length} low-confidence</small></div>
           {permission('checkin')&&<button className="btn" disabled={busy} onClick={()=>extract(d.id)}><ScanLine size={16}/> Extract</button>}</div>
-      </article>)}</div></ScrollPanel>;
-  const history=<ScrollPanel title="Capture history" label="Capture history" actions={<span className="muted">Metadata only</span>}><History docs={docs} onOpen={choose}/></ScrollPanel>;
+      </article>)}</div>
+    <div className="section-title"><h2>Capture history</h2><span className="muted">Metadata only</span></div>
+    <History docs={docs} onOpen={choose}/>
+  </ScrollPanel>;
   const review=active&&closed!==active.id?<ScrollPanel title="2 · Review and confirm" label="Review and confirm" actions={<span className="muted">{active.id} · {active.title}</span>}>
       <MsgDocReview key={active.id} doc={active} onDone={()=>setSel('')}/></ScrollPanel>:null;
   return <FitPage title="Document capture" sub="Pick a fictional sample, extract fields, review and confirm into a guest profile or an expense draft." layout="split">
     <SplitView label="Document capture" ratio="1fr 1fr" onCloseDetail={()=>active&&setClosed(active.id)}
-      list={<div className="fit-stack">{samples}{history}</div>} detail={review}
+      list={left} detail={review}
       empty={<section className="card"><div className="section-title"><h2>2 · Review and confirm</h2></div><Empty title="Nothing to review" body="Extract a sample on the left; its fields appear here for checking."/></section>}/>
   </FitPage>;
 }

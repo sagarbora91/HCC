@@ -79,22 +79,21 @@ function OutboxPanel(){
 
 function TriggersPanels(){
   const {s,uid,run,busy}=useHcc();const a=useMsgActions();const canEdit=rbacCanEditTemplates(s,uid);
-  return <div className="fit-stack">
-    <ScrollPanel title="Pending triggers" label="Pending triggers" actions={a.canAct&&<button className="btn primary" disabled={busy||!a.pending.length} onClick={a.queueAll}><Zap size={16}/> Queue {a.pending.length||''} now</button>}>
+  // One panel, two sections (the old page's order): two stacked panels would each be under the 160 px minimum on a 640 px tablet.
+  return <ScrollPanel label="Triggers and rules">
+        <div className="section-title"><h2>Pending triggers</h2>{a.canAct&&<button className="btn primary" disabled={busy||!a.pending.length} onClick={a.queueAll}><Zap size={16}/> Queue {a.pending.length||''} now</button>}</div>
         {!a.pending.length?<Empty title="No pending triggers" body="New bookings, check-ins, payments and checkouts create triggers here."/>:
           <div className="table-wrap"><table><thead><tr><th>Event</th><th>Guest</th><th>Template</th><th>Channel</th><th>Consent</th></tr></thead><tbody>
             {a.pending.map(t=>{const c=msgConsent(s,msgGuestKey(t.booking));return <tr key={t.key}><td><strong>{t.label}</strong><small>rule {t.rule.id} · {t.key}</small></td><td>{t.booking.guest}<small>{bookingRef(t.booking)} · room {t.booking.room}</small></td>
               <td>{msgTemplate(s,t.rule.template)?.name}</td><td>{t.rule.channel}</td><td>{c.optOut?<Pill tone="orange">Opted out · will not send</Pill>:consentText(c)}</td></tr>;})}
           </tbody></table></div>}
-    </ScrollPanel>
-    <ScrollPanel title="Trigger rules" label="Trigger rules" actions={<span className="muted">{canEdit?'Owner / Manager can change rules':'View only — Owner or Manager changes rules'}</span>}>
+        <div className="section-title"><h2>Trigger rules</h2><span className="muted">{canEdit?'Owner / Manager can change rules':'View only — Owner or Manager changes rules'}</span></div>
         <div className="table-wrap"><table><thead><tr><th>Rule</th><th>When</th><th>Template</th><th>Channel</th><th>On</th></tr></thead><tbody>
           {msgRules(s).map(r=><tr key={r.id}><td><strong>{r.id}</strong></td><td>{MSG_EVENT_LABEL[r.event]}</td><td>{msgTemplate(s,r.template)?.name}</td>
             <td>{canEdit?<select aria-label={`Channel for rule ${r.id}`} value={r.channel} disabled={busy} onChange={e=>run({type:'MSG_RULE',id:r.id,channel:e.target.value},'Rule updated')}>{MSG_CHANNELS.map(c=><option key={c}>{c}</option>)}</select>:r.channel}</td>
             <td>{canEdit?<label className="msg-switch"><input type="checkbox" checked={r.enabled} disabled={busy} onChange={e=>run({type:'MSG_RULE',id:r.id,enabled:e.target.checked},e.target.checked?'Rule on':'Rule off')}/>{r.enabled?'On':'Off'}</label>:<Pill tone={r.enabled?'green':'neutral'}>{r.enabled?'On':'Off'}</Pill>}</td></tr>)}
         </tbody></table></div>
-    </ScrollPanel>
-  </div>;
+  </ScrollPanel>;
 }
 
 function TemplatesPanel(){

@@ -4,7 +4,7 @@
 import {build} from 'esbuild';
 import {readFileSync} from 'node:fs';
 export async function register({test,M,assert}){
-  await build({entryPoints:['tests/fit-guest-entry.tsx'],bundle:true,platform:'node',format:'esm',outfile:'tests/.generated/fit-guest.mjs',logLevel:'error',jsx:'automatic',
+  await build({entryPoints:['tests/fit-guest-entry.tsx'],bundle:true,platform:'node',format:'esm',outfile:'tests/.generated/fit-guest.mjs',external:['react','react-dom','lucide-react'],logLevel:'error',jsx:'automatic',
     define:{'process.env.NODE_ENV':'"production"','process.env.HCC_BUILD':'"demo"'},loader:{'.css':'empty'},
     banner:{js:"import {createRequire as __r} from 'node:module';const require=__r(import.meta.url);"}});
   const X=await import('./.generated/fit-guest.mjs');
