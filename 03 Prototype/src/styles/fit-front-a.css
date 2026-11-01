@@ -1,0 +1,32 @@
+/* FIT lane fit-front-a (DEC-194/196, contract §6): desktop rules for Dashboard (overview), Room board and Calendar. Guarded by .app-shell
+   (the phone shell never renders it). No font-size, no colours: layout only. */
+/* Dashboard: three columns that each scroll on their own (front desk list | rooms by floor | attention, cash, compliance, backup) */
+.app-shell .fit-ov-cols{flex:1;min-height:0;min-width:0;display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr) minmax(240px,1.2fr);gap:12px}
+.app-shell .fit-ov-cols>.fit-panel{min-height:0;margin:0}
+.app-shell .fit-ov-cols .floor-overview{padding:12px 16px}
+.app-shell .fit-ov-cols .floor-line{flex-direction:column;align-items:stretch;gap:6px;margin-bottom:12px}
+.app-shell .fit-ov-cols .floor-line>span{min-width:0;padding-top:0}
+.app-shell .fit-ov-cols .floor-line>div{grid-template-columns:repeat(auto-fill,minmax(56px,1fr));gap:8px}
+.app-shell .fit-ov-cols .fit-panel-foot .legend{margin:0;flex-wrap:wrap;gap:6px 12px}
+.app-shell .fit-ov-cols .fit-ov-attention{padding:8px 16px 0;display:flex;flex-direction:column;gap:12px}
+.app-shell .fit-ov-cols .overview-cash{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding:12px 16px 0;margin:0}
+.app-shell .fit-ov-cols .sync-report-note{margin:12px 16px 0}
+.app-shell .fit-ov-cols .fit-panel-body>.card{margin:12px 16px 0}
+.app-shell .fit-ov-cols .fit-panel-body>.card:last-child{margin-bottom:12px}
+@media (max-width:899.98px){
+  .app-shell .fit-ov-cols{grid-template-columns:minmax(0,1fr);grid-auto-rows:minmax(160px,1fr)}
+  .app-shell .fit-ov-cols>.fit-panel{min-height:160px}
+}
+/* Room board: every floor section in one panel; tiles keep their size and content, more columns */
+.app-shell .fit-rooms{padding:12px 16px 4px}
+.app-shell .fit-rooms .floor-section{margin:0 0 16px}
+.app-shell .fit-rooms .floor-heading{margin-bottom:10px}
+.app-shell .fit-rooms .room-grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+/* Calendar: the panel body scrolls both ways; room column and date row stay sticky inside it */
+.app-shell .fit-panel-body .res-cal-scroll{overflow:visible;max-width:none}
+.app-shell .fit-page .res-cal-nav,.app-shell .fit-page .res-cal-filters{flex-wrap:nowrap}
+.app-shell .fit-page .res-cal-nav .btn{white-space:nowrap}
+.app-shell .fit-cal-foot{display:flex;flex-wrap:wrap;align-items:center;gap:6px 16px;min-width:0;flex:1 1 auto}
+.app-shell .fit-cal-foot .res-legend{margin:0}
+.app-shell .fit-cal-foot .fit-note{flex:1 1 320px}
+@media (max-width:899.98px){.app-shell .fit-page .res-cal-nav,.app-shell .fit-page .res-cal-filters{flex-wrap:wrap}}

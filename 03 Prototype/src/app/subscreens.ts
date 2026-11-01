@@ -10,4 +10,9 @@ export const SUB_SCREENS:SubScreen[]=[
   // FIT-REVENUE
   // FIT-PEOPLE
   // FIT-ADMIN
+  // FIT-FRONT-A
+  {page:'overview',id:'arrivals',label:'Arrivals'},
+  {page:'overview',id:'departures',label:'Departures'},
+  {page:'overview',id:'in-house',label:'In house'},
+  {page:'rooms',id:'all',label:'All floors'},
 ];
