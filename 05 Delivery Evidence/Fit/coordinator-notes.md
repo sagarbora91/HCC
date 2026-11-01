@@ -25,3 +25,9 @@
 - Reopened-day charge form not seen in a browser (no reopened day in FY26): integrator/review to check by test.
 - stream-reopen.mjs updated to open the right step (not loosened).
 - New stylesheets staff-fit.css, closing-fit.css, compliance-fit.css; 4 modal openers for fit-modals.json.
+
+## From front-b (done, 706369f8)
+- `guests` has no nav item so the check tool never visits it — add to the tool's page list (browser check missing for it).
+- No CSS touched (guests.css/reservations.css are token-checked sheets); two small inline overrides; alternative z-fit.css rules are in its DONE file — integrator to move to a desktop-only sheet.
+- Modal openers: `+ New reservation`, `Print in-house list`, `Walk-in`, `New guest`.
+- Lock contention: ~4 h of retries for this lane.
