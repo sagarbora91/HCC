@@ -56,3 +56,10 @@
 - Messages and Documents rows still open their existing dialogs (not a split record pane); Outbox pages 100 rows at a time (usePaged). Three layout choices differing from the brief are in its DONE file — fit-review to look.
 - Customers 360 uses a new optional `initialTab` prop (stream-customers-legacy.mjs updated, not loosened).
 - New sheet src/styles/guest-fit.css; 3 modal openers: guest-services "New request", messages "Compose", gsv-my-requests "Log found item".
+
+## From cash-b (done, 674c1707)
+- expenses: the contract/brief's status ids "approved/paid" do not exist in code; actual ids All, Draft, Pending, Posted, Rejected, Reversed, Void unchanged. Page tabs = the 7 SCC sections. Contract §6 table to be corrected in FIT-DONE.
+- POS: orders view 3 columns, sticky Send KOT / Settle bar; kitchen BoardColumns paged; 86 list is a popover.
+- HeaderActions overflow bug confirmed (primary action clipped with 6 items; lane kept 2).
+- Open: register table body ~168 px at tab-land (min 160) — tight; integrator to re-check.
+- Own `// FIT-CASH-B` block was added at end of subscreens.ts; new sheet src/styles/fit-cash-b.css; modal openers: POS table tile, expense row "Text".
