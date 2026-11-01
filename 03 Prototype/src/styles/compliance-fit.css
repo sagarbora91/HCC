@@ -1,0 +1,14 @@
+/* FIT · lane fit-people-a — Compliance calendar ('compliance') on the desktop / tablet layout (DEC-194…196, APR-025; contract §6 'compliance' =
+   FitTabs Calendar / Dashboard). Desktop only (.app-shell); spacing only, no font size (DEC-195); colours as tokens. The module stylesheets
+   m-compliance*.css are phone-guarded files for the FIT tests, so the desktop rules live here. */
+
+/* Toolbar: FY selector + firm line on one row */
+.app-shell [data-fit-page="compliance"] .fit-page-toolbar>.cmp-fit-toolbar{flex:1 1 auto;min-width:0;flex-wrap:nowrap}
+.app-shell [data-fit-page="compliance"] .cmp-fit-toolbar>.cmp-firm-line{min-width:0}
+
+/* The twelve month tabs: one fixed row that scrolls sideways when narrow (never wraps) */
+.app-shell [data-fit-page="compliance"] .fit-page-body>.cmp-mtabs{flex:none;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;padding:2px 0;scrollbar-width:thin}
+.app-shell [data-fit-page="compliance"] .fit-page-body>.cmp-mtabs button{flex:none;white-space:nowrap}
+
+/* Panel body: the old page column (heading, note, strip, counters, filter, cards) with its own gap */
+.app-shell .fit-panel-body>.cmp-fit-body{display:flex;flex-direction:column;gap:12px;padding:12px 16px}

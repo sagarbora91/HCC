@@ -1,0 +1,30 @@
+/* FIT · lane fit-people-a — Staff & payroll ('staff') and My shifts & pay ('my-hr') on the desktop / tablet layout (DEC-194…196, APR-025;
+   contract 02 Planning/agents/FIT-LAYOUT-CONTRACT.md §5, §6). Desktop only: every rule sits under .app-shell (the phone shell never renders it).
+   Spacing and grid only — no font size is set here (DEC-195); colours as tokens. The module stylesheets m-staff*.css are phone-guarded files
+   for the FIT tests, so the desktop rules live here. */
+
+/* Fixed rows above a section's panel: the counters, the chip filters, the leave month bar, the read-only banner, today's banner */
+.app-shell :is([data-fit-page="staff"],[data-fit-page="my-hr"]) .fit-page-body>:is(.small-stats,.m-chips,.lv-fit-bar,.lv-readonly,.closing-banner){flex:none;margin:0}
+.app-shell :is([data-fit-page="staff"],[data-fit-page="my-hr"]) .fit-page-body>.small-stats{gap:10px}
+.app-shell :is([data-fit-page="staff"],[data-fit-page="my-hr"]) .fit-page-body>.small-stats>div{padding:8px 12px}
+.app-shell :is([data-fit-page="staff"],[data-fit-page="my-hr"]) .fit-page-body>.closing-banner{padding:10px 16px;gap:12px}
+.app-shell .fit-page-body>.lv-fit-bar{padding:0;row-gap:8px}
+
+/* Two / three panels side by side at ≥ 900 px (one panel per column keeps each tall enough at 1138 × 640); below 900 px .fit-cols stacks */
+@media (min-width:900px){
+  .app-shell .fit-cols.hr-fit-even{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .app-shell .fit-cols.hr-fit-3{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+
+/* Panel heads: the department filters and the payroll controls wrap inside the fixed head; footers hold notes + master links */
+.app-shell .fit-panel-head:has(.filters),.app-shell .fit-panel-head:has(.hr-pay-actions){flex-wrap:wrap}
+.app-shell .fit-panel-head .hr-pay-actions{justify-content:flex-end}
+.app-shell .fit-panel-foot>.footnote{max-width:none}
+.app-shell .fit-panel-foot>.fit-note{flex:1 1 0}
+
+/* Inside a panel body: the old card sections without their outer margins */
+.app-shell .fit-panel-body>.padded.lv-fit-intro{padding-bottom:0}
+.app-shell .fit-panel-body .lv-fit-top{padding-bottom:0}
+.app-shell .fit-panel-body .lv-fit-top .lv-strip-card{margin-bottom:0}
+.app-shell .fit-panel-body>.hr-rates-intro{padding-bottom:0}
+.app-shell .fit-panel-body .hr-slip-card .section-title{padding-top:12px;padding-bottom:4px}

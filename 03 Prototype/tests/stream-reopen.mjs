@@ -157,11 +157,13 @@ import {can,metrics} from '../../src/services/mock';
 import {ReopenDay} from '../../src/features/closing/ReopenDay';
 import {DayClosing} from '../../src/features/closing/DayClosing';
 import {MaClosing} from '../../src/mobile/admin/Closing';
-export function render(s:any,uid:string,what:'panel'|'desktop'|'phone',phone=false){
+import {FitNavContext} from '../../src/components/fit';
+// FIT (wave W2a): the desktop Day closing is a StepFlow showing one step; 'step' opens a given step the way go('closing',{tab}) does.
+export function render(s:any,uid:string,what:'panel'|'desktop'|'phone',phone=false,step=''){
   const user=s.users.find((u:any)=>u.id===uid);const noop=()=>{};
   const ctx:any={s,uid,user,m:metrics(s),page:'closing',go:noop,open:noop,booking:noop,busy:false,run:async()=>false,toast:noop,permission:(p:any)=>can(s,uid,p),
     display:{isMobile:phone,mode:phone?'mobile':'desktop',setMode:noop}};
-  const el=what==='panel'?<ReopenDay phone={phone}/>:what==='desktop'?<DayClosing/>:<MaClosing/>;
+  const el=what==='panel'?<ReopenDay phone={phone}/>:what==='desktop'?<FitNavContext.Provider value={{desktop:true,page:'closing',tabKey:step,seq:1,setTabCrumb:noop}}><DayClosing/></FitNavContext.Provider>:<MaClosing/>;
   return renderToStaticMarkup(<HccContext.Provider value={ctx}>{el}</HccContext.Provider>);
 }`);
   await build({entryPoints:[dir+'/reopen-entry.tsx'],bundle:true,platform:'node',format:'esm',outfile:dir+'/reopen-render.mjs',logLevel:'error',jsx:'automatic',
@@ -174,8 +176,10 @@ export function render(s:any,uid:string,what:'panel'|'desktop'|'phone',phone=fal
     for(const phone of [false,true]){const h=R.render(s,'manager','panel',phone);
       assert.match(h,/is reopened/);assert.match(h,/Close 24 Oct again/);assert.match(h,/stays locked/);assert.match(h,/Post a missed charge on 24 Oct/);
       if(phone)assert.match(h,/ma-card ma-reopen/);}
-    const desk=R.render(s,'manager','desktop'),phone=R.render(s,'manager','phone',true);
+    // FIT: a reopened day opens Day closing on step 7 (the reopened-day panel); the preflight line is on step 1, earlier records on step 5.
+    const desk=R.render(s,'manager','desktop')+R.render(s,'manager','desktop',false,'preflight'),phone=R.render(s,'manager','phone',true);
+    assert.match(R.render(s,'manager','desktop'),/is reopened/,'default step = Reopen & corrections while a day is reopened');
     for(const h of [desk,phone]){assert.match(h,/is reopened/);assert.match(h,/Reopened day closed again|reopened by the Owner/);}
     const done=M.execute(s,'manager',{type:'DAY_RECLOSE',date:D24});
-    assert.match(R.render(done,'owner','desktop'),/Closed again/);assert.match(R.render(done,'owner','phone',true),/closed again/);});
+    assert.match(R.render(done,'owner','desktop',false,'closing-summary'),/Closed again/);assert.match(R.render(done,'owner','phone',true),/closed again/);});
 }
