@@ -50,11 +50,11 @@ public sealed class OperatorAlertsTests
     });
 
     [Fact]
-    public void Operator_categories_are_the_four_outbox_workers_the_failure_logger_retention_and_the_schema_guard()
+    public void Operator_categories_are_the_five_outbox_workers_the_failure_logger_retention_and_the_schema_guard()
     {
         string[] expected =
         [
-            typeof(AccountingProjectorWorker).FullName!, typeof(HousekeepingProjectorWorker).FullName!, typeof(MessagingTriggerWorker).FullName!,
+            typeof(AccountingProjectorWorker).FullName!, typeof(HousekeepingProjectorWorker).FullName!, typeof(KeyDepartureWorker).FullName!, typeof(MessagingTriggerWorker).FullName!,
             typeof(OtaChannelManagerWorker).FullName!, typeof(OutboxFailureLogger).FullName!, typeof(RetentionWorker).FullName!, typeof(SchemaGuard).FullName!,
         ];
         Assert.Equal(expected.Order(StringComparer.Ordinal), HccEventLogLoggerProvider.OperatorCategories.Order(StringComparer.Ordinal));
