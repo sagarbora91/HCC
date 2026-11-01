@@ -2,24 +2,28 @@
 // sections — Register (SCC ledger filters: mode, month, search; 200 shown; edit / void / bill photo / entry text; ledger CSV), Recurring,
 // Petty cash, Budgets, Udhaar and Month & tax — while HCC's approval rules stay (counted once approved; Manager ≤ ₹5,000 or the category's
 // limit; never your own nor one you changed; the Cashier never reverses or voids).
-import React,{useState} from 'react';
+import React,{useId,useState} from 'react';
 import {Paperclip,Download} from 'lucide-react';
 import {money,expenseCounts,approvalKindLabel,EXPENSE_MANAGER_LIMIT,closingUnlimitedRoles,Expense,rbacCanSubmitExpense,rbacCanDecideExpense,rbacCanDecideCash,cbIsLocked,cbLockedMessage,
   mnyIsDrawer,mnyApprovalLimit,mnyVendor,mnyNames,expLedgerFilter,expDescription,expMonthLocked,expGstPaid,expYm,EXP_LEDGER_CAP} from '../../services/mock';
 import {MstLink} from '../masters/MasterList';
 import {useHcc} from '../../app/context';
-import {PageTitle,Pill,Empty,shortDate} from '../../components/ui';
+import {Pill,Empty,shortDate} from '../../components/ui';
+import {FitPage,FitTabs,useFitTab,ScrollPanel,StatStrip,FitNote} from '../../components/fit';
 import {ExpVendors} from './vendors';
 import {seesVendorBooks} from '../accounting/shared';
 import {usePaged,ShowMore,DESKTOP_PAGE} from '../../components/ShowMore';
 import {expSectionsFor,type ExpSection,ExpBanners,ExpRecurring,ExpPetty,ExpBudgets,ExpUdhaar,ExpMonth,ExpRowExtras,ExpRowActions,useExpCsv} from './Scc';
+const SECTION_IDS=['register','recurring','petty','budgets','udhaar','vendors','month'] as const;
 const tabs=['All','Draft','Pending','Posted','Rejected','Reversed','Void'] as const;
 const tone=(st:string)=>st==='Posted'?'green':st==='Pending'?'orange':st==='Draft'?'blue':'neutral';
 export function Expenses(){
   const {s,uid,user,open,run,permission,busy,go,booking}=useHcc();
   // DEC-063 G4/G5: the Accountant submits own expenses and decides/reverses them; the Cashier never reverses.
   const canSubmit=rbacCanSubmitExpense(s,uid),canDecide=rbacCanDecideExpense(s,uid);
-  const [section,setSection]=useState<ExpSection>('register');
+  // FIT (DEC-194…196): the page's sub-screens are the sections (register … month & tax); the status tabs inside the register keep their ids.
+  const books=seesVendorBooks(s,uid);const [asked,setSection]=useFitTab<ExpSection>('expenses',SECTION_IDS,'register');
+  const section:ExpSection=asked==='vendors'&&!books?'register':asked;const regId=useId();
   const [tab,setTab]=useState<typeof tabs[number]>('All');
   const [mode,setMode]=useState('');const [month,setMonth]=useState('');const [q,setQ]=useState('');
   const all=expLedgerFilter(s,{status:tab,mode,month,q}),list=all.slice(0,EXP_LEDGER_CAP);
@@ -49,22 +53,24 @@ export function Expenses(){
   const approvals=s.approvals.slice().reverse();
   // The Accountant decides cash differences here (no cashier page); the counter never decides their own (SOD-004).
   const cashChecker=!permission('approve')&&rbacCanDecideCash(s,uid);
-  const register=<><section className="card"><div className="section-title"><h2>Expense register</h2><Pill>Bill photos up to 4 MB</Pill>
-        <span className="inline"><MstLink spec="expenseCategories" label="Categories…"/><MstLink spec="expenseVendors" label="Vendors…"/><MstLink spec="paymentMethods" label="Funding sources…"/>
+  const flat=(label:string,node:React.ReactNode)=><ScrollPanel label={label}>{node}</ScrollPanel>;
+  const register=<div className="fit-cols exp-fit-cols"><div>
+      <section className="card fit-panel exp-register" aria-labelledby={regId}><div className="section-title fit-panel-head"><h2 id={regId}>Expense register</h2><span className="inline fit-panel-actions"><Pill>Bill photos up to 4 MB</Pill>
+          <MstLink spec="expenseCategories" label="Categories…"/><MstLink spec="expenseVendors" label="Vendors…"/><MstLink spec="paymentMethods" label="Funding sources…"/>
           {canDecide&&<button type="button" className="btn small-btn" onClick={()=>csv('ledger')}><Download size={15}/> Ledger CSV</button>}</span></div>
-      <div className="tabs" role="tablist" aria-label="Expense status">{tabs.map(t=><button key={t} role="tab" aria-selected={t===tab} className={t===tab?'active':''} onClick={()=>setTab(t)}>{t}<span>{t==='All'?s.expenses.length:s.expenses.filter(e=>e.status===t).length}</span></button>)}</div>
-      <div className="form-row padded exp-filters"><label>Mode<select value={mode} onChange={e=>setMode(e.target.value)}><option value="">All</option>{mnyNames(s,'expenses').map(m=><option key={m}>{m}</option>)}</select></label>
-        <label>Month<input type="month" value={month} onChange={e=>setMonth(e.target.value)}/></label>
-        <label>Search<input value={q} onChange={e=>setQ(e.target.value)} placeholder="description / vendor / category"/></label></div>
-      {all.length>EXP_LEDGER_CAP&&<p className="muted padded">Showing the {EXP_LEDGER_CAP} most recent of {all.length} entries. Use the filters above (status / mode / month / search) to narrow.</p>}
-      <div className="table-wrap"><table><thead><tr><th>Description / reference</th><th>Category</th><th>Funding</th><th className="number">Amount</th><th>Status</th><th>Action</th></tr></thead><tbody>
-        {pg.shown.map(e=><tr key={e.id}><td><strong>{expDescription(e)}</strong>{e.vendor&&!mnyVendor(s,e.vendor)&&<small>Not in the vendor list</small>}<ExpRowExtras e={e}/>
-            <small>{e.id} · {shortDate(e.date)} · by {name(e.actor)}{e.reversalOf?` · reverses ${e.reversalOf}`:''}{e.reversedBy?` · reversed by ${e.reversedBy}`:''}</small>
-            {e.receipt&&<small><Paperclip size={11}/> {e.receipt}</small>}{e.notes&&<small>{e.notes}</small>}{e.reason&&<small>Reason: {e.reason}</small>}</td>
-            <td>{e.category}</td><td>{mnyIsDrawer(s,e.method)?'Drawer cash':e.method}</td><td className="number">{money(e.amount)}</td><td><Pill tone={tone(e.status)}>{e.reversalOf?'Posted · reversal':e.status}</Pill></td>
-            <td>{actions(e)}<ExpRowActions e={e}/></td></tr>)}
-      </tbody></table>{!list.length&&<Empty title={tab==='All'?'No expenses recorded':`No ${tab.toLowerCase()} expenses`} body="Submitted expenses appear here for approval."/>}</div><ShowMore p={pg}/></section>
-    <section className="card"><div className="section-title"><h2>Approval requests</h2><span className="muted">Requests cannot be self-approved</span></div>
+        <div className="exp-subbar"><div className="tabs" role="tablist" aria-label="Expense status">{tabs.map(t=><button key={t} role="tab" aria-selected={t===tab} className={t===tab?'active':''} onClick={()=>setTab(t)}>{t}<span>{t==='All'?s.expenses.length:s.expenses.filter(e=>e.status===t).length}</span></button>)}</div>
+          <div className="form-row exp-filters"><label>Mode<select value={mode} onChange={e=>setMode(e.target.value)}><option value="">All</option>{mnyNames(s,'expenses').map(m=><option key={m}>{m}</option>)}</select></label>
+            <label>Month<input type="month" value={month} onChange={e=>setMonth(e.target.value)}/></label>
+            <label>Search<input value={q} onChange={e=>setQ(e.target.value)} placeholder="description / vendor / category"/></label></div></div>
+        <div className="fit-panel-body" data-fit-scroll="" tabIndex={0} aria-label="Expense register rows"><div className="table-wrap"><table><thead><tr><th>Description / reference</th><th>Category</th><th>Funding</th><th className="number">Amount</th><th>Status</th><th>Action</th></tr></thead><tbody>
+          {pg.shown.map(e=><tr key={e.id}><td><strong>{expDescription(e)}</strong>{e.vendor&&!mnyVendor(s,e.vendor)&&<small>Not in the vendor list</small>}<ExpRowExtras e={e}/>
+              <small>{e.id} · {shortDate(e.date)} · by {name(e.actor)}{e.reversalOf?` · reverses ${e.reversalOf}`:''}{e.reversedBy?` · reversed by ${e.reversedBy}`:''}</small>
+              {e.receipt&&<small><Paperclip size={11}/> {e.receipt}</small>}{e.notes&&<small>{e.notes}</small>}{e.reason&&<small>Reason: {e.reason}</small>}</td>
+              <td>{e.category}</td><td>{mnyIsDrawer(s,e.method)?'Drawer cash':e.method}</td><td className="number">{money(e.amount)}</td><td><Pill tone={tone(e.status)}>{e.reversalOf?'Posted · reversal':e.status}</Pill></td>
+              <td>{actions(e)}<ExpRowActions e={e}/></td></tr>)}
+        </tbody></table>{!list.length&&<Empty title={tab==='All'?'No expenses recorded':`No ${tab.toLowerCase()} expenses`} body="Submitted expenses appear here for approval."/>}</div></div>
+        <div className="fit-panel-foot"><ShowMore p={pg}/>{all.length>EXP_LEDGER_CAP&&<FitNote text={`Showing the ${EXP_LEDGER_CAP} most recent of ${all.length} entries. Use the filters above (status / mode / month / search) to narrow.`}/>}</div></section></div>
+    <div><ScrollPanel title="Approval requests" label="Approval requests" actions={<span className="muted">Requests cannot be self-approved</span>}>
       {!approvals.length?<Empty title="No approval requests" body="Discounts above the limit, cash differences and closed-date corrections appear here."/>:<div className="request-list">{approvals.map(a=>{
         const cmd=(a.meta?.command as string|undefined)??'APPROVAL',g=s.bookings.find(b=>b.id===a.booking);
         const ownerOnly=['closed-date-correction','correction','credit-note'].includes(a.kind??'')&&user.role!=='Owner';
@@ -76,10 +82,15 @@ export function Expenses(){
               <button className="btn" disabled={busy} onClick={()=>run({type:cmd,id:a.id,approve:true,key:'approval:'+a.id},'Request approved')}>Approve</button>
               <button className="text-btn" disabled={busy} onClick={()=>run({type:cmd,id:a.id,approve:false,key:'approval:'+a.id},'Request rejected')}>Reject</button></>}</>)}
           {g&&<button className="text-btn" onClick={()=>booking(g.id)}>Folio</button>}
-        </div>;})}</div>}</section></>;
-  return <><PageTitle title="Expenses & approvals" sub="Every expense accounted for. Every adjustment traceable." action={canSubmit?<button className="btn primary" disabled={busy} onClick={()=>open({type:'expense'})}>+ Add expense</button>:null}/>
-    <div className="small-stats"><div><span>Posted today (net)</span><strong>{money(today.reduce((a,e)=>a+e.amount,0))}</strong></div><div><span>Drawer cash today</span><strong>{money(today.filter(e=>mnyIsDrawer(s,e.method)).reduce((a,e)=>a+e.amount,0))}</strong></div><div><span>Pending approval</span><strong>{s.expenses.filter(e=>e.status==='Pending').length}</strong></div><div><span>Drafts</span><strong>{s.expenses.filter(e=>e.status==='Draft').length}</strong></div><div><span>GST paid this month</span><strong>{money(expGstPaid(s,expYm(s.date)))}</strong></div></div>
-    <ExpBanners onSection={setSection}/>
-    <div className="tabs exp-sections" role="tablist" aria-label="Expense sections">{expSectionsFor(seesVendorBooks(s,uid)).map(([id,label])=><button key={id} role="tab" aria-selected={id===section} className={id===section?'active':''} onClick={()=>setSection(id)}>{label}</button>)}</div>
-    {section==='register'?register:section==='recurring'?<ExpRecurring/>:section==='petty'?<ExpPetty/>:section==='budgets'?<ExpBudgets/>:section==='udhaar'?<ExpUdhaar/>:section==='vendors'&&seesVendorBooks(s,uid)?<ExpVendors/>:<ExpMonth/>}</>;
+        </div>;})}</div>}</ScrollPanel></div></div>;
+  const body=section==='register'?register:section==='recurring'?flat('Recurring expenses',<ExpRecurring/>):section==='petty'?flat('Petty cash',<ExpPetty/>):section==='budgets'?flat('Monthly budgets',<ExpBudgets/>):section==='udhaar'?flat('Udhaar credit register',<ExpUdhaar/>):section==='vendors'?flat('Vendor payments',<ExpVendors/>):flat('Month and tax',<ExpMonth/>);
+  const stats=[{title:'Posted today (net)',value:money(today.reduce((a,e)=>a+e.amount,0))},{title:'Drawer cash today',value:money(today.filter(e=>mnyIsDrawer(s,e.method)).reduce((a,e)=>a+e.amount,0))},
+    {title:'Pending approval',value:String(s.expenses.filter(e=>e.status==='Pending').length)},{title:'Drafts',value:String(s.expenses.filter(e=>e.status==='Draft').length)},{title:'GST paid this month',value:money(expGstPaid(s,expYm(s.date)))}];
+  return <FitPage title="Expenses & approvals" sub="Every expense accounted for. Every adjustment traceable." layout="split"
+      actions={canSubmit?<button className="btn primary" disabled={busy} onClick={()=>open({type:'expense'})}>+ Add expense</button>:null}
+      toolbar={<StatStrip items={stats}/>}
+      tabs={<FitTabs page="expenses" value={section} onChange={setSection} tabs={expSectionsFor(books).map(([id,label])=>({id,label}))}/>}>
+    <ExpBanners onSection={setSection} fit/>
+    {body}
+  </FitPage>;
 }

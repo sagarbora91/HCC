@@ -10,4 +10,15 @@ export const SUB_SCREENS:SubScreen[]=[
   // FIT-REVENUE
   // FIT-PEOPLE
   // FIT-ADMIN
+  // FIT-CASH-B
+  {page:'pos',id:'orders',label:'Orders'},
+  {page:'pos',id:'kitchen',label:'Kitchen (KOT)',keywords:['kot','kitchen order ticket']},
+  {page:'pos',id:'summary',label:'Day summary'},
+  {page:'expenses',id:'register',label:'Register'},
+  {page:'expenses',id:'recurring',label:'Recurring'},
+  {page:'expenses',id:'petty',label:'Petty cash'},
+  {page:'expenses',id:'budgets',label:'Budgets'},
+  {page:'expenses',id:'udhaar',label:'Udhaar',keywords:['credit','who owes']},
+  {page:'expenses',id:'vendors',label:'Vendor payments'},
+  {page:'expenses',id:'month',label:'Month & tax',keywords:['tax feed','gst','itc']},
 ];
