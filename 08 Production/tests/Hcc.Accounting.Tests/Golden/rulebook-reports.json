@@ -1,0 +1,220 @@
+{
+ "generatedBy": "hand-computed from rulebook 8.1-8.6 (lane acc3-tests); mirrors ACC_RB_REPORTS in 03 Prototype/src/fixtures/ext/accounting-rulebook.ts; never exported from the code under test",
+ "fictionalDataOnly": true,
+ "expected": {
+  "from": "2026-04-01",
+  "to": "2026-04-30",
+  "readTo": "2026-05-01",
+  "fy": "2026-27",
+  "pl": {
+   "revenue": {
+    "lines": {
+     "4000": 43000000,
+     "4200": 16000000,
+     "4900": -1000000
+    },
+    "total": 58000000
+   },
+   "otherIncome": {
+    "lines": {},
+    "total": 0
+   },
+   "consumption": {
+    "lines": {
+     "5000": 5900000,
+     "5010": 4200000
+    },
+    "total": 10100000
+   },
+   "employee": {
+    "lines": {
+     "5100": 24000000,
+     "5110": 2450000
+    },
+    "total": 26450000
+   },
+   "finance": {
+    "lines": {
+     "5080": 236000,
+     "5090": 1500000
+    },
+    "total": 1736000
+   },
+   "depreciation": {
+    "lines": {},
+    "total": 0
+   },
+   "other": {
+    "lines": {
+     "5030": 4500000,
+     "5040": 800000,
+     "5070": 354000,
+     "5900": 20000
+    },
+    "total": 5674000
+   },
+   "expensesTotal": 43960000,
+   "profitBeforeTax": 14040000
+  },
+  "balanceSheet": {
+   "ownersFunds": {
+    "total": 579540000,
+    "lines": {
+     "3000": -5000000,
+     "3100": 570500000
+    },
+    "profit": 14040000
+   },
+   "nonCurrentLiabilities": {
+    "total": 196000000,
+    "lines": {
+     "2400": 196000000
+    }
+   },
+   "currentLiabilities": {
+    "total": 17250000,
+    "lines": {
+     "2000": 3150000,
+     "2110": 1450000,
+     "2120": 1450000,
+     "2200": 6600000,
+     "2310": 3600000,
+     "2320": 800000,
+     "2330": 200000
+    }
+   },
+   "liabilitiesTotal": 792790000,
+   "nonCurrentAssets": {
+    "total": 738000000,
+    "lines": {
+     "1500": 600000000,
+     "1510": 80000000,
+     "1520": 50000000,
+     "1530": 8000000
+    }
+   },
+   "currentAssets": {
+    "total": 54790000,
+    "lines": {
+     "1000": 4030000,
+     "1030": 50150000,
+     "1340": 10000,
+     "1360": 600000
+    }
+   },
+   "assetsTotal": 792790000,
+   "suspense": 0,
+   "openingDifference": 0
+  },
+  "ageing": {
+   "receivable30Apr": {
+    "rows": {},
+    "open": 0
+   },
+   "receivable28Apr": {
+    "rows": {
+     "1110": {
+      "party": "Deccan Agro Ltd",
+      "open": 6300000,
+      "b0_30": 6300000,
+      "days": 22,
+      "ref": "bill"
+     },
+     "1115": {
+      "party": "Goibibo",
+      "open": 2100000,
+      "b0_30": 2100000,
+      "days": 11
+     }
+    },
+    "open": 8400000,
+    "b0_30": 8400000
+   },
+   "payable30Apr": {
+    "rows": {
+     "EV-MORNING": {
+      "name": "Morning Supplies",
+      "open": 2400000,
+      "days": 25
+     },
+     "EV-KAVERI": {
+      "name": "Kaveri Textiles",
+      "open": 4200000,
+      "days": 18
+     }
+    },
+    "open": 6600000,
+    "b0_30": 6600000
+   },
+   "payableLater": [
+    {
+     "asOf": "2026-05-31",
+     "morning": {
+      "days": 56,
+      "bucket": "b31_60"
+     },
+     "kaveri": {
+      "days": 49,
+      "bucket": "b31_60"
+     }
+    },
+    {
+     "asOf": "2026-06-30",
+     "morning": {
+      "days": 86,
+      "bucket": "b61_90"
+     },
+     "kaveri": {
+      "days": 79,
+      "bucket": "b61_90"
+     }
+    },
+    {
+     "asOf": "2026-07-15",
+     "morning": {
+      "days": 101,
+      "bucket": "b90"
+     },
+     "kaveri": {
+      "days": 94,
+      "bucket": "b90"
+     }
+    }
+   ]
+  },
+  "gst": {
+   "month": "2026-04",
+   "output": {
+    "cgst": 1450000,
+    "sgst": 1450000,
+    "igst": 0,
+    "total": 2900000
+   },
+   "rate5Taxable": 58000000,
+   "rate18Taxable": 0,
+   "b2bTaxable": 6000000,
+   "b2csTaxable": 52000000,
+   "advances": 0,
+   "creditNotes": 0,
+   "itc": {
+    "cgst": 0,
+    "sgst": 0,
+    "igst": 0
+   },
+   "rcm": 0,
+   "tcsCredit": 10000,
+   "cashLedgerBalance": 10000,
+   "challan": 2890000,
+   "payable": 2900000
+  },
+  "cashRatio": {
+   "cashReceipts": 18350000,
+   "totalReceipts": 67050000,
+   "cashPayments": 1300000,
+   "totalPayments": 43709000,
+   "receiptsPct": 27.37,
+   "paymentsPct": 2.97,
+   "flagged": true
+  }
+ }
+}
