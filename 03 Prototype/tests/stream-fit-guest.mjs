@@ -64,7 +64,7 @@ export async function register({test,M,assert}){
   });
   test('[FIT-GUEST] messages: the outbox renders one page (usePaged) with ShowMore in the panel footer, not every row',()=>{
     const total=X.msgOutbox(s).length;
-    const html=render(X.MsgMessagesPage,'owner',{page:'messages'});
+    const html=render(X.MsgMessagesPage,'owner',{page:'messages',tabKey:'outbox'}); // asked explicitly: an earlier render may have left another tab in sessionStorage
     const rows=(html.match(/<tr>/g)||[]).length-1;
     assert.ok(rows<=100,'at most one page of rows, got '+rows);
     assert.ok(total>100,'FY26 outbox is long enough to page ('+total+')');
