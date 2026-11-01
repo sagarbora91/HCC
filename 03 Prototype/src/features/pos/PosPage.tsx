@@ -89,9 +89,10 @@ export function PosSummary(){
       {title:'Outlet cash',value:money(d.outletCash),sub:'Counted in the front-desk drawer'},
       {title:'Posted to room folios',value:money(d.byMode['Room folio']||0),sub:'Collected at checkout'},
       {title:'Open checks',value:String(d.open.count),sub:`${money(d.open.value)} running · ${d.pendingVoids} void request${d.pendingVoids===1?'':'s'} pending`}]}/>
-    <ScrollPanel label="Day summary tables" footer={<FitNote text="One shared till: cash bills (net of same-day voids) are counted in the front-desk drawer on the cashier shift. UPI and card are non-cash; room-service charged to a room is a folio charge, collected at checkout. Open checks block day close."/>}>
+    <ScrollPanel label="Day summary tables">
       <PosSummaryTables d={d}/>
       {d.top.length>0&&<><h3 className="pos-h3">Top items today</h3><ol className="pos-top">{d.top.map(t=><li key={t.name}><span>{t.name}</span><b>{t.qty}</b><span>{money(t.value)}</span></li>)}</ol></>}
+      <div className="info-note pos-sum-note"><Info size={16}/>One shared till: cash bills (net of same-day voids) are counted in the front-desk drawer on the cashier shift. UPI and card are non-cash; room-service charged to a room is a folio charge, collected at checkout. Open checks block day close.</div>
     </ScrollPanel>
   </>;
 }
