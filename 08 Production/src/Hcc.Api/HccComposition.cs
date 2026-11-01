@@ -145,6 +145,7 @@ public static class HccComposition
         api.MapAccountingGstEndpoints(); // ACC-2 gst lane (contract §4 switch, §6)
         api.MapOtaPayoutEndpoints(); // acc2-flows: ApplyDeposit, SettleFolioToOta, RecordOtaPayout, SetChannelItc, ReverseUdhaarPayment, SetCompanyActive, GET /ota/payouts
         api.MapAccountingParityEndpoints(); // acc2-parity: BackfillUdhaarCredits (contract §8)
+        api.MapAccountingExportEndpoints(); // ACC-3 acc3-exports (statements.zip)
         // ACC-2 end
         api.MapComplianceEndpoints();    // W2-5
         api.MapPosEndpoints();           // W2-6
