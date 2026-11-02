@@ -196,6 +196,9 @@ public static class BankReconRules
 
     private static string Key(BankLineRef r) => r.VoucherId + "#" + r.Line.ToString(CultureInfo.InvariantCulture);
 
+    /// <summary>Line −1 = the bank ledger's entry of that voucher (a voucher made from a row, matched before it is projected).</summary>
+    private static string Any(BankLineRef r) => r.VoucherId + "#-1";
+
     /// <summary>Rules 1–3 (§2.3) over the unmatched rows of a ledger, in date order; never across a locked year.</summary>
     public static BankAutoResult AutoMatch(IReadOnlyList<BankStatementRow> rows, IReadOnlyList<BankBookLine> book, IEnumerable<BankMatch> matches, Func<DateOnly, bool> yearLocked,
         Func<BankStatementRow, Regex?> settlementPattern)
@@ -206,7 +209,7 @@ public static class BankReconRules
         ArgumentNullException.ThrowIfNull(settlementPattern);
         var used = matches.Where(m => m.UndoneAt is null).SelectMany(m => m.Lines).Select(Key).ToHashSet(StringComparer.Ordinal);
         var free = book.Where(l => !yearLocked(l.Date)).ToList();
-        List<BankBookLine> Free() => free.Where(l => !used.Contains(Key(l.Ref))).ToList();
+        List<BankBookLine> Free() => free.Where(l => !used.Contains(Key(l.Ref)) && !used.Contains(Any(l.Ref))).ToList();
         var proposals = new List<BankProposal>();
         var settle = new List<string>();
         var amb = new List<string>();
@@ -259,8 +262,8 @@ public static class BankReconRules
         ArgumentNullException.ThrowIfNull(rows);
         var vs = vouchers.Where(v => v.Date <= asOf).ToList();
         var books = vs.SelectMany(v => v.Entries).Where(e => e.Account == ledger).Sum(e => e.DebitPaise - e.CreditPaise);
-        var live = matches.Where(m => m.UndoneAt is null).SelectMany(m => m.Lines.Select(l => (Key(l), m.ClearedDate))).ToDictionary(x => x.Item1, x => x.ClearedDate, StringComparer.Ordinal);
-        var unmatched = BookLines(vs, ledger, asOf).Where(l => !live.TryGetValue(Key(l.Ref), out var d) || d > asOf).ToList();
+        var live = matches.Where(m => m.UndoneAt is null).SelectMany(m => m.Lines.Select(l => (Key(l), m.ClearedDate))).GroupBy(x => x.Item1, StringComparer.Ordinal).ToDictionary(g => g.Key, g => g.First().ClearedDate, StringComparer.Ordinal);
+        var unmatched = BookLines(vs, ledger, asOf).Where(l => !(live.TryGetValue(Key(l.Ref), out var d) || live.TryGetValue(Any(l.Ref), out d)) || d > asOf).ToList();
         var issued = unmatched.Where(l => l.Amount < 0).ToList();
         var deposits = unmatched.Where(l => l.Amount > 0).ToList();
         var mine = rows.Where(r => r.BankLedger == ledger && r.Date <= asOf).OrderBy(r => r.Date).ToList();
@@ -305,5 +308,210 @@ public static class BankReconRules
         }
 
         return (days.Sum(d => d.T - d.S), open);
+    }
+}
+
+/// <summary>Imported statement header (migration 4286).</summary>
+public sealed record BankImport(string Id, string BankLedger, string LayoutId, string FileName, string FileHash, DateOnly From, DateOnly To, long OpeningBalance, long ClosingBalance,
+    int Rows, int ImportedBy, DateTime ImportedUtc);
+
+/// <summary>Persistence of the bank reconciliation (migrations 4285–4287).</summary>
+public interface IBankReconStore
+{
+    Task<IReadOnlyList<BankStatementLayout>> LayoutsAsync(int propertyId, CancellationToken ct);
+    Task UpsertLayoutAsync(BankStatementLayout layout, CancellationToken ct);
+    Task<bool> HashExistsAsync(int propertyId, string hash, CancellationToken ct);
+    Task<BankImport> InsertImportAsync(int propertyId, BankImport header, IReadOnlyList<BankParsedRow> rows, CancellationToken ct);
+    Task<IReadOnlyList<BankImport>> ImportsAsync(int propertyId, string ledger, CancellationToken ct);
+    Task<IReadOnlyList<BankStatementRow>> RowsAsync(int propertyId, string? ledger, CancellationToken ct);
+    Task<IReadOnlyList<BankMatch>> MatchesAsync(int propertyId, string? ledger, CancellationToken ct);
+    Task<BankMatch> InsertMatchAsync(int propertyId, string ledger, IReadOnlyList<string> rowIds, IReadOnlyList<BankLineRef> lines, string rule, DateOnly cleared, int by, DateTime now, CancellationToken ct);
+    Task UndoMatchAsync(int propertyId, string matchId, int by, DateTime now, CancellationToken ct);
+    Task IgnoreRowAsync(int propertyId, string rowId, string reason, CancellationToken ct);
+}
+
+public sealed record BankImportResult(string ImportId, int Rows, int Skipped, long OpeningBalance, long ClosingBalance);
+public sealed record BankAutoMatchResult(int Matched, IReadOnlyList<string> Settlements, IReadOnlyList<string> Ambiguous);
+public sealed record BankVoucherResult(long VoucherId, string Status, string? MatchId);
+
+/// <summary>
+/// Application service of §2 (PERM-ACC-016 Owner + Accountant; layouts PERM-ACC-017 Owner). Vouchers made from a row (charges, interest, B8
+/// settlement) go through the manual-voucher service (<paramref name="postVoucher"/>): the Owner's post at once and are matched to the row; the
+/// Accountant's wait for the Owner (status pending, no match yet — match by hand once approved).
+/// </summary>
+public sealed class BankReconService(IBankReconStore store, IYearLockStore books, Access.IAccessPolicy policy, Func<DateTime> clock,
+    Func<Billing.Caller, Contracts.Accounting.SaveManualVoucherRequest, CancellationToken, Task<Contracts.Accounting.ManualVoucherResult>>? postVoucher = null)
+{
+    private Task Can(Billing.Caller c, string perm, CancellationToken ct) => policy.RequireAsync(c.PropertyId, c.PrincipalId, perm, ct: ct);
+
+    private async Task<bool> YearLocked(int pid, DateOnly d, CancellationToken ct) => YearLockRules.LockedOn(await books.YearsAsync(pid, ct).ConfigureAwait(false), d);
+
+    public async Task UpsertLayoutAsync(Billing.Caller c, BankStatementLayout l, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(c);
+        ArgumentNullException.ThrowIfNull(l);
+        await Can(c, AccountingBankPermissions.Layouts, ct).ConfigureAwait(false);
+        if (!Regex.IsMatch(l.Id ?? "", "^[a-z0-9][a-z0-9-]{0,39}$")) throw HccException.Validation("Layout id: lower-case letters, digits and dashes.");
+        if (string.IsNullOrWhiteSpace(l.Name)) throw HccException.Validation("Name the layout.");
+        if (l.Delimiter is not (',' or ';' or '\t')) throw HccException.Validation("Delimiter: comma, semicolon or tab.");
+        if (l.HeaderRows is < 1 or > 10) throw HccException.Validation("Header rows: 1 to 10.");
+        if (l.DateFormat is not ("DD/MM/YYYY" or "DD-MM-YYYY" or "YYYY-MM-DD" or "DD-MMM-YYYY")) throw HccException.Validation("Choose a date format.");
+        if (string.IsNullOrWhiteSpace(l.Columns.Date) || string.IsNullOrWhiteSpace(l.Columns.Narration) || !((l.Columns.Debit is not null && l.Columns.Credit is not null) || l.Columns.Amount is not null))
+            throw HccException.Validation("Map date, narration and debit + credit (or one amount column).");
+        foreach (var p in new[] { l.RefPattern, l.SettlementPattern }.Where(p => p is not null))
+            try { _ = new Regex(p!); } catch (ArgumentException) { throw HccException.Validation("A pattern is not a valid regular expression."); }
+        await store.UpsertLayoutAsync(l, ct).ConfigureAwait(false);
+    }
+
+    public async Task<BankImportResult> ImportAsync(Billing.Caller c, string? ledger, string? layoutId, string? fileName, string? text, bool keepDuplicates, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(c);
+        await Can(c, AccountingBankPermissions.Reconcile, ct).ConfigureAwait(false);
+        if (ledger is null || !Regex.IsMatch(ledger, @"^1030/[A-Za-z0-9][A-Za-z0-9._-]{0,35}$")) throw HccException.Validation("Choose the bank account (1030/<bank>).");
+        if (string.IsNullOrEmpty(text) || text.Length > 2_000_000) throw HccException.Validation("Choose a statement file (up to 2 MB).");
+        var lay = (await store.LayoutsAsync(c.PropertyId, ct).ConfigureAwait(false)).FirstOrDefault(l => l.Id == (layoutId ?? "generic") && l.Active)
+            ?? throw new HccException(HccErrorCode.NOT_FOUND, "Choose an active statement layout.");
+        var p = BankReconRules.Parse(text, lay);
+        var hash = BankReconRules.Hash(text);
+        if (await store.HashExistsAsync(c.PropertyId, hash, ct).ConfigureAwait(false)) throw BankReconRules.Refuse("BANK_DUP_FILE", "BANK_DUP_FILE: this statement file was already imported.");
+        var years = await books.YearsAsync(c.PropertyId, ct).ConfigureAwait(false);
+        if (p.Rows.FirstOrDefault(r => YearLockRules.LockedOn(years, r.Date)) is { } lr) throw YearLockRules.Locked(YearLockRules.FyOf(lr.Date));
+        static string K(DateOnly d, long amt, string? rf, string n) => $"{d:yyyy-MM-dd}|{amt}|{rf}|{n}";
+        var prev = (await store.RowsAsync(c.PropertyId, ledger, ct).ConfigureAwait(false)).Select(r => K(r.Date, r.Amount, r.Ref, r.Narration)).ToHashSet(StringComparer.Ordinal);
+        var take = p.Rows.Where(r => keepDuplicates || !prev.Contains(K(r.Date, r.Credit - r.Debit, r.Ref, r.Narration))).ToList();
+        var h = await store.InsertImportAsync(c.PropertyId, new BankImport("", ledger, lay.Id, (fileName ?? "statement.csv")[..Math.Min(200, (fileName ?? "statement.csv").Length)], hash,
+            p.Rows[0].Date, p.Rows[^1].Date, p.OpeningBalance, p.ClosingBalance, take.Count, c.PrincipalId, clock()), take, ct).ConfigureAwait(false);
+        return new BankImportResult(h.Id, take.Count, p.Rows.Count - take.Count, p.OpeningBalance, p.ClosingBalance);
+    }
+
+    private async Task<(IReadOnlyList<BankStatementRow> Rows, IReadOnlyList<BankBookLine> Book, IReadOnlyList<BankMatch> Matches)> LoadAsync(int pid, string ledger, DateOnly to, CancellationToken ct)
+    {
+        var rows = await store.RowsAsync(pid, ledger, ct).ConfigureAwait(false);
+        var end = rows.Count > 0 && rows.Max(r => r.Date) > to ? rows.Max(r => r.Date) : to;
+        var book = BankReconRules.BookLines(await books.VouchersUpToAsync(pid, end, ct).ConfigureAwait(false), ledger, end);
+        return (rows, book, await store.MatchesAsync(pid, ledger, ct).ConfigureAwait(false));
+    }
+
+    public async Task<BankAutoMatchResult> AutoMatchAsync(Billing.Caller c, string ledger, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(c);
+        await Can(c, AccountingBankPermissions.Reconcile, ct).ConfigureAwait(false);
+        var (rows, book, matches) = await LoadAsync(c.PropertyId, ledger, DateOnly.MinValue, ct).ConfigureAwait(false);
+        var years = await books.YearsAsync(c.PropertyId, ct).ConfigureAwait(false);
+        var layouts = await store.LayoutsAsync(c.PropertyId, ct).ConfigureAwait(false);
+        var imports = (await store.ImportsAsync(c.PropertyId, ledger, ct).ConfigureAwait(false)).ToDictionary(i => i.Id, i => i.LayoutId, StringComparer.Ordinal);
+        Regex? Pattern(BankStatementRow r) => imports.TryGetValue(r.ImportId, out var lid) && layouts.FirstOrDefault(l => l.Id == lid)?.SettlementPattern is { } sp ? new Regex(sp, RegexOptions.IgnoreCase) : null;
+        var a = BankReconRules.AutoMatch(rows, book, matches, d => YearLockRules.LockedOn(years, d), Pattern);
+        var now = clock();
+        foreach (var x in a.Proposals)
+            await store.InsertMatchAsync(c.PropertyId, ledger, x.RowIds, x.Lines.Select(l => l.Ref).ToList(), x.Rule, x.ClearedDate, c.PrincipalId, now, ct).ConfigureAwait(false);
+        return new BankAutoMatchResult(a.Proposals.Count, a.Settlements, a.Ambiguous);
+    }
+
+    public async Task<BankMatch> MatchAsync(Billing.Caller c, IReadOnlyList<string> rowIds, IReadOnlyList<BankLineRef> refs, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(c);
+        ArgumentNullException.ThrowIfNull(rowIds);
+        ArgumentNullException.ThrowIfNull(refs);
+        await Can(c, AccountingBankPermissions.Reconcile, ct).ConfigureAwait(false);
+        var all = await store.RowsAsync(c.PropertyId, null, ct).ConfigureAwait(false);
+        var rows = rowIds.Select(id => all.FirstOrDefault(r => r.Id == id) ?? throw new HccException(HccErrorCode.NOT_FOUND, "A statement row was not found.")).ToList();
+        if (rows.Select(r => r.BankLedger).Distinct(StringComparer.Ordinal).Count() != 1) throw HccException.Validation("All rows must be on one bank ledger.");
+        var ledger = rows[0].BankLedger;
+        foreach (var r in rows) if (await YearLocked(c.PropertyId, r.Date, ct).ConfigureAwait(false)) throw YearLockRules.Locked(YearLockRules.FyOf(r.Date));
+        var (_, book, matches) = await LoadAsync(c.PropertyId, ledger, rows.Max(r => r.Date), ct).ConfigureAwait(false);
+        var used = matches.Where(m => m.UndoneAt is null).SelectMany(m => m.Lines).ToHashSet();
+        var lines = refs.Select(rf => book.FirstOrDefault(b => b.Ref == rf) ?? throw HccException.Validation($"Book line {rf.VoucherId} is not on {ledger}.")).ToList();
+        if (lines.Any(l => used.Contains(l.Ref))) throw new HccException(HccErrorCode.INVALID_TRANSITION, "A book line is already matched.");
+        BankReconRules.CheckManual(rows, lines);
+        return await store.InsertMatchAsync(c.PropertyId, ledger, rowIds, refs, "manual", rows.Max(r => r.Date), c.PrincipalId, clock(), ct).ConfigureAwait(false);
+    }
+
+    public async Task UnmatchAsync(Billing.Caller c, string matchId, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(c);
+        await Can(c, AccountingBankPermissions.Reconcile, ct).ConfigureAwait(false);
+        var m = (await store.MatchesAsync(c.PropertyId, null, ct).ConfigureAwait(false)).FirstOrDefault(x => x.Id == matchId && x.UndoneAt is null)
+            ?? throw new HccException(HccErrorCode.NOT_FOUND, "This match was not found.");
+        if ((await books.LockedMonthsAsync(c.PropertyId, ct).ConfigureAwait(false)).Contains(m.ClearedDate.ToString("yyyy-MM", CultureInfo.InvariantCulture)))
+            throw new HccException(HccErrorCode.INVALID_TRANSITION, $"Month {m.ClearedDate:yyyy-MM} is locked — the match stays.");
+        if (await YearLocked(c.PropertyId, m.ClearedDate, ct).ConfigureAwait(false)) throw YearLockRules.Locked(YearLockRules.FyOf(m.ClearedDate));
+        await store.UndoMatchAsync(c.PropertyId, matchId, c.PrincipalId, clock(), ct).ConfigureAwait(false);
+    }
+
+    public async Task IgnoreAsync(Billing.Caller c, string rowId, string? reason, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(c);
+        await Can(c, AccountingBankPermissions.Reconcile, ct).ConfigureAwait(false);
+        if ((reason ?? "").Trim().Length < 3) throw HccException.Validation("A reason is required to ignore a statement row.");
+        await store.IgnoreRowAsync(c.PropertyId, rowId, reason!.Trim(), ct).ConfigureAwait(false);
+    }
+
+    private async Task<BankStatementRow> RowAsync(Billing.Caller c, string rowId, CancellationToken ct)
+    {
+        var r = (await store.RowsAsync(c.PropertyId, null, ct).ConfigureAwait(false)).FirstOrDefault(x => x.Id == rowId) ?? throw new HccException(HccErrorCode.NOT_FOUND, "This statement row was not found.");
+        if (r.Status != "unmatched") throw new HccException(HccErrorCode.INVALID_TRANSITION, "This row is already matched or ignored.");
+        if (await YearLocked(c.PropertyId, r.Date, ct).ConfigureAwait(false)) throw YearLockRules.Locked(YearLockRules.FyOf(r.Date));
+        return r;
+    }
+
+    private async Task<BankVoucherResult> PostAsync(Billing.Caller c, BankStatementRow r, string type, string template, string narration, IReadOnlyList<VoucherEntry> lines, CancellationToken ct)
+    {
+        if (postVoucher is null) throw new HccException(HccErrorCode.UNAVAILABLE, "Manual vouchers are not available on this server.");
+        var req = new Contracts.Accounting.SaveManualVoucherRequest(null, r.Date, type, narration.Length > 400 ? narration[..400] : narration, (r.Ref ?? "BANK-" + r.Id) is var rf && rf.Length > 60 ? rf[..60] : rf, template,
+            lines.Select(l => new Contracts.Accounting.ManualLineRequest(l.Account, l.DebitPaise, l.CreditPaise, null)).ToList());
+        var v = await postVoucher(c, req, ct).ConfigureAwait(false);
+        if (v.Status != "approved") return new BankVoucherResult(v.VoucherId, v.Status, null);
+        var m = await store.InsertMatchAsync(c.PropertyId, r.BankLedger, [r.Id], [new BankLineRef("manual:" + v.VoucherId.ToString(CultureInfo.InvariantCulture), -1)], "created", r.Date, c.PrincipalId, clock(), ct).ConfigureAwait(false);
+        return new BankVoucherResult(v.VoucherId, v.Status, m.Id);
+    }
+
+    /// <summary>Rule 5: charges (Dr ledger · Cr bank) or interest / other credits (Dr bank · Cr ledger); 9999 refused.</summary>
+    public async Task<BankVoucherResult> CreateVoucherAsync(Billing.Caller c, string rowId, string? ledger, string? narration, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(c);
+        await Can(c, AccountingBankPermissions.Reconcile, ct).ConfigureAwait(false);
+        var r = await RowAsync(c, rowId, ct).ConfigureAwait(false);
+        var led = ledger ?? (r.Debit > 0 ? "5080" : "4960");
+        if (led == ChartOfAccounts.Suspense) throw HccException.Validation("An unknown credit cannot go to 9999 Suspense — the row stays unmatched until its ledger is known.");
+        var amt = r.Debit > 0 ? r.Debit : r.Credit;
+        var lines = r.Debit > 0 ? new VoucherEntry[] { new(r.BankLedger, 0, amt), new(led, amt, 0) } : [new(r.BankLedger, amt, 0), new(led, 0, amt)];
+        return await PostAsync(c, r, r.Debit > 0 ? "Payment" : "Receipt", r.Debit > 0 ? "bank-charges" : "interest-income",
+            string.IsNullOrWhiteSpace(narration) ? $"{(r.Debit > 0 ? "Bank charge" : "Bank credit")} · {r.Narration}" : narration.Trim(), lines, ct).ConfigureAwait(false);
+    }
+
+    /// <summary>B8 settlement journal matched to its row.</summary>
+    public async Task<BankVoucherResult> SettlementAsync(Billing.Caller c, string rowId, string clearing, long? gross, long mdr, long mdrGst, bool itc, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(c);
+        await Can(c, AccountingBankPermissions.Reconcile, ct).ConfigureAwait(false);
+        var r = await RowAsync(c, rowId, ct).ConfigureAwait(false);
+        if (r.Credit <= 0) throw HccException.Validation("Choose a credit row.");
+        var lines = BankReconRules.SettlementLines(r.BankLedger, r.Credit, clearing, gross ?? r.Credit, mdr, mdrGst, itc);
+        return await PostAsync(c, r, "Journal", "journal", $"{(clearing == "1010" ? "UPI" : "Card")} settlement · {r.Narration}", lines, ct).ConfigureAwait(false);
+    }
+
+    public async Task<BankRecon> ReconAsync(Billing.Caller c, string ledger, DateOnly asOf, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(c);
+        await Can(c, AccountingPermissions.View, ct).ConfigureAwait(false);
+        var rows = await store.RowsAsync(c.PropertyId, ledger, ct).ConfigureAwait(false);
+        var opening = (await store.ImportsAsync(c.PropertyId, ledger, ct).ConfigureAwait(false)).OrderBy(i => i.From).FirstOrDefault()?.OpeningBalance ?? 0;
+        return BankReconRules.Recon(ledger, asOf, await books.VouchersUpToAsync(c.PropertyId, asOf, ct).ConfigureAwait(false), rows,
+            await store.MatchesAsync(c.PropertyId, ledger, ct).ConfigureAwait(false), opening);
+    }
+
+    public async Task<IReadOnlyList<BankStatementRow>> RowsAsync(Billing.Caller c, string ledger, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(c);
+        await Can(c, AccountingPermissions.View, ct).ConfigureAwait(false);
+        return await store.RowsAsync(c.PropertyId, ledger, ct).ConfigureAwait(false);
+    }
+
+    public async Task<IReadOnlyList<BankStatementLayout>> LayoutsAsync(Billing.Caller c, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(c);
+        await Can(c, AccountingPermissions.View, ct).ConfigureAwait(false);
+        return await store.LayoutsAsync(c.PropertyId, ct).ConfigureAwait(false);
     }
 }
