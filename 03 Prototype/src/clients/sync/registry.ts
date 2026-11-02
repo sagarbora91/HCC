@@ -41,6 +41,7 @@ import {accountingFlows} from './accounting-flows'; // acc2-flows
 // LF-DOCDB
 // LF-DOCDB end
 // LF-RATE
+import {lfmoney} from './lfmoney';
 // LF-RATE end
 // LF-BILL
 // LF-BILL end
@@ -135,6 +136,7 @@ export const AREAS:SyncArea[]=[
   // LF-DOCDB
   // LF-DOCDB end
   // LF-RATE
+  lfmoney,
   // LF-RATE end
   // LF-BILL
   // LF-BILL end

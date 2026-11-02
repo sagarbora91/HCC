@@ -62,6 +62,13 @@ public static class LfMoneyEndpoints
             http.HccReply(await c.RequestVoidAsync(http.HccCommand(Hcc.Application.Counter.CounterBillService.OpRequestVoid), body with { BillId = id }, ct)));
         g.MapPost("/invoices/{no}/corrections", async (HttpContext http, string no, Hcc.Application.Invoices.RequestBillCorrectionRequest body, Hcc.Application.Invoices.BillCorrectionService c, CancellationToken ct) =>
             http.HccReply(await c.RequestAsync(http.HccCommand(Hcc.Application.Invoices.BillCorrectionService.OpRequest), body with { InvoiceNo = Uri.UnescapeDataString(no) }, ct)));
+        // LF-ui: command-style twins of the three REST routes above, so the production web client (sync/lfmoney.ts) can send them with an Idempotency-Key like every other command.
+        g.MapPost("/commands/" + Hcc.Application.Counter.CounterBillService.OpIssue, async (HttpContext http, Hcc.Application.Counter.IssueCounterBillRequest body, Hcc.Application.Counter.CounterBillService c, CancellationToken ct) =>
+            http.HccReply(await c.IssueAsync(http.HccCommand(Hcc.Application.Counter.CounterBillService.OpIssue), body, ct)));
+        g.MapPost("/commands/" + Hcc.Application.Counter.CounterBillService.OpRequestVoid, async (HttpContext http, Hcc.Application.Counter.RequestCounterBillVoidRequest body, Hcc.Application.Counter.CounterBillService c, CancellationToken ct) =>
+            http.HccReply(await c.RequestVoidAsync(http.HccCommand(Hcc.Application.Counter.CounterBillService.OpRequestVoid), body, ct)));
+        g.MapPost("/commands/" + Hcc.Application.Invoices.BillCorrectionService.OpRequest, async (HttpContext http, Hcc.Application.Invoices.RequestBillCorrectionRequest body, Hcc.Application.Invoices.BillCorrectionService c, CancellationToken ct) =>
+            http.HccReply(await c.RequestAsync(http.HccCommand(Hcc.Application.Invoices.BillCorrectionService.OpRequest), body, ct)));
         g.MapGet("/invoices/corrections", async (HttpContext http, Hcc.Application.Invoices.BillCorrectionService c, CancellationToken ct) =>
         {
             var (p, u) = http.HccActor();
