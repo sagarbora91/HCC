@@ -23,7 +23,7 @@ Contract: `02 Planning/agents/LF-CONTRACT.md` §8 (A3 A4 A5 A6) and §9 (B3 B4 A
 | Import templates + samples | `08 Production/deployment/import-templates/{templates,samples}/purposes.csv, vehicle-types.csv` |
 
 Tests: `tests/stream-lf-desk.mjs` (13) and `tests/stream-lf-alerts.mjs` (9), incl. "24h stay frees the room after check-out". Edited existing tests (counts / rows only): `stream-masters-io.mjs` (30 lists), `stream-masters-phone.mjs` (30 masters), `stream-rbac-matrix.mjs` (4 commands + page), `stream-fit-guest.mjs` (Customers page tabs).
-`npm test`: **2413 / 2415** after the follow-up (2 sync expectations took `desk:true`; re-run: sync-frontdesk, sync-money, stream-lf-* green); before the follow-up 2412 / 2413 (before this lane on the same base: 2390 tests, all green except the known FIT phone-layout test; the one failure now is that same test). `npx tsc --noEmit` clean. `npm run build` ok. `tools/fit-screen-check.mjs` run for desk-alerts, customers, inhouse, rooms, arrivals (see "Fit check").
+`npm test` after the follow-up: full run = 3 failures (the known FIT phone-layout test and two sync expectations that now carry `desk:true`; both fixed and re-run green with stream-lf-*); before the follow-up 2412 / 2413.
 
 ## Server (`08 Production`)
 * Migrations **4695** purpose master + `inv.reservation.purpose_code`; **4696** vehicle master + vehicle columns + index; **4697** `gst.stay_form_c`; **4698** `checkout_basis`; **4699** `gst.stay.late_checkout_decision`; **4700** `imp.batch` master check (purposes, vehicle-types); **4703** `ops.guest_request.wake_at_utc` (backfilled, written on insert); **4704** `plat.reminder`; **4705** `PERM-RMD-001`. In `migrations.lock.json` (out-of-order accepted, coordinator ruling 1) and `Hcc.slnx`.
