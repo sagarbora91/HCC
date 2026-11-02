@@ -22,8 +22,9 @@ function NewBill({onDone}:{onDone:()=>void}){
   const good=built.filter(l=>!('error' in l)) as CTRLine[];
   const d=Math.round(Number(disc.amount||0)*100);const t=ctrTotals(good,d>0&&d<=good.reduce((a,l)=>a+l.amount,0)?d:0);
   const set=(i:number,x:Partial<Row>)=>setRows(r=>r.map((y,j)=>j===i?{...y,...x}:y));
-  return <ScrollPanel title="New counter bill" label="New counter bill" footer={<div className="inline"><strong>Total {money(t.total)}</strong><span className="muted">net {money(t.net)} · GST {money(t.tax)}</span></div>}>
-    <form className="form padded" onSubmit={e=>{e.preventDefault();void run({type:'CTR_BILL_ISSUE',party:p,lines:inputs,...(d>0?{discount:{amount:d,reason:disc.reason}}:{}),
+  return <ScrollPanel title="New counter bill" label="New counter bill" footer={<div className="inline"><strong>Total {money(t.total)}</strong><span className="muted">net {money(t.net)} · GST {money(t.tax)}</span>
+    <button type="submit" form="ctr-new-bill" className="btn primary" disabled={busy||!!err||!good.length}>Issue counter bill</button></div>}>
+    <form id="ctr-new-bill" className="form padded" onSubmit={e=>{e.preventDefault();void run({type:'CTR_BILL_ISSUE',party:p,lines:inputs,...(d>0?{discount:{amount:d,reason:disc.reason}}:{}),
       settlement:{mode,method,reference,companyId}},'Counter bill issued.',{after:onDone});}}>
       <div className="form-row"><label>Customer name<input value={p.name} required onChange={e=>setP({...p,name:e.target.value})}/></label>
         <label>Phone<input value={p.phone} onChange={e=>setP({...p,phone:e.target.value})}/></label><label>GSTIN (optional)<input value={p.gstin} maxLength={15} onChange={e=>setP({...p,gstin:e.target.value})}/></label></div>
@@ -39,7 +40,6 @@ function NewBill({onDone}:{onDone:()=>void}){
       <div className="form-row"><label>Settlement<select value={mode} onChange={e=>setMode(e.target.value as typeof mode)}>{CTR_SETTLEMENTS.map(m=><option key={m} value={m}>{MODE_LABEL[m]}</option>)}</select></label>
         {mode==='paid'&&<><label>Method<input value={method} onChange={e=>setMethod(e.target.value)}/></label><label>Reference<input value={reference} onChange={e=>setReference(e.target.value)}/></label></>}
         {mode==='company'&&<label>Company id<input value={companyId} onChange={e=>setCompanyId(e.target.value)}/></label>}</div>
-      <div className="modal-actions"><button className="btn primary" disabled={busy||!!err||!good.length}>Issue counter bill</button></div>
     </form></ScrollPanel>;
 }
 

@@ -15,3 +15,5 @@
 .gs-photo-img{width:150px;height:150px;object-fit:cover;border-radius:6px;border:1px solid var(--line)}
 .gs-photo-none{display:grid;place-items:center;width:150px;height:150px;border:1px dashed var(--line);border-radius:6px}
 .gs-photo-actions{display:flex;gap:6px}
+.gs-photo-actions .btn{font-size:14px} /* LF-ui: a label.btn inherited the 11px form-label size (fit check font-changed) */
+.gs-photo-actions input[type=file]{font-size:11px} /* visually hidden picker keeps its old size */

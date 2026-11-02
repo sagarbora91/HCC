@@ -15,5 +15,8 @@ Party-photo card (`guests/PartyPhotos.tsx`), reminders page and edit dialog (LF-
 - GUEST_RATE_SET / GUEST_RATE_CLEAR on the wire (server keys by room-type id; needs a room-type loader) — listed as `unmapped`.
 - Production party-photo wiring, Documents cards, registration-card party lines; money sync loaders (read side) for the new slices.
 - `tools/lf-drill-check.ps1`, `tools/lf-screens.mjs`, `check-phone-lf.mjs`, phone versions of the new screens.
-- fit-screen-check on counter-bills, desk-alerts, inhouse, folios, customers, cashier: not run in this session (see final report).
 - LF-PARITY has no GSTR-1 Table 13 legacy row (needs the legacy fixture).
+
+## Verification
+- `npx tsc --noEmit` clean; `npm test` 2478/2478 (was 2463; +15); `npm run build` ok; `dotnet build 08 Production/Hcc.slnx` 0 warnings; `LfParityTests` and `RoleReadMatrixTests` pass.
+- `fit-screen-check --pages counter-bills,desk-alerts,inhouse,folios,customers,cashier` at tab-land + lap-1366 for owner + reception: PASS 0 of 180 failing (fixes on the way: Issue button moved to the panel footer; photo-card label font).

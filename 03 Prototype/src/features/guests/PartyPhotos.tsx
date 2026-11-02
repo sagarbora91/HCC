@@ -23,8 +23,8 @@ export function PartyPhotos({g}:{g:Guest}){
         {url?<img src={url} alt={'Photo of '+p.name} className="gs-photo-img"/>:<span className="gs-photo-none muted">{a.idDetails?'No photo':'Restricted'}</span>}
         <strong>{p.name}</strong><small>{p.label}</small>
         {a.edit&&<span className="gs-photo-actions">
-          <label className="btn small-btn"><Camera size={14}/> {url?'Replace':'Add photo'}<input type="file" accept="image/*" capture="user" className="cmp-sr" disabled={busy} onChange={e=>{const f=e.target.files?.[0];e.target.value='';void pick(p.seq,f);}}/></label>
-          {url&&<button type="button" className="btn small-btn" disabled={busy} aria-label={'Remove photo of '+p.name} onClick={()=>{void run({type:'GUEST_PHOTO_REMOVE',id:g.id,seq:p.seq,key:'gphoto-rm:'+g.id+':'+p.seq+':'+Date.now()},'Photo removed');}}><Trash2 size={14}/></button>}</span>}
+          <label className="btn"><Camera size={14}/> {url?'Replace':'Add photo'}<input type="file" accept="image/*" capture="user" className="cmp-sr" disabled={busy} onChange={e=>{const f=e.target.files?.[0];e.target.value='';void pick(p.seq,f);}}/></label>
+          {url&&<button type="button" className="btn" disabled={busy} aria-label={'Remove photo of '+p.name} onClick={()=>{void run({type:'GUEST_PHOTO_REMOVE',id:g.id,seq:p.seq,key:'gphoto-rm:'+g.id+':'+p.seq+':'+Date.now()},'Photo removed');}}><Trash2 size={14}/></button>}</span>}
       </li>;})}</ul>
     {err&&<p className="adm-err" role="alert">{err}</p>}
   </section>;
