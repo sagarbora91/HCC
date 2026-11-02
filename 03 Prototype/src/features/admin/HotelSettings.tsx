@@ -8,7 +8,7 @@ import {money,rateFor,adminRoomTypes,adminBaseRate,gstMasterSummary,GST_ILLUSTRA
   type CfgGroupId,type CfgSettingDef,rmsTypeName} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {Pill,Empty,shortDate} from '../../components/ui';
-import {FitPage,ScrollPanel,SplitView,useFitTab} from '../../components/fit';
+import {FitPage,ScrollPanel,SplitView,useFitTab,useWideSplit} from '../../components/fit';
 import {GuardedButton} from './parts';
 import {cfgListRows,cfgDetailDefs,cfgNav,cfgMoneyMask} from './config/logic';
 import {CfgModulesPanel,CfgDataPanel,CfgGroupLink} from './config/panels';
@@ -22,13 +22,6 @@ export function scheduleBlock(s:ReturnType<typeof useHcc>['s'],uid:string){
 }
 const GROUP_IDS=['property','rooms','frontdesk','money','pos','hkm','people','compliance','modules','users','messages','data'] as const;
 /** True below 900 px (the SplitView slide-over breakpoint): the group list is the first thing seen, a group opens over it. */
-function useNarrow900(){
-  const q=()=>typeof window!=='undefined'&&typeof window.matchMedia==='function'&&window.matchMedia('(max-width: 899.98px)').matches;
-  const [n,setN]=useState(q);
-  useEffect(()=>{if(typeof window==='undefined'||typeof window.matchMedia!=='function')return;const m=window.matchMedia('(max-width: 899.98px)');const on=()=>setN(m.matches);on();
-    m.addEventListener?.('change',on);return ()=>m.removeEventListener?.('change',on);},[]);
-  return n;
-}
 // FIT (DEC-194, contract §6 'settings' = split; FitPage keeps the default layout because .fit-page.fit-split would collide with SplitView's own .fit-split grid class): SplitView — the 12 groups with live summaries (ScrollPanel) on the left, the selected group's
 // settings and Lists (masters) in the scrolling record pane on the right. The group selection is a sub-screen (useFitTab 'settings').
 // Below 900 px the group opens over the list with Back. Search sits in the toolbar. Master lists keep their own list/form (MasterList).
@@ -37,7 +30,7 @@ export function HotelSettings(){
   const [q,setQ]=useState('');
   const [boot]=useState(()=>{const g=cfgNav.group;cfgNav.group=undefined;return g;}); // "Manage list…" / "also in Master configuration" links
   const [sel,setSel]=useFitTab<CfgGroupId>('settings',GROUP_IDS,'property');
-  const narrow=useNarrow900();
+  const narrow=!useWideSplit();
   const [picked,setPicked]=useState(!!boot);
   useEffect(()=>{if(boot)setSel(boot);},[boot]); // eslint-disable-line react-hooks/exhaustive-deps
   const rows=cfgListRows(s,uid,q);

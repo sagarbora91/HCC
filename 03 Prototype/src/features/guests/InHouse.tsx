@@ -5,8 +5,7 @@ import {ArrowRight,Info,AlertCircle,Printer,MoveRight,CalendarPlus,LogOut} from 
 import {useHcc} from '../../app/context';
 import {Booking,money,nights,totals,guestForBooking,guestView,staySegments,staySegmentLabel,stayInHouse,stayMoveAlternatives,stayDepartureBounds,stayCanExtend,available,occupant,plural,rmsRoomLine,rmsTypeName,mstFloorLabel} from '../../services/mock';
 import {Pill,Empty,shortDate,SearchBox} from '../../components/ui';
-import {FitPage,ScrollPanel,SplitView,FitNote} from '../../components/fit';
-import {useWideSplit} from './useWideSplit';
+import {FitPage,ScrollPanel,SplitView,FitNote,useWideSplit} from '../../components/fit';
 import {PrintListButton} from './FrontDeskList';
 
 /** Stay detail body (shared by the In-house page and the 'stay-detail' modal). */

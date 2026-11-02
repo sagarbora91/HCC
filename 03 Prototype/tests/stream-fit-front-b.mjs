@@ -47,7 +47,7 @@ export function register({test,assert}){
       const src=read(f);assert.ok(!src.includes('<PageTitle')&&!src.includes('FitTabs'),f);}
   });
   test('[FIT-FRONT-B] no stylesheet touched (guests.css / reservations.css are token-checked files); the pages carry no hex colour or font-size',()=>{
-    for(const f of ['src/features/reservations/Reservations.tsx','src/features/guests/InHouse.tsx','src/features/guests/GuestProfile.tsx','src/features/guests/useWideSplit.ts'])
+    for(const f of ['src/features/reservations/Reservations.tsx','src/features/guests/InHouse.tsx','src/features/guests/GuestProfile.tsx'])
       assert.ok(!/#[0-9a-f]{6}|fontSize|font-size/i.test(read(f).replace(/&#\d+;/g,'')),f);
     assert.ok(read('src/features/guests/GuestProfile.tsx').includes('className="gs-record"'),'the record sits in the split pane, not in a second card');
   });

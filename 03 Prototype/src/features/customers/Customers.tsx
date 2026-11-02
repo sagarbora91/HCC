@@ -9,7 +9,7 @@ import {getLegacyLookup,ensureLegacy} from './legacy-source';
 import {PageTitle,SearchBox,Pill,Empty,shortDate,dateLabel} from '../../components/ui';
 import {usePaged,ShowMore,DESKTOP_PAGE,PHONE_PAGE} from '../../components/ShowMore';
 import {GuestDetails,VerifiedPill,statusTone} from '../guests/GuestProfile';
-import {FitPage,FitTabs,ScrollPanel,SplitView,FitNote} from '../../components/fit';
+import {FitPage,FitTabs,ScrollPanel,SplitView,FitNote,useWideSplit} from '../../components/fit';
 
 type Tab='history'|'profile'|'service';
 const initials=(n:string)=>n.split(' ').map(p=>p[0]).slice(0,2).join('').toUpperCase();
@@ -134,14 +134,6 @@ function LegacyStays({c,lp,showMoney}:{c:Customer;lp:{shown:readonly Customer['l
     <ShowMore p={lp}/></>;
 }
 
-function useWide(){
-  const q=()=>typeof window!=='undefined'&&typeof window.matchMedia==='function'?window.matchMedia('(min-width: 900px)').matches:true;
-  const [w,setW]=useState(q);
-  useEffect(()=>{if(typeof window==='undefined'||typeof window.matchMedia!=='function')return;const m=window.matchMedia('(min-width: 900px)');const on=()=>setW(m.matches);on();
-    m.addEventListener?.('change',on);return ()=>m.removeEventListener?.('change',on);},[]);
-  return w;
-}
-
 function CustomersFitPage(){
   const {s,uid,search,setSearch}=useHcc();
   const access=guestAccess(s,uid);
@@ -149,7 +141,7 @@ function CustomersFitPage(){
   const all=useMemo(()=>customerIndex(s,getLegacyLookup()),[s.bookings,s.guests,s.date,legacyRev]); // eslint-disable-line react-hooks/exhaustive-deps
   const list=useMemo(()=>customerSearch(all,search,access.contact),[all,search,access.contact]);
   const paged=usePaged(list,DESKTOP_PAGE);
-  const wide=useWide();
+  const wide=useWideSplit();
   const [sel,setSel]=useState('');
   const picked=all.find(c=>c.key===sel);
   const c=picked??(wide?list[0]:undefined); // wide: the first customer is open as before; narrow: the list first, the customer slides over it

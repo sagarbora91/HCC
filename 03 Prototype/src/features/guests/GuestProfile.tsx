@@ -6,8 +6,7 @@ import {Printer,Hotel,ShieldCheck,UserPlus,Lock} from 'lucide-react';
 import {useHcc} from '../../app/context';
 import {Guest,Booking,guestView,guestAccess,guestById,guestStays,guestSearch,guestDuplicates,guestComplete,totals,money,nights,staySegmentLabel,plural} from '../../services/mock';
 import {SearchBox,Pill,Empty,shortDate,dateLabel} from '../../components/ui';
-import {FitPage,ScrollPanel,SplitView,FitNote} from '../../components/fit';
-import {useWideSplit} from './useWideSplit';
+import {FitPage,ScrollPanel,SplitView,FitNote,useWideSplit} from '../../components/fit';
 import {GuestForm,emptyDraft,draftOf,hashOf} from './GuestForm';
 import {GuestIdValue} from './GuestId';
 
