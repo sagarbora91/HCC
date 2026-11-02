@@ -89,7 +89,7 @@ public sealed partial class ConfigDatabase : IAsyncLifetime
         await Platform.Migrations.MigrateAsync();
         await Platform.DocumentMigrations.MigrateAsync(); // LF-int: the documents database twin (LF-docdb)
         Policy = new AccessModule(Platform, new AccessOptions { PasswordIterations = 1000, PinIterations = 1000 }, Clock).Policy;
-        Registry = new SettingsRegistry([Hcc.Application.Housekeeping.HousekeepingSettings.Provider, Hcc.Application.Tax.GstSettings.Provider]); // module providers as in the composition
+        Registry = new SettingsRegistry([Hcc.Application.Housekeeping.HousekeepingSettings.Provider, Hcc.Application.Tax.GstSettings.Provider, Hcc.Api.Endpoints.EgressEndpoints.Provider]); // F5-E1: + Internet; module providers as in the composition
         Store = new SqlConfigurationStore(Platform.Connections);
         Secrets = new Hcc.Application.GuestIds.GuestIdProtector(new Hcc.Application.GuestIds.StaticGuestIdKeyRing("cfg-test-1",
             new Dictionary<string, byte[]> { ["cfg-test-1"] = System.Security.Cryptography.RandomNumberGenerator.GetBytes(32) }));

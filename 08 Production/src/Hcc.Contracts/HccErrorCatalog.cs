@@ -17,6 +17,7 @@ public static class HccErrorCatalog
         HccErrorCode.IDEMPOTENCY_MISMATCH => 409,
         HccErrorCode.UNAVAILABLE => 503,
         HccErrorCode.UNAUTHENTICATED => 401,
+        HccErrorCode.NET_OFFLINE => 503, // F5-E1
         _ => throw new ArgumentOutOfRangeException(nameof(code), code, "Unknown error code."),
     };
 
@@ -34,6 +35,7 @@ public static class HccErrorCatalog
         HccErrorCode.IDEMPOTENCY_MISMATCH => "Request key already used",
         HccErrorCode.UNAVAILABLE => "Server unavailable",
         HccErrorCode.UNAUTHENTICATED => "Sign in again",
+        HccErrorCode.NET_OFFLINE => "Internet is off", // F5-E1
         _ => throw new ArgumentOutOfRangeException(nameof(code), code, "Unknown error code."),
     };
 }

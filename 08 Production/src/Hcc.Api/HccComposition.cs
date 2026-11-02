@@ -92,6 +92,9 @@ public static class HccComposition
         // LF-ALERTS end
         // LF-IMAGES
         // LF-IMAGES end
+        // F5-E1
+        services.AddEgressModule();                      // F5-E1 internet egress gate: net.* settings, "egress" client, hold / replay, System health Egress
+        // F5-E1 end
         return services;
     }
 
@@ -231,6 +234,9 @@ public static class HccComposition
         // LF-ALERTS end
         // LF-IMAGES
         // LF-IMAGES end
+        // F5-E1
+        api.MapEgressEndpoints();        // F5-E1: GET /admin/system-health/egress (PERM-NET-002)
+        // F5-E1 end
         app.MapHccWebApp(app.Configuration); // W4 F3 (H1): the production web build (index.html) on the same origin
         return api;
     }

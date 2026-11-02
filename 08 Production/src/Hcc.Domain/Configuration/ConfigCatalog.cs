@@ -21,6 +21,9 @@ public static class ConfigGroupIds
     public const string Users = "users";
     public const string Messages = "messages";
     public const string Data = "data";
+
+    // F5-E1 (EGRESS-CONTRACT §1.1): the internet egress switches (net.*). Money flag = Owner-only (DEC-058 rule, owner default A28).
+    public const string Internet = "internet";
 }
 
 /// <summary>Switchable module ids (prototype <c>CfgModuleId</c>). Setting key of each switch = <c>module.&lt;id&gt;</c>.</summary>
@@ -59,6 +62,8 @@ public static class ConfigCatalog
         new(ConfigGroupIds.Users, "Users, roles and PINs", "Software and security", false, "Users and roles live in Access control; PIN lock options"),
         new(ConfigGroupIds.Messages, "Messages and documents", "Software and security", false, "Sender name, consent, gateway key"),
         new(ConfigGroupIds.Data, "Data and system", "Software and security", false, "Backup schedule, restore drill, ID image retention, storage, diagnostics, about"),
+        // F5-E1: Owner only; master switch OFF at go-live (A28).
+        new(ConfigGroupIds.Internet, "Internet", "Software and security", true, "Master internet switch, per-integration switches, allowed time window"),
     ];
 
     public static IReadOnlyList<ConfigModule> Modules { get; } =

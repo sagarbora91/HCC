@@ -369,6 +369,10 @@ export type State={
   remindersX?:RMDState;
   /** LF §1.10: every image / file of the demo keyed by ref (its own IndexedDB record). */
   docObjectsX?:DOBState;
+  // F5-E1
+  /** F5-E1 egress gate mirror (EGRESS-CONTRACT §6): last net.* change + the mock outbound outbox (held / pending / sent). Values live in configX.values['net.*']. */
+  egressX?:import('./streams/egress').NETState;
+  // F5-E1 end
 
   // ── State · stream F fields (add below this line) ──
   /** Immutable closing record per business date (REQ-CLOSE-004). */
