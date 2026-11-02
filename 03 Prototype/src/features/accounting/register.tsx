@@ -8,6 +8,7 @@ import {ManualModal,ManualDecideModal,ManualVoidModal} from './manual';
 import {GstPayModal,StatRemitModal,MonthLockModal,MonthUnlockModal} from './gst';
 import {TdsRemitModal,LoanModal} from './tds';
 import {AssetPutModal,AssetDisposeModal,VendorReallocModal,TdsForm168Modal,GstAdvancesModal} from './carry-ui';
+import {YearLockModal,YearRelockModal,YearReopenModal,BankIgnoreModal,BankCreateModal,BankSettleModal,BankLayoutModal} from './acc4-ui';
 export const registration:FeatureRegistration={
   pages:{'accounting':AccountingPage},
   nav:[
@@ -37,6 +38,14 @@ export const registration:FeatureRegistration={
     'exp-vendor-realloc':p=><VendorReallocModal id={p.id}/>, // id = vendor payment id (Owner, Manager, Accountant)
     'acc-tds-form168':p=><TdsForm168Modal id={p.id}/>,       // id = TDS remittance voucher id (Owner, Accountant)
     'acc-gst-advances':()=><GstAdvancesModal/>,              // Owner
+    // ACC-4 (F5-U1)
+    'acc-year-lock':p=><YearLockModal id={p.id}/>,           // id = FY (Owner)
+    'acc-year-relock':p=><YearRelockModal id={p.id}/>,       // id = FY (Owner)
+    'acc-year-reopen':p=><YearReopenModal id={p.id}/>,       // id = FY (Owner, reason)
+    'acc-bank-ignore':p=><BankIgnoreModal id={p.id}/>,       // id = statement row (Owner, Accountant)
+    'acc-bank-create':p=><BankCreateModal id={p.id}/>,       // id = statement row
+    'acc-bank-settle':p=><BankSettleModal id={p.id}/>,       // id = statement row (B8)
+    'acc-bank-layout':p=><BankLayoutModal id={p.id}/>,       // id = layout id | 'new' (Owner)
   },
   mobile:{pages:{'accounting':AccountingMobile},modals:{}},
 };

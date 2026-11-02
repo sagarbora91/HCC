@@ -127,6 +127,9 @@ export const SUB_SCREENS:SubScreen[]=[
   {page:'accounting',id:'gstsum',label:'GST summary'},
   {page:'accounting',id:'cashratio',label:'Cash ratio'},
   {page:'accounting',id:'exports',label:'Exports',keywords:['report export']},
+  {page:'accounting',id:'year',label:'Year end',keywords:['financial year','carry forward','year lock','reopen year']},
+  {page:'accounting',id:'bank',label:'Bank reconciliation',keywords:['bank statement','match','reconcile bank','utr']},
+  {page:'accounting',id:'clearing',label:'Clearing',keywords:['upi clearing','card clearing','settlement','1010','1020']},
   {page:'accounting',id:'daybook',label:'Day book'},
   {page:'accounting',id:'chart',label:'Chart of accounts',keywords:['ledgers','groups']},
   {page:'accounting',id:'parties',label:'Parties',keywords:['party ledgers','debtors','creditors']},
@@ -196,6 +199,8 @@ export const SUB_SCREEN_GATES:Record<string,(s:State,uid:string)=>boolean>={
   'staff:people':hrDesk,'staff:roster':hrDesk,'staff:attendance':hrDesk,'staff:leave':hrDesk,
   'staff:payroll':hrPay,'staff:advances':hrPay,'staff:fnf':hrPay,'staff:settings':hrPay,
   'accounting:tally':rbacCanTally,
+  'accounting:year':(s,uid)=>['Owner','Accountant'].includes(s.users.find(x=>x.id===uid)?.role??''),'accounting:bank':(s,uid)=>['Owner','Accountant'].includes(s.users.find(x=>x.id===uid)?.role??''), // F5-U1 PERM-ACC-014 / 016
+  'accounting:clearing':books,
   'expenses:vendors':books,
   'channels:commission':s=>!chnCommissionHidden(s),'channels:payouts':books,
   'pos:summary':rbacPosSeesDaySales,
