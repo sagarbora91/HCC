@@ -341,6 +341,11 @@ export type State={
   posX?:import('./streams/pos').POSState;
   staffX?:import('./streams/staff').HRState;
   accountingX?:import('./streams/accounting').ACCState;
+  // F5-A1
+  /** ACC-4 (contract §1, §2): year lock / carry-forward and bank reconciliation slices (optional; SCHEMA stays 13). */
+  accYearX?:import('./streams/accounting-year').AccYearSlice;
+  accBankX?:import('./streams/accounting-bank').AccBankSlice;
+  // F5-A1 end
   assistantX?:import('./streams/assistant').AIState;
   complianceX?:import('./streams/compliance').CMPState;
   /** SCC tax port (DEC-116): compliance evidence file contents (data URLs) by file id — its own slice so the calendar never re-saves them. */

@@ -37,6 +37,9 @@ public static class HccComposition
         services.AddExpensesModule();                   // W2-4 expenses and petty cash
         services.AddAccountingModule();                  // W2-3 accounting & Tally (outbox consumer)
         services.AddAccountingOpeningModule();           // ACC-1 opening balances (IOpeningEntryStore: lock guard, cumulative TB, report opening)
+        // F5-A1
+        services.AddAccountingYearBankModule();          // ACC-4 year lock / carry-forward and bank reconciliation stores
+        // F5-A1 end
         // ACC-2 integration: the lanes' services (endpoint lines in the ACC-2 block below).
         services.AddAccountingManualModule();            // acc2-manual: manual vouchers + the IGstManualVouchers / ITdsRemittancePoster ports over them
         services.AddAccountingTdsModule();               // acc2-tds: TdsService (TDS held back at expense approval, remittance → TDS compliance card)
@@ -171,6 +174,9 @@ public static class HccComposition
         // ACC-1 lanes: add ONE api.MapAccounting<Lane>Endpoints(); line below (append only).
         api.MapAccountingChartEndpoints(); // ACC-1 chart lane
         api.MapAccountingOpeningEndpoints(); // ACC-1 opening balances (contract §5)
+        // F5-A1
+        api.MapAccountingYearBankEndpoints(); // ACC-4 (contract §1, §2)
+        // F5-A1 end
         api.MapAccountingReportEndpoints(); // ACC-1 acc1-statements
         // ACC-1 end
         // ACC-2 lanes: add ONE api.MapAccounting<Lane>Endpoints(); (or services.Add…Module()) line below (append only).

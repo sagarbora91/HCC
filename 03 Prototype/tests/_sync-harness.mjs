@@ -72,6 +72,7 @@ export function fakeServer(routes={}){
     // ACC-1 (integration): the chart master / history and the opening entry are patch loaders of accountingX (empty = built-ins, no entry).
     'GET /accounting/chart/master':()=>({groups:[],ledgers:[],problems:[],canEdit:false}),'GET /accounting/chart/history':()=>[],
     'GET /accounting/opening':()=>({fyStart:'2026-04-01',pending:true,entry:null,lockedFrom:null}),
+    'GET /accounting/year':()=>({years:[],carryForwards:[]}), // F5-A1
     // ACC-2 (integration): the lanes' patch loaders (empty = nothing booked yet).
     'GET /accounting/manual':()=>({vouchers:[],loans:[]}),'GET /accounting/gst/locks':()=>({locks:[],requested:[],setoffs:[],gstOnAdvances:false}),
     'GET /accounting/tds':()=>({hotelDeductsTds:false,deductorType:'other',rates:[],remittances:[]}),

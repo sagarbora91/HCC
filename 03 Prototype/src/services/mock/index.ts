@@ -107,3 +107,8 @@ export * from '../../domain/streams/printnotes'; // LF-images B6: which branding
 // F5-E1
 export * from '../../domain/streams/egress'; // F5-E1 internet egress gate mirror
 // F5-E1 end
+// F5-A1
+export * from '../../domain/streams/accounting-year'; // ACC-4 year lock / carry-forward (contract §1)
+export * from '../../domain/streams/accounting-bank'; // ACC-4 bank reconciliation / clearing (contract §2)
+export {ACC_BANK_LAYOUT_SEED} from '../../fixtures/ext/bank-layouts';
+// F5-A1 end

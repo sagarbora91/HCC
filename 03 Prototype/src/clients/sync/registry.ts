@@ -29,6 +29,9 @@ import {accounting} from './accounting';
 // ACC-1 lanes: add ONE import line for your sync file below (append only).
 import {accountingChart} from './accounting-chart'; // ACC-1 chart lane
 import {accountingOpening} from './accounting-opening';
+// F5-A1
+import {accountingYear} from './accounting-year'; // ACC-4 year end + bank reconciliation
+// F5-A1 end
 // ACC-1 end
 // ACC-2 lanes: ONE line below (append only).
 import {expensesVendor} from './expenses-vendor'; // acc2-purchase
@@ -106,6 +109,9 @@ export const AREAS:SyncArea[]=[
   // ACC-1 lanes: add your sync module name on ONE line below (append only).
   accountingChart, // ACC-1 chart lane
   accountingOpening, // ACC-1 opening balances
+  // F5-A1
+  accountingYear, // ACC-4
+  // F5-A1 end
   // ACC-1 end
 // ACC-2 lanes: ONE line below (append only).
   expensesVendor, // acc2-purchase (vendor payments, returns)
