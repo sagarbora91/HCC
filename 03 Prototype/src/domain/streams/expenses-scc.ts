@@ -51,7 +51,8 @@ export type ExpUdSettlement={id:string;amount:number;date:string;mode:string;by:
  *  Cr CGST · Cr SGST). Rows raised before ACC-1 have neither: kind 'other' (4100), no GST lines (CA note in ACC1-PARTIES-DONE.md). */
 export type ExpUdKind='restaurant'|'room'|'other';
 export type ExpUdReceivable={id:string;name:string;mobile:string;amount:number;date:string;dueDate:string;note:string;settlements:ExpUdSettlement[];by:string;at:string;
-  void?:boolean;voidReason?:string;voidAt?:string;voidBy?:string;kind?:ExpUdKind;gstBps?:number};
+  void?:boolean;voidReason?:string;voidAt?:string;voidBy?:string;kind?:ExpUdKind;gstBps?:number;
+  /** LF §6 / §7: the guest, stay or counter bill that raised this receivable. */ guestId?:string;booking?:string;counterBill?:string};
 /** SCC gm_tax_feed[month] (1508): the month's figures when the Owner generated the feed and locked the month. HCC keeps the expense side
  *  (HCC has no manual income ledger) and SCC's "GST paid on purchases". `stale` is set by a write into the locked month (Owner override). */
 export type ExpMonthFeed={month:string;expense:number;count:number;byCategory:Record<string,number>;gstPaid:number;generatedAt:string;by:string;stale?:boolean;staleAt?:string;

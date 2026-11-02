@@ -181,6 +181,23 @@
     <File Path="database/migrations/4601_legacy_rbac_seed.sql" />
     <File Path="database/migrations/4605_legacy_capture_kind.sql" />
     <File Path="database/migrations/4620_guest_party_ids.sql" />
+    <!-- LF lanes: one File line per migration inside your own range comment (contract §11); keep numeric order. -->
+    <!-- LF-DOCDB 4670-4674 -->
+    <!-- LF-DOCDB end -->
+    <!-- LF-RATE 4675-4679 -->
+    <!-- LF-RATE end -->
+    <!-- LF-BILL 4680-4686 -->
+    <!-- LF-BILL end -->
+    <!-- LF-COUNTER 4687-4694 -->
+    <!-- LF-COUNTER end -->
+    <!-- LF-DESK 4695-4702 -->
+    <!-- LF-DESK end -->
+    <!-- LF-ALERTS 4703-4706 -->
+    <!-- LF-ALERTS end -->
+    <!-- LF-IMAGES 4707-4710 -->
+    <!-- LF-IMAGES end -->
+    <!-- LF-INT 4711-4718 -->
+    <!-- LF-INT end -->
     <File Path="database/migrations/4720_keys_schema.sql" />
     <File Path="database/migrations/4721_keys_rbac_seed.sql" />
   </Folder>

@@ -22,13 +22,14 @@ export type MSGMessage={id:string;template:MSGTemplateId|'manual';channel:MSGCha
   /** Set when the message was never sent (consent, opt-out, no recipient). */
   blocked?:string;
   rule?:string;retryOf?:string;retriedBy?:string;actor:string};
-export type MSGDocKind='id-card'|'vendor-bill'|'company-letter';
+export type MSGDocKind='id-card'|'vendor-bill'|'company-letter'|'photo'; // 'photo' = LF §10.1 guest / party photo
 export type MSGField={key:string;label:string;value:string;confidence:number;
   /** Read-only fields (e.g. masked ID number) cannot be corrected. */
   locked?:boolean};
 export type MSGSample={id:string;kind:MSGDocKind;title:string;file:string;hint:string;fields:MSGField[]};
 export type MSGDoc={id:string;sample:string;kind:MSGDocKind;title:string;status:'Extracted'|'Applied'|'Discarded';
-  fields:(MSGField&{original?:string})[];actor:string;at:string;appliedTo?:string;appliedAt?:string;reason?:string};
+  fields:(MSGField&{original?:string})[];actor:string;at:string;appliedTo?:string;appliedAt?:string;reason?:string;
+  /** LF §1.10 / §10.1 (SCHEMA 13): object ref in s.docObjectsX; party member seq (absent = the primary guest). */ objectRef?:string;partySeq?:number};
 
 /** State slice for this module, stored at s.messagingX (optional; absent in old saves → treat as empty). */
 /** `notConfigured` (production client only): the server's sentence when it has no messaging provider (A09-08); the screens show it as a notice. */
@@ -168,7 +169,7 @@ export const msgInHouse=(s:State)=>s.bookings.filter(b=>b.status==='In house');
 
 // ── Document capture ──
 export const MSG_LOW_CONFIDENCE=0.8;
-export const MSG_DOC_KIND_LABEL:Record<MSGDocKind,string>={'id-card':'ID card','vendor-bill':'Vendor bill','company-letter':'Company letter'};
+export const MSG_DOC_KIND_LABEL:Record<MSGDocKind,string>={'id-card':'ID card','vendor-bill':'Vendor bill','company-letter':'Company letter','photo':'Guest photo'};
 export const msgLowFields=(fields:MSGField[])=>fields.filter(f=>!f.locked&&f.confidence<MSG_LOW_CONFIDENCE).map(f=>f.key);
 /** True when a text holds 8+ consecutive digits (looks like a full ID number). */
 export const msgLooksLikeFullId=(t:string)=>/\d{8,}/.test(String(t).replace(/[\s-]/g,''));

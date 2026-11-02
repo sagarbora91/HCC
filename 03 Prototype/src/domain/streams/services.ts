@@ -14,7 +14,8 @@ export type GSVRequestStatus='Open'|'Assigned'|'In progress'|'Done'|'Cancelled';
 export type GSVRequest={id:string;booking:string;room:string;guest:string;type:GSVRequestType;detail:string;dept:GSVDept;assignee?:string;
   priority:'Normal'|'Urgent';status:GSVRequestStatus;createdAt:string;dueAt:string;scheduledFor?:string;startedAt?:string;doneAt?:string;
   /** Guest-facing completion note (shown to the guest; simulated message). */
-  note?:string;cancelReason?:string;by:string;log:GSVLog[]};
+  note?:string;cancelReason?:string;by:string;log:GSVLog[];
+  /** LF §9.1 B3: wake-up time YYYY-MM-DDTHH:mm (type 'Wake-up call' only). */ wakeAt?:string};
 
 export const GSV_COMPLAINT_CATEGORIES=['Room cleanliness','Maintenance','Noise','Staff behaviour','Food & beverage','Billing','Amenities','Other'] as const;
 export type GSVComplaintCategory=typeof GSV_COMPLAINT_CATEGORIES[number];

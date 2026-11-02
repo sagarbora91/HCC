@@ -286,3 +286,11 @@ export function stayDepartureBounds(s:State,b:Booking){const from=b.status==='In
 export const stayCanExtend=(s:State,b:Booking,departure:string)=>available(s,b.room,b.status==='In house'?s.date:b.arrival,departure,b.id);
 /** Nights in the stay, for display. */
 export const stayNights=(b:Booking)=>nights(b.arrival,b.departure);
+
+// LF lanes: helpers for domain/streams/guests.ts inside your own block (agreedRates + guestView money filter = RATE; creditAccount = COUNTER; vehicle search in stayListRows via a helper called from your block = DESK).
+// LF-RATE
+// LF-RATE end
+// LF-COUNTER
+// LF-COUNTER end
+// LF-DESK
+// LF-DESK end

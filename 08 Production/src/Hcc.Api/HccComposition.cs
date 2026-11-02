@@ -74,6 +74,21 @@ public static class HccComposition
         services.AddLegacyModule();                      // W1a LG legacy Lodge importer (contract §5)
         // LG end
         services.AddKeysModule();                        // KEYS room keys (HCC_KeyAgent_Spec_v1)
+        // LF lanes: ONE services.Add<Lane>Module(); line inside your own block (append only).
+        // LF-DOCDB
+        // LF-DOCDB end
+        // LF-RATE
+        // LF-RATE end
+        // LF-BILL
+        // LF-BILL end
+        // LF-COUNTER
+        // LF-COUNTER end
+        // LF-DESK
+        // LF-DESK end
+        // LF-ALERTS
+        // LF-ALERTS end
+        // LF-IMAGES
+        // LF-IMAGES end
         return services;
     }
 
@@ -182,6 +197,21 @@ public static class HccComposition
         // LG
         api.MapLegacyEndpoints();        // W1a LG legacy importer + runs
         // LG end
+        // LF lanes: ONE api.Map<Lane>Endpoints(); line inside your own block (append only).
+        // LF-DOCDB
+        // LF-DOCDB end
+        // LF-RATE
+        // LF-RATE end
+        // LF-BILL
+        // LF-BILL end
+        // LF-COUNTER
+        // LF-COUNTER end
+        // LF-DESK
+        // LF-DESK end
+        // LF-ALERTS
+        // LF-ALERTS end
+        // LF-IMAGES
+        // LF-IMAGES end
         app.MapHccWebApp(app.Configuration); // W4 F3 (H1): the production web build (index.html) on the same origin
         return api;
     }

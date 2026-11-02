@@ -102,6 +102,10 @@ export const handlers:Record<string,Handler>={
     if(pg){const m=guestPartyIdMessage(pg.party);k.assert(!m,m);}
     k.assert(!blockedTonight(s,r)&&r.hk==='Ready'&&!occupant(s,r.id),'The room must be vacant, ready and unblocked.','NOT_AVAILABLE');
     k.assert(available(s,r.id,x.arrival,x.departure,x.id),'The room allocation conflicts with another booking.','NOT_AVAILABLE');
+    // LF-RATE · CHECKIN rate:'agreed' (§3)
+    // LF-RATE end
+    // LF-DESK · CHECKIN purpose / vehicle / Form C / checkoutBasis / checkedInAt (§8)
+    // LF-DESK end
     x.status='In house';x.segments=[{room:r.id,from:s.date}];x.version++;return x.guest+' → room '+r.id;
   },
   /** Move room / extend / shorten. Confirmed bookings behave exactly as M1. In-house: target validated (reserved) before the old room

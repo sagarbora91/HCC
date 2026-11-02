@@ -90,6 +90,10 @@ export const handlers:Record<string,Handler>={
     if(plan)x.plan=plan.code;
     const before=account?grpExposure(s,account):0;
     if(account)x.company={...x.company!,account:account.id};
+    // LF-RATE · BOOK rate:'agreed' (§3)
+    // LF-RATE end
+    // LF-DESK · BOOK purpose / vehicle / checkoutBasis (§8)
+    // LF-DESK end
     s.bookings.push(x);
     if(account)creditCheck(k,account,x,before);
     return `${bid} · ${cmd.guest} · room ${cmd.room}${hold?' · held until '+x.holdUntil!.slice(11,16):''}${overridden}`;

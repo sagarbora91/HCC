@@ -40,7 +40,38 @@ import {handlers as credentials} from './credentials'; // A02b-05 self-service p
 import {handlers as syshealth} from './syshealth';
 import {handlers as roommasters} from './roommasters';
 import {handlers as keys} from './keys'; // KEYS room keys
+// LF lanes: ONE import line inside your own block (append only); spread it in the LF object below.
+// LF-DOCDB
+// LF-DOCDB end
+// LF-RATE
+// LF-RATE end
+// LF-BILL
+// LF-BILL end
+// LF-COUNTER
+// LF-COUNTER end
+// LF-DESK
+// LF-DESK end
+// LF-ALERTS
+// LF-ALERTS end
+// LF-IMAGES
+// LF-IMAGES end
 import {handlers as catalogue} from './catalogue'; // MA-2 (last: wraps folio APPROVAL)
 const ACC1:Record<string,Handler>={...accountingChart,...accountingOpening,}; // ACC-1 lanes: spread your handlers here, e.g. {...accountingChart}
 const ACC2:Record<string,Handler>={...expensesVendor,...accountingManual,...accountingTds,...accountingGst,...accountingFlows,...accountingAssets,}; // ACC-2 lanes: spread your handlers here, e.g. {...accountingManual}
-export const registry:Record<string,Handler>={...ACC1,...ACC2,...reservations,...guests,...folio,...housekeeping,...admin,...closing,...expenses,...yieldMod,...groups,...channels,...maintenance,...inventory,...handover,...services,...messaging,...pos,...staff,...accounting,...assistant,...compliance,...cashbook,...cashout,...masters,...credentials,...syshealth,...roommasters,...keys,...catalogue};
+const LF:Record<string,Handler>={ // LF lanes: spread your handlers inside your own block, e.g. ...stayRate,
+  // LF-DOCDB
+  // LF-DOCDB end
+  // LF-RATE
+  // LF-RATE end
+  // LF-BILL
+  // LF-BILL end
+  // LF-COUNTER
+  // LF-COUNTER end
+  // LF-DESK
+  // LF-DESK end
+  // LF-ALERTS
+  // LF-ALERTS end
+  // LF-IMAGES
+  // LF-IMAGES end
+};
+export const registry:Record<string,Handler>={...ACC1,...ACC2,...reservations,...guests,...folio,...housekeeping,...admin,...closing,...expenses,...yieldMod,...groups,...channels,...maintenance,...inventory,...handover,...services,...messaging,...pos,...staff,...accounting,...assistant,...compliance,...cashbook,...cashout,...masters,...credentials,...syshealth,...roommasters,...keys,...LF,...catalogue};

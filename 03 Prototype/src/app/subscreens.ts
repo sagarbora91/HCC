@@ -163,6 +163,13 @@ export const SUB_SCREENS:SubScreen[]=[
   {page:'prefs',id:'display',label:'Device & display',keywords:['phone layout','desktop layout']},
   {page:'prefs',id:'navigation',label:'Start & navigation',keywords:['start page','page size']},
   {page:'prefs',id:'alerts',label:'Alerts',keywords:['message duration']},
+  // LF lanes (contract §11): one sub-screen per line inside your own block.
+  // LF-DESK
+  // LF-DESK end
+  // LF-ALERTS
+  // LF-ALERTS end
+  // LF-UI
+  // LF-UI end
 ];
 
 /** Review S3: sub-screens a role's page never shows (the page falls back to its default tab) are not listed in the search palette for that

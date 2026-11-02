@@ -62,6 +62,8 @@ const PAYMENT:Handler=k=>{
   const {s,cmd,req,b,open,positive,assert,mutable,fail,id,uid}=k;
   req('payments');const x=b();open();positive(cmd.amount);
   const kind:Receipt['kind']=cmd.kind||'payment';
+  // LF-BILL · PAYMENT on a departed folio for exactly the correction balance (§4)
+  // LF-BILL end
   if(kind==='refund')fail('INVALID_TRANSITION','Refunds are no longer posted directly. Use “Request refund” on the original receipt; after approval, execute the refund.');
   assert(['payment','deposit','deposit-return'].includes(kind),'Invalid receipt type.');
   if(['payment','deposit'].includes(kind))mutable(x);
@@ -257,6 +259,13 @@ const APPROVAL:Handler=k=>{
       (x!.creditNotes??=[]).push({id:id('CN'),no,amount:a!.amount,reason:a!.reason,date:s.date,approvalId:a!.id,lineId:lid});
       x!.version++;a!.status='Executed';a!.meta={...a!.meta,creditNote:no};extra=' · '+no+' issued';
     }
+    // LF lanes: your approval kind as a separate `if(kind==='<kind>'){…}` statement inside your own block (folioKind must know the kind).
+    // LF-RATE · APPROVAL branch
+    // LF-RATE end
+    // LF-BILL · APPROVAL branch
+    // LF-BILL end
+    // LF-COUNTER · APPROVAL branch
+    // LF-COUNTER end
     // Other kinds (owned elsewhere, defaulting to meta.command 'APPROVAL') are simply decided here; their owner executes.
   }
   if(a!.status==='Pending')a!.status=cmd.approve?'Approved':'Rejected';
@@ -271,6 +280,8 @@ const CHECKOUT:Handler=k=>{
   const {s,cmd,req,open,b,assert,id,uid}=k;
   req('checkout');open();const x=b();assert(x.status==='In house','This stay is not in house.','INVALID_TRANSITION');
   for(let d=x.arrival;d<x.departure;d=addDays(d,1))assert(x.lines.some(l=>l.kind==='room'&&l.date===d),'Post all agreed stay charges before checkout.','INVALID_TRANSITION');
+  // LF-DESK · CHECKOUT late check-out (half-day / full-night / waived, §8.4)
+  // LF-DESK end
   let detail='';
   const bal=totals(x).balance;
   if(bal>0){
@@ -290,6 +301,8 @@ const CHECKOUT:Handler=k=>{
       detail=` · ${money(bal)} to ${ch.name} (OTA receivable)`;
     }
   }
+  // LF-COUNTER · CHECKOUT 'guest-credit' receipt + Udhaar receivable (§7)
+  // LF-COUNTER end
   assert(totals(x).balance===0,'Settle the folio exactly before checkout. Refund any excess receipt.','INVALID_TRANSITION');
   assert(totals(x).deposit===0,'Return the refundable deposit before checkout.','INVALID_TRANSITION');
   const pending=s.approvals.filter(a=>a.booking===x.id&&a.status==='Pending'&&!folioApprovalExpired(s,a));

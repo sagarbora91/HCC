@@ -17,7 +17,8 @@ export type SYSBackupRun={kind:string;ok:boolean;at:string;file?:string;sizeByte
 /** Stored slice: the server's answer (source 'server'), or the demo's remaining parked events after a retry (source 'demo'). */
 export type SYSState={source:'server'|'demo';parked:SYSParked[];lastBackup?:SYSBackupRun;lastOkBackupAt?:string;lastDrill?:SYSBackupRun;
   /** Windows Event Log source HCC on the server PC: on | off | unavailable (not Windows / demo). */
-  eventLog?:'on'|'off'|'unavailable';checkedAt?:string};
+  eventLog?:'on'|'off'|'unavailable';checkedAt?:string;
+  /** LF §1.9: main + documents database rows. */ databases?:import('../types').SYSDatabase[]};
 export type SYSView=Required<Pick<SYSState,'source'|'parked'>>&Omit<SYSState,'source'|'parked'>&{eventLog:'on'|'off'|'unavailable'};
 
 /** The shipped server consumers (migration 2900) as people call them (same table as SystemHealthService.ConsumerLabels). */

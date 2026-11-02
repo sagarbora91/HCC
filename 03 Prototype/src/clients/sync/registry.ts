@@ -37,6 +37,21 @@ import {accountingTds} from './accounting-tds'; // ACC-2 tds lane
 import {accountingGst} from './accounting-gst'; // ACC-2 gst lane
 import {accountingFlows} from './accounting-flows'; // acc2-flows
 // ACC-2 end
+// LF lanes: ONE import line for your sync file inside your own block (append only).
+// LF-DOCDB
+// LF-DOCDB end
+// LF-RATE
+// LF-RATE end
+// LF-BILL
+// LF-BILL end
+// LF-COUNTER
+// LF-COUNTER end
+// LF-DESK
+// LF-DESK end
+// LF-ALERTS
+// LF-ALERTS end
+// LF-IMAGES
+// LF-IMAGES end
 
 // W4-8 POS:
 import {pos} from './pos';
@@ -115,4 +130,19 @@ export const AREAS:SyncArea[]=[
   roommasters, // MA-1
   moneyMasters, // MA-3
   catalogue, // MA-2
+  // LF lanes: your AREAS entry inside your own block.
+  // LF-DOCDB
+  // LF-DOCDB end
+  // LF-RATE
+  // LF-RATE end
+  // LF-BILL
+  // LF-BILL end
+  // LF-COUNTER
+  // LF-COUNTER end
+  // LF-DESK
+  // LF-DESK end
+  // LF-ALERTS
+  // LF-ALERTS end
+  // LF-IMAGES
+  // LF-IMAGES end
 ];

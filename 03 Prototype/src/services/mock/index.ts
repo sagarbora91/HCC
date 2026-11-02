@@ -78,3 +78,18 @@ export * from '../../fixtures/ext/masters-seed'; // MA-9 one masters seed
 // LG
 export {LEGACY_SAMPLE} from '../../fixtures/ext/legacy-sample'; // W1a LG: fictional legacy stays (stream-legacy-golden.mjs)
 // LG end
+// LF lanes: export lines for your domain streams inside your own block (append only).
+// LF-DOCDB
+// LF-DOCDB end
+// LF-RATE
+// LF-RATE end
+// LF-BILL
+// LF-BILL end
+// LF-COUNTER
+// LF-COUNTER end
+// LF-DESK
+// LF-DESK end
+// LF-ALERTS
+// LF-ALERTS end
+// LF-IMAGES
+// LF-IMAGES end

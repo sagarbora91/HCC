@@ -41,6 +41,11 @@ export const PAGE_CATEGORY:Record<string,CategoryId>={
   'plans-extras':'accounts', // MA-2
   'legacy-import':'admin', // LG-UI: old Lodge software import — Owner (PERM-LGC-001)
   prefs:'admin', // CP-1 Appearance & display (every role, this device only)
+  // LF lanes: your PAGE_CATEGORY line inside your own block (contract §11: 'desk-alerts':'front' = LF-ALERTS, 'counter-bills':'cash' = LF-UI).
+  // LF-ALERTS
+  // LF-ALERTS end
+  // LF-UI
+  // LF-UI end
   access:'admin',settings:'admin',approvals:'admin',backup:'admin',roadmap:'admin',
 };
 
