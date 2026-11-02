@@ -7,6 +7,7 @@ import type {State} from '../domain/types';
 import {cfgPageOn} from '../domain/streams/config';
 import {cmpHasAccess} from '../domain/streams/compliance';
 import {rmdCanManage} from '../domain/streams/reminders'; // LF-ALERTS
+import {trcCan} from '../domain/streams/tariffcard'; // F4-T1
 import {rbacCanViewClosing,rbacSeesApprovals,rbacIsRestaurant,rbacSeesBooks,rbacIsRole,rbacTechAdminTemplates,RBAC_RESTAURANT_PAGES} from '../domain/streams/rbac';
 
 export type CategoryId='front'|'cash'|'hkm'|'guestsvc'|'customers'|'revenue'|'stock'|'people'|'accounts'|'admin';
@@ -51,6 +52,7 @@ export const PAGE_CATEGORY:Record<string,CategoryId>={
   // LF-UI end
   // F4 lanes (F4-CONTRACT): 'tariff-card':'revenue' = F4-T1, 'owner-digest':'accounts' = F4-T2.
   // F4-T1
+  'tariff-card':'revenue',
   // F4-T1 end
   // F4-T2
   // F4-T2 end
@@ -96,6 +98,7 @@ export const PAGE_BLURB:Record<string,string>={
   prefs:'Text size, motion, start page, lists, messages (this device)',
   'desk-alerts':'Desk reminders with alert days and guests\' wake-up calls', // LF-ALERTS
   'counter-bills':'Bills for walk-in customers: paid now, Udhaar credit or company credit', // LF-UI
+  'tariff-card':'Published room, meal and extra prices by valid-from date; rate sheet', // F4-T1
 };
 
 /** Extra words people type for a page (synonyms, hotel jargon, Hindi-English habits). The label and category are matched too. */
@@ -141,6 +144,7 @@ export const PAGE_KEYWORDS:Record<string,string[]>={
   keys:['key','keys','room key','key card','keycard','card','encoder','lock','lost card','reissue','re-issue','reactivate','recharge','extend key','manual key','chabi','chaabi','key log','door lock','bis'],
   'legacy-import':['legacy import','old software','lodge','old data','import history','dry run','migration','legacy','previous software'],
   'counter-bills':['counter bill','direct bill','walk-in','walk in','udhaar','credit note','bill'], // LF-UI
+  'tariff-card':['tariff card','rate card','rate sheet','price list','tariff','weekend rate','extra person','gst inclusive'], // F4-T1
   'desk-alerts':['reminder','reminders','alert','alerts','wake up','wake-up','wakeup','alarm','alert days','due date'], // LF-ALERTS
   roadmap:['roadmap','future','planned','modules','phases'],
   prefs:['appearance','display','text size','font','font size','bigger text','larger text','zoom','motion','animation','density','compact','start page','home page','page size','rows','toast','messages','preferences','my settings','theme'],
@@ -221,6 +225,7 @@ export function navFilterModules<T extends {id:string}>(s:State,items:readonly T
  * its own shifts & pay only. */
 export function navRoleOk(s:State,uid:string,page:string):boolean{
   if(rbacIsRestaurant(s,uid))return RBAC_RESTAURANT_PAGES.includes(page);
+  if(page==='tariff-card')return trcCan(s,uid,'view'); // F4-T1: PERM-TRF-001 (not housekeeping / maintenance, DEC-061)
   if(page==='desk-alerts')return rmdCanManage(s,uid); // LF-ALERTS: PERM-RMD-001 = Owner, Manager, Reception, Accountant
   if(page==='compliance')return cmpHasAccess(s,uid);
   if(page==='closing')return rbacCanViewClosing(s,uid);

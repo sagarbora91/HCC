@@ -183,6 +183,12 @@ export const SUB_SCREENS:SubScreen[]=[
   {page:'cashier',id:'credit-guests',label:'Credit guests',keywords:['guest credit','udhaar','outstanding']},
   // LF-UI end
   // F4-T1
+  {page:'tariff-card',id:'rooms',label:'Rooms',keywords:['room prices','weekday','weekend','extra person']},
+  {page:'tariff-card',id:'meals',label:'Meal plans & extras',keywords:['breakfast','cp','map','add-on']},
+  {page:'tariff-card',id:'seasons',label:'Seasons & weekends',keywords:['valid from','season','weekend nights']},
+  {page:'tariff-card',id:'halls',label:'Halls',keywords:['hall','banquet']},
+  {page:'tariff-card',id:'history',label:'History',keywords:['versions','publish log']},
+  {page:'tariff-card',id:'print',label:'Print',keywords:['rate sheet','print','csv']},
   // F4-T1 end
   // F4-T2
   // F4-T2 end

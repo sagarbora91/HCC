@@ -41,6 +41,7 @@ import {registration as lfMoney} from '../features/lfmoney/register';
 // LF-UI end
 // F4 lanes: ONE import line inside your own block; the registration name inside your block in `registrations` below.
 // F4-T1
+import {registration as tariffCard} from '../features/tariffcard/register';
 // F4-T1 end
 // F4-T2
 // F4-T2 end
@@ -73,6 +74,7 @@ export const registrations:FeatureRegistration[]=[reservations,guests,customers,
   lfMoney,
   // LF-UI end
   // F4-T1
+  tariffCard,
   // F4-T1 end
   // F4-T2
   // F4-T2 end
