@@ -221,6 +221,15 @@ public sealed class AccountingVoucherProjector(SqlConnectionFactory connections,
                 break;
             }
 
+            case AccountingEvents.CounterBillIssued: // LF A7
+            case AccountingEvents.CounterBillCredited:
+            {
+                var e = Parse<Hcc.Application.Counter.CounterBillPostedEvent>(evt);
+                var tender = e.Mode == "paid" && e.Tender is { } t ? await TenderPartyAsync(connection, transaction, propertyId, t, ct).ConfigureAwait(false) : null;
+                source = AccountingEventMapper.CounterBill(e, evt.EventType == AccountingEvents.CounterBillCredited, new PartyContext(Tender: tender));
+                break;
+            }
+
             case AccountingEvents.UdhaarCreditRaised: // ACC-1 (contract §4, A17)
                 source = AccountingEventMapper.UdhaarCredit(Parse<UdhaarCreditRaisedEvent>(evt));
                 break;
