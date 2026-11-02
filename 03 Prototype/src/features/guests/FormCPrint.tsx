@@ -46,7 +46,7 @@ export function ForeignerRegisterPanel(){
   const rows=useMemo(()=>deskForeignerRegister(s,uid,from,to),[s.bookings,s.guests,from,to,uid]); // eslint-disable-line react-hooks/exhaustive-deps
   const csv=()=>{const lines=[DESK_FORMC_CSV_COLUMNS,...deskForeignerCsvRows(rows)].map(r=>r.map(csvMinimal).join(','));
     void saveAndReport(saveCsv(`foreigner-register-${from}_${to}.csv`,lines.join('\r\n')),toast,`Foreigner register saved · ${rows.length} stay${rows.length===1?'':'s'}`,'the foreigner register');};
-  return <ScrollPanel title="Foreigner register" label="Foreigner register" actions={<span className="inline">
+  return <ScrollPanel title="Foreigner register" label="Foreigner register" actions={<span className="inline ld-range">
       <label className="inline">From <input type="date" value={from} max={to} onChange={e=>setFrom(e.target.value)}/></label>
       <label className="inline">To <input type="date" value={to} min={from} onChange={e=>setTo(e.target.value)}/></label>
       <button className="btn" disabled={!rows.length} onClick={csv}><Download size={15}/> CSV</button></span>}
@@ -58,6 +58,6 @@ export function ForeignerRegisterPanel(){
         <td>{r.formC?<Pill tone="green">Recorded</Pill>:<Pill tone="orange">Missing</Pill>}</td>
         <td>{r.formC?<button className="text-btn" onClick={()=>open({type:'form-c-print',id:r.booking})}><FileText size={13}/> Form C</button>
           :r.status==='Confirmed'||r.status==='In house'?<button className="text-btn" onClick={()=>open({type:'guest-checkin',id:r.booking})}>Add</button>:null}</td></tr>)}
-    </tbody></table></div>:<Empty title="No foreign guests in this period" body="Stays of guests whose nationality is not Indian appear here, with their Form C."/>}
+    </tbody></table></div>:<p className="muted padded">No foreign guests in this period. Stays of guests whose nationality is not Indian appear here, with their Form C.</p>}
   </ScrollPanel>;
 }

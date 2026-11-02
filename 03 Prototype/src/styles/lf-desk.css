@@ -27,3 +27,4 @@
 .dk-key{display:inline-block;min-width:60px;text-align:center;border:1px solid var(--line);border-radius:6px;padding:2px 8px;font-family:inherit;font-size:12px;background:var(--bg)}
 .dk-short td,.dk-short th{padding:6px 10px;text-align:left;border-bottom:1px solid var(--line)}
 .search-key{margin-left:auto;margin-right:8px;font-size:11px;border:1px solid var(--line);border-radius:4px;padding:1px 6px;color:var(--muted)}
+.ld-range input{font-size:11px}
