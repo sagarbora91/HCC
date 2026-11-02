@@ -67,7 +67,18 @@
     {"version": 4700, "file": "4700_desk_import_masters.sql", "reason": "F3 LF lanes: contract-assigned ranges (LF-CONTRACT), merged in wave order"},
     {"version": 4703, "file": "4703_alerts_wake_at.sql", "reason": "F3 LF lanes: contract-assigned ranges (LF-CONTRACT), merged in wave order"},
     {"version": 4704, "file": "4704_alerts_reminder.sql", "reason": "F3 LF lanes: contract-assigned ranges (LF-CONTRACT), merged in wave order"},
-    {"version": 4705, "file": "4705_alerts_rbac_seed.sql", "reason": "F3 LF lanes: contract-assigned ranges (LF-CONTRACT), merged in wave order"}
+    {"version": 4705, "file": "4705_alerts_rbac_seed.sql", "reason": "F3 LF lanes: contract-assigned ranges (LF-CONTRACT), merged in wave order"},
+    {"version": 4280, "file": "4280_acc_fiscal_year.sql", "reason": "F5-A1 ACC-4 block 4280-4294 reserved by the Wave Plan F5 (ACC4-CONTRACT section 5); numbered below 4720 KEYS merged earlier"},
+    {"version": 4281, "file": "4281_acc_carry_forward.sql", "reason": "F5-A1 ACC-4 block 4280-4294 reserved by the Wave Plan F5 (ACC4-CONTRACT section 5); numbered below 4720 KEYS merged earlier"},
+    {"version": 4282, "file": "4282_acc_refers_to_fy.sql", "reason": "F5-A1 ACC-4 block 4280-4294 reserved by the Wave Plan F5 (ACC4-CONTRACT section 5); numbered below 4720 KEYS merged earlier"},
+    {"version": 4283, "file": "4283_acc_year_lock_guard.sql", "reason": "F5-A1 ACC-4 block 4280-4294 reserved by the Wave Plan F5 (ACC4-CONTRACT section 5); numbered below 4720 KEYS merged earlier"},
+    {"version": 4284, "file": "4284_acc_year_rbac_seed.sql", "reason": "F5-A1 ACC-4 block 4280-4294 reserved by the Wave Plan F5 (ACC4-CONTRACT section 5); numbered below 4720 KEYS merged earlier"},
+    {"version": 4285, "file": "4285_mst_bank_statement_layout.sql", "reason": "F5-A1 ACC-4 block 4280-4294 reserved by the Wave Plan F5 (ACC4-CONTRACT section 5); numbered below 4720 KEYS merged earlier"},
+    {"version": 4286, "file": "4286_acc_bank_statement.sql", "reason": "F5-A1 ACC-4 block 4280-4294 reserved by the Wave Plan F5 (ACC4-CONTRACT section 5); numbered below 4720 KEYS merged earlier"},
+    {"version": 4287, "file": "4287_acc_bank_match.sql", "reason": "F5-A1 ACC-4 block 4280-4294 reserved by the Wave Plan F5 (ACC4-CONTRACT section 5); numbered below 4720 KEYS merged earlier"},
+    {"version": 4288, "file": "4288_acc_bank_settlement_source.sql", "reason": "F5-A1 ACC-4 block 4280-4294 reserved by the Wave Plan F5 (ACC4-CONTRACT section 5); numbered below 4720 KEYS merged earlier"},
+    {"version": 4289, "file": "4289_acc_bank_recon_view.sql", "reason": "F5-A1 ACC-4 block 4280-4294 reserved by the Wave Plan F5 (ACC4-CONTRACT section 5); numbered below 4720 KEYS merged earlier"},
+    {"version": 4293, "file": "4293_acc_bank_rbac_seed.sql", "reason": "F5-A1 ACC-4 block 4280-4294 reserved by the Wave Plan F5 (ACC4-CONTRACT section 5); numbered below 4720 KEYS merged earlier"}
   ],
   "migrations": [
     {"version": 1, "file": "0001_platform.sql", "sha256": "2CB8FB349156F501295E1148366BDFE406EC097C136093F09C6F0817542F46CC"},
@@ -239,6 +250,17 @@
     {"version": 4700, "file": "4700_desk_import_masters.sql", "sha256": "3DC7F6A4716005DDDABC54C8C8DA35F751D3715CF1FC30DB36D6BEF8F5F3A8B6"},
     {"version": 4703, "file": "4703_alerts_wake_at.sql", "sha256": "392461A77CAF0D629CE63B17DEA3E0C4B7DF279D7336650C2BFD916D911F8AAC"},
     {"version": 4704, "file": "4704_alerts_reminder.sql", "sha256": "91A75868DCDF51FBE6A8A1A5F2574CA22674E7A59160B5E6F7884FFE4BAB25F8"},
-    {"version": 4705, "file": "4705_alerts_rbac_seed.sql", "sha256": "BBD18B4626DDE6BB700C0638856BF80BBB6C87667E03EB9F93A4D431CFCB887D"}
+    {"version": 4705, "file": "4705_alerts_rbac_seed.sql", "sha256": "BBD18B4626DDE6BB700C0638856BF80BBB6C87667E03EB9F93A4D431CFCB887D"},
+    {"version": 4280, "file": "4280_acc_fiscal_year.sql", "sha256": "4181A2D25989846AB5509496424707FFB1EE9886DAACE9A636E9E51740034D00"},
+    {"version": 4281, "file": "4281_acc_carry_forward.sql", "sha256": "5793637B3E638BECD0AE49F39840E581513E9DCD41EEC4A7C7BAB0DCF8DD9438"},
+    {"version": 4282, "file": "4282_acc_refers_to_fy.sql", "sha256": "7690716D0C28CFC121585F672C8596B378ACDB2AE156AF8154BEABB059299556"},
+    {"version": 4283, "file": "4283_acc_year_lock_guard.sql", "sha256": "7894A4D6BB99FDE47BFB35B98F701BE9FF469EF48A52ED1AA3C6CA5A43A75A2C"},
+    {"version": 4284, "file": "4284_acc_year_rbac_seed.sql", "sha256": "60FB15983DE0C7C3F2541202314945025CC42B7E35CEFC8D43FF1D29F4B6C306"},
+    {"version": 4285, "file": "4285_mst_bank_statement_layout.sql", "sha256": "4AB39F644D566EAF6C5797731A48A67484FBB44B5191A569C77511BC73EE1E64"},
+    {"version": 4286, "file": "4286_acc_bank_statement.sql", "sha256": "4236EAD4BD5B6574B8F6BAD6DBDCA0E6473C4F9CCD8CCE9AB0844473DAAB4731"},
+    {"version": 4287, "file": "4287_acc_bank_match.sql", "sha256": "67DEAA0C531DF9F407B30C904E332BADB26A3225120200D260DFDB5BDF45CFD4"},
+    {"version": 4288, "file": "4288_acc_bank_settlement_source.sql", "sha256": "C40B2DE1EED9673BBC33FD6A4E6BC6343D180B3FCCA6A7DC0B20ACCAE9AEC52F"},
+    {"version": 4289, "file": "4289_acc_bank_recon_view.sql", "sha256": "E56700800877676C5A9787203E6098C77365C2C48401EF667E2767595E532083"},
+    {"version": 4293, "file": "4293_acc_bank_rbac_seed.sql", "sha256": "67D5065677D0AB38996FE48EEC0D9ED8483CE8ADB71AC25A5351D2E2715DAD4A"}
   ]
 }
