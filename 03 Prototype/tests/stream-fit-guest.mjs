@@ -39,7 +39,7 @@ export async function register({test,M,assert}){
     const lf=render(X.GuestServicesPage,'reception',{page:'guest-services',tabKey:'lost-found'});
     assert.match(lf,/data-tab="lost-found"[^>]*aria-selected="true"/);assert.ok(lf.includes('Log found item')&&lf.includes('Lost and found items'));
     const rp=render(X.GuestServicesPage,'reception',{page:'guest-services',tabKey:'reports'});assert.ok(rp.includes('Print report')&&rp.includes('Response times by request type'));
-    assert.ok(html.includes('class="fit-stats"')&&html.includes('Open requests')&&html.includes('Within SLA')&&html.includes('Open complaints')&&html.includes('Lost &amp; found held'),'the four stat tiles are a StatStrip');
+    assert.ok(html.includes('class="fit-stats fit-stats-compact"')&&html.includes('Open requests')&&html.includes('Within SLA')&&html.includes('Open complaints')&&html.includes('Lost &amp; found held'),'the four stat tiles are a StatStrip');
   });
   test('[FIT-GUEST] guest-services Complaints keeps the recovery-discount footnote for roles without billing (FitNote in the panel footer)',()=>{
     for(const uid of ['reception','housekeeper','owner','cashier','supervisor']){
@@ -60,7 +60,7 @@ export async function register({test,M,assert}){
     assert.ok(html.indexOf('Compose')<html.indexOf('Simulate delivery'),'primary action first');
     for(const [tab,needle] of [['triggers','Pending triggers'],['templates','Message templates'],['consent','Guest consent']])
       assert.ok(render(X.MsgMessagesPage,'owner',{page:'messages',tabKey:tab}).includes(needle),tab);
-    assert.ok(html.includes('class="small-stats fit-small-stats msg-stats"')&&html.includes('Not sent (consent)')&&html.includes('Pending triggers'));
+    assert.ok(html.includes('class="small-stats fit-small-stats msg-stats fit-stats-compact"')&&html.includes('Not sent (consent)')&&html.includes('Pending triggers'));
   });
   test('[FIT-GUEST] messages: the outbox renders one page (usePaged) with ShowMore in the panel footer, not every row',()=>{
     const total=X.msgOutbox(s).length;

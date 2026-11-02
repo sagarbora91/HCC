@@ -28,7 +28,7 @@ export function ChannelsPage(){
     ...(!hidden?[{title:'Commission due',value:money(rep.total.commission)}]:[])];
   return <FitPage title="OTA channels" sub="Module 21 · channel manager preview — connections, room mapping, rate & availability push, inbound reservations and commission. Simulated."
     actions={<button className="btn primary" disabled={busy} onClick={()=>run({type:'CHN_PULL'},'Checked channels (simulated)')}><RefreshCw size={15}/> Check for new messages</button>}
-    toolbar={<StatStrip items={stats} variant="small"/>}
+    toolbar={<StatStrip items={stats} variant="small" compact collapseOnTablet/>}
     tabs={<FitTabs page="channels" value={t} onChange={setTab} tabs={chnTabsFor(hidden,po).map(x=>({id:x.id,label:x.label,count:x.id==='inbox'&&pend.length>0?pend.length:undefined,badge:x.id==='inbox'&&pend.length>0?'warn' as const:undefined}))}/>}>
     {t==='inbox'&&<InboxTab/>}{t==='channels'&&<ChannelsTab/>}{t==='push'&&<PushTab/>}{t==='commission'&&<CommissionTab/>}{t==='payouts'&&<ScrollPanel label="Payouts" footer={<ChnNote/>}><PayoutsTab/></ScrollPanel>}
   </FitPage>;

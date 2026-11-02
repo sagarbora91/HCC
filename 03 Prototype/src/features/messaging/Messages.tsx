@@ -49,7 +49,7 @@ export function MsgMessagesPage(){
       actions={<>{a.canAct&&<button className="btn primary" disabled={busy} onClick={()=>open({type:'msg-compose'})}><Send size={16}/> Compose</button>}
         {a.canAct&&<button className="btn" disabled={busy||!a.unfinished} onClick={a.simulateAll}><FastForward size={16}/> Simulate delivery</button>}</>}
       toolbar={<StatStrip items={[{title:'Queued / sent',value:String(c.Queued+c.Sent)},{title:'Delivered / read',value:String(c.Delivered+c.Read)},{title:'Failed',value:String(c.Failed)},
-        {title:'Not sent (consent)',value:String(c['Not sent'])},{title:'Pending triggers',value:String(a.pending.length)}]} variant="small" className="msg-stats"/>}
+        {title:'Not sent (consent)',value:String(c['Not sent'])},{title:'Pending triggers',value:String(a.pending.length)}]} variant="small" className="msg-stats" compact collapseOnTablet/>}
       tabs={<FitTabs<DeskTab> page="messages" value={tab} onChange={setTab} tabs={shown.map(id=>({id,label:DESK_TAB_LABEL[id],count:count(id)}))}/>}>
     {/* S2: the "Simulated" (demo) / "Messaging is off" (production) note on every tab, for every role (the Tech admin sees only Triggers / Templates) */}
     <MsgSimulatedNote/>

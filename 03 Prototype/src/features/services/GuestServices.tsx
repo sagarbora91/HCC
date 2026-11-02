@@ -36,7 +36,7 @@ export function GuestServicesPage(){
         {title:'Open requests',value:String(counts.Requests),sub:`${t.overdue} overdue`},
         {title:'Within SLA',value:t.done?t.pct+'%':'—',sub:`avg ${t.avg} min · ${t.done} done`},
         {title:'Open complaints',value:String(counts.Complaints),sub:`${x.complaints.filter(c=>gsvFollowUpDue(s,c)).length} follow-up due`},
-        {title:'Lost & found held',value:String(counts['Lost & found']),sub:`${x.items.filter(i=>gsvDisposable(s,i)).length} past retention`}]}/>}
+        {title:'Lost & found held',value:String(counts['Lost & found']),sub:`${x.items.filter(i=>gsvDisposable(s,i)).length} past retention`}]} compact collapseOnTablet/>}
       tabs={<FitTabs<GsvFitTab> page="guest-services" value={tab} onChange={setTab}
         tabs={GSV_TAB_IDS.map(id=>({id,label:GSV_TAB_LABEL[id],count:id==='reports'?undefined:counts[GSV_TAB_LABEL[id]]}))}/>}>
     {tab==='requests'&&<RequestsTable/>}
