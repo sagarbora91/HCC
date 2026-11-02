@@ -22,7 +22,8 @@ public static class StaysEndpoints
         services.AddSingleton<Hcc.Application.Configuration.ISettingsProvider>(StaysSettings.Provider);
         services.AddSingleton<IDeskFieldStore>(sp => new Hcc.Infrastructure.SqlServer.Stays.SqlDeskFieldStore(sp.GetRequiredService<SqlPlatform>().Connections));
         services.AddSingleton<ILateCheckoutPoster>(sp => (Hcc.Application.Billing.BillingStayFolioPort)sp.GetRequiredService<IStayFolioPort>());
-        services.AddSingleton<DeskFieldService>();
+        services.AddSingleton(sp => new DeskFieldService(sp.GetRequiredService<IDeskFieldStore>(), sp.GetService<Hcc.Application.Configuration.ISettingsReader>(),
+            sp.GetRequiredService<Hcc.Application.Access.IAccessPolicy>(), sp.GetService<ILateCheckoutPoster>()));
         services.AddSingleton<StaysCommands>();
         services.AddSingleton<IStayChangeStore, SqlStayChangeStore>();   // W3-7 room move / extend / shorten / early departure
         services.AddSingleton<IStayNightPricer, InventoryStayNightPricer>();

@@ -389,6 +389,14 @@ public static partial class ImportLists
             Check = c => c.Rule("segment", () => FrontDeskMasters.FrontDeskMastersRules.BookingSource(c["segment"], c["channel"].Length == 0 ? null : c["channel"], BpsOf(c["commissionBps"]) ?? 0)),
             FileCheck = f => OnePerKey(f, r => r["channel"].Length == 0 ? "" : r["segment"] + "/" + r["channel"].ToUpperInvariant(), "channel", "booking source", "{0} already stands for another active booking source."),
         },
+        new(ImportMaster.Purposes, "purposes", "purposes", "Purposes of visit", "purpose of visit", false, "—", [])
+        {
+            CodeExample = "BUSINESS", NameExample = "Business",
+        },
+        new(ImportMaster.VehicleTypes, "vehicle-types", "vehicleTypes", "Vehicle types", "vehicle type", false, "—", [])
+        {
+            CodeExample = "CAR", NameExample = "Car",
+        },
         new(ImportMaster.IdTypes, "id-types", "idTypes", "Guest ID types", "ID type", false, "—",
         [
             Flag("accepted", "yes when the hotel accepts this ID at check-in (blank = yes).", "yes", "yes"),

@@ -32,6 +32,8 @@ public sealed class FrontDeskMastersCommands(ICommandRunner runner, IAccessPolic
         [FrontDeskMasterIds.BookingSources] = ("SaveBookingSource", "RetireBookingSource", "ReactivateBookingSource", "DeleteBookingSource", "ReorderBookingSources"),
         [FrontDeskMasterIds.IdTypes] = ("SaveIdType", "RetireIdType", "ReactivateIdType", "DeleteIdType", "ReorderIdTypes"),
         [FrontDeskMasterIds.NumberSeries] = ("SaveNumberSeries", "RetireNumberSeries", "ReactivateNumberSeries", "DeleteNumberSeries", "ReorderNumberSeries"),
+        [FrontDeskMasterIds.Purposes] = ("SavePurpose", "RetirePurpose", "ReactivatePurpose", "DeletePurpose", "ReorderPurposes"),
+        [FrontDeskMasterIds.VehicleTypes] = ("SaveVehicleType", "RetireVehicleType", "ReactivateVehicleType", "DeleteVehicleType", "ReorderVehicleTypes"),
         [FrontDeskMasterIds.Policies] = ("SaveBookingPolicy", "RetireBookingPolicy", "ReactivateBookingPolicy", "DeleteBookingPolicy", "ReorderBookingPolicies"),
     };
 
@@ -106,6 +108,18 @@ public sealed class FrontDeskMastersCommands(ICommandRunner runner, IAccessPolic
         ArgumentNullException.ThrowIfNull(req);
         return SaveAsync(ctx, FrontDeskMasterIds.IdTypes, req, req.RowId, req.ExpectedVersion, req.Code, req.Name, req.SortOrder,
             _ => FrontDeskMastersRules.IdType(req.Accepted, req.NeedsPhoto, req.ForeignerOnly), null, ct);
+    }
+
+    public Task<CommandResult<FrontDeskRowResult>> SavePurposeAsync(CommandContext ctx, SavePlainListRequest req, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(req);
+        return SaveAsync(ctx, FrontDeskMasterIds.Purposes, req, req.RowId, req.ExpectedVersion, req.Code, req.Name, req.SortOrder, _ => FrontDeskMastersRules.Plain(), null, ct);
+    }
+
+    public Task<CommandResult<FrontDeskRowResult>> SaveVehicleTypeAsync(CommandContext ctx, SavePlainListRequest req, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(req);
+        return SaveAsync(ctx, FrontDeskMasterIds.VehicleTypes, req, req.RowId, req.ExpectedVersion, req.Code, req.Name, req.SortOrder, _ => FrontDeskMastersRules.Plain(), null, ct);
     }
 
     public Task<CommandResult<FrontDeskRowResult>> SaveNumberSeriesAsync(CommandContext ctx, SaveNumberSeriesRequest req, CancellationToken ct = default)

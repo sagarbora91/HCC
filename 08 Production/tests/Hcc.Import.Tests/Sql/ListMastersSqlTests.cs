@@ -29,7 +29,7 @@ public class ListMastersSqlTests : IAsyncLifetime
     [
         "floors", "amenities", "occupancy-charges", "meal-plans", "extras", "discount-reasons", "bank-accounts", "payment-methods", "expense-categories", "expense-vendors",
         "menu-categories", "pos-tables", "booking-sources", "policies", "id-types", "number-series", "designations", "shift-patterns", "leave-types", "holidays",
-        "hk-task-types", "hk-zones", "complaint-categories", "lost-found-categories",
+        "hk-task-types", "hk-zones", "complaint-categories", "lost-found-categories", "purposes", "vehicle-types",
     ];
 
     private async Task ImportAllAsync()

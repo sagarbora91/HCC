@@ -34,6 +34,8 @@ internal static class FdmSql
         [FrontDeskMasterIds.IdTypes] = new("mst.id_type",
             [new("accepted", "accepted", SqlDbType.Bit, 0, Kind.Bit), new("needsPhoto", "needs_photo", SqlDbType.Bit, 0, Kind.Bit), new("foreignerOnly", "foreigner_only", SqlDbType.Bit, 0, Kind.Bit)],
             "This ID type"),
+        [FrontDeskMasterIds.Purposes] = new("mst.purpose_of_visit", [], "This purpose of visit"),
+        [FrontDeskMasterIds.VehicleTypes] = new("mst.vehicle_type", [], "This vehicle type"),
         [FrontDeskMasterIds.NumberSeries] = new("bill.number_series",
             [new("document", "document", SqlDbType.Char, 3, Kind.Str), new("prefix", "prefix", SqlDbType.VarChar, 8, Kind.Str), new("startNo", "start_no", SqlDbType.Int, 0, Kind.Int),
              new("padding", "padding", SqlDbType.Int, 0, Kind.Int), new("reset", "reset_rule", SqlDbType.VarChar, 5, Kind.Str), new("activeFrom", "active_from", SqlDbType.Date, 0, Kind.Date)],
@@ -162,6 +164,20 @@ internal static class FdmSql
                 await using var cmd = command("SELECT COUNT(*) FROM gst.guest WHERE property_id = @p AND id_type = @name;");
                 cmd.P("@p", SqlDbType.Int, propertyId);
                 cmd.P("@name", SqlDbType.NVarChar, row.Name, 60);
+                return Convert.ToInt32(await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false), CultureInfo.InvariantCulture);
+            }
+            case FrontDeskMasterIds.Purposes:
+            {
+                await using var cmd = command("SELECT COUNT(*) FROM inv.reservation WHERE property_id = @p AND purpose_code = @code;");
+                cmd.P("@p", SqlDbType.Int, propertyId);
+                cmd.P("@code", SqlDbType.VarChar, row.Code, 20);
+                return Convert.ToInt32(await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false), CultureInfo.InvariantCulture);
+            }
+            case FrontDeskMasterIds.VehicleTypes:
+            {
+                await using var cmd = command("SELECT COUNT(*) FROM inv.reservation WHERE property_id = @p AND vehicle_type = @name;");
+                cmd.P("@p", SqlDbType.Int, propertyId);
+                cmd.P("@name", SqlDbType.NVarChar, row.Name, 40);
                 return Convert.ToInt32(await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false), CultureInfo.InvariantCulture);
             }
             case FrontDeskMasterIds.NumberSeries:

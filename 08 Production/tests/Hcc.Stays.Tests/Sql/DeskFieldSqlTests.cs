@@ -115,7 +115,7 @@ public class DeskFieldSqlTests : IAsyncLifetime
         var stay = ci.Value.StayId;
         _w.Clock.Now = new DateTimeOffset(2026, 10, 25, 8, 0, 0, TimeSpan.Zero); // 13:30 IST on the departure day, due out 11:00 + 1 h grace
         var sv = await _w.Seed.StayVersionAsync(stay, Ct);
-        var refused = await Expect.ErrorAsync(HccErrorCode.INVALID_TRANSITION, () => _stays.CheckoutStayAsync(Ctx(_w, Users.Reception, "co-l1"), new CheckoutStayRequest(stay, sv), Ct));
+        var refused = await Expect.ErrorAsync(HccErrorCode.INVALID_TRANSITION, () => _stays.CheckoutStayAsync(Ctx(_w, Users.Reception, "co-l1"), new CheckoutStayRequest(stay, sv, Desk: true), Ct));
         Assert.StartsWith("Guest is past the due-out time by 2:30", refused.Message);
         await Expect.ErrorAsync(HccErrorCode.FORBIDDEN, () => _stays.PostLateCheckoutChargeAsync(Ctx(_w, Users.Reception, "lc-w"), new LateCheckoutChargeRequest(stay, sv, "waived", "Goodwill"), Ct));
         await Expect.ErrorAsync(HccErrorCode.VALIDATION, () => _stays.PostLateCheckoutChargeAsync(Ctx(_w, Users.Manager, "lc-w2"), new LateCheckoutChargeRequest(stay, sv, "waived", "x"), Ct));
@@ -127,7 +127,7 @@ public class DeskFieldSqlTests : IAsyncLifetime
         sv = await _w.Seed.StayVersionAsync(stay, Ct); // the decision changed the stay row
         await Expect.ErrorAsync(HccErrorCode.INVALID_TRANSITION, () => _stays.PostLateCheckoutChargeAsync(Ctx(_w, Users.Reception, "lc-h2"), new LateCheckoutChargeRequest(stay, sv, "half-day"), Ct));
         // decided: the checkout now fails on the folio (unpaid nights), not on the late rule
-        var next = await Expect.ErrorAsync(HccErrorCode.INVALID_TRANSITION, () => _stays.CheckoutStayAsync(Ctx(_w, Users.Reception, "co-l2"), new CheckoutStayRequest(stay, sv), Ct));
+        var next = await Expect.ErrorAsync(HccErrorCode.INVALID_TRANSITION, () => _stays.CheckoutStayAsync(Ctx(_w, Users.Reception, "co-l2"), new CheckoutStayRequest(stay, sv, Desk: true), Ct));
         Assert.DoesNotContain("past the due-out", next.Message);
     }
 
@@ -141,5 +141,24 @@ public class DeskFieldSqlTests : IAsyncLifetime
         var w = await _stays.PostLateCheckoutChargeAsync(Ctx(_w, Users.Manager, "lc-ok"), new LateCheckoutChargeRequest(ci.Value.StayId, sv, "waived", "Flight delayed"), Ct);
         Assert.Equal(("waived", 0), (w.Value.Decision, w.Value.AmountPaise));
         Assert.Equal(0, await _w.Db.CountAsync($"SELECT COUNT(*) FROM bill.charge c JOIN gst.stay s ON s.folio_id = c.folio_id WHERE s.stay_id = {ci.Value.StayId} AND c.label LIKE N'Late check-out%';", Ct));
+    }
+
+    [Fact]
+    public async Task A_booking_stores_purpose_vehicle_and_basis_and_refuses_unknown_ones()
+    {
+        var res = await _w.Seed.ReservationAsync("106", "2026-10-26", "2026-10-27", "Booking Fields", ct: Ct);
+        async Task ApplyAsync(string key, string? purpose, string? vehicle, string? type, string? basis) =>
+            await _w.Db.Platform.Commands.RunAsync(_w.Ctx(Users.Reception, key) with { Operation = "ApplyDesk" }, new { key }, async (tx, c) =>
+            {
+                await _desk.ApplyBookingAsync(tx, _w.PropertyId, res, purpose, vehicle, type, basis, c);
+                await tx.AuditAsync("APPLY_DESK", "res-" + res, "test", c);
+                return new { ok = true };
+            }, Ct);
+        await Expect.ErrorAsync(HccErrorCode.VALIDATION, () => ApplyAsync("b1", "NOPE", null, null, null));
+        await Expect.ErrorAsync(HccErrorCode.VALIDATION, () => ApplyAsync("b2", null, "ab", null, null));
+        await Expect.ErrorAsync(HccErrorCode.VALIDATION, () => ApplyAsync("b3", null, "KA01XY9999", "spaceship", null));
+        await Expect.ErrorAsync(HccErrorCode.VALIDATION, () => ApplyAsync("b4", null, null, null, "weekly"));
+        await ApplyAsync("b5", "medical", "ka01 xy 9999", "bus", "24h");
+        Assert.Equal("MEDICAL|KA01 XY 9999|Bus|24h", await _w.Db.StringAsync($"SELECT CONCAT(purpose_code, '|', vehicle_no, '|', vehicle_type, '|', RTRIM(checkout_basis)) FROM inv.reservation WHERE reservation_id = {res};", Ct));
     }
 }

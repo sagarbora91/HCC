@@ -216,7 +216,7 @@ public sealed class StaysCommands(ICommandRunner runner, IAccessPolicy policy, I
                 ?? throw new HccException(HccErrorCode.NOT_FOUND, "Room not found.");
             var bd = await store.BusinessDateAsync(tx, ctx.PropertyId, c).ConfigureAwait(false);
 
-            if (desk is not null) await desk.EnsureLateDecisionAsync(tx, ctx, stay, req.LateCharge, req.LateReason, UtcNow, bd, c).ConfigureAwait(false); // LF A6: late check-out decision
+            if (desk is not null && (req.Desk || req.LateCharge is not null)) await desk.EnsureLateDecisionAsync(tx, ctx, stay, req.LateCharge, req.LateReason, UtcNow, bd, c).ConfigureAwait(false); // LF A6: late check-out decision
             await folios.AssertCheckoutSettledAsync(tx, new CheckoutFolioCheck(stay.FolioId, stay.ReservationId, stay.Arrival, stay.Departure, req.CompanyCreditApprovalId), c).ConfigureAwait(false);
 
             var version = await store.CheckOutStayAsync(tx, stay.StayId, expected, bd, ctx.PrincipalId, UtcNow, c).ConfigureAwait(false);

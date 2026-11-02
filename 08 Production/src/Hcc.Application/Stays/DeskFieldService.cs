@@ -18,7 +18,7 @@ public sealed record DeskPlan(string? PurposeCode, string? VehicleNo, string? Ve
 /// the Owner setting when the request comes from a desk form, vehicle, Form C for foreign guests), the late check-out decision and the Form C register.
 /// Everything is optional on the wire; a request without desk fields behaves as before.
 /// </summary>
-public sealed class DeskFieldService(IDeskFieldStore store, ISettingsReader settings, IAccessPolicy policy, ILateCheckoutPoster? poster = null)
+public sealed class DeskFieldService(IDeskFieldStore store, ISettingsReader? settings, IAccessPolicy policy, ILateCheckoutPoster? poster = null)
 {
     public const string WaivePermission = "PERM-APR-001";
     public const string IdDetailsPermission = "PERM-DOC-004";
@@ -27,24 +27,28 @@ public sealed class DeskFieldService(IDeskFieldStore store, ISettingsReader sett
 
     private async Task<bool> FlagAsync(ICommandTransaction tx, int p, string key, bool dflt)
     {
+        if (settings is null) return dflt;
         var v = await settings.GetAsync(tx, p, key, null, default).ConfigureAwait(false);
         return v.Kind == ConfigValueKind.Boolean ? v.Flag : dflt;
     }
 
     private async Task<long> NumberAsync(ICommandTransaction tx, int p, string key, long dflt)
     {
+        if (settings is null) return dflt;
         var v = await settings.GetAsync(tx, p, key, null, default).ConfigureAwait(false);
         return v.Kind == ConfigValueKind.Number ? v.Number : dflt;
     }
 
     private async Task<TimeOnly> TimeAsync(ICommandTransaction tx, int p, string key, TimeOnly dflt)
     {
+        if (settings is null) return dflt;
         var v = await settings.GetAsync(tx, p, key, null, default).ConfigureAwait(false);
         return v.Kind == ConfigValueKind.Text && TimeOnly.TryParseExact(v.Text, "HH:mm", CultureInfo.InvariantCulture, DateTimeStyles.None, out var t) ? t : dflt;
     }
 
     public async Task<string> DefaultBasisAsync(ICommandTransaction tx, int propertyId)
     {
+        if (settings is null) return DeskFieldRules.BasisFixed;
         var v = await settings.GetAsync(tx, propertyId, StaysSettings.DefaultCheckoutBasis, null, default).ConfigureAwait(false);
         return v.Kind == ConfigValueKind.Text && v.Text == DeskFieldRules.Basis24h ? DeskFieldRules.Basis24h : DeskFieldRules.BasisFixed;
     }

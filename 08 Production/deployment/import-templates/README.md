@@ -668,3 +668,8 @@ A valuable item is held in the front-office safe and disposed of only with a man
 - One file = one kind of master; up to 5,000 rows and 2 million characters per file.
 - Excel's semicolon-separated CSV (some regional settings) is also read.
 - Every upload and commit is shown in `GET /api/v1/import/batches`; committed changes are in the audit trail.
+
+
+## LF front-desk lists
+
+`purposes.csv` (purposes of visit) and `vehicle-types.csv` need nothing first; both are Owner or Tech admin lists. The legacy names come from `tools\legacy\extract.py --purposes --vehicle-types` (names only, no guest data).
