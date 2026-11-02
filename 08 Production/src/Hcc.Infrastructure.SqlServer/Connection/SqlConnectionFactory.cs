@@ -9,10 +9,80 @@ public sealed class SqlOptions
 {
     public string ConnectionString { get; set; } = string.Empty;
 
+    /// <summary>
+    /// LF-docdb (DEC-200, contract §1.2): connection string of the separate documents database (<c>HccDocuments</c>). Empty = derived from
+    /// <see cref="ConnectionString"/> by appending <c>Documents</c> to the catalog (<c>Hcc</c> gives <c>HccDocuments</c>).
+    /// </summary>
+    public string? DocumentsConnectionString { get; set; }
+
     public int CommandTimeoutSeconds { get; set; } = 30;
 
     /// <summary>Folder for the pre-migration backup (instance service account must be able to write it). Empty = instance default.</summary>
     public string? BackupDirectory { get; set; }
+}
+
+/// <summary>LF-docdb (contract §1.2): derives and checks the documents database connection string.</summary>
+public static class DocumentsConnection
+{
+    public const string RefusalText = "The documents database name must start with 'Hcc' and differ from the main database.";
+
+    /// <summary>The explicit documents connection string, or the main one with the catalog <c>&lt;catalog&gt;Documents</c>. Throws when the result does not start with Hcc or equals the main catalog.</summary>
+    public static string Resolve(SqlOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        var main = new SqlConnectionStringBuilder(options.ConnectionString);
+        SqlConnectionStringBuilder docs;
+        if (!string.IsNullOrWhiteSpace(options.DocumentsConnectionString)) docs = new SqlConnectionStringBuilder(options.DocumentsConnectionString);
+        else
+        {
+            docs = new SqlConnectionStringBuilder(options.ConnectionString) { InitialCatalog = main.InitialCatalog + "Documents" };
+        }
+
+        if (string.IsNullOrWhiteSpace(docs.InitialCatalog) || !docs.InitialCatalog.StartsWith("Hcc", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(docs.InitialCatalog, main.InitialCatalog, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException(RefusalText + $" (main '{main.InitialCatalog}', documents '{docs.InitialCatalog}').");
+        return docs.ConnectionString;
+    }
+
+    /// <summary>Options for the documents database: same login policy and timeout, the resolved connection string.</summary>
+    public static SqlOptions OptionsFor(SqlOptions main) => new()
+    {
+        ConnectionString = Resolve(main),
+        CommandTimeoutSeconds = main.CommandTimeoutSeconds,
+        BackupDirectory = main.BackupDirectory,
+    };
+}
+
+/// <summary>
+/// LF-docdb (contract §1.2): the connection factory of <c>HccDocuments</c> with the same session policy as <see cref="SqlConnectionFactory"/>
+/// (XACT_ABORT ON, QUOTED_IDENTIFIER and ANSI_NULLS checks). An unreachable database surfaces as the documents-specific UNAVAILABLE text.
+/// </summary>
+public sealed class SqlDocumentConnectionFactory(SqlOptions mainOptions)
+{
+    public const string UnavailableText = "The documents database is not reachable (or full). The rest of HCC keeps working; try the photo again later.";
+
+    private readonly SqlConnectionFactory _inner = new(DocumentsConnection.OptionsFor(mainOptions));
+
+    public SqlOptions Options => _inner.Options;
+
+    /// <summary>The plain factory (used by the migration runner).</summary>
+    public SqlConnectionFactory Inner => _inner;
+
+    public string Database => new SqlConnectionStringBuilder(Options.ConnectionString).InitialCatalog;
+
+    public async Task<SqlConnection> OpenAsync(CancellationToken ct = default)
+    {
+        try
+        {
+            return await _inner.OpenAsync(ct).ConfigureAwait(false);
+        }
+        catch (HccException ex) when (ex.Code == HccErrorCode.UNAVAILABLE)
+        {
+            throw new HccException(HccErrorCode.UNAVAILABLE, UnavailableText, null, ex);
+        }
+    }
+
+    public SqlCommand Command(string sql, SqlConnection connection, SqlTransaction? transaction = null) => _inner.Command(sql, connection, transaction);
 }
 
 /// <summary>

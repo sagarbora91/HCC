@@ -1,0 +1,9 @@
+{
+  "format": 1,
+  "about": "A08-05: every migration in the order it was added. sha256 = MigrationScript.Checksum (UTF-8 without BOM, CRLF -> LF, SHA-256, upper-case hex). Append only, through tools/migrations-lock.mjs --add; a new migration is numbered above the highest version here. Checked by Hcc.Platform.Tests MigrationLockTests.",
+  "acceptedOutOfOrder": [],
+  "migrations": [
+    {"version": 1, "file": "0001_objects.sql", "sha256": "A706A943CCA856B1E4622F2D85225377FDE7661DA2A5EF9005AE28F899B5092A"},
+    {"version": 2, "file": "0002_doc_meta.sql", "sha256": "248DC28812F51FE3E5E4ADD03D5ADEA054DEF0726D3F93E2694A4A1AA00A11EB"}
+  ]
+}

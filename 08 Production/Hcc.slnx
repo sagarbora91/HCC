@@ -48,6 +48,7 @@
   </Folder>
   <Folder Name="/database/">
     <File Path="database/migrations.lock.json" />
+    <File Path="database/migrations-docs.lock.json" />
     <File Path="database/migrations/0001_platform.sql" />
     <File Path="database/migrations/0002_core_inventory_billing_payments.sql" />
     <File Path="database/migrations/0100_access_identity.sql" />
@@ -198,6 +199,13 @@
     <!-- LF-IMAGES end -->
     <!-- LF-INT 4711-4718 -->
     <!-- LF-INT end -->
+    <File Path="database/migrations/4670_doc_object_refs.sql" />
+    <File Path="database/migrations/4671_plat_backup_run_database.sql" />
+    <File Path="database/migrations/4672_doc_rbac_seed.sql" />
+    <File Path="database/migrations/4673_plat_doc_move_log.sql" />
+    <File Path="database/migrations/4674_doc_reserve.sql" />
+    <File Path="database/migrations-docs/0001_objects.sql" />
+    <File Path="database/migrations-docs/0002_doc_meta.sql" />
     <File Path="database/migrations/4720_keys_schema.sql" />
     <File Path="database/migrations/4721_keys_rbac_seed.sql" />
   </Folder>

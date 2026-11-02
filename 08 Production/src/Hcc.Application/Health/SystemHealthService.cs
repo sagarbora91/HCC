@@ -39,6 +39,12 @@ public interface ISystemHealthStore
     Task<bool> ReleaseParkedAsync(ICommandTransaction tx, string consumer, long outboxId, CancellationToken ct = default);
 }
 
+/// <summary>LF-docdb: the "Databases" block of System health (sizes, versions, last backup per database; SQL adapter <c>SqlDatabaseHealth</c>).</summary>
+public interface IDatabaseHealth
+{
+    Task<IReadOnlyList<DatabaseHealthView>> ReadAsync(CancellationToken ct = default);
+}
+
 /// <summary>Whether operator alerts can reach the Windows Event Log on this server ("on" / "off" / "unavailable").</summary>
 public interface IOperatorAlertStatus
 {
@@ -53,7 +59,8 @@ public interface IOperatorAlertStatus
 /// (Idempotency-Key + audit <c>OUTBOX_PARKED_RETRY</c>). Both need PERM-SYS-001 (Owner, Tech admin). No dismiss: a parked event stays
 /// visible (and keeps blocking the accounting lock) until it is delivered.
 /// </summary>
-public sealed partial class SystemHealthService(ICommandRunner runner, IAccessPolicy policy, ISystemHealthStore store, IOperatorAlertStatus alerts, TimeProvider clock)
+public sealed partial class SystemHealthService(ICommandRunner runner, IAccessPolicy policy, ISystemHealthStore store, IOperatorAlertStatus alerts, TimeProvider clock,
+    IDatabaseHealth? databases = null)
 {
     public const string OpRetryParked = "RetryParkedEvent";
     public const string AuditRetry = "OUTBOX_PARKED_RETRY";
@@ -97,8 +104,9 @@ public sealed partial class SystemHealthService(ICommandRunner runner, IAccessPo
         await policy.RequireAsync(propertyId, principalId, SystemHealthPermissions.Manage, null, null, ct).ConfigureAwait(false);
         var parked = await store.ParkedAsync(propertyId, ct).ConfigureAwait(false);
         var backups = await store.BackupsAsync(ct).ConfigureAwait(false);
+        var dbs = databases is null ? null : await databases.ReadAsync(ct).ConfigureAwait(false);
         return new SystemHealthView(Utc(clock.GetUtcNow().UtcDateTime), parked.Select(View).ToList(), View(backups.LastBackup),
-            backups.LastSuccessUtc is { } ok ? Utc(ok) : null, View(backups.LastRestoreDrill), alerts.EventLog());
+            backups.LastSuccessUtc is { } ok ? Utc(ok) : null, View(backups.LastRestoreDrill), alerts.EventLog(), dbs);
     }
 
     public async Task<CommandResult<RetryParkedEventResult>> RetryParkedAsync(CommandContext ctx, RetryParkedEventRequest req, CancellationToken ct = default)

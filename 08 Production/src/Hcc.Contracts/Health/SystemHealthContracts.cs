@@ -20,7 +20,15 @@ public sealed record BackupRunView(string Kind, bool Succeeded, string StartedUt
 /// the server PC), "off" (not registered: run Install-HccService.ps1) or "unavailable" (not Windows).
 /// </summary>
 public sealed record SystemHealthView(string CheckedUtc, IReadOnlyList<ParkedEventView> Parked, BackupRunView? LastBackup, string? LastSuccessfulBackupUtc,
-    BackupRunView? LastRestoreDrill, string EventLog);
+    BackupRunView? LastRestoreDrill, string EventLog, IReadOnlyList<DatabaseHealthView>? Databases = null);
+
+/// <summary>
+/// LF-docdb (LF-CONTRACT §1.9): one row of the System health "Databases" panel. <c>Kind</c> = main | documents; <c>SchemaVersion</c> is the highest applied
+/// migration ("4674" / "0002"); sizes come from <c>sys.database_files</c> inside each database; <c>Pct</c> is data size over the 50 GB Express limit (amber at
+/// 70, red at 85). The documents row also carries the object count, content bytes, and the daily reference check (dangling refs, orphan objects).
+/// </summary>
+public sealed record DatabaseHealthView(string Name, string Kind, string SchemaVersion, bool Reachable, long DataBytes, long LogBytes, long LimitBytes, int Pct,
+    int? ObjectCount, long? ContentBytes, int? DanglingRefs, int? OrphanObjects, string? LastBackupUtc, string? LastDrillUtc);
 
 /// <summary>RetryParkedEvent K: release one parked event for one more delivery attempt by the next poll (attempts keep counting; one more failure parks it again).</summary>
 public sealed record RetryParkedEventRequest(string Consumer, long OutboxId);

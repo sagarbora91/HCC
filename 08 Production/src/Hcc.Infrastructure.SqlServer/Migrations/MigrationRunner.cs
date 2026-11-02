@@ -20,9 +20,14 @@ public interface IMigrationSource
 }
 
 /// <summary>Migrations embedded in this assembly from <c>08 Production/database/migrations/*.sql</c>.</summary>
-public sealed partial class EmbeddedMigrationSource : IMigrationSource
+public sealed partial class EmbeddedMigrationSource(string prefix = EmbeddedMigrationSource.MainPrefix) : IMigrationSource
 {
-    private const string Prefix = "Hcc.Migrations.";
+    public const string MainPrefix = "Hcc.Migrations.";
+
+    /// <summary>LF-docdb: the HccDocuments stream (<c>database/migrations-docs/*.sql</c>).</summary>
+    public const string DocsPrefix = "Hcc.DocMigrations.";
+
+    private string Prefix { get; } = prefix;
 
     [GeneratedRegex(@"^(\d{4})_([a-z0-9_]+)\.sql$")]
     private static partial Regex FileName();
@@ -145,11 +150,13 @@ public sealed record MigrationResult(int FromVersion, int ToVersion, IReadOnlyLi
 /// migration is missing from <c>dbo.schema_migration</c> (for example the installer started the new build before
 /// <c>Hcc.Api.exe migrate</c> ran). Versions the build does not know (a newer database) are not "behind"; <c>migrate</c> refuses them.
 /// </summary>
-public sealed record SchemaStatus(int AppliedCount, int BuildCount, int DatabaseVersion, int BuildVersion, IReadOnlyList<int> Missing)
+public sealed record SchemaStatus(int AppliedCount, int BuildCount, int DatabaseVersion, int BuildVersion, IReadOnlyList<int> Missing, string Database = "main")
 {
     public bool IsBehind => Missing.Count > 0;
 
-    public string Message => $"Database schema is behind this build: run `Hcc.Api migrate` (applied {AppliedCount} of {BuildCount}).";
+    public string Message => Database == "documents"
+        ? $"Documents database schema is behind this build: run `Hcc.Api migrate` (applied {AppliedCount} of {BuildCount})."
+        : $"Database schema is behind this build: run `Hcc.Api migrate` (applied {AppliedCount} of {BuildCount}).";
 
     public static SchemaStatus Compare(IReadOnlyCollection<int> applied, IReadOnlyList<MigrationScript> scripts)
     {
@@ -167,9 +174,9 @@ public sealed record SchemaStatus(int AppliedCount, int BuildCount, int Database
 /// an applied script whose text changed stops the run (drift), and a database newer than this build is refused.
 /// ETP-REUSE: replace/align with ETP migration runner (journal format, CLI, logging) when V:\ETP is available.
 /// </summary>
-public sealed class MigrationRunner(SqlConnectionFactory connections, IMigrationSource source, IBackupGate backupGate)
+public sealed class MigrationRunner(SqlConnectionFactory connections, IMigrationSource source, IBackupGate backupGate, string lockName = "HCC.MigrationRunner")
 {
-    private const string LockName = "HCC.MigrationRunner";
+    private string LockName { get; } = lockName;
 
     public async Task<MigrationResult> MigrateAsync(CancellationToken ct = default)
     {

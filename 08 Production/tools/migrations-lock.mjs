@@ -3,7 +3,7 @@
 // as the runner reads it (UTF-8, a byte-order mark dropped) with CRLF turned into LF. Hcc.Platform.Tests MigrationLockTests fails when
 // (a) a locked script changed, (b) a new script is numbered below the highest locked version (it would run out of order on a database
 // that already applied the higher one), (c) a script is not in the lock. Entries are appended, never edited or removed.
-// Usage (Node 25, from "08 Production"):
+// Usage (Node 25, from "08 Production"; add --docs to every form for the HccDocuments stream, migrations-docs/):
 //   node tools/migrations-lock.mjs                 check only; exit code 1 and the list of problems when the lock is out of step
 //   node tools/migrations-lock.mjs --add           append every migration file that is not in the lock yet (refused below the highest version)
 //   node tools/migrations-lock.mjs --add --accept-out-of-order "<reason>"
@@ -14,8 +14,10 @@ import fs from 'node:fs';
 import path from 'node:path';import {fileURLToPath} from 'node:url';
 
 const PROD=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
-export const MIGRATIONS=path.join(PROD,'database','migrations');
-export const LOCK=path.join(PROD,'database','migrations.lock.json');
+// LF-docdb: --docs selects the documents database stream (database/migrations-docs + migrations-docs.lock.json).
+const DOCS=process.argv.slice(2).includes('--docs');
+export const MIGRATIONS=path.join(PROD,'database',DOCS?'migrations-docs':'migrations');
+export const LOCK=path.join(PROD,'database',DOCS?'migrations-docs.lock.json':'migrations.lock.json');
 const NAME=/^(\d{4})_([a-z0-9_]+)\.sql$/;
 
 /** MigrationScript.Checksum: UTF-8 without BOM, CRLF -> LF, SHA-256, upper-case hex. */
