@@ -19,6 +19,9 @@ public sealed record ConfirmIdCaptureRequest(long CaptureId, string ExpectedVers
 /// <summary>POST /api/v1/commands/RejectIdCapture (K): unreadable or wrong image; the image is kept until the retention purge.</summary>
 public sealed record RejectIdCaptureRequest(long CaptureId, string ExpectedVersion, string Reason);
 
+/// <summary>POST /api/v1/commands/RemoveGuestPhoto (LF-finish): takes a guest / party-member photo off the profile with a reason. Soft: the sealed image is kept (status Rejected, audit GUEST_PHOTO_REMOVE) until the retention purge; only kind 'photo'.</summary>
+public sealed record RemoveGuestPhotoRequest(long CaptureId, string Reason);
+
 /// <summary>POST /api/v1/commands/ViewIdCaptureImage (K). Needs PERM-GST-003; audit ID_CAPTURE_IMAGE_VIEW.</summary>
 public sealed record ViewIdCaptureImageRequest(long CaptureId);
 

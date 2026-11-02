@@ -49,6 +49,7 @@ export function PartyPhotosServer({g}:{g:Guest}){
         <span className="gs-photo-actions">
           {a.idDetails&&has&&(url?<button type="button" className="btn" style={{minHeight:48}} onClick={()=>setShown(x=>{const n={...x};delete n[p.seq];return n;})}><EyeOff size={14}/> Hide</button>
             :<button type="button" className="btn" style={{minHeight:48}} disabled={busy} onClick={()=>{void show(p.seq);}}><Eye size={14}/> Show photo</button>)}
+          {a.edit&&has&&<button type="button" className="btn" style={{minHeight:48}} disabled={busy} aria-label={'Remove photo of '+p.name} onClick={()=>{void run({type:'GUEST_PHOTO_REMOVE',id:g.id,seq:p.seq,key:'gphoto-rm:'+g.id+':'+p.seq+':'+Date.now()},'Photo removed').then(ok=>{if(ok){setShown(x=>{const n={...x};delete n[p.seq];return n;});setTick(t=>t+1);}});}}>Remove</button>}
           {a.edit&&<label className="btn" style={{minHeight:48}}><Camera size={14}/> {has?'Replace':'Add photo'}<input type="file" accept="image/*" capture="user" className="cmp-sr" disabled={busy} onChange={e=>{const f=e.target.files?.[0];e.target.value='';void pick(p.seq,f);}}/></label>}</span>
       </li>;})}</ul>
     {err&&<p className="adm-err" role="alert">{err}</p>}

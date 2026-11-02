@@ -2,7 +2,7 @@
 //   server    POST /commands/CaptureIdDocument {guestId, docKind:'photo', contentType, imageBase64, partySeq?} (no OCR needed for a photo; stored sealed in HccDocuments),
 //             GET /documents/id-captures?guestId= (masked metadata, PERM-DOC-004), POST /commands/ViewIdCaptureImage {captureId} (audited read of one image)
 //   commands  GUEST_PHOTO → CaptureIdDocument (seq 0 = the registered guest, 1-6 = accompanying guest)
-//   unmapped  GUEST_PHOTO_REMOVE: the server keeps a photo until the retention purge (PurgeIdCaptures); a newer photo of the same person replaces it on screen.
+//   GUEST_PHOTO_REMOVE → RemoveGuestPhoto {captureId, reason} (soft: status Rejected + audit GUEST_PHOTO_REMOVE; the sealed image stays until the retention purge)
 // The picture itself is never put in the runtime state: PartyPhotosServer (guestphoto-ui.tsx) holds it in component state only.
 import {HccClientError} from '../errors';
 import type {HttpTransport} from '../http';
@@ -13,7 +13,7 @@ type SrvCapture={captureId:number;guestId:number;docKind:string;partySeq:number|
 /** The newest photo capture per person (seq 0 = the registered guest). */
 export function photosBySeq(list:SrvCapture[]):Map<number,SrvCapture>{
   const m=new Map<number,SrvCapture>();
-  for(const c of list){if(c.docKind!=='photo'||!c.imageAvailable)continue;const q=c.partySeq??0,o=m.get(q);if(!o||c.capturedUtc>o.capturedUtc||(c.capturedUtc===o.capturedUtc&&c.captureId>o.captureId))m.set(q,c);}
+  for(const c of list){if(c.docKind!=='photo'||!c.imageAvailable||c.status==='Rejected'||c.status==='Purged')continue;const q=c.partySeq??0,o=m.get(q);if(!o||c.capturedUtc>o.capturedUtc||(c.capturedUtc===o.capturedUtc&&c.captureId>o.captureId))m.set(q,c);}
   return m;
 }
 export async function listPartyPhotos(t:Pick<HttpTransport,'get'>,guestId:string|number):Promise<Map<number,SrvCapture>>{
@@ -39,6 +39,9 @@ export const guestphoto:SyncArea={
     {type:'GUEST_PHOTO',reload:[],async send(c){const k=c.cmd;const {contentType,base64}=splitDataUrl(k.dataUrl);
       const seq=k.seq===undefined||k.seq===null||k.seq===''?0:Number(k.seq);
       await c.api.command('CaptureIdDocument',{guestId:serverId(k.id,'Guest'),docKind:'photo',contentType,imageBase64:base64,partySeq:seq>0?seq:undefined});}},
+    {type:'GUEST_PHOTO_REMOVE',reload:[],async send(c){const k=c.cmd;const seq=k.seq===undefined||k.seq===null||k.seq===''?0:Number(k.seq);
+      const cur=(await listPartyPhotos(c.api,serverId(k.id,'Guest'))).get(seq);
+      if(!cur)throw new HccClientError('VALIDATION','There is no photo to remove.');
+      await c.api.command('RemoveGuestPhoto',{captureId:cur.captureId,reason:String(k.reason??'').trim()||'Removed from the guest profile'});}},
   ],
-  unmapped:{GUEST_PHOTO_REMOVE:'The server keeps a guest photo until the retention purge; take a new photo to replace it.'},
 };

@@ -48,6 +48,8 @@ public static class DocumentsEndpoints
             http.HccReply(await Svc(sp).ConfirmAsync(http.HccCommand(DocumentService.OpConfirm), body, ct)));
         cmd.MapPost("/commands/" + DocumentService.OpReject, async (HttpContext http, RejectIdCaptureRequest body, IServiceProvider sp, CancellationToken ct) =>
             http.HccReply(await Svc(sp).RejectAsync(http.HccCommand(DocumentService.OpReject), body, ct)));
+        cmd.MapPost("/commands/" + DocumentService.OpRemovePhoto, async (HttpContext http, RemoveGuestPhotoRequest body, IServiceProvider sp, CancellationToken ct) =>
+            http.HccReply(await Svc(sp).RemovePhotoAsync(http.HccCommand(DocumentService.OpRemovePhoto), body, ct)));
         g.MapPost("/commands/" + DocumentService.OpViewImage, async (HttpContext http, ViewIdCaptureImageRequest body, IServiceProvider sp, CancellationToken ct) =>
         {
             http.Response.Headers.CacheControl = "no-store";

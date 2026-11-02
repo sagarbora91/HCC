@@ -413,6 +413,21 @@ public class DocumentsSqlTests : IAsyncLifetime
         var p = (await w.Svc.PurgeAsync(w.Ctx("OWN"), new PurgeIdCapturesRequest("30 day rule"), Ct)).Value;
         Assert.Equal((1, 30), (p.Purged, p.RetentionDays));
     }
+    [Fact]
+    public async Task LFfinish_remove_photo_is_soft_audited_and_only_for_photos()
+    {
+        var photo = (await _w.Svc.CaptureAsync(_w.Ctx("REC"), new CaptureIdDocumentRequest(_w.GuestId, null, "photo", "image/png", Imgs.B64(Imgs.Scan("aadhaar", Number)), null), Ct)).Value;
+        await Fails(HccErrorCode.VALIDATION, () => _w.Svc.RemovePhotoAsync(_w.Ctx("REC"), new RemoveGuestPhotoRequest(photo.CaptureId, "x"), Ct));
+        await Fails(HccErrorCode.FORBIDDEN, () => _w.Svc.RemovePhotoAsync(_w.Ctx("HKP"), new RemoveGuestPhotoRequest(photo.CaptureId, "Wrong person"), Ct));
+        var r = (await _w.Svc.RemovePhotoAsync(_w.Ctx("REC"), new RemoveGuestPhotoRequest(photo.CaptureId, "Wrong person"), Ct)).Value;
+        Assert.Equal(("Rejected", "Wrong person"), (r.Status, r.RejectReason));
+        Assert.Equal(1, await _w.LongAsync($"SELECT COUNT(*) FROM doc.id_capture WHERE capture_id = {photo.CaptureId} AND status = 'Rejected';", Ct));   // the row stays
+        Assert.Equal(1, await _w.LongAsync("SELECT COUNT(*) FROM plat.audit_event WHERE action = 'GUEST_PHOTO_REMOVE';", Ct));
+        await Fails(HccErrorCode.INVALID_TRANSITION, () => _w.Svc.RemovePhotoAsync(_w.Ctx("REC"), new RemoveGuestPhotoRequest(photo.CaptureId, "Again please"), Ct));
+        var id = (await _w.Svc.CaptureAsync(_w.Ctx("REC"), new CaptureIdDocumentRequest(_w.GuestId, null, "aadhaar", "image/png", Imgs.B64(Imgs.Scan("aadhaar", Number)), null), Ct)).Value;
+        await Fails(HccErrorCode.INVALID_TRANSITION, () => _w.Svc.RemovePhotoAsync(_w.Ctx("REC"), new RemoveGuestPhotoRequest(id.CaptureId, "Not a photo"), Ct));   // an ID image is never removed here
+    }
+
     // ── LF-images B5 (DEC-201): a photo and a full ID per accompanying guest ──
 
     private async Task<int> PartyAsync(int seq = 1)

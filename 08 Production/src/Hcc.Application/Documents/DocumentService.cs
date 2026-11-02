@@ -28,6 +28,7 @@ public sealed class DocumentService(ICommandRunner runner, IAccessPolicy policy,
     public const string OpCapture = "CaptureIdDocument";
     public const string OpConfirm = "ConfirmIdCapture";
     public const string OpReject = "RejectIdCapture";
+    public const string OpRemovePhoto = "RemoveGuestPhoto";
     public const string OpViewImage = "ViewIdCaptureImage";
     public const string OpReveal = "RevealIdCaptureNumber";
     public const string OpPurge = "PurgeIdCaptures";
@@ -167,6 +168,27 @@ public sealed class DocumentService(ICommandRunner runner, IAccessPolicy policy,
             if (row.Status != DocumentRules.Captured) throw new HccException(HccErrorCode.INVALID_TRANSITION, "Only a capture awaiting review can be rejected.");
             await store.SetStatusAsync(tx, row.CaptureId, DocumentRules.Rejected, ctx.PrincipalId, Now, reason, c).ConfigureAwait(false);
             await tx.AuditAsync("ID_CAPTURE_REJECT", Target(row.CaptureId), $"guest {row.GuestId} · image rejected · {reason}", c).ConfigureAwait(false);
+            return ToView((await store.FindAsync(tx, ctx.PropertyId, row.CaptureId, c).ConfigureAwait(false)) ?? throw NotFound());
+        }, ct).ConfigureAwait(false);
+    }
+
+    /// <summary>LF-finish: soft-removes a guest / party photo (status Rejected + reason + audit); the sealed image stays until the retention purge. Never for an ID image.</summary>
+    public async Task<CommandResult<IdCaptureView>> RemovePhotoAsync(CommandContext ctx, RemoveGuestPhotoRequest req, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(ctx);
+        ArgumentNullException.ThrowIfNull(req);
+        await policy.RequireAsync(ctx.PropertyId, ctx.PrincipalId, DocumentPermissions.Capture, ct: ct).ConfigureAwait(false);
+        var reason = req.Reason?.Trim() ?? string.Empty;
+        if (reason.Length is < 3 or > 200) throw HccException.Validation("Give a reason (3–200 characters).");
+        if (GuestIdRules.LooksLikeIdNumber(reason)) throw HccException.Validation(GuestIdRules.FreeTextIdMessage);
+        return await runner.RunAsync(ctx with { Operation = OpRemovePhoto }, req, async (tx, c) =>
+        {
+            await DayOpenAsync(tx, ctx.PropertyId, c).ConfigureAwait(false);
+            var row = await store.LockAsync(tx, ctx.PropertyId, req.CaptureId, c).ConfigureAwait(false) ?? throw NotFound();
+            if (row.DocKind != DocumentRules.PhotoKind) throw new HccException(HccErrorCode.INVALID_TRANSITION, "Only a guest photo can be removed here.");
+            if (row.Status is DocumentRules.Rejected or DocumentRules.Purged) throw new HccException(HccErrorCode.INVALID_TRANSITION, "This photo is already removed.");
+            await store.SetStatusAsync(tx, row.CaptureId, DocumentRules.Rejected, ctx.PrincipalId, Now, reason, c).ConfigureAwait(false);
+            await tx.AuditAsync("GUEST_PHOTO_REMOVE", Target(row.CaptureId), $"guest {row.GuestId}{(row.PartySeq is { } ps ? $" · party member {ps}" : string.Empty)} · photo removed · {reason}", c).ConfigureAwait(false);
             return ToView((await store.FindAsync(tx, ctx.PropertyId, row.CaptureId, c).ConfigureAwait(false)) ?? throw NotFound());
         }, ct).ConfigureAwait(false);
     }
