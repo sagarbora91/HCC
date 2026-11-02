@@ -16,6 +16,7 @@
     <Project Path="tests/Hcc.Integration.Tests/Hcc.Integration.Tests.csproj" />
     <Project Path="tests/Hcc.Handover.Tests/Hcc.Handover.Tests.csproj" />
     <Project Path="tests/Hcc.Keys.Tests/Hcc.Keys.Tests.csproj" />
+    <Project Path="tests/Hcc.Counter.Tests/Hcc.Counter.Tests.csproj" /> <!-- LF-COUNTER -->
     <Project Path="tests/Hcc.Operations.Tests/Hcc.Operations.Tests.csproj" />
     <Project Path="tests/Hcc.Closing.Tests/Hcc.Closing.Tests.csproj" />
     <Project Path="tests/Hcc.GstIds.Tests/Hcc.GstIds.Tests.csproj" />
@@ -185,10 +186,26 @@
     <!-- LF-DOCDB 4670-4674 -->
     <!-- LF-DOCDB end -->
     <!-- LF-RATE 4675-4679 -->
+    <File Path="database/migrations/4675_stay_rate_change.sql" />
+    <File Path="database/migrations/4676_stay_rate_rbac_seed.sql" />
+    <File Path="database/migrations/4677_guest_agreed_rate.sql" />
+    <File Path="database/migrations/4678_guest_agreed_rate_rbac_seed.sql" />
+    <File Path="database/migrations/4679_lf_money_approval_kinds.sql" />
     <!-- LF-RATE end -->
     <!-- LF-BILL 4680-4686 -->
+    <File Path="database/migrations/4680_invoice_revision.sql" />
+    <File Path="database/migrations/4681_invoice_supersession.sql" />
+    <File Path="database/migrations/4682_bill_correction.sql" />
+    <File Path="database/migrations/4683_bill_correction_rbac_seed.sql" />
+    <File Path="database/migrations/4684_lgc_bill_date_index.sql" />
     <!-- LF-BILL end -->
     <!-- LF-COUNTER 4687-4694 -->
+    <File Path="database/migrations/4687_counter_source_kind.sql" />
+    <File Path="database/migrations/4688_counter_bill.sql" />
+    <File Path="database/migrations/4689_counter_rbac_seed.sql" />
+    <File Path="database/migrations/4692_guest_credit_rbac_seed.sql" />
+    <File Path="database/migrations/4693_receipt_kind_guest_credit.sql" />
+    <File Path="database/migrations/4694_guest_credit_account.sql" />
     <!-- LF-COUNTER end -->
     <!-- LF-DESK 4695-4702 -->
     <!-- LF-DESK end -->

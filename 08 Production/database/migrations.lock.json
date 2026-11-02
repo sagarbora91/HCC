@@ -32,7 +32,23 @@
     {"version": 4270, "file": "4270_acc_fixed_asset_put_to_use_disposal.sql", "reason": "ACC-3 contract §10: acc3-carry block 4270-4276 (numbered below the W1a LG 46xx block by the contract)"},
     {"version": 4271, "file": "4271_ops_vendor_payment_realloc.sql", "reason": "ACC-3 contract §10: acc3-carry block 4270-4276 (numbered below the W1a LG 46xx block by the contract)"},
     {"version": 4272, "file": "4272_acc_tds_remit_subsection_form168.sql", "reason": "ACC-3 contract §10: acc3-carry block 4270-4276 (numbered below the W1a LG 46xx block by the contract)"},
-    {"version": 4273, "file": "4273_cmp_profile_gst_on_advances_from.sql", "reason": "ACC-3 contract §10: acc3-carry block 4270-4276 (numbered below the W1a LG 46xx block by the contract)"}
+    {"version": 4273, "file": "4273_cmp_profile_gst_on_advances_from.sql", "reason": "ACC-3 contract §10: acc3-carry block 4270-4276 (numbered below the W1a LG 46xx block by the contract)"},
+    {"version": 4675, "file": "4675_stay_rate_change.sql", "reason": "LF wave block 4670-4719 reserved by DEC-200 before KEYS 4720/4721 landed (LF-CONTRACT §11)"},
+    {"version": 4676, "file": "4676_stay_rate_rbac_seed.sql", "reason": "LF wave block 4670-4719 reserved by DEC-200 before KEYS 4720/4721 landed (LF-CONTRACT §11)"},
+    {"version": 4677, "file": "4677_guest_agreed_rate.sql", "reason": "LF wave block 4670-4719 reserved by DEC-200 before KEYS 4720/4721 landed (LF-CONTRACT §11)"},
+    {"version": 4678, "file": "4678_guest_agreed_rate_rbac_seed.sql", "reason": "LF wave block 4670-4719 reserved by DEC-200 before KEYS 4720/4721 landed (LF-CONTRACT §11)"},
+    {"version": 4679, "file": "4679_lf_money_approval_kinds.sql", "reason": "LF wave block 4670-4719 reserved by DEC-200 before KEYS 4720/4721 landed (LF-CONTRACT §11)"},
+    {"version": 4680, "file": "4680_invoice_revision.sql", "reason": "LF wave block 4670-4719 reserved by DEC-200 before KEYS 4720/4721 landed (LF-CONTRACT §11)"},
+    {"version": 4681, "file": "4681_invoice_supersession.sql", "reason": "LF wave block 4670-4719 reserved by DEC-200 before KEYS 4720/4721 landed (LF-CONTRACT §11)"},
+    {"version": 4682, "file": "4682_bill_correction.sql", "reason": "LF wave block 4670-4719 reserved by DEC-200 before KEYS 4720/4721 landed (LF-CONTRACT §11)"},
+    {"version": 4683, "file": "4683_bill_correction_rbac_seed.sql", "reason": "LF wave block 4670-4719 reserved by DEC-200 before KEYS 4720/4721 landed (LF-CONTRACT §11)"},
+    {"version": 4684, "file": "4684_lgc_bill_date_index.sql", "reason": "LF wave block 4670-4719 reserved by DEC-200 before KEYS 4720/4721 landed (LF-CONTRACT §11)"},
+    {"version": 4687, "file": "4687_counter_source_kind.sql", "reason": "LF wave block 4670-4719 reserved by DEC-200 before KEYS 4720/4721 landed (LF-CONTRACT §11)"},
+    {"version": 4688, "file": "4688_counter_bill.sql", "reason": "LF wave block 4670-4719 reserved by DEC-200 before KEYS 4720/4721 landed (LF-CONTRACT §11)"},
+    {"version": 4689, "file": "4689_counter_rbac_seed.sql", "reason": "LF wave block 4670-4719 reserved by DEC-200 before KEYS 4720/4721 landed (LF-CONTRACT §11)"},
+    {"version": 4692, "file": "4692_guest_credit_rbac_seed.sql", "reason": "LF wave block 4670-4719 reserved by DEC-200 before KEYS 4720/4721 landed (LF-CONTRACT §11)"},
+    {"version": 4693, "file": "4693_receipt_kind_guest_credit.sql", "reason": "LF wave block 4670-4719 reserved by DEC-200 before KEYS 4720/4721 landed (LF-CONTRACT §11)"},
+    {"version": 4694, "file": "4694_guest_credit_account.sql", "reason": "LF wave block 4670-4719 reserved by DEC-200 before KEYS 4720/4721 landed (LF-CONTRACT §11)"}
   ],
   "migrations": [
     {"version": 1, "file": "0001_platform.sql", "sha256": "2CB8FB349156F501295E1148366BDFE406EC097C136093F09C6F0817542F46CC"},
@@ -169,6 +185,22 @@
     {"version": 4273, "file": "4273_cmp_profile_gst_on_advances_from.sql", "sha256": "628C784D84D0A5FE73FCBD2A33A8443A03349604369340306583A86292F4F02D"},
     {"version": 4620, "file": "4620_guest_party_ids.sql", "sha256": "43C06D27267530BC5A65131E14AF6A9DA493C60D1F97E50BC3887C7DA9A6FB89"},
     {"version": 4720, "file": "4720_keys_schema.sql", "sha256": "2476C46142EFDD08BDCEC0610A68E582137CCDBF66C81A3245CDB4BE6D15EC64"},
-    {"version": 4721, "file": "4721_keys_rbac_seed.sql", "sha256": "F348BFD9F20DDAA9FA64278D26B7EFA51402017F2E5984920D9BC9AD2A049EF9"}
+    {"version": 4721, "file": "4721_keys_rbac_seed.sql", "sha256": "F348BFD9F20DDAA9FA64278D26B7EFA51402017F2E5984920D9BC9AD2A049EF9"},
+    {"version": 4675, "file": "4675_stay_rate_change.sql", "sha256": "39F3FAC65AAAD35690530265BA6FABB3445C731D28AF895355EA119960E133F5"},
+    {"version": 4676, "file": "4676_stay_rate_rbac_seed.sql", "sha256": "B8642E5F149F35FF59011B92E6ADEE1A30594C072120641F074B085845BA60DA"},
+    {"version": 4677, "file": "4677_guest_agreed_rate.sql", "sha256": "4B727D957C8607749E780C8281DE176B4975287D5E9CA1D46B79EC7883D7F9E6"},
+    {"version": 4678, "file": "4678_guest_agreed_rate_rbac_seed.sql", "sha256": "D2F08F402E6D73152E0111CAD1EDFC6E9D42EE14E2C6A8419221249377FB0FC8"},
+    {"version": 4679, "file": "4679_lf_money_approval_kinds.sql", "sha256": "6C2046193FFCB324FB13A96FD80E7D36570F6C42B9AE60AC7096CF3B9AB60CBF"},
+    {"version": 4680, "file": "4680_invoice_revision.sql", "sha256": "49E408B7CE328103CE8A0333DC0A37ACA3537D39B21814E7DF95F4E99AED36F8"},
+    {"version": 4681, "file": "4681_invoice_supersession.sql", "sha256": "C46EF14DFBF65EB650E8FCB0AEBB4D94A71654D0D331C04B009FF0266B933B88"},
+    {"version": 4682, "file": "4682_bill_correction.sql", "sha256": "D4B628F1ACD96D819C24C6A4170A80F0D2D89A99447C69233C5A347B66B03896"},
+    {"version": 4683, "file": "4683_bill_correction_rbac_seed.sql", "sha256": "761B3347C219A089919529A1923A804C9937AA55391F26C720DCF4CB6F999E36"},
+    {"version": 4684, "file": "4684_lgc_bill_date_index.sql", "sha256": "C4F372D1BF1CE9FFAD7CB7BFAB3918CA5631BFF9E5010FB0B13FA34672D92E54"},
+    {"version": 4687, "file": "4687_counter_source_kind.sql", "sha256": "6A5016B5B0F9D4D0B5E5447DC1DDF24E7C20AA3C3B11313821F7B92810C9A409"},
+    {"version": 4688, "file": "4688_counter_bill.sql", "sha256": "2632E4B152DF37961E71BBA7495C26540C063584BCFFEDB5872D902D88DBC510"},
+    {"version": 4689, "file": "4689_counter_rbac_seed.sql", "sha256": "098A4170152A4C473053CC77423FD9B1B054B2D70DE7DF47D873125575829B23"},
+    {"version": 4692, "file": "4692_guest_credit_rbac_seed.sql", "sha256": "95440691AB23FBD16E040EF140E8855E3E0E0A9D58F4E46744664D52E3C7AA0A"},
+    {"version": 4693, "file": "4693_receipt_kind_guest_credit.sql", "sha256": "4F5070806F7BB0DDCA20EB43C8D043254AEF335B506C6F6F9656CDD648B55DB7"},
+    {"version": 4694, "file": "4694_guest_credit_account.sql", "sha256": "85B3FCD5E62FB999F37EC407BBB8A976654F91EA1C7E96F9E9F2F941AD644A64"}
   ]
 }
