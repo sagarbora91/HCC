@@ -38,16 +38,28 @@ public sealed class SqlConnectionFactory
     /// Local development connection: Windows authentication, encrypted, and TrustServerCertificate=True because the
     /// local SQL Express certificate is self-signed. DEV ONLY — production uses a trusted certificate (P7).
     /// </summary>
-    public static string LocalDevConnectionString(string server, string database) => new SqlConnectionStringBuilder
+    public static string LocalDevConnectionString(string server, string database)
     {
-        DataSource = server,
-        InitialCatalog = database,
-        IntegratedSecurity = true,
-        Encrypt = SqlConnectionEncryptOption.Mandatory,
-        TrustServerCertificate = true,
-        ApplicationName = "HCC",
-        ConnectTimeout = 15,
-    }.ConnectionString;
+        var b = new SqlConnectionStringBuilder
+        {
+            DataSource = server,
+            InitialCatalog = database,
+            IntegratedSecurity = true,
+            Encrypt = SqlConnectionEncryptOption.Mandatory,
+            TrustServerCertificate = true,
+            ApplicationName = "HCC",
+            ConnectTimeout = 15,
+        };
+        // Development and test only: a Linux test host (cloud container) has no Windows login, so it may pass a
+        // SQL login through HCC_TEST_SQL_USER / HCC_TEST_SQL_PASSWORD. Production never calls this helper.
+        if (Environment.GetEnvironmentVariable("HCC_TEST_SQL_USER") is { Length: > 0 } user)
+        {
+            b.IntegratedSecurity = false;
+            b.UserID = user;
+            b.Password = Environment.GetEnvironmentVariable("HCC_TEST_SQL_PASSWORD") ?? "";
+        }
+        return b.ConnectionString;
+    }
 
     public async Task<SqlConnection> OpenAsync(CancellationToken ct = default)
     {
