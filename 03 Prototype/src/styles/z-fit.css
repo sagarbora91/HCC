@@ -147,6 +147,12 @@ html:has(.app-shell),html:has(.app-shell) body,html:has(.app-shell) #root{height
 .fit-split-list,.fit-split-detail{min-height:0;min-width:0;display:flex;flex-direction:column;gap:8px}
 .fit-split-pane{flex:1;min-height:0;overflow:auto;position:relative;background:var(--c-ffffff);border:1px solid var(--line);border-radius:9px;scrollbar-width:thin}
 .fit-split-back{display:none}
+/* FIT-2 (§12): ≥ 900 px with no record open the list takes all columns; a record opens the pane beside it with a Back to list control */
+@media (min-width:900px){
+  .fit-split.list-only:where(:not(.fit-page)){grid-template-columns:minmax(0,1fr)}
+  .fit-split.list-only>.fit-split-detail{display:none}
+  .fit-split.has-detail .fit-split-back{display:inline-flex;align-items:center;gap:6px;align-self:flex-start;flex:none}
+}
 @media (max-width:899.98px){
   .fit-split:where(:not(.fit-page)){grid-template-columns:minmax(0,1fr)}
   .fit-split-detail{display:none}
@@ -159,11 +165,25 @@ html:has(.app-shell),html:has(.app-shell) body,html:has(.app-shell) #root{height
 .app-shell .fit-tabs-bar button{flex:none;white-space:nowrap}
 .fit-tab-count.warn{background:var(--c-fff1e4);color:var(--c-95533e)}
 .fit-tab-count.danger{background:var(--c-f3e4e6);color:var(--primary)}
+/* FIT-2 (§12): tabs that do not fit sit in a "More ▾" menu at the end of the bar (fit.tsx FitTabs); the button and items keep the tab look */
+.fit-tabs-more{position:relative;flex:none;display:flex}
+.app-shell .fit-tabs-bar .fit-tabs-more-btn{display:inline-flex;align-items:center;gap:4px}
+.app-shell .fit-tabs-bar:has(.fit-tabs-pop){overflow:visible}
+.fit-tabs-pop{position:absolute;top:calc(100% + 4px);right:0;z-index:30;min-width:200px;max-width:min(360px,calc(100vw - 32px));max-height:min(60vh,420px);overflow:auto;display:flex;flex-direction:column;gap:2px;padding:6px;background:var(--c-ffffff);border:1px solid var(--line);border-radius:10px;box-shadow:0 12px 40px var(--c-2b1d1630)}
+.app-shell .fit-tabs-pop>[role=menuitem]{display:flex;align-items:center;justify-content:flex-start;gap:8px;width:100%;text-align:left}
 
 /* ── StatStrip: one row, sideways if too many; Stat fonts unchanged ─────────────────────────────────────────────────── */
 .fit-stats{display:flex;flex-wrap:nowrap;gap:10px;overflow-x:auto;min-width:0;scrollbar-width:thin}
 .app-shell .fit-stats .fit-stat{flex:none;min-height:0;padding:8px 12px;display:flex;flex-direction:column;gap:2px}
-.fit-stat.ok{border-color:var(--c-436a41)}.fit-stat.warn{border-color:var(--c-c9773d)}.fit-stat.danger{border-color:var(--primary)}
+.fit-stat.ok{border-color:var(--c-436a41)}
+/* FIT-2 (§12): compact = one line per figure (label, value, sub side by side; font sizes unchanged); collapsible = a toggle beside the strip */
+.app-shell .fit-stats.fit-stats-compact .fit-stat{flex-direction:row;align-items:baseline;gap:8px;padding:4px 10px;white-space:nowrap}
+.app-shell .fit-stats.fit-stats-compact .stat-label{margin:0}
+.app-shell .fit-small-stats.fit-stats-compact>div{padding-top:3px;padding-bottom:3px}
+.fit-stats-wrap{display:flex;align-items:center;gap:6px;min-width:0}
+.fit-stats-wrap>.fit-stats,.fit-stats-wrap>.fit-small-stats{flex:1 1 auto;min-width:0}
+.app-shell .fit-page-toolbar>.fit-stats-wrap{flex:1 1 auto}
+.app-shell .fit-stats-wrap>.fit-stats-toggle{flex:none;margin:0}.fit-stat.warn{border-color:var(--c-c9773d)}.fit-stat.danger{border-color:var(--primary)}
 /* variant="small": the old .small-stats tiles in one row (their span / strong font rules of styles.css apply unchanged) */
 .app-shell .fit-small-stats{display:flex;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;gap:10px;margin:0;min-width:0;scrollbar-width:thin;grid-template-columns:none}
 .app-shell .fit-small-stats>div{flex:none;padding:6px 12px;gap:10px;white-space:nowrap;flex-direction:row;align-items:center}
@@ -184,6 +204,12 @@ html:has(.app-shell),html:has(.app-shell) body,html:has(.app-shell) #root{height
 .fit-step-text{display:flex;flex-direction:column;gap:2px;min-width:0}
 .fit-step-text small{color:var(--muted)}
 .fit-step-body{min-height:0;min-width:0;display:flex;flex-direction:column;gap:12px}
+/* FIT-2 (§12): the rail's one-line result under a step / section label; with summaries the rail is ~340 px wide at ≥ 1280 px */
+.fit-rail-sum{display:block;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink)}
+.fit-step-text{flex:1 1 auto}
+.fit-form-nav-text{display:flex;flex-direction:column;gap:2px;flex:1 1 auto;min-width:0}
+@media (min-width:1280px){.fit-steps.has-summary:where(:not(.fit-page)),.fit-form.has-summary:where(:not(.fit-page)){grid-template-columns:minmax(260px,340px) minmax(0,1fr)}}
+@media (max-width:899.98px){.fit-rail-sum{max-width:240px}}
 @media (max-width:899.98px){.fit-steps:where(:not(.fit-page)){grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr)}
   .fit-step-rail{flex-direction:row;overflow-x:auto;overflow-y:hidden}.fit-step-rail>li{flex:none}}
 
@@ -247,6 +273,8 @@ html:has(.fit-signin),html:has(.fit-signin) body,html:has(.fit-signin) #root{hei
   .app-shell .topbar.fit-topbar{padding:0 12px;gap:8px}
   .app-shell .fit-tabs-bar [role=tab]{min-height:var(--hcc-touch-primary)!important}
   .app-shell .fit-step,.app-shell .fit-form-nav button{min-height:var(--hcc-touch-primary)!important}
+  .app-shell .fit-tabs-bar .fit-tabs-more-btn,.app-shell .fit-tabs-pop>[role=menuitem]{min-height:var(--hcc-touch-primary)!important}
+  .app-shell .fit-stats-toggle{min-width:var(--hcc-touch-dense,44px);min-height:var(--hcc-touch-dense,44px)}
   /* §11.8: the 56 px bar shows the user button on touch tablets too (z-tablet.css hides .current-user there); About this build and Sign out
      stay in the user menu it opens. */
   .app-shell .topbar.fit-topbar .topbar-right .current-user{display:inline-flex!important;align-items:center}

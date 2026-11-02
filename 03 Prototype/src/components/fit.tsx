@@ -3,7 +3,7 @@
 // Fonts are never set here: every heading, label and value reuses the classes the old markup used (page-title, card, section-title,
 // stat-label, money-stat …) so computed font sizes stay identical (DEC-195); only the page h1 drops to 22 px, in z-fit.css.
 import React,{createContext,useContext,useEffect,useLayoutEffect,useRef,useState,useCallback} from 'react';
-import {ArrowLeft,Check,CircleDot,Circle,Ban,MoreHorizontal} from 'lucide-react';
+import {ArrowLeft,Check,CircleDot,Circle,Ban,MoreHorizontal,ChevronDown,ChevronsDownUp,ChevronsUpDown} from 'lucide-react';
 import {useStepBack} from '../app/native';
 
 /** What the desktop shell (App.tsx) tells the pages: that this is the desktop layout, the open page, the tab asked for by go(page,{tab}), a
@@ -134,22 +134,35 @@ export function useWideSplit(fallback=true):boolean{
 }
 
 /** List + detail side by side. Below 900 px width the detail opens over the list as a slide-over with a Back button (never stacked below).
- *  Android Back closes the slide-over first (the app's step-back chain, app/native.ts). */
-export function SplitView(p:{list:React.ReactNode;detail:React.ReactNode|null;empty:React.ReactNode;onCloseDetail:()=>void;ratio?:`${number}fr ${number}fr`;label:string}):React.JSX.Element{
+ *  Android Back closes the slide-over first (the app's step-back chain, app/native.ts).
+ *  FIT-2 (contract §12): at ≥ 900 px, while no record is open, the list takes ALL columns (class "list-only"; the empty pane is not shown);
+ *  a record opens the detail pane beside it with a "Back to list" control. emptyPane="show" keeps the old always-two-columns look. */
+export function SplitView(p:{list:React.ReactNode;detail:React.ReactNode|null;empty:React.ReactNode;onCloseDetail:()=>void;ratio?:`${number}fr ${number}fr`;label:string;
+  emptyPane?:'hide'|'show'}):React.JSX.Element{
   const narrow=useNarrow();const open=p.detail!==null&&p.detail!==undefined&&p.detail!==false;
   const close=useRef(p.onCloseDetail);close.current=p.onCloseDetail;
   useStepBack(narrow&&open,()=>close.current());
   const ratio=p.ratio??'2fr 3fr';const [a,b]=ratio.split(' ');
+  const listOnly=!open&&(p.emptyPane??'hide')==='hide';
   // A record that opens takes the focus to its pane instead of a live region re-reading the whole record on every change.
   const pane=useRef<HTMLDivElement>(null);const was=useRef(open);
   useEffect(()=>{if(open&&!was.current)pane.current?.focus({preventScroll:true});was.current=open;},[open]);
-  return <div className={'fit-split'+(open?' has-detail':'')} aria-label={p.label} role="group" style={{['--fit-split-cols' as string]:`minmax(0,${a}) minmax(0,${b})`}}>
+  return <div className={'fit-split'+(open?' has-detail':'')+(listOnly?' list-only':'')} aria-label={p.label} role="group" style={{['--fit-split-cols' as string]:`minmax(0,${a}) minmax(0,${b})`}}>
     <div className="fit-split-list">{p.list}</div>
     <div className="fit-split-detail">
       {open&&<button type="button" className="btn fit-split-back" onClick={()=>close.current()}><ArrowLeft size={16}/>Back to list</button>}
       <div className="fit-split-pane" ref={pane} data-fit-scroll="" tabIndex={0} aria-label={p.label+' — record'}>{open?p.detail:p.empty}</div>
     </div>
   </div>;
+}
+
+/** Pure (FIT-2 §12): which tabs stay in the bar when only `n` fit — the first n in order, but the selected one always stays (it takes the last
+ *  place); the rest go to the "More" menu, in their order. */
+export function splitTabs<X extends {id:string}>(tabs:X[],n:number,value:string):{visible:Set<string>;hidden:X[]}{
+  const shown=Math.max(1,Math.min(n,tabs.length));
+  const visible=new Set(tabs.slice(0,shown).map(t=>t.id));
+  if(shown<tabs.length&&!visible.has(value)&&tabs.some(t=>t.id===value)){visible.delete(tabs[shown-1].id);visible.add(value);}
+  return {visible,hidden:tabs.filter(t=>!visible.has(t.id))};
 }
 
 /** Sub-screens (DEC-196). Tab bar ≥ 48 px on touch; scrolls sideways if it overflows; role=tablist, arrow keys, Home/End.
@@ -163,17 +176,58 @@ export function FitTabs<T extends string>(p:{page:string;tabs:{id:T;label:string
   useEffect(()=>{if(!inner)setCrumb(label?{page:p.page,label}:null);},[p.page,label,setCrumb,inner]);
   useEffect(()=>()=>{if(!inner)setCrumb(null);},[setCrumb,inner]);
   useEffect(()=>{bar.current?.querySelector<HTMLElement>('[aria-selected="true"]')?.scrollIntoView?.({block:'nearest',inline:'nearest'});},[p.value]);
+  // FIT-2 (§12): tabs that do not fit move, from the end, into a "More ▾" menu (the selected tab always stays in the bar). Measured like the
+  // header actions: start from every tab whenever the tabs or the bar's room change, then drop one at a time while the bar overflows.
+  const total=p.tabs.length;const [n,setN]=useState(total);const [open,setOpen]=useState(false);const [,bump]=useState(0);
+  const full=useRef(true);const sig=p.tabs.map(t=>t.id+':'+t.label+':'+(t.count??'')).join('|')+'>'+p.value; /* new tabs, labels, counts or selection: measure again */const lastSig=useRef(sig);const lastW=useRef(-1);
+  const moreBtn=useRef<HTMLButtonElement>(null);const menu=useRef<HTMLDivElement>(null);const menuId=React.useId();
+  if(lastSig.current!==sig){lastSig.current=sig;full.current=true;}
+  useLayoutEffect(()=>{const el=bar.current;if(!el)return;
+    if(full.current){if(n!==total){setN(total);return;}full.current=false;}
+    if(n>1&&el.scrollWidth>el.clientWidth+1)setN(n-1);
+    else if(n>total)setN(total);
+  });
+  useEffect(()=>{const host=bar.current?.parentElement;if(!host||typeof ResizeObserver==='undefined')return;
+    const ro=new ResizeObserver(()=>{const w=Math.round(host.clientWidth);if(w===lastW.current)return;lastW.current=w;full.current=true;bump(x=>x+1);});
+    ro.observe(host);return ()=>ro.disconnect();},[]);
+  const {visible,hidden}=splitTabs(p.tabs,n,p.value);
+  useEffect(()=>{if(!open)return;
+    const off=(e:Event)=>{const t=e.target as Node;if(!menu.current?.contains(t)&&!moreBtn.current?.contains(t))setOpen(false);};
+    document.addEventListener('mousedown',off);return ()=>document.removeEventListener('mousedown',off);},[open]);
+  useEffect(()=>{if(open)menu.current?.querySelector<HTMLElement>('[role=menuitem]')?.focus();},[open]);
+  if(!hidden.length&&open)window.setTimeout(()=>setOpen(false),0);
+  const focusTab=(id:string)=>window.setTimeout(()=>bar.current?.querySelector<HTMLElement>(`[data-tab="${id}"]`)?.focus(),0);
   const onKey=(e:React.KeyboardEvent)=>{
+    if((e.target as HTMLElement).getAttribute('role')!=='tab')return; // the More button and its menu have their own keys
     const i=p.tabs.findIndex(t=>t.id===p.value);let j=-1;
     if(e.key==='ArrowRight')j=(i+1)%p.tabs.length;else if(e.key==='ArrowLeft')j=(i-1+p.tabs.length)%p.tabs.length;
     else if(e.key==='Home')j=0;else if(e.key==='End')j=p.tabs.length-1;
-    if(j<0)return;e.preventDefault();p.onChange(p.tabs[j].id);
-    window.setTimeout(()=>bar.current?.querySelector<HTMLElement>(`[data-tab="${p.tabs[j].id}"]`)?.focus(),0);
+    if(j<0)return;e.preventDefault();p.onChange(p.tabs[j].id);focusTab(p.tabs[j].id);
   };
+  const onMoreKey=(e:React.KeyboardEvent)=>{if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();setOpen(true);}else if(e.key==='Escape'&&open){e.preventDefault();setOpen(false);}};
+  const onMenuKey=(e:React.KeyboardEvent)=>{
+    const items=Array.from(menu.current?.querySelectorAll<HTMLElement>('[role=menuitem]')??[]);const i=items.indexOf(document.activeElement as HTMLElement);let j=-1;
+    if(e.key==='ArrowDown')j=(i+1)%items.length;else if(e.key==='ArrowUp')j=(i-1+items.length)%items.length;else if(e.key==='Home')j=0;else if(e.key==='End')j=items.length-1;
+    else if(e.key==='Escape'){e.preventDefault();e.stopPropagation();setOpen(false);moreBtn.current?.focus();return;}
+    else if(e.key==='Tab'){setOpen(false);return;}
+    if(j<0)return;e.preventDefault();items[j]?.focus();
+  };
+  const pick=(id:T)=>{setOpen(false);p.onChange(id);focusTab(id);};
+  const worst=hidden.some(t=>t.badge==='danger')?'danger':hidden.some(t=>t.badge==='warn')?'warn':'';
+  const tabBtn=(t:typeof p.tabs[number])=><button key={t.id} type="button" role="tab" id={`fit-tab-${p.page}-${t.id}`} data-tab={t.id} aria-selected={t.id===p.value} tabIndex={t.id===p.value?0:-1}
+    className={t.id===p.value?'active':''} onClick={()=>p.onChange(t.id)}>{t.label}
+    {t.count!==undefined&&<span className={'fit-tab-count'+(t.badge?' '+t.badge:'')}>{t.count}</span>}</button>;
   return <div className="fit-tabs-bar tabs" role="tablist" aria-label="Sections of this page" ref={bar} onKeyDown={onKey}>
-    {p.tabs.map(t=><button key={t.id} type="button" role="tab" id={`fit-tab-${p.page}-${t.id}`} data-tab={t.id} aria-selected={t.id===p.value} tabIndex={t.id===p.value?0:-1}
-      className={t.id===p.value?'active':''} onClick={()=>p.onChange(t.id)}>{t.label}
-      {t.count!==undefined&&<span className={'fit-tab-count'+(t.badge?' '+t.badge:'')}>{t.count}</span>}</button>)}
+    {p.tabs.filter(t=>visible.has(t.id)).map(tabBtn)}
+    {hidden.length>0&&<div className="fit-tabs-more" role="presentation">
+      <button type="button" ref={moreBtn} className="fit-tabs-more-btn" aria-haspopup="menu" aria-expanded={open} aria-controls={open?menuId:undefined}
+        aria-label={`More sections (${hidden.length})`} onClick={()=>setOpen(o=>!o)} onKeyDown={onMoreKey}>More<ChevronDown size={16} aria-hidden="true"/>
+        {worst&&<span className={'fit-tab-count '+worst} aria-hidden="true">!</span>}</button>
+      {open&&<div className="fit-tabs-pop" role="menu" id={menuId} aria-label="More sections" ref={menu} onKeyDown={onMenuKey}>
+        {hidden.map(t=><button key={t.id} type="button" role="menuitem" tabIndex={-1} data-tab-more={t.id} onClick={()=>pick(t.id)}>{t.label}
+          {t.count!==undefined&&<span className={'fit-tab-count'+(t.badge?' '+t.badge:'')}>{t.count}</span>}</button>)}
+      </div>}
+    </div>}
   </div>;
 }
 
@@ -183,11 +237,35 @@ export type StatItem={title:string;value:React.ReactNode;sub?:string;tone?:'ok'|
  *  - default: the big ".stats" tiles (".stat > strong"). A value is a plain count (the 35 px ".stat>strong") unless the item — or the whole
  *    strip with `money` — says money: then it is ".money-stat" (what the old `Stat` component and explicit money-stat tiles used).
  *  - variant="small": the old ".small-stats" tiles (label span + strong, 25 / 23 px), with the old extra class (e.g. "hov-stats") in `className`. */
-export function StatStrip(p:{items:StatItem[];money?:boolean;variant?:'small';className?:string}):React.JSX.Element{
-  if(p.variant==='small')return <div className={'small-stats fit-small-stats'+(p.className?' '+p.className:'')} role="list" aria-label="Key figures">{p.items.map((x,i)=>
-    <div role="listitem" key={i} className={x.tone?'fit-tone-'+x.tone:undefined}><span>{x.title}</span><strong>{x.value}</strong>{x.sub&&<small>{x.sub}</small>}</div>)}</div>;
-  return <div className={'fit-stats'+(p.className?' '+p.className:'')} role="list" aria-label="Key figures">{p.items.map((x,i)=><div role="listitem" key={i} className={'stat fit-stat'+(x.tone?' '+x.tone:'')}>
-    <div className="stat-label">{x.title}</div><strong className={(x.money??p.money)?'money-stat':undefined}>{x.value}</strong>{x.sub&&<small>{x.sub}</small>}</div>)}</div>;
+/** sessionStorage key of a page's remembered StatStrip mode ('compact' | 'full'), FIT-2 §12. */
+export const fitStatsKey=(page:string)=>'hcc-fit-stats:'+page;
+/** Tab-land and narrower (Galaxy Tab S7 landscape app area is 1138 px wide). */
+export const TABLET_WIDE='(max-width: 1180px)';
+const readStats=(page:string)=>{try{const v=sessionStorage.getItem(fitStatsKey(page));return v==='compact'||v==='full'?v:null;}catch{return null;}};
+const writeStats=(page:string,v:string)=>{try{sessionStorage.setItem(fitStatsKey(page),v);}catch{/* storage unavailable */}};
+const onTablet=()=>typeof window!=='undefined'&&typeof window.matchMedia==='function'&&window.matchMedia(TABLET_WIDE).matches;
+/** FIT-2 (§12) additions, all optional (existing call sites unchanged):
+ *  - compact: one line per figure (label, value and sub side by side; same font sizes, less height).
+ *  - collapsible: a toggle button beside the strip switches compact ⇄ full; the choice is remembered per page in sessionStorage
+ *    `hcc-fit-stats:<page>` (page = `page` prop, else the open page). Collapsed is the compact line, so the figures never disappear.
+ *  - collapseOnTablet: implies collapsible; with nothing remembered, starts compact at ≤ 1180 px wide (tab-land), full otherwise
+ *    (or compact when `compact` is set). */
+export function StatStrip(p:{items:StatItem[];money?:boolean;variant?:'small';className?:string;compact?:boolean;collapsible?:boolean;collapseOnTablet?:boolean;page?:string}):React.JSX.Element{
+  const nav=useFitNav();const page=p.page??nav.page;const toggle=!!(p.collapsible||p.collapseOnTablet);
+  const [mode,setMode]=useState<'compact'|'full'>(()=>{const kept=toggle&&page?readStats(page):null;if(kept)return kept;
+    return p.compact||(p.collapseOnTablet&&onTablet())?'compact':'full';});
+  const compact=toggle?mode==='compact':!!p.compact;
+  const cls=(p.className?' '+p.className:'')+(compact?' fit-stats-compact':'');
+  const strip=p.variant==='small'
+    ?<div className={'small-stats fit-small-stats'+cls} role="list" aria-label="Key figures">{p.items.map((x,i)=>
+      <div role="listitem" key={i} className={x.tone?'fit-tone-'+x.tone:undefined}><span>{x.title}</span><strong>{x.value}</strong>{x.sub&&<small>{x.sub}</small>}</div>)}</div>
+    :<div className={'fit-stats'+cls} role="list" aria-label="Key figures">{p.items.map((x,i)=><div role="listitem" key={i} className={'stat fit-stat'+(x.tone?' '+x.tone:'')}>
+      <div className="stat-label">{x.title}</div><strong className={(x.money??p.money)?'money-stat':undefined}>{x.value}</strong>{x.sub&&<small>{x.sub}</small>}</div>)}</div>;
+  if(!toggle)return strip;
+  const flip=()=>{const next=compact?'full':'compact';if(page)writeStats(page,next);setMode(next);};
+  return <div className={'fit-stats-wrap'+(compact?' compact':'')}>{strip}
+    <button type="button" className="icon-btn fit-stats-toggle" aria-label={compact?'Show key figures in full':'Show key figures on one line'}
+      onClick={flip}>{compact?<ChevronsUpDown size={16} aria-hidden="true"/>:<ChevronsDownUp size={16} aria-hidden="true"/>}</button></div>;
 }
 
 /** Columns that each scroll on their own (Housekeeping, Maintenance board, POS tickets). */
@@ -201,23 +279,32 @@ export function BoardColumns(p:{columns:{id:string;title:string;count?:number;bo
 
 const STEP_ICON={done:Check,current:CircleDot,waiting:Circle,blocked:Ban} as const;
 const STEP_WORD={done:'done',current:'current step',waiting:'waiting',blocked:'blocked'} as const;
-/** Wizard / checklist: step rail on the left (status icon + label + count), one step body on the right (Day closing, handover runs). */
-export function StepFlow(p:{steps:{id:string;label:string;status:'done'|'current'|'waiting'|'blocked';note?:string}[];value:string;onChange:(id:string)=>void;children:React.ReactNode}):React.JSX.Element{
-  return <div className="fit-steps">
+const hasSummary=(xs:{summary?:React.ReactNode}[])=>xs.some(x=>x.summary!==undefined&&x.summary!==null&&x.summary!==false&&x.summary!=='');
+/** The rail's one-line result under a step / section label (FIT-2 §12): ellipsis when too long; a plain-text summary also goes in `title`
+ *  (the step body itself shows the full result, so the tooltip is only a convenience, never the only way to read it). */
+const RailSummary=({s}:{s:React.ReactNode})=>s===undefined||s===null||s===false||s===''?null
+  :<span className="fit-rail-sum" title={typeof s==='string'||typeof s==='number'?String(s):undefined}>{s}</span>;
+/** Wizard / checklist: step rail on the left (status icon + label + count), one step body on the right (Day closing, handover runs).
+ *  FIT-2 (§12): `summary` per step = the step's result / current value, shown under the label in the rail, so reviewing needs no click; with
+ *  any summary the rail is ~340 px wide at ≥ 1280 px (unchanged below). */
+export function StepFlow(p:{steps:{id:string;label:string;status:'done'|'current'|'waiting'|'blocked';note?:string;summary?:React.ReactNode}[];value:string;onChange:(id:string)=>void;children:React.ReactNode}):React.JSX.Element{
+  return <div className={'fit-steps'+(hasSummary(p.steps)?' has-summary':'')}>
     <ol className="fit-step-rail" aria-label="Steps">{p.steps.map((x,i)=>{const Icon=STEP_ICON[x.status];return <li key={x.id}>
       <button type="button" className={'fit-step '+x.status+(x.id===p.value?' on':'')} aria-current={x.id===p.value?'step':undefined} onClick={()=>p.onChange(x.id)}>
         <span className="fit-step-ic" aria-hidden="true"><Icon size={16}/></span>
-        <span className="fit-step-text"><strong>{i+1}. {x.label}</strong><small>{x.note?x.note+' · ':''}{STEP_WORD[x.status]}</small></span></button></li>;})}</ol>
+        <span className="fit-step-text"><strong>{i+1}. {x.label}</strong><small>{x.note?x.note+' · ':''}{STEP_WORD[x.status]}</small><RailSummary s={x.summary}/></span></button></li>;})}</ol>
     <div className="fit-step-body">{p.children}</div>
   </div>;
 }
 
-/** Long settings forms: section list on the left, one section on the right, Save bar sticky at the bottom. */
-export function FormSections(p:{sections:{id:string;label:string;dirty?:boolean}[];value:string;onChange:(id:string)=>void;actions:React.ReactNode;children:React.ReactNode}):React.JSX.Element{
-  return <div className="fit-form">
+/** Long settings forms: section list on the left, one section on the right, Save bar sticky at the bottom.
+ *  FIT-2 (§12): `summary` per section = its current value(s) in one line under the label; with any summary the list is ~340 px wide at ≥ 1280 px. */
+export function FormSections(p:{sections:{id:string;label:string;dirty?:boolean;summary?:React.ReactNode}[];value:string;onChange:(id:string)=>void;actions:React.ReactNode;children:React.ReactNode}):React.JSX.Element{
+  return <div className={'fit-form'+(hasSummary(p.sections)?' has-summary':'')}>
     <nav className="fit-form-nav" aria-label="Form sections"><ul>{p.sections.map(x=><li key={x.id}>
       <button type="button" className={x.id===p.value?'on':''} aria-current={x.id===p.value?'true':undefined} onClick={()=>p.onChange(x.id)}>
-        {x.label}{x.dirty&&<span className="fit-dirty" aria-label="unsaved changes">•</span>}</button></li>)}</ul></nav>
+        {hasSummary([x])?<span className="fit-form-nav-text"><span>{x.label}</span><RailSummary s={x.summary}/></span>:x.label}
+        {x.dirty&&<span className="fit-dirty" aria-label="unsaved changes">•</span>}</button></li>)}</ul></nav>
     <div className="fit-form-main">
       <div className="fit-form-body" data-fit-scroll="" tabIndex={0} aria-label={(p.sections.find(x=>x.id===p.value)?.label??'Section')+' — fields'}>{p.children}</div>
       <div className="fit-form-actions">{p.actions}</div>
@@ -228,10 +315,13 @@ export function FormSections(p:{sections:{id:string;label:string;dirty?:boolean}
 /** One-line note with a "More" button that opens the full text in place (contract §11.4). Touch-reachable: never a title-only tooltip.
  *  Use it for footnotes in a ScrollPanel footer and for collapsed info notes. "lines" is the collapsed height (1 by default). */
 export function FitNote(p:{text:React.ReactNode;lines?:number;className?:string}):React.JSX.Element{ // className: e.g. fit-note-12 keeps a moved note's old size (DEC-195)
-  const [open,setOpen]=useState(false);const [long,setLong]=useState(true);const t=useRef<HTMLParagraphElement>(null);
-  // "More" only when the text is cut (measured after layout; text size and width changes re-measure).
-  useEffect(()=>{const el=t.current;if(!el||open)return;const m=()=>setLong(el.scrollWidth>el.clientWidth+1||el.scrollHeight>el.clientHeight+1);m();
-    if(typeof ResizeObserver==='undefined')return;const ro=new ResizeObserver(m);ro.observe(el);return ()=>ro.disconnect();},[open,p.text]);
+  const [open,setOpen]=useState(false);const [long,setLong]=useState(false);const t=useRef<HTMLParagraphElement>(null);
+  // FIT-2 (§12): the full text shows when it fits its box, and "More" appears only when the text is really cut. Measured before paint (no
+  // flash of a More button), again whenever the note or its box changes size (width, text size preference, font load).
+  useLayoutEffect(()=>{const el=t.current;if(!el||open)return;
+    const m=()=>setLong(el.scrollWidth>el.clientWidth+1||el.scrollHeight>el.clientHeight+1);m();
+    if(typeof ResizeObserver==='undefined')return;const ro=new ResizeObserver(m);ro.observe(el);if(el.parentElement)ro.observe(el.parentElement);
+    return ()=>ro.disconnect();},[open,p.text]);
   const lines=p.lines??1;
   return <div className={'fit-note footnote'+(p.className?' '+p.className:'')+(open?' open':'')}>
     <p className="fit-note-text" ref={t} style={lines>1&&!open?{whiteSpace:'normal',display:'-webkit-box',WebkitLineClamp:lines,WebkitBoxOrient:'vertical'}:undefined}>{p.text}</p>
