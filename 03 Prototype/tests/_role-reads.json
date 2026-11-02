@@ -145,7 +145,8 @@
     "GET /guest-services/complaint-categories": "/guest-services/complaint-categories?page=1&pageSize=200",
     "GET /guest-services/complaint-categories/history": "/guest-services/complaint-categories/history?page=1&pageSize=200",
     "GET /guest-services/lost-found-categories": "/guest-services/lost-found-categories?page=1&pageSize=200",
-    "GET /guest-services/lost-found-categories/history": "/guest-services/lost-found-categories/history?page=1&pageSize=200"
+    "GET /guest-services/lost-found-categories/history": "/guest-services/lost-found-categories/history?page=1&pageSize=200",
+    "GET /reminders": "/reminders?bucket=today"
   },
   "roles": {
     "OWN": {
@@ -1092,7 +1093,8 @@
         "GET /guest-services/complaint-categories": "200",
         "GET /guest-services/complaint-categories/history": "200",
         "GET /guest-services/lost-found-categories": "200",
-        "GET /guest-services/lost-found-categories/history": "200"
+        "GET /guest-services/lost-found-categories/history": "200",
+        "GET /reminders": "200"
       }
     },
     "MGR": {
@@ -1849,7 +1851,8 @@
         "GET /guest-services/complaint-categories": "200",
         "GET /guest-services/complaint-categories/history": "403",
         "GET /guest-services/lost-found-categories": "200",
-        "GET /guest-services/lost-found-categories/history": "403"
+        "GET /guest-services/lost-found-categories/history": "403",
+        "GET /reminders": "200"
       }
     },
     "REC": {
@@ -2331,7 +2334,8 @@
         "GET /guest-services/complaint-categories": "200",
         "GET /guest-services/complaint-categories/history": "403",
         "GET /guest-services/lost-found-categories": "200",
-        "GET /guest-services/lost-found-categories/history": "403"
+        "GET /guest-services/lost-found-categories/history": "403",
+        "GET /reminders": "200"
       }
     },
     "CSH": {
@@ -2668,7 +2672,8 @@
         "GET /guest-services/complaint-categories": "200",
         "GET /guest-services/complaint-categories/history": "403",
         "GET /guest-services/lost-found-categories": "200",
-        "GET /guest-services/lost-found-categories/history": "403"
+        "GET /guest-services/lost-found-categories/history": "403",
+        "GET /reminders": "403"
       }
     },
     "ACC": {
@@ -3085,7 +3090,8 @@
         "GET /guest-services/complaint-categories": "200",
         "GET /guest-services/complaint-categories/history": "403",
         "GET /guest-services/lost-found-categories": "200",
-        "GET /guest-services/lost-found-categories/history": "403"
+        "GET /guest-services/lost-found-categories/history": "403",
+        "GET /reminders": "200"
       }
     },
     "SUP": {
@@ -3342,7 +3348,8 @@
         "GET /guest-services/complaint-categories": "200",
         "GET /guest-services/complaint-categories/history": "403",
         "GET /guest-services/lost-found-categories": "200",
-        "GET /guest-services/lost-found-categories/history": "403"
+        "GET /guest-services/lost-found-categories/history": "403",
+        "GET /reminders": "403"
       }
     },
     "HKP": {
@@ -3564,7 +3571,8 @@
         "GET /guest-services/complaint-categories": "200",
         "GET /guest-services/complaint-categories/history": "403",
         "GET /guest-services/lost-found-categories": "200",
-        "GET /guest-services/lost-found-categories/history": "403"
+        "GET /guest-services/lost-found-categories/history": "403",
+        "GET /reminders": "403"
       }
     },
     "MNT": {
@@ -3771,7 +3779,8 @@
         "GET /guest-services/complaint-categories": "200",
         "GET /guest-services/complaint-categories/history": "403",
         "GET /guest-services/lost-found-categories": "200",
-        "GET /guest-services/lost-found-categories/history": "403"
+        "GET /guest-services/lost-found-categories/history": "403",
+        "GET /reminders": "403"
       }
     },
     "TAD": {
@@ -4008,7 +4017,8 @@
         "GET /guest-services/complaint-categories": "200",
         "GET /guest-services/complaint-categories/history": "200",
         "GET /guest-services/lost-found-categories": "200",
-        "GET /guest-services/lost-found-categories/history": "200"
+        "GET /guest-services/lost-found-categories/history": "200",
+        "GET /reminders": "403"
       }
     },
     "RST": {
@@ -4190,7 +4200,8 @@
         "GET /guest-services/complaint-categories": "200",
         "GET /guest-services/complaint-categories/history": "403",
         "GET /guest-services/lost-found-categories": "200",
-        "GET /guest-services/lost-found-categories/history": "403"
+        "GET /guest-services/lost-found-categories/history": "403",
+        "GET /reminders": "403"
       }
     }
   }
