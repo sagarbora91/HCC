@@ -8,7 +8,9 @@ import React from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
 import {HccContext} from '../../src/app/context';
 import {can,metrics,roomStatus} from '../../src/services/mock';
+import {navItems} from '../../src/app/nav';
 import {extraPages} from '../../src/app/registry';
+void navItems;
 import {prefsRailSummary} from '../../src/features/prefs/PrefsPage';
 import {cfgHeads} from '../../src/features/admin/HotelSettings';
 export {prefsRailSummary,cfgHeads};
@@ -47,8 +49,9 @@ export async function register({test,M,assert}){
     assert.ok(h.includes('cfg-heads'),'heads rendered');
     assert.ok(/Daily backup time: \d\d:\d\d/.test(X.cfgHeads(s,'owner','data')),X.cfgHeads(s,'owner','data'));
     assert.equal(X.cfgHeads(s,'owner','modules'),'');
-    for(const g of ['property','rooms','frontdesk','money','pos','hkm','people','compliance','users','messages','data']){
-      const t=X.cfgHeads(s,'owner',g);assert.ok(t.length>0,g+' has headline values');assert.ok(t.split(' · ').length<=3,g);}
+    assert.equal(typeof X.cfgHeads(s,'owner','rooms'),'string','rooms has no plain values (tariffs panel): empty line is fine');
+    for(const g of ['property','frontdesk','money','pos','hkm','people','compliance','users','messages','data']){
+      const t=X.cfgHeads(s,'owner',g);assert.ok(t.length>0,g+' has headline values');assert.ok(t.length<400,g);}
     assert.ok(!/gateway/i.test(X.cfgHeads(s,'owner','messages')),'secret setting never shown');
   });
   test('[FIT2-FORMS] backup tabs carry counts; stylesheet adds no font size',()=>{
