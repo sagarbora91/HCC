@@ -3,6 +3,7 @@
 // accounting-tally.ts) and the files are built by acc3-exports' accounting-exports.ts. No accounting rule lives here; money = integer paise.
 import {accPl,accBalanceSheet,accCashRatio,accAgeing,accGstSummary,accTallyMasters as accTallyMastersFy,accTallyVouchers,accExportName,accExportProperty,accPlTables,accBalanceSheetTable,accCashRatioTable,accAgeingTables,accGstSummaryTable,accTablesCsv,accTablesXlsx,type ExTable,type State} from '../../services/mock';
 import {cfgValueOn} from '../../services/mock';
+import {acc4Stamp} from './acc4-views';
 import {XLSX_MIME} from '../../app/xlsx';
 import {zipFiles} from '../../app/zip';
 
@@ -24,6 +25,9 @@ const SLUG:Record<Acc3Report,string>={pl:'pl','bs':'balance-sheet','ageing-r':'a
 
 /** The export tables of one report (acc3-exports' builders over the real selectors). */
 export function accReportTables(s:State,kind:Acc3Report,a:Acc3Args):{tables:ExTable[];from:string;to:string}{
+  const r=accReportTablesRaw(s,kind,a);return {...r,tables:acc4Stamp(s,[r.from,r.to],r.tables)}; // F5-U1: PROVISIONAL — year reopened
+}
+function accReportTablesRaw(s:State,kind:Acc3Report,a:Acc3Args):{tables:ExTable[];from:string;to:string}{
   const prop=accExportProperty(s);
   if(kind==='pl')return {tables:accPlTables(prop,accPl(s,a.from,a.to)),from:a.from,to:a.to};
   if(kind==='bs')return {tables:[accBalanceSheetTable(prop,accBalanceSheet(s,a.asOf))],from:a.asOf,to:a.asOf};

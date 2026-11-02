@@ -2,6 +2,7 @@
 // with search and live summaries on the left, the selected group's settings beside it. Everyone who opens the page sees every group;
 // groups they cannot change are read-only with the reason (never hidden or redirected — ETP lesson). Tariff schedules (SCR-18,
 // BL-027) live in Rooms and rate plans; the dated GST master (DEC-069) in Money and tax. Registry: domain/streams/config.ts.
+import {InternetPanel} from './InternetPanel';
 import React,{useState,useEffect} from 'react';
 import {Lock,CalendarClock,Search,ChevronRight} from 'lucide-react';
 import {money,rateFor,adminRoomTypes,adminBaseRate,gstMasterSummary,GST_ILLUSTRATIVE,authorize,mstSeesMoney,cfgGroup,cfgDefs,cfgCanChange,cfgDisplay,cfgScheduled,cfgShow,cfgPendingRequests,cfgHistory,CFG_SECTIONS,
@@ -34,7 +35,7 @@ export function cfgHeads(s:ReturnType<typeof useHcc>['s'],uid:string,g:CfgGroupI
   const list=(pick.length?pick:defs).slice(0,3);
   return list.map(d=>`${d.label.replace(/ \(.*\)$/,'')}: ${cfgMoneyMask(s,uid,cfgDisplay(s,uid,d))}`).join(' · ');
 }
-const GROUP_IDS=['property','rooms','frontdesk','money','pos','hkm','people','compliance','modules','users','messages','data'] as const;
+const GROUP_IDS=['property','rooms','frontdesk','money','pos','hkm','people','compliance','modules','users','messages','internet','data'] as const;
 /** True below 900 px (the SplitView slide-over breakpoint): the group list is the first thing seen, a group opens over it. */
 // FIT (DEC-194, contract §6 'settings' = split; FitPage keeps the default layout because .fit-page.fit-split would collide with SplitView's own .fit-split grid class): SplitView — the 12 groups with live summaries (ScrollPanel) on the left, the selected group's
 // settings and Lists (masters) in the scrolling record pane on the right. The group selection is a sub-screen (useFitTab 'settings').
@@ -83,7 +84,8 @@ export function CfgGroupDetail({g,q}:{g:CfgGroupId;q:string}){
     {g==='rooms'&&!q&&mstSeesMoney(s,uid)&&<Tariffs block={block}/>}
     {g==='money'&&!q&&mstSeesMoney(s,uid)&&<GstPanel/>}
     {g==='modules'&&<CfgModulesPanel/>}
-    {g!=='modules'&&(defs.length?<ul className="cfg-rows">{defs.map(d=><CfgRow key={d.key} def={d}/>)}</ul>:(!['rooms','money','data'].includes(g)||q)&&!(q&&row.listHits)?<Empty title="No matching settings in this group"/>:null)}
+    {g==='internet'&&<InternetPanel/>}
+    {g!=='modules'&&(defs.length?<ul className="cfg-rows">{defs.map(d=><CfgRow key={d.key} def={d}/>)}</ul>:(!['rooms','money','data','internet'].includes(g)||q)&&!(q&&row.listHits)?<Empty title="No matching settings in this group"/>:null)}
     {g==='people'&&<p className="muted padded">Dated statutory rates, leave policy and weekly offs from the payroll module join this group through the settings provider API.</p>}
     {g==='data'&&!q&&<CfgDataPanel/>}
   </>;

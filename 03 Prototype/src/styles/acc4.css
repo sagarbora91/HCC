@@ -30,3 +30,8 @@
 .net-block{display:grid;gap:8px}
 .net-banner{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 @media (max-width:480px){.acc4-kpis{grid-template-columns:1fr}.net-row .btn{min-height:48px;width:100%}}
+.net-dl{display:grid;gap:8px;margin:0}
+.net-dl>div{padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
+.net-dl dt{font-weight:600}
+.net-dl dd{margin:2px 0 0;color:var(--muted);overflow-wrap:anywhere}
+.net-days{display:flex;flex-wrap:wrap;gap:10px;border:1px solid var(--line);border-radius:8px;padding:8px 12px}

@@ -3,6 +3,7 @@ import {occupant,mstFloorGroups,rmsTypeName} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {SearchBox} from '../../components/ui';
 import {FitPage,FitTabs,useFitTab,ScrollPanel,FitNote} from '../../components/fit';
+import {netBannerText} from '../admin/InternetPanel';
 import {RoomCard} from './RoomCard';
 import {MstLink} from '../masters/MasterList';
 export function RoomBoard(){
@@ -16,7 +17,7 @@ export function RoomBoard(){
   const [tab,setTab]=useFitTab<string>('rooms',tabs.map(t=>t.id),'all');
   const shown=tab==='all'?floors:floors.filter(({floor:f})=>'floor-'+f===tab);
   const note=<FitNote lines={2} text={<>“Ready” describes the room now. Future availability is rechecked for your booking dates.{permission('reservations')&&<> <button className="text-btn" onClick={()=>go('calendar')}>Open the calendar</button> to see the next two weeks.</>}</>}/>;
-  return <FitPage title="Room board" sub="A clear picture of every room. Select a room to take action." layout="board"
+  return <FitPage title="Room board" sub={netBannerText(s,'ota')+'A clear picture of every room. Select a room to take action.'} layout="board"
       actions={act('reservations',()=>open({type:'new'}),'+ New reservation','btn primary')}
       toolbar={<><SearchBox value={search} onChange={setSearch} placeholder="Find a room or guest…"/><div className="filters">{['All','Occupied','Ready','Dirty','Cleaning','Inspection','Blocked'].map(x=><button className={filter===x?'active':''} key={x} aria-pressed={filter===x} onClick={()=>setFilter(x)}>{x}</button>)}</div><MstLink spec="floors"/></>}
       tabs={<FitTabs page="rooms" value={tab} onChange={setTab} tabs={tabs.map(t=>({...t,count:t.id==='all'?list.length:list.filter(r=>'floor-'+r.floor===t.id).length}))}/>}>

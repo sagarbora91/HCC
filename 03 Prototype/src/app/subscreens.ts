@@ -153,6 +153,7 @@ export const SUB_SCREENS:SubScreen[]=[
   {page:'settings',id:'modules',label:'Modules on/off'},
   {page:'settings',id:'users',label:'Users, roles and PINs'},
   {page:'settings',id:'messages',label:'Messages and documents'},
+  {page:'settings',id:'internet',label:'Internet access',keywords:['internet','egress','online','offline','ota sync','whatsapp','master switch']},
   {page:'settings',id:'data',label:'Data and system'},
   {page:'approvals',id:'approvals',label:'Approvals'},
   {page:'approvals',id:'expenses',label:'Pending expenses'},
@@ -200,7 +201,7 @@ export const SUB_SCREEN_GATES:Record<string,(s:State,uid:string)=>boolean>={
   'staff:payroll':hrPay,'staff:advances':hrPay,'staff:fnf':hrPay,'staff:settings':hrPay,
   'accounting:tally':rbacCanTally,
   'accounting:year':(s,uid)=>['Owner','Accountant'].includes(s.users.find(x=>x.id===uid)?.role??''),'accounting:bank':(s,uid)=>['Owner','Accountant'].includes(s.users.find(x=>x.id===uid)?.role??''), // F5-U1 PERM-ACC-014 / 016
-  'accounting:clearing':books,
+  'accounting:clearing':books,'settings:internet':(s,uid)=>['Owner','Manager'].includes(s.users.find(x=>x.id===uid)?.role??''), // F5-U1 (EGRESS-CONTRACT §6)
   'expenses:vendors':books,
   'channels:commission':s=>!chnCommissionHidden(s),'channels:payouts':books,
   'pos:summary':rbacPosSeesDaySales,

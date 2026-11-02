@@ -6,6 +6,7 @@ import {Activity,RotateCcw,TriangleAlert,CheckCircle2,Lock} from 'lucide-react';
 import {sysHealthView,sysHoursSince,sysKindLabel,sysRunResult,sysBytes,sysDbTone,SYS_CONSUMER_EFFECT,SYS_EVENT_LOG_TEXT,SYS_PARK_AFTER,type SYSParked,type SYSBackupRun} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {Pill,Empty,dateLabel,clockTime} from '../../components/ui';
+import {EgressBlock} from './InternetPanel';
 import {FitPage,ScrollPanel,FitNote} from '../../components/fit';
 
 export const sysWhen=(at:string)=>`${dateLabel(at.slice(0,10))} · ${clockTime(at)} IST`;
@@ -59,5 +60,6 @@ export function SystemHealth(){
         <tr><th scope="row">Last restore drill</th><td className="adm-wrap"><RunText r={v.lastDrill}/></td></tr>
         <tr><th scope="row">Windows Event Log</th><td className="adm-wrap">{SYS_EVENT_LOG_TEXT[v.eventLog]}</td></tr>
       </tbody></table></div>
+      <EgressBlock/>
     </ScrollPanel></div></div></FitPage>;
 }

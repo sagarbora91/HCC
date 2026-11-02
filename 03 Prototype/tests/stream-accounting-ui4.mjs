@@ -15,7 +15,8 @@ import {AccountingMobile} from '../../src/features/accounting/Mobile';
 import {YearEndView,BankView,ClearingView,ProvisionalBanner,YearLockModal,YearRelockModal,YearReopenModal,BankIgnoreModal,BankCreateModal,BankSettleModal,BankLayoutModal} from '../../src/features/accounting/acc4-ui';
 import {acc4Gates} from '../../src/features/accounting/acc4-views';
 import {SUB_SCREENS,subScreenOpen} from '../../src/app/subscreens';
-export {registration,ACC_TAB_IDS,acc4Gates,SUB_SCREENS,subScreenOpen};
+import {accReportCsvText,accReportFile} from '../../src/features/accounting/acc3-views';
+export {accReportCsvText,accReportFile,registration,ACC_TAB_IDS,acc4Gates,SUB_SCREENS,subScreenOpen};
 const C:any={AccountingPage,AccountingMobile,YearEndView,BankView,ClearingView,ProvisionalBanner,YearLockModal,YearRelockModal,YearReopenModal,BankIgnoreModal,BankCreateModal,BankSettleModal,BankLayoutModal};
 export function render(name:string,props:any,s:any,uid:string,mobile=false){
   const noop=()=>{};const user=s.users.find((u:any)=>u.id===uid);
@@ -107,5 +108,15 @@ export function render(name:string,props:any,s:any,uid:string,mobile=false){
     const h2=text(render('ClearingView',{},s,'owner'));if(old.open.length)assert.match(h2,/Over 7 days/);
     assert.doesNotMatch(render('ClearingView',{phone:true},s,'owner',true),/<table/);
     for(const u of ['cashier','reception','housekeeper','maint'])assert.match(text(render('ClearingView',{},s,u)),/Not available for your role/,u);
+  });
+  test(T+'report exports (P&L, balance sheet, outstanding, GST, cash ratio) are stamped PROVISIONAL — year reopened while a year is reopened, and not otherwise',()=>{
+    let s=closedYear();s=M.execute(s,'owner',{type:'ACC_YEAR_CARRY_FORWARD',fy:'2026-27'});const cf=s.accYearX.carryForwards.find(c=>c.status==='draft');
+    s=M.execute(s,'owner',{type:'ACC_YEAR_LOCK',fy:'2026-27',carryForwardId:cf.id});
+    const a={from:'2026-04-01',to:'2026-04-30',asOf:'2026-04-30',month:'2026-04',fy:'2026-27'};
+    for(const k of ['pl','bs','ageing-r','ageing-p','gst','cash'])assert.doesNotMatch(X.accReportCsvText(s,k,a).text,/year reopened/,k);
+    s=M.execute(s,'owner',{type:'ACC_YEAR_REOPEN',fy:'2026-27',reason:'CA found a missed purchase bill'});
+    for(const k of ['pl','bs','ageing-r','ageing-p','gst','cash']){const t=X.accReportCsvText(s,k,a).text;assert.match(t,/PROVISIONAL — year reopened/,k);assert.match(t.split('\r\n')[0],/PROVISIONAL/,k+' title row');}
+    assert.ok(X.accReportFile(s,'pl',a,'xlsx').bytes.length>200);
+    s=M.execute(s,'owner',{type:'ACC_YEAR_RELOCK',fy:'2026-27'});assert.doesNotMatch(X.accReportCsvText(s,'pl',a).text,/year reopened/);
   });
 }

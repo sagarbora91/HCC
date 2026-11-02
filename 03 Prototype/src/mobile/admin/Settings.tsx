@@ -1,6 +1,7 @@
 // W05-A · M21 phone Master configuration: grouped list with search and live summaries → group details → Back (button and Android Back,
 // via useStepBack). Setting cards open the 'cfg-setting' sheet (value, effective date, what it affects, history + revert). Read-only
 // groups show the reason. Tariff schedules and the dated GST master rows (DEC-069) stay editable for the Owner; modules on/off and data panels are shared.
+import {InternetPanel} from '../../features/admin/InternetPanel';
 import React,{useState} from 'react';
 import {Lock,ArrowLeft,CalendarClock,Search} from 'lucide-react';
 import {money,rateFor,adminRoomTypes,adminBaseRate,gstMasterSummary,mstSeesMoney,cfgGroup,cfgCanChange,cfgDisplay,cfgScheduled,cfgShow,cfgPendingRequests,CFG_SECTIONS,
@@ -45,6 +46,7 @@ function MaGroup({g,q,onBack}:{g:CfgGroupId;q:string;onBack:()=>void}){
     {g==='rooms'&&!q&&mstSeesMoney(s,uid)&&<Tariffs block={block}/>}
     {g==='money'&&!q&&mstSeesMoney(s,uid)&&<Tax block={block}/>}
     {g==='modules'&&<CfgModulesPanel/>}
+    {g==='internet'&&<InternetPanel/>}
     {g!=='modules'&&defs.map(d=>{const dec=cfgCanChange(s,uid,d);const sched=cfgScheduled(s,d.key);const pend=cfgPendingRequests(s,d.key).length>0;
       return <article className="ma-card" key={d.key} aria-label={d.label}>
         <div className="ma-card-top"><div><strong>{d.label}</strong><span>{cfgMoneyMask(s,uid,d.help)}</span></div></div>
@@ -54,7 +56,7 @@ function MaGroup({g,q,onBack}:{g:CfgGroupId;q:string;onBack:()=>void}){
         {d.editable?<MaGuard block={dec.mode==='deny'?dec.reason:undefined} busy={busy} onClick={()=>open({type:'cfg-setting',id:d.key})}>{dec.mode==='request'?'Request change…':'Change… (what it affects)'}</MaGuard>
           :<button type="button" className="btn" onClick={()=>open({type:'cfg-setting',id:d.key})}><Lock size={15}/> Details</button>}
       </article>;})}
-    {g!=='modules'&&!defs.length&&(q||!['rooms','money','data'].includes(g))&&!(q&&row.listHits)&&<Empty title="No matching settings in this group"/>}
+    {g!=='modules'&&!defs.length&&(q||!['rooms','money','data','internet'].includes(g))&&!(q&&row.listHits)&&<Empty title="No matching settings in this group"/>}
     {g==='data'&&!q&&<CfgDataPanel/>}
   </div>;
 }
