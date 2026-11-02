@@ -60,7 +60,7 @@ export function register({test,assert}){
     assert.ok(src.includes("const FOLIO_TABS=['folios','folio-requests'] as const;")&&src.includes("useFitTab<FolioTab>('folios',FOLIO_TABS,'folios')"),'same ids, default folios');
     store.clear();const def=page('folios',h(F.Folios));
     assert.match(def,/role="tab" id="fit-tab-folios-folios" data-tab="folios" aria-selected="true"/);
-    assert.ok(def.includes('class="fit-split"')&&def.includes('aria-label="Folio list"')&&def.includes('Pick a folio'),'split: list + empty record pane');
+    assert.ok(def.includes('class="fit-split list-only"')&&def.includes('aria-label="Folio list"')&&def.includes('Pick a folio'),'split: list + (hidden at ≥ 900 px, FIT-2 §12) empty record pane');
     assert.ok(def.includes('placeholder="Search guest, room, company or invoice…"')&&def.includes('>Balance due</button>'),'search + filters in the toolbar');
     const req=page('folios',h(F.Folios),{tabKey:'folio-requests'});
     assert.match(req,/data-tab="folio-requests" aria-selected="true"/);

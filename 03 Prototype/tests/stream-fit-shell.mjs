@@ -53,7 +53,7 @@ export function register({test,assert}){
   });
   test('[FIT-SHELL] SplitView: list + empty pane, has-detail + Back button when a record is open, record pane scrolls (data-fit-scroll), ratio → grid columns',()=>{
     const empty=renderToStaticMarkup(h(F.SplitView,{list:'L',detail:null,empty:'Pick one',onCloseDetail(){},label:'Folios'}));
-    assert.ok(empty.includes('class="fit-split" aria-label="Folios" role="group" style="--fit-split-cols:minmax(0,2fr) minmax(0,3fr)"'),empty);
+    assert.ok(empty.includes('class="fit-split list-only" aria-label="Folios" role="group" style="--fit-split-cols:minmax(0,2fr) minmax(0,3fr)"'),empty); // FIT-2 §12: no record → list-only
     assert.ok(empty.includes('>Pick one<')&&!empty.includes('fit-split-back'));
     const open=renderToStaticMarkup(h(F.SplitView,{list:'L',detail:'Record',empty:'Pick one',onCloseDetail(){},label:'Folios',ratio:'1fr 1fr'}));
     assert.ok(open.includes('class="fit-split has-detail"')&&open.includes('fit-split-back')&&open.includes('>Record<')&&open.includes('minmax(0,1fr) minmax(0,1fr)'),open);
@@ -217,8 +217,10 @@ export function register({test,assert}){
     assert.ok(app.includes('const histTab=display.isMobile?undefined:opts.tab;')&&app.includes('history.pushState({hcc:\'page\',page:p,idx,tab:histTab},\'\')'),'phone history carries no tab');
   });
   test('[FIT-SHELL] FitNote (§11.4) and header actions (§11.9): one line + More in place; actions one row with a More menu; user button shown on touch tablets (§11.8)',()=>{
+    // FIT-2 (§12): before it is measured the note shows its full text and no More (More appears only once the text is measured as cut)
     const n=renderToStaticMarkup(h(F.FitNote,{text:'A long note'}));
-    assert.ok(n.startsWith('<div class="fit-note footnote"><p class="fit-note-text">A long note</p><button type="button" class="text-btn fit-note-more" aria-expanded="false">More</button>'),n);
+    assert.equal(n,'<div class="fit-note footnote"><p class="fit-note-text">A long note</p></div>',n);
+    assert.ok(read('src/components/fit.tsx').includes('{(long||open)&&<button type="button" className="text-btn fit-note-more"'),'More only when cut (or open)');
     assert.ok(css.includes('.fit-note:not(.open)>.fit-note-text{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}'));
     const pg=renderToStaticMarkup(inNav(nav('x'),h(F.FitPage,{title:'X',actions:h(React.Fragment,null,h('button',{className:'btn primary'},'Go'),h('button',{className:'btn'},'Print'))},'b')));
     assert.ok(pg.includes('<div class="fit-page-actions"><button class="btn primary">Go</button><button class="btn">Print</button></div>'),pg);
