@@ -92,6 +92,16 @@ public static class HccComposition
         // LF-ALERTS end
         // LF-IMAGES
         // LF-IMAGES end
+        // F4 lanes: ONE services.Add<Lane>Module(); line inside your own block (append only).
+        // F4-T1
+        services.AddTariffCardModule();                 // F4-T1 tariff card (PERM-TRF-001…003)
+        // F4-T1 end
+        // F4-T2
+        services.AddRevenueDigestModule();               // F4-T2 revenue by category and tender, owner digest drafts
+        // F4-T2 end
+        // F4-T3
+        services.AddFeedbackModule();
+        // F4-T3 end
         return services;
     }
 
@@ -193,6 +203,7 @@ public static class HccComposition
         api.MapKeysEndpoints();          // KEYS room keys
         api.MapYieldEndpoints();         // W2-12
         api.MapGuestServicesEndpoints(); // W2-9
+        api.MapFeedbackEndpoints();      // F4-T3
         api.MapPayrollEndpoints();       // W2-2
         api.MapSetupEndpoints();         // W3-b first-time setup
         api.MapDocumentsEndpoints();     // W3-3 ID document capture
@@ -213,6 +224,9 @@ public static class HccComposition
         // LG
         api.MapLegacyEndpoints();        // W1a LG legacy importer + runs
         // LG end
+        // F4-T2
+        api.MapRevenueDigestEndpoints(); // F4-T2 GET /reports/revenue-by-category-tender, GET /digest/drafts
+        // F4-T2 end
         // LF lanes: ONE api.Map<Lane>Endpoints(); line inside your own block (append only).
         // LF-DOCDB
         api.MapDocumentObjectEndpoints(); // LF-docdb: POST /admin/documents/sweep (PERM-DOC-006)
@@ -231,6 +245,9 @@ public static class HccComposition
         // LF-ALERTS end
         // LF-IMAGES
         // LF-IMAGES end
+        // F4-T1
+        api.MapTariffCardEndpoints();    // F4-T1 tariff card
+        // F4-T1 end
         app.MapHccWebApp(app.Configuration); // W4 F3 (H1): the production web build (index.html) on the same origin
         return api;
     }

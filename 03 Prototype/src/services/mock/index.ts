@@ -66,6 +66,8 @@ export * from '../../domain/streams/history';
 export * from '../../domain/streams/masters';
 export * from '../../domain/credentials';
 export * from '../../domain/streams/syshealth';
+export * from '../../domain/streams/audit-viewer'; // F4-T3 qw-audit
+export * from '../../domain/streams/feedback'; // F4-T3 qw-feedback + qw-alerts
 export * from '../../domain/streams/mastersio'; export {mstImportPreview} from './mastersio'; // MA-8 masters import / export
 export * from '../../domain/streams/roommasters';
 export * from '../../domain/streams/money-master'; export * from '../../domain/streams/money-master-specs'; // MA-3 money masters
@@ -104,3 +106,10 @@ export * from '../../app/shortcuts';
 // LF-IMAGES
 export * from '../../domain/streams/printnotes'; // LF-images B6: which branding text prints on which document
 // LF-IMAGES end
+// F4-T1
+export * from '../../domain/streams/tariffcard';
+// F4-T1 end
+// F4-T2
+export * from '../../domain/streams/rpt-revcat';
+export * from '../../domain/streams/digest';
+// F4-T2 end

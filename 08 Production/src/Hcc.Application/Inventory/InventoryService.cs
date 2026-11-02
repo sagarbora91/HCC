@@ -57,7 +57,7 @@ public sealed class InventoryService(IInventoryStore store, ICommandRunner runne
         var violations = types.ToDictionary(t => t.RoomTypeId, t => StayRestrictions.Violations(snap.Restrictions, t.RoomTypeId, t.Code, a, d));
         var rates = new Dictionary<int, long>();
         foreach (var t in types)
-            rates[t.RoomTypeId] = StayPricing.RateOn(await store.GetTariffsAsync(t.RoomTypeId, null, ct).ConfigureAwait(false), t.RackRatePaise, a);
+            rates[t.RoomTypeId] = await store.GetTariffOnAsync(t.RoomTypeId, a, null, ct).ConfigureAwait(false) ?? t.RackRatePaise /* F4-int: day-set aware */;
         var rooms = snap.Rooms.Where(r => violations.ContainsKey(r.RoomTypeId)).OrderBy(r => r, RoomNumberComparer.Instance).Select(r =>
         {
             var reasons = AvailabilityRules.Exclusion(snap, holds, r, a, d, party, 0, query.GroupBlockId).ToList();
@@ -100,8 +100,7 @@ public sealed class InventoryService(IInventoryStore store, ICommandRunner runne
                 if (party > type.MaxOccupancy) throw HccException.Validation($"Room type {type.Code} accommodates at most {type.MaxOccupancy} guests including children.");
             }
 
-            var tariffs = await store.GetTariffsAsync(type.RoomTypeId, tx, c).ConfigureAwait(false);
-            var rate = StayPricing.RateOn(tariffs, type.RackRatePaise, a);
+            var rate = await store.GetTariffOnAsync(type.RoomTypeId, a, tx, c).ConfigureAwait(false) ?? type.RackRatePaise; // F4-int: day-set aware, as rateFor(room, arrival)
             var nights = await PriceAsync(context.PropertyId, a, d, rate, c).ConfigureAwait(false);
             var quote = await store.InsertQuoteAsync(tx, new QuoteDraft(context.PropertyId, context.PrincipalId, type.RoomTypeId, roomId, a, d,
                 request.Adults, request.Children, plan, nights, now, now + QuoteLifetime), c).ConfigureAwait(false);

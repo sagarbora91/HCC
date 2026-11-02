@@ -38,6 +38,7 @@ import {handlers as cashout} from './cashout';
 import {handlers as masters} from './masters';
 import {handlers as credentials} from './credentials'; // A02b-05 self-service password / PIN change
 import {handlers as syshealth} from './syshealth';
+import {handlers as feedbackQw} from './feedback'; // F4-T3
 import {handlers as roommasters} from './roommasters';
 import {handlers as keys} from './keys'; // KEYS room keys
 // LF lanes: ONE import line inside your own block (append only); spread it in the LF object below.
@@ -61,6 +62,10 @@ import {handlers as reminders} from './reminders';
 // LF-IMAGES
 import {handlers as guestPhotos} from './guestphotos'; // B5 party photos
 // LF-IMAGES end
+// F4-T1
+import {handlers as tariffCard} from './tariffcard';
+// F4-T1 end
+import {handlers as digest} from './digest'; // F4-T2
 import {handlers as catalogue} from './catalogue'; // MA-2 (last: wraps folio APPROVAL)
 const ACC1:Record<string,Handler>={...accountingChart,...accountingOpening,}; // ACC-1 lanes: spread your handlers here, e.g. {...accountingChart}
 const ACC2:Record<string,Handler>={...expensesVendor,...accountingManual,...accountingTds,...accountingGst,...accountingFlows,...accountingAssets,}; // ACC-2 lanes: spread your handlers here, e.g. {...accountingManual}
@@ -86,4 +91,15 @@ const LF:Record<string,Handler>={ // LF lanes: spread your handlers inside your 
   ...guestPhotos,
   // LF-IMAGES end
 };
-export const registry:Record<string,Handler>={...ACC1,...ACC2,...reservations,...guests,...folio,...housekeeping,...admin,...closing,...expenses,...yieldMod,...groups,...channels,...maintenance,...inventory,...handover,...services,...messaging,...pos,...staff,...accounting,...assistant,...compliance,...cashbook,...cashout,...masters,...credentials,...syshealth,...roommasters,...keys,...LF,...catalogue};
+const F4:Record<string,Handler>={ // F4 lanes: spread your handlers inside your own block
+  // F4-T1
+  ...tariffCard,
+  // F4-T1 end
+  // F4-T2
+  ...digest,
+  // F4-T2 end
+  // F4-T3
+  ...feedbackQw,
+  // F4-T3 end
+};
+export const registry:Record<string,Handler>={...ACC1,...ACC2,...reservations,...guests,...folio,...housekeeping,...admin,...closing,...expenses,...yieldMod,...groups,...channels,...maintenance,...inventory,...handover,...services,...messaging,...pos,...staff,...accounting,...assistant,...compliance,...cashbook,...cashout,...masters,...credentials,...syshealth,...roommasters,...keys,...LF,...F4,...catalogue};

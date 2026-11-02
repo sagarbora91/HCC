@@ -182,6 +182,21 @@ export const SUB_SCREENS:SubScreen[]=[
   {page:'counter-bills',id:'bills',label:'Bills'},
   {page:'cashier',id:'credit-guests',label:'Credit guests',keywords:['guest credit','udhaar','outstanding']},
   // LF-UI end
+  // F4-T1
+  {page:'tariff-card',id:'rooms',label:'Rooms',keywords:['room prices','weekday','weekend','extra person']},
+  {page:'tariff-card',id:'meals',label:'Meal plans & extras',keywords:['breakfast','cp','map','add-on']},
+  {page:'tariff-card',id:'seasons',label:'Seasons & weekends',keywords:['valid from','season','weekend nights']},
+  {page:'tariff-card',id:'halls',label:'Halls',keywords:['hall','banquet']},
+  {page:'tariff-card',id:'history',label:'History',keywords:['versions','publish log']},
+  {page:'tariff-card',id:'print',label:'Print',keywords:['rate sheet','print','csv']},
+  // F4-T1 end
+  // F4-T2
+  {page:'revenue-category',id:'a',label:'A. Revenue by category',keywords:['room type revenue','occupancy']},
+  {page:'revenue-category',id:'b',label:'B. Collections by tender',keywords:['cash','upi','card','tender']},
+  {page:'revenue-category',id:'c',label:'C. Bridge',keywords:['tie out','advances']},
+  // F4-T2 end
+  // F4-T3
+  // F4-T3 end
 ];
 
 /** Review S3: sub-screens a role's page never shows (the page falls back to its default tab) are not listed in the search palette for that

@@ -3,7 +3,7 @@
 // and whether the Windows Event Log source HCC is registered. No guest data: consumer, event type, attempts, times, error TYPE only.
 import React from 'react';
 import {Activity,RotateCcw,TriangleAlert,CheckCircle2,Lock} from 'lucide-react';
-import {sysHealthView,sysHoursSince,sysKindLabel,sysRunResult,sysBytes,sysDbTone,SYS_CONSUMER_EFFECT,SYS_EVENT_LOG_TEXT,SYS_PARK_AFTER,type SYSParked,type SYSBackupRun} from '../../services/mock';
+import {sysHealthView,sysHoursSince,sysKindLabel,sysRunResult,sysBytes,sysDbTone,SYS_CONSUMER_EFFECT,SYS_EVENT_LOG_TEXT,SYS_PARK_AFTER,sysPrinters,type SYSParked,type SYSBackupRun} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {Pill,Empty,dateLabel,clockTime} from '../../components/ui';
 import {FitPage,ScrollPanel,FitNote} from '../../components/fit';
@@ -30,6 +30,18 @@ export function DatabasesTable({rows}:{rows:NonNullable<ReturnType<typeof sysHea
         <small>{sysBytes(d.dataBytes)} · {d.pct} %</small></td>
       <td>{d.lastBackup?sysWhen(d.lastBackup):<span className="muted">None yet</span>}</td></tr>)}
   </tbody></table></div>;
+}
+
+/** F4-T3 qw-alerts: printers with "Print test page" and an offline banner. */
+export function PrintersPanel(){
+  const {s,run,busy}=useHcc();const list=sysPrinters(s);
+  return <ScrollPanel title="Printers" label="Printers" actions={<Pill tone={list.some(p=>!p.online)?'orange':'green'}>{list.filter(p=>!p.online).length} offline</Pill>}>
+    {list.some(p=>!p.online)&&<div className="qw-banner" role="alert"><TriangleAlert size={16}/><span>{list.filter(p=>!p.online).map(p=>p.name).join(', ')} offline — check power and cable, then print a test page.</span></div>}
+    <div className="table-wrap"><table className="adm-table" aria-label="Printers"><thead><tr><th>Printer</th><th>Status</th><th>Last test</th><th>Action</th></tr></thead><tbody>
+      {list.map(p=><tr key={p.id}><td>{p.name}</td><td>{p.online?<Pill tone="green">Online</Pill>:<Pill tone="orange">Offline</Pill>}</td>
+        <td>{p.lastTestAt?`${sysWhen(p.lastTestAt)} · ${p.lastTestOk?'printed':'failed'}`:<span className="muted">Never</span>}</td>
+        <td><button className="btn small-btn" disabled={busy} onClick={()=>run({type:'QW_PRINTER_TEST',id:p.id,key:'prt-test:'+p.id+':'+s.clock},'Test page sent.')}>Print test page</button></td></tr>)}
+    </tbody></table></div></ScrollPanel>;
 }
 
 export function SystemHealth(){
@@ -59,5 +71,5 @@ export function SystemHealth(){
         <tr><th scope="row">Last restore drill</th><td className="adm-wrap"><RunText r={v.lastDrill}/></td></tr>
         <tr><th scope="row">Windows Event Log</th><td className="adm-wrap">{SYS_EVENT_LOG_TEXT[v.eventLog]}</td></tr>
       </tbody></table></div>
-    </ScrollPanel></div></div></FitPage>;
+    </ScrollPanel><PrintersPanel/>{/* F4-T3 */}</div></div></FitPage>;
 }

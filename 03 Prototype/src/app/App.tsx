@@ -14,6 +14,7 @@ import {Breadcrumb,ModulesHome,CategoryPage,SignIn} from './ModulesHome';
 import {DemoPill} from './demo/DemoToolbar';
 import {FitNavContext,type FitNav} from '../components/fit'; // FIT (DEC-194…196): sub-screen tab + breadcrumb tab crumb for desktop pages
 import {useReadOnly,READ_ONLY_HINT} from '../clients/react';
+import {LanHealth} from './LanHealth'; // F4-T3
 import {ProductionApp,SyncStatus,type ServerBinding} from '../clients/sync/react'; // production build only (W4-0 server sync layer)
 import {extraPages,mobilePages,extraModals} from './registry';
 import {ModalHost} from './ModalHost';
@@ -288,6 +289,9 @@ function AppShell({initial,server}:{initial:Restored;/** Production only: state,
           </div>
         </FitTopbar>
         <DeskAlerts/>{/* LF-ALERTS · wake-up and reminder banner (contract §9.1) */}
+        {/* F4-T3 · LAN health banner */}
+        <LanHealth/>
+        {/* F4-T3 end */}
         {process.env.HCC_BUILD==='production'?<SyncStatus/>:null}
         <FitContent>{pageBody}</FitContent>
       </main>

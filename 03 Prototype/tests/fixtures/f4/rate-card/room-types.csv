@@ -1,0 +1,6 @@
+code,name,maxOccupancy,rackRate,sortOrder
+LUX,Luxury Suite,3,"2,796.61",10
+PRM,Premium,3,"2,372.88",20
+DLX,Deluxe,3,"1,694.92",30
+TWN,Twin,3,"1,864.41",40
+NAC,Non-AC,3,"1,271.19",50

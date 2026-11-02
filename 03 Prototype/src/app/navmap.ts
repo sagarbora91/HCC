@@ -1,12 +1,15 @@
 // Navigation map: the ten module categories, which category every page belongs to, and the search index built from it.
 // Pure data + pure functions (no React state). Modules Home, the hamburger menu, the breadcrumb and the search palette all read this,
 // so a page cannot be missing from one of them. A new page must be added to PAGE_CATEGORY (a test enforces it).
+import {dgsCanView} from '../domain/streams/digest'; // F4-T2
+import {rctCanView} from '../domain/streams/rpt-revcat'; // F4-T2
 import {Store,Receipt,Wrench,HeartHandshake,Users,TrendingUp,Package,IdCard,ChartNoAxesCombined,ShieldCheck,LayoutDashboard} from 'lucide-react';
 import type {Permission} from '../services/mock';
 import type {State} from '../domain/types';
 import {cfgPageOn} from '../domain/streams/config';
 import {cmpHasAccess} from '../domain/streams/compliance';
 import {rmdCanManage} from '../domain/streams/reminders'; // LF-ALERTS
+import {trcCan} from '../domain/streams/tariffcard'; // F4-T1
 import {rbacCanViewClosing,rbacSeesApprovals,rbacIsRestaurant,rbacSeesBooks,rbacIsRole,rbacTechAdminTemplates,RBAC_RESTAURANT_PAGES} from '../domain/streams/rbac';
 
 export type CategoryId='front'|'cash'|'hkm'|'guestsvc'|'customers'|'revenue'|'stock'|'people'|'accounts'|'admin';
@@ -49,6 +52,16 @@ export const PAGE_CATEGORY:Record<string,CategoryId>={
   // LF-UI
   'counter-bills':'cash',
   // LF-UI end
+  // F4 lanes (F4-CONTRACT): 'tariff-card':'revenue' = F4-T1, 'owner-digest':'accounts' = F4-T2.
+  // F4-T1
+  'tariff-card':'revenue',
+  // F4-T1 end
+  // F4-T2
+  'owner-digest':'accounts',
+  'revenue-category':'accounts',
+  // F4-T2 end
+  // F4-T3
+  // F4-T3 end
   access:'admin',settings:'admin',approvals:'admin',backup:'admin',roadmap:'admin',
 };
 
@@ -81,7 +94,7 @@ export const PAGE_BLURB:Record<string,string>={
   yield:'Tariff, seasons and rate restrictions',groups:'Group blocks, companies and credit',channels:'OTA channels and commissions','booking-site':'Direct booking website',
   inventory:'Linen, amenities and supplies',
   staff:'Staff, attendance, leave and payroll','my-hr':'Your shifts, leave and pay',
-  closing:'Close the business day',reports:'Revenue, occupancy and cash reports',accounting:'Ledger, vouchers and period locks',assistant:'Ask questions about your hotel data',compliance:'GST, TDS, PF, ESIC and PT due dates',
+  'owner-digest':'Yesterday in one page: occupancy, revenue, collections, held drafts','revenue-category':'Revenue by room type and collections by tender',closing:'Close the business day',reports:'Revenue, occupancy and cash reports',accounting:'Ledger, vouchers and period locks',assistant:'Ask questions about your hotel data',compliance:'GST, TDS, PF, ESIC and PT due dates',
   'plans-extras':'Catalogue vs free-text charges, meal plans, discount reasons',
   access:'Users, roles and permissions',settings:'All settings in one place: 12 groups, modules on/off',approvals:'Pending approvals and the audit trail',backup:'Backup and restore data',syshealth:'Stuck background work and the last backups',roadmap:'What is planned next',
   'legacy-import':'Load guests, history and opening balances from the old software',
@@ -89,6 +102,7 @@ export const PAGE_BLURB:Record<string,string>={
   prefs:'Text size, motion, start page, lists, messages (this device)',
   'desk-alerts':'Desk reminders with alert days and guests\' wake-up calls', // LF-ALERTS
   'counter-bills':'Bills for walk-in customers: paid now, Udhaar credit or company credit', // LF-UI
+  'tariff-card':'Published room, meal and extra prices by valid-from date; rate sheet', // F4-T1
 };
 
 /** Extra words people type for a page (synonyms, hotel jargon, Hindi-English habits). The label and category are matched too. */
@@ -134,6 +148,7 @@ export const PAGE_KEYWORDS:Record<string,string[]>={
   keys:['key','keys','room key','key card','keycard','card','encoder','lock','lost card','reissue','re-issue','reactivate','recharge','extend key','manual key','chabi','chaabi','key log','door lock','bis'],
   'legacy-import':['legacy import','old software','lodge','old data','import history','dry run','migration','legacy','previous software'],
   'counter-bills':['counter bill','direct bill','walk-in','walk in','udhaar','credit note','bill'], // LF-UI
+  'tariff-card':['tariff card','rate card','rate sheet','price list','tariff','weekend rate','extra person','gst inclusive'], // F4-T1
   'desk-alerts':['reminder','reminders','alert','alerts','wake up','wake-up','wakeup','alarm','alert days','due date'], // LF-ALERTS
   roadmap:['roadmap','future','planned','modules','phases'],
   prefs:['appearance','display','text size','font','font size','bigger text','larger text','zoom','motion','animation','density','compact','start page','home page','page size','rows','toast','messages','preferences','my settings','theme'],
@@ -214,6 +229,11 @@ export function navFilterModules<T extends {id:string}>(s:State,items:readonly T
  * its own shifts & pay only. */
 export function navRoleOk(s:State,uid:string,page:string):boolean{
   if(rbacIsRestaurant(s,uid))return RBAC_RESTAURANT_PAGES.includes(page);
+  if(page==='tariff-card')return trcCan(s,uid,'view'); // F4-T1: PERM-TRF-001 (not housekeeping / maintenance, DEC-061)
+  // F4-T2
+  if(page==='owner-digest')return dgsCanView(s,uid);      // PERM-DGS-001: Owner only
+  if(page==='revenue-category')return rctCanView(s,uid);  // PERM-RPT-001 + 002: Owner, Manager, Accountant (DEC-202 #1)
+  // F4-T2 end
   if(page==='desk-alerts')return rmdCanManage(s,uid); // LF-ALERTS: PERM-RMD-001 = Owner, Manager, Reception, Accountant
   if(page==='compliance')return cmpHasAccess(s,uid);
   if(page==='closing')return rbacCanViewClosing(s,uid);

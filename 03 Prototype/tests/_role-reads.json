@@ -80,6 +80,8 @@
     "GET /guest-services/lost-items": "/guest-services/lost-items?page=1&pageSize=100",
     "GET /guest-services/settings": "/guest-services/settings",
     "GET /guest-services/stays": "/guest-services/stays",
+    "GET /guest-services/feedback": "/guest-services/feedback",
+    "GET /guest-services/feedback/follow-ups": "/guest-services/feedback/follow-ups?openOnly=false",
     "GET /guest-services/histories/:kind": "/guest-services/histories/request",
     "GET /handover/checklists": "/handover/checklists",
     "GET /handover/templates": "/handover/templates",
@@ -329,6 +331,11 @@
           "P"
         ],
         [
+          "PERM-DGS-001",
+          "A",
+          "P"
+        ],
+        [
           "PERM-DOC-001",
           "A",
           "P"
@@ -395,6 +402,21 @@
         ],
         [
           "PERM-EXP-004",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-FBK-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-FBK-002",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-FBK-003",
           "A",
           "P"
         ],
@@ -904,6 +926,21 @@
           "P"
         ],
         [
+          "PERM-TRF-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-TRF-002",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-TRF-003",
+          "A",
+          "P"
+        ],
+        [
           "PERM-WEB-001",
           "A",
           "P"
@@ -1032,6 +1069,8 @@
         "GET /guest-services/lost-items": "200",
         "GET /guest-services/settings": "200",
         "GET /guest-services/stays": "200",
+        "GET /guest-services/feedback": "200",
+        "GET /guest-services/feedback/follow-ups": "200",
         "GET /guest-services/histories/:kind": "200",
         "GET /handover/checklists": "200",
         "GET /handover/templates": "200",
@@ -1242,6 +1281,11 @@
         ],
         [
           "PERM-EXP-004",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-FBK-001",
           "A",
           "P"
         ],
@@ -1671,6 +1715,16 @@
           "P"
         ],
         [
+          "PERM-TRF-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-TRF-002",
+          "A",
+          "P"
+        ],
+        [
           "PERM-WEB-001",
           "A",
           "P"
@@ -1794,6 +1848,8 @@
         "GET /guest-services/lost-items": "200",
         "GET /guest-services/settings": "200",
         "GET /guest-services/stays": "200",
+        "GET /guest-services/feedback": "200",
+        "GET /guest-services/feedback/follow-ups": "403",
         "GET /guest-services/histories/:kind": "200",
         "GET /handover/checklists": "200",
         "GET /handover/templates": "200",
@@ -1916,6 +1972,11 @@
           "PERM-EXP-001",
           "A",
           "O"
+        ],
+        [
+          "PERM-FBK-001",
+          "A",
+          "P"
         ],
         [
           "PERM-FOL-001",
@@ -2183,6 +2244,11 @@
           "P"
         ],
         [
+          "PERM-TRF-001",
+          "A",
+          "P"
+        ],
+        [
           "PERM-WEB-001",
           "A",
           "P"
@@ -2281,6 +2347,8 @@
         "GET /guest-services/lost-items": "200",
         "GET /guest-services/settings": "200",
         "GET /guest-services/stays": "200",
+        "GET /guest-services/feedback": "200",
+        "GET /guest-services/feedback/follow-ups": "403",
         "GET /guest-services/histories/:kind": "200",
         "GET /handover/checklists": "200",
         "GET /handover/templates": "403",
@@ -2398,6 +2466,11 @@
           "PERM-EXP-001",
           "A",
           "O"
+        ],
+        [
+          "PERM-FBK-001",
+          "A",
+          "P"
         ],
         [
           "PERM-FOL-001",
@@ -2533,6 +2606,11 @@
           "PERM-SHF-001",
           "A",
           "S"
+        ],
+        [
+          "PERM-TRF-001",
+          "A",
+          "P"
         ]
       ],
       "fieldMasks": {
@@ -2623,6 +2701,8 @@
         "GET /guest-services/lost-items": "403",
         "GET /guest-services/settings": "403",
         "GET /guest-services/stays": "403",
+        "GET /guest-services/feedback": "200",
+        "GET /guest-services/feedback/follow-ups": "403",
         "GET /guest-services/histories/:kind": "403",
         "GET /handover/checklists": "200",
         "GET /handover/templates": "403",
@@ -2942,6 +3022,11 @@
           "P"
         ],
         [
+          "PERM-TRF-001",
+          "A",
+          "P"
+        ],
+        [
           "PERM-WEB-001",
           "V",
           "P"
@@ -3045,6 +3130,8 @@
         "GET /guest-services/lost-items": "403",
         "GET /guest-services/settings": "403",
         "GET /guest-services/stays": "403",
+        "GET /guest-services/feedback": "403",
+        "GET /guest-services/feedback/follow-ups": "403",
         "GET /guest-services/histories/:kind": "403",
         "GET /handover/checklists": "403",
         "GET /handover/templates": "403",
@@ -3307,6 +3394,8 @@
         "GET /guest-services/lost-items": "200",
         "GET /guest-services/settings": "200",
         "GET /guest-services/stays": "200",
+        "GET /guest-services/feedback": "403",
+        "GET /guest-services/feedback/follow-ups": "403",
         "GET /guest-services/histories/:kind": "200",
         "GET /handover/checklists": "200",
         "GET /handover/templates": "403",
@@ -3534,6 +3623,8 @@
         "GET /guest-services/lost-items": "200",
         "GET /guest-services/settings": "403",
         "GET /guest-services/stays": "403",
+        "GET /guest-services/feedback": "403",
+        "GET /guest-services/feedback/follow-ups": "403",
         "GET /guest-services/histories/:kind": "403",
         "GET /handover/checklists": "200",
         "GET /handover/templates": "403",
@@ -3746,6 +3837,8 @@
         "GET /guest-services/lost-items": "200",
         "GET /guest-services/settings": "403",
         "GET /guest-services/stays": "403",
+        "GET /guest-services/feedback": "403",
+        "GET /guest-services/feedback/follow-ups": "403",
         "GET /guest-services/histories/:kind": "403",
         "GET /handover/checklists": "200",
         "GET /handover/templates": "403",
@@ -3851,6 +3944,11 @@
         ],
         [
           "PERM-DOC-006",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-FBK-003",
           "A",
           "P"
         ],
@@ -3988,6 +4086,8 @@
         "GET /guest-services/lost-items": "403",
         "GET /guest-services/settings": "403",
         "GET /guest-services/stays": "403",
+        "GET /guest-services/feedback": "403",
+        "GET /guest-services/feedback/follow-ups": "403",
         "GET /guest-services/histories/:kind": "403",
         "GET /handover/checklists": "403",
         "GET /handover/templates": "403",
@@ -4175,6 +4275,8 @@
         "GET /guest-services/lost-items": "403",
         "GET /guest-services/settings": "403",
         "GET /guest-services/stays": "403",
+        "GET /guest-services/feedback": "403",
+        "GET /guest-services/feedback/follow-ups": "403",
         "GET /guest-services/histories/:kind": "403",
         "GET /handover/checklists": "403",
         "GET /handover/templates": "403",
