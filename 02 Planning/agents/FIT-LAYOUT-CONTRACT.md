@@ -151,13 +151,13 @@ Which pattern for which kind of page:
 | `calendar` | front | fill: one `ScrollPanel` scrolling both ways, room column and date header sticky | — |
 | `reservations` | front | fill: toolbar (search, status filter, date range) + `ScrollPanel` table; row opens the existing modal | — |
 | `arrivals` | front | fill (already fits; convert to `FitPage`) | — |
-| `inhouse` | front | fill | — |
-| `guests` (front-desk list) | front | fill | — |
-| `folios` | cash | split: folio list left, folio right (today a full-width table + record below) | — |
+| `inhouse` | front | split: in-house stays list left, stay record right (as built; a `SplitView`) | — |
+| `guests` (front-desk list) | front | split: guest profiles list left, profile right (as built). Linked as a nav item "Guests" in the Front desk group with the Reservations permission (owner decision after FIT) | — |
+| `folios` | cash | split: folio list left, folio right. Built as `FitPage layout="fill"` with a `SplitView` in the body (same result) and sub-screens Folios / Folio requests | folios, requests |
 | `cashier` | cash | split: shift summary + count card left (`ScrollPanel`), shift movements table right | — |
 | `cashbook` | cash | fill: toolbar = range + StatStrip (`cb-sums`), `ScrollPanel` table | — |
 | `pos` | cash | existing view tabs → `FitTabs`; order view = board (menu left, ticket right with sticky Charge / KOT bar) | one per existing view id |
-| `expenses` | cash | status tabs → `FitTabs`; each = split (requests list left, request + approval right) | all, pending, approved, paid, rejected (existing ids) |
+| `expenses` | cash | status tabs → `FitTabs`; each = split (requests list left, request + approval right) | the seven SCC sections as sub-screens: Register, Recurring, Petty cash, Budgets, Udhaar, Vendor payments, Month & tax. The status filter inside the Register keeps its ids All / Draft / Pending / Posted / Rejected / Reversed / Void ("approved / paid" never existed) |
 | `housekeeping` | ops | board: `BoardColumns` (4 status columns, each scrolls), toolbar = floor filter + StatStrip | — |
 | `maintenance` | ops | existing `MNT_TABS` → `FitTabs`; list tabs = split | existing ids |
 | `handover` | ops | existing tabs → `FitTabs`; a checklist run = `StepFlow` (one section at a time) | existing ids |
@@ -167,22 +167,22 @@ Which pattern for which kind of page:
 | `documents` | guest | split (captures list left, capture right) | — |
 | `customers` | guest | split: customer list left; Customers 360 profile right with inner `FitTabs` Overview / Stays / Legacy (from W1a) / Money / Notes | overview, stays, legacy, money, notes |
 | `yield` | revenue | `FitTabs` per existing section (tariff grid in `ScrollPanel`, sticky first column) | per section |
-| `groups` | revenue | existing `TABS` → `FitTabs`; each = split (group list left, group record right — today's 3,760 px card) | existing ids |
+| `groups` | revenue | existing `TABS` → `FitTabs`; each = split (group list left, group record right — today's 3,760 px card); built as `layout="fill"` with a `SplitView` in the body; DEC-076 credit note on Companies only, "Rooms held" on Blocks only | existing ids |
 | `channels` | revenue | `FitTabs` per section (channels, mapping, payouts, logs) | per section |
-| `booking-site` | revenue | `FitTabs` (Settings, Rooms & rates, Bookings `usePaged`, Preview) | per section |
+| `booking-site` | revenue | `FitTabs` (Bookings `usePaged`, Preview; main has no Settings / Rooms & rates screens on this page) | bookings, preview |
 | `staff` | people | existing `HrDesk` tabs → `FitTabs`; each fill / split | existing ids |
 | `my-hr` | people | fill (fits today; convert) | — |
 | `closing` | people | steps: `StepFlow` over the 7 Day-closing steps; step body may hold a `ScrollPanel`; the "Close day" action sits in the step bar, always visible, enabled exactly as today | one per step id (registry: `closing` + each step) |
-| `reports` | people | split: report list (grouped) left, report right (`ScrollPanel`, export buttons in panel header) | — |
+| `reports` | people | split (built as `layout="fill"` with a `SplitView` in the body): report list (grouped) left, report right (`ScrollPanel`, export buttons in panel header) | — |
 | `plans-extras` | people | `FitTabs` per section | per section |
 | `accounting` | people | existing sections → `FitTabs` (Day book, Ledgers, Parties, GST, TDS, Reports, … as on main after ACC-2); statusbar + StatStrip in toolbar | per existing section |
 | `assistant` | people | chat: conversation `ScrollPanel` (newest at bottom), input pinned at the bottom, side panel for suggestions | — |
-| `compliance` | people | `FitTabs`: Calendar / Filings / Licences (+ SCC compliance sections as on main) | per section |
+| `compliance` | people | `FitTabs`: Calendar / Dashboard (main has no Filings / Licences screens) | calendar, dashboard |
 | `syshealth`, `backup`, `roadmap` | admin | fill / tabs per section | per section |
 | `prefs` | admin | form: `FormSections` | per section |
 | `access` | admin | split: roles / users list left, permissions right | — |
-| `settings` (Master configuration, masters) | admin | form: existing master list / detail (`mst-list` / `mst-detail`) inside `SplitView`; each master's form uses `FormSections` where it has > 1 section | per master group |
-| `approvals` | admin | `FitTabs` (Approvals, Audit log) each split | approvals, audit |
+| `settings` (Master configuration, masters) | admin | built as `FitPage` default layout with a `SplitView` (12 groups left, group settings and Lists right; `.fit-page.fit-split` would collide with SplitView's own grid class); existing master list / detail (`mst-list` / `mst-detail`) in the record pane, the master's row list scrolls inside itself; each master's form uses `FormSections` where it has > 1 section | per master group |
+| `approvals` | admin | `FitTabs` (Approvals, Audit log, plus "Pending expenses") each split (`layout="fill"` with a `SplitView` in the body) | approvals, audit, pending expenses |
 | W1a `legacy-import` (if on main) | admin | form + result `ScrollPanel` | — |
 
 A page that turns out not to fit with its assigned pattern at §8's smallest viewport: the lane may pick another §5 pattern and says why in its DONE file; it may not drop content or shrink text.

@@ -77,28 +77,28 @@ Before = `fit-check-baseline-20261101-0005.json` (541bbff7, no FIT code). After 
 | N1 Dashboard Front desk list | Confirmed layout-only (review); kept |
 | N2 Day closing copy / gating | Accepted (review) |
 | N3 Yield publish requests tab, Booking site tabs | Accepted (review); contract correction below |
-| N4 900 px media hook copies | `useWideSplit` in the shell; Groups uses it (rotation fixed); other three copies left (follow-up) |
-| N5 production ServerDevicePanel moved to "Data and system" | Kept as admin-a built it — owner to confirm |
+| N4 900 px media hook copies | One reactive `useWideSplit` in the shell; Groups (rotation fixed), front-b guests / in-house, guest Customers and admin-a HotelSettings all use it (the three local copies removed; same behaviour at >= 900 / < 900) |
+| N5 production ServerDevicePanel moved to "Data and system" | Kept as admin-a built it (owner decision) |
 | N6 duplicated desktop render code | Follow-up (list below) |
 | N8 inline styles | Moved to `z-fit.css` |
 | Lane shell defects (class collision, HeaderActions, harness, FIT_BASE, label baseline, guests page, modal openers) | Fixed (above) |
 | Expenses register tight spot (~168 px at tab-land) | ≥ 160 px in the final check (no `cramped`) |
 
-## Deviations from the contract (§6) — to correct in the contract
+## Deviations from the contract (§6) — corrected in the contract (cleanup)
 
 - **Expenses:** sub-screens are the seven SCC sections (Register, Recurring, Petty cash, Budgets, Udhaar, Vendor payments, Month & tax); the status filter inside the Register keeps its ids **All / Draft / Pending / Posted / Rejected / Reversed / Void** ("approved / paid" never existed).
 - **Folios:** tabs Folios / Folio requests (the contract listed none); the record pane is the same folio as the booking dialog.
 - **Compliance:** tabs Calendar / Dashboard (main has no Filings / Licences screens).
 - **Booking site:** tabs Bookings / Preview (main has no Settings / Rooms & rates screens on this page).
 - **Approvals:** a third tab "Pending expenses". **Yield:** "Publish requests" tab only while a request exists. **Groups:** the DEC-076 credit note on Companies only, "Rooms held" on Blocks only.
-- Several split pages use `layout="fill"` with a `SplitView` in the body (folios, groups, reports, settings, approvals) — same result after the class fix.
-- `guests` (front-desk guest list) has **no nav item and App maps it to Modules Home on main and on FIT** (not reachable in the app); its fit-page root is covered by the static tests only, the browser check cannot open it. Owner / coordinator: keep, link it, or drop it in a later wave.
+- Several split pages use `layout="fill"` with a `SplitView` in the body (folios, groups, reports, approvals; settings uses the default layout) — same result after the class fix. **Corrected in the contract §6 table (cleanup commit).**
+- `guests` (front-desk guest list): **now linked** (owner decision, cleanup) as a "Guests" nav item in the Front desk group with the Reservations permission (Housekeeping / Maintenance do not get it); App renders it, the browser check visits it like any page.
 
 ## Not fixed / follow-ups
 
 - Duplicated desktop render copies to keep in step (review N6): cash-a `CashBook` desktop day card / range view; ops `MntReportsFit` vs `MntReportsTab`, `HovTemplatesFit` vs `HovTemplatesBody`, `HovDashboardBody fit`; people-a `ReopenForm` / `ReopenedDay` desktop branches; guest `CustomerPanelFit` vs `CustomerPanelPhone`.
-- Three local copies of the 900 px hook (front-b `useWideSplit.ts`, guest `useWide`, admin-a `useNarrow900`) could use the shell's `useWideSplit`.
-- admin-a open item: a master with very many rows scrolls the whole record pane.
+- (Done in cleanup) The three local 900 px hook copies now use the shell's `useWideSplit`.
+- admin-a: a master with very many rows now scrolls inside its own row list (`max-height` in `src/styles/fit-admin-a.css`); the record pane still scrolls as a whole for the group's other blocks (by design).
 - Day pack (Day closing, after a closed day) is not reachable in the demo seed, so it is not in the modal sample (shell verified it by render).
 - Lanes' leftover static servers (ports 4191, 4195, 4197) are still running (not started by the integrator).
 - Lane worktrees are left in place (coordinator).
