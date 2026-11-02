@@ -4,4 +4,4 @@ export {ApprovalsAudit} from '../src/features/admin/ApprovalsAudit';
 export {FitNavContext} from '../src/components/fit';
 export {SUB_SCREENS} from '../src/app/subscreens';
 export {HccContext} from '../src/app/context';
-export {seed,can,metrics} from '../src/services/mock';
+export {seed,can,metrics,money} from '../src/services/mock';

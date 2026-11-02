@@ -210,6 +210,10 @@ html:has(.app-shell),html:has(.app-shell) body,html:has(.app-shell) #root{height
 .fit-form-nav-text{display:flex;flex-direction:column;gap:2px;flex:1 1 auto;min-width:0}
 @media (min-width:1280px){.fit-steps.has-summary:where(:not(.fit-page)),.fit-form.has-summary:where(:not(.fit-page)){grid-template-columns:minmax(260px,340px) minmax(0,1fr)}}
 @media (max-width:899.98px){.fit-rail-sum{max-width:240px}}
+/* FIT-2 integrator: beside the sub-screen (≥ 900 px) the result wraps to a second line instead of being cut ("Not counted · expected ₹…" at
+   tab-land), and from 1024 px the rail with summaries is ~300 px wide (was 240 px up to 1279 px) — same text size, the rail scrolls in itself. */
+@media (min-width:900px){.fit-rail-sum{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}}
+@media (min-width:1024px) and (max-width:1279.98px){.fit-steps.has-summary:where(:not(.fit-page)),.fit-form.has-summary:where(:not(.fit-page)){grid-template-columns:minmax(240px,300px) minmax(0,1fr)}}
 @media (max-width:899.98px){.fit-steps:where(:not(.fit-page)){grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr)}
   .fit-step-rail{flex-direction:row;overflow-x:auto;overflow-y:hidden}.fit-step-rail>li{flex:none}}
 

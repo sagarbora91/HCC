@@ -47,7 +47,8 @@ function BlocksTab({showFolio}:{showFolio:(id:string)=>void}){
   const id=sel;const blk=blocks.find(b=>b.id===id);
   const note=<FitNote lines={2} text={<><b>Rooms held for groups are blocked.</b> Unpicked block rooms are assigned to specific rooms, shown as “Group hold” (Blocked) on the room board and calendar, and can only be booked through the block’s rooming list. Releasing or cancelling a block frees them.</>}/>;
   if(!blocks.length)return <ScrollPanel label="Group blocks" footer={note}><Empty title="No group blocks" body="Create a block to hold rooms for a group."/></ScrollPanel>;
-  const list=<ScrollPanel label="Group blocks" title="Blocks" actions={<span className="muted">{blocks.length}</span>} footer={<>{note}<ShowMore p={pg}/></>}>
+  // FIT-2 integrator: no panel head — the "Blocks" tab right above already shows the title and the count; the rows get that line.
+  const list=<ScrollPanel label="Group blocks" footer={<>{note}<ShowMore p={pg}/></>}>
     <ul className="grp-list">{pg.shown.map(b=>{const t=grpBlockTotals(s,b),c=grpCompany(s,b.company);
       return <li key={b.id}><button type="button" className={'grp-list-row'+(b.id===id?' active':'')} aria-current={b.id===id?'true':undefined} onClick={()=>setSel(b.id)}>
         <span className="grp-list-row-main"><strong>{b.name}</strong><small>{b.id}{c?' · '+c.name:''}</small><small>{shortDate(b.arrival)} → {shortDate(b.departure)} · {t.picked} of {t.allot} picked up ({t.pct}%)</small></span>

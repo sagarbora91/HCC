@@ -36,7 +36,10 @@ export function register({test,assert}){
     const old=renderToStaticMarkup(h(F.StepFlow,{steps:[{id:'a',label:'A',status:'done'}],value:'a',onChange(){}},'x'));
     assert.ok(old.startsWith('<div class="fit-steps">')&&!old.includes('fit-rail-sum'),old);
     assert.ok(css.includes('@media (min-width:1280px){.fit-steps.has-summary:where(:not(.fit-page)),.fit-form.has-summary:where(:not(.fit-page)){grid-template-columns:minmax(260px,340px) minmax(0,1fr)}}'));
-    assert.ok(css.includes('.fit-rail-sum{display:block;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'),'one line, ellipsis');
+    assert.ok(css.includes('.fit-rail-sum{display:block;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'),'one line, ellipsis (narrow, horizontal rail)');
+    // integrator: beside the sub-screen the result wraps to two lines (never cut to one at tab-land); rail ~300 px from 1024 px
+    assert.ok(css.includes('@media (min-width:900px){.fit-rail-sum{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}}'),'two lines beside the sub-screen');
+    assert.ok(css.includes('@media (min-width:1024px) and (max-width:1279.98px){.fit-steps.has-summary:where(:not(.fit-page)),.fit-form.has-summary:where(:not(.fit-page)){grid-template-columns:minmax(240px,300px) minmax(0,1fr)}}'));
   });
   test('[FIT-2] FormSections summary: label + current value under it; dirty dot kept; no summary = old markup',()=>{
     const fs=renderToStaticMarkup(h(F.FormSections,{sections:[{id:'g',label:'General',summary:'Hotel Parth · GSTIN set'},{id:'m',label:'Money',dirty:true}],value:'g',onChange(){},actions:h('button',{className:'btn primary'},'Save')},'fields'));

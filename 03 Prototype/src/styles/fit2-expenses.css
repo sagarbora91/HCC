@@ -11,6 +11,20 @@
 .app-shell .fit-page .exp-req-pane .request-list{padding:0}
 /* add-expense dialog: sections + rail */
 .modal.fit-modal:has(.exp-add-task){width:min(900px,100%)}
-.exp-add-task .fit-form{height:min(430px,calc(100vh - 250px));height:min(430px,calc(100dvh - 250px));min-height:260px}
+/* FIT-2 integrator: the dialog has a set height and the sections fill what the heading leaves, so the action bar (inside the form) stays in
+   view at every text scale (tab-land 1.3 pushed it 47 px below the dialog with the old fixed form height); the fields scroll inside the section. */
+.modal.fit-modal:has(.exp-add-task){height:min(620px,calc(100vh - 32px));height:min(620px,calc(100dvh - 32px))}
+.modal.fit-modal:has(.exp-add-task)>.modal-body{display:flex;flex-direction:column}
+.modal.fit-modal:has(.exp-add-task)>.modal-body>.modal-heading{flex:none}
+.exp-add-task{flex:1 1 auto;min-height:0;display:flex;flex-direction:column}
+.exp-add-task .fit-form{flex:1 1 auto;min-height:220px}
+/* the rail shows the whole result (up to three lines) instead of cutting it to one line at tab width */
+.exp-add-task .fit-rail-sum{white-space:normal;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical}
+/* below 900 px (tab-port) the three sections stack above the fields (none cut off sideways) and the dialog uses the taller screen */
+@media (max-width:899.98px){
+  .modal.fit-modal:has(.exp-add-task){height:min(860px,calc(100vh - 32px));height:min(860px,calc(100dvh - 32px))}
+  .exp-add-task .fit-form-nav ul{flex-direction:column;overflow-x:visible}
+  .exp-add-task .fit-rail-sum{max-width:none}
+}
 .exp-add-task .fit-form-body>.form-row,.exp-add-task .fit-form-body>label{margin-bottom:10px}
 .exp-add-task .fit-form-actions{justify-content:flex-end}

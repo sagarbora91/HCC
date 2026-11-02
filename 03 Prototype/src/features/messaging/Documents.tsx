@@ -46,7 +46,7 @@ export function MsgDocumentsPage(){
   const review=active&&closed!==active.id?<ScrollPanel title="2 · Review and confirm" label="Review and confirm" actions={<span className="muted">{active.id} · {active.title}</span>}>
       <MsgDocReview key={active.id} doc={active} onDone={()=>setSel('')}/></ScrollPanel>:null;
   return <FitPage title="Document capture" sub="Pick a fictional sample, extract fields, review and confirm into a guest profile or an expense draft." layout="split">
-    <SplitView label="Document capture" ratio="1fr 1fr" onCloseDetail={()=>active&&setClosed(active.id)}
+    <SplitView label="Document capture" ratio="1fr 1fr" emptyPane="show" onCloseDetail={()=>active&&setClosed(active.id)}
       list={left} detail={review}
       empty={<section className="card"><div className="section-title"><h2>2 · Review and confirm</h2></div><Empty title="Nothing to review" body="Extract a sample on the left; its fields appear here for checking."/></section>}/>
   </FitPage>;
