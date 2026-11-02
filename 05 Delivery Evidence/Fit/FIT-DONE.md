@@ -102,6 +102,7 @@ Before = `fit-check-baseline-20261101-0005.json` (541bbff7, no FIT code). After 
 - Day pack (Day closing, after a closed day) is not reachable in the demo seed, so it is not in the modal sample (shell verified it by render).
 - Lanes' leftover static servers (ports 4191, 4195, 4197) are still running (not started by the integrator).
 - Lane worktrees are left in place (coordinator).
+- **FIT-2 (2 Nov 2026) — see `FIT2-DONE.md`.** Seven FIT-2 lanes merged (result rail on Day closing / Cashier / Handover / Prefs / Add expense, list-only SplitView, FitTabs More, compact strips, Approvals inbox list). Full check PASS 0 / 5,666; prototype 2373 / 2373. Still open: Reservations ≈ 5.8 rows at tab-land (toolbar uses the full width); compact stat strips on Dashboard / Accounting cut the last card's edge at tab-land (figure readable, expand shows all); Approvals rows verified by a seeded render test only (no pending approval in the demo seed).
 
 ## Screenshots for the owner
 

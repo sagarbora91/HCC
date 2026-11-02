@@ -46,6 +46,9 @@ export function HotelSettings(){
   const [sel,setSel]=useFitTab<CfgGroupId>('settings',GROUP_IDS,'property');
   const narrow=!useWideSplit();
   const [picked,setPicked]=useState(!!boot);
+  // FIT-2 integrator: on a wide screen the chosen group opens beside the list at once; "Back to list" (SplitView shows it whenever a record is
+  // open) now really closes it there too, giving the list the whole width, until a group is picked again.
+  const [closedWide,setClosedWide]=useState(false);
   useEffect(()=>{if(boot)setSel(boot);},[boot]); // eslint-disable-line react-hooks/exhaustive-deps
   const rows=cfgListRows(s,uid,q);
   const heads=Object.fromEntries(rows.map(r=>[r.id,cfgHeads(s,uid,r.id)])) as Record<string,string>;
@@ -54,15 +57,15 @@ export function HotelSettings(){
     {!rows.length&&<p className="muted padded">No setting matches “{q}”.</p>}
     {CFG_SECTIONS.map(sec=>{const l=rows.filter(r=>r.section===sec);if(!l.length)return null;
       return <div key={sec} className="cfg-sec"><h2>{sec}</h2><ul>{l.map(r=><li key={r.id}>
-        <button type="button" className={'cfg-item'+(r.id===current?' on':'')} aria-current={r.id===current?'true':undefined} onClick={()=>{setSel(r.id);setPicked(true);}}>
+        <button type="button" className={'cfg-item'+(r.id===current?' on':'')} aria-current={r.id===current?'true':undefined} onClick={()=>{setSel(r.id);setPicked(true);setClosedWide(false);}}>
           <span><strong>{r.label}</strong><small>{r.summary}{r.hits?` · ${r.hits} match${r.hits>1?'es':''}`:''}</small>{heads[r.id]&&<small className="cfg-heads" title={heads[r.id]}>{heads[r.id]}</small>}</span>
           {r.readOnly&&<span className="cfg-ro"><Lock size={12}/> Read only</span>}<ChevronRight size={16} aria-hidden="true"/></button></li>)}</ul></div>;})}
   </ScrollPanel>;
-  const detail=current&&(!narrow||picked)?<div className="cfg-detail"><CfgGroupDetail g={current} q={q}/></div>:null;
+  const detail=current&&(narrow?picked:!closedWide)?<div className="cfg-detail"><CfgGroupDetail g={current} q={q}/></div>:null;
   return <FitPage title="Master configuration" sub="Every setting in one place — 12 groups, dated values, approvals, history and modules on/off."
       actions={<Pill tone="orange">Fictional property · GST illustrative</Pill>}
       toolbar={<label className="cfg-search"><Search size={17}/><input type="search" aria-label="Search settings" placeholder="Search settings (e.g. GSTIN, deposit, PF)" value={q} onChange={e=>setQ(e.target.value)}/></label>}>
-    <SplitView label="Master configuration" ratio="1fr 3fr" list={list} detail={detail} onCloseDetail={()=>setPicked(false)}
+    <SplitView label="Master configuration" ratio="1fr 3fr" list={list} detail={detail} onCloseDetail={()=>{setPicked(false);setClosedWide(true);}}
       empty={<Empty title={rows.length?'Pick a group':'Nothing found'} body={rows.length?'Its settings and lists open here.':'Try another word.'}/>}/>
   </FitPage>;
 }

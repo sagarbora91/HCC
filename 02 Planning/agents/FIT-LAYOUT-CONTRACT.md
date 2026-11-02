@@ -314,3 +314,10 @@ export function FitNote(p:{text:React.ReactNode;lines?:number;className?:string}
 ### 12.3 Tests and checks
 
 `tests/stream-fit2-shell.mjs` covers every prop above (old markup unchanged without the props); `tests/stream-fit-shell.mjs` FitNote case updated (no More before measuring). `tools/fit-screen-check.mjs` must stay PASS (no page scroll, fonts identical to the baseline). Page lanes add their own page assertions in their `stream-fit-*` files.
+
+### 12.4 Integrator amendments (2 Nov 2026, FIT-2 merge)
+
+- **Rail result wraps, never cut to one line beside the sub-screen.** At ≥ 900 px `.fit-rail-sum` wraps to two lines (`-webkit-line-clamp:2`; same font); below 900 px (horizontal rail) it stays one line with ellipsis. With summaries the rail is `minmax(240px,300px)` from 1024 to 1279 px (was 200–260 px) and `minmax(260px,340px)` at ≥ 1280 px. The rail scrolls inside itself when the steps do not fit (Day closing's seven steps at tab-land).
+- **Add expense dialog** (`.modal.fit-modal:has(.exp-add-task)`): set height `min(620px, 100dvh − 32px)` (`min(860px, …)` below 900 px wide), the sections fill what the heading leaves, so the action bar stays in view at text scale 1.3; the rail result wraps to three lines; below 900 px the three sections stack above the fields.
+- `SplitView emptyPane="show"`: Document capture (its "2 · Review and confirm" card is step 2 of the task, shown beside step 1). Every other `SplitView` `empty` only said "Pick a …" and stays hidden.
+- Master configuration: the open group shows beside the list at once on a wide screen (as before); "Back to list" now closes it there too (list full width) until a group is picked.
