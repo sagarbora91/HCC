@@ -62,6 +62,12 @@ public sealed class FrontDeskMastersQueries(IAccessPolicy policy, IFrontDeskMast
             money ? x.Row.Get<int>("commissionBps") : null, x.Row.SortOrder, x.Row.Active, Retired(x.Row), x.Usage, Utc(x.Row.UpdatedUtc), Ver(x.Row))).ToList(), page, pageSize);
     }
 
+    public async Task<FrontDeskList<PlainListView>> PlainListAsync(int propertyId, string master, int? page = null, int? pageSize = null, string? status = null, CancellationToken ct = default)
+    {
+        var (rows, _) = await RowsAsync(propertyId, master, status, ct).ConfigureAwait(false);
+        return Page(rows.Select(x => new PlainListView(x.Row.RowId, x.Row.Code, x.Row.Name, x.Row.SortOrder, x.Row.Active, Retired(x.Row), x.Usage, Utc(x.Row.UpdatedUtc), Ver(x.Row))).ToList(), page, pageSize);
+    }
+
     public async Task<FrontDeskList<IdTypeView>> IdTypesAsync(int propertyId, int principalId, int? page = null, int? pageSize = null, string? status = null, CancellationToken ct = default)
     {
         _ = principalId; // session checked by the endpoint group; no money, no guest data

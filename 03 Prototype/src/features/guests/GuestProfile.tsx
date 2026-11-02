@@ -4,11 +4,15 @@ import {bookingRef} from '../../domain/bookingRef';
 import React,{useState} from 'react';
 import {Printer,Hotel,ShieldCheck,UserPlus,Lock} from 'lucide-react';
 import {useHcc} from '../../app/context';
-import {Guest,Booking,guestView,guestAccess,guestById,guestStays,guestSearch,guestDuplicates,guestComplete,totals,money,nights,staySegmentLabel,plural} from '../../services/mock';
+import {deskPurposeLabel,stayDueOut,deskBasis,Guest,Booking,guestView,guestAccess,guestById,guestStays,guestSearch,guestDuplicates,guestComplete,totals,money,nights,staySegmentLabel,plural} from '../../services/mock';
 import {SearchBox,Pill,Empty,shortDate,dateLabel} from '../../components/ui';
 import {FitPage,ScrollPanel,SplitView,FitNote,useWideSplit} from '../../components/fit';
 import {GuestForm,emptyDraft,draftOf,hashOf} from './GuestForm';
 import {GuestIdValue} from './GuestId';
+import {PartyPhotos} from './PartyPhotos'; // LF-IMAGES B5
+import {PartyPhotosServer,usePhotoSeqs} from '../../clients/sync/guestphoto-ui';
+import {dobGet,dobPhotoRef} from '../../domain/streams/docobjects';
+import {guestIdMask} from '../../domain/streams/guests';
 
 export const statusTone=(st:string)=>st==='In house'?'green':st==='Confirmed'?'blue':st==='Departed'?'neutral':'orange';
 export function VerifiedPill({g}:{g:Guest}){return g.verified?<Pill tone="green">✓ Verified</Pill>:<Pill tone="orange">Not verified</Pill>;}
@@ -27,6 +31,7 @@ export function GuestDetails({g}:{g:Guest}){
     </div>
     <h3 className="gs-sub">Accompanying guests</h3>
     {g.party.length?<ul className="gs-party-list">{g.party.map((p,i)=><li key={i}><strong>{p.name}</strong><span>{p.ageBand}{p.relation?' · '+p.relation:''}</span></li>)}</ul>:<p className="muted">No accompanying guests recorded.</p>}
+    {process.env.HCC_BUILD==='production'?<PartyPhotosServer g={g}/>:<PartyPhotos g={g}/>}{/* LF-IMAGES B5: photo per person (production: CaptureIdDocument docKind photo, shown on a logged click) */}
   </>;
 }
 
@@ -68,6 +73,8 @@ export function RegistrationCard({id}:{id?:string}){
   const {s,uid,booking}=useHcc();const b=s.bookings.find(b=>b.id===id);
   if(!b)return <Empty title="This record is unavailable"/>;
   const g=guestById(s,b.guestId),v=g?guestView(s,uid,g):undefined;
+  const serverSeqs=process.env.HCC_BUILD==='production'?usePhotoSeqs(g?.id??'',!!g&&guestAccess(s,uid).idDetails):undefined; // eslint-disable-line react-hooks/rules-of-hooks -- HCC_BUILD is a build-time constant
+  const partyPhoto=(seq:number)=>!guestAccess(s,uid).idDetails?false:process.env.HCC_BUILD==='production'?!!serverSeqs?.includes(seq):!!dobGet(s,dobPhotoRef(g?.id??'',seq));
   return <><div className="invoice gs-regcard" data-watermark="Demonstration — fictional">
     <div className="invoice-top"><Hotel size={34}/><div><h2>{s.settings.hotel}</h2><p>Guest registration card · Fictional property</p></div></div>
     <div className="invoice-stamp">DEMONSTRATION — FICTIONAL · NOT A STATUTORY REGISTRATION RECORD</div>
@@ -78,9 +85,15 @@ export function RegistrationCard({id}:{id?:string}){
       <div><span>Company / GSTIN</span><strong>{v?.company?`${v.company}${v.gstin?' · '+v.gstin:''}`:'—'}</strong></div>
       <div><span>Agreed nightly tariff</span><strong>{money(b.rate)} + GST</strong></div>
       <div><span>Room history</span><strong>{staySegmentLabel(b)||b.room}</strong></div>
-      <div><span>Booking source</span><strong>{b.source}</strong></div></div>
+      <div><span>Booking source</span><strong>{b.source}</strong></div>
+      {/* LF-DESK · purpose, vehicle, due-out, Form C summary */}
+      <div><span>Purpose of visit</span><strong>{deskPurposeLabel(s,b.purpose)||'—'}</strong></div>
+      <div><span>Vehicle</span><strong>{b.vehicle?`${b.vehicle.no}${b.vehicle.type?' · '+b.vehicle.type:''}`:'—'}</strong></div>
+      <div><span>Due out</span><strong>{stayDueOut(s,b).replace('T',' ')} · {deskBasis(s,b)==='24h'?'24 hours':'fixed time'}</strong></div>
+      {b.formC&&<div><span>Form C</span><strong>Recorded · arrived from {b.formC.arrivedFrom}</strong></div>}
+      {/* LF-DESK end */}</div>
     <h3 className="gs-sub">Accompanying guests</h3>
-    {g?.party.length?<table><thead><tr><th>Name</th><th>Age band</th><th>Relation</th></tr></thead><tbody>{g.party.map((p,i)=><tr key={i}><td>{p.name}</td><td>{p.ageBand}</td><td>{p.relation||'—'}</td></tr>)}</tbody></table>:<p className="muted">None recorded.</p>}
+    {g?.party.length?<table><thead><tr><th>Name</th><th>Age band</th><th>Relation</th><th>ID (masked)</th><th>Photo</th></tr></thead><tbody>{g.party.map((p,i)=><tr key={i}><td>{p.name}</td><td>{p.ageBand}</td><td>{p.relation||'—'}</td><td>{p.idLast4?`${p.idType||'ID'} · ${guestIdMask(p.idLast4)}`:'—'}</td><td>{partyPhoto(i+1)?'On file':'—'}</td></tr>)}</tbody></table>:<p className="muted">None recorded.</p>}
     <div className="gs-sign"><div><span/>Guest signature</div><div><span/>Front desk</div></div>
     <p className="footnote">All names, contact details and ID references are fictional. ID numbers are masked on this card; no ID images are stored. Printed from the HCC interactive prototype.</p></div>
     <div className="modal-actions no-print"><button className="btn" onClick={()=>booking(b.id)}>Back to booking</button><button className="btn primary" onClick={()=>{void printDocument();}}><Printer size={16}/> Print / save PDF</button></div></>;

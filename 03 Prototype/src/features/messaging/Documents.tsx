@@ -15,7 +15,7 @@ const nextDocId=(s:ReturnType<typeof useHcc>['s'])=>'DOC-'+(s.sequence+1);
 function History({docs,onOpen}:{docs:MSGDoc[];onOpen:(d:MSGDoc)=>void}){
   if(!docs.length)return <Empty title="No captures yet" body="Extract a sample document to start."/>;
   return <div className="table-wrap"><table><thead><tr><th>Capture</th><th>Kind</th><th>Status</th><th>Applied to</th><th>Action</th></tr></thead><tbody>
-    {docs.map(d=><tr key={d.id}><td><strong>{d.title}</strong><small>{d.id} · {shortDate(d.at.slice(0,10))} {clockTime(d.at)}</small></td><td>{MSG_DOC_KIND_LABEL[d.kind]}</td>
+    {docs.map(d=><tr key={d.id}><td><strong>{d.title}</strong><small>{d.id} · {shortDate(d.at.slice(0,10))} {clockTime(d.at)}</small></td><td>{MSG_DOC_KIND_LABEL[d.kind]}{d.partySeq?<small>Accompanying guest {d.partySeq}</small>:null}</td>
       <td><Pill tone={tone(d.status)}>{d.status}</Pill>{d.fields.some(f=>'original' in f&&f.original!==undefined)&&<small>Corrected by staff</small>}{d.reason&&<small>{d.reason}</small>}</td>
       <td>{d.appliedTo||'—'}</td><td>{d.status==='Extracted'?<button className="text-btn" onClick={()=>onOpen(d)}>Review</button>:<span className="muted">—</span>}</td></tr>)}
   </tbody></table></div>;

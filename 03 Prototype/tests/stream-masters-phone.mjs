@@ -8,8 +8,8 @@ export function register({test,M,assert}){
   const NO_MONEY=['housekeeper','housekeeper2','maint','supervisor'];
   const withMasters=s=>({...s,grants:Object.fromEntries(Object.entries(s.grants).map(([r,g])=>[r,g.includes('masters')?g:[...g,'masters']]))});
 
-  test('[MA10] 28 masters are registered and every one belongs to a Master configuration group the phone hub lists',()=>{
-    const specs=masterSpecs();assert.equal(specs.length,28);
+  test('[MA10] 30 masters are registered and every one belongs to a Master configuration group the phone hub lists',()=>{
+    const specs=masterSpecs();assert.equal(specs.length,30);
     const gids=new Set(CFG_GROUPS.map(g=>g.id));
     for(const p of specs){assert.ok(gids.has(p.group),`${p.id} group ${p.group}`);assert.ok(mstSpecsOfGroup(p.group).some(x=>x.id===p.id),p.id);}
   });

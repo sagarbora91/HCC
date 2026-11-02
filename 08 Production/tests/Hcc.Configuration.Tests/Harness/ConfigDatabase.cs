@@ -74,7 +74,7 @@ public sealed partial class ConfigDatabase : IAsyncLifetime
         await using (var conn = new SqlConnection(SqlConnectionFactory.LocalDevConnectionString(Server, "master")))
         {
             await conn.OpenAsync();
-            await using var cmd = new SqlCommand($"CREATE DATABASE [{Name}];", conn) { CommandTimeout = 120 };
+            await using var cmd = new SqlCommand($"CREATE DATABASE [{Name}]; CREATE DATABASE [{Name}Documents];", conn) { CommandTimeout = 120 };
             try
             {
                 await cmd.ExecuteNonQueryAsync();
@@ -87,6 +87,7 @@ public sealed partial class ConfigDatabase : IAsyncLifetime
 
         Platform = new SqlPlatform(Options);
         await Platform.Migrations.MigrateAsync();
+        await Platform.DocumentMigrations.MigrateAsync(); // LF-int: the documents database twin (LF-docdb)
         Policy = new AccessModule(Platform, new AccessOptions { PasswordIterations = 1000, PinIterations = 1000 }, Clock).Policy;
         Registry = new SettingsRegistry([Hcc.Application.Housekeeping.HousekeepingSettings.Provider, Hcc.Application.Tax.GstSettings.Provider]); // module providers as in the composition
         Store = new SqlConfigurationStore(Platform.Connections);
@@ -109,6 +110,11 @@ public sealed partial class ConfigDatabase : IAsyncLifetime
             BEGIN
               ALTER DATABASE [{Name}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
               DROP DATABASE [{Name}];
+            END
+            IF DB_ID(N'{Name}Documents') IS NOT NULL
+            BEGIN
+              ALTER DATABASE [{Name}Documents] SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
+              DROP DATABASE [{Name}Documents];
             END
             """, conn) { CommandTimeout = 120 };
         await cmd.ExecuteNonQueryAsync();

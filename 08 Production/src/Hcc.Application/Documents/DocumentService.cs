@@ -12,6 +12,7 @@ using Hcc.Domain.Configuration;
 using Hcc.Domain.Documents;
 using Hcc.Domain.Errors;
 using Hcc.Domain.GuestIds;
+using Hcc.Domain.Stays;
 
 namespace Hcc.Application.Documents;
 
@@ -27,6 +28,7 @@ public sealed class DocumentService(ICommandRunner runner, IAccessPolicy policy,
     public const string OpCapture = "CaptureIdDocument";
     public const string OpConfirm = "ConfirmIdCapture";
     public const string OpReject = "RejectIdCapture";
+    public const string OpRemovePhoto = "RemoveGuestPhoto";
     public const string OpViewImage = "ViewIdCaptureImage";
     public const string OpReveal = "RevealIdCaptureNumber";
     public const string OpPurge = "PurgeIdCaptures";
@@ -43,7 +45,7 @@ public sealed class DocumentService(ICommandRunner runner, IAccessPolicy policy,
 
     public static IdCaptureView ToView(IdCaptureRow r) => new(r.CaptureId, r.GuestId, r.StayId, r.DocKind, DocumentRules.Label(r.DocKind), r.ContentType, r.SizeBytes, r.Status,
         r.OcrDocKind ?? string.Empty, GuestIdRules.Mask(r.OcrLast4), r.OcrConfidence ?? 0, r.CapturedDate, r.CapturedUtc, r.CapturedBy, r.ConfirmedUtc, r.ConfirmedBy,
-        r.RejectReason ?? string.Empty, r.ImageAvailable, VersionToken.ToWire(r.RowVer));
+        r.RejectReason ?? string.Empty, r.ImageAvailable, VersionToken.ToWire(r.RowVer), r.PartySeq);
 
     private async Task DayOpenAsync(ICommandTransaction tx, int propertyId, CancellationToken ct)
     {
@@ -59,9 +61,11 @@ public sealed class DocumentService(ICommandRunner runner, IAccessPolicy policy,
         ArgumentNullException.ThrowIfNull(req);
         await policy.RequireAsync(ctx.PropertyId, ctx.PrincipalId, DocumentPermissions.Capture, ct: ct).ConfigureAwait(false);
         await policy.RequireAsync(ctx.PropertyId, ctx.PrincipalId, DocumentPermissions.IdView, ct: ct).ConfigureAwait(false);
-        if (!ocr.IsConfigured) throw OcrNotConfigured.Refusal();   // A09-08: refuse before reading the image; nothing is stored
+        var isPhoto = string.Equals((req.DocKind ?? string.Empty).Trim(), DocumentRules.PhotoKind, StringComparison.OrdinalIgnoreCase);
+        if (!isPhoto && !ocr.IsConfigured) throw OcrNotConfigured.Refusal();   // A09-08: refuse before reading the image; nothing is stored (a photo needs no OCR)
         if (req.GuestId <= 0) throw HccException.Validation("Select a guest.");
-        var kind = DocumentRules.Kind(req.DocKind);
+        if (req.PartySeq is { } partySeq && (partySeq < 1 || partySeq > GuestRules.MaxParty)) throw HccException.Validation("Select a party member.");
+        var kind = isPhoto ? DocumentRules.PhotoKind : DocumentRules.Kind(req.DocKind);
         var type = (req.ContentType ?? string.Empty).Trim().ToLowerInvariant();
         var bytes = DocumentRules.DecodeImage(type, req.ImageBase64);
         return await runner.RunAsync(ctx with { Operation = OpCapture }, req, async (tx, c) =>
@@ -70,13 +74,28 @@ public sealed class DocumentService(ICommandRunner runner, IAccessPolicy policy,
             if (!await store.GuestExistsAsync(tx, ctx.PropertyId, req.GuestId, c).ConfigureAwait(false)) throw new HccException(HccErrorCode.NOT_FOUND, "Guest profile not found.");
             if (req.StayId is { } stay && !await store.StayBelongsToGuestAsync(tx, ctx.PropertyId, stay, req.GuestId, c).ConfigureAwait(false))
                 throw HccException.Validation("That stay does not belong to this guest.");
+            // LF-images B5 (DEC-201): a capture can belong to an accompanying guest (party_seq 1-6, DEC-193); the member must exist on that guest.
+            if (req.PartySeq is { } seq0 && await guestIds.ReadPartyAsync(tx, ctx.PropertyId, req.GuestId, seq0, c).ConfigureAwait(false) is null)
+                throw new HccException(HccErrorCode.NOT_FOUND, "Party member not found.");
+            if (isPhoto)
+            {
+                var photoRef = Guid.NewGuid();
+                var photoDate = await store.BusinessDateAsync(tx, ctx.PropertyId, c).ConfigureAwait(false);
+                var photoRow = await store.InsertAsync(tx, new NewIdCapture(photoRef, ctx.PropertyId, req.GuestId, req.StayId, kind, type, bytes.Length, string.Empty, string.Empty, 0, string.Empty,
+                    photoDate, Now, ctx.PrincipalId, req.PartySeq), c).ConfigureAwait(false);
+                await images.PutAsync(tx, photoRow.CaptureId, protector.SealSecret(ctx.PropertyId, ImagePurpose(photoRef), Convert.ToBase64String(bytes)), c).ConfigureAwait(false);
+                await store.SetStatusAsync(tx, photoRow.CaptureId, DocumentRules.Confirmed, ctx.PrincipalId, Now, null, c).ConfigureAwait(false);   // nothing to review
+                await tx.AuditAsync("GUEST_PHOTO", Target(photoRow.CaptureId), $"guest {req.GuestId}{(req.PartySeq is { } ps1 ? $" · party member {ps1}" : string.Empty)} · photo captured · {bytes.Length} bytes", c).ConfigureAwait(false);
+                return ToView((await store.FindAsync(tx, ctx.PropertyId, photoRow.CaptureId, c).ConfigureAwait(false)) ?? throw NotFound());
+            }
+
             var read = await ocr.ExtractAsync(bytes, type, kind, c).ConfigureAwait(false);
             var reference = Guid.NewGuid();
             var sealedOcr = protector.SealSecret(ctx.PropertyId, OcrPurpose(reference),
                 JsonSerializer.Serialize(new OcrPayload(GuestIdRules.Normalise(read.Number), read.Name, read.DateOfBirth)));
             var date = await store.BusinessDateAsync(tx, ctx.PropertyId, c).ConfigureAwait(false);
             var row = await store.InsertAsync(tx, new NewIdCapture(reference, ctx.PropertyId, req.GuestId, req.StayId, kind, type, bytes.Length, read.DocKind,
-                GuestIdRules.Last4(read.Number), Math.Clamp(read.Confidence, 0, 100), sealedOcr, date, Now, ctx.PrincipalId), c).ConfigureAwait(false);
+                GuestIdRules.Last4(read.Number), Math.Clamp(read.Confidence, 0, 100), sealedOcr, date, Now, ctx.PrincipalId, req.PartySeq), c).ConfigureAwait(false);
             await images.PutAsync(tx, row.CaptureId, protector.SealSecret(ctx.PropertyId, ImagePurpose(reference), Convert.ToBase64String(bytes)), c).ConfigureAwait(false);
             await tx.AuditAsync("ID_CAPTURE", Target(row.CaptureId),
                 $"guest {req.GuestId} · {DocumentRules.Label(kind)} image captured · {bytes.Length} bytes · OCR confidence {row.OcrConfidence}%", c).ConfigureAwait(false);
@@ -113,8 +132,16 @@ public sealed class DocumentService(ICommandRunner runner, IAccessPolicy policy,
             var label = DocumentRules.Label(row.DocKind);
             if (number.Length == 0) throw HccException.Validation("No ID number could be read from the image: type it in.");
             if (GuestIdRules.Error(label, number) is { Length: > 0 } problem) throw HccException.Validation(problem);
-            await guestIds.UpsertAsync(tx, row.GuestId, protector.Seal(ctx.PropertyId, row.GuestId, number), Now, c).ConfigureAwait(false);
-            await store.SetGuestIdProfileAsync(tx, row.GuestId, label, GuestIdRules.Last4(number), c).ConfigureAwait(false);
+            if (row.PartySeq is { } memberSeq)
+            {   // LF-images B5 (DEC-201): the member's full number is sealed exactly like the registered guest's (AAD with the seq), shown masked everywhere else
+                await guestIds.UpsertPartyAsync(tx, row.GuestId, memberSeq, protector.Seal(ctx.PropertyId, row.GuestId, memberSeq, number), Now, c).ConfigureAwait(false);
+                await store.SetPartyIdProfileAsync(tx, row.GuestId, memberSeq, label, GuestIdRules.Last4(number), c).ConfigureAwait(false);
+            }
+            else
+            {
+                await guestIds.UpsertAsync(tx, row.GuestId, protector.Seal(ctx.PropertyId, row.GuestId, number), Now, c).ConfigureAwait(false);
+                await store.SetGuestIdProfileAsync(tx, row.GuestId, label, GuestIdRules.Last4(number), c).ConfigureAwait(false);
+            }
             await store.SetStatusAsync(tx, row.CaptureId, DocumentRules.Confirmed, ctx.PrincipalId, Now, null, c).ConfigureAwait(false);
             await tx.AuditAsync("ID_CAPTURE_CONFIRM", Target(row.CaptureId),
                 $"guest {row.GuestId} · {label} confirmed after review · " + (req.AcceptOcr ? "OCR number accepted" : matchedOcr ? "typed number equals OCR" : "number corrected by staff"), c).ConfigureAwait(false);
@@ -141,6 +168,27 @@ public sealed class DocumentService(ICommandRunner runner, IAccessPolicy policy,
             if (row.Status != DocumentRules.Captured) throw new HccException(HccErrorCode.INVALID_TRANSITION, "Only a capture awaiting review can be rejected.");
             await store.SetStatusAsync(tx, row.CaptureId, DocumentRules.Rejected, ctx.PrincipalId, Now, reason, c).ConfigureAwait(false);
             await tx.AuditAsync("ID_CAPTURE_REJECT", Target(row.CaptureId), $"guest {row.GuestId} · image rejected · {reason}", c).ConfigureAwait(false);
+            return ToView((await store.FindAsync(tx, ctx.PropertyId, row.CaptureId, c).ConfigureAwait(false)) ?? throw NotFound());
+        }, ct).ConfigureAwait(false);
+    }
+
+    /// <summary>LF-finish: soft-removes a guest / party photo (status Rejected + reason + audit); the sealed image stays until the retention purge. Never for an ID image.</summary>
+    public async Task<CommandResult<IdCaptureView>> RemovePhotoAsync(CommandContext ctx, RemoveGuestPhotoRequest req, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(ctx);
+        ArgumentNullException.ThrowIfNull(req);
+        await policy.RequireAsync(ctx.PropertyId, ctx.PrincipalId, DocumentPermissions.Capture, ct: ct).ConfigureAwait(false);
+        var reason = req.Reason?.Trim() ?? string.Empty;
+        if (reason.Length is < 3 or > 200) throw HccException.Validation("Give a reason (3–200 characters).");
+        if (GuestIdRules.LooksLikeIdNumber(reason)) throw HccException.Validation(GuestIdRules.FreeTextIdMessage);
+        return await runner.RunAsync(ctx with { Operation = OpRemovePhoto }, req, async (tx, c) =>
+        {
+            await DayOpenAsync(tx, ctx.PropertyId, c).ConfigureAwait(false);
+            var row = await store.LockAsync(tx, ctx.PropertyId, req.CaptureId, c).ConfigureAwait(false) ?? throw NotFound();
+            if (row.DocKind != DocumentRules.PhotoKind) throw new HccException(HccErrorCode.INVALID_TRANSITION, "Only a guest photo can be removed here.");
+            if (row.Status is DocumentRules.Rejected or DocumentRules.Purged) throw new HccException(HccErrorCode.INVALID_TRANSITION, "This photo is already removed.");
+            await store.SetStatusAsync(tx, row.CaptureId, DocumentRules.Rejected, ctx.PrincipalId, Now, reason, c).ConfigureAwait(false);
+            await tx.AuditAsync("GUEST_PHOTO_REMOVE", Target(row.CaptureId), $"guest {row.GuestId}{(row.PartySeq is { } ps ? $" · party member {ps}" : string.Empty)} · photo removed · {reason}", c).ConfigureAwait(false);
             return ToView((await store.FindAsync(tx, ctx.PropertyId, row.CaptureId, c).ConfigureAwait(false)) ?? throw NotFound());
         }, ct).ConfigureAwait(false);
     }

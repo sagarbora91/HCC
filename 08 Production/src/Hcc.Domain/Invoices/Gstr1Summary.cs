@@ -20,6 +20,12 @@ public sealed record Gstr1DocRow(string DocType, string First, string Last, int 
 
 public sealed record Gstr1Result(IReadOnlyList<Gstr1Row> Rates, IReadOnlyList<Gstr1SacRow> Sac, IReadOnlyList<Gstr1DocRow> Documents);
 
+/// <summary>LF B7 (LF-CONTRACT §5, DEC-197): a bill of the legacy Lodge series (lgc.bill: plain number, before cut-over). Table 13 only.</summary>
+public sealed record Gstr1LegacyBill(long Number, DateOnly Date, bool Cancelled);
+
+/// <summary>LF B7: a Table 12 (HSN / SAC summary) row — UQC OTH, quantity = documents carrying the SAC.</summary>
+public sealed record Gstr1Table12Row(string Sac, string Description, string Uqc, int Quantity, int Bps, Paise Taxable, Paise Cgst, Paise Sgst, Paise Igst);
+
 /// <summary>
 /// GSTR-1 style summary for a period (a working aid for the CA, not a return file): outward supplies by section and rate — B2B,
 /// B2CL (unregistered, inter-state, invoice above <see cref="B2clThreshold"/>), B2CS (other unregistered, net of their credit notes),
@@ -34,6 +40,40 @@ public static class Gstr1Summary
 
     public static string SectionOf(SupplyType supply, bool interState, Paise invoiceTotal) =>
         supply == SupplyType.B2B ? "B2B" : interState && invoiceTotal > B2clThreshold ? "B2CL" : "B2CS";
+
+    /// <summary>Label of the legacy series row in Table 13.</summary>
+    public const string LegacyLabel = "Legacy Lodge bills (plain numbers, before cut-over)";
+
+    /// <summary>LF B7: the summary with the legacy Lodge series as an 'LGC' row first in Table 13 (only when the period holds legacy bills;
+    /// they never enter the rate tables or Table 12 — their GST was reported by the CA from the old software).</summary>
+    public static Gstr1Result Build(IReadOnlyList<Gstr1Invoice> invoices, IReadOnlyList<Gstr1CreditNote> notes, IReadOnlyList<Gstr1LegacyBill> legacy)
+    {
+        ArgumentNullException.ThrowIfNull(legacy);
+        var r = Build(invoices, notes);
+        if (legacy.Count == 0) return r;
+        var nos = legacy.Select(b => b.Number).Order().ToList();
+        var row = new Gstr1DocRow("LGC", nos[0].ToString(System.Globalization.CultureInfo.InvariantCulture), nos[^1].ToString(System.Globalization.CultureInfo.InvariantCulture),
+            nos.Count, legacy.Count(b => b.Cancelled));
+        return r with { Documents = [row, .. r.Documents] };
+    }
+
+    /// <summary>LF B7: Table 12 rows (SAC description, UQC OTH, quantity = documents carrying that SAC, net of credit notes as the SAC rows).</summary>
+    public static IReadOnlyList<Gstr1Table12Row> Table12(Gstr1Result result, IReadOnlyList<Gstr1Invoice> invoices)
+    {
+        ArgumentNullException.ThrowIfNull(result);
+        ArgumentNullException.ThrowIfNull(invoices);
+        var docs = invoices.SelectMany(i => i.Lines.Select(l => (l.Sac, i.Number))).Distinct().GroupBy(x => x.Sac).ToDictionary(g => g.Key, g => g.Count(), StringComparer.Ordinal);
+        return result.Sac.Select(s => new Gstr1Table12Row(s.Sac, SacDescription(s.Sac), "OTH", docs.GetValueOrDefault(s.Sac), s.Bps, s.Taxable, s.Cgst, s.Sgst, s.Igst)).ToList();
+    }
+
+    public static string SacDescription(string sac) => sac switch
+    {
+        "996311" => "Room or unit accommodation",
+        "996331" => "Restaurant / food services",
+        "999712" => "Laundry services",
+        "996334" => "Banquet / event services",
+        _ => "Other services",
+    };
 
     public static Gstr1Result Build(IReadOnlyList<Gstr1Invoice> invoices, IReadOnlyList<Gstr1CreditNote> notes)
     {

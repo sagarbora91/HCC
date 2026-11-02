@@ -15,7 +15,7 @@ namespace Hcc.Infrastructure.SqlServer.Compliance;
 /// transaction (the settings row is the per-property lock, taken with UPDLOCK); read side opens its own connection. The ≈₹ payable feed reads
 /// the locked pay runs (hr.pay_run / pay_run_line) and the issued invoices and credit notes (ivc.*).
 /// </summary>
-public sealed class SqlComplianceStore(SqlConnectionFactory connections) : IComplianceStore, IComplianceReadStore
+public sealed class SqlComplianceStore(SqlConnectionFactory connections, Hcc.Application.Documents.IDocumentObjectStore? objects = null) : IComplianceStore, IComplianceReadStore
 {
     private static SqlCommandTransaction Sql(ICommandTransaction tx) =>
         tx as SqlCommandTransaction ?? throw new InvalidOperationException("The compliance SQL store needs the SQL command transaction.");
@@ -392,6 +392,10 @@ public sealed class SqlComplianceStore(SqlConnectionFactory connections) : IComp
     {
         await using var cmd = Sql(tx).Command("""
             UPDATE cmp.custom_obligation SET deleted_by = @by, deleted_utc = @utc WHERE custom_id = @id AND property_id = @p AND deleted_utc IS NULL;
+            INSERT plat.outbox(event_type, aggregate_id, payload, property_id)
+            SELECT 'DocumentObjectReleased', e.evidence_id, CONCAT('{"objectRef":"', c.object_ref, '","kind":"compliance-evidence"}'), @p
+              FROM cmp.evidence e JOIN cmp.evidence_content c ON c.evidence_id = e.evidence_id
+             WHERE e.property_id = @p AND e.item_id LIKE @prefix AND c.object_ref IS NOT NULL;   -- LF-docdb: released in HccDocuments by the consumer
             DELETE cmp.evidence WHERE property_id = @p AND item_id LIKE @prefix;
             SELECT @@ROWCOUNT;
             """);
@@ -409,11 +413,14 @@ public sealed class SqlComplianceStore(SqlConnectionFactory connections) : IComp
         CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(content);
+        // LF-docdb (contract §1.8): the object first, in its own committed transaction; this Hcc transaction stores the ref (owner id is informational).
+        Guid? objectRef = objects is null ? null : await objects.PutAsync(new Hcc.Application.Documents.NewDocumentObject(propertyId, Hcc.Application.Documents.DocumentObjectKind.ComplianceEvidence,
+            "cmp.evidence", 0, contentType.Length > 30 ? contentType[..30] : contentType, content, null, by), ct).ConfigureAwait(false);
         await using var cmd = Sql(tx).Command("""
             DECLARE @id TABLE(evidence_id BIGINT);
             INSERT cmp.evidence(property_id, fy_start, item_id, file_name, content_type, size_bytes, added_by, added_utc)
             OUTPUT INSERTED.evidence_id INTO @id VALUES (@p, @fy, @item, @name, @type, @size, @by, @utc);
-            INSERT cmp.evidence_content(evidence_id, content) SELECT evidence_id, @content FROM @id;
+            INSERT cmp.evidence_content(evidence_id, content, object_ref) SELECT evidence_id, @content, @ref FROM @id;
             SELECT evidence_id FROM @id;
             """);
         Add(cmd, "@p", SqlDbType.Int, propertyId);
@@ -424,7 +431,8 @@ public sealed class SqlComplianceStore(SqlConnectionFactory connections) : IComp
         Add(cmd, "@size", SqlDbType.Int, content.Length);
         Add(cmd, "@by", SqlDbType.Int, by);
         Add(cmd, "@utc", SqlDbType.DateTime2, utc);
-        Add(cmd, "@content", SqlDbType.VarBinary, content, -1);
+        cmd.Parameters.Add("@content", SqlDbType.VarBinary, -1).Value = objectRef is null ? content : DBNull.Value;
+        cmd.Parameters.Add("@ref", SqlDbType.UniqueIdentifier).Value = objectRef is null ? DBNull.Value : objectRef.Value;
         return (long)(await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false))!;
     }
 
@@ -443,6 +451,14 @@ public sealed class SqlComplianceStore(SqlConnectionFactory connections) : IComp
         }
 
         if (meta is null) return null;
+        Guid? oldRef;
+        await using (var rq = sql.Command("SELECT object_ref FROM cmp.evidence_content WHERE evidence_id = @id;"))
+        {
+            Add(rq, "@id", SqlDbType.BigInt, evidenceId);
+            oldRef = await rq.ExecuteScalarAsync(ct).ConfigureAwait(false) as Guid?;
+        }
+
+        if (oldRef is { } released) await Documents.DocumentObjectAccess.PublishReleaseAsync(tx, released, "compliance-evidence", evidenceId, ct).ConfigureAwait(false);
         await using (var del = sql.Command("DELETE cmp.evidence WHERE evidence_id = @id AND property_id = @p;"))
         {
             Add(del, "@id", SqlDbType.BigInt, evidenceId);
@@ -456,22 +472,32 @@ public sealed class SqlComplianceStore(SqlConnectionFactory connections) : IComp
     public async Task<(CmpEvidence Meta, byte[] Content)?> EvidenceFileAsync(int propertyId, long evidenceId, CancellationToken ct = default)
     {
         await using var conn = await connections.OpenAsync(ct).ConfigureAwait(false);
-        await using var cmd = connections.Command($"SELECT {EvidenceCols}, c.content FROM cmp.evidence e JOIN cmp.evidence_content c ON c.evidence_id = e.evidence_id WHERE e.evidence_id = @id AND e.property_id = @p;", conn);
+        await using var cmd = connections.Command($"SELECT {EvidenceCols}, c.content, c.object_ref FROM cmp.evidence e JOIN cmp.evidence_content c ON c.evidence_id = e.evidence_id WHERE e.evidence_id = @id AND e.property_id = @p;", conn);
         Add(cmd, "@id", SqlDbType.BigInt, evidenceId);
         Add(cmd, "@p", SqlDbType.Int, propertyId);
-        await using var rd = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        return await rd.ReadAsync(ct).ConfigureAwait(false) ? (ReadEvidence(rd), (byte[])rd[8]) : null;
+        CmpEvidence meta; byte[]? inline; Guid? objectRef;
+        await using (var rd = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false))
+        {
+            if (!await rd.ReadAsync(ct).ConfigureAwait(false)) return null;
+            (meta, inline, objectRef) = (ReadEvidence(rd), rd.IsDBNull(8) ? null : (byte[])rd[8], rd.IsDBNull(9) ? null : rd.GetGuid(9));
+        }
+
+        // LF-docdb: a ref reads from HccDocuments; no ref still reads the inline column (until migration 4719).
+        return (meta, objectRef is { } r ? await Documents.DocumentObjectAccess.ReadAsync(objects, r, ct).ConfigureAwait(false) : inline ?? throw Documents.DocumentObjectAccess.Missing());
     }
 
     public async Task<IReadOnlyList<(CmpEvidence Meta, byte[] Content)>> EvidenceFilesAsync(int propertyId, int fyStart, CancellationToken ct = default)
     {
         await using var conn = await connections.OpenAsync(ct).ConfigureAwait(false);
-        await using var cmd = connections.Command($"SELECT {EvidenceCols}, c.content FROM cmp.evidence e JOIN cmp.evidence_content c ON c.evidence_id = e.evidence_id WHERE e.property_id = @p AND e.fy_start = @fy ORDER BY e.evidence_id;", conn);
+        await using var cmd = connections.Command($"SELECT {EvidenceCols}, c.content, c.object_ref FROM cmp.evidence e JOIN cmp.evidence_content c ON c.evidence_id = e.evidence_id WHERE e.property_id = @p AND e.fy_start = @fy ORDER BY e.evidence_id;", conn);
         Add(cmd, "@p", SqlDbType.Int, propertyId);
         Add(cmd, "@fy", SqlDbType.SmallInt, (short)fyStart);
+        var rows = new List<(CmpEvidence Meta, byte[]? Inline, Guid? Ref)>();
+        await using (var rd = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false))
+            while (await rd.ReadAsync(ct).ConfigureAwait(false)) rows.Add((ReadEvidence(rd), rd.IsDBNull(8) ? null : (byte[])rd[8], rd.IsDBNull(9) ? null : rd.GetGuid(9)));
         var list = new List<(CmpEvidence, byte[])>();
-        await using var rd = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        while (await rd.ReadAsync(ct).ConfigureAwait(false)) list.Add((ReadEvidence(rd), (byte[])rd[8]));
+        foreach (var (meta, inline, objectRef) in rows)
+            list.Add((meta, objectRef is { } r ? await Documents.DocumentObjectAccess.ReadAsync(objects, r, ct).ConfigureAwait(false) : inline ?? throw Documents.DocumentObjectAccess.Missing()));
         return list;
     }
 

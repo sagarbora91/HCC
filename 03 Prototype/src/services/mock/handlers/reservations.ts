@@ -19,6 +19,7 @@ import {fdmSourceOf} from '../../../domain/streams/frontdesk-master';
 import {mstFail} from '../../../domain/streams/masters';
 import {grpCompany,grpExposure,grpBookingExposure,grpCreditRefusal} from '../../../domain/streams/groups';
 import type {GRPCompany} from '../../../domain/streams/groups';
+import {deskBook} from './desk'; // LF-DESK
 
 /**
  * DEC-076: after a booking billed to company account `c` was created or changed, refuse (the whole command is discarded) when it raised the
@@ -55,6 +56,7 @@ function restrictions(k:Kit,type:string,arrival:string,departure:string){
   return ` · restriction overridden (${v.map(x=>x.code+' '+x.restriction).join(', ')}): ${reason.slice(0,200)}`;
 }
 
+import {guestAgreedGuestOf,guestAgreedRateFor} from '../../../domain/streams/stay-rate'; // LF-RATE
 export const handlers:Record<string,Handler>={
   BOOK:k=>{
     const {s,cmd,req,open,assert,id}=k;
@@ -90,6 +92,17 @@ export const handlers:Record<string,Handler>={
     if(plan)x.plan=plan.code;
     const before=account?grpExposure(s,account):0;
     if(account)x.company={...x.company!,account:account.id};
+    // LF-RATE · BOOK rate:'agreed' (§3)
+    if(cmd.rate==='agreed'){
+      const gid=guestAgreedGuestOf(s,{guestId:cmd.guestId,phone});
+      const ag=guestAgreedRateFor(s,gid,r!.type,cmd.arrival);
+      assert(ag,'This guest has no agreed rate for this room type on the arrival date. Use the tariff.');
+      x.rate=ag!.rate;x.rateSource='agreed';
+    }
+    // LF-RATE end
+    // LF-DESK · BOOK purpose / vehicle / checkoutBasis (§8)
+    deskBook(k,x);
+    // LF-DESK end
     s.bookings.push(x);
     if(account)creditCheck(k,account,x,before);
     return `${bid} · ${cmd.guest} · room ${cmd.room}${hold?' · held until '+x.holdUntil!.slice(11,16):''}${overridden}`;

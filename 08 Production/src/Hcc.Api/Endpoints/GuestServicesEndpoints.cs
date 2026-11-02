@@ -8,7 +8,7 @@ namespace Hcc.Api.Endpoints;
 
 /// <summary>
 /// Guest-services endpoints (module 18): <c>POST /api/v1/commands/{LogServiceRequest|AssignServiceRequest|StartServiceRequest|CompleteServiceRequest|
-/// CancelServiceRequest|LogComplaint|UpdateComplaint|ResolveComplaint|RecordComplaintFollowUp|OfferRecoveryDiscount|LogLostItem|ClaimLostItem|
+/// CancelServiceRequest|SnoozeWakeUp|LogComplaint|UpdateComplaint|ResolveComplaint|RecordComplaintFollowUp|OfferRecoveryDiscount|LogLostItem|ClaimLostItem|
 /// HandOverLostItem|DisposeLostItem|SaveGuestServiceSettings}</c> and the <c>GET /api/v1/guest-services/*</c> queries. All require a session.
 /// </summary>
 public static class GuestServicesEndpoints
@@ -39,6 +39,7 @@ public static class GuestServicesEndpoints
         Cmd<StartServiceRequestRequest, ServiceRequestResult>(g, GuestServicesCommands.OpStartRequest, (c, x, r, ct) => c.StartRequestAsync(x, r, ct));
         Cmd<CompleteServiceRequestRequest, ServiceRequestResult>(g, GuestServicesCommands.OpCompleteRequest, (c, x, r, ct) => c.CompleteRequestAsync(x, r, ct));
         Cmd<CancelServiceRequestRequest, ServiceRequestResult>(g, GuestServicesCommands.OpCancelRequest, (c, x, r, ct) => c.CancelRequestAsync(x, r, ct));
+        Cmd<SnoozeWakeUpRequest, ServiceRequestResult>(g, GuestServicesCommands.OpSnoozeWake, (c, x, r, ct) => c.SnoozeWakeAsync(x, r, ct));
         Cmd<LogComplaintRequest, ComplaintResult>(g, GuestServicesCommands.OpLogComplaint, (c, x, r, ct) => c.LogComplaintAsync(x, r, ct));
         Cmd<UpdateComplaintRequest, ComplaintResult>(g, GuestServicesCommands.OpUpdateComplaint, (c, x, r, ct) => c.UpdateComplaintAsync(x, r, ct));
         Cmd<ResolveComplaintRequest, ComplaintResult>(g, GuestServicesCommands.OpResolveComplaint, (c, x, r, ct) => c.ResolveComplaintAsync(x, r, ct));

@@ -14,7 +14,8 @@ namespace Hcc.Api.Hosting;
 /// <see cref="RecheckInterval"/>, so the server recovers by itself once <c>migrate</c> has run. A failed check never blocks:
 /// requests then fail or succeed exactly as they would without the guard.
 /// </summary>
-public sealed partial class SchemaGuard(SqlConnectionFactory connections, IMigrationSource source, TimeProvider clock, ILogger<SchemaGuard> logger)
+public sealed partial class SchemaGuard(SqlConnectionFactory connections, IMigrationSource source, TimeProvider clock, ILogger<SchemaGuard> logger,
+    SqlDocumentConnectionFactory? documents = null, IMigrationSource? documentSource = null)
 {
     public static readonly TimeSpan RecheckInterval = TimeSpan.FromSeconds(10);
 
@@ -23,6 +24,7 @@ public sealed partial class SchemaGuard(SqlConnectionFactory connections, IMigra
 
     private readonly SemaphoreSlim _gate = new(1, 1);
     private IReadOnlyList<MigrationScript>? _scripts;
+    private IReadOnlyList<MigrationScript>? _docScripts;
     private volatile bool _current;
     private volatile SchemaStatus? _behind;
     private long _checkedTicks = -1;
@@ -41,6 +43,15 @@ public sealed partial class SchemaGuard(SqlConnectionFactory connections, IMigra
                 _scripts ??= source.Load();
                 await using var conn = await connections.OpenAsync(ct).ConfigureAwait(false);
                 var status = await MigrationRunner.StatusAsync(conn, _scripts, ct).ConfigureAwait(false);
+                // LF-docdb (contract §1.6): the documents database has its own journal; while either is behind the API answers 503.
+                if (!status.IsBehind && documents is not null && documentSource is not null)
+                {
+                    _docScripts ??= documentSource.Load();
+                    await using var dconn = await documents.OpenAsync(ct).ConfigureAwait(false);
+                    var dstatus = await MigrationRunner.StatusAsync(dconn, _docScripts, ct).ConfigureAwait(false);
+                    if (dstatus.IsBehind) status = dstatus with { Database = "documents" };
+                }
+
                 if (!status.IsBehind)
                 {
                     _behind = null;
@@ -56,6 +67,12 @@ public sealed partial class SchemaGuard(SqlConnectionFactory connections, IMigra
             {
                 _behind = null;
                 LogCheckFailed(logger, ex.Number);
+            }
+            catch (Hcc.Domain.Errors.HccException)
+            {
+                // LF-docdb: the documents database cannot be opened (not created yet, SQL Server down): a failed check never blocks, the main check above already passed.
+                _behind = null;
+                LogCheckFailed(logger, 0);
             }
 
             Interlocked.Exchange(ref _checkedTicks, clock.GetUtcNow().UtcTicks);
@@ -88,6 +105,7 @@ public sealed partial class SchemaGuard(SqlConnectionFactory connections, IMigra
         http.Response.Headers.RetryAfter = ((int)RecheckInterval.TotalSeconds).ToString(System.Globalization.CultureInfo.InvariantCulture);
         var details = new Dictionary<string, JsonElement>(StringComparer.Ordinal) { ["reason"] = JsonSerializer.SerializeToElement("SCHEMA_BEHIND") };
         var serverPc = AccessEndpoints.IsServerPc(http);
+        if (status.Database == "documents") details["database"] = JsonSerializer.SerializeToElement("documents");
         if (serverPc)
         {
             details["appliedMigrations"] = JsonSerializer.SerializeToElement(status.AppliedCount);

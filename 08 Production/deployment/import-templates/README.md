@@ -668,3 +668,25 @@ A valuable item is held in the front-office safe and disposed of only with a man
 - One file = one kind of master; up to 5,000 rows and 2 million characters per file.
 - Excel's semicolon-separated CSV (some regional settings) is also read.
 - Every upload and commit is shown in `GET /api/v1/import/batches`; committed changes are in the audit trail.
+
+
+## LF front-desk lists
+
+`purposes.csv` (purposes of visit) and `vehicle-types.csv` need nothing first; both are Owner or Tech admin lists.
+
+### purposes.csv (Purposes of visit)
+| Column | Required | Meaning |
+|---|---|---|
+| code | yes | Short code: capital letters, digits or dash, up to 20 characters. Never changes once the row is used; the row is found again by it on a re-import. |
+| name | yes | Purpose shown at check-in and on the registration card, 1 to 60 characters. Another active row may not have the same name. |
+| sortOrder | optional | Order on screens (10, 20 …). Blank keeps the row's order, or puts a new row last. |
+| active | optional | yes or no (blank keeps the row's state, a new row is active). A file cannot retire an active row — retire it on its list, where its use is checked. |
+
+### vehicle-types.csv (Vehicle types)
+| Column | Required | Meaning |
+|---|---|---|
+| code | yes | Short code: capital letters, digits or dash, up to 20 characters. Never changes once the row is used; the row is found again by it on a re-import. |
+| name | yes | Vehicle type shown at check-in, 1 to 60 characters. Another active row may not have the same name. |
+| sortOrder | optional | Order on screens (10, 20 …). Blank keeps the row's order, or puts a new row last. |
+| active | optional | yes or no (blank keeps the row's state, a new row is active). A file cannot retire an active row — retire it on its list, where its use is checked. |
+ The legacy names come from `tools\legacy\extract.py --purposes --vehicle-types` (names only, no guest data).

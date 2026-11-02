@@ -65,7 +65,7 @@ public sealed record SupplierInfo(string Name, string? Gstin, string StateName, 
 public sealed record InvoiceRecord(long InvoiceId, int PropertyId, InvoiceDocType DocType, string InvoiceNo, string FyCode, int Seq, DateOnly InvoiceDate,
     string SourceKind, long SourceId, string SourceRef, DateOnly? PeriodFrom, DateOnly? PeriodTo, Recipient Recipient, string SupplierName,
     string SupplierGstin, string SupplierState, string? SupplierAddress, IReadOnlyList<InvoiceLine> Lines, InvoiceFigures Figures, string AmountWords,
-    int IssuedBy, DateTime IssuedUtc);
+    int IssuedBy, DateTime IssuedUtc, int Revision = 1);
 
 public sealed record CreditNoteRecord(long CreditNoteId, int PropertyId, string CreditNoteNo, string FyCode, int Seq, DateOnly NoteDate, long InvoiceId,
     long RequestId, CreditMode Mode, string Reason, IReadOnlyList<CreditLine> Lines, IReadOnlyList<long?> FolioChargeIds, InvoiceFigures Figures,
@@ -134,6 +134,9 @@ public interface IInvoiceStore
 
     Task<IReadOnlyList<CreditNoteRecord>> CreditNotesInRangeAsync(int propertyId, DateOnly from, DateOnly to, CancellationToken ct);
 
+    /// <summary>LF B7 (LF-CONTRACT §5): legacy Lodge bills (lgc.bill) dated in the period — GSTR-1 Table 13 'LGC' row only.</summary>
+    Task<IReadOnlyList<Hcc.Domain.Invoices.Gstr1LegacyBill>> LegacyBillsInRangeAsync(int propertyId, DateOnly from, DateOnly to, CancellationToken ct);
+
     Task<IReadOnlyList<CreditNoteRequestRow>> RequestsAsync(int propertyId, string? status, CancellationToken ct);
 }
 
@@ -151,7 +154,13 @@ public sealed record DocumentLine(string Description, string Sac, Paise Taxable,
 /// <summary>What a printed tax invoice / bill of supply / credit note shows (r.46 / r.49 / r.53 particulars as read; CA to confirm the layout).</summary>
 public sealed record InvoiceDocumentModel(string Title, string Number, DateOnly Date, DocumentParty Supplier, DocumentParty Recipient, string PlaceOfSupply,
     bool InterState, string? Reference, string? AgainstInvoice, string? Reason, IReadOnlyList<DocumentLine> Lines, InvoiceFigures Figures, string AmountWords,
-    string Footer);
+    string Footer, string? Supersession = null);
+
+/// <summary>LF-int (LF A2 print note): "Supersedes INV/…" on a revision, "Superseded by INV/… (credit note CRN/…)" on an earlier invoice; null when neither.</summary>
+public interface IInvoiceSupersessionReader
+{
+    Task<string?> NoteAsync(int propertyId, long invoiceId, CancellationToken ct = default);
+}
 
 public sealed record RenderedDocument(string ContentType, string Content);
 

@@ -43,6 +43,8 @@ public enum ImportMaster
     HkZones,
     ComplaintCategories,
     LostFoundCategories,
+    Purposes,        // LF A3
+    VehicleTypes,    // LF A4
 }
 
 /// <summary>How a masters import treats spreadsheet-formula text in a column (A06-08, OWASP CSV injection).</summary>

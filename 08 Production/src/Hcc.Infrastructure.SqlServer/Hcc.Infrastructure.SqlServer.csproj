@@ -13,5 +13,7 @@
     <!-- Migrations are embedded so the runner never depends on the working directory. One folder for every block
          (0001-0099 platform, 0100 access, 0200 inventory/reservations, 0300 stays/housekeeping, 0400 billing/cashier). -->
     <EmbeddedResource Include="..\..\database\migrations\*.sql" LogicalName="Hcc.Migrations.%(Filename)%(Extension)" />
+    <!-- LF-docdb: the HccDocuments migration stream -->
+    <EmbeddedResource Include="..\..\database\migrations-docs\*.sql" LogicalName="Hcc.DocMigrations.%(Filename)%(Extension)" />
   </ItemGroup>
 </Project>

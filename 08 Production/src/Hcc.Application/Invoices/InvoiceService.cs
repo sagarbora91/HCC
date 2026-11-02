@@ -69,11 +69,21 @@ public sealed class InvoiceService(ICommandRunner runner, IAccessPolicy policy, 
         return Gstin.Problem(supplier.Gstin, "hotel") is { } problem ? $"{problem} {GstinSettingHint}" : null;
     }
 
-    private async Task<IssueInvoiceResult> IssueCoreAsync(ICommandTransaction tx, IInvoiceSource source, IssueInvoiceRequest req, CancellationToken c)
+    /// <summary>LF A2: a corrected bill's new tax invoice (revision + 1) from the corrected lines, for the recipient of the invoice it supersedes.</summary>
+    internal Task<IssueInvoiceResult> IssueRevisionAsync(ICommandTransaction tx, InvoiceSourceDocument doc, InvoiceRecord supersedes, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(supersedes);
+        var r = supersedes.Recipient;
+        return IssueCoreAsync(tx, Source(supersedes.SourceKind), new IssueInvoiceRequest(supersedes.SourceKind, supersedes.SourceId, r.Type.ToString(), r.Name, r.Gstin, r.Address,
+            r.PlaceOfSupply), ct, doc, supersedes.Revision + 1);
+    }
+
+    private async Task<IssueInvoiceResult> IssueCoreAsync(ICommandTransaction tx, IInvoiceSource source, IssueInvoiceRequest req, CancellationToken c,
+        InvoiceSourceDocument? revisionDoc = null, int revision = 1)
     {
         var ctx = tx.Context;
-        var doc = await source.LoadForIssueAsync(tx, ctx.PropertyId, req.SourceId, c).ConfigureAwait(false);
-        if (await store.InvoiceIdForSourceAsync(tx, ctx.PropertyId, source.Kind, doc.SourceId, c).ConfigureAwait(false) is { } existingId)
+        var doc = revisionDoc ?? await source.LoadForIssueAsync(tx, ctx.PropertyId, req.SourceId, c).ConfigureAwait(false);
+        if (revisionDoc is null && await store.InvoiceIdForSourceAsync(tx, ctx.PropertyId, source.Kind, doc.SourceId, c).ConfigureAwait(false) is { } existingId)
         {
             var existing = (await store.ReadInvoiceAsync(tx, ctx.PropertyId, existingId, c).ConfigureAwait(false))!;
             await tx.AuditAsync("INVOICE_ALREADY_ISSUED", "invoice:" + N(existingId), $"{existing.InvoiceNo} returned for {source.Kind} {N(doc.SourceId)}", c).ConfigureAwait(false);
@@ -104,7 +114,7 @@ public sealed class InvoiceService(ICommandRunner runner, IAccessPolicy policy, 
         var (seriesPrefix, seq) = await store.NextNumberAsync(tx, ctx.PropertyId, fy, type, InvoiceNumbering.ValidatePrefix(prefix, type), Now, c, inForce?.StartNo ?? 1).ConfigureAwait(false);
         var number = InvoiceNumbering.Format(seriesPrefix, fy, seq, inForce?.Padding);
         var record = new InvoiceRecord(0, ctx.PropertyId, type, number, fy, seq, date, source.Kind, doc.SourceId, doc.Reference, doc.PeriodFrom, doc.PeriodTo,
-            recipient, supplier.Name, supplierGstin, supplierState, supplier.Address, lines, figures, InvoiceRules.Words(figures.Total), ctx.PrincipalId, Now);
+            recipient, supplier.Name, supplierGstin, supplierState, supplier.Address, lines, figures, InvoiceRules.Words(figures.Total), ctx.PrincipalId, Now, revision);
         var id = await store.InsertInvoiceAsync(tx, record, c).ConfigureAwait(false);
         await tx.AuditAsync("INVOICE_ISSUED", "invoice:" + N(id),
             $"{InvoiceNumbering.Label(type)} {number} · {source.Kind} {N(doc.SourceId)} · {recipient.Type} · taxable {figures.Taxable} + tax {figures.Tax} = {figures.Total}", c).ConfigureAwait(false);

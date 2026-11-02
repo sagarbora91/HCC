@@ -82,7 +82,7 @@ public sealed class SqlInvoiceStore(SqlConnectionFactory connections) : IInvoice
 
     public async Task<long?> InvoiceIdForSourceAsync(ICommandTransaction tx, int propertyId, string sourceKind, long sourceId, CancellationToken ct)
     {
-        await using var cmd = Sql(tx).Command("SELECT invoice_id FROM ivc.invoice WHERE property_id = @p AND source_kind = @k AND source_id = @s;");
+        await using var cmd = Sql(tx).Command("SELECT TOP (1) invoice_id FROM ivc.invoice WHERE property_id = @p AND source_kind = @k AND source_id = @s ORDER BY revision DESC;");
         P(cmd, "@p", SqlDbType.Int, propertyId);
         P(cmd, "@k", SqlDbType.VarChar, sourceKind, 10);
         P(cmd, "@s", SqlDbType.BigInt, sourceId);
@@ -90,7 +90,7 @@ public sealed class SqlInvoiceStore(SqlConnectionFactory connections) : IInvoice
     }
 
     public Task<long?> FindInvoiceForSourceAsync(int propertyId, string sourceKind, long sourceId, CancellationToken ct) =>
-        WithAsync<long?>(null, "SELECT invoice_id FROM ivc.invoice WHERE property_id = @p AND source_kind = @k AND source_id = @s;", async cmd =>
+        WithAsync<long?>(null, "SELECT TOP (1) invoice_id FROM ivc.invoice WHERE property_id = @p AND source_kind = @k AND source_id = @s ORDER BY revision DESC;", async cmd =>
         {
             P(cmd, "@p", SqlDbType.Int, propertyId);
             P(cmd, "@k", SqlDbType.VarChar, sourceKind, 10);
@@ -138,9 +138,9 @@ public sealed class SqlInvoiceStore(SqlConnectionFactory connections) : IInvoice
         await using (var cmd = s.Command("""
             INSERT ivc.invoice(property_id, doc_type, invoice_no, fy_code, seq, invoice_date, source_kind, source_id, source_ref, period_from, period_to,
               supply_type, buyer_name, buyer_gstin, buyer_address, place_of_supply, supplier_name, supplier_gstin, supplier_state, supplier_address,
-              inter_state, taxable_paise, cgst_paise, sgst_paise, igst_paise, total_paise, amount_words, issued_by, issued_utc)
+              inter_state, taxable_paise, cgst_paise, sgst_paise, igst_paise, total_paise, amount_words, issued_by, issued_utc, revision)
             OUTPUT INSERTED.invoice_id
-            VALUES (@p, @t, @no, @fy, @seq, @d, @sk, @sid, @ref, @pf, @pt, @st, @bn, @bg, @ba, @pos, @sn, @sg, @ss, @sa, @inter, @tx, @cg, @sg2, @ig, @tot, @w, @by, @utc);
+            VALUES (@p, @t, @no, @fy, @seq, @d, @sk, @sid, @ref, @pf, @pt, @st, @bn, @bg, @ba, @pos, @sn, @sg, @ss, @sa, @inter, @tx, @cg, @sg2, @ig, @tot, @w, @by, @utc, @rev);
             """))
         {
             P(cmd, "@p", SqlDbType.Int, i.PropertyId);
@@ -172,6 +172,7 @@ public sealed class SqlInvoiceStore(SqlConnectionFactory connections) : IInvoice
             P(cmd, "@w", SqlDbType.NVarChar, i.AmountWords, 300);
             P(cmd, "@by", SqlDbType.Int, i.IssuedBy);
             P(cmd, "@utc", SqlDbType.DateTime2, i.IssuedUtc);
+            P(cmd, "@rev", SqlDbType.Int, i.Revision);
             id = (long)(await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false))!;
         }
 
@@ -204,7 +205,7 @@ public sealed class SqlInvoiceStore(SqlConnectionFactory connections) : IInvoice
     private const string InvoiceColumns = """
         invoice_id, property_id, doc_type, invoice_no, fy_code, seq, invoice_date, source_kind, source_id, source_ref, period_from, period_to,
         supply_type, buyer_name, buyer_gstin, buyer_address, place_of_supply, supplier_name, supplier_gstin, supplier_state, supplier_address,
-        inter_state, taxable_paise, cgst_paise, sgst_paise, igst_paise, total_paise, amount_words, issued_by, issued_utc
+        inter_state, taxable_paise, cgst_paise, sgst_paise, igst_paise, total_paise, amount_words, issued_by, issued_utc, revision
         """;
 
     private const string LineColumns = "l.invoice_id, l.line_no, l.source_line_id, l.kind, l.service_date, l.description, l.category, l.sac, l.taxable_paise, l.tax_bps, l.tax_paise, l.cgst_paise, l.sgst_paise, l.igst_paise";
@@ -215,7 +216,7 @@ public sealed class SqlInvoiceStore(SqlConnectionFactory connections) : IInvoice
         new Recipient(rd.GetString(12) == "B2B" ? SupplyType.B2B : SupplyType.B2C, S(rd, 13), S(rd, 14), S(rd, 15), rd.GetString(16), rd.GetBoolean(21)),
         rd.GetString(17), rd.GetString(18), rd.GetString(19), S(rd, 20), [],
         new InvoiceFigures(new Paise(rd.GetInt64(22)), new Paise(rd.GetInt64(23)), new Paise(rd.GetInt64(24)), new Paise(rd.GetInt64(25)), new Paise(rd.GetInt64(26))),
-        rd.GetString(27), rd.GetInt32(28), Utc(rd, 29));
+        rd.GetString(27), rd.GetInt32(28), Utc(rd, 29), rd.GetInt32(30));
 
     private static (long InvoiceId, InvoiceLine Line) ReadLine(SqlDataReader rd) => (rd.GetInt64(0), new InvoiceLine(rd.GetInt32(1), rd.IsDBNull(2) ? null : rd.GetInt64(2),
         rd.GetString(3), D(rd, 4), rd.GetString(5), GstCategories.Parse(rd.GetString(6)), rd.GetString(7), new Paise(rd.GetInt64(8)), rd.GetInt32(9),
@@ -489,5 +490,21 @@ public sealed class SqlInvoiceStore(SqlConnectionFactory connections) : IInvoice
             P(cmd, "@f", SqlDbType.Date, Date(from));
             P(cmd, "@t", SqlDbType.Date, Date(to));
             return await ReadNotesAsync(cmd, ct).ConfigureAwait(false);
+        }, ct);
+
+    // LF B7 (LF-CONTRACT §5; migrations 4684 index, 4685 cancel flag): the legacy Lodge series in the period.
+    public Task<IReadOnlyList<Hcc.Domain.Invoices.Gstr1LegacyBill>> LegacyBillsInRangeAsync(int propertyId, DateOnly from, DateOnly to, CancellationToken ct) =>
+        WithAsync<IReadOnlyList<Hcc.Domain.Invoices.Gstr1LegacyBill>>(null, """
+            SELECT legacy_bill_no, bill_date, cancelled FROM lgc.bill WHERE property_id = @p AND bill_date BETWEEN @f AND @t ORDER BY legacy_bill_no;
+            """, async cmd =>
+        {
+            P(cmd, "@p", SqlDbType.Int, propertyId);
+            P(cmd, "@f", SqlDbType.Date, Date(from));
+            P(cmd, "@t", SqlDbType.Date, Date(to));
+            var list = new List<Hcc.Domain.Invoices.Gstr1LegacyBill>();
+            await using var rd = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+            while (await rd.ReadAsync(ct).ConfigureAwait(false))
+                list.Add(new(rd.GetInt32(0), DateOnly.FromDateTime(rd.GetDateTime(1)), rd.GetBoolean(2)));
+            return list;
         }, ct);
 }

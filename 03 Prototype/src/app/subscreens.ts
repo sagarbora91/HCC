@@ -9,9 +9,14 @@ import {rbacPosSeesDaySales,rbacTechAdminTemplates,rbacCanTally} from '../domain
 import {hovIsManager} from '../domain/streams/handover';
 import {yldProposals} from '../domain/streams/yield';
 import {keyCanConfigure} from '../domain/streams/keys';
+import {guestAccess} from '../domain/streams/guests'; // LF-DESK
 export type SubScreen={page:string;id:string;label:string;keywords?:string[]};
 export const SUB_SCREENS:SubScreen[]=[
   // FIT-FRONT
+  // LF-DESK
+  {page:'customers',id:'customers',label:'Customers'},
+  {page:'customers',id:'foreigner-register',label:'Foreigner register',keywords:['form c','foreign','immigration','passport','visa']},
+  // LF-DESK end
   // FIT-FRONT-B: reservations, arrivals, inhouse, guests have no sub-screens (fill / split pages).
   // F1-INT: KEYS room keys (from main)
   {page:'keys',id:'log',label:'Key log'},
@@ -163,6 +168,20 @@ export const SUB_SCREENS:SubScreen[]=[
   {page:'prefs',id:'display',label:'Device & display',keywords:['phone layout','desktop layout']},
   {page:'prefs',id:'navigation',label:'Start & navigation',keywords:['start page','page size']},
   {page:'prefs',id:'alerts',label:'Alerts',keywords:['message duration']},
+  // LF lanes (contract §11): one sub-screen per line inside your own block.
+  // LF-DESK
+  // LF-DESK end
+  // LF-ALERTS
+  {page:'desk-alerts',id:'today',label:'Today'},
+  {page:'desk-alerts',id:'upcoming',label:'Upcoming'},
+  {page:'desk-alerts',id:'done',label:'Done'},
+  {page:'desk-alerts',id:'wake-ups',label:'Wake-ups'},
+  // LF-ALERTS end
+  // LF-UI
+  {page:'counter-bills',id:'new-bill',label:'New bill'},
+  {page:'counter-bills',id:'bills',label:'Bills'},
+  {page:'cashier',id:'credit-guests',label:'Credit guests',keywords:['guest credit','udhaar','outstanding']},
+  // LF-UI end
 ];
 
 /** Review S3: sub-screens a role's page never shows (the page falls back to its default tab) are not listed in the search palette for that
@@ -182,6 +201,7 @@ export const SUB_SCREEN_GATES:Record<string,(s:State,uid:string)=>boolean>={
   'pos:summary':rbacPosSeesDaySales,
   'messages:outbox':notTemplatesOnly,'messages:consent':notTemplatesOnly,
   'handover:dashboard':hovIsManager,'handover:templates':hovIsManager,
+  'customers:foreigner-register':(s,uid)=>guestAccess(s,uid).idDetails, // LF-DESK
   'keys:locks':(s,uid)=>keyCanConfigure(s,uid),'keys:encoder':(s,uid)=>keyCanConfigure(s,uid),
   'yield:publish-requests':s=>yldProposals(s).length>0,
   'access:sign-in-devices':()=>process.env.HCC_BUILD==='production',

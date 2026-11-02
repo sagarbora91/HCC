@@ -68,6 +68,8 @@ const PAGES={
   approvals:['OWN MGR ACC','ADM-004 audit.view + APR-001 (DEC-063 G10: not the Cashier; Tech admin view at M4)'],
   backup:['OWN TAD','ADM-005 (DEC-063 G9: the Manager gets the Overview backup card instead)'],
   syshealth:['OWN TAD','PERM-SYS-001 (Wave C3, A09-05: parked outbox events, retry, last backup; the Administration area like Backup & recovery)'],
+  'counter-bills':['OWN MGR REC CSH','LF A7: PERM-CTR-001 counter.bill.issue = Owner, Manager, Reception, Cashier (nav gate = payments, as the Cashier shift)'], // LF-UI
+  'desk-alerts':['OWN MGR REC ACC','LF B4: PERM-RMD-001 reminders.manage = Owner, Manager, Reception, Accountant (contract §11, same as the server seed 4705)'], // LF-ALERTS
   keys:['OWN MGR REC','KEYS room keys: PERM-KEY-001 read / 002 issue / 003 cancel = Owner, Manager, Reception (keys.configure tabs Owner + Manager, checked inside the page)'],
   'legacy-import':['OWN','PERM-LGC-001 (LG-UI: old Lodge data import; Owner only — the LG integrator hides the menu entry from the Tech admin with navRoleOk)'],
   roadmap:['OWN MGR CSH ACC','Not in the matrix (informational page); current gate accepted'],
@@ -90,7 +92,9 @@ function surfaces(M,s,uid){
 const C=(roles,src)=>[roles,src];
 const CMDS={
   BOOK:C('OWN MGR REC','RES-002'),CONFIRM:C('OWN MGR REC','RES-002'),CHANGE_DATES:C('OWN MGR REC','RES-003'),MOVE:C('OWN MGR REC','RES-003/STY-002'),STAY_EARLY_DEPARTURE:C('OWN MGR REC','STY-002 (EarlyDeparture)'),CANCEL:C('OWN MGR REC','RES-004'),
-  REGISTER:C('OWN MGR REC','GST-002'),GUEST_SAVE:C('OWN MGR REC','GST-002'),GUEST_ID_VIEW:C('OWN MGR REC','GST-003 (DEC-068 Show ID)'),CHECKIN:C('OWN MGR REC','STY-001'),CHECKOUT:C('OWN MGR REC','STY-003'),
+  GSV_WAKE_SNOOZE:C('OWN MGR REC','LF B3 (reservations)'),RMD_SAVE:C('OWN MGR REC ACC','PERM-RMD-001'),RMD_DONE:C('OWN MGR REC ACC','PERM-RMD-001'),RMD_DISMISS:C('OWN MGR REC ACC','PERM-RMD-001'), // LF-ALERTS
+  STAY_CHECKOUT_BASIS:C('OWN MGR REC','STY-001 (LF A6)'),STAY_FORM_C:C('OWN MGR REC','STY-001 (LF A5)'),STAY_LATE_CHARGE:C('OWN MGR REC','STY-003 (LF A6)'), // LF-DESK
+  REGISTER:C('OWN MGR REC','GST-002'),GUEST_SAVE:C('OWN MGR REC','GST-002'),GUEST_PHOTO:C('OWN MGR REC','GST-003 / DOC-004 (LF-images B5; checkin stand-in)'),GUEST_PHOTO_REMOVE:C('OWN MGR REC','GST-003 / DOC-004 (LF-images B5)'),GUEST_ID_VIEW:C('OWN MGR REC','GST-003 (DEC-068 Show ID)'),CHECKIN:C('OWN MGR REC','STY-001'),CHECKOUT:C('OWN MGR REC','STY-003'),
   COMPANY_CREDIT_REQUEST:C('OWN MGR REC','PAY-005 + §7 (raised by REC)'),
   CHARGE:C('OWN MGR REC CSH','FOL-002'),POST_NIGHTS:C('OWN MGR REC CSH','FOL-002'),DISCOUNT:C('OWN MGR REC','FOL-003'),
   CORRECTION_REQUEST:C('OWN MGR REC CSH ACC','FOL-005 (DEC-063 G3)'),CREDIT_NOTE:C('OWN MGR REC CSH ACC','FOL-005 (DEC-063 G3)'),
@@ -159,6 +163,11 @@ const CMDS={
   ...Object.fromEntries(['HOV_ITEM','HOV_RUN_SUBMIT','HOV_NOTE_SUBMIT','HOV_NOTE_ACK','HOV_CARRY_DONE'].map(c=>[c,C('OWN MGR REC CSH SUP HKP MNT','Module 19 R1/R7')])),
   ...Object.fromEntries(['KEY_REQUEST','KEY_CANCEL','KEY_READ','KEY_MANUAL'].map(c=>[c,C('OWN MGR REC','KEYS PERM-KEY-001/002/003 (coarse: checkin / checkout)')])),
   ...Object.fromEntries(['KEY_LOCK_SAVE','KEY_ENCODER','KEY_SIM','KEY_AGENT_STEP','KEY_CLOCK'].map(c=>[c,C('OWN MGR','KEYS PERM-KEY-004 keys.configure (coarse: approve); the encoder switches are demo only')])),
+  // LF-money (L1 lf-money, contract §2–§7): rate change, agreed rate, bill correction, counter bills, guest credit.
+  STAY_RATE_CHANGE:C('OWN MGR REC','LF PERM-STY-010'),GUEST_RATE_SET:C('OWN','LF PERM-GST-010 (Owner)'),GUEST_RATE_CLEAR:C('OWN','LF PERM-GST-010 (Owner)'),
+  BILL_CORRECTION_REQUEST:C('OWN MGR REC CSH ACC','LF PERM-FOL-010 (FOL-005 holders)'),
+  CTR_BILL_ISSUE:C('OWN MGR REC CSH','LF PERM-CTR-001'),CTR_BILL_VOID_REQUEST:C('OWN MGR REC CSH','LF PERM-CTR-002'),
+  GUEST_CREDIT_ACCOUNT_SET:C('OWN','LF PERM-GST-011 (Owner)'),GUEST_CREDIT_REQUEST:C('OWN MGR REC','LF B2 (as company credit: checkout)'),
   ...Object.fromEntries(['HOV_RUN_REOPEN','HOV_TEMPLATE_SAVE','HOV_TEMPLATE_TOGGLE','HOV_CLOCK'].map(c=>[c,C('OWN MGR','Module 19 R2 (approve)')])),
   ...Object.fromEntries(['INV_ISSUE','INV_USE','INV_ROOM_CHANGE','INV_LAUNDRY_SEND','INV_LAUNDRY_RECEIVE','INV_LOSS','INV_COUNT_SUBMIT'].map(c=>[c,C('OWN MGR SUP HKP MNT','Module 16 §3')])),
   INV_GRN:C('OWN MGR SUP','Module 16 (housekeeping + inspect/expenses)'),INV_COUNT_POST:C('OWN MGR SUP','Module 16 (inspect)'),INV_ITEM_SET:C('OWN MGR SUP','Module 16 (inspect)'),

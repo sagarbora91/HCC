@@ -39,6 +39,7 @@ export * from '../../domain/streams/accounting-chart'; // ACC-1 chart lane
 export * from '../../domain/streams/accounting-parties'; // acc1-parties (contract §3)
 export * from '../../domain/streams/accounting-opening';
 export * from '../../domain/streams/accounting-reports'; // acc1-statements
+export * from './lf-parity-bind'; // LF-ui lf-tests: scenario LF-PARITY driver
 export * from './rulebook-bind'; // acc1-tests: scenario ACC-RULEBOOK driver
 // ACC-1 end
 // ACC-2 lanes: add ONE `export * from '../../domain/streams/accounting-<lane>'` line below (append only).
@@ -78,3 +79,28 @@ export * from '../../fixtures/ext/masters-seed'; // MA-9 one masters seed
 // LG
 export {LEGACY_SAMPLE} from '../../fixtures/ext/legacy-sample'; // W1a LG: fictional legacy stays (stream-legacy-golden.mjs)
 // LG end
+// LF lanes: export lines for your domain streams inside your own block (append only).
+// LF-DOCDB
+export * from '../../domain/streams/docobjects'; // LF-docdb: docObjectsX mirror of the documents database (contract §1.10)
+// LF-DOCDB end
+// LF-RATE
+export * from '../../domain/streams/stay-rate';
+// LF-RATE end
+// LF-BILL
+export * from '../../domain/streams/bill-correction';
+export {getLegacyBills} from '../../features/customers/legacy-source';
+// LF-BILL end
+// LF-COUNTER
+export * from '../../domain/streams/counter';
+export {customerKeyForCredit} from '../../domain/streams/customers';
+// LF-COUNTER end
+// LF-DESK
+export * from '../../domain/streams/desk-fields';
+// LF-DESK end
+// LF-ALERTS
+export * from '../../domain/streams/reminders';
+export * from '../../app/shortcuts';
+// LF-ALERTS end
+// LF-IMAGES
+export * from '../../domain/streams/printnotes'; // LF-images B6: which branding text prints on which document
+// LF-IMAGES end

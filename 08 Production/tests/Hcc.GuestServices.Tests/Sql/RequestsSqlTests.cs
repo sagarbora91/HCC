@@ -55,6 +55,19 @@ public class RequestsSqlTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Snooze_moves_a_wake_up_call_by_five_minutes_with_its_SLA_and_only_wake_ups_can_be_snoozed()
+    {
+        var w = await Log(Who.Reception, "z1", "HCC-1041", "Wake-up call", time: "18:00");   // 12:30Z, due 12:35Z
+        var s = (await _w.Commands.SnoozeWakeAsync(_w.Ctx(Who.Reception, "z2"), new SnoozeWakeUpRequest(w.RequestId, w.Version), Ct)).Value;
+        Assert.Equal(("2026-10-24T12:35:00.000Z", "2026-10-24T12:40:00.000Z"), (s.ScheduledUtc, s.DueUtc));
+        Assert.Equal(new DateTime(2026, 10, 24, 12, 35, 0), await _w.Db.ScalarAsync($"SELECT wake_at_utc FROM ops.guest_request WHERE request_id = {w.RequestId};", Ct));
+        Assert.Equal("FORBIDDEN", await Expect.CodeAsync(() => _w.Commands.SnoozeWakeAsync(_w.Ctx(Who.Housekeeper, "z3"), new SnoozeWakeUpRequest(w.RequestId, s.Version), Ct)));
+        Assert.Equal("STALE_VERSION", await Expect.CodeAsync(() => _w.Commands.SnoozeWakeAsync(_w.Ctx(Who.Reception, "z4"), new SnoozeWakeUpRequest(w.RequestId, w.Version), Ct)));
+        var t = await Log(Who.Reception, "z5", "HCC-1043", "Extra towels");
+        Assert.Equal("INVALID_TRANSITION", await Expect.CodeAsync(() => _w.Commands.SnoozeWakeAsync(_w.Ctx(Who.Reception, "z6"), new SnoozeWakeUpRequest(t.RequestId, t.Version), Ct)));
+    }
+
+    [Fact]
     public async Task Housekeeper_works_only_the_own_assignment_and_completion_needs_a_guest_note()
     {
         var r = await Log(Who.Reception, "s1", "HCC-1045", "Drinking water", "4 bottles", assignee: Who.Housekeeper);

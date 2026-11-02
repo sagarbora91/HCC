@@ -25,6 +25,7 @@ export async function quoteAndCreate(c:ReservationsClient,stay:StayInput,req:Omi
 }
 
 /** CreateReservation fields from a prototype BOOK command (the phone wizard builds one with mfBookCommand). */
-export function createRequestFromBook(cmd:{room:string;guest:string;phone?:string;email?:string;source:string;otaChannel?:string;company?:{name:string;gstin?:string;account?:string};notes?:string;hold?:boolean;restrictionOverride?:string}):Omit<CreateReservationRequest,'quoteId'|'quoteVersion'>{
-  return {roomId:cmd.room,guest:{name:cmd.guest,phone:cmd.phone,email:cmd.email},source:cmd.source,otaChannel:cmd.otaChannel,company:cmd.company,notes:cmd.notes,hold:cmd.hold,restrictionOverride:cmd.restrictionOverride};
+export function createRequestFromBook(cmd:{room:string;guest:string;phone?:string;email?:string;source:string;otaChannel?:string;company?:{name:string;gstin?:string;account?:string};notes?:string;hold?:boolean;restrictionOverride?:string;purpose?:string;vehicle?:{no?:string;type?:string};checkoutBasis?:string}):Omit<CreateReservationRequest,'quoteId'|'quoteVersion'>{
+  return {roomId:cmd.room,guest:{name:cmd.guest,phone:cmd.phone,email:cmd.email},source:cmd.source,otaChannel:cmd.otaChannel,company:cmd.company,notes:cmd.notes,hold:cmd.hold,restrictionOverride:cmd.restrictionOverride,
+    ...(cmd.purpose?{purposeCode:cmd.purpose}:{}),...(cmd.vehicle?.no?{vehicleNo:cmd.vehicle.no,...(cmd.vehicle.type?{vehicleType:cmd.vehicle.type}:{})}:{}),...(cmd.checkoutBasis?{checkoutBasis:cmd.checkoutBasis}:{})};
 }

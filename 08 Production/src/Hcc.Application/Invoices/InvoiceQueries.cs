@@ -12,7 +12,7 @@ namespace Hcc.Application.Invoices;
 /// Read side: invoice and credit-note views (PERM-INV-001), the register by date range, the GSTR-1 style summary, pending requests, and
 /// rendered documents (print = PERM-INV-002) through <see cref="IInvoiceDocumentRenderer"/>.
 /// </summary>
-public sealed class InvoiceQueries(IInvoiceStore store, IAccessPolicy policy, IInvoiceDocumentRenderer renderer)
+public sealed class InvoiceQueries(IInvoiceStore store, IAccessPolicy policy, IInvoiceDocumentRenderer renderer, IInvoiceSupersessionReader? supersession = null)
 {
     public const int MaxRangeDays = 366;
 
@@ -127,7 +127,8 @@ public sealed class InvoiceQueries(IInvoiceStore store, IAccessPolicy policy, II
             {
                 var i = originals[n.InvoiceId];
                 return new Gstr1CreditNote(n.CreditNoteNo, i.Recipient.Type, i.Recipient.InterState, i.Figures.Total, n.Lines);
-            }).ToList());
+            }).ToList(),
+            await store.LegacyBillsInRangeAsync(propertyId, from, to, ct).ConfigureAwait(false)); // LF B7: legacy Lodge series → Table 13 'LGC'
         return new Gstr1View(from, to,
             result.Rates.Select(r => new Gstr1RateView(r.Section, r.Bps, r.Taxable.Value, r.Cgst.Value, r.Sgst.Value, r.Igst.Value, r.Documents)).ToList(),
             result.Sac.Select(r => new Gstr1SacView(r.Sac, r.Bps, r.Taxable.Value, r.Cgst.Value, r.Sgst.Value, r.Igst.Value)).ToList(),
@@ -175,7 +176,8 @@ public sealed class InvoiceQueries(IInvoiceStore store, IAccessPolicy policy, II
         var doc = new InvoiceDocumentModel(InvoiceNumbering.Label(i.DocType), i.InvoiceNo, i.InvoiceDate, SupplierParty(i), RecipientParty(i),
             $"{GstStates.Name(i.Recipient.PlaceOfSupply)} ({i.Recipient.PlaceOfSupply})", i.Recipient.InterState,
             $"{i.SourceRef}{(i.PeriodFrom is { } a && i.PeriodTo is { } b ? $" · {a:dd-MM-yyyy} to {b:dd-MM-yyyy}" : "")}", null, null,
-            i.Lines.Select(l => new DocumentLine(l.Description, l.Sac, l.Taxable, l.Bps, l.Cgst, l.Sgst, l.Igst)).ToList(), i.Figures, i.AmountWords, Footer);
+            i.Lines.Select(l => new DocumentLine(l.Description, l.Sac, l.Taxable, l.Bps, l.Cgst, l.Sgst, l.Igst)).ToList(), i.Figures, i.AmountWords, Footer,
+            supersession is null ? null : await supersession.NoteAsync(propertyId, i.InvoiceId, ct).ConfigureAwait(false));
         var r = renderer.Render(doc, f);
         return new RenderedDocumentView(i.InvoiceNo, r.ContentType, r.Content);
     }

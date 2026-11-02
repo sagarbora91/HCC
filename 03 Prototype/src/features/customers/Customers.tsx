@@ -8,8 +8,10 @@ import {customerIndex,customerSearch,customerService,type Customer} from '../../
 import {getLegacyLookup,ensureLegacy} from './legacy-source';
 import {PageTitle,SearchBox,Pill,Empty,shortDate,dateLabel} from '../../components/ui';
 import {usePaged,ShowMore,DESKTOP_PAGE,PHONE_PAGE} from '../../components/ShowMore';
+import {GuestMoneySections} from '../lfmoney/GuestMoney';
 import {GuestDetails,VerifiedPill,statusTone} from '../guests/GuestProfile';
-import {FitPage,FitTabs,ScrollPanel,SplitView,FitNote,useWideSplit} from '../../components/fit';
+import {FitPage,FitTabs,ScrollPanel,SplitView,FitNote,useWideSplit,useFitTab} from '../../components/fit';
+import {ForeignerRegisterPanel} from '../guests/FormCPrint'; // LF-DESK
 
 type Tab='history'|'profile'|'service';
 const initials=(n:string)=>n.split(' ').map(p=>p[0]).slice(0,2).join('').toUpperCase();
@@ -102,6 +104,7 @@ function Profile({c}:{c:Customer}){
     {dups.length>0&&<div className="gs-dup" role="status"><div><strong>Possible match: {dups.map(m=>`${m.guest.id} (${m.reason==='phone'?'same phone':'same name'})`).join(', ')}</strong>
       <div className="inline">{dups.map(m=><button key={m.guest.id} className="text-btn" onClick={()=>open({type:'guest-profile',id:m.guest.id})}>Open {m.guest.id}</button>)}</div></div></div>}
     <GuestDetails g={g}/>
+    <GuestMoneySections guestId={g.id}/>{/* LF-UI B1/B2 */}
     <div className="inline gs-actions">{access.edit&&<button type="button" className="btn" onClick={()=>open({type:'guest-profile',id:g.id})}>Edit profile</button>}
       {latest&&<button type="button" className="btn" onClick={()=>open({type:'guest-regcard',id:latest.id})}><Printer size={15}/>Registration card</button>}</div></div>;
 }
@@ -134,6 +137,8 @@ function LegacyStays({c,lp,showMoney}:{c:Customer;lp:{shown:readonly Customer['l
     <ShowMore p={lp}/></>;
 }
 
+const CUST_TABS=['customers','foreigner-register'] as const; // LF-DESK
+type CustTab=typeof CUST_TABS[number];
 function CustomersFitPage(){
   const {s,uid,search,setSearch}=useHcc();
   const access=guestAccess(s,uid);
@@ -146,11 +151,16 @@ function CustomersFitPage(){
   const picked=all.find(c=>c.key===sel);
   const c=picked??(wide?list[0]:undefined); // wide: the first customer is open as before; narrow: the list first, the customer slides over it
   const digitsOnly=search.trim()!==''&&!/[a-z]/i.test(search);
-  const sub=`Everyone who has booked with us — ${all.length.toLocaleString('en-IN')} customers. Search by name or mobile number.`;
-  return <FitPage title="Customers" sub={sub} layout="split"
-      toolbar={<><SearchBox value={search} onChange={setSearch} placeholder={access.contact?'Search name or mobile number…':'Search by name…'}/>
+  const sub=`Everyone who has booked with us — ${all.length.toLocaleString('en-IN')} customers. Search by name, mobile number or vehicle number.`;
+  // LF-DESK · page tabs: Customers · Foreigner register (Form C stays), the register for roles with the ID-details right
+  const tabIds=access.idDetails?CUST_TABS:CUST_TABS.slice(0,1);
+  const [pageTab,setPageTab]=useFitTab<CustTab>('customers',tabIds,'customers');
+  // LF-DESK end
+  return <FitPage title="Customers" sub={sub} layout={pageTab==='customers'?'split':'fill'}
+      tabs={access.idDetails?<FitTabs<CustTab> page="customers" tabs={[{id:'customers',label:'Customers'},{id:'foreigner-register',label:'Foreigner register'}]} value={pageTab} onChange={setPageTab}/>:undefined}
+      toolbar={pageTab!=='customers'?undefined:<><SearchBox value={search} onChange={setSearch} placeholder={access.contact?'Search name, mobile or vehicle number…':'Search by name or vehicle number…'}/>
         {!access.contact&&<span className="muted"><Lock size={12}/> Mobile numbers are masked for your role</span>}</>}>
-    <SplitView label="Customers" ratio="2fr 3fr" onCloseDetail={()=>setSel('')}
+    {pageTab==='foreigner-register'?<ForeignerRegisterPanel/>:<SplitView label="Customers" ratio="2fr 3fr" onCloseDetail={()=>setSel('')}
       list={<ScrollPanel title="Customers" label="Customer list" actions={<span className="muted">{list.length.toLocaleString('en-IN')} shown</span>}
           footer={<><ShowMore p={paged}/><FitNote text="All customer records are fictional. Customers are matched by mobile number; the same person with two different numbers appears twice."/></>}>
         {list.length?<ul className="cust-list">{paged.shown.map(x=><li key={x.key}><button type="button" className={'cust-item'+(c?.key===x.key?' active':'')} aria-pressed={c?.key===x.key} onClick={()=>setSel(x.key)}>
@@ -160,7 +170,7 @@ function CustomersFitPage(){
           :<Empty title="No matching customers" body={digitsOnly&&!access.contact?'Mobile search is not available for your role. Search by name.':digitsOnly?'Type at least 3 digits of the mobile number, or search by name.':'Try fewer letters or another spelling. Booking IDs are searched from Arrivals & check-in.'}/>}
       </ScrollPanel>}
       detail={c?<CustomerPanelFit key={c.key} c={c} onBack={()=>setSel('')} onLegacy={()=>setLegacyRev(n=>n+1)}/>:null}
-      empty={<section className="card cust-empty"><Empty title="Choose a customer" body="Their full stay history appears here."/></section>}/>
+      empty={<section className="card cust-empty"><Empty title="Choose a customer" body="Their full stay history appears here."/></section>}/>}
   </FitPage>;
 }
 

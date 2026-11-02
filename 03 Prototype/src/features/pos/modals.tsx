@@ -1,4 +1,5 @@
 // Module 23 · POS dialogs: open check, settle, void, KOT / bill print, day report, phone cart sheet.
+import {PrintTitle,PrintNotes} from '../exports/PrintNotes';
 import {printDocument} from '../../app/native';
 import {bookingRef} from '../../domain/bookingRef';
 import React,{useState} from 'react';
@@ -126,6 +127,7 @@ export function PosPrintModal({id,room}:ModalProps){
     {st?.creditNoteNo&&<p className="pos-doc-sub pos-doc-cn"><strong>Cancelled:</strong> reversed in full by credit note {st.creditNoteNo}{st.creditNoteDate?' of '+dateLabel(st.creditNoteDate):''}.</p>}
     {canIssue&&<div className="pos-doc-issue no-print"><p className="pos-doc-sub">No tax invoice number on this bill yet{prod?' — the hotel server issues it once the hotel GSTIN is recorded (Master configuration › Property and branding).':' (settled before the restaurant series).'}</p>
       <button className="btn small-btn" disabled={busy} onClick={()=>run({type:'POS_INVOICE_ISSUE',id:o.id,key:'pos-invoice:'+o.id},'Tax invoice issued')}>Issue tax invoice</button></div>}
+    <PrintNotes doc={inv?'pos-invoice':'receipt'}/>
     <p className="footnote">{inv?(prod?'Tax invoice issued and kept by the hotel server. GST from the dated GST master, intra-state (CGST + SGST) — CA to confirm.'
       :'Demonstration — sample tax invoice of fictional records. GST from the dated GST master, intra-state (CGST + SGST), half away from zero — illustrative, CA to confirm.')
       :prod?'Not a tax invoice.':'Demonstration document · fictional data · GST illustrative — not a tax invoice.'}</p></div>{actions}</>;

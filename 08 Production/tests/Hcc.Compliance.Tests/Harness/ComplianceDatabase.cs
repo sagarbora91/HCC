@@ -43,11 +43,13 @@ public sealed partial class ComplianceDatabase : IAsyncDisposable
         await using (var conn = new SqlConnection(SqlConnectionFactory.LocalDevConnectionString(db.Server, "master")))
         {
             await conn.OpenAsync(ct);
-            await using var cmd = new SqlCommand($"CREATE DATABASE [{name}];", conn) { CommandTimeout = 120 };
+            await using var cmd = new SqlCommand($"CREATE DATABASE [{name}]; CREATE DATABASE [{name}Documents];", conn) { CommandTimeout = 120 };
             await cmd.ExecuteNonQueryAsync(ct);
         }
 
         await db.Platform.Migrations.MigrateAsync(ct);
+
+        await db.Platform.DocumentMigrations.MigrateAsync(ct); // LF-int: the documents database twin (LF-docdb)
         return db;
     }
 
@@ -80,6 +82,11 @@ public sealed partial class ComplianceDatabase : IAsyncDisposable
             BEGIN
               ALTER DATABASE [{Name}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
               DROP DATABASE [{Name}];
+            END
+            IF DB_ID(N'{Name}Documents') IS NOT NULL
+            BEGIN
+              ALTER DATABASE [{Name}Documents] SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
+              DROP DATABASE [{Name}Documents];
             END
             """, conn) { CommandTimeout = 120 };
         await cmd.ExecuteNonQueryAsync();

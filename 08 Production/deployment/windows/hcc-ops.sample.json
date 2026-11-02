@@ -1,6 +1,7 @@
 {
   "SqlInstance": ".\\SQLEXPRESS",
   "Database": "Hcc",
+  "DocumentsDatabase": "HccDocuments",
   "BackupDirectory": "D:\\HccBackups",
   "LogDirectory": "D:\\HccBackups\\Logs",
   "ScratchDirectory": "D:\\HccBackups\\DrillScratch",

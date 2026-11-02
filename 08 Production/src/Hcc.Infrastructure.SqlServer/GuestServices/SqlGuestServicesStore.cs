@@ -178,9 +178,9 @@ public sealed class SqlGuestServicesStore(SqlConnectionFactory connections) : IG
     {
         ArgumentNullException.ThrowIfNull(request);
         await using var cmd = Sql(tx).Command("""
-            INSERT ops.guest_request(property_id, stay_id, room_id, guest_name, request_type, detail, dept, assignee_id, priority, status, created_utc, due_utc, scheduled_utc, created_by)
+            INSERT ops.guest_request(property_id, stay_id, room_id, guest_name, request_type, detail, dept, assignee_id, priority, status, created_utc, due_utc, scheduled_utc, created_by, wake_at_utc)
             OUTPUT INSERTED.request_id
-            VALUES (@p, @s, @room, @g, @t, @d, @dept, @a, @prio, @st, @c, @due, @sch, @by);
+            VALUES (@p, @s, @room, @g, @t, @d, @dept, @a, @prio, @st, @c, @due, @sch, @by, CASE WHEN @t = 'Wake-up call' THEN CONVERT(DATETIME2(0), @sch) END); -- LF-ALERTS B3 (4703): the wake-up time the desk alert reads
             """);
         P(cmd, "@p", SqlDbType.Int, request.PropertyId);
         P(cmd, "@s", SqlDbType.BigInt, request.Stay.StayId);
@@ -224,6 +224,20 @@ public sealed class SqlGuestServicesStore(SqlConnectionFactory connections) : IG
         P(cmd, "@note", SqlDbType.NVarChar, updated.GuestNote, 200);
         P(cmd, "@cr", SqlDbType.NVarChar, updated.CancelReason, 200);
         P(cmd, "@id", SqlDbType.BigInt, updated.RequestId);
+        P(cmd, "@e", SqlDbType.Binary, expected, 8);
+        return await VersionAfterAsync(cmd, "This request", ct).ConfigureAwait(false);
+    }
+
+    public async Task<byte[]> SnoozeWakeAsync(ICommandTransaction tx, long requestId, DateTime wakeUtc, DateTime dueUtc, byte[] expected, CancellationToken ct = default)
+    {
+        await using var cmd = Sql(tx).Command("""
+            UPDATE ops.guest_request SET wake_at_utc = CONVERT(DATETIME2(0), @w), scheduled_utc = @w, due_utc = @due
+            WHERE request_id = @id AND row_ver = @e;
+            SELECT @@ROWCOUNT AS n, (SELECT row_ver FROM ops.guest_request WHERE request_id = @id) AS v;
+            """);
+        P(cmd, "@w", SqlDbType.DateTime2, wakeUtc);
+        P(cmd, "@due", SqlDbType.DateTime2, dueUtc);
+        P(cmd, "@id", SqlDbType.BigInt, requestId);
         P(cmd, "@e", SqlDbType.Binary, expected, 8);
         return await VersionAfterAsync(cmd, "This request", ct).ConfigureAwait(false);
     }

@@ -40,6 +40,8 @@ public static partial class FrontDeskMastersRules
         FrontDeskMasterIds.IdTypes => "Guest ID types",
         FrontDeskMasterIds.NumberSeries => "Numbering series",
         FrontDeskMasterIds.Policies => "Booking policies",
+        FrontDeskMasterIds.Purposes => "Purposes of visit",
+        FrontDeskMasterIds.VehicleTypes => "Vehicle types",
         _ => throw new ArgumentOutOfRangeException(nameof(master), master, null),
     };
 
@@ -48,6 +50,8 @@ public static partial class FrontDeskMastersRules
         FrontDeskMasterIds.BookingSources => "booking source",
         FrontDeskMasterIds.IdTypes => "ID type",
         FrontDeskMasterIds.NumberSeries => "numbering series",
+        FrontDeskMasterIds.Purposes => "purpose of visit",
+        FrontDeskMasterIds.VehicleTypes => "vehicle type",
         _ => "policy",
     };
 
@@ -82,6 +86,9 @@ public static partial class FrontDeskMastersRules
         if (c < 0 || c > MaxCommissionBps) throw Bad("Commission: a percentage from 0 to 50.", "commissionBps");
         return new() { ["segment"] = seg, ["channel"] = ch, ["commissionBps"] = c };
     }
+
+    /// <summary>LF A3 / A4: a list of code + name only.</summary>
+    public static Dictionary<string, object?> Plain() => new();
 
     // ── M11 ID types ──
     public static Dictionary<string, object?> IdType(bool accepted, bool needsPhoto, bool foreignerOnly) =>
@@ -184,6 +191,12 @@ public static partial class FrontDeskMastersRules
         ],
         FrontDeskMasterIds.NumberSeries => SeriesDefaults(invoicePrefix),
         FrontDeskMasterIds.Policies => [new("DEFAULT", "Default", Policy(0, 0, 0, 0, []))],
+        FrontDeskMasterIds.Purposes =>
+        [
+            new("BUSINESS", "Business", Plain()), new("TOURISM", "Tourism", Plain()), new("FAMILY", "Family function", Plain()), new("MEDICAL", "Medical", Plain()),
+            new("EDUCATION", "Education", Plain()), new("OFFICIAL", "Official", Plain()), new("TRANSIT", "Transit", Plain()), new("OTHER", "Other", Plain()),
+        ],
+        FrontDeskMasterIds.VehicleTypes => [new("CAR", "Car", Plain()), new("BIKE", "Bike", Plain()), new("TAXI", "Taxi", Plain()), new("BUS", "Bus", Plain()), new("OTHER", "Other", Plain())],
         _ => throw new ArgumentOutOfRangeException(nameof(master), master, null),
     };
 

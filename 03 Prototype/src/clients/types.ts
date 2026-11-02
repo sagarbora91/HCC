@@ -29,7 +29,7 @@ export type Quote={quoteId:string;version:string;roomId:string;roomTypeId:string
 
 export type GuestInput={name:string;phone?:string;email?:string};
 /** `company.account` (DEC-076) = bill the stay to that company account (credit-checked); without it the company is invoice details only. */
-export type CreateReservationRequest={quoteId:string;quoteVersion:string;roomId:string;guest:GuestInput;
+export type CreateReservationRequest={purposeCode?:string;vehicleNo?:string;vehicleType?:string;checkoutBasis?:string;quoteId:string;quoteVersion:string;roomId:string;guest:GuestInput;
   source:string;otaChannel?:string;company?:{name:string;gstin?:string;account?:string};notes?:string;
   /** Save as a 2-hour hold instead of Confirmed. */
   hold?:boolean;

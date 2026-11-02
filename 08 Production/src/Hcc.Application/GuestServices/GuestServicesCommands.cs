@@ -29,6 +29,7 @@ public sealed partial class GuestServicesCommands(ICommandRunner runner, IAccess
     public const string OpStartRequest = "StartServiceRequest";
     public const string OpCompleteRequest = "CompleteServiceRequest";
     public const string OpCancelRequest = "CancelServiceRequest";
+    public const string OpSnoozeWake = "SnoozeWakeUp";
     public const string OpLogComplaint = "LogComplaint";
     public const string OpUpdateComplaint = "UpdateComplaint";
     public const string OpResolveComplaint = "ResolveComplaint";
@@ -249,6 +250,29 @@ public sealed partial class GuestServicesCommands(ICommandRunner runner, IAccess
             await store.AppendLogAsync(tx, "request", r.RequestId, Now, ctx.PrincipalId, "Cancelled · " + reason, ct2).ConfigureAwait(false);
             await tx.AuditAsync("service-request.cancel", "request:" + r.RequestId.ToString(CultureInfo.InvariantCulture), reason, ct2).ConfigureAwait(false);
             return ToResult(u, version);
+        }, ct).ConfigureAwait(false);
+    }
+
+    /// <summary>LF-ALERTS B3: snooze a wake-up call by 5 minutes (from the later of the wake time and now); the SLA due time moves with it. The desk (GSV-002) only.</summary>
+    public async Task<CommandResult<ServiceRequestResult>> SnoozeWakeAsync(CommandContext ctx, SnoozeWakeUpRequest req, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(ctx);
+        ArgumentNullException.ThrowIfNull(req);
+        await policy.RequireAsync(ctx.PropertyId, ctx.PrincipalId, GuestServicePermissions.Manage, ct: ct).ConfigureAwait(false);
+        return await runner.RunAsync(ctx, req, async (tx, ct2) =>
+        {
+            if (days is not null) await days.EnsureBusinessDayOpenAsync(tx, ctx.PropertyId, ct2).ConfigureAwait(false);
+            var r = await LockRequestAsync(tx, ctx, req.RequestId, req.ExpectedVersion, ct2).ConfigureAwait(false);
+            if (r.Type != GuestServiceVocab.WakeUp || r.ScheduledUtc is not { } was) throw Invalid("Only a wake-up call can be snoozed.");
+            if (!GuestServiceRules.IsOpen(r.Status)) throw Invalid("This request is already finished.");
+            var now = Now;
+            var to = (was > now ? was : now).AddMinutes(5);
+            var (settings, _) = await store.LockSettingsAsync(tx, ctx.PropertyId, ct2).ConfigureAwait(false);
+            var due = to.AddMinutes(GuestServiceRules.SlaMinutes(settings, r.Type, r.Priority == "Urgent"));
+            var version = await store.SnoozeWakeAsync(tx, r.RequestId, to, due, r.Version, ct2).ConfigureAwait(false);
+            await store.AppendLogAsync(tx, "request", r.RequestId, now, ctx.PrincipalId, $"Snoozed 5 minutes · {Iso(was)} → {Iso(to)}", ct2).ConfigureAwait(false);
+            await tx.AuditAsync("service-request.snooze", "request:" + r.RequestId.ToString(CultureInfo.InvariantCulture), $"room {r.RoomNo} · wake-up to {Iso(to)}", ct2).ConfigureAwait(false);
+            return ToResult(r with { ScheduledUtc = to, DueUtc = due }, version);
         }, ct).ConfigureAwait(false);
     }
 

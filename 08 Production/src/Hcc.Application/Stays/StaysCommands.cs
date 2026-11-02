@@ -20,12 +20,14 @@ namespace Hcc.Application.Stays;
 /// without the service a number is refused (never stored in clear).
 /// </summary>
 public sealed class StaysCommands(ICommandRunner runner, IAccessPolicy policy, IStaysStore store, IStayFolioPort folios, TimeProvider clock,
-    GuestIdService? guestIds = null)
+    GuestIdService? guestIds = null, DeskFieldService? desk = null)
 {
     public const string OpRegisterGuest = "RegisterGuest";
     public const string OpCheckIn = "CheckIn";
     public const string OpCheckoutStay = "CheckoutStay";
     public const string OpSaveGuestProfile = "SaveGuestProfile";
+    public const string OpPostLateCheckoutCharge = "PostLateCheckoutCharge"; // LF A6
+    public const string OpSaveStayFormC = "SaveStayFormC"; // LF A5
 
     private static readonly string[] Registrable = [ReservationStatus.Held, ReservationStatus.Confirmed, ReservationStatus.InHouse];
 
@@ -182,10 +184,12 @@ public sealed class StaysCommands(ICommandRunner runner, IAccessPolicy policy, I
             // DEC-193: every adult / senior in the registered party has their own ID on file (the photo is never required).
             var registered = await store.LockGuestAsync(tx, ctx.PropertyId, guestId!.Value, c).ConfigureAwait(false);
             if (GuestRules.PartyIdMissing(registered?.Draft.Party) is { } missing) throw HccException.Validation(missing);
+            var deskPlan = desk is null ? null : await desk.PlanCheckInAsync(tx, ctx.PropertyId, res.ReservationId, guestId!.Value, res.Arrival, req, c).ConfigureAwait(false); // LF A3–A6
 
             var folioId = await folios.EnsureFolioAsync(tx, res.ReservationId, c).ConfigureAwait(false);
             await store.SetReservationStatusAsync(tx, res.ReservationId, res.Version, ReservationStatus.InHouse, c).ConfigureAwait(false);
             var (stayId, stayVersion) = await store.InsertStayAsync(tx, res, guestId!.Value, folioId, room!.RoomId, bd, ctx.PrincipalId, UtcNow, c).ConfigureAwait(false);
+            if (desk is not null && deskPlan is not null) await desk.SaveCheckInAsync(tx, ctx.PropertyId, res.ReservationId, stayId, deskPlan, ctx.PrincipalId, UtcNow, c).ConfigureAwait(false);
             await tx.AuditAsync("CHECKIN", Target("stay", stayId),
                 $"reservation {res.ReservationId} → room {room.RoomNo} · folio {folioId} · business date {StayDates.ToWire(bd)}", c).ConfigureAwait(false);
             return new CheckInResult(stayId, res.ReservationId, folioId, room.RoomId, room.RoomNo, StayDates.ToWire(bd), VersionToken.ToWire(stayVersion));
@@ -212,6 +216,7 @@ public sealed class StaysCommands(ICommandRunner runner, IAccessPolicy policy, I
                 ?? throw new HccException(HccErrorCode.NOT_FOUND, "Room not found.");
             var bd = await store.BusinessDateAsync(tx, ctx.PropertyId, c).ConfigureAwait(false);
 
+            if (desk is not null && (req.Desk || req.LateCharge is not null)) await desk.EnsureLateDecisionAsync(tx, ctx, stay, req.LateCharge, req.LateReason, UtcNow, bd, c).ConfigureAwait(false); // LF A6: late check-out decision
             await folios.AssertCheckoutSettledAsync(tx, new CheckoutFolioCheck(stay.FolioId, stay.ReservationId, stay.Arrival, stay.Departure, req.CompanyCreditApprovalId), c).ConfigureAwait(false);
 
             var version = await store.CheckOutStayAsync(tx, stay.StayId, expected, bd, ctx.PrincipalId, UtcNow, c).ConfigureAwait(false);
@@ -222,6 +227,43 @@ public sealed class StaysCommands(ICommandRunner runner, IAccessPolicy policy, I
             var outboxId = await tx.PublishAsync(StaysEvents.StayDeparted, stay.StayId,
                 new StayDepartedEvent(stay.StayId, res.ReservationId, ctx.PropertyId, room.RoomId, StayDates.ToWire(bd)), c).ConfigureAwait(false);
             return new CheckoutStayResult(stay.StayId, res.ReservationId, room.RoomId, room.RoomNo, RoomHk.Dirty, StayDates.ToWire(bd), outboxId, VersionToken.ToWire(version));
+        }, ct).ConfigureAwait(false);
+    }
+
+    /// <summary>LF A6: post (half-day) or waive the late check-out charge before CheckoutStay, so the folio can be settled first.</summary>
+    public async Task<CommandResult<LateCheckoutChargeResult>> PostLateCheckoutChargeAsync(CommandContext ctx, LateCheckoutChargeRequest req, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(ctx);
+        ArgumentNullException.ThrowIfNull(req);
+        if (desk is null) throw new InvalidOperationException("Desk fields are not wired.");
+        var expected = VersionToken.Parse(req.ExpectedVersion);
+        await policy.RequireAsync(ctx.PropertyId, ctx.PrincipalId, StaysPermissions.CheckOut, null, null, ct).ConfigureAwait(false);
+        return await runner.RunAsync(ctx with { Operation = OpPostLateCheckoutCharge }, req, async (tx, c) =>
+        {
+            var stay = await store.LockStayAsync(tx, ctx.PropertyId, req.StayId, c).ConfigureAwait(false) ?? throw new HccException(HccErrorCode.NOT_FOUND, "Stay not found.");
+            StayRules.AssertCanCheckOut(stay.Status);
+            VersionToken.EnsureMatches(stay.Version, expected, "This stay");
+            var bd = await store.BusinessDateAsync(tx, ctx.PropertyId, c).ConfigureAwait(false);
+            var (decision, amount) = await desk.PostLateAsync(tx, ctx, stay, (req.Charge ?? string.Empty).Trim(), req.Reason, UtcNow, bd, c).ConfigureAwait(false);
+            return new LateCheckoutChargeResult(stay.StayId, decision, amount, VersionToken.ToWire(stay.Version));
+        }, ct).ConfigureAwait(false);
+    }
+
+    /// <summary>LF A5: store or replace the Form C of an in-house stay.</summary>
+    public async Task<CommandResult<LateCheckoutChargeResult>> SaveStayFormCAsync(CommandContext ctx, SaveStayFormCRequest req, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(ctx);
+        ArgumentNullException.ThrowIfNull(req);
+        if (desk is null) throw new InvalidOperationException("Desk fields are not wired.");
+        await policy.RequireAsync(ctx.PropertyId, ctx.PrincipalId, StaysPermissions.CheckIn, null, null, ct).ConfigureAwait(false);
+        return await runner.RunAsync(ctx with { Operation = OpSaveStayFormC }, req, async (tx, c) =>
+        {
+            var stay = await store.LockStayAsync(tx, ctx.PropertyId, req.StayId, c).ConfigureAwait(false) ?? throw new HccException(HccErrorCode.NOT_FOUND, "Stay not found.");
+            if (stay.Status != StayStatus.InHouse) throw new HccException(HccErrorCode.INVALID_TRANSITION, "This stay is not in house.");
+            var guestId = await store.RegisteredGuestAsync(tx, stay.ReservationId, c).ConfigureAwait(false) ?? throw HccException.Validation("Register the guest first.");
+            await desk.SaveFormCAsync(tx, ctx.PropertyId, stay.StayId, stay.ReservationId, guestId, stay.Arrival, req.FormC, ctx.PrincipalId, UtcNow, c).ConfigureAwait(false);
+            await tx.AuditAsync("STAY_FORM_C", Target("stay", stay.StayId), "Form C saved", c).ConfigureAwait(false); // never the visa or passport number
+            return new LateCheckoutChargeResult(stay.StayId, "form-c", 0, VersionToken.ToWire(stay.Version));
         }, ct).ConfigureAwait(false);
     }
 

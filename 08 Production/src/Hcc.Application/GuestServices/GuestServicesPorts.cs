@@ -124,6 +124,9 @@ public interface IGuestServicesStore
 
     Task<byte[]> UpdateRequestAsync(ICommandTransaction tx, RequestRecord updated, byte[] expected, CancellationToken ct = default);
 
+    /// <summary>LF-ALERTS: moves a wake-up call's wake_at_utc, scheduled_utc and due_utc together (snooze).</summary>
+    Task<byte[]> SnoozeWakeAsync(ICommandTransaction tx, long requestId, DateTime wakeUtc, DateTime dueUtc, byte[] expected, CancellationToken ct = default);
+
     Task<long> InsertComplaintAsync(ICommandTransaction tx, NewComplaint complaint, CancellationToken ct = default);
 
     Task<ComplaintRecord?> LockComplaintAsync(ICommandTransaction tx, int propertyId, long complaintId, CancellationToken ct = default);

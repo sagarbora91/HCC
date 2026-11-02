@@ -23,7 +23,8 @@ export const MST_IO_WIRE:Record<string,string>={
   paymentMethods:'payment-methods',bankAccounts:'bank-accounts',expenseCategories:'expense-categories',expenseVendors:'expense-vendors',
   outlets:'pos-outlets',posTables:'pos-tables',menuCategories:'menu-categories',menuItems:'pos-menu',bookingSources:'booking-sources',idTypes:'id-types',
   numberSeries:'number-series',policies:'policies',designations:'designations',shiftPatterns:'shift-patterns',leaveTypes:'leave-types',holidays:'holidays',
-  hkTaskTypes:'hk-task-types',hkZones:'hk-zones',complaintCategories:'complaint-categories',lostFoundCategories:'lost-found-categories'};
+  hkTaskTypes:'hk-task-types',hkZones:'hk-zones',complaintCategories:'complaint-categories',lostFoundCategories:'lost-found-categories',
+  purposes:'purposes',vehicleTypes:'vehicle-types'}; // LF-DESK
 /** V14-7: lists with no server file of these columns (the server keeps its older room-types / rooms import, deployment/import-templates) take
  *  "Paste rows" in the demo build only, through the same MST_IMPORT checks as their own forms and tools (rooms: the range-add number rule). */
 export const MST_IO_LOCAL=['roomTypes','rooms'];

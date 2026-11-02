@@ -145,7 +145,12 @@
     "GET /guest-services/complaint-categories": "/guest-services/complaint-categories?page=1&pageSize=200",
     "GET /guest-services/complaint-categories/history": "/guest-services/complaint-categories/history?page=1&pageSize=200",
     "GET /guest-services/lost-found-categories": "/guest-services/lost-found-categories?page=1&pageSize=200",
-    "GET /guest-services/lost-found-categories/history": "/guest-services/lost-found-categories/history?page=1&pageSize=200"
+    "GET /guest-services/lost-found-categories/history": "/guest-services/lost-found-categories/history?page=1&pageSize=200",
+    "GET /reminders": "/reminders?bucket=today",
+    "GET /invoices/corrections": "/invoices/corrections",
+    "GET /counter-bills": "/counter-bills",
+    "GET /guests/credit": "/guests/credit",
+    "GET /stays/rate-changes": "/stays/rate-changes"
   },
   "roles": {
     "OWN": {
@@ -314,6 +319,16 @@
           "P"
         ],
         [
+          "PERM-CTR-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-CTR-002",
+          "A",
+          "P"
+        ],
+        [
           "PERM-DOC-001",
           "A",
           "P"
@@ -335,6 +350,11 @@
         ],
         [
           "PERM-DOC-005",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-DOC-006",
           "A",
           "P"
         ],
@@ -404,6 +424,11 @@
           "P"
         ],
         [
+          "PERM-FOL-010",
+          "A",
+          "P"
+        ],
+        [
           "PERM-GRP-001",
           "A",
           "P"
@@ -445,6 +470,16 @@
         ],
         [
           "PERM-GST-003",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-GST-010",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-GST-011",
           "A",
           "P"
         ],
@@ -779,6 +814,11 @@
           "P"
         ],
         [
+          "PERM-RMD-001",
+          "A",
+          "P"
+        ],
+        [
           "PERM-ROOM-001",
           "A",
           "P"
@@ -850,6 +890,11 @@
         ],
         [
           "PERM-STY-003",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-STY-010",
           "A",
           "P"
         ],
@@ -1052,7 +1097,12 @@
         "GET /guest-services/complaint-categories": "200",
         "GET /guest-services/complaint-categories/history": "200",
         "GET /guest-services/lost-found-categories": "200",
-        "GET /guest-services/lost-found-categories/history": "200"
+        "GET /guest-services/lost-found-categories/history": "200",
+        "GET /reminders": "200",
+        "GET /invoices/corrections": "200",
+        "GET /counter-bills": "200",
+        "GET /guests/credit": "200",
+        "GET /stays/rate-changes": "200"
       }
     },
     "MGR": {
@@ -1123,6 +1173,16 @@
         [
           "PERM-CRM-004",
           "A",
+          "P"
+        ],
+        [
+          "PERM-CTR-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-CTR-002",
+          "R",
           "P"
         ],
         [
@@ -1207,6 +1267,11 @@
         ],
         [
           "PERM-FOL-005",
+          "R",
+          "P"
+        ],
+        [
+          "PERM-FOL-010",
           "R",
           "P"
         ],
@@ -1521,6 +1586,11 @@
           "P"
         ],
         [
+          "PERM-RMD-001",
+          "A",
+          "P"
+        ],
+        [
           "PERM-ROOM-001",
           "A",
           "P"
@@ -1592,6 +1662,11 @@
         ],
         [
           "PERM-STY-003",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-STY-010",
           "A",
           "P"
         ],
@@ -1784,7 +1859,12 @@
         "GET /guest-services/complaint-categories": "200",
         "GET /guest-services/complaint-categories/history": "403",
         "GET /guest-services/lost-found-categories": "200",
-        "GET /guest-services/lost-found-categories/history": "403"
+        "GET /guest-services/lost-found-categories/history": "403",
+        "GET /reminders": "200",
+        "GET /invoices/corrections": "200",
+        "GET /counter-bills": "200",
+        "GET /guests/credit": "200",
+        "GET /stays/rate-changes": "200"
       }
     },
     "REC": {
@@ -1800,6 +1880,16 @@
         [
           "PERM-CRM-002",
           "A",
+          "P"
+        ],
+        [
+          "PERM-CTR-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-CTR-002",
+          "R",
           "P"
         ],
         [
@@ -1849,6 +1939,11 @@
         ],
         [
           "PERM-FOL-005",
+          "R",
+          "P"
+        ],
+        [
+          "PERM-FOL-010",
           "R",
           "P"
         ],
@@ -2053,6 +2148,11 @@
           "P"
         ],
         [
+          "PERM-RMD-001",
+          "A",
+          "P"
+        ],
+        [
           "PERM-ROOM-001",
           "A",
           "P"
@@ -2075,6 +2175,11 @@
         [
           "PERM-STY-003",
           "A",
+          "P"
+        ],
+        [
+          "PERM-STY-010",
+          "R",
           "P"
         ],
         [
@@ -2241,7 +2346,12 @@
         "GET /guest-services/complaint-categories": "200",
         "GET /guest-services/complaint-categories/history": "403",
         "GET /guest-services/lost-found-categories": "200",
-        "GET /guest-services/lost-found-categories/history": "403"
+        "GET /guest-services/lost-found-categories/history": "403",
+        "GET /reminders": "200",
+        "GET /invoices/corrections": "200",
+        "GET /counter-bills": "200",
+        "GET /guests/credit": "200",
+        "GET /stays/rate-changes": "200"
       }
     },
     "CSH": {
@@ -2252,6 +2362,16 @@
         [
           "PERM-CRM-001",
           "M",
+          "P"
+        ],
+        [
+          "PERM-CTR-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-CTR-002",
+          "R",
           "P"
         ],
         [
@@ -2296,6 +2416,11 @@
         ],
         [
           "PERM-FOL-005",
+          "R",
+          "P"
+        ],
+        [
+          "PERM-FOL-010",
           "R",
           "P"
         ],
@@ -2563,7 +2688,12 @@
         "GET /guest-services/complaint-categories": "200",
         "GET /guest-services/complaint-categories/history": "403",
         "GET /guest-services/lost-found-categories": "200",
-        "GET /guest-services/lost-found-categories/history": "403"
+        "GET /guest-services/lost-found-categories/history": "403",
+        "GET /reminders": "403",
+        "GET /invoices/corrections": "200",
+        "GET /counter-bills": "200",
+        "GET /guests/credit": "200",
+        "GET /stays/rate-changes": "403"
       }
     },
     "ACC": {
@@ -2687,6 +2817,11 @@
           "P"
         ],
         [
+          "PERM-FOL-010",
+          "R",
+          "P"
+        ],
+        [
           "PERM-GRP-001",
           "V",
           "P"
@@ -2769,6 +2904,11 @@
         [
           "PERM-POS-004",
           "V",
+          "P"
+        ],
+        [
+          "PERM-RMD-001",
+          "A",
           "P"
         ],
         [
@@ -2970,7 +3110,12 @@
         "GET /guest-services/complaint-categories": "200",
         "GET /guest-services/complaint-categories/history": "403",
         "GET /guest-services/lost-found-categories": "200",
-        "GET /guest-services/lost-found-categories/history": "403"
+        "GET /guest-services/lost-found-categories/history": "403",
+        "GET /reminders": "200",
+        "GET /invoices/corrections": "200",
+        "GET /counter-bills": "403",
+        "GET /guests/credit": "200",
+        "GET /stays/rate-changes": "403"
       }
     },
     "SUP": {
@@ -3227,7 +3372,12 @@
         "GET /guest-services/complaint-categories": "200",
         "GET /guest-services/complaint-categories/history": "403",
         "GET /guest-services/lost-found-categories": "200",
-        "GET /guest-services/lost-found-categories/history": "403"
+        "GET /guest-services/lost-found-categories/history": "403",
+        "GET /reminders": "403",
+        "GET /invoices/corrections": "403",
+        "GET /counter-bills": "403",
+        "GET /guests/credit": "403",
+        "GET /stays/rate-changes": "403"
       }
     },
     "HKP": {
@@ -3449,7 +3599,12 @@
         "GET /guest-services/complaint-categories": "200",
         "GET /guest-services/complaint-categories/history": "403",
         "GET /guest-services/lost-found-categories": "200",
-        "GET /guest-services/lost-found-categories/history": "403"
+        "GET /guest-services/lost-found-categories/history": "403",
+        "GET /reminders": "403",
+        "GET /invoices/corrections": "403",
+        "GET /counter-bills": "403",
+        "GET /guests/credit": "403",
+        "GET /stays/rate-changes": "403"
       }
     },
     "MNT": {
@@ -3656,7 +3811,12 @@
         "GET /guest-services/complaint-categories": "200",
         "GET /guest-services/complaint-categories/history": "403",
         "GET /guest-services/lost-found-categories": "200",
-        "GET /guest-services/lost-found-categories/history": "403"
+        "GET /guest-services/lost-found-categories/history": "403",
+        "GET /reminders": "403",
+        "GET /invoices/corrections": "403",
+        "GET /counter-bills": "403",
+        "GET /guests/credit": "403",
+        "GET /stays/rate-changes": "403"
       }
     },
     "TAD": {
@@ -3686,6 +3846,11 @@
         ],
         [
           "PERM-CFG-002",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-DOC-006",
           "A",
           "P"
         ],
@@ -3888,7 +4053,12 @@
         "GET /guest-services/complaint-categories": "200",
         "GET /guest-services/complaint-categories/history": "200",
         "GET /guest-services/lost-found-categories": "200",
-        "GET /guest-services/lost-found-categories/history": "200"
+        "GET /guest-services/lost-found-categories/history": "200",
+        "GET /reminders": "403",
+        "GET /invoices/corrections": "403",
+        "GET /counter-bills": "403",
+        "GET /guests/credit": "403",
+        "GET /stays/rate-changes": "403"
       }
     },
     "RST": {
@@ -4070,7 +4240,12 @@
         "GET /guest-services/complaint-categories": "200",
         "GET /guest-services/complaint-categories/history": "403",
         "GET /guest-services/lost-found-categories": "200",
-        "GET /guest-services/lost-found-categories/history": "403"
+        "GET /guest-services/lost-found-categories/history": "403",
+        "GET /reminders": "403",
+        "GET /invoices/corrections": "403",
+        "GET /counter-bills": "403",
+        "GET /guests/credit": "403",
+        "GET /stays/rate-changes": "403"
       }
     }
   }

@@ -83,7 +83,7 @@ public class ImportHttpTests : IAsyncLifetime
         using (var masters = JsonDocument.Parse(await (await _http.SendAsync(Req(HttpMethod.Get, "/import/masters", "techadmin"), Ct)).Content.ReadAsStringAsync(Ct)))
         {
             Assert.True(masters.RootElement.GetProperty("setupState").GetBoolean());
-            Assert.Equal(39, masters.RootElement.GetProperty("masters").GetArrayLength());
+            Assert.Equal(41, masters.RootElement.GetProperty("masters").GetArrayLength()); // LF-int: + purposes, vehicle-types (LF-desk 4700)
         }
 
         var body = new { master = "room-types", fileName = "room-types.csv", csvText = Templates.Sample("room-types") };

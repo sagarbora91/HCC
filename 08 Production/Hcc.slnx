@@ -16,6 +16,7 @@
     <Project Path="tests/Hcc.Integration.Tests/Hcc.Integration.Tests.csproj" />
     <Project Path="tests/Hcc.Handover.Tests/Hcc.Handover.Tests.csproj" />
     <Project Path="tests/Hcc.Keys.Tests/Hcc.Keys.Tests.csproj" />
+    <Project Path="tests/Hcc.Counter.Tests/Hcc.Counter.Tests.csproj" /> <!-- LF-COUNTER -->
     <Project Path="tests/Hcc.Operations.Tests/Hcc.Operations.Tests.csproj" />
     <Project Path="tests/Hcc.Closing.Tests/Hcc.Closing.Tests.csproj" />
     <Project Path="tests/Hcc.GstIds.Tests/Hcc.GstIds.Tests.csproj" />
@@ -48,6 +49,7 @@
   </Folder>
   <Folder Name="/database/">
     <File Path="database/migrations.lock.json" />
+    <File Path="database/migrations-docs.lock.json" />
     <File Path="database/migrations/0001_platform.sql" />
     <File Path="database/migrations/0002_core_inventory_billing_payments.sql" />
     <File Path="database/migrations/0100_access_identity.sql" />
@@ -181,6 +183,60 @@
     <File Path="database/migrations/4601_legacy_rbac_seed.sql" />
     <File Path="database/migrations/4605_legacy_capture_kind.sql" />
     <File Path="database/migrations/4620_guest_party_ids.sql" />
+    <!-- LF lanes: one File line per migration inside your own range comment (contract §11); keep numeric order. -->
+    <!-- LF-DOCDB 4670-4674 -->
+    <File Path="database/migrations/4670_doc_object_refs.sql" />
+    <File Path="database/migrations/4671_plat_backup_run_database.sql" />
+    <File Path="database/migrations/4672_doc_rbac_seed.sql" />
+    <File Path="database/migrations/4673_plat_doc_move_log.sql" />
+    <File Path="database/migrations/4674_doc_reserve.sql" />
+    <File Path="database/migrations-docs/0001_objects.sql" />
+    <File Path="database/migrations-docs/0002_doc_meta.sql" />
+    <!-- LF-DOCDB end -->
+    <!-- LF-RATE 4675-4679 -->
+    <File Path="database/migrations/4675_stay_rate_change.sql" />
+    <File Path="database/migrations/4676_stay_rate_rbac_seed.sql" />
+    <File Path="database/migrations/4677_guest_agreed_rate.sql" />
+    <File Path="database/migrations/4678_guest_agreed_rate_rbac_seed.sql" />
+    <File Path="database/migrations/4679_lf_money_approval_kinds.sql" />
+    <!-- LF-RATE end -->
+    <!-- LF-BILL 4680-4686 -->
+    <File Path="database/migrations/4680_invoice_revision.sql" />
+    <File Path="database/migrations/4681_invoice_supersession.sql" />
+    <File Path="database/migrations/4682_bill_correction.sql" />
+    <File Path="database/migrations/4683_bill_correction_rbac_seed.sql" />
+    <File Path="database/migrations/4684_lgc_bill_date_index.sql" />
+    <File Path="database/migrations/4685_lgc_bill_cancelled.sql" />
+    <File Path="database/migrations/4686_charge_reversed_by.sql" />
+    <File Path="database/migrations/4690_stay_rate_request.sql" />
+    <!-- LF-BILL end -->
+    <!-- LF-COUNTER 4687-4694 -->
+    <File Path="database/migrations/4687_counter_source_kind.sql" />
+    <File Path="database/migrations/4688_counter_bill.sql" />
+    <File Path="database/migrations/4689_counter_rbac_seed.sql" />
+    <File Path="database/migrations/4692_guest_credit_rbac_seed.sql" />
+    <File Path="database/migrations/4693_receipt_kind_guest_credit.sql" />
+    <File Path="database/migrations/4691_udhaar_guest_credit_link.sql" />
+    <File Path="database/migrations/4694_guest_credit_account.sql" />
+    <!-- LF-COUNTER end -->
+    <!-- LF-DESK 4695-4702 -->
+    <File Path="database/migrations/4695_desk_purpose.sql" />
+    <File Path="database/migrations/4696_desk_vehicle.sql" />
+    <File Path="database/migrations/4697_desk_form_c.sql" />
+    <File Path="database/migrations/4698_desk_checkout_basis.sql" />
+    <File Path="database/migrations/4699_desk_late_decision.sql" />
+    <File Path="database/migrations/4700_desk_import_masters.sql" />
+    <!-- LF-DESK end -->
+    <!-- LF-ALERTS 4703-4706 -->
+    <File Path="database/migrations/4703_alerts_wake_at.sql" />
+    <File Path="database/migrations/4704_alerts_reminder.sql" />
+    <File Path="database/migrations/4705_alerts_rbac_seed.sql" />
+    <!-- LF-ALERTS end -->
+    <!-- LF-IMAGES 4707-4710 -->
+    <File Path="database/migrations/4707_id_capture_photo_kind.sql" />
+    <!-- LF-IMAGES end -->
+    <!-- LF-INT 4711-4718 -->
+    <!-- LF-INT end -->
     <File Path="database/migrations/4720_keys_schema.sql" />
     <File Path="database/migrations/4721_keys_rbac_seed.sql" />
   </Folder>

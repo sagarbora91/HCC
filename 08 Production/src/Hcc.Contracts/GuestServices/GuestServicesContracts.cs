@@ -18,6 +18,8 @@ public sealed record CompleteServiceRequestRequest(long RequestId, string Note, 
 
 public sealed record CancelServiceRequestRequest(long RequestId, string Reason, string ExpectedVersion);
 
+public sealed record SnoozeWakeUpRequest(long RequestId, string ExpectedVersion);
+
 public sealed record ServiceRequestResult(long RequestId, string Status, string Dept, int? AssigneeId, string Priority, string DueUtc, string? ScheduledUtc, string Version);
 
 public sealed record SlaView(string Tone, string Label, int? MinutesLeft);

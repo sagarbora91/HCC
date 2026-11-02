@@ -55,7 +55,7 @@ public sealed class ModuleGateHttpTests(ConfigDatabase db) : IClassFixture<Confi
         [ConfigModuleIds.Website] = ["ConfirmWebRequest", "DeclineWebRequest", "CreateWebDepositLink", "MarkWebDepositPaid"],
         [ConfigModuleIds.Messaging] = ["SendMessage", "RunMessagingTriggers", "SimulateMessageDelivery", "RetryMessage", "SetMessagingConsent", "UpdateMessageTemplate",
             "UpdateMessageRule"],
-        [ConfigModuleIds.Documents] = ["CaptureIdDocument", "ConfirmIdCapture", "RejectIdCapture"],
+        [ConfigModuleIds.Documents] = ["CaptureIdDocument", "ConfirmIdCapture", "RejectIdCapture", "RemoveGuestPhoto"],
         [ConfigModuleIds.Assistant] = [], // no server routes yet (the management assistant is prototype-only)
         [ConfigModuleIds.Inventory] = ["StockReceiveGrn", "StockIssue", "StockUse", "StockRoomChange", "StockLaundrySend", "StockLaundryReceive", "StockRecordLoss",
             "StockCountSubmit", "StockCountDecide", "StockItemCreate", "StockItemSet", "StockSettingsSet"],

@@ -145,7 +145,7 @@ export async function register({test,assert,M}){
     for(const x of [dec,exe,chk])assert.ok(x.r.ok,x.r.text);
     assert.deepEqual([decCmd.key,decCmd.body],['approval-no:301',{approvalId:301,approve:false,reason:'Not needed',expectedVersion:'APR301'}]);
     assert.deepEqual(exeCmd.body,{approvalId:301,tender:'UPI',reference:'UPI-R1',tillId:null,expectedVersion:'APR301'});
-    assert.deepEqual([chkCmd.key,chkCmd.body],['checkout:1201',{stayId:501,companyCreditApprovalId:303,expectedVersion:'STYv1'}]);
+    assert.deepEqual([chkCmd.key,chkCmd.body],['checkout:1201',{stayId:501,companyCreditApprovalId:303,desk:true,expectedVersion:'STYv1'}]);
     assert.deepEqual([invCmd.key,invCmd.body],['checkout:1201:invoice',{sourceKind:'folio',sourceId:5001}],'B2C when the company has no GSTIN');
     assert.ok(chk.calls.indexOf('GET /folios/by-reservation/1201')>chk.calls.indexOf('POST /commands/IssueInvoice'));
   });

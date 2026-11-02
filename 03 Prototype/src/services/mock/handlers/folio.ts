@@ -2,6 +2,7 @@
 // COMPANY_CREDIT_REQUEST, CORRECTION_REQUEST, CREDIT_NOTE). Replaces the built-in versions of the owned commands;
 // existing error message texts are kept (tests match on them).
 import type {Handler,Kit} from '../commands';
+import {deskCheckoutLate} from './desk'; // LF-DESK
 import type {Approval,Booking,Receipt} from '../../../domain/types';
 import {money,addDays} from '../../../domain/money';
 import {totals} from '../../../domain/selectors';
@@ -25,6 +26,11 @@ function companyCreditCheck(k:Kit,x:Booking,amount:number){
   const refusal=grpCreditRefusal(c!,grpExposure(k.s,c!)-grpBookingExposure(k.s,x),amount,'stay on company credit');
   if(refusal)k.fail('INVALID_TRANSITION',refusal);
 }
+import {strCanApprove,strRefusal} from '../../../domain/streams/stay-rate'; // LF-RATE
+import {strApply} from './stay-rate'; // LF-RATE
+import {blcExecute} from './bill-correction'; // LF-BILL
+import {blcCorrections} from '../../../domain/streams/bill-correction'; // LF-BILL
+import {CTR_VOID_KIND,ctrVoidExecute,gcrApprove,gcrCheckout} from './counter'; // LF-COUNTER
 import {cxCashBlocked} from '../../../domain/streams/cashout';
 import {accCashEnforce} from '../../../domain/streams/accounting-guards'; // ACC-2 flows (contract §7, B9)
 import {chnChannelOfBooking,chnOtaCreditRefusal} from '../../../domain/streams/channels'; // ACC-2 flows (contract §4, A13)
@@ -62,6 +68,21 @@ const PAYMENT:Handler=k=>{
   const {s,cmd,req,b,open,positive,assert,mutable,fail,id,uid}=k;
   req('payments');const x=b();open();positive(cmd.amount);
   const kind:Receipt['kind']=cmd.kind||'payment';
+  // LF-BILL · PAYMENT on a departed folio for exactly the correction balance (§4)
+  const lfCorr=x.status==='Departed'?blcCorrections(s,x.id).filter(c=>c.status==='Issued').at(-1):undefined; // otherwise the existing rules answer
+  if(lfCorr&&lfCorr.newInvoiceNo===x.invoiceNo){
+    const corr=lfCorr,bal=totals(x).balance;
+    assert(bal>0,'There is no balance due on this departed stay.','INVALID_TRANSITION');
+    assert(kind==='payment','Only a payment can be received on a departed stay.','INVALID_TRANSITION');
+    assert(cmd.amount===bal,`Receive exactly the balance due after the bill correction: ${money(bal)}.`);
+    assert(!Array.isArray(cmd.tenders)||cmd.tenders.length<=1,'Receive the correction balance with a single tender.');
+    const method=validMethod(k,cmd.method,cmd.reference);
+    if(mnyIsDrawer(s,method))accCashEnforce(s,{kind:'receipt',party:'booking:'+x.id,scope:'booking:'+x.id,amount:cmd.amount});
+    x.receipts.push({id:id('RCPT'),amount:cmd.amount,method,date:s.date,kind:'payment',reference:'Bill correction '+corr!.id+(String(cmd.reference??'').trim()?' · '+String(cmd.reference).trim():''),actor:uid});
+    x.version++;
+    return `${x.id} · payment ${money(cmd.amount)} · balance after bill correction ${corr!.id} settled`;
+  }
+  // LF-BILL end
   if(kind==='refund')fail('INVALID_TRANSITION','Refunds are no longer posted directly. Use “Request refund” on the original receipt; after approval, execute the refund.');
   assert(['payment','deposit','deposit-return'].includes(kind),'Invalid receipt type.');
   if(['payment','deposit'].includes(kind))mutable(x);
@@ -257,6 +278,27 @@ const APPROVAL:Handler=k=>{
       (x!.creditNotes??=[]).push({id:id('CN'),no,amount:a!.amount,reason:a!.reason,date:s.date,approvalId:a!.id,lineId:lid});
       x!.version++;a!.status='Executed';a!.meta={...a!.meta,creditNote:no};extra=' · '+no+' issued';
     }
+    // LF lanes: your approval kind as a separate `if(kind==='<kind>'){…}` statement inside your own block (folioKind must know the kind).
+    // LF-RATE · APPROVAL branch
+    if(kind==='rate-change'){
+      assert(x&&x.status==='In house','A rate change applies to an in-house stay only.','INVALID_TRANSITION');stale();
+      const m=a!.meta as Record<string,any>;
+      assert(strCanApprove(s,uid,x!,Number(m.rate)),'This rate is below what a Manager may allow (PERM-RATE-001). An Owner must approve it.','FORBIDDEN');
+      const refusal=strRefusal(s,x,{rate:m.rate,people:m.people,children:m.children,scope:m.scope,reason:a!.reason});if(refusal)fail('INVALID_TRANSITION',refusal);
+      const ch=strApply(k,x!,{rate:Number(m.rate),people:Number(m.people),children:Number(m.children),scope:m.scope,reason:a!.reason},a!);
+      a!.status='Executed';a!.meta={...a!.meta,change:ch.id};extra=` · rate ${money(ch.oldRate)} → ${money(ch.newRate)} applied`+(ch.reposted.length?` · ${ch.reposted.length} night(s) re-posted`:'');
+    }
+    // LF-RATE end
+    // LF-BILL · APPROVAL branch
+    if(kind==='bill-correction'){
+      assert(x,'Booking not found.','NOT_FOUND');stale();
+      extra=blcExecute(k,x!,a!);
+    }
+    // LF-BILL end
+    // LF-COUNTER · APPROVAL branch
+    if(kind===CTR_VOID_KIND)extra=ctrVoidExecute(k,a!);
+    if(kind==='guest-credit'){assert(x&&x.status==='In house','This stay is not in house.','INVALID_TRANSITION');financial(x!);stale();extra=gcrApprove(k,x!,a!);}
+    // LF-COUNTER end
     // Other kinds (owned elsewhere, defaulting to meta.command 'APPROVAL') are simply decided here; their owner executes.
   }
   if(a!.status==='Pending')a!.status=cmd.approve?'Approved':'Rejected';
@@ -271,7 +313,10 @@ const CHECKOUT:Handler=k=>{
   const {s,cmd,req,open,b,assert,id,uid}=k;
   req('checkout');open();const x=b();assert(x.status==='In house','This stay is not in house.','INVALID_TRANSITION');
   for(let d=x.arrival;d<x.departure;d=addDays(d,1))assert(x.lines.some(l=>l.kind==='room'&&l.date===d),'Post all agreed stay charges before checkout.','INVALID_TRANSITION');
-  let detail='';
+  // LF-DESK · CHECKOUT late check-out (half-day / full-night / waived, §8.4)
+  const lateNote=deskCheckoutLate(k,x);
+  // LF-DESK end
+  let detail=lateNote;
   const bal=totals(x).balance;
   if(bal>0){
     // Approved company credit for exactly this balance and folio version settles the folio to a receivable (AC-008).
@@ -290,6 +335,9 @@ const CHECKOUT:Handler=k=>{
       detail=` · ${money(bal)} to ${ch.name} (OTA receivable)`;
     }
   }
+  // LF-COUNTER · CHECKOUT 'guest-credit' receipt + Udhaar receivable (§7)
+  detail+=gcrCheckout(k,x);
+  // LF-COUNTER end
   assert(totals(x).balance===0,'Settle the folio exactly before checkout. Refund any excess receipt.','INVALID_TRANSITION');
   assert(totals(x).deposit===0,'Return the refundable deposit before checkout.','INVALID_TRANSITION');
   const pending=s.approvals.filter(a=>a.booking===x.id&&a.status==='Pending'&&!folioApprovalExpired(s,a));

@@ -50,8 +50,10 @@ public static class SourceKinds
     public const string Vendor = "vendor";
     public const string Tax = "tax";
     public const string Ota = "ota";
+    // LF A7 (4687): counter bills and their credit notes.
+    public const string Counter = "counter";
 
-    public static readonly IReadOnlyList<string> All = [Line, Receipt, Pos, Expense, Closing, Payroll, Manual, Purchase, Vendor, Tax, Ota];
+    public static readonly IReadOnlyList<string> All = [Line, Receipt, Pos, Expense, Closing, Payroll, Manual, Purchase, Vendor, Tax, Ota, Counter];
 }
 
 /// <summary>Intra-state GST split (prototype <c>gstSplit</c>): SGST = half rounded toward zero, CGST = the rest (takes the odd paisa).</summary>
@@ -100,6 +102,8 @@ public static class SourceRules
         var counter = "receipt:" + kind;
         if (kind == "company-credit")
             return new(sourceKey, SourceKinds.Receipt, kind, date, VoucherType.Journal, narration, [Dr(counter, amountPaise), Cr("folio:guest", amountPaise)]);
+        if (kind == "guest-credit") // LF B2: Journal Dr 1120/UD-<customer> · Cr guest ledger (the mirror of company credit; the revenue posted with the folio lines)
+            return new(sourceKey, SourceKinds.Receipt, kind, date, VoucherType.Journal, narration, [Dr(UdhaarKey, amountPaise), Cr("folio:guest", amountPaise)]);
         var t = "method:" + tender;
         var inflow = kind is "payment" or "deposit";
         return new(sourceKey, SourceKinds.Receipt, kind, date, inflow ? VoucherType.Receipt : VoucherType.Payment, narration,
@@ -118,6 +122,20 @@ public static class SourceRules
             tdsPaise == 0
                 ? [Dr("method:" + tender, amountPaise), Cr("receipt:company-credit", amountPaise)]
                 : [Dr("method:" + tender, amountPaise), Dr(TdsCalculator.ReceivableKey, tdsPaise), Cr("receipt:company-credit", checked(amountPaise + tdsPaise))]);
+
+    /// <summary>
+    /// LF A7 counter bill (Sales): Dr the settlement (<paramref name="settlementKey"/> = method:&lt;tender&gt; / receipt:udhaar / receipt:company-credit) total ·
+    /// Cr line:food / line:room / line:service by class · Dr line:discount · Cr CGST · Cr SGST. <paramref name="credit"/> = its credit note: every side swapped.
+    /// </summary>
+    public static AccountingSource Counter(string sourceKey, bool credit, DateOnly date, string settlementKey, long foodPaise, long roomPaise, long servicePaise,
+        long discountPaise, long cgstPaise, long sgstPaise, long totalPaise, string narration)
+    {
+        var e = new List<SourceEntry> { Dr(settlementKey, totalPaise), Cr("line:food", foodPaise), Cr("line:room", roomPaise), Cr("line:service", servicePaise),
+            Dr("line:discount", discountPaise), Cr("folio:cgst", cgstPaise), Cr("folio:sgst", sgstPaise) };
+        var list = e.Where(x => x.DebitPaise != 0 || x.CreditPaise != 0)
+            .Select(x => credit ? x with { DebitPaise = x.CreditPaise, CreditPaise = x.DebitPaise } : x).ToList();
+        return new(sourceKey, SourceKinds.Counter, credit ? "counter-credit" : "counter", date, VoucherType.Sales, narration, list);
+    }
 
     /// <summary>Outlet bill settled at the outlet (DEC-052): Sales, Dr tender total · Cr outlet revenue net · Cr CGST · Cr SGST. A void is negative.</summary>
     public static AccountingSource PosBill(string sourceKey, string kind, string tender, DateOnly date, long totalPaise, long netPaise, long cgst, long sgst, string narration)

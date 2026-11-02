@@ -64,6 +64,13 @@ public static partial class BuiltinSettings
             },
             new("brand.invoiceHeader", "Invoice header line", SettingType.Text) { MaxLength = 80, AllowEmpty = true, Default = T(string.Empty), Unit = "text, ≤ 80 chars", Help = "Second line of the invoice header." },
             new("brand.invoiceFooter", "Invoice footer", SettingType.Text) { MaxLength = 120, Default = T("Thank you for staying with us."), Unit = "text, ≤ 120 chars", Help = "Last line of invoices and receipts." },
+            // LF-IMAGES (B6, LF-CONTRACT 10.2): the legacy NoteMaster / MainTitle / SubTitle. Read at print time by the invoice, counter-bill, POS invoice, credit-note and receipt
+            // print models (never stored on the document). Non-money group: Owner and Tech admin (DEC-058).
+            new("brand.invoiceTitle", "Invoice title", SettingType.Text) { MaxLength = 60, Default = T("Tax invoice"), Unit = "text, ≤ 60 chars", Help = "The heading of invoices, counter bills and POS tax invoices." },
+            new("brand.invoiceSubtitle", "Invoice subtitle", SettingType.Text) { MaxLength = 120, AllowEmpty = true, Default = T(string.Empty), Unit = "text, ≤ 120 chars, optional", Help = "A line under the invoice title (for example the licence or the tagline)." },
+            new("brand.invoiceNotes", "Notes on invoices", SettingType.Text) { MaxLength = 600, AllowEmpty = true, Default = T(string.Empty), Unit = "text, ≤ 600 chars, optional", Help = "Terms, check-out time, bank details, \"subject to Latur jurisdiction\". Printed under the invoice; line breaks are kept." },
+            new("brand.receiptFooter", "Receipt footer", SettingType.Text) { MaxLength = 120, AllowEmpty = true, Default = T(string.Empty), Unit = "text, ≤ 120 chars, optional", Help = "Last line of receipts (when empty the invoice footer is used)." },
+            new("brand.creditNoteNotes", "Notes on credit notes", SettingType.Text) { MaxLength = 300, AllowEmpty = true, Default = T(string.Empty), Unit = "text, ≤ 300 chars, optional", Help = "Printed under every credit note." },
             new("brand.printFormat", "Print format", SettingType.Choice) { Options = [T("A4"), T("A5"), T("80 mm thermal")], Default = T("A4"), Unit = "choice", Help = "Default paper for invoices and receipts." },
             new("brand.language", "Document language", SettingType.Choice) { Options = [T("English"), T("English + Hindi labels")], Default = T("English"), Unit = "choice", Help = "Labels on printed documents." },
         ]),

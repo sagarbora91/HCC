@@ -6,6 +6,7 @@ import type {Permission} from '../services/mock';
 import type {State} from '../domain/types';
 import {cfgPageOn} from '../domain/streams/config';
 import {cmpHasAccess} from '../domain/streams/compliance';
+import {rmdCanManage} from '../domain/streams/reminders'; // LF-ALERTS
 import {rbacCanViewClosing,rbacSeesApprovals,rbacIsRestaurant,rbacSeesBooks,rbacIsRole,rbacTechAdminTemplates,RBAC_RESTAURANT_PAGES} from '../domain/streams/rbac';
 
 export type CategoryId='front'|'cash'|'hkm'|'guestsvc'|'customers'|'revenue'|'stock'|'people'|'accounts'|'admin';
@@ -41,6 +42,13 @@ export const PAGE_CATEGORY:Record<string,CategoryId>={
   'plans-extras':'accounts', // MA-2
   'legacy-import':'admin', // LG-UI: old Lodge software import — Owner (PERM-LGC-001)
   prefs:'admin', // CP-1 Appearance & display (every role, this device only)
+  // LF lanes: your PAGE_CATEGORY line inside your own block (contract §11: 'desk-alerts':'front' = LF-ALERTS, 'counter-bills':'cash' = LF-UI).
+  // LF-ALERTS
+  'desk-alerts':'front',
+  // LF-ALERTS end
+  // LF-UI
+  'counter-bills':'cash',
+  // LF-UI end
   access:'admin',settings:'admin',approvals:'admin',backup:'admin',roadmap:'admin',
 };
 
@@ -79,6 +87,8 @@ export const PAGE_BLURB:Record<string,string>={
   'legacy-import':'Load guests, history and opening balances from the old software',
   keys:'Room key cards: issue, re-issue, reactivate, cancel, key log and counts',
   prefs:'Text size, motion, start page, lists, messages (this device)',
+  'desk-alerts':'Desk reminders with alert days and guests\' wake-up calls', // LF-ALERTS
+  'counter-bills':'Bills for walk-in customers: paid now, Udhaar credit or company credit', // LF-UI
 };
 
 /** Extra words people type for a page (synonyms, hotel jargon, Hindi-English habits). The label and category are matched too. */
@@ -123,6 +133,8 @@ export const PAGE_KEYWORDS:Record<string,string[]>={
   syshealth:['system health','health','parked','stuck','retry','outbox','event log','alerts','errors','backup failed','last backup','restore drill'],
   keys:['key','keys','room key','key card','keycard','card','encoder','lock','lost card','reissue','re-issue','reactivate','recharge','extend key','manual key','chabi','chaabi','key log','door lock','bis'],
   'legacy-import':['legacy import','old software','lodge','old data','import history','dry run','migration','legacy','previous software'],
+  'counter-bills':['counter bill','direct bill','walk-in','walk in','udhaar','credit note','bill'], // LF-UI
+  'desk-alerts':['reminder','reminders','alert','alerts','wake up','wake-up','wakeup','alarm','alert days','due date'], // LF-ALERTS
   roadmap:['roadmap','future','planned','modules','phases'],
   prefs:['appearance','display','text size','font','font size','bigger text','larger text','zoom','motion','animation','density','compact','start page','home page','page size','rows','toast','messages','preferences','my settings','theme'],
 };
@@ -202,6 +214,7 @@ export function navFilterModules<T extends {id:string}>(s:State,items:readonly T
  * its own shifts & pay only. */
 export function navRoleOk(s:State,uid:string,page:string):boolean{
   if(rbacIsRestaurant(s,uid))return RBAC_RESTAURANT_PAGES.includes(page);
+  if(page==='desk-alerts')return rmdCanManage(s,uid); // LF-ALERTS: PERM-RMD-001 = Owner, Manager, Reception, Accountant
   if(page==='compliance')return cmpHasAccess(s,uid);
   if(page==='closing')return rbacCanViewClosing(s,uid);
   if(page==='approvals')return rbacSeesApprovals(s,uid);

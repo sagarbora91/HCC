@@ -50,12 +50,13 @@ public sealed class OperatorAlertsTests
     });
 
     [Fact]
-    public void Operator_categories_are_the_five_outbox_workers_the_failure_logger_retention_and_the_schema_guard()
+    public void Operator_categories_are_the_outbox_workers_the_failure_logger_retention_the_schema_guard_and_the_documents_sweep()
     {
         string[] expected =
         [
             typeof(AccountingProjectorWorker).FullName!, typeof(HousekeepingProjectorWorker).FullName!, typeof(KeyDepartureWorker).FullName!, typeof(MessagingTriggerWorker).FullName!,
             typeof(OtaChannelManagerWorker).FullName!, typeof(OutboxFailureLogger).FullName!, typeof(RetentionWorker).FullName!, typeof(SchemaGuard).FullName!,
+            typeof(DocumentReleaseWorker).FullName!, typeof(DocumentSweepWorker).FullName!,   // LF-docdb: document release consumer and the nightly orphan sweep
         ];
         Assert.Equal(expected.Order(StringComparer.Ordinal), HccEventLogLoggerProvider.OperatorCategories.Order(StringComparer.Ordinal));
         Assert.True(HccEventLogLoggerProvider.Forwards(typeof(OutboxFailureLogger).FullName, LogLevel.Warning));

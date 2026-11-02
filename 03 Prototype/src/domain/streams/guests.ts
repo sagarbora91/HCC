@@ -286,3 +286,18 @@ export function stayDepartureBounds(s:State,b:Booking){const from=b.status==='In
 export const stayCanExtend=(s:State,b:Booking,departure:string)=>available(s,b.room,b.status==='In house'?s.date:b.arrival,departure,b.id);
 /** Nights in the stay, for display. */
 export const stayNights=(b:Booking)=>nights(b.arrival,b.departure);
+
+// LF lanes: helpers for domain/streams/guests.ts inside your own block (agreedRates + guestView money filter = RATE; creditAccount = COUNTER; vehicle search in stayListRows via a helper called from your block = DESK).
+// LF-RATE
+/** LF §3 / §7 (DEC-MA-11e, DEC-058): a guest as a role may receive it — `agreedRates` and `creditAccount` only for money roles
+ *  (Owner, Manager, Reception, Cashier, Accountant). guestView should pass its result through this (integration). */
+export function guestMoneyFilter<T extends {agreedRates?:unknown;creditAccount?:unknown}>(s:State,uid:string,g:T):T{
+  const role=s.users.find(u=>u.id===uid)?.role;
+  if(role&&['Owner','Manager','Reception','Cashier','Accountant'].includes(role))return g;
+  const {agreedRates,creditAccount,...rest}=g;void agreedRates;void creditAccount;return rest as T;
+}
+// LF-RATE end
+// LF-COUNTER
+// LF-COUNTER end
+// LF-DESK
+// LF-DESK end

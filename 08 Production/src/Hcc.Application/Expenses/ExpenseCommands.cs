@@ -116,11 +116,11 @@ public sealed class ExpenseCommands(ICommandRunner runner, IAccessPolicy policy,
         return ExpenseScc.Alert(category, date, businessDate, budget, spend, extra)?.Message;
     }
 
-    /// <summary>The bill photo of a request (optional): JPEG / PNG, at most 4 MB (SCC "Photo too large (max 4MB)").</summary>
+    /// <summary>The bill photo of a request (optional): JPEG / PNG, at most 153,600 bytes (LF-images G1; SCC allowed 4 MB).</summary>
     internal static (string ContentType, byte[] Bytes)? BillPhoto(string? base64, string? contentType) =>
         string.IsNullOrWhiteSpace(base64) ? null
             : CashOutRules.Photo(base64, contentType, ExpenseScc.PhotoMaxBytes, "Take a photo of the bill.", "The bill photo must be a JPEG or PNG image.",
-                "Photo too large (max 4MB)", "The bill photo is not valid base64.");
+                ExpenseScc.PhotoTooLarge, "The bill photo is not valid base64.");
 
     // ── Submit ──
 

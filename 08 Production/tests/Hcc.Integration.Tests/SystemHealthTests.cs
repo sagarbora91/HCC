@@ -163,4 +163,39 @@ public sealed class SystemHealthTests
     }
 
     private const string SystemHealthServiceOp = Hcc.Application.Health.SystemHealthService.OpRetryParked;
+
+    [Fact]
+    public async Task LF_docdb_databases_block_lists_main_and_documents_and_the_sweep_is_for_PERM_DOC_006_holders()
+    {
+        await using var s = await HccServer.StartAsync(Seed, Ct);
+        using var owner = s.CookieClient();
+        using (var boot = await Wire.PostAsync(owner, "/auth/bootstrap-owner", new BootstrapOwnerRequest(s.PropertyId, OwnerLogin, "Health Owner", Password), null, Ct))
+            await Wire.OkAsync<UserVersionResult>(boot, "bootstrap-owner", Ct);
+        using (var signIn = await Wire.PostAsync(owner, "/auth/sign-in", new SignInRequest(OwnerLogin, Password: Password), null, Ct))
+            await Wire.OkAsync<SignInResult>(signIn, "owner sign-in", Ct);
+        using var acc = await PasswordUserAsync(s, owner, "health.acc2", "ACC");
+
+        var view = await Wire.GetAsync<SystemHealthView>(owner, "/admin/system-health", Ct);
+        Assert.NotNull(view.Databases);
+        Assert.Equal(["main", "documents"], view.Databases!.Select(d => d.Kind));
+        Assert.Equal(s.Name, view.Databases[0].Name);
+        Assert.Equal(s.Name + "Documents", view.Databases[1].Name);
+        Assert.All(view.Databases, d => Assert.True(d.Reachable && d.DataBytes > 0 && d.LogBytes > 0 && d.LimitBytes == 50L * 1024 * 1024 * 1024 && d.Pct is >= 0 and < 5));
+        Assert.Equal("0002", view.Databases[1].SchemaVersion);
+        Assert.Equal((await s.CountAsync("SELECT MAX(version) FROM dbo.schema_migration;", Ct)).ToString("0000", CultureInfo.InvariantCulture), view.Databases[0].SchemaVersion);
+        Assert.Equal((0, 0), (view.Databases[1].ObjectCount, view.Databases[1].DanglingRefs ?? 0));
+
+        // A Hcc row whose object is missing in HccDocuments: the check on demand counts it (PERM-DOC-006 = Owner, Tech admin).
+        var expense = Convert.ToInt64(await s.ScalarAsync($"INSERT ops.expense(property_id, vendor, category, amount_paise, method, business_date, status, submitted_by, created_utc) OUTPUT INSERTED.expense_id VALUES ({s.PropertyId}, N'V', N'C', 1000, 'Cash', '2026-10-24', 'Draft', 1, '2026-10-24');", Ct), CultureInfo.InvariantCulture);
+        await s.ScalarAsync($"INSERT ops.expense_bill_photo(expense_id, content_type, size_bytes, image, object_ref, updated_by, updated_utc) VALUES ({expense}, 'image/jpeg', 4, NULL, NEWID(), 1, '2026-10-24');", Ct);
+        using var swept = await Wire.PostAsync(owner, "/admin/documents/sweep", new { }, null, Ct);
+        Assert.Equal(HttpStatusCode.OK, swept.StatusCode);
+        using var json = JsonDocument.Parse(await swept.Content.ReadAsStringAsync(Ct));
+        Assert.Equal(1, json.RootElement.GetProperty("dangling").GetInt32());
+        var after = await Wire.GetAsync<SystemHealthView>(owner, "/admin/system-health", Ct);
+        Assert.Equal(1, after.Databases![1].DanglingRefs);
+
+        using var refused = await Wire.PostAsync(acc, "/admin/documents/sweep", new { }, null, Ct);
+        Assert.Equal(HttpStatusCode.Forbidden, refused.StatusCode);
+    }
 }

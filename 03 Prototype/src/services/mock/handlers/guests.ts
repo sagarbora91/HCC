@@ -6,6 +6,7 @@ import {blockedTonight,available,occupant} from '../../../domain/selectors';
 import {nights} from '../../../domain/money';
 import {Guest,GuestDraft,guestValidate,guestClean,guestFieldLabels,staySegments,guestIdNumberError,guestDobCleared,guestPartyIdMessage,guestIdKind} from '../../../domain/streams/guests';
 import type {GuestParty} from '../../../domain/streams/guests';
+import {deskCheckin} from './desk'; // LF-DESK
 
 /** DEC-193: an edit that does not retype a member's number keeps that member's stored ID while the member at the same seq keeps the same
  *  name and ID kind (the edit form never carries the number); otherwise the old member's ID goes with them. */
@@ -48,6 +49,7 @@ function upsert(k:Kit,d:GuestDraft,existingId:string|undefined,verified:boolean)
 }
 const link=(x:Booking,g:Guest)=>{if(x.guestId!==g.id){x.guestId=g.id;x.version++;}};
 
+import {guestAgreedRateFor} from '../../../domain/streams/stay-rate'; // LF-RATE
 export const handlers:Record<string,Handler>={
   /** Create/edit a guest profile. {guest:GuestDraft, id?:guestId, booking?:bookingId to link, verified?:boolean, version?}. Intended PERM-GST-002. */
   GUEST_SAVE:k=>{
@@ -102,7 +104,18 @@ export const handlers:Record<string,Handler>={
     if(pg){const m=guestPartyIdMessage(pg.party);k.assert(!m,m);}
     k.assert(!blockedTonight(s,r)&&r.hk==='Ready'&&!occupant(s,r.id),'The room must be vacant, ready and unblocked.','NOT_AVAILABLE');
     k.assert(available(s,r.id,x.arrival,x.departure,x.id),'The room allocation conflicts with another booking.','NOT_AVAILABLE');
-    x.status='In house';x.segments=[{room:r.id,from:s.date}];x.version++;return x.guest+' → room '+r.id;
+    // LF-RATE · CHECKIN rate:'agreed' (§3)
+    if(k.cmd.rate==='agreed'){
+      const ag=guestAgreedRateFor(s,x.guestId,r.type,x.arrival);
+      k.assert(ag,'This guest has no agreed rate for this room type on the arrival date. Use the tariff.');
+      k.assert(!x.lines.some(l=>l.kind==='room'),'Room nights are already posted at the booked rate.','INVALID_TRANSITION');
+      x.rate=ag!.rate;x.rateSource='agreed';
+    }
+    // LF-RATE end
+    // LF-DESK · CHECKIN purpose / vehicle / Form C / checkoutBasis / checkedInAt (§8)
+    const deskNote=deskCheckin(k,x);
+    // LF-DESK end
+    x.status='In house';x.segments=[{room:r.id,from:s.date}];x.version++;return x.guest+' → room '+r.id+deskNote;
   },
   /** Move room / extend / shorten. Confirmed bookings behave exactly as M1. In-house: target validated (reserved) before the old room
    *  is released; old segment closed, new one opened; old room Dirty + one HK task. Any failure throws before mutation (AC-009). Intended PERM-STY-002. */

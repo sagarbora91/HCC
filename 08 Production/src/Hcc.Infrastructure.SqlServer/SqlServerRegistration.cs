@@ -1,4 +1,7 @@
 using Hcc.Application.Commands;
+using Hcc.Application.Documents;
+using Hcc.Infrastructure.SqlServer.Documents;
+using Hcc.Infrastructure.SqlServer.DocumentObjects;
 using Hcc.Infrastructure.SqlServer.Commands;
 using Hcc.Infrastructure.SqlServer.Connection;
 using Hcc.Infrastructure.SqlServer.Migrations;
@@ -17,7 +20,26 @@ public sealed class SqlPlatform
         Migrations = new MigrationRunner(Connections, new EmbeddedMigrationSource(), BackupGate);
         Commands = new SqlCommandRunner(Connections);
         Outbox = new OutboxConsumer(Connections);
+        // LF-docdb (DEC-200, contract §1.2): the separate documents database, its own migration stream and its object store.
+        Documents = new SqlDocumentConnectionFactory(options);
+        DocumentMigrations = new MigrationRunner(Documents.Inner, new EmbeddedMigrationSource(EmbeddedMigrationSource.DocsPrefix), new SqlBackupGate(Documents.Options), "HCC.DocMigrationRunner");
+        DocumentObjects = new SqlDocumentObjectStore(Documents);
+        DocumentMove = new DocumentMoveJob(Connections, Documents, DocumentObjects);
+        DocumentSweep = new DocumentSweepJob(Connections, DocumentObjects);
+        DocumentRefs = new DocumentRefCheck(Connections, Documents, DocumentObjects);
     }
+
+    public SqlDocumentConnectionFactory Documents { get; }
+
+    public MigrationRunner DocumentMigrations { get; }
+
+    public IDocumentObjectStore DocumentObjects { get; }
+
+    public DocumentMoveJob DocumentMove { get; }
+
+    public DocumentSweepJob DocumentSweep { get; }
+
+    public DocumentRefCheck DocumentRefs { get; }
 
     public SqlOptions Options { get; }
 

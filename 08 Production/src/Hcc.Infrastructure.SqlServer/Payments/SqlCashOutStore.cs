@@ -14,7 +14,7 @@ namespace Hcc.Infrastructure.SqlServer.Payments;
 /// SQL Server implementation of <see cref="ICashOutStore"/> (migration 3100: <c>pay.cash_transfer</c>, <c>pay.banking_slip</c>). The slip photo
 /// lives in its own table so listings never read it; the nightly retention purge deletes it after 600 days (<c>SqlRetentionPurge</c>).
 /// </summary>
-public sealed class SqlCashOutStore(SqlConnectionFactory connections) : ICashOutStore
+public sealed class SqlCashOutStore(SqlConnectionFactory connections, Hcc.Application.Documents.IDocumentObjectStore? objects = null) : ICashOutStore
 {
     private const string Columns = """
         t.transfer_id, t.property_id, t.kind, t.status, t.business_date, t.amount_paise, t.from_till_id, t.from_shift_id, t.to_till_id, t.to_shift_id,
@@ -63,11 +63,29 @@ public sealed class SqlCashOutStore(SqlConnectionFactory connections) : ICashOut
     public async Task InsertSlipAsync(ICommandTransaction tx, long transferId, string contentType, byte[] image, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(image);
-        await using var cmd = Cmd(tx, "INSERT pay.banking_slip(transfer_id, content_type, size_bytes, image) VALUES (@t, @c, @n, @i);");
+        Guid? objectRef = null;
+        if (objects is not null)
+        {
+            // LF-docdb (contract §1.8): object first, in its own committed transaction; this Hcc transaction stores the ref.
+            int propertyId, by;
+            await using (var q = Cmd(tx, "SELECT property_id, recorded_by FROM pay.cash_transfer WHERE transfer_id = @t;"))
+            {
+                q.Parameters.Add("@t", SqlDbType.BigInt).Value = transferId;
+                await using var r = await q.ExecuteReaderAsync(ct).ConfigureAwait(false);
+                if (!await r.ReadAsync(ct).ConfigureAwait(false)) throw new InvalidOperationException("The deposit to attach a slip photo to was not found.");
+                (propertyId, by) = (r.GetInt32(0), r.GetInt32(1));
+            }
+
+            objectRef = await objects.PutAsync(new Hcc.Application.Documents.NewDocumentObject(propertyId, Hcc.Application.Documents.DocumentObjectKind.BankingSlip, "pay.banking_transfer",
+                transferId, contentType, image, null, by), ct).ConfigureAwait(false);
+        }
+
+        await using var cmd = Cmd(tx, "INSERT pay.banking_slip(transfer_id, content_type, size_bytes, image, object_ref) VALUES (@t, @c, @n, @i, @r);");
         cmd.Parameters.Add("@t", SqlDbType.BigInt).Value = transferId;
         cmd.Parameters.Add("@c", SqlDbType.VarChar, 10).Value = contentType;
         cmd.Parameters.Add("@n", SqlDbType.Int).Value = image.Length;
-        cmd.Parameters.Add("@i", SqlDbType.VarBinary, -1).Value = image;
+        cmd.Parameters.Add("@i", SqlDbType.VarBinary, -1).Value = objectRef is null ? image : DBNull.Value;
+        cmd.Parameters.Add("@r", SqlDbType.UniqueIdentifier).Value = objectRef is null ? DBNull.Value : objectRef.Value;
         await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
     }
 
@@ -126,14 +144,19 @@ public sealed class SqlCashOutStore(SqlConnectionFactory connections) : ICashOut
     {
         await using var conn = await connections.OpenAsync(ct).ConfigureAwait(false);
         await using var cmd = connections.Command("""
-            SELECT b.content_type, b.image FROM pay.banking_slip b JOIN pay.cash_transfer t ON t.transfer_id = b.transfer_id
+            SELECT b.content_type, b.image, b.object_ref FROM pay.banking_slip b JOIN pay.cash_transfer t ON t.transfer_id = b.transfer_id
             WHERE b.transfer_id = @t AND t.property_id = @p AND t.kind = 'banking';
             """, conn);
         cmd.Parameters.Add("@t", SqlDbType.BigInt).Value = transferId;
         cmd.Parameters.Add("@p", SqlDbType.Int).Value = propertyId;
-        await using var rd = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        if (!await rd.ReadAsync(ct).ConfigureAwait(false)) return null;
-        return (rd.GetString(0), (byte[])rd[1]);
+        string type; byte[]? inline; Guid? objectRef;
+        await using (var rd = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false))
+        {
+            if (!await rd.ReadAsync(ct).ConfigureAwait(false)) return null;
+            (type, inline, objectRef) = (rd.GetString(0), rd.IsDBNull(1) ? null : (byte[])rd[1], rd.IsDBNull(2) ? null : rd.GetGuid(2));
+        }
+
+        return (type, objectRef is { } r ? await Documents.DocumentObjectAccess.ReadAsync(objects, r, ct).ConfigureAwait(false) : inline ?? throw Documents.DocumentObjectAccess.Missing());
     }
 
     private static CashTransferRow Read(SqlDataReader rd) => new(rd.GetInt64(0), rd.GetInt32(1), CashOutRules.ParseKind(rd.GetString(2)), rd.GetString(3),

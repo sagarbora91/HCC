@@ -105,6 +105,8 @@ internal static class ImportListMaps
         new("pos-tables", "pos.outlet_table t JOIN pos.outlet o ON o.outlet_id = t.outlet_id", "table_id", "pos.outlet_table", "o.property_id = @p",
             [Look("outlet", "outlet_id", "pos.outlet", "outlet_id", "code"), T("tableNo", "table_no", true), N("seats", "seats"), T("section", "section"), B("counter", "is_counter")], null, false),
         M("booking-sources", "mst.booking_source", "row_id", T("segment", "segment", true), T("channel", "channel"), new Col("commissionBps", "t.commission_bps", Cv.Bps, "commission_bps", null, true)),
+        M("purposes", "mst.purpose_of_visit", "row_id"),
+        M("vehicle-types", "mst.vehicle_type", "row_id"),
         M("id-types", "mst.id_type", "row_id", B("accepted", "accepted"), B("needsPhoto", "needs_photo"), B("foreignerOnly", "foreigner_only")),
         M("number-series", "bill.number_series", "row_id", T("document", "document", true), T("prefix", "prefix", true), N("start", "start_no", true), N("padding", "padding", true), T("reset", "reset_rule", true),
             new Col("activeFrom", "CONVERT(VARCHAR(10), t.active_from, 23)", Cv.Date, "active_from", null, true)),
@@ -303,7 +305,7 @@ internal static class ImportListSql
 /// </summary>
 public sealed class SqlImportListWriter(IFrontDeskMastersStore frontDesk, ISettingsReader? settings = null) : IImportListWriter
 {
-    private static readonly HashSet<string> FrontDesk = ["booking-sources", "id-types", "number-series", "policies"];
+    private static readonly HashSet<string> FrontDesk = ["booking-sources", "id-types", "number-series", "policies", "purposes", "vehicle-types"];
     private static readonly HashSet<string> People = ["designations", "shift-patterns", "leave-types", "holidays"];
     private static readonly HashSet<string> Money = ["payment-methods", "bank-accounts", "expense-categories", "expense-vendors"];
     private static readonly HashSet<string> Ops = ["hk-task-types", "hk-zones", "complaint-categories", "lost-found-categories"];
@@ -337,6 +339,8 @@ public sealed class SqlImportListWriter(IFrontDeskMastersStore frontDesk, ISetti
                 "booking-sources" => FrontDeskMasterIds.BookingSources,
                 "id-types" => FrontDeskMasterIds.IdTypes,
                 "number-series" => FrontDeskMasterIds.NumberSeries,
+                "purposes" => FrontDeskMasterIds.Purposes,
+                "vehicle-types" => FrontDeskMasterIds.VehicleTypes,
                 _ => FrontDeskMasterIds.Policies,
             };
             var rows = await frontDesk.LockAllAsync(tx, propertyId, master, ct).ConfigureAwait(false);

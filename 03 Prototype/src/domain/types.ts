@@ -73,7 +73,7 @@ export type Line={id:string;label:string;amount:number;date:string;kind:'room'|'
   /** Discount reason code (CAT_DISCOUNT); absent on a free-text reason. */
   discountReason?:string;
 };
-export type Receipt={id:string;amount:number;method:string;date:string;kind:'payment'|'deposit'|'deposit-return'|'refund'|'company-credit'|'deposit-apply'|'ota-credit';reference:string;actor:string; // ACC-2 flows (contract §4): deposit applied at check-out (A6a), folio balance to the OTA (A13)
+export type Receipt={id:string;amount:number;method:string;date:string;kind:'payment'|'deposit'|'deposit-return'|'refund'|'company-credit'|'deposit-apply'|'ota-credit'|'guest-credit';reference:string;actor:string; // ACC-2 flows (contract §4): deposit applied at check-out (A6a), folio balance to the OTA (A13)
   // ── Receipt · stream A fields (add below this line) ──
 
   // ── Receipt · stream B fields (add below this line) ──
@@ -95,6 +95,7 @@ export type Receipt={id:string;amount:number;method:string;date:string;kind:'pay
   // ── Receipt · ACC-2 flows (contract §4; coordinator ruling 28 Oct: DEPOSIT_APPLY source) ──
   /** A `deposit-apply` receipt that applies an advance carried in the opening balance (no deposit receipt on the folio, rulebook T5a). */
   depositSource?:'opening';
+  // ── Receipt · LF (contract §7 B2): kind 'guest-credit' = folio balance moved to the guest's Udhaar account at check-out ──
 };
 export type BookingStatus='Held'|'Expired'|'Confirmed'|'In house'|'Departed'|'Cancelled'|'No show';
 export type Booking={id:string;guest:string;email:string;people:number;room:string;arrival:string;departure:string;rate:number;source:string;status:BookingStatus;registered:boolean;lines:Line[];receipts:Receipt[];version:number;notes:string;
@@ -136,6 +137,21 @@ export type Booking={id:string;guest:string;email:string;people:number;room:stri
   // ── Booking · MA-2 catalogue fields (add below this line) ──
   /** Meal plan code (master mealPlans: EP / CP / MAP / AP / custom); absent = no plan. Plan lines post with each room night. */
   plan?:string;
+  // ── Booking · LF (SCHEMA 13, contract §2–§4, §8; declared by the setup commit, lanes implement) ──
+  /** A3: purpose-of-visit master code (frontdesk master `purposes`). */
+  purpose?:string;
+  /** A4: vehicle number (upper-case, 4–13 of A–Z 0–9 - space) and vehicle-type master label. */
+  vehicle?:{no:string;type?:string};
+  /** A5: Form C for a foreign guest (per stay). */
+  formC?:FormC;
+  /** A6: due-out basis; absent = the setting `frontdesk.defaultCheckoutBasis` (default 'fixed'). */
+  checkoutBasis?:'fixed'|'24h';
+  /** A6: simulated clock at CHECKIN (absent on old bookings = arrival + settings.checkin). */
+  checkedInAt?:string;
+  /** B1: where the rate came from ('agreed' = the guest's agreed rate set by the Owner). */
+  rateSource?:'tariff'|'agreed';
+  /** A2: earlier invoice revisions of this stay; `invoiceNo` is always the current one. */
+  invoiceRevisions?:{no:string;date:string;supersedes:string}[];
 };
 export type Task={id:string;room:string;booking?:string;assignee:string;status:'To do'|'In progress'|'Inspection'|'Done';checked:boolean[];
   // ── Task · stream A fields (add below this line) ──
@@ -198,6 +214,8 @@ export type Expense={id:string;vendor:string;category:string;amount:number;metho
   itc?:'allowed'|'disallowed';
   /** Bill photo (SCC: picked file ≤ 4 MB, scaled to 1000 px wide, JPEG 0.7): a data URL in the demo build; production keeps it on the server. */
   billPhoto?:string;
+  /** LF §1.10 (SCHEMA 13): ref into `s.docObjectsX`; replaces `billPhoto` after the v12 → v13 move. */
+  billPhotoRef?:string;
   /** Production: the server holds a bill photo for this expense (fetched on demand). */
   hasBillPhoto?:boolean;
   /** Origin: a petty-cash disbursement or a recurring template post (absent = entered by hand). sourceRef 'rec:<template>:<YYYY-MM>' / 'pty-…'. */
@@ -282,6 +300,10 @@ export type State={
     /** DEC-193: every accompanying guest has their own ID (idType, idLast4, idNumber? — optional fields, no SCHEMA bump; the full number is
      *  shown masked and revealed only through the audited GUEST_ID_VIEW {seq}). Required for Adult / Senior (GUEST_PARTY_ID_REQUIRED_BANDS). */
     party:{name:string;ageBand:string;relation:string;idType?:string;idLast4?:string;idNumber?:string}[];verified:boolean;
+    /** LF B1 (§3): agreed rate per room type; sent to money roles only (DEC-MA-11e). */
+    agreedRates?:GuestAgreedRate[];
+    /** LF B2 (§7): Owner-only money field (DEC-058); customerKey = the Udhaar party id. */
+    creditAccount?:GuestCreditAccount;
     /** seed = fixture, manual = GUEST_SAVE/REGISTER with details, auto = minimal demo profile from REGISTER {id}. */
     origin?:'seed'|'manual'|'auto';version?:number}[];
 
@@ -340,6 +362,14 @@ export type State={
   /** FY history: compact daily housekeeping summary for the generated history window (scenario FY26). */
   historyX?:import('./streams/history').HistoryX;
 
+  // ── State · LF slices (SCHEMA 13, contract §11; types below in this file, lanes implement in their stream files) ──
+  stayRateX?:STRState;
+  billCorrectionX?:BLCState;
+  counterX?:CTRState;
+  remindersX?:RMDState;
+  /** LF §1.10: every image / file of the demo keyed by ref (its own IndexedDB record). */
+  docObjectsX?:DOBState;
+
   // ── State · stream F fields (add below this line) ──
   /** Immutable closing record per business date (REQ-CLOSE-004). */
   closings?:Record<string,import('./streams/closing').ClosingRecord>;
@@ -349,4 +379,50 @@ export type State={
   shift?:import('./streams/closing').ShiftRecord;
 };
 export type Command={type:string;key?:string;[field:string]:any};
-export const SCHEMA=12; // 12 = ACC-2 (manual vouchers, purchases / vendor payments, TDS, GST month end, OTA payouts; new optional fields only — v11 saves need nothing). 11 = ACC-1 (accounting chart as a master, party ledgers, opening balances; new optional fields on accountingX — v10 saves need nothing). 10 = SCC port wave (leave one record per date, SCC compliance slice, SCC expense registers; v9 saves migrate by shape). 9 = masters wave MA-1…MA-7 (new optional slices / fields; v8 saves migrate, masters seed lazily)
+export const SCHEMA=13; // 13 = LF legacy parity (docObjectsX image slice — v12 saves move billPhoto / complianceFilesX into it; new optional LF slices and fields). 12 = ACC-2 (manual vouchers, purchases / vendor payments, TDS, GST month end, OTA payouts; new optional fields only — v11 saves need nothing). 11 = ACC-1 (accounting chart as a master, party ledgers, opening balances; new optional fields on accountingX — v10 saves need nothing). 10 = SCC port wave (leave one record per date, SCC compliance slice, SCC expense registers; v9 saves migrate by shape). 9 = masters wave MA-1…MA-7 (new optional slices / fields; v8 saves migrate, masters seed lazily)
+
+// ════ LF (wave claude/lf, contract 02 Planning/agents/LF-CONTRACT.md §11) — declared by the setup commit; lanes import (or re-export) these, never redeclare ════
+/** §1.10 */
+export type DOBKind='id-image'|'guest-photo'|'expense-bill'|'banking-slip'|'compliance-evidence'|'legacy-image';
+export type DOBObject={ref:string;kind:DOBKind;owner:string;contentType:string;bytes:number;dataUrl:string;at:string;by:string};
+/** State slice `s.docObjectsX` (schema 13): every image / file of the demo, keyed by ref; saved only when it changed (its own IndexedDB record). */
+export type DOBState=Record<string,DOBObject>;
+/** §1.11 (lf-images implements compressPhoto / PHOTO_SLIP / PHOTO_DOC in app/slipPhoto.ts). */
+export type PhotoProfile={maxBytes:number;edges:number[];qualities:number[];label:string};
+/** §2 A1 */
+export type STRRateChange={id:string;booking:string;room:string;date:string;at:string;by:string;approvalId?:string;approvedBy?:string;
+  scope:'next'|'today-next'|'all';reason:string;oldRate:number;newRate:number;oldPeople:number;newPeople:number;oldChildren:number;newChildren:number;
+  effectiveFrom:string;reposted:{reversal:string;line:string;night:string}[]};
+export type STRState={changes:STRRateChange[]};     // s.stayRateX
+/** §3 B1 */
+export type GuestAgreedRate={type:string;rate:number;plan?:string;validTo?:string;note?:string;setBy:string;at:string};
+/** §4 A2 */
+export type BLCChange=
+  |{kind:'room-rate';night:string;oldRate:number;newRate:number}
+  |{kind:'remove-line';lineId:string}
+  |{kind:'add-line';label:string;amount:number;gstCategory:string;date:string;extraId?:string};
+export type BLCCorrection={id:string;booking:string;oldInvoiceNo:string;creditNoteNo?:string;newInvoiceNo?:string;changes:BLCChange[];
+  reason:string;requestedBy:string;at:string;approvalId:string;approvedBy?:string;decidedAt?:string;status:'Pending'|'Issued'|'Rejected'|'Expired';
+  oldTotal:number;newTotal:number;delta:number;settlement?:'refund-due'|'balance-due'|'none'};
+export type BLCState={corrections:BLCCorrection[]};   // s.billCorrectionX
+/** §6 A7 */
+export type CTRLine={id:string;label:string;extraId?:string;menuItemId?:string;qty:number;unit:number;amount:number;gstCategory:string;taxBps:number;sac:string};
+export type CTRBill={id:string;no:string;date:string;at:string;by:string;party:{name:string;phone?:string;gstin?:string;address?:string;guestId?:string;companyId?:string};
+  lines:CTRLine[];discount?:{amount:number;reason:string};net:number;tax:number;cgst:number;sgst:number;total:number;remark?:string;
+  settlement:{mode:'paid'|'udhaar'|'company';method?:string;reference?:string;receiptId?:string;udhaarId?:string;companyId?:string};
+  status:'Issued'|'Credited';creditNoteNo?:string;creditNoteReason?:string;voidApprovalId?:string};
+export type CTRState={bills:CTRBill[]};   // s.counterX
+/** §7 B2 */
+export type GuestCreditAccount={limit:number;active:boolean;customerKey:string;setBy:string;at:string;note?:string};
+/** §8.3 A5 — the passport NUMBER is the guest's ID number (DEC-068 store); never duplicated here. */
+export type FormC={passportPlace:string;passportIssued:string;passportExpiry:string;
+  visaNo:string;visaType:string;visaPlace:string;visaIssued:string;visaExpiry:string;
+  arrivedFrom:string;arrivalInIndia:string;intendedStayDays:number;nextDestination:string;
+  employedInIndia:boolean;employerOrBusiness?:string;addressAbroad:string;contactAbroad?:string;sex:'M'|'F'|'X'};
+/** §9.2 B4 */
+export type RMDReminder={id:string;subject:string;date:string;time?:string;leadDays:number;role:Role|'all';note?:string;repeat:'none'|'monthly'|'yearly';
+  status:'open'|'done'|'dismissed';by:string;at:string;doneBy?:string;doneAt?:string;nextDate?:string};
+export type RMDState={reminders:RMDReminder[];leadDaysDefault:number};   // s.remindersX
+/** §1.9 System health databases block (SYSState.databases). */
+export type SYSDatabase={name:string;kind:'main'|'documents';schemaVersion:string;reachable:boolean;dataBytes:number;logBytes:number;limitBytes:number;pct:number;
+  objectCount?:number;contentBytes?:number;danglingRefs?:number;orphanObjects?:number;lastBackup?:string;lastDrill?:string};

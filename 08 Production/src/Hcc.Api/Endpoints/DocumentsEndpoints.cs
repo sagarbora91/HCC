@@ -21,7 +21,7 @@ public static class DocumentsEndpoints
     {
         services.AddSingleton<Hcc.Application.Configuration.ISettingsProvider>(DocumentSettings.Provider); // documents.retentionDays in Master configuration
         if (!services.Any(d => d.ServiceType == typeof(GuestIdProtector))) return services;
-        services.AddSingleton(sp => new SqlDocumentStore(sp.GetRequiredService<SqlPlatform>().Connections));
+        services.AddSingleton(sp => new SqlDocumentStore(sp.GetRequiredService<SqlPlatform>().Connections, sp.GetRequiredService<SqlPlatform>().DocumentObjects));
         services.AddSingleton<IDocumentStore>(sp => sp.GetRequiredService<SqlDocumentStore>());
         services.AddSingleton<IDocumentImageStore>(sp => sp.GetRequiredService<SqlDocumentStore>());
         services.AddSingleton(SimulatedAdapters.IdOcrEngine); // A09-08: simulated outside Production, "not configured" in Production
@@ -48,6 +48,8 @@ public static class DocumentsEndpoints
             http.HccReply(await Svc(sp).ConfirmAsync(http.HccCommand(DocumentService.OpConfirm), body, ct)));
         cmd.MapPost("/commands/" + DocumentService.OpReject, async (HttpContext http, RejectIdCaptureRequest body, IServiceProvider sp, CancellationToken ct) =>
             http.HccReply(await Svc(sp).RejectAsync(http.HccCommand(DocumentService.OpReject), body, ct)));
+        cmd.MapPost("/commands/" + DocumentService.OpRemovePhoto, async (HttpContext http, RemoveGuestPhotoRequest body, IServiceProvider sp, CancellationToken ct) =>
+            http.HccReply(await Svc(sp).RemovePhotoAsync(http.HccCommand(DocumentService.OpRemovePhoto), body, ct)));
         g.MapPost("/commands/" + DocumentService.OpViewImage, async (HttpContext http, ViewIdCaptureImageRequest body, IServiceProvider sp, CancellationToken ct) =>
         {
             http.Response.Headers.CacheControl = "no-store";

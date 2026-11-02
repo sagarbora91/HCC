@@ -8,6 +8,7 @@ using Hcc.Infrastructure.SqlServer.Connection;
 // HCC API host bootstrap. Usage:
 //   dotnet run --project src/Hcc.Api                -> serve /api/v1 (Kestrel; LAN TLS + Windows service hosting are P7)
 //   dotnet run --project src/Hcc.Api -- migrate     -> apply pending migrations (backup gate first on a non-empty database) and exit
+//   Hcc.Api.exe sweep-documents | check-documents  -> LF-docdb: orphan sweep / dangling-and-orphan report of the HccDocuments database
 //   Hcc.Api.exe verify-guest-id [--database <name>] -> open one sealed guest ID per key with the installed key (restore drill, A07-03); read-only
 // ETP-REUSE: replace/align with ETP migration CLI / operator entry point (and its logging) when V:\ETP is available.
 var builder = WebApplication.CreateBuilder(args);
@@ -30,6 +31,14 @@ if (args.Length > 0 && string.Equals(args[0], "migrate", StringComparison.Ordina
     var runner = scriptGate is null ? platform.Migrations : new MigrationRunner(platform.Connections, new EmbeddedMigrationSource(), scriptGate);
     var result = await runner.MigrateAsync();
     Console.WriteLine($"Schema version {result.FromVersion} -> {result.ToVersion}; applied [{string.Join(", ", result.Applied)}]; backup gate: {(result.BackupTaken ? (scriptGate?.LastBackupTarget ?? platform.BackupGate.LastBackupTarget) : "not needed")}.");
+    // LF-docdb (contract §1.6): then the documents database (own journal and backup gate) and the idempotent move job.
+    Environment.ExitCode = await DocumentsCommands.MigrateDocumentsAsync(platform, scriptGate, Console.Out);
+    return;
+}
+
+if (DocumentsCommands.IsVerb(args))
+{
+    Environment.ExitCode = await DocumentsCommands.RunVerbAsync(args, platform, Console.Out);
     return;
 }
 

@@ -42,12 +42,13 @@ public sealed record RegisterGuestRequest(long ReservationId, string ExpectedVer
 public sealed record RegisterGuestResult(long ReservationId, long GuestId, string GuestVersion, bool Verified);
 
 /// <summary>CheckIn K V. <c>ExpectedVersion</c> = the reservation's version.</summary>
-public sealed record CheckInRequest(long ReservationId, string ExpectedVersion);
+public sealed record CheckInRequest(long ReservationId, string ExpectedVersion, string? PurposeCode = null, string? VehicleNo = null, string? VehicleType = null,
+    string? CheckoutBasis = null, FormCDto? FormC = null, bool Desk = false);   // LF A3–A6: Desk = a front-desk form (applies the Owner's "purpose required" setting, like the prototype's desk:true)
 
 public sealed record CheckInResult(long StayId, long ReservationId, long FolioId, int RoomId, string RoomNo, string BusinessDate, string StayVersion);
 
 /// <summary>CheckoutStay K V. <c>ExpectedVersion</c> = the stay's version. Company credit is executed by Billing (P4).</summary>
-public sealed record CheckoutStayRequest(long StayId, string ExpectedVersion, long? CompanyCreditApprovalId = null);
+public sealed record CheckoutStayRequest(long StayId, string ExpectedVersion, long? CompanyCreditApprovalId = null, string? LateCharge = null, string? LateReason = null, bool Desk = false);   // LF A6: Desk = a front-desk form (the late check-out rule applies to it, like the prototype)
 
 public sealed record CheckoutStayResult(long StayId, long ReservationId, int RoomId, string RoomNo, string RoomHk, string BusinessDate, long OutboxId, string StayVersion);
 
@@ -98,3 +99,22 @@ public static class StaysEvents
 {
     public const string StayDeparted = "StayDeparted";
 }
+
+// ── LF lf-desk (LF-CONTRACT §8) ──
+
+/// <summary>Form C of a foreign guest's stay (per stay). The passport NUMBER is the guest's ID number and is not part of it. Dates yyyy-MM-dd; Sex M / F / X.</summary>
+public sealed record FormCDto(string PassportPlace, string PassportIssued, string PassportExpiry, string VisaNo, string VisaType, string VisaPlace, string VisaIssued, string VisaExpiry,
+    string ArrivedFrom, string ArrivalInIndia, int IntendedStayDays, string NextDestination, bool EmployedInIndia, string? EmployerOrBusiness, string AddressAbroad, string? ContactAbroad, string Sex);
+
+/// <summary>PostLateCheckoutCharge K V: <c>Charge</c> = half-day (posts the charge) or waived (needs PERM-APR-001 and a Reason). Posted before CheckoutStay so the folio can be settled.</summary>
+public sealed record LateCheckoutChargeRequest(long StayId, string ExpectedVersion, string Charge, string? Reason = null);
+
+public sealed record LateCheckoutChargeResult(long StayId, string Decision, long AmountPaise, string StayVersion);
+
+/// <summary>One row of GET /stays/form-c?from&amp;to (PERM-DOC-004): the stay, its guest and the Form C; the visa number is masked unless the reader holds the ID-details right.</summary>
+public sealed record FormCRegisterRow(long StayId, string Booking, string Room, string Guest, string Nationality, string Arrival, string Departure, string Status, string? Dob, FormCDto? FormC, bool Missing);
+
+public sealed record FormCRegister(string From, string To, IReadOnlyList<FormCRegisterRow> Rows);
+
+/// <summary>SaveStayFormC K: store or replace the Form C of an in-house stay (the check-in request carries it too).</summary>
+public sealed record SaveStayFormCRequest(long StayId, FormCDto FormC);

@@ -1,6 +1,7 @@
 // Compliance calendar — one SCC card (renderMonth L2452–2469): meta row, name, form, ≈₹ chip, QRMP advisory, filed line, control strip, the
 // done-capture row (filed on, notes, evidence, reviewer, files — all optional) and the "Controls" panel (NA toggle, ownership, deadline /
 // escalation / evidence, attached files, input checklist, workflow, reference & penalty). Same component on the desktop and the phone.
+import {compressDocPhoto} from '../../app/slipPhoto';
 import React,{useState} from 'react';
 import {CheckCircle2,ChevronDown,ChevronUp,Paperclip,X,Download,RotateCcw} from 'lucide-react';
 import {useHcc} from '../../app/context';
@@ -15,7 +16,9 @@ export function CmpCard({v,feed,phone}:{v:CMPView;feed?:CMPPayableFeed;phone?:bo
   const openFile=useCmpOpenFile();
   const [filedOn,setFiledOn]=useState(s.date),[notes,setNotes]=useState(''),[ev,setEv]=useState(''),[rev,setRev]=useState('');const [pick,setPick]=useState<File[]>([]);
   const attach=async(list:File[])=>{for(const f of list){if(f.size>CMP_FILE_MAX_BYTES){toast(`${f.name}: an evidence file can be at most 5 MB.`,true);continue;}
-    const dataUrl=await cmpReadFile(f);await run({type:'CMP_EVIDENCE_ADD',fy:v.fy,itemId:c.id,name:f.name,dataUrl,key:cmpActionKey(s,'ev',c.id,f.name,f.size)},'Evidence attached');}};
+    // LF-IMAGES (G1): a picture is compressed to about 150 KB on the device first (PDFs and other files go as they are, up to 5 MB)
+    let dataUrl:string;try{dataUrl=/^image\//.test(f.type)?(await compressDocPhoto(f)).dataUrl:await cmpReadFile(f);}catch(x){toast(`${f.name}: ${x instanceof Error?x.message:'the photo could not be prepared.'}`,true);continue;}
+    await run({type:'CMP_EVIDENCE_ADD',fy:v.fy,itemId:c.id,name:f.name,dataUrl,key:cmpActionKey(s,'ev',c.id,f.name,f.size)},'Evidence attached');}};
   const confirm=async()=>{const ok=await run({type:'CMP_DONE',fy:v.fy,itemId:c.id,filedOn,notes,evidenceRef:ev,reviewerNote:rev,key:cmpActionKey(s,'done',v.fy,c.id)},'Marked filed');
     if(ok){setCap(false);if(pick.length)await attach(pick);setPick([]);}};
   const doneBtn=v.isNA?<button type="button" className="cmp-done-btn" disabled title="Not Applicable — read-only" aria-label="Not applicable — read-only"/>

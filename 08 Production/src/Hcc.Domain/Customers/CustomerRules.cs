@@ -246,3 +246,14 @@ public static class CustomerRules
 
     public static string Date(DateOnly d) => d.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
 }
+
+/// <summary>LF B2 (LF-CONTRACT §7): ONE rule for a guest's credit-account key = the Udhaar party id the cut-over opening entry uses (prototype
+/// customers.ts customerKeyForCredit): the phone's last 10 digits, or the guest id when the phone has fewer than 10 digits.</summary>
+public static class CustomerCreditKey
+{
+    public static string Of(long guestId, string? phone)
+    {
+        var d = new string((phone ?? "").Where(char.IsAsciiDigit).ToArray());
+        return d.Length >= 10 ? d[^10..] : "G-" + guestId.ToString(System.Globalization.CultureInfo.InvariantCulture);
+    }
+}

@@ -4,6 +4,7 @@
 import type {State,Booking} from '../types';
 import {totals} from '../selectors';
 import {nights} from '../money';
+import {deskVehicleMatches} from './desk-fields'; // LF-DESK
 
 export type CustomerGuest=NonNullable<State['guests']>[number];
 /** One stay from the old Lodge desktop app (read only; no folio exists for it). `net` is paise, absent when the role may not see money. */
@@ -77,7 +78,7 @@ export function customerIndex(s:State,legacy?:LegacyLookup):Customer[]{
 export function customerSearch(list:Customer[],q:string,phoneOk=true):Customer[]{
   const text=q.trim();
   if(!text)return list;
-  if(/[a-z]/i.test(text)){const words=normName(text).split(' ').filter(Boolean);return list.filter(c=>words.every(w=>normName(c.name).includes(w)));}
+  if(/[a-z]/i.test(text)){const words=normName(text).split(' ').filter(Boolean);return list.filter(c=>words.every(w=>normName(c.name).includes(w))||c.stays.some(b=>deskVehicleMatches(b,text)));} // LF-DESK: or a vehicle number
   const digits=text.replace(/\D/g,'');
   if(!phoneOk||digits.length<3)return [];
   return list.filter(c=>c.phone.replace(/\D/g,'').includes(digits));
@@ -96,3 +97,7 @@ export function bookingIdLookup(s:State,q:string):Booking[]{
   const ref=(b:Booking)=>(b.publicNo||b.id).toLowerCase();
   return s.bookings.filter(b=>ref(b).includes(t)||b.id.toLowerCase()===t).sort((a,b)=>(ref(a)===t?-1:0)-(ref(b)===t?-1:0)||b.arrival.localeCompare(a.arrival)).slice(0,8);
 }
+
+// ── LF-COUNTER (contract §7, B2): ONE rule for a guest's credit-account key = the Udhaar party id the cut-over opening entry uses (server
+// CustomerRules.CreditKey): the phone's last 10 digits, or the guest id when the guest has no usable phone. Party ledger 1120/UD-<key>. ──
+export function customerKeyForCredit(g:{id:string;phone?:string}):string{const d=String(g.phone??'').replace(/\D/g,'');return d.length>=10?d.slice(-10):g.id;}
