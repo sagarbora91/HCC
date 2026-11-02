@@ -154,7 +154,13 @@ public sealed record DocumentLine(string Description, string Sac, Paise Taxable,
 /// <summary>What a printed tax invoice / bill of supply / credit note shows (r.46 / r.49 / r.53 particulars as read; CA to confirm the layout).</summary>
 public sealed record InvoiceDocumentModel(string Title, string Number, DateOnly Date, DocumentParty Supplier, DocumentParty Recipient, string PlaceOfSupply,
     bool InterState, string? Reference, string? AgainstInvoice, string? Reason, IReadOnlyList<DocumentLine> Lines, InvoiceFigures Figures, string AmountWords,
-    string Footer);
+    string Footer, string? Supersession = null);
+
+/// <summary>LF-int (LF A2 print note): "Supersedes INV/…" on a revision, "Superseded by INV/… (credit note CRN/…)" on an earlier invoice; null when neither.</summary>
+public interface IInvoiceSupersessionReader
+{
+    Task<string?> NoteAsync(int propertyId, long invoiceId, CancellationToken ct = default);
+}
 
 public sealed record RenderedDocument(string ContentType, string Content);
 

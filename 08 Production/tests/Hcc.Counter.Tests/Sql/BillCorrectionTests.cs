@@ -52,6 +52,13 @@ public sealed class BillCorrectionTests
         Assert.Equal("Executed", ok.Value.Status);
         Assert.Equal(1, await h.LongAsync($"SELECT COUNT(*) FROM ivc.invoice WHERE source_kind = 'folio' AND source_id = {folio} AND revision = 2 AND total_paise = 157500", Ct));
         Assert.Equal(1, await h.LongAsync($"SELECT COUNT(*) FROM ivc.invoice_supersession s JOIN ivc.invoice o ON o.invoice_id = s.invoice_id WHERE o.invoice_no = '{oldNo}'", Ct));
+        // LF-int: the print notes on both documents.
+        var oldId = await h.LongAsync($"SELECT invoice_id FROM ivc.invoice WHERE invoice_no = '{oldNo}'", Ct);
+        var newId = await h.LongAsync($"SELECT invoice_id FROM ivc.invoice WHERE source_kind = 'folio' AND source_id = {folio} AND revision = 2", Ct);
+        var newNo = (string)(await h.ScalarAsync($"SELECT invoice_no FROM ivc.invoice WHERE invoice_id = {newId}", Ct))!;
+        var q = h.Get<InvoiceQueries>();
+        Assert.Contains("Superseded by " + newNo + " (credit note ", (await q.RenderInvoiceAsync(h.PropertyId, h.Owner, oldId, "text", Ct)).Content, StringComparison.Ordinal);
+        Assert.Contains("Supersedes " + oldNo, (await q.RenderInvoiceAsync(h.PropertyId, h.Owner, newId, "text", Ct)).Content, StringComparison.Ordinal);
         Assert.Equal(1, await h.LongAsync($"SELECT COUNT(*) FROM ivc.bill_correction WHERE folio_id = {folio} AND status = 'Issued' AND settlement = 'refund-due' AND credit_note_no IS NOT NULL", Ct));
         Assert.Equal(1, await h.LongAsync($"SELECT COUNT(*) FROM ivc.credit_note n JOIN ivc.invoice o ON o.invoice_id = n.invoice_id WHERE o.invoice_no = '{oldNo}' AND n.total_paise = 210000", Ct));
         // Folio: original 2,100 + credit −2,100 + corrected 1,575 = 1,575 charged; 2,100 paid → 525 owed back to the guest.

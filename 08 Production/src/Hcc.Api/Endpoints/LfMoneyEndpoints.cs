@@ -30,7 +30,9 @@ public static class LfMoneyEndpoints
         services.AddSingleton<Hcc.Application.Counter.CounterBillService>();
         services.AddSingleton<Hcc.Application.Billing.ILfApprovalHandler>(sp => sp.GetRequiredService<Hcc.Application.Counter.CounterBillService>());
         // LF A2 bill correction after check-out (CRN + corrected lines + revision invoice)
-        services.AddSingleton<Hcc.Application.Invoices.IBillCorrectionStore>(sp => new SqlBillCorrectionStore(sp.GetRequiredService<SqlPlatform>().Connections));
+        services.AddSingleton<SqlBillCorrectionStore>(sp => new SqlBillCorrectionStore(sp.GetRequiredService<SqlPlatform>().Connections));
+        services.AddSingleton<Hcc.Application.Invoices.IBillCorrectionStore>(sp => sp.GetRequiredService<SqlBillCorrectionStore>());
+        services.AddSingleton<Hcc.Application.Invoices.IInvoiceSupersessionReader>(sp => sp.GetRequiredService<SqlBillCorrectionStore>()); // LF-int: print note
         services.AddSingleton<Hcc.Application.Invoices.BillCorrectionService>();
         services.AddSingleton<Hcc.Application.Billing.ILfApprovalHandler>(sp => sp.GetRequiredService<Hcc.Application.Invoices.BillCorrectionService>());
         return services;

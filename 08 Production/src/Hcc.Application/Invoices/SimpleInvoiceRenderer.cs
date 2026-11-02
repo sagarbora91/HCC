@@ -37,6 +37,7 @@ public sealed class SimpleInvoiceRenderer : IInvoiceDocumentRenderer
         sb.Append("Place of supply: ").Append(d.PlaceOfSupply).Append(d.InterState ? " (inter-state, IGST)" : " (intra-state, CGST + SGST)").Append(nl);
         if (d.Reference is not null) sb.Append("Reference: ").Append(d.Reference).Append(nl);
         if (d.AgainstInvoice is not null) sb.Append("Against invoice: ").Append(d.AgainstInvoice).Append(nl);
+        if (d.Supersession is not null) sb.Append(d.Supersession).Append(nl);
         if (d.Reason is not null) sb.Append("Reason: ").Append(d.Reason).Append(nl);
         foreach (var l in d.Lines)
         {
@@ -65,6 +66,7 @@ public sealed class SimpleInvoiceRenderer : IInvoiceDocumentRenderer
         sb.Append("<p>Place of supply: ").Append(E(d.PlaceOfSupply)).Append(d.InterState ? " (inter-state, IGST)" : " (intra-state, CGST + SGST)").Append("</p>");
         if (d.Reference is not null) sb.Append("<p>Reference: ").Append(E(d.Reference)).Append("</p>");
         if (d.AgainstInvoice is not null) sb.Append("<p>Against invoice: ").Append(E(d.AgainstInvoice)).Append("</p>");
+        if (d.Supersession is not null) sb.Append("<p class=\"supersession\">").Append(E(d.Supersession)).Append("</p>");
         if (d.Reason is not null) sb.Append("<p>Reason: ").Append(E(d.Reason)).Append("</p>");
         sb.Append(d.InterState
             ? "<table><thead><tr><th>Description</th><th>SAC</th><th>Taxable</th><th>Rate</th><th>IGST</th></tr></thead><tbody>"

@@ -66,4 +66,31 @@ public sealed class CounterPostingTests
         Assert.Equal(true, await h.ScalarAsync($"SELECT is_void FROM ops.udhaar_receivable WHERE receivable_id = {ud.Value.UdhaarId}", Ct));
         await Assert.ThrowsAsync<HccException>(() => c.RequestVoidAsync(h.Ctx(h.Reception, CounterBillService.OpRequestVoid), new(ud.Value.BillId, "again"), Ct));
     }
+
+    [Fact]
+    public async Task Catalogue_price_when_none_given_and_the_cash_receipt_limit()
+    {
+        await using var h = await Hotel.CreateAsync(Ct);
+        await h.ScalarAsync($"UPDATE inv.property SET gstin = '{HotelGstin}', address = N'12 Station Road, Latur (fictional)' WHERE property_id = {h.PropertyId};", Ct);
+        await h.ScalarAsync($"INSERT bill.extra_item(property_id, code, name, category, gst_category, unit, department, sort_order, active, updated_by, updated_utc) VALUES ({h.PropertyId}, 'DRYCLEAN', N'Dry cleaning', 'laundry', 'laundry', 'piece', 'laundry', 20, 1, 0, SYSUTCDATETIME()); "
+            + $"INSERT bill.extra_item_price(extra_item_id, effective_from, amount_paise) SELECT extra_item_id, '2025-04-01', 25000 FROM bill.extra_item WHERE property_id = {h.PropertyId} AND code = 'DRYCLEAN';", Ct);
+        var c = h.Get<CounterBillService>();
+        // LF-int: a line naming a catalogue extra without a price takes the master's price on the business date (DRYCLEAN seed ₹250) and its name.
+        var dry = await c.IssueAsync(h.Ctx(h.Reception, CounterBillService.OpIssue), new IssueCounterBillRequest(new("Walk-in D (fictional)"),
+            [new("", 2, 0, ExtraId: "DRYCLEAN")], new("paid", "UPI", "UPI-REF-9")), Ct);
+        Assert.Equal(50000, dry.Value.NetPaise);
+        Assert.Equal(1, await h.LongAsync($"SELECT COUNT(*) FROM ctr.bill_line WHERE bill_id = {dry.Value.BillId} AND unit_paise = 25000", Ct));
+        var given = await c.IssueAsync(h.Ctx(h.Reception, CounterBillService.OpIssue), new IssueCounterBillRequest(new("Walk-in E (fictional)"),
+            [new("Dry cleaning · silk", 1, 40000, ExtraId: "DRYCLEAN")], new("paid", "UPI", "UPI-REF-10")), Ct);
+        Assert.Equal(40000, given.Value.NetPaise);
+        var unknown = await Assert.ThrowsAsync<HccException>(() => c.IssueAsync(h.Ctx(h.Reception, CounterBillService.OpIssue), new IssueCounterBillRequest(new("Walk-in F"),
+            [new("", 1, 0, ExtraId: "NOSUCH")], new("paid", "UPI", "R")), Ct));
+        Assert.Equal(HccErrorCode.VALIDATION, unknown.Code);
+        // ACC-2 §7 B9: one counter bill of ₹2,00,000 or more in cash is refused (CASH_LIMIT) before the drawer is touched.
+        var (till, _) = await h.OpenTillAsync(0, Ct);
+        var big = await Assert.ThrowsAsync<HccException>(() => c.IssueAsync(h.Ctx(h.Reception, CounterBillService.OpIssue), new IssueCounterBillRequest(new("Walk-in G (fictional)"),
+            [new("Banquet hall · wedding", 1, 19_000_000, "banquet")], new("paid", "Cash", TillId: till)), Ct));
+        Assert.Equal(HccErrorCode.VALIDATION, big.Code);
+        Assert.Equal(CashGuard.Reason, big.Details!["reason"].GetString());
+    }
 }

@@ -88,7 +88,8 @@ public interface ICounterBillStore
 /// a full credit note (CRN), cash back out of the drawer / the receivable voided, status Credited, <c>CounterBillCredited</c> (the mirror voucher).
 /// </summary>
 public sealed class CounterBillService(ICommandRunner runner, IAccessPolicy policy, ICounterBillStore store, IBillingStore billing, IGstRateResolver gst,
-    InvoiceService invoices, TimeProvider clock, ICashDrawerPort? drawer = null, ICompanyCreditGuard? credit = null) : ILfApprovalHandler
+    InvoiceService invoices, TimeProvider clock, ICashDrawerPort? drawer = null, ICompanyCreditGuard? credit = null,
+    Accounting.CashGuardService? cashGuard = null, Catalogue.ICatalogueStore? catalogue = null, Pos.IPosStore? pos = null) : ILfApprovalHandler
 {
     public const string OpIssue = "IssueCounterBill";
     public const string OpRequestVoid = "RequestCounterBillVoid";
@@ -136,9 +137,33 @@ public sealed class CounterBillService(ICommandRunner runner, IAccessPolicy poli
             var bd = await store.BusinessDateAsync(tx, ctx.PropertyId, c).ConfigureAwait(false);
             var priced = new List<CounterLine>();
             var seq = 0;
-            foreach (var l in lines)
+            IReadOnlyList<Catalogue.CatRow>? extras = null;
+            foreach (var raw in lines)
             {
                 seq++;
+                // LF-int (LF-money open point): a line that names a catalogue extra or a POS menu item takes its price (and label / GST class) from the
+                // master on the business date when the request gives no unit price; a given price is kept (prototype ctrLineFrom parity).
+                var l = raw;
+                if (Blank(l.ExtraId) is { } xid && catalogue is not null)
+                {
+                    extras ??= await catalogue.LockRowsAsync(tx, Catalogue.CatalogueMaster.Extras, ctx.PropertyId, c).ConfigureAwait(false);
+                    var x = extras.FirstOrDefault(r => r.Id.ToString(CultureInfo.InvariantCulture) == xid || string.Equals(r.Code, xid, StringComparison.OrdinalIgnoreCase))
+                        ?? throw HccException.Validation($"Line {N(seq)}: choose an item from the catalogue.");
+                    if (!x.Active) throw HccException.Validation($"Line {N(seq)}: {x.Name} is retired — choose another item.");
+                    var unit = l.UnitPaise > 0 ? l.UnitPaise : Hcc.Domain.Catalogue.CatalogueRules.AmountOn(x.Prices, bd)
+                        ?? throw HccException.Validation($"Line {N(seq)}: {x.Name} has no price on {bd:yyyy-MM-dd} — enter the unit price.");
+                    l = l with { Label = string.IsNullOrWhiteSpace(l.Label) ? x.Name : l.Label, UnitPaise = unit, GstCategory = l.GstCategory ?? x.F("gst_category") };
+                }
+                else if (Blank(l.MenuItemId) is { } mid && pos is not null)
+                {
+                    var m = int.TryParse(mid, NumberStyles.None, CultureInfo.InvariantCulture, out var itemId)
+                        ? await pos.MenuItemAsync(tx, ctx.PropertyId, itemId, false, c).ConfigureAwait(false) : null;
+                    if (m is null || !m.Active) throw HccException.Validation($"Line {N(seq)}: choose an item from the menu.");
+                    var unit = l.UnitPaise > 0 ? l.UnitPaise : m.Priced && m.Price.Value > 0 ? m.Price.Value
+                        : throw HccException.Validation($"Line {N(seq)}: {m.Name} has no price — enter the unit price.");
+                    l = l with { Label = string.IsNullOrWhiteSpace(l.Label) ? m.Name : l.Label, UnitPaise = unit, GstCategory = l.GstCategory ?? m.GstClass };
+                }
+
                 if (CounterBillRules.LineRefusal(seq, l.Label ?? "", l.Qty, new Paise(l.UnitPaise)) is { } bad) throw HccException.Validation(bad);
                 var cat = GstCategories.ForCharge(l.GstCategory, l.Label!);
                 var g = cat == GstCategory.Room
@@ -156,6 +181,9 @@ public sealed class CounterBillService(ICommandRunner runner, IAccessPolicy poli
 
             var totals = CounterBillRules.Totals(priced, discount);
             if (totals.Total.Value <= 0) throw HccException.Validation("The bill total must be more than zero.");
+            // LF-int (LF-money open point; ACC-2 contract §7, B9): one counter bill of the receipt limit or more in cash is refused (CASH_LIMIT), as a POS bill.
+            if (cash && cashGuard is not null)
+                await cashGuard.EnsureReceiptAsync(tx, ctx.PropertyId, new Accounting.CashParty(Accounting.CashParty.Bill, 0), totals.Total.Value, bd, "this counter bill", c).ConfigureAwait(false);
             long? companyId = null;
             if (mode == CounterBillRules.Company)
             {

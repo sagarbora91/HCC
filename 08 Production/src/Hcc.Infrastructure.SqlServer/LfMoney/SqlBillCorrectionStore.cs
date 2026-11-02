@@ -9,8 +9,31 @@ using Microsoft.Data.SqlClient;
 namespace Hcc.Infrastructure.SqlServer.LfMoney;
 
 /// <summary>SQL adapter of <see cref="IBillCorrectionStore"/> (LF A2: 4680 revision, 4681 ivc.invoice_supersession, 4682 ivc.bill_correction + changes).</summary>
-public sealed class SqlBillCorrectionStore(SqlConnectionFactory connections) : IBillCorrectionStore
+public sealed class SqlBillCorrectionStore(SqlConnectionFactory connections) : IBillCorrectionStore, IInvoiceSupersessionReader
 {
+    /// <summary>LF-int: the print note (prototype bill-correction.ts blcPrintNote parity).</summary>
+    public async Task<string?> NoteAsync(int propertyId, long invoiceId, CancellationToken ct = default)
+    {
+        await using var conn = await connections.OpenAsync(ct).ConfigureAwait(false);
+        await using var cmd = connections.Command("""
+            SELECT (SELECT TOP (1) o.invoice_no FROM ivc.invoice_supersession s JOIN ivc.invoice o ON o.invoice_id = s.invoice_id
+                     WHERE s.superseded_by_invoice_id = @i ORDER BY s.utc DESC),
+                   (SELECT TOP (1) n.invoice_no FROM ivc.invoice_supersession s JOIN ivc.invoice n ON n.invoice_id = s.superseded_by_invoice_id
+                     WHERE s.invoice_id = @i ORDER BY s.utc DESC),
+                   (SELECT TOP (1) bc.credit_note_no FROM ivc.invoice_supersession s JOIN ivc.bill_correction bc ON bc.correction_id = s.correction_id
+                     WHERE s.invoice_id = @i ORDER BY s.utc DESC)
+            WHERE EXISTS (SELECT 1 FROM ivc.invoice WHERE invoice_id = @i AND property_id = @p);
+            """, conn);
+        P(cmd, "@i", SqlDbType.BigInt, invoiceId);
+        P(cmd, "@p", SqlDbType.Int, propertyId);
+        await using var r = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+        if (!await r.ReadAsync(ct).ConfigureAwait(false)) return null;
+        var parts = new List<string>();
+        if (!r.IsDBNull(0)) parts.Add("Supersedes " + r.GetString(0));
+        if (!r.IsDBNull(1)) parts.Add("Superseded by " + r.GetString(1) + (r.IsDBNull(2) ? "" : $" (credit note {r.GetString(2)})"));
+        return parts.Count == 0 ? null : string.Join(" · ", parts);
+    }
+
     private static SqlCommand Cmd(ICommandTransaction tx, string sql) =>
         (tx as SqlCommandTransaction ?? throw new InvalidOperationException("The bill-correction store needs the SQL command transaction.")).Command(sql);
 
