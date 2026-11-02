@@ -1,0 +1,11 @@
+/* FIT-2 · lane closing — Cashier shift as four sub-screens with a result rail (contract §12). Desktop only (.app-shell); spacing only, no font size
+   (DEC-195); colours as tokens. These replace the old two-column .cashier-cols rules (cashier.css) for the steps layout. */
+.app-shell [data-fit-page="cashier"] .padded{padding:12px 16px}
+.app-shell [data-fit-page="cashier"] .cashier-status{padding-bottom:0}
+.app-shell [data-fit-page="cashier"] .closing-banner{margin:0;padding:12px 16px}
+.app-shell [data-fit-page="cashier"] .f-formula{padding-top:12px;padding-bottom:12px}
+.app-shell [data-fit-page="cashier"] .form.padded{padding:0}
+/* The count / decision / open-shift buttons stay visible: their action bar sticks to the bottom of the panel while the form scrolls. */
+.app-shell [data-fit-page="cashier"] .cashier-shift .modal-actions{position:sticky;bottom:0;z-index:1;background:var(--c-ffffff);margin-bottom:0;padding-top:10px;padding-bottom:4px}
+.app-shell [data-fit-page="cashier"] .cx-fit-note{padding-bottom:0}
+.app-shell [data-fit-page="cashier"] .cx-fit-note>p{margin:0 0 8px}

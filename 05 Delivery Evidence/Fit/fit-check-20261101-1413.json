@@ -1,0 +1,4640 @@
+[
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "settings",
+  "tab": "",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "settings",
+  "tab": "property",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "settings",
+  "tab": "rooms",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "settings",
+  "tab": "frontdesk",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "settings",
+  "tab": "money",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "settings",
+  "tab": "pos",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "settings",
+  "tab": "hkm",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "settings",
+  "tab": "people",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "settings",
+  "tab": "compliance",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "settings",
+  "tab": "modules",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "settings",
+  "tab": "users",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "settings",
+  "tab": "messages",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "settings",
+  "tab": "data",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "approvals",
+  "tab": "",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "approvals",
+  "tab": "approvals",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "approvals",
+  "tab": "expenses",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "approvals",
+  "tab": "audit",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "reservations",
+  "tab": "modal:+ New reservation",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "expenses",
+  "tab": "modal:+ Add expense",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "access",
+  "tab": "modal:New user",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "overview",
+  "tab": "modal:user menu",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "manager",
+  "page": "approvals",
+  "tab": "",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "manager",
+  "page": "approvals",
+  "tab": "approvals",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "manager",
+  "page": "approvals",
+  "tab": "expenses",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "manager",
+  "page": "approvals",
+  "tab": "audit",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "manager",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "manager",
+  "page": "reservations",
+  "tab": "modal:+ New reservation",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "manager",
+  "page": "expenses",
+  "tab": "modal:+ Add expense",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "manager",
+  "page": "overview",
+  "tab": "modal:user menu",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "reception",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "reception",
+  "page": "reservations",
+  "tab": "modal:+ New reservation",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "reception",
+  "page": "expenses",
+  "tab": "modal:+ Add expense",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "cashier",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "cashier",
+  "page": "expenses",
+  "tab": "modal:+ Add expense",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "cashier",
+  "page": "overview",
+  "tab": "modal:user menu",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "supervisor",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "housekeeper",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "accountant",
+  "page": "approvals",
+  "tab": "",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "accountant",
+  "page": "approvals",
+  "tab": "approvals",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "accountant",
+  "page": "approvals",
+  "tab": "expenses",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "accountant",
+  "page": "approvals",
+  "tab": "audit",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "accountant",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "accountant",
+  "page": "overview",
+  "tab": "modal:user menu",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "maint",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "techadmin",
+  "page": "settings",
+  "tab": "",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "techadmin",
+  "page": "settings",
+  "tab": "property",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "techadmin",
+  "page": "settings",
+  "tab": "rooms",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "techadmin",
+  "page": "settings",
+  "tab": "frontdesk",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "techadmin",
+  "page": "settings",
+  "tab": "money",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "techadmin",
+  "page": "settings",
+  "tab": "pos",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "techadmin",
+  "page": "settings",
+  "tab": "hkm",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "techadmin",
+  "page": "settings",
+  "tab": "people",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "techadmin",
+  "page": "settings",
+  "tab": "compliance",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "techadmin",
+  "page": "settings",
+  "tab": "modules",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "techadmin",
+  "page": "settings",
+  "tab": "users",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "techadmin",
+  "page": "settings",
+  "tab": "messages",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "techadmin",
+  "page": "settings",
+  "tab": "data",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "techadmin",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "owner",
+  "page": "settings",
+  "tab": "",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "owner",
+  "page": "settings",
+  "tab": "property",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "owner",
+  "page": "settings",
+  "tab": "rooms",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "owner",
+  "page": "settings",
+  "tab": "frontdesk",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "owner",
+  "page": "settings",
+  "tab": "money",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "owner",
+  "page": "settings",
+  "tab": "pos",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "owner",
+  "page": "settings",
+  "tab": "hkm",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "owner",
+  "page": "settings",
+  "tab": "people",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "owner",
+  "page": "settings",
+  "tab": "compliance",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "owner",
+  "page": "settings",
+  "tab": "modules",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "owner",
+  "page": "settings",
+  "tab": "users",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "owner",
+  "page": "settings",
+  "tab": "messages",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "owner",
+  "page": "settings",
+  "tab": "data",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "owner",
+  "page": "approvals",
+  "tab": "",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "owner",
+  "page": "approvals",
+  "tab": "approvals",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "owner",
+  "page": "approvals",
+  "tab": "expenses",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "owner",
+  "page": "approvals",
+  "tab": "audit",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "owner",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "owner",
+  "page": "reservations",
+  "tab": "modal:+ New reservation",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "owner",
+  "page": "expenses",
+  "tab": "modal:+ Add expense",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "owner",
+  "page": "access",
+  "tab": "modal:New user",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "owner",
+  "page": "overview",
+  "tab": "modal:user menu",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "manager",
+  "page": "approvals",
+  "tab": "",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "manager",
+  "page": "approvals",
+  "tab": "approvals",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "manager",
+  "page": "approvals",
+  "tab": "expenses",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "manager",
+  "page": "approvals",
+  "tab": "audit",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "manager",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "manager",
+  "page": "reservations",
+  "tab": "modal:+ New reservation",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "manager",
+  "page": "expenses",
+  "tab": "modal:+ Add expense",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "manager",
+  "page": "overview",
+  "tab": "modal:user menu",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "reception",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "reception",
+  "page": "reservations",
+  "tab": "modal:+ New reservation",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "reception",
+  "page": "expenses",
+  "tab": "modal:+ Add expense",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "cashier",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "cashier",
+  "page": "expenses",
+  "tab": "modal:+ Add expense",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "cashier",
+  "page": "overview",
+  "tab": "modal:user menu",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "supervisor",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "housekeeper",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "accountant",
+  "page": "approvals",
+  "tab": "",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "accountant",
+  "page": "approvals",
+  "tab": "approvals",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "accountant",
+  "page": "approvals",
+  "tab": "expenses",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "accountant",
+  "page": "approvals",
+  "tab": "audit",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "accountant",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "accountant",
+  "page": "overview",
+  "tab": "modal:user menu",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "maint",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "techadmin",
+  "page": "settings",
+  "tab": "",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "techadmin",
+  "page": "settings",
+  "tab": "property",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "techadmin",
+  "page": "settings",
+  "tab": "rooms",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "techadmin",
+  "page": "settings",
+  "tab": "frontdesk",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "techadmin",
+  "page": "settings",
+  "tab": "money",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "techadmin",
+  "page": "settings",
+  "tab": "pos",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "techadmin",
+  "page": "settings",
+  "tab": "hkm",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "techadmin",
+  "page": "settings",
+  "tab": "people",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "techadmin",
+  "page": "settings",
+  "tab": "compliance",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "techadmin",
+  "page": "settings",
+  "tab": "modules",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "techadmin",
+  "page": "settings",
+  "tab": "users",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "techadmin",
+  "page": "settings",
+  "tab": "messages",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "techadmin",
+  "page": "settings",
+  "tab": "data",
+  "screens": 1,
+  "docH": 1066,
+  "vh": 1066,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-port",
+  "role": "techadmin",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "settings",
+  "tab": "",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "settings",
+  "tab": "property",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "settings",
+  "tab": "rooms",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "settings",
+  "tab": "frontdesk",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "settings",
+  "tab": "money",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "settings",
+  "tab": "pos",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "settings",
+  "tab": "hkm",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "settings",
+  "tab": "people",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "settings",
+  "tab": "compliance",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "settings",
+  "tab": "modules",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "settings",
+  "tab": "users",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "settings",
+  "tab": "messages",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "settings",
+  "tab": "data",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "approvals",
+  "tab": "",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "approvals",
+  "tab": "approvals",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "approvals",
+  "tab": "expenses",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "approvals",
+  "tab": "audit",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "reservations",
+  "tab": "modal:+ New reservation",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "expenses",
+  "tab": "modal:+ Add expense",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "access",
+  "tab": "modal:New user",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "overview",
+  "tab": "modal:user menu",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "manager",
+  "page": "approvals",
+  "tab": "",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "manager",
+  "page": "approvals",
+  "tab": "approvals",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "manager",
+  "page": "approvals",
+  "tab": "expenses",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "manager",
+  "page": "approvals",
+  "tab": "audit",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "manager",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "manager",
+  "page": "reservations",
+  "tab": "modal:+ New reservation",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "manager",
+  "page": "expenses",
+  "tab": "modal:+ Add expense",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "manager",
+  "page": "overview",
+  "tab": "modal:user menu",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "reception",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "reception",
+  "page": "reservations",
+  "tab": "modal:+ New reservation",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "reception",
+  "page": "expenses",
+  "tab": "modal:+ Add expense",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "cashier",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "cashier",
+  "page": "expenses",
+  "tab": "modal:+ Add expense",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "cashier",
+  "page": "overview",
+  "tab": "modal:user menu",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "supervisor",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "housekeeper",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "accountant",
+  "page": "approvals",
+  "tab": "",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "accountant",
+  "page": "approvals",
+  "tab": "approvals",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "accountant",
+  "page": "approvals",
+  "tab": "expenses",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "accountant",
+  "page": "approvals",
+  "tab": "audit",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "accountant",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "accountant",
+  "page": "overview",
+  "tab": "modal:user menu",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "maint",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "techadmin",
+  "page": "settings",
+  "tab": "",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "techadmin",
+  "page": "settings",
+  "tab": "property",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "techadmin",
+  "page": "settings",
+  "tab": "rooms",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "techadmin",
+  "page": "settings",
+  "tab": "frontdesk",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "techadmin",
+  "page": "settings",
+  "tab": "money",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "techadmin",
+  "page": "settings",
+  "tab": "pos",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "techadmin",
+  "page": "settings",
+  "tab": "hkm",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "techadmin",
+  "page": "settings",
+  "tab": "people",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "techadmin",
+  "page": "settings",
+  "tab": "compliance",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "techadmin",
+  "page": "settings",
+  "tab": "modules",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "techadmin",
+  "page": "settings",
+  "tab": "users",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "techadmin",
+  "page": "settings",
+  "tab": "messages",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "techadmin",
+  "page": "settings",
+  "tab": "data",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "techadmin",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "owner",
+  "page": "settings",
+  "tab": "",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "owner",
+  "page": "settings",
+  "tab": "property",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "owner",
+  "page": "settings",
+  "tab": "rooms",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "owner",
+  "page": "settings",
+  "tab": "frontdesk",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "owner",
+  "page": "settings",
+  "tab": "money",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "owner",
+  "page": "settings",
+  "tab": "pos",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "owner",
+  "page": "settings",
+  "tab": "hkm",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "owner",
+  "page": "settings",
+  "tab": "people",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "owner",
+  "page": "settings",
+  "tab": "compliance",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "owner",
+  "page": "settings",
+  "tab": "modules",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "owner",
+  "page": "settings",
+  "tab": "users",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "owner",
+  "page": "settings",
+  "tab": "messages",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "owner",
+  "page": "settings",
+  "tab": "data",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "owner",
+  "page": "approvals",
+  "tab": "",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "owner",
+  "page": "approvals",
+  "tab": "approvals",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "owner",
+  "page": "approvals",
+  "tab": "expenses",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "owner",
+  "page": "approvals",
+  "tab": "audit",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "owner",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "owner",
+  "page": "reservations",
+  "tab": "modal:+ New reservation",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "owner",
+  "page": "expenses",
+  "tab": "modal:+ Add expense",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "owner",
+  "page": "access",
+  "tab": "modal:New user",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "owner",
+  "page": "overview",
+  "tab": "modal:user menu",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "manager",
+  "page": "approvals",
+  "tab": "",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "manager",
+  "page": "approvals",
+  "tab": "approvals",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "manager",
+  "page": "approvals",
+  "tab": "expenses",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "manager",
+  "page": "approvals",
+  "tab": "audit",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "manager",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "manager",
+  "page": "reservations",
+  "tab": "modal:+ New reservation",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "manager",
+  "page": "expenses",
+  "tab": "modal:+ Add expense",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "manager",
+  "page": "overview",
+  "tab": "modal:user menu",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "reception",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "reception",
+  "page": "reservations",
+  "tab": "modal:+ New reservation",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "reception",
+  "page": "expenses",
+  "tab": "modal:+ Add expense",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "cashier",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "cashier",
+  "page": "expenses",
+  "tab": "modal:+ Add expense",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "cashier",
+  "page": "overview",
+  "tab": "modal:user menu",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "supervisor",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "housekeeper",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "accountant",
+  "page": "approvals",
+  "tab": "",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "accountant",
+  "page": "approvals",
+  "tab": "approvals",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "accountant",
+  "page": "approvals",
+  "tab": "expenses",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "accountant",
+  "page": "approvals",
+  "tab": "audit",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "accountant",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "accountant",
+  "page": "overview",
+  "tab": "modal:user menu",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "maint",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "techadmin",
+  "page": "settings",
+  "tab": "",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "techadmin",
+  "page": "settings",
+  "tab": "property",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "techadmin",
+  "page": "settings",
+  "tab": "rooms",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "techadmin",
+  "page": "settings",
+  "tab": "frontdesk",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "techadmin",
+  "page": "settings",
+  "tab": "money",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "techadmin",
+  "page": "settings",
+  "tab": "pos",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "techadmin",
+  "page": "settings",
+  "tab": "hkm",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "techadmin",
+  "page": "settings",
+  "tab": "people",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "techadmin",
+  "page": "settings",
+  "tab": "compliance",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "techadmin",
+  "page": "settings",
+  "tab": "modules",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "techadmin",
+  "page": "settings",
+  "tab": "users",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "techadmin",
+  "page": "settings",
+  "tab": "messages",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "techadmin",
+  "page": "settings",
+  "tab": "data",
+  "screens": 1,
+  "docH": 720,
+  "vh": 720,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1280",
+  "role": "techadmin",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "owner",
+  "page": "settings",
+  "tab": "",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "owner",
+  "page": "settings",
+  "tab": "property",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "owner",
+  "page": "settings",
+  "tab": "rooms",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "owner",
+  "page": "settings",
+  "tab": "frontdesk",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "owner",
+  "page": "settings",
+  "tab": "money",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "owner",
+  "page": "settings",
+  "tab": "pos",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "owner",
+  "page": "settings",
+  "tab": "hkm",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "owner",
+  "page": "settings",
+  "tab": "people",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "owner",
+  "page": "settings",
+  "tab": "compliance",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "owner",
+  "page": "settings",
+  "tab": "modules",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "owner",
+  "page": "settings",
+  "tab": "users",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "owner",
+  "page": "settings",
+  "tab": "messages",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "owner",
+  "page": "settings",
+  "tab": "data",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "owner",
+  "page": "approvals",
+  "tab": "",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "owner",
+  "page": "approvals",
+  "tab": "approvals",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "owner",
+  "page": "approvals",
+  "tab": "expenses",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "owner",
+  "page": "approvals",
+  "tab": "audit",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "owner",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "owner",
+  "page": "reservations",
+  "tab": "modal:+ New reservation",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "owner",
+  "page": "expenses",
+  "tab": "modal:+ Add expense",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "owner",
+  "page": "access",
+  "tab": "modal:New user",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "owner",
+  "page": "overview",
+  "tab": "modal:user menu",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "manager",
+  "page": "approvals",
+  "tab": "",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "manager",
+  "page": "approvals",
+  "tab": "approvals",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "manager",
+  "page": "approvals",
+  "tab": "expenses",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "manager",
+  "page": "approvals",
+  "tab": "audit",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "manager",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "manager",
+  "page": "reservations",
+  "tab": "modal:+ New reservation",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "manager",
+  "page": "expenses",
+  "tab": "modal:+ Add expense",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "manager",
+  "page": "overview",
+  "tab": "modal:user menu",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "reception",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "reception",
+  "page": "reservations",
+  "tab": "modal:+ New reservation",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "reception",
+  "page": "expenses",
+  "tab": "modal:+ Add expense",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "cashier",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "cashier",
+  "page": "expenses",
+  "tab": "modal:+ Add expense",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "cashier",
+  "page": "overview",
+  "tab": "modal:user menu",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "supervisor",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "housekeeper",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "accountant",
+  "page": "approvals",
+  "tab": "",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "accountant",
+  "page": "approvals",
+  "tab": "approvals",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "accountant",
+  "page": "approvals",
+  "tab": "expenses",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "accountant",
+  "page": "approvals",
+  "tab": "audit",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "accountant",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "accountant",
+  "page": "overview",
+  "tab": "modal:user menu",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "maint",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "techadmin",
+  "page": "settings",
+  "tab": "",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "techadmin",
+  "page": "settings",
+  "tab": "property",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "techadmin",
+  "page": "settings",
+  "tab": "rooms",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "techadmin",
+  "page": "settings",
+  "tab": "frontdesk",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "techadmin",
+  "page": "settings",
+  "tab": "money",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "techadmin",
+  "page": "settings",
+  "tab": "pos",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "techadmin",
+  "page": "settings",
+  "tab": "hkm",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "techadmin",
+  "page": "settings",
+  "tab": "people",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "techadmin",
+  "page": "settings",
+  "tab": "compliance",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "techadmin",
+  "page": "settings",
+  "tab": "modules",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "techadmin",
+  "page": "settings",
+  "tab": "users",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "techadmin",
+  "page": "settings",
+  "tab": "messages",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "techadmin",
+  "page": "settings",
+  "tab": "data",
+  "screens": 1,
+  "docH": 969,
+  "vh": 969,
+  "result": "FAIL",
+  "fails": [
+   "font-changed label 14px (was 11px)"
+  ]
+ },
+ {
+  "scale": 1,
+  "vp": "desk-1920",
+  "role": "techadmin",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "settings",
+  "tab": "",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "settings",
+  "tab": "property",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "settings",
+  "tab": "rooms",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "settings",
+  "tab": "frontdesk",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "settings",
+  "tab": "money",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "settings",
+  "tab": "pos",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "settings",
+  "tab": "hkm",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "settings",
+  "tab": "people",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "settings",
+  "tab": "compliance",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "settings",
+  "tab": "modules",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "settings",
+  "tab": "users",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "settings",
+  "tab": "messages",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "settings",
+  "tab": "data",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "approvals",
+  "tab": "",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "approvals",
+  "tab": "approvals",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "approvals",
+  "tab": "expenses",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "approvals",
+  "tab": "audit",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "reservations",
+  "tab": "modal:+ New reservation",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "expenses",
+  "tab": "modal:+ Add expense",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "access",
+  "tab": "modal:New user",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "overview",
+  "tab": "modal:user menu",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "manager",
+  "page": "approvals",
+  "tab": "",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "manager",
+  "page": "approvals",
+  "tab": "approvals",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "manager",
+  "page": "approvals",
+  "tab": "expenses",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "manager",
+  "page": "approvals",
+  "tab": "audit",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "manager",
+  "page": "reservations",
+  "tab": "modal:+ New reservation",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "manager",
+  "page": "expenses",
+  "tab": "modal:+ Add expense",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "manager",
+  "page": "overview",
+  "tab": "modal:user menu",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "reception",
+  "page": "reservations",
+  "tab": "modal:+ New reservation",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "reception",
+  "page": "expenses",
+  "tab": "modal:+ Add expense",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "cashier",
+  "page": "expenses",
+  "tab": "modal:+ Add expense",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "cashier",
+  "page": "overview",
+  "tab": "modal:user menu",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "accountant",
+  "page": "approvals",
+  "tab": "",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "accountant",
+  "page": "approvals",
+  "tab": "approvals",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "accountant",
+  "page": "approvals",
+  "tab": "expenses",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "accountant",
+  "page": "approvals",
+  "tab": "audit",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "accountant",
+  "page": "overview",
+  "tab": "modal:user menu",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "techadmin",
+  "page": "settings",
+  "tab": "",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "techadmin",
+  "page": "settings",
+  "tab": "property",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "techadmin",
+  "page": "settings",
+  "tab": "rooms",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "techadmin",
+  "page": "settings",
+  "tab": "frontdesk",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "techadmin",
+  "page": "settings",
+  "tab": "money",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "techadmin",
+  "page": "settings",
+  "tab": "pos",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "techadmin",
+  "page": "settings",
+  "tab": "hkm",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "techadmin",
+  "page": "settings",
+  "tab": "people",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "techadmin",
+  "page": "settings",
+  "tab": "compliance",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "techadmin",
+  "page": "settings",
+  "tab": "modules",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "techadmin",
+  "page": "settings",
+  "tab": "users",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "techadmin",
+  "page": "settings",
+  "tab": "messages",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "tab-land",
+  "role": "techadmin",
+  "page": "settings",
+  "tab": "data",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "settings",
+  "tab": "",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "settings",
+  "tab": "property",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "settings",
+  "tab": "rooms",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "settings",
+  "tab": "frontdesk",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "settings",
+  "tab": "money",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "settings",
+  "tab": "pos",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "settings",
+  "tab": "hkm",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "settings",
+  "tab": "people",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "settings",
+  "tab": "compliance",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "settings",
+  "tab": "modules",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "settings",
+  "tab": "users",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "settings",
+  "tab": "messages",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "settings",
+  "tab": "data",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "approvals",
+  "tab": "",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "approvals",
+  "tab": "approvals",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "approvals",
+  "tab": "expenses",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "approvals",
+  "tab": "audit",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "reservations",
+  "tab": "modal:+ New reservation",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "expenses",
+  "tab": "modal:+ Add expense",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "access",
+  "tab": "modal:New user",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "overview",
+  "tab": "modal:user menu",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "manager",
+  "page": "approvals",
+  "tab": "",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "manager",
+  "page": "approvals",
+  "tab": "approvals",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "manager",
+  "page": "approvals",
+  "tab": "expenses",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "manager",
+  "page": "approvals",
+  "tab": "audit",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "manager",
+  "page": "reservations",
+  "tab": "modal:+ New reservation",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "manager",
+  "page": "expenses",
+  "tab": "modal:+ Add expense",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "manager",
+  "page": "overview",
+  "tab": "modal:user menu",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "reception",
+  "page": "reservations",
+  "tab": "modal:+ New reservation",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "reception",
+  "page": "expenses",
+  "tab": "modal:+ Add expense",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "cashier",
+  "page": "expenses",
+  "tab": "modal:+ Add expense",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "cashier",
+  "page": "overview",
+  "tab": "modal:user menu",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "accountant",
+  "page": "approvals",
+  "tab": "",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "accountant",
+  "page": "approvals",
+  "tab": "approvals",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "accountant",
+  "page": "approvals",
+  "tab": "expenses",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "accountant",
+  "page": "approvals",
+  "tab": "audit",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "accountant",
+  "page": "overview",
+  "tab": "modal:user menu",
+  "screens": 1,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "techadmin",
+  "page": "settings",
+  "tab": "",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "techadmin",
+  "page": "settings",
+  "tab": "property",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "techadmin",
+  "page": "settings",
+  "tab": "rooms",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "techadmin",
+  "page": "settings",
+  "tab": "frontdesk",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "techadmin",
+  "page": "settings",
+  "tab": "money",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "techadmin",
+  "page": "settings",
+  "tab": "pos",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "techadmin",
+  "page": "settings",
+  "tab": "hkm",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "techadmin",
+  "page": "settings",
+  "tab": "people",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "techadmin",
+  "page": "settings",
+  "tab": "compliance",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "techadmin",
+  "page": "settings",
+  "tab": "modules",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "techadmin",
+  "page": "settings",
+  "tab": "users",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "techadmin",
+  "page": "settings",
+  "tab": "messages",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1.3,
+  "vp": "lap-1366",
+  "role": "techadmin",
+  "page": "settings",
+  "tab": "data",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ }
+]

@@ -7,7 +7,9 @@ export const shortDate=(d:string)=>new Date(d+'T12:00:00').toLocaleDateString('e
 export const clockTime=(c:string)=>c.slice(11,16);
 export function Pill({children,tone='neutral'}:{children:React.ReactNode;tone?:string}){return <span className={'pill '+tone}>{children}</span>}
 export function Empty({title,body}:{title:string;body?:string}){return <div className="empty"><CheckCircle2 size={30}/><h3>{title}</h3><p>{body||'There are no records to show here.'}</p></div>}
-export function PageTitle({title,sub,action}:{title:string;sub:string;action?:React.ReactNode}){return <div className="page-title"><div><h1>{title}</h1><p>{sub}</p></div>{action}</div>}
+/** Page heading of the older pages. FIT (DEC-195): inside `.content` on the desktop layout z-fit.css shows it as the 22 px header row with a
+ *  one-line sub (full text in the title attribute); the phone and print keep the old look. New desktop code uses FitPage (components/fit.tsx). */
+export function PageTitle({title,sub,action}:{title:string;sub:string;action?:React.ReactNode}){return <div className="page-title"><div><h1>{title}</h1><p title={sub}>{sub}</p></div>{action}</div>}
 export function SearchBox({value,onChange,placeholder}:{value:string;onChange:(v:string)=>void;placeholder:string}){return <label className="search"><Search size={17}/><input aria-label={placeholder} value={value} placeholder={placeholder} onChange={e=>onChange(e.target.value)}/></label>}
 export function Stat({title,value,sub}:{title:string;value:string;sub:string}){return <div className="stat"><div className="stat-label">{title}</div><strong className="money-stat">{value}</strong><small>{sub}</small></div>}
 export const field=(f:FormData,k:string)=>String(f.get(k)||'');

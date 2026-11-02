@@ -1,0 +1,355 @@
+// FIT · fit-to-screen components for the desktop / tablet layout (DEC-194…196, APR-025; contract 02 Planning/agents/FIT-LAYOUT-CONTRACT.md §4, §11).
+// Names and props are fixed by the contract; module lanes use these and never create their own variants. Styles: src/styles/z-fit.css.
+// Fonts are never set here: every heading, label and value reuses the classes the old markup used (page-title, card, section-title,
+// stat-label, money-stat …) so computed font sizes stay identical (DEC-195); only the page h1 drops to 22 px, in z-fit.css.
+import React,{createContext,useContext,useEffect,useLayoutEffect,useRef,useState,useCallback} from 'react';
+import {ArrowLeft,Check,CircleDot,Circle,Ban,MoreHorizontal,ChevronDown,ChevronsDownUp,ChevronsUpDown} from 'lucide-react';
+import {useStepBack} from '../app/native';
+
+/** What the desktop shell (App.tsx) tells the pages: that this is the desktop layout, the open page, the tab asked for by go(page,{tab}), a
+ *  counter that moves on every navigation (so the same page re-reads its tab), and where the selected tab's label goes (breadcrumb tab
+ *  crumb). The phone shell does not provide it; the defaults (desktop false) make every hook below a plain local state there and keep
+ *  stand-alone dialogs (ModalFrame) in their phone look. */
+export type FitNav={desktop:boolean;page:string;tabKey:string;seq:number;setTabCrumb:(c:{page:string;label:string}|null)=>void};
+export const FitNavContext=createContext<FitNav>({desktop:false,page:'',tabKey:'',seq:0,setTabCrumb:()=>{}});
+export const useFitNav=()=>useContext(FitNavContext);
+
+/** sessionStorage key of a page's selected sub-screen (lane fit-check's tool sets it before opening a page). */
+export const fitTabKey=(page:string)=>'hcc-fit-tab:'+page;
+const readTab=(page:string)=>{try{return sessionStorage.getItem(fitTabKey(page));}catch{return null;}};
+const writeTab=(page:string,t:string)=>{try{sessionStorage.setItem(fitTabKey(page),t);}catch{/* storage unavailable */}};
+
+/** Selected sub-screen of `page`: go(page,{tab}) first, then the one remembered in this browser session, else `fallback`.
+ *  Unknown ids fall back. Switching writes sessionStorage and adds no history entry (Android Back leaves the page, as today). */
+export function useFitTab<T extends string>(page:string,ids:readonly T[],fallback:T):[T,(t:T)=>void]{
+  const nav=useFitNav();
+  const pick=():T=>{
+    const asked=nav.page===page?nav.tabKey:'';
+    if(asked&&(ids as readonly string[]).includes(asked)){writeTab(page,asked);return asked as T;} // remembered, so a later plain go(page) keeps it
+    const kept=readTab(page);
+    return kept&&(ids as readonly string[]).includes(kept)?kept as T:fallback;
+  };
+  const [tab,setTab]=useState<T>(pick);
+  // Every navigation to this page (go with or without a tab, Back / Forward) re-reads: the asked tab, else the remembered one.
+  const first=useRef(true);
+  useEffect(()=>{if(first.current){first.current=false;return;}if(nav.page===page)setTab(pick());},[nav.seq]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(()=>{if(!(ids as readonly string[]).includes(tab))setTab(fallback);},[ids.join('|')]); // eslint-disable-line react-hooks/exhaustive-deps
+  const choose=useCallback((t:T)=>{writeTab(page,t);setTab(t);},[page]);
+  return [tab,choose];
+}
+
+/** Inside a FitPage body: a FitTabs bar there is an inner (nested) bar — it never takes the breadcrumb tab crumb (contract §11.5). */
+const InnerTabsContext=createContext(false);
+
+/** Page root for every desktop page. Header row: h1 (22 px) + one-line sub (ellipsis, full text in title attr) + actions (right). */
+export function FitPage(p:{
+  title:string;sub?:string;
+  actions?:React.ReactNode;          // primary buttons — always visible
+  toolbar?:React.ReactNode;          // ONE row under the header: search, filters, date range, StatStrip; wraps to at most 2 rows below 900 px
+  tabs?:React.ReactNode;             // a <FitTabs/> bar, rendered between toolbar and body
+  layout?:'fill'|'split'|'board'|'steps'|'form'; // body layout, default 'fill'
+  children:React.ReactNode;
+}):React.JSX.Element{
+  const nav=useFitNav();const layout=p.layout??'fill';
+  return <section className={'fit-page fit-'+layout} data-fit-page={nav.page||undefined} aria-labelledby="fit-page-h1">
+    <header className="page-title fit-page-head"><div className="fit-page-heading"><h1 id="fit-page-h1">{p.title}</h1>{p.sub&&<p className="fit-page-sub" title={p.sub}>{p.sub}</p>}</div>
+      {p.actions&&<HeaderActions>{p.actions}</HeaderActions>}</header>
+    {p.toolbar&&<div className="fit-page-toolbar">{p.toolbar}</div>}
+    {p.tabs}
+    <div className="fit-page-body"><InnerTabsContext.Provider value={true}>{p.children}</InnerTabsContext.Provider></div>
+  </section>;
+}
+
+/** Top-level items of a node, fragments opened (the header's actions are usually passed as <>…</>). */
+function flatItems(n:React.ReactNode):React.ReactNode[]{
+  return React.Children.toArray(n).flatMap(x=>React.isValidElement(x)&&x.type===React.Fragment?flatItems((x.props as {children?:React.ReactNode}).children):[x]);
+}
+/** The actions row is right-aligned (justify-content:flex-end) with overflow hidden, so what does not fit spills to the LEFT, where scrollWidth
+ *  never counts it: compare each item's box with the row's box instead (either side), plus scrollWidth for a right-side spill. */
+function rowOverflows(el:HTMLElement){
+  if(el.scrollWidth>el.clientWidth+1)return true;
+  const r=el.getBoundingClientRect();
+  for(const k of Array.from(el.children)){const b=k.getBoundingClientRect();if(b.left<r.left-1||b.right>r.right+1)return true;}
+  return false;
+}
+/** FitPage header actions (contract §11.9): one row that never wraps. The first item (the page's primary action) always stays; when the row
+ *  does not fit, the trailing items move, in order, into a "More" menu under a More button. Re-measured when the header's width changes. */
+function HeaderActions({children}:{children:React.ReactNode}){
+  const items=flatItems(children);const total=items.length;
+  const [n,setN]=useState(total);const [open,setOpen]=useState(false);const [,bump]=useState(0);
+  const row=useRef<HTMLDivElement>(null);const full=useRef(true);const lastTotal=useRef(total);const lastW=useRef(-1);
+  if(lastTotal.current!==total){lastTotal.current=total;full.current=true;}
+  // Every render: start again from all items when asked (new items, new width), then drop one item at a time while the row overflows.
+  useLayoutEffect(()=>{const el=row.current;if(!el)return;
+    if(full.current){if(n!==total){setN(total);return;}full.current=false;}
+    if(n>1&&rowOverflows(el))setN(n-1);
+    else if(n>total)setN(total);
+  });
+  useEffect(()=>{const head=row.current?.parentElement;if(!head||typeof ResizeObserver==='undefined')return;
+    const ro=new ResizeObserver(()=>{const w=Math.round(head.clientWidth);if(w===lastW.current)return;lastW.current=w;full.current=true;bump(x=>x+1);});
+    ro.observe(head);return ()=>ro.disconnect();},[]);
+  useEffect(()=>{if(!open)return;
+    const off=(e:Event)=>{if(row.current&&!row.current.contains(e.target as Node))setOpen(false);};
+    const esc=(e:KeyboardEvent)=>{if(e.key==='Escape')setOpen(false);};
+    document.addEventListener('mousedown',off);document.addEventListener('keydown',esc);
+    return ()=>{document.removeEventListener('mousedown',off);document.removeEventListener('keydown',esc);};},[open]);
+  const shown=Math.min(n,total);const rest=items.slice(shown);
+  if(!rest.length&&open)window.setTimeout(()=>setOpen(false),0);
+  return <div className="fit-page-actions" ref={row}>
+    {items.slice(0,shown)}
+    {rest.length>0&&<div className="fit-more">
+      <button type="button" className="btn fit-more-btn" aria-haspopup="true" aria-expanded={open} onClick={()=>setOpen(o=>!o)}><MoreHorizontal size={16}/>More</button>
+      {open&&<div className="fit-more-pop" role="group" aria-label="More actions" onClickCapture={()=>window.setTimeout(()=>setOpen(false),0)}>{rest}</div>}
+    </div>}
+  </div>;
+}
+
+/** Card that takes all remaining height; header (title, count, actions) fixed; body scrolls; table heads sticky; ShowMore sits in its footer. */
+export function ScrollPanel(p:{title?:React.ReactNode;actions?:React.ReactNode;footer?:React.ReactNode;label:string;children:React.ReactNode;grow?:number}):React.JSX.Element{
+  const id=React.useId();const titled=p.title!==undefined; // the scroll body carries the label (it is the focusable part); the card points at its title
+  return <section className="card fit-panel" aria-labelledby={titled?id:undefined} style={p.grow!==undefined?{flexGrow:p.grow}:undefined}>
+    {(titled||p.actions)&&<div className="section-title fit-panel-head">{titled?<h2 id={id}>{p.title}</h2>:<span/>}{p.actions&&<div className="inline fit-panel-actions">{p.actions}</div>}</div>}
+    <div className="fit-panel-body" data-fit-scroll="" tabIndex={0} aria-label={p.label}>{p.children}</div>
+    {p.footer&&<div className="fit-panel-foot">{p.footer}</div>}
+  </section>;
+}
+
+const NARROW='(max-width: 899.98px)';
+function useNarrow(){
+  const q=()=>typeof window!=='undefined'&&typeof window.matchMedia==='function'&&window.matchMedia(NARROW).matches;
+  const [n,setN]=useState(q);
+  useEffect(()=>{if(typeof window==='undefined'||typeof window.matchMedia!=='function')return;const m=window.matchMedia(NARROW);const on=()=>setN(m.matches);on();
+    m.addEventListener?.('change',on);return ()=>m.removeEventListener?.('change',on);},[]);
+  return n;
+}
+
+/** True while the SplitView shows list and record side by side (≥ 900 px); follows rotation / resize. `fallback` = the answer without a window
+ *  (static render). Review N4: one shared hook (Groups used a snapshot that never updated on rotation). */
+export function useWideSplit(fallback=true):boolean{
+  const q=()=>typeof window!=='undefined'&&typeof window.matchMedia==='function'?!window.matchMedia(NARROW).matches:fallback;
+  const [w,setW]=useState(q);
+  useEffect(()=>{if(typeof window==='undefined'||typeof window.matchMedia!=='function')return;const m=window.matchMedia(NARROW);const on=()=>setW(!m.matches);on();
+    m.addEventListener?.('change',on);return ()=>m.removeEventListener?.('change',on);},[]);
+  return w;
+}
+
+/** List + detail side by side. Below 900 px width the detail opens over the list as a slide-over with a Back button (never stacked below).
+ *  Android Back closes the slide-over first (the app's step-back chain, app/native.ts).
+ *  FIT-2 (contract §12): at ≥ 900 px, while no record is open, the list takes ALL columns (class "list-only"; the empty pane is not shown);
+ *  a record opens the detail pane beside it with a "Back to list" control. emptyPane="show" keeps the old always-two-columns look. */
+export function SplitView(p:{list:React.ReactNode;detail:React.ReactNode|null;empty:React.ReactNode;onCloseDetail:()=>void;ratio?:`${number}fr ${number}fr`;label:string;
+  emptyPane?:'hide'|'show'}):React.JSX.Element{
+  const narrow=useNarrow();const open=p.detail!==null&&p.detail!==undefined&&p.detail!==false;
+  const close=useRef(p.onCloseDetail);close.current=p.onCloseDetail;
+  useStepBack(narrow&&open,()=>close.current());
+  const ratio=p.ratio??'2fr 3fr';const [a,b]=ratio.split(' ');
+  const listOnly=!open&&(p.emptyPane??'hide')==='hide';
+  // A record that opens takes the focus to its pane instead of a live region re-reading the whole record on every change.
+  const pane=useRef<HTMLDivElement>(null);const was=useRef(open);
+  useEffect(()=>{if(open&&!was.current)pane.current?.focus({preventScroll:true});was.current=open;},[open]);
+  return <div className={'fit-split'+(open?' has-detail':'')+(listOnly?' list-only':'')} aria-label={p.label} role="group" style={{['--fit-split-cols' as string]:`minmax(0,${a}) minmax(0,${b})`}}>
+    <div className="fit-split-list">{p.list}</div>
+    <div className="fit-split-detail">
+      {open&&<button type="button" className="btn fit-split-back" onClick={()=>close.current()}><ArrowLeft size={16}/>Back to list</button>}
+      <div className="fit-split-pane" ref={pane} data-fit-scroll="" tabIndex={0} aria-label={p.label+' — record'}>{open?p.detail:p.empty}</div>
+    </div>
+  </div>;
+}
+
+/** Pure (FIT-2 §12): which tabs stay in the bar when only `n` fit — the first n in order, but the selected one always stays (it takes the last
+ *  place); the rest go to the "More" menu, in their order. */
+export function splitTabs<X extends {id:string}>(tabs:X[],n:number,value:string):{visible:Set<string>;hidden:X[]}{
+  const shown=Math.max(1,Math.min(n,tabs.length));
+  const visible=new Set(tabs.slice(0,shown).map(t=>t.id));
+  if(shown<tabs.length&&!visible.has(value)&&tabs.some(t=>t.id===value)){visible.delete(tabs[shown-1].id);visible.add(value);}
+  return {visible,hidden:tabs.filter(t=>!visible.has(t.id))};
+}
+
+/** Sub-screens (DEC-196). Tab bar ≥ 48 px on touch; scrolls sideways if it overflows; role=tablist, arrow keys, Home/End.
+ *  Selected tab: remembered per page in sessionStorage `hcc-fit-tab:<page>`; `go(page,{tab})` opens a given tab (existing ctx.go option).
+ *  Switching tabs uses no history entry (Android Back leaves the page, as today). */
+export function FitTabs<T extends string>(p:{page:string;tabs:{id:T;label:string;count?:number;badge?:'warn'|'danger'}[];value:T;onChange:(t:T)=>void}):React.JSX.Element{
+  const nav=useFitNav();const bar=useRef<HTMLDivElement>(null);
+  const label=p.tabs.find(t=>t.id===p.value)?.label??'';
+  // Only the page's own bar (the FitPage "tabs" slot) names the breadcrumb tab crumb; a nested bar inside the body does not (§11.5).
+  const inner=useContext(InnerTabsContext);const setCrumb=nav.setTabCrumb;
+  useEffect(()=>{if(!inner)setCrumb(label?{page:p.page,label}:null);},[p.page,label,setCrumb,inner]);
+  useEffect(()=>()=>{if(!inner)setCrumb(null);},[setCrumb,inner]);
+  useEffect(()=>{bar.current?.querySelector<HTMLElement>('[aria-selected="true"]')?.scrollIntoView?.({block:'nearest',inline:'nearest'});},[p.value]);
+  // FIT-2 (§12): tabs that do not fit move, from the end, into a "More ▾" menu (the selected tab always stays in the bar). Measured like the
+  // header actions: start from every tab whenever the tabs or the bar's room change, then drop one at a time while the bar overflows.
+  const total=p.tabs.length;const [n,setN]=useState(total);const [open,setOpen]=useState(false);const [,bump]=useState(0);
+  const full=useRef(true);const sig=p.tabs.map(t=>t.id+':'+t.label+':'+(t.count??'')).join('|')+'>'+p.value; /* new tabs, labels, counts or selection: measure again */const lastSig=useRef(sig);const lastW=useRef(-1);
+  const moreBtn=useRef<HTMLButtonElement>(null);const menu=useRef<HTMLDivElement>(null);const menuId=React.useId();
+  if(lastSig.current!==sig){lastSig.current=sig;full.current=true;}
+  useLayoutEffect(()=>{const el=bar.current;if(!el)return;
+    if(full.current){if(n!==total){setN(total);return;}full.current=false;}
+    if(n>1&&el.scrollWidth>el.clientWidth+1)setN(n-1);
+    else if(n>total)setN(total);
+  });
+  useEffect(()=>{const host=bar.current?.parentElement;if(!host||typeof ResizeObserver==='undefined')return;
+    const ro=new ResizeObserver(()=>{const w=Math.round(host.clientWidth);if(w===lastW.current)return;lastW.current=w;full.current=true;bump(x=>x+1);});
+    ro.observe(host);return ()=>ro.disconnect();},[]);
+  const {visible,hidden}=splitTabs(p.tabs,n,p.value);
+  useEffect(()=>{if(!open)return;
+    const off=(e:Event)=>{const t=e.target as Node;if(!menu.current?.contains(t)&&!moreBtn.current?.contains(t))setOpen(false);};
+    document.addEventListener('mousedown',off);return ()=>document.removeEventListener('mousedown',off);},[open]);
+  useEffect(()=>{if(open)menu.current?.querySelector<HTMLElement>('[role=menuitem]')?.focus();},[open]);
+  if(!hidden.length&&open)window.setTimeout(()=>setOpen(false),0);
+  const focusTab=(id:string)=>window.setTimeout(()=>bar.current?.querySelector<HTMLElement>(`[data-tab="${id}"]`)?.focus(),0);
+  const onKey=(e:React.KeyboardEvent)=>{
+    if((e.target as HTMLElement).getAttribute('role')!=='tab')return; // the More button and its menu have their own keys
+    const i=p.tabs.findIndex(t=>t.id===p.value);let j=-1;
+    if(e.key==='ArrowRight')j=(i+1)%p.tabs.length;else if(e.key==='ArrowLeft')j=(i-1+p.tabs.length)%p.tabs.length;
+    else if(e.key==='Home')j=0;else if(e.key==='End')j=p.tabs.length-1;
+    if(j<0)return;e.preventDefault();p.onChange(p.tabs[j].id);focusTab(p.tabs[j].id);
+  };
+  const onMoreKey=(e:React.KeyboardEvent)=>{if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();setOpen(true);}else if(e.key==='Escape'&&open){e.preventDefault();setOpen(false);}};
+  const onMenuKey=(e:React.KeyboardEvent)=>{
+    const items=Array.from(menu.current?.querySelectorAll<HTMLElement>('[role=menuitem]')??[]);const i=items.indexOf(document.activeElement as HTMLElement);let j=-1;
+    if(e.key==='ArrowDown')j=(i+1)%items.length;else if(e.key==='ArrowUp')j=(i-1+items.length)%items.length;else if(e.key==='Home')j=0;else if(e.key==='End')j=items.length-1;
+    else if(e.key==='Escape'){e.preventDefault();e.stopPropagation();setOpen(false);moreBtn.current?.focus();return;}
+    else if(e.key==='Tab'){setOpen(false);return;}
+    if(j<0)return;e.preventDefault();items[j]?.focus();
+  };
+  const pick=(id:T)=>{setOpen(false);p.onChange(id);focusTab(id);};
+  const worst=hidden.some(t=>t.badge==='danger')?'danger':hidden.some(t=>t.badge==='warn')?'warn':'';
+  const tabBtn=(t:typeof p.tabs[number])=><button key={t.id} type="button" role="tab" id={`fit-tab-${p.page}-${t.id}`} data-tab={t.id} aria-selected={t.id===p.value} tabIndex={t.id===p.value?0:-1}
+    className={t.id===p.value?'active':''} onClick={()=>p.onChange(t.id)}>{t.label}
+    {t.count!==undefined&&<span className={'fit-tab-count'+(t.badge?' '+t.badge:'')}>{t.count}</span>}</button>;
+  return <div className="fit-tabs-bar tabs" role="tablist" aria-label="Sections of this page" ref={bar} onKeyDown={onKey}>
+    {p.tabs.filter(t=>visible.has(t.id)).map(tabBtn)}
+    {hidden.length>0&&<div className="fit-tabs-more" role="presentation">
+      <button type="button" ref={moreBtn} className="fit-tabs-more-btn" aria-haspopup="menu" aria-expanded={open} aria-controls={open?menuId:undefined}
+        aria-label={`More sections (${hidden.length})`} onClick={()=>setOpen(o=>!o)} onKeyDown={onMoreKey}>More<ChevronDown size={16} aria-hidden="true"/>
+        {worst&&<span className={'fit-tab-count '+worst} aria-hidden="true">!</span>}</button>
+      {open&&<div className="fit-tabs-pop" role="menu" id={menuId} aria-label="More sections" ref={menu} onKeyDown={onMenuKey}>
+        {hidden.map(t=><button key={t.id} type="button" role="menuitem" tabIndex={-1} data-tab-more={t.id} onClick={()=>pick(t.id)}>{t.label}
+          {t.count!==undefined&&<span className={'fit-tab-count'+(t.badge?' '+t.badge:'')}>{t.count}</span>}</button>)}
+      </div>}
+    </div>}
+  </div>;
+}
+
+export type StatItem={title:string;value:React.ReactNode;sub?:string;tone?:'ok'|'warn'|'danger';money?:boolean};
+/** One-row KPI strip for the toolbar. Same Stat font sizes as the markup it replaces (DEC-195); less padding; scrolls sideways if too many
+ *  (never wraps). Pick the variant that matches the old markup:
+ *  - default: the big ".stats" tiles (".stat > strong"). A value is a plain count (the 35 px ".stat>strong") unless the item — or the whole
+ *    strip with `money` — says money: then it is ".money-stat" (what the old `Stat` component and explicit money-stat tiles used).
+ *  - variant="small": the old ".small-stats" tiles (label span + strong, 25 / 23 px), with the old extra class (e.g. "hov-stats") in `className`. */
+/** sessionStorage key of a page's remembered StatStrip mode ('compact' | 'full'), FIT-2 §12. */
+export const fitStatsKey=(page:string)=>'hcc-fit-stats:'+page;
+/** Tab-land and narrower (Galaxy Tab S7 landscape app area is 1138 px wide). */
+export const TABLET_WIDE='(max-width: 1180px)';
+const readStats=(page:string)=>{try{const v=sessionStorage.getItem(fitStatsKey(page));return v==='compact'||v==='full'?v:null;}catch{return null;}};
+const writeStats=(page:string,v:string)=>{try{sessionStorage.setItem(fitStatsKey(page),v);}catch{/* storage unavailable */}};
+const onTablet=()=>typeof window!=='undefined'&&typeof window.matchMedia==='function'&&window.matchMedia(TABLET_WIDE).matches;
+/** FIT-2 (§12) additions, all optional (existing call sites unchanged):
+ *  - compact: one line per figure (label, value and sub side by side; same font sizes, less height).
+ *  - collapsible: a toggle button beside the strip switches compact ⇄ full; the choice is remembered per page in sessionStorage
+ *    `hcc-fit-stats:<page>` (page = `page` prop, else the open page). Collapsed is the compact line, so the figures never disappear.
+ *  - collapseOnTablet: implies collapsible; with nothing remembered, starts compact at ≤ 1180 px wide (tab-land), full otherwise
+ *    (or compact when `compact` is set). */
+export function StatStrip(p:{items:StatItem[];money?:boolean;variant?:'small';className?:string;compact?:boolean;collapsible?:boolean;collapseOnTablet?:boolean;page?:string}):React.JSX.Element{
+  const nav=useFitNav();const page=p.page??nav.page;const toggle=!!(p.collapsible||p.collapseOnTablet);
+  const [mode,setMode]=useState<'compact'|'full'>(()=>{const kept=toggle&&page?readStats(page):null;if(kept)return kept;
+    return p.compact||(p.collapseOnTablet&&onTablet())?'compact':'full';});
+  const compact=toggle?mode==='compact':!!p.compact;
+  const cls=(p.className?' '+p.className:'')+(compact?' fit-stats-compact':'');
+  const strip=p.variant==='small'
+    ?<div className={'small-stats fit-small-stats'+cls} role="list" aria-label="Key figures">{p.items.map((x,i)=>
+      <div role="listitem" key={i} className={x.tone?'fit-tone-'+x.tone:undefined}><span>{x.title}</span><strong>{x.value}</strong>{x.sub&&<small>{x.sub}</small>}</div>)}</div>
+    :<div className={'fit-stats'+cls} role="list" aria-label="Key figures">{p.items.map((x,i)=><div role="listitem" key={i} className={'stat fit-stat'+(x.tone?' '+x.tone:'')}>
+      <div className="stat-label">{x.title}</div><strong className={(x.money??p.money)?'money-stat':undefined}>{x.value}</strong>{x.sub&&<small>{x.sub}</small>}</div>)}</div>;
+  if(!toggle)return strip;
+  const flip=()=>{const next=compact?'full':'compact';if(page)writeStats(page,next);setMode(next);};
+  return <div className={'fit-stats-wrap'+(compact?' compact':'')}>{strip}
+    <button type="button" className="icon-btn fit-stats-toggle" aria-label={compact?'Show key figures in full':'Show key figures on one line'}
+      onClick={flip}>{compact?<ChevronsUpDown size={16} aria-hidden="true"/>:<ChevronsDownUp size={16} aria-hidden="true"/>}</button></div>;
+}
+
+/** Columns that each scroll on their own (Housekeeping, Maintenance board, POS tickets). */
+export function BoardColumns(p:{columns:{id:string;title:string;count?:number;body:React.ReactNode}[];minColumn?:number}):React.JSX.Element{
+  return <div className="fit-board" style={{['--fit-col' as string]:(p.minColumn??240)+'px'}}>
+    {p.columns.map(c=><section key={c.id} className="card fit-board-col" aria-label={c.title}>
+      <div className="section-title fit-panel-head"><h2>{c.title}</h2>{c.count!==undefined&&<span className="muted">{c.count}</span>}</div>
+      <div className="fit-panel-body" data-fit-scroll="" tabIndex={0} aria-label={c.title}>{c.body}</div></section>)}
+  </div>;
+}
+
+const STEP_ICON={done:Check,current:CircleDot,waiting:Circle,blocked:Ban} as const;
+const STEP_WORD={done:'done',current:'current step',waiting:'waiting',blocked:'blocked'} as const;
+const hasSummary=(xs:{summary?:React.ReactNode}[])=>xs.some(x=>x.summary!==undefined&&x.summary!==null&&x.summary!==false&&x.summary!=='');
+/** The rail's one-line result under a step / section label (FIT-2 §12): ellipsis when too long; a plain-text summary also goes in `title`
+ *  (the step body itself shows the full result, so the tooltip is only a convenience, never the only way to read it). */
+const RailSummary=({s}:{s:React.ReactNode})=>s===undefined||s===null||s===false||s===''?null
+  :<span className="fit-rail-sum" title={typeof s==='string'||typeof s==='number'?String(s):undefined}>{s}</span>;
+/** Wizard / checklist: step rail on the left (status icon + label + count), one step body on the right (Day closing, handover runs).
+ *  FIT-2 (§12): `summary` per step = the step's result / current value, shown under the label in the rail, so reviewing needs no click; with
+ *  any summary the rail is ~340 px wide at ≥ 1280 px (unchanged below). */
+export function StepFlow(p:{steps:{id:string;label:string;status:'done'|'current'|'waiting'|'blocked';note?:string;summary?:React.ReactNode}[];value:string;onChange:(id:string)=>void;children:React.ReactNode}):React.JSX.Element{
+  return <div className={'fit-steps'+(hasSummary(p.steps)?' has-summary':'')}>
+    <ol className="fit-step-rail" aria-label="Steps">{p.steps.map((x,i)=>{const Icon=STEP_ICON[x.status];return <li key={x.id}>
+      <button type="button" className={'fit-step '+x.status+(x.id===p.value?' on':'')} aria-current={x.id===p.value?'step':undefined} onClick={()=>p.onChange(x.id)}>
+        <span className="fit-step-ic" aria-hidden="true"><Icon size={16}/></span>
+        <span className="fit-step-text"><strong>{i+1}. {x.label}</strong><small>{x.note?x.note+' · ':''}{STEP_WORD[x.status]}</small><RailSummary s={x.summary}/></span></button></li>;})}</ol>
+    <div className="fit-step-body">{p.children}</div>
+  </div>;
+}
+
+/** Long settings forms: section list on the left, one section on the right, Save bar sticky at the bottom.
+ *  FIT-2 (§12): `summary` per section = its current value(s) in one line under the label; with any summary the list is ~340 px wide at ≥ 1280 px. */
+export function FormSections(p:{sections:{id:string;label:string;dirty?:boolean;summary?:React.ReactNode}[];value:string;onChange:(id:string)=>void;actions:React.ReactNode;children:React.ReactNode}):React.JSX.Element{
+  return <div className={'fit-form'+(hasSummary(p.sections)?' has-summary':'')}>
+    <nav className="fit-form-nav" aria-label="Form sections"><ul>{p.sections.map(x=><li key={x.id}>
+      <button type="button" className={x.id===p.value?'on':''} aria-current={x.id===p.value?'true':undefined} onClick={()=>p.onChange(x.id)}>
+        {hasSummary([x])?<span className="fit-form-nav-text"><span>{x.label}</span><RailSummary s={x.summary}/></span>:x.label}
+        {x.dirty&&<span className="fit-dirty" aria-label="unsaved changes">•</span>}</button></li>)}</ul></nav>
+    <div className="fit-form-main">
+      <div className="fit-form-body" data-fit-scroll="" tabIndex={0} aria-label={(p.sections.find(x=>x.id===p.value)?.label??'Section')+' — fields'}>{p.children}</div>
+      <div className="fit-form-actions">{p.actions}</div>
+    </div>
+  </div>;
+}
+
+/** One-line note with a "More" button that opens the full text in place (contract §11.4). Touch-reachable: never a title-only tooltip.
+ *  Use it for footnotes in a ScrollPanel footer and for collapsed info notes. "lines" is the collapsed height (1 by default). */
+export function FitNote(p:{text:React.ReactNode;lines?:number;className?:string}):React.JSX.Element{ // className: e.g. fit-note-12 keeps a moved note's old size (DEC-195)
+  const [open,setOpen]=useState(false);const [long,setLong]=useState(false);const t=useRef<HTMLParagraphElement>(null);
+  // FIT-2 (§12): the full text shows when it fits its box, and "More" appears only when the text is really cut. Measured before paint (no
+  // flash of a More button), again whenever the note or its box changes size (width, text size preference, font load).
+  useLayoutEffect(()=>{const el=t.current;if(!el||open)return;
+    const m=()=>setLong(el.scrollWidth>el.clientWidth+1||el.scrollHeight>el.clientHeight+1);m();
+    if(typeof ResizeObserver==='undefined')return;const ro=new ResizeObserver(m);ro.observe(el);if(el.parentElement)ro.observe(el.parentElement);
+    return ()=>ro.disconnect();},[open,p.text]);
+  const lines=p.lines??1;
+  return <div className={'fit-note footnote'+(p.className?' '+p.className:'')+(open?' open':'')}>
+    <p className="fit-note-text" ref={t} style={lines>1&&!open?{whiteSpace:'normal',display:'-webkit-box',WebkitLineClamp:lines,WebkitBoxOrient:'vertical'}:undefined}>{p.text}</p>
+    {(long||open)&&<button type="button" className="text-btn fit-note-more" aria-expanded={open} onClick={()=>setOpen(o=>!o)}>{open?'Less':'More'}</button>}
+  </div>;
+}
+
+/** A dialog's frame. Two uses (contract §11.1):
+ *  - inside ModalHost (no "dialog" prop): ModalHost already gives the scrolling .modal-body, so this only lays out a heading, the content
+ *    and a sticky .modal-actions bar — plain wrappers, no second scroll box or tab stop;
+ *  - a stand-alone dialog rendered outside ModalHost ("dialog" prop: Day pack, server Day pack, guest-ID dialog): it renders the overlay and
+ *    the .modal shell itself. On the desktop layout the shell is ".modal fit-modal" with the scrolling .modal-body; on the phone layout (no
+ *    desktop shell) the markup is exactly the dialog's old one, so its phone look is unchanged. In this use "heading" and "actions" are
+ *    rendered as given (pass the full elements, e.g. the dialog's own <div className="modal-actions no-print">). */
+export type FitDialog={label:string;onClose:()=>void;className?:string;close?:React.ReactNode;tight?:boolean;
+  attrs?:React.HTMLAttributes<HTMLDivElement>&{ref?:React.Ref<HTMLDivElement>}};
+export function ModalFrame(p:{heading:React.ReactNode;actions:React.ReactNode;children:React.ReactNode;dialog?:FitDialog}):React.JSX.Element{
+  const {desktop}=useFitNav();const d=p.dialog;
+  if(!d)return <div className="fit-modal-frame">
+    {p.heading!=null&&p.heading!==false&&<div className="modal-heading">{p.heading}</div>}
+    <div className="fit-modal-frame-body">{p.children}</div>
+    <div className="modal-actions">{p.actions}</div>
+  </div>;
+  const cls='modal'+(d.className?' '+d.className:'')+(desktop?' fit-modal'+(d.tight?' fit-modal-tight':''):'');
+  return <div className={'modal-overlay'+(desktop?' fit-modal-overlay':'')} onMouseDown={e=>{if(e.target===e.currentTarget)d.onClose();}}>
+    <div {...d.attrs} className={cls} role="dialog" aria-modal="true" aria-label={d.label}>
+      {d.close}
+      {desktop?<div className="modal-body" data-fit-scroll="" tabIndex={0} aria-label="Dialog content">{p.heading}{p.children}{p.actions}</div>
+        :<>{p.heading}{p.children}{p.actions}</>}
+    </div></div>;
+}

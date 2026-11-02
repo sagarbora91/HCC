@@ -1,0 +1,3 @@
+/* FIT cleanup (admin-a open item): in Master configuration a master with very many rows scrolls inside its own list, not the whole record pane.
+   Layout only: no font or colour change; the phone masters use their own sheet (m-masters / MasterListPhone) and are untouched. */
+.app-shell .fit-page[data-fit-page="settings"] .mst-rows{max-height:max(240px,52vh);overflow-y:auto;overscroll-behavior:contain}

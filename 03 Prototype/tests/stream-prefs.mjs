@@ -17,14 +17,18 @@ import {HccContext} from '../../src/app/context';
 import {can,metrics} from '../../src/services/mock';
 import {PREFS_PAGE} from '../../src/features/prefs/parts';
 export {PREFS_PAGE};
-export function renderPrefs(s:any,uid:string,mobile:boolean){
+export function renderPrefs(s:any,uid:string,mobile:boolean,section?:string){
+  // FIT (lane fit-admin-b): the desktop page shows one section at a time (useFitTab 'prefs'); a section is opened through the remembered tab.
+  const store:any=globalThis;const had='sessionStorage' in store,prev=store.sessionStorage;
+  if(section)store.sessionStorage={getItem:(k:string)=>k==='hcc-fit-tab:prefs'?section:null,setItem(){},removeItem(){}};
   const noop=()=>{};const user=s.users.find((u:any)=>u.id===uid);
   const ctx:any={s,uid,user,m:metrics(s),page:'prefs',go:noop,modal:null,open:noop,closeModal:noop,booking:noop,error:'',busy:false,run:async()=>false,toast:noop,
     permission:(p:any)=>can(s,uid,p),act:()=>null,search:'',setSearch:noop,filter:'All',setFilter:noop,tab:'Arrivals',setTab:noop,arrivals:[],departures:[],pending:0,taskList:[],
     roomStatus:noop,switchUser:noop,fault:'none',setFault:noop,loadScenario:noop,resetScenario:noop,display:{isMobile:mobile,mode:mobile?'mobile':'desktop',setMode:noop,framed:false},
     setDirty:noop,openSearch:noop,openMenu:noop,signOut:noop};
   const P=(mobile?mobilePages:extraPages)['prefs'];
-  return renderToStaticMarkup(<HccContext.Provider value={ctx}><P/></HccContext.Provider>);
+  try{return renderToStaticMarkup(<HccContext.Provider value={ctx}><P/></HccContext.Provider>);}
+  finally{if(section){if(had)store.sessionStorage=prev;else delete store.sessionStorage;}}
 }
 `);
 await build({entryPoints:['tests/.generated/prefs-entry.tsx'],bundle:true,platform:'node',format:'esm',outfile:'tests/.generated/prefs.mjs',logLevel:'error',jsx:'automatic',
@@ -149,13 +153,15 @@ export function register({test,M,assert}){
     const item=X.navItems.find(n=>n.id==='prefs');assert.ok(item);assert.equal(item.label,'Appearance & display');
     const s=M.seed();for(const u of s.users.filter(u=>u.enabled))assert.ok(M.can(s,u.id,item.p),u.id);});
   test('[PREFS] desktop page renders every card in order with "This device only"; Housekeeper start-page list has no money pages',()=>{
-    const s=M.seed();const html=X.renderPrefs(s,'owner',false);
-    const order=['Text size','Appearance','Device &amp; display (this device only)','Start &amp; navigation','Alerts','Reset'].map(t=>html.indexOf('>'+t+'<'));
-    for(let i=0;i<order.length;i++){assert.ok(order[i]>=0,'card '+i);if(i)assert.ok(order[i]>order[i-1],'order '+i);}
+    // FIT: one section per sub-screen (text, appearance, display, navigation, alerts) in this order + the Reset button in the sticky bar of every section.
+    const s=M.seed();const secs=['text','appearance','display','navigation','alerts'];
+    const pages=secs.map(id=>X.renderPrefs(s,'owner',false,id));const html=pages.join('');
+    ['Text size','Appearance','Device &amp; display (this device only)','Start &amp; navigation','Alerts'].forEach((title,i)=>assert.ok(pages[i].includes('>'+title+'<'),'section '+i+' shows its card heading'));
+    for(const p of pages){assert.match(p,/Reset this device/);assert.match(p,/fit-form-actions/);}
     assert.ok((html.match(/This device only/g)||[]).length>=5);assert.match(html,/role="radiogroup" aria-label="Theme"/);assert.match(html,/Follow device/); // CP-5: the Theme row is a real choice
     assert.doesNotMatch(html,/Honour the phone/,'APK-only toggle hidden in the browser');
     assert.match(html,/<option value="reports">/);
-    const hk=X.renderPrefs(s,'housekeeper',false);assert.doesNotMatch(hk,/value="reports"|value="folios"|value="cashbook"/);assert.match(hk,/value="housekeeping"/);});
+    const hk=X.renderPrefs(s,'housekeeper',false,'navigation');assert.doesNotMatch(hk,/value="reports"|value="folios"|value="cashbook"/);assert.match(hk,/value="housekeeping"/);});
   test('[PREFS] phone page renders cards (no tables), 16 px CSS for labels, the display-mode toggle and the reset button',()=>{
     const html=X.renderPrefs(M.seed(),'reception',true);
     assert.doesNotMatch(html,/<table/);assert.match(html,/pf-m-card/);assert.match(html,/display-toggle/);assert.match(html,/Reset this device/);

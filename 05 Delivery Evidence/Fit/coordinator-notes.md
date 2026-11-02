@@ -1,0 +1,70 @@
+# FIT coordinator notes (for the integrator)
+
+- From admin-a: `FitPage layout="split"` and `SplitView` share the CSS class `fit-split` (breaks page header/toolbar) — shell bug, fix in z-fit.css/fit.tsx.
+- From admin-a: tests/stream-fit.mjs harness gives no nav context so `data-fit-page` is missing (arrivals fails too) and the phone-files test compares against the old FIT_BASE — set FIT_BASE to the merged pre-lane head 3dac5afb and fix the harness.
+- From shell DONE: apply the three check-script edits (check-print-layout uid, check-tablet-back, check-overlay-compat .m-icon) listed under "Integration needed".
+- Append every lane's modal openers to tools/fit-modals.json (admin-a: settings `Change…`).
+- admin-a open item: a master with very many rows scrolls the whole record pane.
+
+## From people-b (done, 0cc7e249)
+- Same fit-split class collision confirmed (Reports uses default fill as workaround). The Component Guide's split example hits it in every lane — fix in shell CSS/fit.tsx.
+- Baseline artifacts: re-record `select`/`label` inside `.content`; allow the existing 10 px `td.muted` (Opening balances).
+- Modal openers to append: accounting voucher link, New voucher, Add ledger, Reports Print.
+- 6 failing `[FIT]` tests in stream-fit.mjs fail on claude/fit too (harness FitNavContext, FIT_BASE).
+
+## From ops (done, 7df4eb23)
+- Shell bug is wider: FitPage layout="board"|"steps"|"split"|"form" puts the same class names on the page root that z-fit.css uses for component grids (page lays out as columns); the check does not catch it (measures boxes only). Every lane used default fill as workaround; integrator fixes in shell, then re-checks visually.
+- New stylesheet src/styles/fit-ops.css (picked up by name order).
+- Baseline should be recorded from every element, not the first visible one (36 font-changed false positives: hk/mnt filter labels 10px etc.).
+- Append the 4 modal openers from FIT-fit-ops-DONE.md to tools/fit-modals.json.
+
+## From people-a (done, 9fc55aee)
+- Shell defects: (1) FitPage layout="steps" puts `fit-steps` grid class on the page root (squeezes page into 260 px column) — overridden in closing-fit.css, remove override once shell fixed; (2) `HeaderActions` never moves buttons into More (overflow goes to the left where it is not measured).
+- Compliance: contract's "Filings / Licences" tabs don't exist on main; used Calendar + Dashboard.
+- New hint text on Day closing (close/next-day buttons are in header, step-rail counts): flagged for review — fit-review must confirm it is layout-only copy.
+- Reopened-day charge form not seen in a browser (no reopened day in FY26): integrator/review to check by test.
+- stream-reopen.mjs updated to open the right step (not loosened).
+- New stylesheets staff-fit.css, closing-fit.css, compliance-fit.css; 4 modal openers for fit-modals.json.
+
+## From front-b (done, 706369f8)
+- `guests` has no nav item so the check tool never visits it — add to the tool's page list (browser check missing for it).
+- No CSS touched (guests.css/reservations.css are token-checked sheets); two small inline overrides; alternative z-fit.css rules are in its DONE file — integrator to move to a desktop-only sheet.
+- Modal openers: `+ New reservation`, `Print in-house list`, `Walk-in`, `New guest`.
+- Lock contention: ~4 h of retries for this lane.
+
+## From revenue (done, f080c76a)
+- Booking-site has only Bookings + Preview tabs (page has no content for Settings / Rooms & rates) — review to confirm nothing dropped vs main.
+- Yield "publish requests" card became a sub-screen shown only while a request exists — review to confirm nothing hidden.
+- Groups re-run after the fit-split fix passes; yield/channels/booking-site not re-run after; remaining font-changed on 4 sub-screens unverified vs main (integrator's full run decides).
+- New sheet src/styles/fit-revenue.css; touched `channels()` helper in stream-wd5-gaps.mjs (passes tab via FitNavContext, assertions unchanged).
+- A static server for its checks may still run on port 4197 (stop was denied to the agent) — coordinator to ask the user / check at integration time.
+
+## From front-a (head a6487969, UNFINISHED checks)
+- Final `npm test` and the full check (overview, rooms, calendar; all viewports, roles, scale 1 + 1.3) have NOT run: it waited ~3 h on the lock. A full run is queued (.scratch\full.ps1, report to fit-front-a\.scratch\c2\). The Overview tab-id fix and the legend move (abcbfc5a, fixes cramped 124 at tab-port) are unchecked. DONE file has FULL_CHECK_PLACEHOLDER.
+- Dashboard "Front desk today" now lists all rows of the chosen tab (was first 5) inside a scroll panel: coordinator decision = keep (no content hidden, in line with the contract); fit-review to confirm it is layout-only.
+- 4 modal openers for fit-modals.json in its DONE file.
+
+## From admin-b (done, fc6b70c6)
+- `FitPage layout="form"` puts `.fit-form` on the page root, colliding with the FormSections grid; fix in z-fit.css: scope the grid to `.fit-page>.fit-form` (admin-a's form pages need the same).
+- Frozen by [CT-C] tests (never append rules): admin.css, housekeeping.css, prefs.css, closing, folio, guests, history, reservations, restriction and the m-* sheets. Lanes use new sheets (fit-admin-b.css etc.).
+- Updated tests (not loosened): stream-prefs.mjs, stream-themes.mjs open each Prefs section first.
+- `sign-in-devices` tab only in production build (demo: palette entry opens Users).
+- Modal openers "New user" and "Edit" (access) for fit-modals.json.
+- `SUB_SCREENS` block name used is `// FIT-ADMIN` (admin-b) — check no collision with `// FIT-ADMIN-A`.
+
+## From guest (done, de6507c6)
+- Messages and Documents rows still open their existing dialogs (not a split record pane); Outbox pages 100 rows at a time (usePaged). Three layout choices differing from the brief are in its DONE file — fit-review to look.
+- Customers 360 uses a new optional `initialTab` prop (stream-customers-legacy.mjs updated, not loosened).
+- New sheet src/styles/guest-fit.css; 3 modal openers: guest-services "New request", messages "Compose", gsv-my-requests "Log found item".
+
+## From cash-b (done, 674c1707)
+- expenses: the contract/brief's status ids "approved/paid" do not exist in code; actual ids All, Draft, Pending, Posted, Rejected, Reversed, Void unchanged. Page tabs = the 7 SCC sections. Contract §6 table to be corrected in FIT-DONE.
+- POS: orders view 3 columns, sticky Send KOT / Settle bar; kitchen BoardColumns paged; 86 list is a popover.
+- HeaderActions overflow bug confirmed (primary action clipped with 6 items; lane kept 2).
+- Open: register table body ~168 px at tab-land (min 160) — tight; integrator to re-check.
+- Own `// FIT-CASH-B` block was added at end of subscreens.ts; new sheet src/styles/fit-cash-b.css; modal openers: POS table tile, expense row "Text".
+
+## From cash-a (done, 3f9fe2e2)
+- folios: contract did not list sub-screen tabs; added Folios / Folio requests (requests card would not fit under the list). Right pane = the same folio as BookingModal so every action stays.
+- cashier: cash-out buttons moved to the page header; count panel buttons in a sticky bar. cashbook: did not use StatStrip (its label class is smaller than the cash book's 12 px labels); Lock/Reopen in the Day lock panel header.
+- New sheets folios.css, cashier.css, cashbook.css; 3 modal openers in its DONE file.

@@ -12,6 +12,7 @@ const ENTRY=`
 import React from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
 import {HccContext} from '../../src/app/context';
+import {FitNavContext} from '../../src/components/fit';
 import {can,metrics,roomStatus} from '../../src/services/mock';
 import {navItems} from '../../src/app/nav'; // same import order as App.tsx (nav before registry)
 import '../../src/app/registry';
@@ -31,7 +32,8 @@ function ctx(s:any,uid:string,mobile:boolean,over:any={}):any{
 const html=(s:any,uid:string,mobile:boolean,el:any,over:any={})=>renderToStaticMarkup(<HccContext.Provider value={ctx(s,uid,mobile,over)}>{el}</HccContext.Provider>);
 export const templates=(s:any,uid:string)=>html(s,uid,false,<TemplatesTab/>);
 export const messages=(s:any,uid:string,mobile:boolean)=>html(s,uid,mobile,mobile?<MsgMessagesMobile/>:<MsgMessagesPage/>);
-export const channels=(s:any,uid:string,mobile:boolean,tab:string)=>html(s,uid,mobile,mobile?<ChannelsMobile/>:<ChannelsPage/>,{tab});
+// FIT-REVENUE: the desktop page keeps its sections in FitTabs (useFitTab); the tab is asked for through the shell's FitNavContext (go(page,{tab})).
+export const channels=(s:any,uid:string,mobile:boolean,tab:string)=>html(s,uid,mobile,mobile?<ChannelsMobile/>:<FitNavContext.Provider value={{desktop:true,page:'channels',tabKey:tab,seq:1,setTabCrumb:()=>{}}}><ChannelsPage/></FitNavContext.Provider>,{tab});
 `;
 
 export async function register({test,M,assert}){
@@ -98,7 +100,7 @@ export async function register({test,M,assert}){
     assert.deepEqual(chips(recDemo),['*Outbox','Triggers','Templates','Consent']);
     assert.ok(!recDemo.includes('Tap a template'),'templates tab not open by default');
     const desk=prod.messages(s,'techadmin',false);
-    assert.match(desk,/role="tab" aria-selected="true" class="active">Templates/,'desktop parity: Templates first for the Tech admin');
+    assert.match(desk,/data-tab="templates" aria-selected="true"[^>]*class="active">Templates/,'desktop parity: Templates first for the Tech admin (FIT: FitTabs markup)');
   });
 
   // ── D7: commission rate withheld ──

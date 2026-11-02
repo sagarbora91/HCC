@@ -15,6 +15,7 @@ import {useHcc} from '../../app/context';
 import {saveCsv,saveAndReport,clearCapturedPhotos} from '../../app/native';
 import {compressBillPhoto} from '../../app/slipPhoto';
 import {Pill,Empty,dateLabel,shortDate} from '../../components/ui';
+import {FitNote} from '../../components/fit';
 import {mnyExpenseSources} from '../money/masters';
 import {BillPhotoProd} from '../../clients/sync/expense-ui';
 import {CashDeductionBadge} from '../accounting/cashguard'; // ACC-2
@@ -77,13 +78,15 @@ export function ItcField({gst,amount,value,onChange}:{gst:number;amount:number;v
 }
 
 /** Banners on top of the Expenses page: recurring nudge (SCC recurringNudge) and the business month's lock / stale state. */
-export function ExpBanners({onSection}:{onSection:(s:ExpSection)=>void}){
+export function ExpBanners({onSection,fit}:{onSection:(s:ExpSection)=>void;fit?:boolean}){
   const {s}=useHcc();const due=expRecurringDue(s),m=expYm(s.date),f=expSlice(s).months?.[m];
-  return <>{due.length>0&&<div className="info-note f-warn exp-banner" role="status"><Repeat size={16}/><span><strong>{due.length}</strong> recurring expense{due.length===1?'':'s'} not yet posted this month: {due.slice(0,4).map(t=>t.name).join(', ')}{due.length>4?'…':''}{' '}
-      <button type="button" className="text-btn" onClick={()=>onSection('recurring')}>Post now</button></span></div>}
-    {f&&f.unlockedAt&&<div className="info-note exp-banner f-warn" role="status"><Unlock size={16}/><span>{expMonthUnlockedMessage(f)}</span></div>}
-    {f&&!f.unlockedAt&&<div className={'info-note exp-banner'+(expFeedStale(s,m)?' f-warn':'')} role="status"><Lock size={16}/><span>Month {m} is tax-locked (feed generated {f.generatedAt.replace('T',' ')}). Entries dated in it need the Owner and a reason.
-      {expFeedStale(s,m)?' The ledger changed after the feed was generated — regenerate it before sharing with your CA.':''}</span></div>}</>;
+  // FIT (desktop): each banner is one line with a More button (FitNote) so the notes cannot push the work area off the screen; text unchanged.
+  const note=(icon:React.ReactNode,cls:string,body:React.ReactNode)=>fit?<div className={'info-note exp-banner exp-banner-fit'+cls} role="status">{icon}<FitNote text={body}/></div>:<div className={'info-note exp-banner'+cls} role="status">{icon}<span>{body}</span></div>;
+  return <>{due.length>0&&note(<Repeat size={16}/>,' f-warn',<><strong>{due.length}</strong> recurring expense{due.length===1?'':'s'} not yet posted this month: {due.slice(0,4).map(t=>t.name).join(', ')}{due.length>4?'…':''}{' '}
+      <button type="button" className="text-btn" onClick={()=>onSection('recurring')}>Post now</button></>)}
+    {f&&f.unlockedAt&&note(<Unlock size={16}/>,' f-warn',expMonthUnlockedMessage(f))}
+    {f&&!f.unlockedAt&&note(<Lock size={16}/>,expFeedStale(s,m)?' f-warn':'',<>Month {m} is tax-locked (feed generated {f.generatedAt.replace('T',' ')}). Entries dated in it need the Owner and a reason.
+      {expFeedStale(s,m)?' The ledger changed after the feed was generated — regenerate it before sharing with your CA.':''}</>)}</>;
 }
 
 /** View a bill photo: the demo keeps it on the record; production fetches it on demand. */

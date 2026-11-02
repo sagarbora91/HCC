@@ -1,0 +1,4 @@
+/* FIT-2 (lane forms): rail of Master configuration shows headline current values per group. Layout only: no font sizes, no colours.
+   The line reuses .cfg-item small (the rail's own small font); one line with an ellipsis, the full text is in the title. */
+.app-shell .cfg-item .cfg-heads{display:block;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.app-shell .cfg-item>span:first-child{min-width:0}

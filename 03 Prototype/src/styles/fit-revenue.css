@@ -1,0 +1,22 @@
+/* FIT (DEC-194…196, lane fit-revenue): tariff & yield, groups, OTA channels, direct booking site on the desktop / tablet layout.
+   Every rule is guarded by .app-shell (the phone shell does not render it), so m-yield / m-groups / m-channels and the phone stay untouched.
+   No font sizes (DEC-195), colours as tokens only. */
+.app-shell .fit-panel-body .yld-cal-wrap{max-width:none;overflow:visible}
+.app-shell .yld-cal thead th{background:var(--c-ffffff)}
+.app-shell .yld-cal thead th.yld-wkend{background:var(--sand-2)}
+.app-shell .yld-cal thead th:first-child{position:sticky;left:0;top:0;z-index:3}
+.app-shell .yld-cal tbody th{position:sticky;left:0;z-index:2;background:var(--c-ffffff);box-shadow:1px 0 0 var(--line)}
+
+.app-shell .grp-list{list-style:none;margin:0;padding:0}
+.app-shell .grp-list-row{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;min-height:44px;padding:10px 14px;border:0;border-bottom:1px solid var(--line);background:var(--c-ffffff);text-align:left;cursor:pointer;color:var(--ink)}
+.app-shell .grp-list-row:hover,.app-shell .grp-list-row:focus-visible{background:var(--sand-2)}
+.app-shell .grp-list-row.active{background:var(--primary-tint);box-shadow:inset 3px 0 0 var(--primary)}
+.app-shell .grp-list-row-main{display:flex;flex-direction:column;gap:2px;min-width:0}
+.app-shell .grp-list-row-main small{display:block;color:var(--muted)}
+.app-shell .grp-record{display:flex;flex-direction:column;gap:12px;padding:12px}
+.app-shell .grp-record-billing{display:flex;flex-direction:column;gap:6px;border-top:1px solid var(--line);padding-top:10px}
+.app-shell .fit-panel-actions .grp-inline{margin-left:0}
+
+.app-shell .chn-device-stage{display:flex;justify-content:center;padding:12px}
+.app-shell .fit-panel-body .chn-device{width:100%;max-width:410px;max-height:none;overflow:visible;overflow:clip}
+.app-shell .fit-panel-actions .chn-inline{min-width:200px}

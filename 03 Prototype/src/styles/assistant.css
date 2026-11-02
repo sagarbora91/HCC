@@ -1,0 +1,12 @@
+/* FIT (DEC-194, lane fit-people-b): desktop chat layout (.app-shell only). The thread scrolls inside its ScrollPanel (no inner scroller),
+   the question box is the panel footer, the side panel holds the suggestions, briefing and flags. */
+.app-shell .ai-fit-sim{flex:1 1 auto;min-width:0}
+.app-shell .ai-fit-sim .fit-note{margin:0}
+.app-shell .ai-fit-cols>:first-child{min-width:0}
+.app-shell .fit-panel-body>.ai-thread{max-height:none;min-height:0;overflow:visible;padding:10px 16px 14px}
+.app-shell .ai-fit-compose{flex:1 1 auto;min-width:0}
+.app-shell .ai-fit-compose .ai-input{width:100%}
+.app-shell .ai-fit-side{display:flex;flex-direction:column;gap:12px;padding:10px 12px 12px}
+.app-shell .ai-fit-side .ai-chips{margin-bottom:0}
+.app-shell .ai-fit-side .card{margin-bottom:0}
+.app-shell .ai-fit-side .ai-brief-list,.app-shell .ai-fit-side .ai-flag-list{padding:0 16px 12px}

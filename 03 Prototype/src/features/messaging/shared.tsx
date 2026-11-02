@@ -3,6 +3,7 @@ import React,{useState,useMemo} from 'react';
 import {Check,CheckCheck,Clock,AlertCircle,Ban,MessageCircle,Smartphone,Mail,Info,AlertTriangle,IdCard,Receipt,Building2} from 'lucide-react';
 import {useHcc} from '../../app/context';
 import {Pill,clockTime,shortDate} from '../../components/ui';
+import {FitNote} from '../../components/fit';
 import {money,MSGMessage,MSGStatus,MSGChannel,MSGDoc,MSGDocKind,MSG_STATUS_TONE,MSG_LOW_CONFIDENCE,MSG_DOC_KIND_LABEL,msgStatus,msgLowFields,msgParseRupees,
   msgLooksLikeFullId,guestIdTypes,guestNormaliseName,mnyCategoryNames,mnyNames,msgSlice} from '../../services/mock';
 import {msgSampleDocs} from '../../fixtures/ext/messaging';
@@ -24,6 +25,13 @@ function MsgNotConfigured(){
 }
 export function MsgSimulated({children}:{children?:React.ReactNode}){
   return <><MsgNotConfigured/><MsgSimulatedBanner>{children}</MsgSimulatedBanner></>;
+}
+/** FIT desktop pages: the same "Messaging is off" (production) and "Simulated" (demo) notes as MsgSimulated, each as a one-line FitNote with More. */
+export function MsgSimulatedNote({children}:{children?:React.ReactNode}){
+  const {s}=useHcc();
+  const why=process.env.HCC_BUILD==='production'?msgSlice(s).notConfigured:undefined;
+  const sim=process.env.HCC_BUILD==='production'?null:<><b>Simulated.</b> {children||'Nothing is sent — no WhatsApp, SMS or email leaves this prototype, and there is no network access.'}</>;
+  return <>{why&&<FitNote text={<><b>Messaging is off.</b> {why}</>}/>}{sim&&<FitNote text={sim}/>}</>;
 }
 export const msgTemplateName=(s:ReturnType<typeof useHcc>['s'],id:string)=>id==='manual'?'Manual message':(s.messagingX?.templates||[]).find(t=>t.id===id)?.name||id;
 /** Chat-style preview bubble with status ticks + text label. */

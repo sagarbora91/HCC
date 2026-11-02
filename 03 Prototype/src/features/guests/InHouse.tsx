@@ -4,7 +4,8 @@ import {bookingRef} from '../../domain/bookingRef';
 import {ArrowRight,Info,AlertCircle,Printer,MoveRight,CalendarPlus,LogOut} from 'lucide-react';
 import {useHcc} from '../../app/context';
 import {Booking,money,nights,totals,guestForBooking,guestView,staySegments,staySegmentLabel,stayInHouse,stayMoveAlternatives,stayDepartureBounds,stayCanExtend,available,occupant,plural,rmsRoomLine,rmsTypeName,mstFloorLabel} from '../../services/mock';
-import {PageTitle,Pill,Empty,shortDate,SearchBox} from '../../components/ui';
+import {Pill,Empty,shortDate,SearchBox} from '../../components/ui';
+import {FitPage,ScrollPanel,SplitView,FitNote,useWideSplit} from '../../components/fit';
 import {PrintListButton} from './FrontDeskList';
 
 /** Stay detail body (shared by the In-house page and the 'stay-detail' modal). */
@@ -45,19 +46,21 @@ export function StayDetailModal({id}:{id?:string}){
 export function InHousePage(){
   const {s,search,setSearch}=useHcc();const all=stayInHouse(s);
   const list=all.filter(b=>`${b.guest} ${bookingRef(b)} ${b.room} ${staySegments(b).map(x=>x.room).join(' ')}`.toLowerCase().includes(search.toLowerCase()));
-  const [sel,setSel]=useState('');const b=list.find(x=>x.id===sel)||list[0];
-  return <><PageTitle title="In-house stays" sub={`${all.length} stay${all.length===1?'':'s'} in house · business date ${shortDate(s.date)}`} action={<PrintListButton kind="inhouse"/>}/>
-    <div className="toolbar"><SearchBox value={search} onChange={setSearch} placeholder="Search guest, room or booking…"/></div>
-    {!all.length?<section className="card"><Empty title="No guests in house" body="Check in an arrival from Arrivals & check-in."/></section>:
-    <div className="gs-split">
-      <section className="card"><div className="section-title"><h2>Stays</h2><span className="muted">{list.length} shown</span></div>
-        {list.length?<ul className="gs-list">{list.map(x=>{const due=x.departure<=s.date;return <li key={x.id}><button className={'gs-list-item '+(b?.id===x.id?'active':'')} aria-pressed={b?.id===x.id} onClick={()=>setSel(x.id)}>
-          <span className="room-number">{x.room}</span><span className="gs-list-main"><strong>{x.guest}</strong><small>{bookingRef(x)} · {staySegmentLabel(x)}</small></span>
-          <span className="gs-list-tags">{due?<Pill tone="orange">Departure due</Pill>:<Pill tone="blue">to {shortDate(x.departure)}</Pill>}<span className="number">Balance {money(totals(x).balance)}</span></span></button></li>;})}</ul>
-        :<Empty title="No matching stays" body="Try another guest, room or booking."/>}</section>
-      {b&&<section className="card"><div className="padded"><StayDetail b={b}/></div></section>}
-    </div>}
-    <p className="footnote">Moves reserve the new room before the old one is released; the old room becomes dirty with one housekeeping task. All records are fictional.</p></>;
+  const wide=useWideSplit();
+  const [sel,setSel]=useState('');const b=list.find(x=>x.id===sel)||(wide?list[0]:undefined);
+  // FIT (contract §6 'inhouse' = fill; the stay record sits beside the list as a split, slide-over below 900 px).
+  const listPanel=<ScrollPanel title="Stays" label="In-house stays" actions={<span className="muted">{list.length} shown</span>}>
+    {list.length?<ul className="gs-list">{list.map(x=>{const due=x.departure<=s.date;return <li key={x.id}><button className={'gs-list-item '+(b?.id===x.id?'active':'')} aria-pressed={b?.id===x.id} onClick={()=>setSel(x.id)}>
+      <span className="room-number">{x.room}</span><span className="gs-list-main"><strong>{x.guest}</strong><small>{bookingRef(x)} · {staySegmentLabel(x)}</small></span>
+      <span className="gs-list-tags">{due?<Pill tone="orange">Departure due</Pill>:<Pill tone="blue">to {shortDate(x.departure)}</Pill>}<span className="number">Balance {money(totals(x).balance)}</span></span></button></li>;})}</ul>
+    :<Empty title="No matching stays" body="Try another guest, room or booking."/>}</ScrollPanel>;
+  return <FitPage title="In-house stays" sub={`${all.length} stay${all.length===1?'':'s'} in house · business date ${shortDate(s.date)}`} actions={<PrintListButton kind="inhouse"/>} layout="split"
+      toolbar={<SearchBox value={search} onChange={setSearch} placeholder="Search guest, room or booking…"/>}>
+    {!all.length?<ScrollPanel label="In-house stays"><Empty title="No guests in house" body="Check in an arrival from Arrivals & check-in."/></ScrollPanel>:
+    <SplitView label="In-house stays" ratio="2fr 3fr" onCloseDetail={()=>setSel('')} list={listPanel} detail={b?<div className="padded"><StayDetail b={b}/></div>:null}
+      empty={<Empty title="Pick a stay" body="Its room segments, occupants, folio summary and actions open here."/>}/>}
+    <FitNote text="Moves reserve the new room before the old one is released; the old room becomes dirty with one housekeeping task. All records are fictional."/>
+  </FitPage>;
 }
 
 /** Modal 'stay-move': id = booking ID; room = 'move' (change room), 'dates' (extend/shorten) or 'today' (guest leaves today, A02b-02). In-house stays only. */

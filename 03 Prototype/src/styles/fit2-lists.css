@@ -1,0 +1,8 @@
+/* FIT-2 lane lists (messages, groups, guest services, dashboard, yield, channels, reservations, POS summary): data gets its height back.
+   Layout only: no font-size, colour or text change (DEC-195). */
+/* Groups: with no block open the list owns the whole width, so blocks sit two or three to a row. */
+.app-shell .fit-split.list-only .grp-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(400px,1fr))}
+/* Rows: the cell padding is trimmed (the 44 px touch targets in a row stay); a table shows about one more row. */
+.app-shell :is([data-fit-page="messages"],[data-fit-page="groups"],[data-fit-page="guest-services"],[data-fit-page="overview"],[data-fit-page="yield"],[data-fit-page="channels"],[data-fit-page="reservations"],[data-fit-page="pos"]) .fit-panel-body td{padding-top:6px;padding-bottom:6px}
+/* Panel footer: "Show more" sits on one line with its note instead of a tall wrapped block. */
+.app-shell :is([data-fit-page="messages"],[data-fit-page="reservations"],[data-fit-page="groups"]) .fit-panel-foot .show-more{flex:0 1 auto;flex-wrap:nowrap;padding:0;gap:12px}

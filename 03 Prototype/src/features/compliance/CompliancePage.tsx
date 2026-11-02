@@ -1,12 +1,13 @@
 // Compliance calendar = SCC tax module in full (DEC-116): desktop page and phone page (same data and pieces, cards on the phone).
 // SCC layout: FY selector, firm profile, Action Center, Calendar / Dashboard; the calendar has month tabs April–March with overdue dots
 // (L2120–2135), the month's control note, the current-month statutory strip, 7 stats, the category filter with NA (L2450–2451) and the cards.
-import React,{useEffect} from 'react';
-import {Bell,Settings2,Building2,FileSpreadsheet,Printer,Download,Archive,Send,LayoutDashboard,CalendarDays,ShieldAlert} from 'lucide-react';
+import React,{useEffect,useRef} from 'react';
+import {Bell,Settings2,Building2,FileSpreadsheet,Printer,Download,Archive,Send,LayoutDashboard,CalendarDays} from 'lucide-react';
 import {useHcc} from '../../app/context';
 import {cmpHasAccess,cmpCanManage,cmpSlice,cmpMonthPage,cmpHasOverdueInMonth,cmpActionCenter,cmpBadgeText,cmpCsv,cmpTypeLabel,cmpFyLabel,cmpPayableStrip,cmpInr,cmpFyStatus,
   CMP_MONTHS,CMP_FY_MIN,CMP_FY_MAX,CMP_ILLUSTRATIVE,type CMPCatFilter} from '../../services/mock';
-import {PageTitle,Empty,dateLabel} from '../../components/ui';
+import {Empty,dateLabel} from '../../components/ui';
+import {FitPage,FitTabs,useFitTab,ScrollPanel,FitNote} from '../../components/fit';
 import {saveCsv,saveAndReport} from '../../app/native';
 import {CmpCard} from './Card';
 import {CmpDashboard} from './Dashboard';
@@ -56,11 +57,25 @@ function Strip({c}:{c:C}){
   const p=cmpPayableStrip(c.feed,c.s.date,c.u.month);if(!p)return null;
   return <p className="cmp-strip">{cmpInr(p.total)} statutory payable this month · PF {cmpInr(p.pf)} · ESIC {cmpInr(p.esic)} · PT {cmpInr(p.pt)} · GST {cmpInr(p.gst)} <span>· estimate — verify with CA</span></p>;
 }
-function Calendar({c,phone}:{c:C;phone?:boolean}){
+function Calendar({c,phone,fit,tools}:{c:C;phone?:boolean;fit?:boolean;tools?:React.ReactNode}){
   const p=c.page;
   useEffect(()=>{if(c.u.focus){const el=document.getElementById('cmp-card-'+c.u.focus);el?.scrollIntoView?.({behavior:'smooth',block:'center'});cmpUiSet({focus:undefined});}},[c.u.focus,c.u.month]);
   // An archived category cannot stay the active filter (SCC toggleCatArchive L1482).
   useEffect(()=>{if(c.u.filter!=='all'&&c.u.filter!=='na'&&c.x.archivedCats.includes(c.u.filter))cmpUiSet({filter:'all'});},[c.x.archivedCats,c.u.filter]);
+  // FIT (desktop page): the month tabs stay one fixed row; the month's heading, control note, strip, counters, filter and cards scroll in one panel.
+  if(fit)return <>
+    <MonthTabs c={c}/>
+    <ScrollPanel label={`Compliance cards · ${p.month} ${p.calYear}`} actions={tools} footer={<FitNote text={`${CMP_ILLUSTRATIVE} Nothing is filed from here: this is your tracker. Days left count from the business date.`}/>}>
+      <div className="cmp-fit-body">
+        <div className="cmp-mhd"><h2>{p.month} {p.calYear}</h2><span>{cmpFyLabel(p.fy)}</span></div>
+        <details className="cmp-note" open><summary>⚡ Control Note</summary><p><CmpRich text={p.note}/></p></details>
+        <Strip c={c}/>
+        <Stats c={c}/>
+        <Filters c={c}/>
+        {!p.list.length?<Empty title="Nothing here" body={c.u.filter==='na'?'No item of this month is marked not applicable.':'No compliance obligations for this month.'}/>
+          :<div className="cmp-cards">{p.list.map(v=><CmpCard key={v.card.id} v={v} feed={c.feed}/>)}</div>}
+      </div>
+    </ScrollPanel></>;
   return <>
     <MonthTabs c={c} phone={phone}/>
     <div className="cmp-mhd"><h2>{p.month} {p.calYear}</h2><span>{cmpFyLabel(p.fy)}</span></div>
@@ -81,24 +96,36 @@ function useTools(c:C){
   };
 }
 
+/** FIT sub-screens of the desktop page (SUB_SCREENS block FIT-PEOPLE-A): the SCC Calendar / Dashboard views. */
+const CMP_VIEWS=['calendar','dashboard'] as const;
+type CmpView=typeof CMP_VIEWS[number];
+const CMP_VIEW_LABEL:Record<CmpView,string>={calendar:'Calendar',dashboard:'Dashboard'};
+
 export function CompliancePage(){
   const c=useCompliance();const {open}=useHcc();const t=useTools(c);
-  if(!cmpHasAccess(c.s,c.uid))return <Empty title="Owner and Accountant only" body="The compliance calendar is visible to the Owner and the Accountant."/>;
-  return <div className="cmp-page">
-    <PageTitle title="Compliance calendar" sub="SCC Compliance Operating System — income tax, GST, composition and labour-law filings for the whole financial year, with ownership, internal deadlines, escalation and evidence."
-      action={<span className="cmp-head-actions">
-        <button className="btn" onClick={()=>open({type:'cmp-action'})}><Bell size={15}/>Action Center{c.ac.length>0&&<span className="cmp-badge">{cmpBadgeText(c.ac.length)}</span>}</button>
-        <button className="btn" onClick={()=>open({type:'cmp-profile'})}><Building2 size={15}/>Firm profile</button>
-        {c.manage&&<button className="btn" onClick={()=>open({type:'cmp-manage'})}><Settings2 size={15}/>Manage compliance</button>}</span>}/>
-    <div className="cmp-toolbar"><FySelect c={c}/><FirmLine c={c}/>
-      <div className="cmp-view-tabs" role="tablist" aria-label="View"><button type="button" role="tab" aria-selected={c.u.view==='calendar'} className={c.u.view==='calendar'?'active':''} onClick={()=>cmpUiSet({view:'calendar'})}><CalendarDays size={15}/>Calendar</button>
-        <button type="button" role="tab" aria-selected={c.u.view==='dashboard'} className={c.u.view==='dashboard'?'active':''} onClick={()=>cmpUiSet({view:'dashboard'})}><LayoutDashboard size={15}/>Dashboard</button></div></div>
-    <div className="cmp-tools"><button className="btn small-btn" onClick={t.csv}><FileSpreadsheet size={14}/>CSV register</button><button className="btn small-btn" onClick={t.print}><Printer size={14}/>Print month</button>
-      <button className="btn small-btn" onClick={t.zip}><Archive size={14}/>Evidence ZIP</button><button className="btn small-btn" onClick={()=>open({type:'cmp-gstr1'})}><Download size={14}/>GSTR-1 working summary</button>
-      <button className="btn small-btn" onClick={()=>open({type:'cmp-pack'})}><Send size={14}/>CA pack</button></div>
-    <div className="info-note"><ShieldAlert size={16}/><span>{CMP_ILLUSTRATIVE} Nothing is filed from here: this is your tracker. Days left count from the business date.</span></div>
-    {c.u.view==='dashboard'?<CmpDashboard feed={c.feed}/>:<Calendar c={c}/>}
-  </div>;
+  // FIT (DEC-196): the view is a page tab. The shared UI store (cmpUiSet) stays the source the dashboard's and Action Center's "Open →" jumps
+  // use; useFitTab adds go('compliance',{tab}) and the remembered tab, and the two are kept in step.
+  const [fitView,setFitView]=useFitTab<CmpView>('compliance',CMP_VIEWS,'calendar');
+  const lastView=useRef(c.u.view);
+  useEffect(()=>{if(fitView!==c.u.view)cmpUiSet({view:fitView});},[fitView]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(()=>{if(c.u.view!==lastView.current){lastView.current=c.u.view;if(c.u.view!==fitView)setFitView(c.u.view);}},[c.u.view]); // eslint-disable-line react-hooks/exhaustive-deps
+  const choose=(v:CmpView)=>{setFitView(v);cmpUiSet({view:v});};
+  if(!cmpHasAccess(c.s,c.uid))return <FitPage title="Compliance calendar"><Empty title="Owner and Accountant only" body="The compliance calendar is visible to the Owner and the Accountant."/></FitPage>;
+  // Header: Action Center. Toolbar: FY, firm line and the firm's settings (Firm profile, Manage). The export tools sit in the panel's fixed head,
+  // always visible on both views (one header row holds them only at desktop widths).
+  const tools=<div className="cmp-tools"><button className="btn small-btn" onClick={t.csv}><FileSpreadsheet size={14}/>CSV register</button><button className="btn small-btn" onClick={t.print}><Printer size={14}/>Print month</button>
+    <button className="btn small-btn" onClick={t.zip}><Archive size={14}/>Evidence ZIP</button><button className="btn small-btn" onClick={()=>open({type:'cmp-gstr1'})}><Download size={14}/>GSTR-1 working summary</button>
+    <button className="btn small-btn" onClick={()=>open({type:'cmp-pack'})}><Send size={14}/>CA pack</button></div>;
+  return <FitPage title="Compliance calendar" sub="SCC Compliance Operating System — income tax, GST, composition and labour-law filings for the whole financial year, with ownership, internal deadlines, escalation and evidence."
+      actions={<button className="btn" onClick={()=>open({type:'cmp-action'})}><Bell size={15}/>Action Center{c.ac.length>0&&<span className="cmp-badge">{cmpBadgeText(c.ac.length)}</span>}</button>}
+      toolbar={<div className="cmp-toolbar cmp-fit-toolbar"><FySelect c={c}/><FirmLine c={c}/>
+        <span className="cmp-head-actions"><button className="btn" onClick={()=>open({type:'cmp-profile'})}><Building2 size={15}/>Firm profile</button>
+          {c.manage&&<button className="btn" onClick={()=>open({type:'cmp-manage'})}><Settings2 size={15}/>Manage compliance</button>}</span></div>}
+      tabs={<FitTabs page="compliance" value={fitView} onChange={choose} tabs={CMP_VIEWS.map(id=>({id,label:CMP_VIEW_LABEL[id]}))}/>}>
+    {fitView==='dashboard'
+      ?<ScrollPanel label="Compliance dashboard" actions={tools} footer={<FitNote text={`${CMP_ILLUSTRATIVE} Nothing is filed from here: this is your tracker. Days left count from the business date.`}/>}><div className="cmp-fit-body"><CmpDashboard feed={c.feed}/></div></ScrollPanel>
+      :<Calendar c={c} fit tools={tools}/>}
+  </FitPage>;
 }
 
 export function ComplianceMobile(){

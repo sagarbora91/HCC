@@ -1,7 +1,7 @@
 // Closed-date corrections (DEC-028, REQ-CLOSE-006): request → Owner approves → adjustment line dated today referencing the closed date.
 import React,{useState} from 'react';
 import {bookingRefOf} from '../../domain/bookingRef';
-import {Info} from 'lucide-react';
+import {ScrollPanel,FitNote} from '../../components/fit';
 import {money,rbacCanRequestClosedCorrection,cbIsLocked,cbLockedMessage} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {CashLockNote} from '../cashbook/LockNote';
@@ -19,9 +19,11 @@ export function Corrections(){
     !(bid||stays[0])||!amt||!(paise>0)?'Enter the folio, closed date and amount.':!reason.trim()?'A reason is required.':cbIsLocked(s,pickedDate)?cbLockedMessage(pickedDate,'a correction'):'';
   function submit(e:React.FormEvent){e.preventDefault();if(why)return;
     run({type:'CORRECTION_ADJUST',id:bid||stays[0].id,date:date||dates[0],amount:dir==='-'?-paise:paise,reason:reason.trim()},'Correction requested — Owner approval required',{after:()=>{setAmt('');setReason('');}});}
-  return <section className="card"><div className="section-title"><h2>Closed-date corrections</h2><span className="muted">Closed records never change</span></div>
-    <div className="padded">
-      <div className="info-note"><Info size={16}/>A correction for a closed date posts as a dated adjustment in today’s open business day, referencing the closed date. Requested by a manager or the accountant; approved by an Owner (not the requester). To post corrections on the closed date itself, the Owner reopens that day instead (DEC-077, “Reopen a closed day”).</div>
+  // FIT (Day closing step 7): a ScrollPanel; the rule note sits in its footer (FitNote) so the request form starts at the top of the panel and
+  // its action bar stays in view (closing-fit.css keeps it sticky inside the panel).
+  return <ScrollPanel title="Closed-date corrections" label="Closed-date corrections" actions={<span className="muted">Closed records never change</span>}
+      footer={<FitNote text="A correction for a closed date posts as a dated adjustment in today’s open business day, referencing the closed date. Requested by a manager or the accountant; approved by an Owner (not the requester). To post corrections on the closed date itself, the Owner reopens that day instead (DEC-077, “Reopen a closed day”)."/>}>
+    <div className="padded f-fit-form">
       <CashLockNote/>
       <form className="form" onSubmit={submit} aria-label="Request a closed-date correction">
         <div className="form-row"><label>Folio<select value={bid||stays[0]?.id||''} onChange={e=>setBid(e.target.value)} disabled={!stays.length}>{stays.map(b=><option key={b.id} value={b.id}>{b.id} · {b.guest} · room {b.room} · {b.status}</option>)}</select></label>
@@ -40,5 +42,5 @@ export function Corrections(){
             <button className="text-btn" disabled={busy} onClick={()=>run({type:'CORRECTION_ADJUST_DECIDE',id:a.id,approve:false,key:'corr:'+a.id},'Correction rejected')}>Reject</button></>
             :<span className="f-why">{own?'Your request — another Owner decides':'Owner approval required'}</span>)}
           {a.status==='Pending'&&cbIsLocked(s,String(a.meta?.date))&&<span className="f-why">{cbLockedMessage(String(a.meta?.date),'posting this correction')}</span>}</div>;})}</div>}
-    </div></section>;
+    </div></ScrollPanel>;
 }

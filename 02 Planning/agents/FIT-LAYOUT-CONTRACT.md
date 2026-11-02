@@ -151,13 +151,13 @@ Which pattern for which kind of page:
 | `calendar` | front | fill: one `ScrollPanel` scrolling both ways, room column and date header sticky | — |
 | `reservations` | front | fill: toolbar (search, status filter, date range) + `ScrollPanel` table; row opens the existing modal | — |
 | `arrivals` | front | fill (already fits; convert to `FitPage`) | — |
-| `inhouse` | front | fill | — |
-| `guests` (front-desk list) | front | fill | — |
-| `folios` | cash | split: folio list left, folio right (today a full-width table + record below) | — |
+| `inhouse` | front | split: in-house stays list left, stay record right (as built; a `SplitView`) | — |
+| `guests` (front-desk list) | front | split: guest profiles list left, profile right (as built). Linked as a nav item "Guests" in the Front desk group with the Reservations permission (owner decision after FIT) | — |
+| `folios` | cash | split: folio list left, folio right. Built as `FitPage layout="fill"` with a `SplitView` in the body (same result) and sub-screens Folios / Folio requests | folios, requests |
 | `cashier` | cash | split: shift summary + count card left (`ScrollPanel`), shift movements table right | — |
 | `cashbook` | cash | fill: toolbar = range + StatStrip (`cb-sums`), `ScrollPanel` table | — |
 | `pos` | cash | existing view tabs → `FitTabs`; order view = board (menu left, ticket right with sticky Charge / KOT bar) | one per existing view id |
-| `expenses` | cash | status tabs → `FitTabs`; each = split (requests list left, request + approval right) | all, pending, approved, paid, rejected (existing ids) |
+| `expenses` | cash | status tabs → `FitTabs`; each = split (requests list left, request + approval right) | the seven SCC sections as sub-screens: Register, Recurring, Petty cash, Budgets, Udhaar, Vendor payments, Month & tax. The status filter inside the Register keeps its ids All / Draft / Pending / Posted / Rejected / Reversed / Void ("approved / paid" never existed) |
 | `housekeeping` | ops | board: `BoardColumns` (4 status columns, each scrolls), toolbar = floor filter + StatStrip | — |
 | `maintenance` | ops | existing `MNT_TABS` → `FitTabs`; list tabs = split | existing ids |
 | `handover` | ops | existing tabs → `FitTabs`; a checklist run = `StepFlow` (one section at a time) | existing ids |
@@ -167,22 +167,22 @@ Which pattern for which kind of page:
 | `documents` | guest | split (captures list left, capture right) | — |
 | `customers` | guest | split: customer list left; Customers 360 profile right with inner `FitTabs` Overview / Stays / Legacy (from W1a) / Money / Notes | overview, stays, legacy, money, notes |
 | `yield` | revenue | `FitTabs` per existing section (tariff grid in `ScrollPanel`, sticky first column) | per section |
-| `groups` | revenue | existing `TABS` → `FitTabs`; each = split (group list left, group record right — today's 3,760 px card) | existing ids |
+| `groups` | revenue | existing `TABS` → `FitTabs`; each = split (group list left, group record right — today's 3,760 px card); built as `layout="fill"` with a `SplitView` in the body; DEC-076 credit note on Companies only, "Rooms held" on Blocks only | existing ids |
 | `channels` | revenue | `FitTabs` per section (channels, mapping, payouts, logs) | per section |
-| `booking-site` | revenue | `FitTabs` (Settings, Rooms & rates, Bookings `usePaged`, Preview) | per section |
+| `booking-site` | revenue | `FitTabs` (Bookings `usePaged`, Preview; main has no Settings / Rooms & rates screens on this page) | bookings, preview |
 | `staff` | people | existing `HrDesk` tabs → `FitTabs`; each fill / split | existing ids |
 | `my-hr` | people | fill (fits today; convert) | — |
 | `closing` | people | steps: `StepFlow` over the 7 Day-closing steps; step body may hold a `ScrollPanel`; the "Close day" action sits in the step bar, always visible, enabled exactly as today | one per step id (registry: `closing` + each step) |
-| `reports` | people | split: report list (grouped) left, report right (`ScrollPanel`, export buttons in panel header) | — |
+| `reports` | people | split (built as `layout="fill"` with a `SplitView` in the body): report list (grouped) left, report right (`ScrollPanel`, export buttons in panel header) | — |
 | `plans-extras` | people | `FitTabs` per section | per section |
 | `accounting` | people | existing sections → `FitTabs` (Day book, Ledgers, Parties, GST, TDS, Reports, … as on main after ACC-2); statusbar + StatStrip in toolbar | per existing section |
 | `assistant` | people | chat: conversation `ScrollPanel` (newest at bottom), input pinned at the bottom, side panel for suggestions | — |
-| `compliance` | people | `FitTabs`: Calendar / Filings / Licences (+ SCC compliance sections as on main) | per section |
+| `compliance` | people | `FitTabs`: Calendar / Dashboard (main has no Filings / Licences screens) | calendar, dashboard |
 | `syshealth`, `backup`, `roadmap` | admin | fill / tabs per section | per section |
 | `prefs` | admin | form: `FormSections` | per section |
 | `access` | admin | split: roles / users list left, permissions right | — |
-| `settings` (Master configuration, masters) | admin | form: existing master list / detail (`mst-list` / `mst-detail`) inside `SplitView`; each master's form uses `FormSections` where it has > 1 section | per master group |
-| `approvals` | admin | `FitTabs` (Approvals, Audit log) each split | approvals, audit |
+| `settings` (Master configuration, masters) | admin | built as `FitPage` default layout with a `SplitView` (12 groups left, group settings and Lists right; `.fit-page.fit-split` would collide with SplitView's own grid class); existing master list / detail (`mst-list` / `mst-detail`) in the record pane, the master's row list scrolls inside itself; each master's form uses `FormSections` where it has > 1 section | per master group |
+| `approvals` | admin | `FitTabs` (Approvals, Audit log, plus "Pending expenses") each split (`layout="fill"` with a `SplitView` in the body) | approvals, audit, pending expenses |
 | W1a `legacy-import` (if on main) | admin | form + result `ScrollPanel` | — |
 
 A page that turns out not to fit with its assigned pattern at §8's smallest viewport: the lane may pick another §5 pattern and says why in its DONE file; it may not drop content or shrink text.
@@ -252,3 +252,72 @@ Source: `05 Delivery Evidence/Fit/FIT-shell-review-20261101.md` §6. These overr
 9. **Header actions never wrap.** The header row stays one row (48 px). The page's primary action is always visible; extra actions go into a **More** menu (`FitPage` prop `actions` = primary first, the rest overflow).
 10. **Tab keyboard.** Arrow keys move focus and select (automatic activation), as built; Home / End go to the first / last tab.
 11. **Below 900 px**, `.fit-cols` stacks, but its panels keep a definite height (no `flex:1 1 0` inside an auto-height parent). A table panel never collapses below the 160 px panel minimum at `tab-port`. fit-shell fixes this in `arrivals` first; the guide shows the pattern.
+
+## 12. FIT-2: lists scroll, tasks are sub-screens with a result rail
+
+Owner rule (2 Nov 2026, after the FIT wave added clicks to review data; DEC-194 / DEC-195 / DEC-196 stay): **"A list scrolls inside its own panel; a task never scrolls — it is split into sub-screens that each fit, and a fixed status rail beside the active sub-screen shows every step's result, so reviewing needs no click and doing needs no scroll."** Wave FIT-2: the shell lane (`claude/fit2-shell`) adds the props below; page lanes then use them on their own pages. Everything here is optional — a call site that passes none of it renders exactly as before.
+
+### 12.1 Rules for page lanes
+
+1. **Lists** (rows, records, logs) stay in a `ScrollPanel` / `SplitView` list and scroll there. Never split a list into pages of tabs to avoid scrolling.
+2. **Tasks** (closing, handover run, a settings form, a wizard) never scroll as a whole: each step / section is one sub-screen that fits (`StepFlow` / `FormSections`), and the **rail shows every step's result** through `summary`, so the owner can review the whole task without opening each step. A step body may hold a `ScrollPanel` for a list inside the step (rule 1).
+3. **The primary action stays in the page header** (`FitPage actions`, first item), never inside a step body below the fold.
+4. **No record open = the list gets the whole width** (SplitView default below). Do not put content the user must see into `empty`: it is no longer shown at ≥ 900 px.
+5. **Tabs are never cut off.** `FitTabs` moves what does not fit into **More ▾**; lanes do not add their own sideways-scrolling tab bars.
+6. **Key figures** in the toolbar: a page whose toolbar is tight at tab-land passes `collapseOnTablet` (figures stay visible on one line; the user can expand, and the choice is remembered for the session).
+7. **Notes**: use `FitNote`; it shows its full text when it fits and offers **More** only when the text is cut — do not add your own "More" buttons.
+8. DEC-195 unchanged: no font size changes. A summary line uses the rail button's own font (`.fit-rail-sum` sets no size). If `tools/fit-screen-check.mjs` reports a summary text as a new element, add it to `tools/fit-baseline/allow.json` with the reason "FIT-2 rail summary" (never change a size).
+
+### 12.2 New props and signatures (`src/components/fit.tsx`)
+
+```tsx
+// StepFlow: summary per step — the step's result / current value, one line under the label (ellipsis; a string also goes in title).
+export function StepFlow(p:{steps:{id:string;label:string;status:'done'|'current'|'waiting'|'blocked';note?:string;summary?:React.ReactNode}[];
+  value:string;onChange:(id:string)=>void;children:React.ReactNode}):JSX.Element
+// root class "fit-steps has-summary" when any step has a summary → rail minmax(260px,340px) at ≥ 1280 px (200–260 px below, as before)
+
+// FormSections: summary per section — its current value(s), one line under the label.
+export function FormSections(p:{sections:{id:string;label:string;dirty?:boolean;summary?:React.ReactNode}[];value:string;
+  onChange:(id:string)=>void;actions:React.ReactNode;children:React.ReactNode}):JSX.Element
+// root "fit-form has-summary" → section list minmax(260px,340px) at ≥ 1280 px; a section with a summary renders
+// <span class="fit-form-nav-text"><span>label</span><span class="fit-rail-sum">summary</span></span>
+
+// SplitView: at ≥ 900 px with no record the list takes ALL columns (root class "list-only", the empty pane is hidden); a record opens the
+// pane beside the list with "Back to list" (class fit-split-back, now shown at every width while a record is open). Below 900 px: the
+// slide-over as before. emptyPane="show" keeps the old always-two-columns look (empty pane visible) for a page that really needs it.
+export function SplitView(p:{list:React.ReactNode;detail:React.ReactNode|null;empty:React.ReactNode;onCloseDetail:()=>void;
+  ratio?:`${number}fr ${number}fr`;label:string;emptyPane?:'hide'|'show' /* default 'hide' */}):JSX.Element
+
+// FitTabs: props unchanged. Tabs that do not fit move (from the end) into a "More ▾" button at the end of the bar
+// (.fit-tabs-more > button.fit-tabs-more-btn[aria-haspopup=menu], menu .fit-tabs-pop[role=menu] > button[role=menuitem][data-tab-more=id]).
+// The selected tab always stays in the bar; a hidden tab with a badge marks More with the worst badge. Keys: ←/→/Home/End on tabs as
+// before (they also reach hidden tabs, which then swap into the bar); ↓/↑ on More opens the menu; ↑/↓/Home/End move in it; Enter picks;
+// Esc closes and returns focus to More. Touch: More and menu items ≥ 48 px. Pure helper:
+export function splitTabs<X extends {id:string}>(tabs:X[],n:number,value:string):{visible:Set<string>;hidden:X[]}
+
+// StatStrip: new optional compact / collapsible / collapseOnTablet / page.
+export function StatStrip(p:{items:StatItem[];money?:boolean;variant?:'small';className?:string;
+  compact?:boolean;          // one line per figure (label, value, sub side by side) — class fit-stats-compact; fonts unchanged
+  collapsible?:boolean;      // adds a toggle (button.icon-btn.fit-stats-toggle) beside the strip: compact ⇄ full; wrapper div.fit-stats-wrap
+  collapseOnTablet?:boolean; // implies collapsible; with nothing remembered, starts compact at ≤ 1180 px wide (TABLET_WIDE), full above
+  page?:string;              // key for the remembered mode; default = the open page (useFitNav().page)
+}):JSX.Element
+export const fitStatsKey:(page:string)=>string   // sessionStorage 'hcc-fit-stats:<page>' = 'compact' | 'full'
+export const TABLET_WIDE='(max-width: 1180px)'
+// "Collapsed" is the compact line, never hidden: the figures stay readable without a click.
+
+// FitNote: props unchanged. Full text when it fits its box; "More" only when the text is cut (measured before paint with
+// scrollWidth/scrollHeight, re-measured by a ResizeObserver on the note and its box). Server render: no More.
+export function FitNote(p:{text:React.ReactNode;lines?:number;className?:string}):JSX.Element
+```
+
+### 12.3 Tests and checks
+
+`tests/stream-fit2-shell.mjs` covers every prop above (old markup unchanged without the props); `tests/stream-fit-shell.mjs` FitNote case updated (no More before measuring). `tools/fit-screen-check.mjs` must stay PASS (no page scroll, fonts identical to the baseline). Page lanes add their own page assertions in their `stream-fit-*` files.
+
+### 12.4 Integrator amendments (2 Nov 2026, FIT-2 merge)
+
+- **Rail result wraps, never cut to one line beside the sub-screen.** At ≥ 900 px `.fit-rail-sum` wraps to two lines (`-webkit-line-clamp:2`; same font); below 900 px (horizontal rail) it stays one line with ellipsis. With summaries the rail is `minmax(240px,300px)` from 1024 to 1279 px (was 200–260 px) and `minmax(260px,340px)` at ≥ 1280 px. The rail scrolls inside itself when the steps do not fit (Day closing's seven steps at tab-land).
+- **Add expense dialog** (`.modal.fit-modal:has(.exp-add-task)`): set height `min(620px, 100dvh − 32px)` (`min(860px, …)` below 900 px wide), the sections fill what the heading leaves, so the action bar stays in view at text scale 1.3; the rail result wraps to three lines; below 900 px the three sections stack above the fields.
+- `SplitView emptyPane="show"`: Document capture (its "2 · Review and confirm" card is step 2 of the task, shown beside step 1). Every other `SplitView` `empty` only said "Pick a …" and stays hidden.
+- Master configuration: the open group shows beside the list at once on a wide screen (as before); "Back to list" now closes it there too (list full width) until a group is picked.

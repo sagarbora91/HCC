@@ -1,0 +1,302 @@
+/* FIT · fit-to-screen desktop / tablet layout (DEC-194 no page scroll, DEC-195 no smaller text, DEC-196 sub-screens as tabs; APR-025; contract
+   02 Planning/agents/FIT-LAYOUT-CONTRACT.md §3–§5, §11). Loaded after z-touch.css and before zz-print.css (tools/cssTextScale.mjs readStyleSources).
+   Every rule is scoped to the desktop shell (.app-shell, which the phone shell never renders), a desktop dialog (.fit-modal, added by ModalHost and
+   ModalFrame on the desktop layout only — never a bare .modal, which phone sheets and the phone Day pack share) or the desktop sign-in (.fit-signin).
+   DEC-195: no font size is set here except the page h1 (22 px), one "inherit" that keeps a moved line at its old size, and the 12 px kbd copied
+   unchanged from home.css. Colours: tokens only. */
+:root{--fit-topbar:56px}
+
+/* ── Height chain: the document never scrolls; .content fills what the top bar leaves ─────────────────────────────── */
+html:has(.app-shell),html:has(.app-shell) body,html:has(.app-shell) #root{height:100%}
+.app-shell{height:100vh;height:100dvh;min-height:0;overflow:hidden}
+.app-shell{position:relative} /* B2: the shell is the containing block of every absolute descendant, so its overflow:hidden clips them too */
+.app-shell main{display:flex;flex-direction:column;flex:1;min-width:0;min-height:0}
+.app-shell main>.sync-status{flex:none;max-height:28px;overflow:hidden;white-space:nowrap;flex-wrap:nowrap;margin-top:4px;margin-bottom:0;padding-top:2px;padding-bottom:2px}
+
+/* ── Top bar: one 56 px row; chips shrink in priority order (App.tsx FitTopbar sets data-fit-squeeze) ───────────────── */
+.app-shell .topbar.fit-topbar{height:var(--fit-topbar);min-height:var(--fit-topbar);flex:none;flex-wrap:nowrap;padding:0 16px;gap:12px;align-items:center}
+.app-shell .fit-topbar .topbar-left{flex:1 1 auto;min-width:min(240px,32%);gap:8px;flex-wrap:nowrap}
+.app-shell .fit-topbar .topbar-right{flex:0 0 auto;min-width:0;gap:10px;flex-wrap:nowrap;justify-content:flex-end}
+.app-shell .fit-topbar .topbar-right>*{flex:none;white-space:nowrap}
+.app-shell .fit-topbar .crumbs{min-width:0;overflow:hidden}
+.app-shell .fit-topbar .crumbs ol{flex-wrap:nowrap;min-width:0}
+.app-shell .fit-topbar .crumbs li{min-width:0;flex:0 1 auto}
+.app-shell .fit-topbar .crumbs li:not(:first-child):not(:last-child){flex-shrink:4;min-width:3em}
+.app-shell .fit-topbar .crumbs li:last-child{flex-shrink:1;min-width:4em}
+.app-shell .fit-topbar .crumbs li>button,.app-shell .fit-topbar .crumbs li>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block}
+.app-shell .fit-topbar .crumbs li>svg{flex:none}
+.app-shell .fit-topbar[data-fit-squeeze="1"] .fit-clock,.app-shell .fit-topbar[data-fit-squeeze="2"] .fit-clock,.app-shell .fit-topbar[data-fit-squeeze="3"] .fit-clock{display:none}
+.app-shell .fit-topbar[data-fit-squeeze="2"] .fit-date-text,.app-shell .fit-topbar[data-fit-squeeze="3"] .fit-date-text{display:none}
+.app-shell .fit-topbar[data-fit-squeeze="3"] .fit-search-text,.app-shell .fit-topbar[data-fit-squeeze="3"] .search-btn kbd{display:none}
+
+/* Demo pill (prototype build): the DemoToolbar controls, unchanged, in a popover under the top bar */
+.fit-demo{position:relative;flex:none}
+.fit-demo-pill{display:inline-flex;align-items:center;gap:6px;min-height:32px;padding:0 10px;border-radius:999px;border:1px solid var(--c-e5d5b3);background:var(--c-fbf6ea);color:var(--c-7a5e33);font-weight:700;letter-spacing:1.2px;white-space:nowrap}
+.fit-demo-pill:hover{background:var(--c-fdf8ee)}
+.fit-demo-pill.armed{border-color:var(--c-c9773d);background:var(--c-fff1e4)}
+.fit-demo-pop{position:fixed;top:calc(var(--fit-topbar) - 4px);right:16px;z-index:90;width:min(460px,calc(100vw - 32px));max-height:calc(100vh - var(--fit-topbar) - 16px);max-height:calc(100dvh - var(--fit-topbar) - 16px);overflow:auto;background:var(--c-fbf6ea);border:1px solid var(--c-e5d5b3);border-radius:12px;box-shadow:0 12px 40px var(--c-2b1d1630);padding:12px}
+.fit-demo-notes{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+.app-shell .fit-demo-pop .demo-toolbar{display:flex!important;flex-direction:column;align-items:stretch;flex-wrap:nowrap;padding:0;border:0;background:transparent;gap:8px}
+.app-shell .fit-demo-pop .demo-spacer{display:none}
+.app-shell .fit-demo-pop .demo-field select{max-width:none;flex:1}
+.app-shell .fit-demo-pop .demo-btn,.app-shell .fit-demo-pop .demo-field{justify-content:flex-start}
+
+/* ── Content: fills, never scrolls; its single child is the page root ─────────────────────────────────────────────── */
+.app-shell .content{flex:1;min-height:0;width:100%;max-width:1580px;margin:0 auto;overflow:hidden;display:flex;flex-direction:column;padding:12px 16px 12px}
+.app-shell .content{position:relative} /* absolutely placed helpers (screen-reader-only labels) stay inside the clipped content box */
+@media (pointer:fine) and (min-width:1280px){.app-shell .content{padding:16px 24px 16px}}
+/* A page not converted yet (contract §3, §11.3): App.tsx FitContent marks its own root data-fit-scroll="legacy" (no wrapper, no remount) and it
+   scrolls there (check tool: not-converted). A page that renders several root elements (a fragment) makes .content itself the legacy scroller. */
+.app-shell .content>:only-child:not(.fit-page){flex:1;min-height:0;overflow:auto;position:relative}
+.app-shell .content:has(>:nth-child(2)){display:block;overflow:auto}
+
+/* ── PageTitle (older pages) and FitPage header: 22 px heading, one-line sub ──────────────────────────────────────── */
+.app-shell .content .page-title{margin:0 0 10px}
+.app-shell .content .page-title h1{font-size:22px;font-weight:600;letter-spacing:-.4px;line-height:1.25}
+.app-shell .content .page-title>div:first-child{min-width:0}
+.app-shell .content .page-title>div:first-child>p{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+
+/* ── FitPage ────────────────────────────────────────────────────────────────────────────────────────────────────── */
+.fit-page{flex:1;min-height:0;min-width:0;display:flex;flex-direction:column;gap:10px}
+.app-shell .content .fit-page>.fit-page-head{margin:0;min-height:48px;flex:none;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:nowrap}
+.app-shell .fit-page-heading{flex:1 1 auto;min-width:min(220px,35%)}
+.app-shell .fit-page-heading>h1{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* §11.9: the actions never wrap; what does not fit goes into the More menu (fit.tsx HeaderActions) */
+.app-shell .fit-page-actions{flex:0 1 auto;display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:nowrap;min-width:0;overflow:hidden}
+.app-shell .fit-page-actions>*{flex:none}
+.app-shell .fit-page-actions>.inline{flex-wrap:nowrap;justify-content:flex-end;gap:8px}
+.app-shell .fit-page-actions:has(.fit-more-pop){overflow:visible}
+.fit-more{position:relative}
+.fit-more-btn{display:inline-flex;align-items:center;gap:6px}
+.fit-more-pop{position:absolute;top:calc(100% + 6px);right:0;z-index:30;min-width:220px;max-width:min(420px,calc(100vw - 32px));display:flex;flex-direction:column;align-items:stretch;gap:8px;padding:8px;background:var(--c-ffffff);border:1px solid var(--line);border-radius:10px;box-shadow:0 12px 40px var(--c-2b1d1630)}
+.fit-more-pop>*{white-space:nowrap}
+.fit-page-toolbar{flex:none;display:flex;align-items:center;gap:10px 12px;flex-wrap:nowrap;min-width:0}
+.fit-page-toolbar>*{min-width:0}
+.fit-page-toolbar>.search{flex:0 1 320px}
+@media (max-width:899.98px){.fit-page-toolbar{flex-wrap:wrap}}
+.fit-page-body{flex:1;min-height:0;min-width:0;display:flex;flex-direction:column;gap:12px}
+.app-shell .fit-page-body>.card,.app-shell .fit-page-body>*>.card{margin-bottom:0}
+.app-shell .fit-page-body>.footnote,.app-shell .fit-page-body>.info-note{flex:none;margin:0}
+/* Panel columns / stacks inside a page body (utility for module lanes; see FIT_Component_Guide.md) */
+.fit-stack{flex:1;min-height:0;min-width:0;display:flex;flex-direction:column;gap:12px}
+.fit-cols{flex:1;min-height:0;min-width:0;display:grid;grid-template-columns:minmax(0,3fr) minmax(240px,1fr);gap:12px}
+.fit-cols>*{min-height:0;min-width:0;display:flex;flex-direction:column;gap:12px}
+/* Below 900 px the columns stack, each a grid row of at least 160 px (a panel never collapses: no flex:1 1 0 in an auto-height parent, §11.11);
+   a column holding two panels splits its row between them. */
+@media (max-width:899.98px){.fit-cols{grid-template-columns:minmax(0,1fr);grid-auto-rows:minmax(160px,1fr)}
+  .fit-cols>*{display:grid;grid-auto-rows:minmax(0,1fr);gap:12px}
+  .fit-cols>*>.fit-panel{min-height:160px}}
+
+/* fit-front-b's two overrides (were inline styles; guests.css / reservations.css are token-checked sheets): the list scrolls in its ScrollPanel */
+.app-shell :is([data-fit-page="guests"],[data-fit-page="inhouse"]) .gs-list{max-height:none;overflow:visible}
+.app-shell [data-fit-page="reservations"] .res-list-filters{margin:0;gap:12px}
+/* integrator: ≥ 900 px the toolbar stays one row — the status buttons scroll sideways, Source / Staying on / count never wrap into a column */
+@media (min-width:900px){
+  .app-shell [data-fit-page="reservations"] .fit-page-toolbar>.search{flex:0 1 240px}
+  .app-shell [data-fit-page="reservations"] .fit-page-toolbar>.filters{flex:1 1 auto;min-width:0;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:thin;margin:0}
+  .app-shell [data-fit-page="reservations"] .fit-page-toolbar>.filters>button{flex:none;white-space:nowrap}
+  .app-shell [data-fit-page="reservations"] .res-list-filters{flex:none;flex-wrap:nowrap}
+  .app-shell [data-fit-page="reservations"] .res-list-filters>.muted{white-space:nowrap}
+}
+
+/* ── DEC-195 restorations (integrator): text a lane moved into a shell component keeps the size it had on main (measured element by element
+   by tools/fit-screen-check.mjs against main). Each value is copied from the rule that sized it on main. ───────────────────────────────── */
+/* Tabs that were their own controls: OTA channels .chn-tabs (12 px), Tariff & yield .yld-tabs (12 px), Compliance view switch (13 px). On touch
+   tablets z-tablet.css made them 16 px (.app-shell button), so these apply only where that rule does not. */
+@media not screen and (pointer:coarse),not screen and (min-width:600px){.app-shell :is([data-fit-page="channels"],[data-fit-page="yield"])>.fit-tabs-bar button{font-size:12px}
+  .app-shell [data-fit-page="compliance"]>.fit-tabs-bar button{font-size:13px}}
+/* Notes moved into a FitNote: OTA channels "Simulated" (.chn-sim, 12 px), the rate-calendar legend (11 px) */
+.app-shell .fit-note.fit-note-12>.fit-note-text{font-size:12px}
+.app-shell .fit-note.fit-note-11>.fit-note-text{font-size:11px}
+/* Prefs: the reset note sat in a .padded card (.padded p, 11 px) */
+.app-shell [data-fit-page="prefs"] .fit-form-actions .pf-note{font-size:11px}
+/* Dashboard: the welcome line and its New reservation button (.welcome p / .welcome .btn) */
+@media (max-width:1250px){.app-shell [data-fit-page="overview"] .fit-page-sub{font-size:11px}}
+@media (max-width:1050px){.app-shell [data-fit-page="overview"] .fit-page-sub{font-size:10px}.app-shell [data-fit-page="overview"] .fit-page-actions .btn{font-size:10px}}
+@media (max-width:760px){.app-shell [data-fit-page="overview"] .fit-page-sub{font-size:11px}.app-shell [data-fit-page="overview"] .fit-page-actions .btn{font-size:11px}}
+
+/* §5 spacing on converted pages (comfortable); compact stays tighter */
+.app-shell .fit-page .section-title{padding:12px 16px}
+[data-density="compact"] .app-shell .fit-page .section-title{padding:8px 12px}
+.fit-panel-body td,.fit-panel-body th{padding:10px 12px}
+[data-density="compact"] .app-shell .fit-panel-body td,[data-density="compact"] .app-shell .fit-panel-body th{padding:7px 10px}
+[data-density="compact"] .app-shell .fit-page,[data-density="compact"] .app-shell .fit-page-body{gap:8px}
+
+/* ── ScrollPanel ─────────────────────────────────────────────────────────────────────────────────────────────────── */
+.app-shell .fit-panel{flex:1 1 0;min-height:0;min-width:0;display:flex;flex-direction:column;margin:0}
+.fit-panel-head{flex:none}
+.fit-panel-body{flex:1 1 auto;min-height:0;overflow:auto;scrollbar-width:thin;position:relative}
+.fit-panel-body:focus-visible,.fit-split-pane:focus-visible,.fit-form-body:focus-visible,.fit-home-grid:focus-visible,.modal-body:focus-visible{outline:3px solid var(--primary);outline-offset:-3px}
+.fit-panel-body .table-wrap{overflow:visible}
+.fit-panel-body thead th{position:sticky;top:0;z-index:1}
+.fit-panel-foot{flex:none;border-top:1px solid var(--line);padding:8px 16px;display:flex;align-items:center;gap:12px;min-width:0}
+.fit-panel-foot>.footnote,.fit-panel-foot>.fit-note{margin:0;min-width:0;flex:1 1 auto}
+/* FitNote (§11.4): one line + a "More" button that opens the full text in place (touch-reachable; no title-only tooltip) */
+.fit-note{display:flex;align-items:flex-start;gap:8px;min-width:0}
+.fit-note>.fit-note-text{flex:1 1 auto;min-width:0;margin:0}
+.fit-note:not(.open)>.fit-note-text{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fit-note.open>.fit-note-text{white-space:normal;max-height:12em;overflow:auto}
+.fit-note>.fit-note-more{flex:none;padding:0 4px}
+.fit-panel-foot>.show-more,.fit-panel-foot>*{margin-top:0;margin-bottom:0}
+
+/* The page root carries fit-<layout> (FitPage layout) and the components below use the same names for their own grids: every component
+   grid rule is scoped with :where(:not(.fit-page)) (no added specificity) so a page with layout split / board / steps / form keeps the FitPage
+   column (header, toolbar, tabs, body) and only the component inside the body lays out as a grid. */
+/* ── SplitView: side by side; below 900 px the record slides over the list with a Back button ─────────────────────── */
+.fit-split:where(:not(.fit-page)){flex:1;min-height:0;min-width:0;display:grid;grid-template-columns:var(--fit-split-cols,minmax(0,2fr) minmax(0,3fr));gap:12px;position:relative}
+.fit-split-list,.fit-split-detail{min-height:0;min-width:0;display:flex;flex-direction:column;gap:8px}
+.fit-split-pane{flex:1;min-height:0;overflow:auto;position:relative;background:var(--c-ffffff);border:1px solid var(--line);border-radius:9px;scrollbar-width:thin}
+.fit-split-back{display:none}
+/* FIT-2 (§12): ≥ 900 px with no record open the list takes all columns; a record opens the pane beside it with a Back to list control */
+@media (min-width:900px){
+  .fit-split.list-only:where(:not(.fit-page)){grid-template-columns:minmax(0,1fr)}
+  .fit-split.list-only>.fit-split-detail{display:none}
+  .fit-split.has-detail .fit-split-back{display:inline-flex;align-items:center;gap:6px;align-self:flex-start;flex:none}
+}
+@media (max-width:899.98px){
+  .fit-split:where(:not(.fit-page)){grid-template-columns:minmax(0,1fr)}
+  .fit-split-detail{display:none}
+  .fit-split.has-detail .fit-split-detail{display:flex;position:absolute;top:0;right:0;bottom:0;left:0;z-index:5;background:var(--bg)}
+  .fit-split.has-detail .fit-split-back{display:inline-flex;align-items:center;gap:6px;align-self:flex-start;flex:none}
+}
+
+/* ── FitTabs: sub-screens ─────────────────────────────────────────────────────────────────────────────────────────── */
+.app-shell .fit-tabs-bar{flex:none;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;padding:0 4px;scrollbar-width:thin;min-width:0}
+.app-shell .fit-tabs-bar button{flex:none;white-space:nowrap}
+.fit-tab-count.warn{background:var(--c-fff1e4);color:var(--c-95533e)}
+.fit-tab-count.danger{background:var(--c-f3e4e6);color:var(--primary)}
+/* FIT-2 (§12): tabs that do not fit sit in a "More ▾" menu at the end of the bar (fit.tsx FitTabs); the button and items keep the tab look */
+.fit-tabs-more{position:relative;flex:none;display:flex}
+.app-shell .fit-tabs-bar .fit-tabs-more-btn{display:inline-flex;align-items:center;gap:4px}
+.app-shell .fit-tabs-bar:has(.fit-tabs-pop){overflow:visible}
+.fit-tabs-pop{position:absolute;top:calc(100% + 4px);right:0;z-index:30;min-width:200px;max-width:min(360px,calc(100vw - 32px));max-height:min(60vh,420px);overflow:auto;display:flex;flex-direction:column;gap:2px;padding:6px;background:var(--c-ffffff);border:1px solid var(--line);border-radius:10px;box-shadow:0 12px 40px var(--c-2b1d1630)}
+.app-shell .fit-tabs-pop>[role=menuitem]{display:flex;align-items:center;justify-content:flex-start;gap:8px;width:100%;text-align:left}
+
+/* ── StatStrip: one row, sideways if too many; Stat fonts unchanged ─────────────────────────────────────────────────── */
+.fit-stats{display:flex;flex-wrap:nowrap;gap:10px;overflow-x:auto;min-width:0;scrollbar-width:thin}
+.app-shell .fit-stats .fit-stat{flex:none;min-height:0;padding:8px 12px;display:flex;flex-direction:column;gap:2px}
+.fit-stat.ok{border-color:var(--c-436a41)}
+/* FIT-2 (§12): compact = one line per figure (label, value, sub side by side; font sizes unchanged); collapsible = a toggle beside the strip */
+.app-shell .fit-stats.fit-stats-compact .fit-stat{flex-direction:row;align-items:baseline;gap:8px;padding:4px 10px;white-space:nowrap}
+.app-shell .fit-stats.fit-stats-compact .stat-label{margin:0}
+.app-shell .fit-small-stats.fit-stats-compact>div{padding-top:3px;padding-bottom:3px}
+.fit-stats-wrap{display:flex;align-items:center;gap:6px;min-width:0}
+.fit-stats-wrap>.fit-stats,.fit-stats-wrap>.fit-small-stats{flex:1 1 auto;min-width:0}
+.app-shell .fit-page-toolbar>.fit-stats-wrap{flex:1 1 auto}
+.app-shell .fit-stats-wrap>.fit-stats-toggle{flex:none;margin:0}.fit-stat.warn{border-color:var(--c-c9773d)}.fit-stat.danger{border-color:var(--primary)}
+/* variant="small": the old .small-stats tiles in one row (their span / strong font rules of styles.css apply unchanged) */
+.app-shell .fit-small-stats{display:flex;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;gap:10px;margin:0;min-width:0;scrollbar-width:thin;grid-template-columns:none}
+.app-shell .fit-small-stats>div{flex:none;padding:6px 12px;gap:10px;white-space:nowrap;flex-direction:row;align-items:center}
+.app-shell .fit-small-stats>div.fit-tone-ok{border-color:var(--c-436a41)}.app-shell .fit-small-stats>div.fit-tone-warn{border-color:var(--c-c9773d)}.app-shell .fit-small-stats>div.fit-tone-danger{border-color:var(--primary)}
+
+/* ── BoardColumns ────────────────────────────────────────────────────────────────────────────────────────────────── */
+.fit-board:where(:not(.fit-page)){flex:1;min-height:0;min-width:0;display:grid;grid-auto-flow:column;grid-auto-columns:minmax(var(--fit-col,240px),1fr);gap:12px;overflow-x:auto;overflow-y:hidden}
+.app-shell .fit-board-col{display:flex;flex-direction:column;min-height:0;margin:0}
+
+/* ── StepFlow ────────────────────────────────────────────────────────────────────────────────────────────────────── */
+.fit-steps:where(:not(.fit-page)){flex:1;min-height:0;min-width:0;display:grid;grid-template-columns:minmax(200px,260px) minmax(0,1fr);gap:12px}
+.fit-step-rail{list-style:none;margin:0;padding:6px;min-height:0;overflow:auto;background:var(--c-ffffff);border:1px solid var(--line);border-radius:9px;display:flex;flex-direction:column;gap:4px}
+.fit-step{width:100%;display:flex;align-items:flex-start;gap:10px;text-align:left;padding:10px 12px;border:1px solid transparent;border-radius:8px;background:transparent;color:var(--ink)}
+.fit-step:hover{background:var(--sand-2)}
+.fit-step.on{background:var(--c-f3e4e6);border-color:var(--primary)}
+.fit-step-ic{flex:none;display:inline-flex;margin-top:1px;color:var(--muted)}
+.fit-step.done .fit-step-ic{color:var(--c-436a41)}.fit-step.current .fit-step-ic{color:var(--primary)}.fit-step.blocked .fit-step-ic{color:var(--c-95533e)}
+.fit-step-text{display:flex;flex-direction:column;gap:2px;min-width:0}
+.fit-step-text small{color:var(--muted)}
+.fit-step-body{min-height:0;min-width:0;display:flex;flex-direction:column;gap:12px}
+/* FIT-2 (§12): the rail's one-line result under a step / section label; with summaries the rail is ~340 px wide at ≥ 1280 px */
+.fit-rail-sum{display:block;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink)}
+.fit-step-text{flex:1 1 auto}
+.fit-form-nav-text{display:flex;flex-direction:column;gap:2px;flex:1 1 auto;min-width:0}
+@media (min-width:1280px){.fit-steps.has-summary:where(:not(.fit-page)),.fit-form.has-summary:where(:not(.fit-page)){grid-template-columns:minmax(260px,340px) minmax(0,1fr)}}
+@media (max-width:899.98px){.fit-rail-sum{max-width:240px}}
+/* FIT-2 integrator: beside the sub-screen (≥ 900 px) the result wraps to a second line instead of being cut ("Not counted · expected ₹…" at
+   tab-land), and from 1024 px the rail with summaries is ~300 px wide (was 240 px up to 1279 px) — same text size, the rail scrolls in itself. */
+@media (min-width:900px){.fit-rail-sum{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}}
+@media (min-width:1024px) and (max-width:1279.98px){.fit-steps.has-summary:where(:not(.fit-page)),.fit-form.has-summary:where(:not(.fit-page)){grid-template-columns:minmax(240px,300px) minmax(0,1fr)}}
+@media (max-width:899.98px){.fit-steps:where(:not(.fit-page)){grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr)}
+  .fit-step-rail{flex-direction:row;overflow-x:auto;overflow-y:hidden}.fit-step-rail>li{flex:none}}
+
+/* ── FormSections ────────────────────────────────────────────────────────────────────────────────────────────────── */
+.fit-form:where(:not(.fit-page)){flex:1;min-height:0;min-width:0;display:grid;grid-template-columns:minmax(180px,240px) minmax(0,1fr);gap:12px}
+.fit-form-nav{min-height:0;overflow:auto;background:var(--c-ffffff);border:1px solid var(--line);border-radius:9px;padding:6px}
+.fit-form-nav ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}
+.fit-form-nav button{width:100%;text-align:left;padding:10px 12px;border:1px solid transparent;border-radius:8px;background:transparent;color:var(--ink);display:flex;align-items:center;gap:8px}
+.fit-form-nav button:hover{background:var(--sand-2)}
+.fit-form-nav button.on{background:var(--c-f3e4e6);border-color:var(--primary);font-weight:600}
+.fit-dirty{color:var(--primary);margin-left:auto}
+.fit-form-main{min-height:0;min-width:0;display:flex;flex-direction:column;background:var(--c-ffffff);border:1px solid var(--line);border-radius:9px}
+.fit-form-body{flex:1;min-height:0;overflow:auto;padding:16px;position:relative}
+.app-shell .fit-form-main>.fit-form-actions{flex:none;margin:0;padding:10px 16px}
+/* the bar is not a .modal-actions (whose narrow-screen 10 px button font would shrink the form's buttons, DEC-195): its own flex row */
+.fit-form-actions{display:flex;justify-content:flex-end;align-items:center;gap:12px;flex-wrap:wrap;border-top:1px solid var(--line)}
+@media (max-width:899.98px){.fit-form:where(:not(.fit-page)){grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr)}
+  .fit-form-nav ul{flex-direction:row;overflow-x:auto}.fit-form-nav li{flex:none}}
+
+/* ── Modules Home / category pages: tile grid in one scroll panel ──────────────────────────────────────────────────── */
+.app-shell .fit-home .fit-page-sub{font-size:inherit} /* the welcome line keeps its old size (it was .home-head p) */
+.app-shell .fit-home kbd{font:inherit;font-size:12px;border:1px solid var(--c-d9c9b6);border-bottom-width:2px;border-radius:5px;padding:0 5px;background:var(--c-ffffff)}
+.fit-home-grid{flex:1;min-height:0;overflow:auto;padding:2px;scrollbar-width:thin}
+.app-shell .fit-home .tiles{grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+.app-shell .fit-home .tile{padding:12px 14px;min-height:84px}
+.app-shell .fit-home .tile:has(.tile-badge){padding-right:48px}
+.app-shell .fit-home-foot{flex:none;margin:0;padding:0}
+
+/* ── Sign-in: fits; 2 columns of names at ≥ 900 px, 3 at ≥ 1280 px; the list scrolls if longer ─────────────────────── */
+html:has(.fit-signin),html:has(.fit-signin) body,html:has(.fit-signin) #root{height:100%}
+.signin.fit-signin{height:100vh;height:100dvh;min-height:0;overflow:hidden;padding:16px}
+.fit-signin .signin-card{max-height:100%;min-height:0;display:flex;flex-direction:column}
+.fit-signin .signin-card>*{flex:none}
+.fit-signin .signin-card>.signin-list{flex:0 1 auto;min-height:0;overflow:auto;padding:2px}
+@media (min-width:900px){.fit-signin .signin-card{max-width:880px}.fit-signin .signin-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (min-width:1280px){.fit-signin .signin-card{max-width:1180px}.fit-signin .signin-list{grid-template-columns:repeat(3,minmax(0,1fr))}}
+
+/* ── Desktop dialogs (.fit-modal: ModalHost and ModalFrame on the desktop layout, §11.1): heading fixed, body scrolls, actions sticky at the
+   bottom (also V17-1's clipped footer). Phone sheets (.m-sheet) and dialogs on the phone layout never carry .fit-modal. ────────────────────────── */
+.fit-modal-overlay{padding:16px}
+.modal.fit-modal{max-height:calc(100vh - 32px);max-height:calc(100dvh - 32px);display:flex;flex-direction:column;overflow:hidden;padding:0}
+.modal.fit-modal>.modal-close{z-index:3}
+.modal.fit-modal>.modal-body{flex:1 1 auto;min-height:0;overflow:auto;padding:0 30px;scrollbar-width:thin;overscroll-behavior:contain}
+.modal.fit-modal>.modal-body:not(:has(.modal-heading)){padding-top:30px}
+.modal.fit-modal>.modal-body:not(:has(.modal-actions)){padding-bottom:30px}
+.modal.fit-modal .modal-body .modal-heading{position:sticky;top:0;z-index:2;background:var(--c-ffffff);margin-top:0;padding-top:30px;padding-bottom:12px;margin-bottom:13px}
+.modal.fit-modal .modal-body .modal-actions{position:sticky;bottom:0;z-index:2;background:var(--c-ffffff);border-top:1px solid var(--line);padding-bottom:20px;margin-bottom:0}
+.modal.fit-modal>.form-error{flex:none;margin:0 30px 16px}
+.modal.fit-modal.fit-modal-tight>.modal-body{padding:0} /* a stand-alone dialog that keeps its own padding (guest-ID dialog) */
+.fit-modal-frame{display:flex;flex-direction:column;min-height:0}
+@media (max-width:760px){.modal.fit-modal>.modal-body{padding-left:20px;padding-right:20px}.modal.fit-modal .modal-body .modal-heading{padding-top:25px}.modal.fit-modal>.form-error{margin:0 20px 12px}.modal.fit-modal.fit-modal-tight>.modal-body{padding:0}}
+@media (min-width:900px){.modal.fit-modal .fit-form-2col{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 20px}.modal.fit-modal .fit-form-2col>.modal-actions,.modal.fit-modal .fit-form-2col>.full{grid-column:1/-1}}
+/* User menu: About this build (the work pages' footer lines) sits above Sign out */
+.fit-user-menu{display:flex;flex-direction:column}
+.fit-user-menu>.modal-actions{order:3}
+.fit-about{order:2;margin-top:8px}
+.fit-about .gs-sub{margin:12px 0 4px}
+
+/* ── Touch tablets (DEC-060): tab buttons 48 px; the bar keeps one row ───────────────────────────────────────────── */
+@media screen and (pointer:coarse) and (min-width:600px){
+  .app-shell .topbar.fit-topbar{padding:0 12px;gap:8px}
+  .app-shell .fit-tabs-bar [role=tab]{min-height:var(--hcc-touch-primary)!important}
+  .app-shell .fit-step,.app-shell .fit-form-nav button{min-height:var(--hcc-touch-primary)!important}
+  .app-shell .fit-tabs-bar .fit-tabs-more-btn,.app-shell .fit-tabs-pop>[role=menuitem]{min-height:var(--hcc-touch-primary)!important}
+  .app-shell .fit-stats-toggle{min-width:var(--hcc-touch-dense,44px);min-height:var(--hcc-touch-dense,44px)}
+  /* §11.8: the 56 px bar shows the user button on touch tablets too (z-tablet.css hides .current-user there); About this build and Sign out
+     stay in the user menu it opens. */
+  .app-shell .topbar.fit-topbar .topbar-right .current-user{display:inline-flex!important;align-items:center}
+}
+
+/* ── Print: the shell returns to normal flow, scroll panels print in full ─────────────────────────────────────────── */
+@media print{
+  html:has(.app-shell),html:has(.app-shell) body,html:has(.app-shell) #root{height:auto}
+  .app-shell,.app-shell main,.app-shell .content{height:auto;overflow:visible}
+  [data-fit-scroll]{overflow:visible;max-height:none}
+  .fit-board,.fit-stats,.fit-step-rail,.fit-form-nav,.fit-note>.fit-note-text{overflow:visible;max-height:none}
+  .fit-note>.fit-note-text{white-space:normal}.fit-note-more{display:none}
+  .fit-tabs-bar{display:none}
+  .app-shell .content:has(>:nth-child(2)){overflow:visible}
+  .modal.fit-modal{display:block;max-height:none;overflow:visible;padding:15px} /* the print .modal padding of styles.css */
+  .modal.fit-modal>.modal-body{padding:0}
+  .modal.fit-modal .modal-body .modal-heading,.modal.fit-modal .modal-body .modal-actions,.fit-panel-body thead th{position:static}
+}
+/* F1-int: Room keys (KEYS from main) in the fit page — the ScrollPanel scrolls, so the module's own max-height boxes are released. */
+.fit-page .key-log-table,.fit-page .key-locks-table{max-height:none;min-height:0;overflow-x:auto}
+.fit-page .key-log-card{margin-bottom:12px;flex:none}

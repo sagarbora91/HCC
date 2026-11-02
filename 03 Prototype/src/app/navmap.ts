@@ -28,7 +28,7 @@ export const categoryOf=(id:CategoryId)=>NAV_CATEGORIES.find(c=>c.id===id)!;
 
 /** Page ID (nav item ID) → category. `overview` is the pinned Dashboard tile and has no category. */
 export const PAGE_CATEGORY:Record<string,CategoryId>={
-  rooms:'front',calendar:'front',reservations:'front',arrivals:'front',keys:'front', // KEYS room keys
+  rooms:'front',calendar:'front',reservations:'front',guests:'front',arrivals:'front',keys:'front', // KEYS room keys
   folios:'cash',cashier:'cash',cashbook:'cash',pos:'cash',expenses:'cash',
   housekeeping:'hkm',maintenance:'hkm',handover:'hkm',
   inhouse:'guestsvc','guest-services':'guestsvc','gsv-my-requests':'guestsvc',messages:'guestsvc',documents:'guestsvc',
@@ -65,7 +65,7 @@ export function crumbsFor(page:string,pageLabel:string):{label:string;page?:stri
 /** One line under each page tile. */
 export const PAGE_BLURB:Record<string,string>={
   overview:'Today at a glance: arrivals, occupancy, cash',
-  rooms:'Live room board with status and guests',calendar:'Date grid of room availability',reservations:'Search, create and manage bookings',arrivals:'Check guests in; look up a booking ID',
+  rooms:'Live room board with status and guests',calendar:'Date grid of room availability',reservations:'Search, create and manage bookings',guests:'Front-desk guest list and guest profiles',arrivals:'Check guests in; look up a booking ID',
   folios:'Guest bills, payments and balances',cashier:'Shift cash, drawer and counts',cashbook:'Daily cash in and out with running balance',pos:'Restaurant and room-service checks',expenses:'Record and approve petty expenses',
   housekeeping:'Cleaning tasks and room inspection',maintenance:'Repairs, work orders and preventive upkeep',handover:'Shift checklists and handover notes',
   inhouse:'Guests staying now: extend, move, depart','guest-services':'Guest requests, complaints, lost & found','gsv-my-requests':'Requests assigned to you',messages:'Guest messages and templates',documents:'Scan and file IDs and bills',
@@ -87,6 +87,7 @@ export const PAGE_KEYWORDS:Record<string,string[]>={
   rooms:['room board','rooms','availability','vacant','dirty','clean','blocked','status','floor'],
   calendar:['calendar','availability','tape chart','grid','dates'],
   reservations:['reservation','booking','bookings','book','stay','guest','search booking','cancel','confirm','hold'],
+  guests:['guest list','guest profile','guest profiles','guests','id proof','new guest'],
   arrivals:['check in','checkin','check-in','arrival','arrivals','walk in','register','registration','booking id','key'],
   folios:['folio','bill','invoice','payment','balance','checkout','check out','deposit','refund','company credit'],
   cashier:['cashier','cash','drawer','shift','count','float','till','difference'],

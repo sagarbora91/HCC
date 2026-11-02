@@ -7,7 +7,7 @@ import {loadScenario} from '../src/services/mock';
 import {printablePage} from '../src/app/native';
 export function reportHtml(from:string,to:string,css:string){
   const s=loadScenario('FY26');
-  const context={s,permission:()=>true,closeModal:()=>{},display:{isMobile:false}} as any;
+  const context={s,uid:'owner',permission:()=>true,closeModal:()=>{},display:{isMobile:false}} as any; // uid: ACC-3 rbacCanExportReports(s,uid)
   const fragment=renderToStaticMarkup(<HccContext.Provider value={context}><ReportPrintModal id="daily" room={`${from}|${to}`}/></HccContext.Provider>);
   return printablePage('HCC print regression',fragment,css);
 }

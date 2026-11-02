@@ -29,7 +29,7 @@ try{
     await page.getByRole('button',{name:name==='phone'?'Menu':'Open menu',exact:true}).click();
     await check('.drawer-overlay');await page.locator('.drawer-tools summary').click();
     await page.getByRole('button',{name:'Demo controls',exact:true}).click();await check('.modal-overlay');
-    await page.locator('.modal-close').click();await page.locator('.modal-overlay').waitFor({state:'hidden'});
+    await page.locator('.modal-close, .m-sheet-head .m-icon').first().click(); /* the phone demo sheet is an m-sheet: its close is .m-sheet-head .m-icon */await page.locator('.modal-overlay').waitFor({state:'hidden'});
     await page.getByRole('button',{name:/^Search pages and actions/}).click();await check('.search-overlay');
     await page.getByRole('combobox').fill('New reservation');await page.getByRole('combobox').press('Enter');
     await page.locator('.modal-overlay').waitFor();await check('.modal-overlay');
@@ -40,7 +40,7 @@ try{
     assert.ok(broken.y!==0||broken.height!==height||broken.width!==width,'Negative control must differ');
     results.push({name,negativeControl:broken});
     await page.locator('.modal-overlay').evaluate(el=>el.removeAttribute('style'));await check('.modal-overlay');
-    await page.locator('.modal-close').click();await page.locator('.modal-overlay').waitFor({state:'hidden'});
+    await page.locator('.modal-close, .m-sheet-head .m-icon').first().click(); /* phone: the booking sheet is an m-sheet too */await page.locator('.modal-overlay').waitFor({state:'hidden'});
     // Reload establishes home/root while keeping the native bridge simulation.
     await page.reload();await page.locator(name==='phone'?'.m-shell':'.topbar').waitFor();
     await page.evaluate(()=>window.testBack());await page.locator('.exit-ask').waitFor();await check('.exit-ask');
