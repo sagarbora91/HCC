@@ -128,6 +128,11 @@ const CMDS={
   EXP_VENDOR_PAY:C('OWN MGR ACC','ACC-2 contract §9 PERM-EXP-004'),EXP_VENDOR_PAY_VOID:C('OWN','ACC-2 contract §3.2 (Owner voids)'),EXP_VENDOR_RETURN:C('OWN MGR ACC','ACC-2 contract §3.5 + §9 PERM-EXP-004 (Owner approves)'),
   EXP_VENDOR_PAY_REALLOCATE:C('OWN MGR ACC','ACC-3 contract §7 C3 / §9 PERM-EXP-004'),ACC_ASSET_PUT_TO_USE:C('OWN ACC','ACC-3 contract §7 C1 (Owner / Accountant)'),ACC_ASSET_DISPOSE:C('OWN ACC','ACC-3 contract §7 C1 (Owner / Accountant)'),ACC_TDS_FORM168:C('OWN ACC','ACC-3 contract §7 C7 PERM-ACC-013'),
   ACC_MANUAL_SAVE:C('OWN ACC','ACC-2 contract §9 PERM-ACC-010 (Accountant pending, Owner approved at once)'),ACC_MANUAL_DECIDE:C('OWN','ACC-2 contract §9 PERM-ACC-011'),ACC_MANUAL_VOID:C('OWN','ACC-2 contract §9 PERM-ACC-011 (approve and void)'),ACC_LOAN_ADD:C('OWN','ACC-2 contract §2 Add loan = chart edit (PERM-ACC-007)'),
+  // F5-A1 (ACC4-CONTRACT §4)
+  ACC_YEAR_PREVIEW:C('OWN ACC','ACC-4 PERM-ACC-014'),ACC_YEAR_CARRY_FORWARD:C('OWN ACC','ACC-4 PERM-ACC-014'),ACC_YEAR_LOCK:C('OWN','ACC-4 PERM-ACC-015'),ACC_YEAR_REOPEN:C('OWN','ACC-4 PERM-ACC-015'),ACC_YEAR_RELOCK:C('OWN','ACC-4 PERM-ACC-015'),
+  BANK_IMPORT:C('OWN ACC','ACC-4 PERM-ACC-016'),BANK_AUTO_MATCH:C('OWN ACC','ACC-4 PERM-ACC-016'),BANK_MATCH:C('OWN ACC','ACC-4 PERM-ACC-016'),BANK_UNMATCH:C('OWN ACC','ACC-4 PERM-ACC-016'),BANK_IGNORE:C('OWN ACC','ACC-4 PERM-ACC-016'),
+  BANK_CREATE_VOUCHER:C('OWN ACC','ACC-4 PERM-ACC-016'),BANK_SETTLEMENT_POST:C('OWN ACC','ACC-4 PERM-ACC-016'),BANK_LAYOUT_UPSERT:C('OWN','ACC-4 PERM-ACC-017'),
+  // F5-A1 end
   ACC_OPENING_SAVE:C('OWN MGR ACC','ACC-1 contract §7 PERM-ACC-008'),ACC_OPENING_APPROVE:C('OWN','ACC-1 contract §7 PERM-ACC-009'),ACC_OPENING_REOPEN:C('OWN','ACC-1 contract §5 (Owner reopens)'),
   ACC_TDS_SETTINGS:C('OWN','ACC-2 contract §4 firm-profile TDS switches (Owner-only money setting, DEC-058)'),ACC_TDS_REMIT:C('OWN ACC','ACC-2 contract §5 / §9 PERM-ACC-013 TDS remittance (E5)'),
   // ACC-2 gst lane (contract §6, §9): tax entries = Owner / Accountant (PERM-ACC-013); month lock / unlock = Owner (PERM-ACC-012), the Accountant requests; GST on advances = Owner money setting (DEC-058, DEC-142).
