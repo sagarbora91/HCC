@@ -3,11 +3,11 @@
 import React from 'react';
 import {RotateCcw,Info} from 'lucide-react';
 import {useHcc} from '../../app/context';
-import {DisplaySection} from '../../app/display';
+import {DisplaySection,displayModes} from '../../app/display';
 import {isNative} from '../../app/native';
 import {FitPage,FormSections,useFitTab} from '../../components/fit';
-import {usePrefs,useResolvedTheme,PAGE_SIZES,TOAST_SECONDS,toastLabel,textScaleLabel,resolvePageSize,type ReduceMotion,type Density} from '../../app/prefs';
-import {Seg,StartPageSelect,textScaleOptions,DEVICE_ONLY,ThemeSeg,ThemePreview,themeHelp} from './parts';
+import {usePrefs,useResolvedTheme,THEME_LABEL,PAGE_SIZES,type Prefs,TOAST_SECONDS,toastLabel,textScaleLabel,resolvePageSize,type ReduceMotion,type Density} from '../../app/prefs';
+import {Seg,StartPageSelect,useStartPageChoices,textScaleOptions,DEVICE_ONLY,ThemeSeg,ThemePreview,themeHelp} from './parts';
 import {applyHonourSystemFont} from './prefsNative';
 
 export const MOTION_OPTIONS:{id:ReduceMotion;label:string;help:string}[]=[
@@ -22,6 +22,17 @@ export const DENSITY_OPTIONS:{id:Density;label:string;help:string}[]=[
 /** FIT (contract §6, form): one section of the page at a time; ids are the sub-screens (SUB_SCREENS, lane block FIT-ADMIN). */
 export const PREFS_SECTIONS=[{id:'text',label:'Text size'},{id:'appearance',label:'Appearance'},{id:'display',label:'Device & display'},{id:'navigation',label:'Start & navigation'},{id:'alerts',label:'Alerts'}] as const;
 type PrefsSection=typeof PREFS_SECTIONS[number]['id'];
+/** FIT-2: the rail line of each section = its current value(s), read-only from the same state the section edits (no new logic). */
+export function prefsRailSummary(prefs:Prefs,mode:string,startLabel:string):Record<PrefsSection,string>{
+  const motion=prefs.reduceMotion==='on'?', Reduced motion':'';
+  return {
+    text:`${textScaleLabel(prefs.textScale)} (${Math.round(prefs.textScale*100)} %)`,
+    appearance:`${THEME_LABEL[prefs.theme]}, ${DENSITY_OPTIONS.find(o=>o.id===prefs.density)?.label}${motion}`,
+    display:displayModes.find(d=>d.id===mode)?.label??'Auto',
+    navigation:`${startLabel}, ${prefs.listPageSize} rows`,
+    alerts:toastLabel(prefs.toastSeconds),
+  };
+}
 export const SAMPLE_LINE='Room 105 · Arrival 26 Oct 2026 · Balance ₹4,265.00';
 
 function Card({title,children,id}:{title:string;children:React.ReactNode;id?:string}){
@@ -35,6 +46,8 @@ export function PrefsPage(){
   const {display,toast}=useHcc();
   const {prefs,save,reset}=usePrefs();
   const [sec,setSec]=useFitTab<PrefsSection>('prefs',['text','appearance','display','navigation','alerts'],'text');
+  const startChoices=useStartPageChoices();
+  const startLabel=startChoices.flatMap(g=>g.pages).find(p=>p.id===prefs.startPage)?.label??'Modules Home';
   const native=isNative();const shown=useResolvedTheme();
   const honour=(v:boolean)=>{save({honourSystemFont:v});void applyHonourSystemFont(v);};
   const sections={
@@ -64,9 +77,10 @@ export function PrefsPage(){
       <div><button type="button" className="btn" onClick={()=>toast('Sample message: preferences are saved on this device only.')}>Show a sample message</button></div>
     </Card>,
   };
+  const rail=prefsRailSummary(prefs,display.mode,startLabel);
   // The Reset card became the sticky action bar of the form (always visible, whichever section is open): same note, same button, same handler.
   return <FitPage title="Appearance & display" sub="How the app looks and behaves on this device. Changes apply at once. Printed documents are never affected." layout="form">
-    <FormSections value={sec} onChange={id=>setSec(id as PrefsSection)} sections={PREFS_SECTIONS.map(x=>({id:x.id,label:x.label}))}
+    <FormSections value={sec} onChange={id=>setSec(id as PrefsSection)} sections={PREFS_SECTIONS.map(x=>({id:x.id,label:x.label,summary:rail[x.id]}))}
       actions={<><p className="pf-note"><Info size={16} aria-hidden="true"/>Puts every setting on this page back to its default on this device. The display mode above is kept. {DEVICE_ONLY}</p>
         <button type="button" className="btn" onClick={()=>{reset();if(native)void applyHonourSystemFont(true);toast('Appearance & display reset to the defaults on this device.');}}><RotateCcw size={16}/>Reset this device</button></>}>
       <div className="pf-page">{sections[sec]}</div>
