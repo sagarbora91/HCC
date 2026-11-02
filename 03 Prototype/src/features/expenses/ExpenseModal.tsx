@@ -9,6 +9,7 @@ import {money,expenseDuplicates,mnyCategoryNames,mnyIsDrawer,expOpenDates,expGst
 import {ExpCategorySelect,ExpVendorInput,ExpCreditNote,mnyExpenseSources,mnyFirstSource} from '../money/masters';
 import {useHcc} from '../../app/context';
 import {dateLabel} from '../../components/ui';
+import {FormSections} from '../../components/fit';
 import {GstFields,ItcField,BillPhotoPicker,useOverride,expPaise,expBps} from './Scc';
 import {ExpensePurchaseFields,purchaseCommand,purchaseProblem,vendorGstKind} from './purchase'; // ACC-2 purchase fields (contract §3)
 
@@ -33,10 +34,14 @@ export function useExpenseForm(){
 }
 
 /** The DEC-120 fields of the add form (both layouts): description, date, GST, photo, confirms, override. */
-export function ExpenseSccFields({x}:{x:ReturnType<typeof useExpenseForm>}){
+type ExpForm=ReturnType<typeof useExpenseForm>;
+export function ExpenseSccFields({x}:{x:ExpForm}){return <><ExpDescField x={x}/><ExpTaxFields x={x}/><ExpPhotoFields x={x}/></>;}
+/** FIT-2: the DEC-120 fields in three parts (the desktop dialog shows one part per section; the phone sheet still shows all three in a row). */
+export function ExpDescField({x}:{x:ExpForm}){const {f,setF}=x;
+  return <label>Description (what is this for?)<input maxLength={300} enterKeyHint="next" value={f.description} onChange={e=>setF({...f,description:e.target.value,confirmDuplicate:false})}/></label>;}
+export function ExpTaxFields({x}:{x:ExpForm}){
   const {s}=useHcc();const {f,setF,paise,gst,dups,dates}=x;
   return <>
-    <label>Description (what is this for?)<input maxLength={300} enterKeyHint="next" value={f.description} onChange={e=>setF({...f,description:e.target.value,confirmDuplicate:false})}/></label>
     {dates.length>1?<label>Expense date<select value={f.date} onChange={e=>setF({...f,date:e.target.value})}>{dates.map(d=><option key={d} value={d}>{dateLabel(d)}{d===s.date?' (business date)':' (reopened day)'}</option>)}</select></label>
       :<p className="muted">Dated {dateLabel(f.date)} (the business date). A closed day takes entries only while the Owner has it reopened.</p>}
     <GstFields amount={paise} rate={f.rate} gst={f.gst} onRate={v=>setF({...f,rate:v})} onGst={v=>setF({...f,gst:v,confirmGst:false})}/>
@@ -45,6 +50,10 @@ export function ExpenseSccFields({x}:{x:ReturnType<typeof useExpenseForm>}){
     <ExpensePurchaseFields f={f} setF={setF} paise={Number.isNaN(paise)?0:paise} gst={gst}/>
     {!!dups.length&&<div className="info-note f-warn" role="alert"><AlertTriangle size={16}/><span>{expDuplicateMessage(f.date,paise,f.description.trim())} ({dups.map(d=>`${d.id} ${d.status}`).join(', ')})
       <label className="checkbox-line"><input type="checkbox" checked={f.confirmDuplicate} onChange={e=>setF({...f,confirmDuplicate:e.target.checked})}/> Save anyway</label></span></div>}
+  </>;
+}
+export function ExpPhotoFields({x}:{x:ExpForm}){const {f,setF}=x;
+  return <>
     <BillPhotoPicker value={f.photo} onChange={v=>setF({...f,photo:v})}/>
     {x.ov.field}
     {x.alert&&<p className={x.alert.style==='err'?'f-why':'muted'} role="status">{x.alert.msg}</p>}
@@ -61,21 +70,35 @@ export function ExpenseModal(){
     const p=x.problem(draft);setWhy(p);if(p)return;
     run(x.command(draft,modal!.key),draft?'Draft saved — submit it when ready':'Expense submitted for approval',{close:true});
   }
+  // FIT-2 (§12): the form is three sections that each fit; the rail beside them shows each section's current values (read-only, from the form state).
+  const [sec,setSec]=useState<'what'|'tax'|'bill'>('what');
+  const gstShown=Number.isNaN(x.gst)?0:x.gst;
+  const sections=[
+    {id:'what',label:'What was bought',summary:`${f.vendor.trim()||'No vendor'} · ${f.category} · ${mnyExpenseSources(s).find(([v])=>v===f.method)?.[1]??f.method} · ${x.paise>0?money(x.paise):'amount not entered'}${f.description.trim()?' · '+f.description.trim():' · no description'}`},
+    {id:'tax',label:'Date and tax',summary:`${dateLabel(f.date)} · ${gstShown>0?`GST ${money(gstShown)} · ITC ${f.itc}`:'no GST on the bill'}${f.receipt.trim()?' · bill '+f.receipt.trim():''}${x.ov.locked?' · tax-locked month':''}${x.dups.length?` · ${x.dups.length} possible duplicate${x.dups.length===1?'':'s'}`:''}`},
+    {id:'bill',label:'Photo and notes',summary:`${f.photo?'Bill photo attached':'No bill photo'}${f.notes.trim()?' · '+f.notes.trim():' · no notes'}`},
+  ];
   return <><div className="modal-heading"><h2>Record an expense</h2><p>Business date {dateLabel(s.date)}. Another authorised person approves before it is posted; drawer cash is reduced once, on posting.</p></div>
-    <form ref={form} className="form" onSubmit={e=>{e.preventDefault();save(false);}}>
-      <ExpVendorInput value={f.vendor} onChange={v=>setF({...f,vendor:v,gstKind:vendorGstKind(s,v)})}/>
-      <div className="form-row"><ExpCategorySelect value={f.category} onChange={v=>setF({...f,category:v})}/>
-        <label>Funding source<select value={f.method} onChange={set('method')}>{mnyExpenseSources(s).map(([v,l])=><option key={v} value={v}>{l}</option>)}</select></label></div>
-      <label>Amount (₹)<input required inputMode="decimal" value={f.amount} onChange={set('amount')}/></label>
-      <ExpenseSccFields x={x}/>
-      <label>Bill / receipt number<input maxLength={120} value={f.receipt} onChange={set('receipt')} placeholder="e.g. AQ-0026"/></label>
-      <label>Notes<textarea maxLength={300} value={f.notes} onChange={set('notes')} placeholder="Optional"/></label>
-      <ExpCreditNote method={f.method}/>
-      {mnyIsDrawer(s,f.method)&&f.date!==s.date&&<p className="f-why">Drawer cash leaves today’s drawer: date a cash expense on the business date, or choose another funding source.</p>}
-      {why&&<p className="f-why" role="alert">{why}</p>}
-      <div className="modal-actions"><button type="button" className="btn" onClick={closeModal}>Cancel</button>
-        <button type="button" className="btn subtle" disabled={busy} onClick={()=>save(true)}>Save draft</button>
-        <button className="btn primary" disabled={busy}>Submit for approval</button></div></form></>;
+    <form ref={form} className="form exp-add-task" onSubmit={e=>{e.preventDefault();save(false);}}>
+      <FormSections sections={sections} value={sec} onChange={id=>setSec(id as typeof sec)}
+        actions={<>{why&&<p className="f-why" role="alert">{why}</p>}<button type="button" className="btn" onClick={closeModal}>Cancel</button>
+          <button type="button" className="btn subtle" disabled={busy} onClick={()=>save(true)}>Save draft</button>
+          <button className="btn primary" disabled={busy}>Submit for approval</button></>}>
+        {sec==='what'&&<>
+          <ExpVendorInput value={f.vendor} onChange={v=>setF({...f,vendor:v,gstKind:vendorGstKind(s,v)})}/>
+          <div className="form-row"><ExpCategorySelect value={f.category} onChange={v=>setF({...f,category:v})}/>
+            <label>Funding source<select value={f.method} onChange={set('method')}>{mnyExpenseSources(s).map(([v,l])=><option key={v} value={v}>{l}</option>)}</select></label></div>
+          <label>Amount (₹)<input inputMode="decimal" value={f.amount} onChange={set('amount')}/></label>
+          <ExpDescField x={x}/>
+          <ExpCreditNote method={f.method}/>
+          {mnyIsDrawer(s,f.method)&&f.date!==s.date&&<p className="f-why">Drawer cash leaves today’s drawer: date a cash expense on the business date, or choose another funding source.</p>}</>}
+        {sec==='tax'&&<>
+          <ExpTaxFields x={x}/>
+          <label>Bill / receipt number<input maxLength={120} value={f.receipt} onChange={set('receipt')} placeholder="e.g. AQ-0026"/></label></>}
+        {sec==='bill'&&<>
+          <ExpPhotoFields x={x}/>
+          <label>Notes<textarea maxLength={300} value={f.notes} onChange={set('notes')} placeholder="Optional"/></label></>}
+      </FormSections></form></>;
 }
 /** Modal 'expense-reason': id = expense ID, room = 'reject' | 'reverse'. */
 export function ExpenseReasonModal({id,room}:{id?:string;room?:string}){

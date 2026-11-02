@@ -58,9 +58,9 @@ export function register({test,assert}){
     assert.deepEqual(tabIds(html),['register','recurring','petty','budgets','udhaar','vendors','month']);
     assert.deepEqual(subIds('expenses'),['register','recurring','petty','budgets','udhaar','vendors','month']);
     assert.match(html,/id="fit-tab-expenses-register"[^>]*aria-selected="true"/);
-    const status=[...html.matchAll(/<button role="tab" aria-selected="(?:true|false)" class="[^"]*">(All|Draft|Pending|Posted|Rejected|Reversed|Void)<span>/g)].map(m=>m[1]);
-    assert.deepEqual(status,['All','Draft','Pending','Posted','Rejected','Reversed','Void'],'status tabs and their order unchanged');
-    for(const t of ['Expense register','Approval requests','Ledger CSV','Mode','Month','Search','Add expense'])assert.ok(html.includes(t),t+' reachable');
+    const status=[...html.matchAll(/<option value="(All|Draft|Pending|Posted|Rejected|Reversed|Void)">/g)].map(m=>m[1]);
+    assert.deepEqual(status,['All','Draft','Pending','Posted','Rejected','Reversed','Void'],'status options and their order unchanged (FIT-2: a select in the filter row)');
+    for(const t of ['Expense register','Approval requests (','Ledger CSV','Mode','Month','Search','Add expense'])assert.ok(html.includes(t),t+' reachable');
     assert.ok(html.includes('data-fit-scroll=""'));
   });
   test('[FIT-CASH-B] expenses: every SCC section is reachable as a tab (recurring, petty cash, budgets, Udhaar, vendors, month & tax)',()=>{
