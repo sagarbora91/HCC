@@ -43,6 +43,8 @@ public sealed class ConfigurationService(ICommandRunner runner, IAccessPolicy po
         if (s is null || !s.Editable) throw HccException.Validation(SettingRules.NotConfigurable);
         var expected = string.IsNullOrEmpty(req.ExpectedVersion) ? null : VersionToken.Parse(req.ExpectedVersion);
         var reason = Reason(req.Reason, 120);
+        // F5-E1 (EGRESS-CONTRACT §1.1): every internet switch change carries a reason.
+        if (s.Key.StartsWith("net.", StringComparison.Ordinal) && string.IsNullOrWhiteSpace(reason)) throw HccException.Validation("Give a reason for changing an internet switch.");
         return await runner.RunAsync(ctx with { Operation = OpSet }, req, async (tx, c) =>
         {
             var version = await store.LockSettingAsync(tx, ctx.PropertyId, s.Key, c).ConfigureAwait(false);

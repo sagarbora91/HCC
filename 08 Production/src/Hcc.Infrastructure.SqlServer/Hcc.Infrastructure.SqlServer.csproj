@@ -5,6 +5,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\Hcc.Application\Hcc.Application.csproj" />
+    <ProjectReference Include="..\Hcc.Infrastructure.Egress\Hcc.Infrastructure.Egress.csproj" /> <!-- F5-E1 -->
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.Data.SqlClient" />

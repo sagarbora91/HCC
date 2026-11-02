@@ -21,5 +21,8 @@ public enum HccErrorCode
     IDEMPOTENCY_MISMATCH,
     UNAVAILABLE,
     UNAUTHENTICATED,
+
+    // F5-E1 (EGRESS-CONTRACT §1): the internet egress gate refused an outbound call (details.reason, details.integration). HTTP 503.
+    NET_OFFLINE,
 }
 #pragma warning restore CA1707
