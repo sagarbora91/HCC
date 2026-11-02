@@ -1,0 +1,6 @@
+code,name,roomType,extraAdult,extraChild,extraBed,childAgeFrom,childAgeTo,sortOrder,active
+X-LUX,Luxury Suite 3rd guest,LUX,423.73,,,5,12,10,yes
+X-PRM,Premium 3rd guest,PRM,423.73,,,5,12,20,yes
+X-DLX,Deluxe 3rd guest,DLX,423.73,,,5,12,30,yes
+X-TWN,Twin 3rd guest,TWN,338.98,,,5,12,40,yes
+X-NAC,Non-AC 3rd guest,NAC,338.98,,,5,12,50,yes

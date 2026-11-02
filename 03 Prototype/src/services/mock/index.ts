@@ -104,3 +104,6 @@ export * from '../../app/shortcuts';
 // LF-IMAGES
 export * from '../../domain/streams/printnotes'; // LF-images B6: which branding text prints on which document
 // LF-IMAGES end
+// F4-T1
+export * from '../../domain/streams/tariffcard';
+// F4-T1 end
