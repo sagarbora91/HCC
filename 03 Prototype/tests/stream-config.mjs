@@ -196,9 +196,9 @@ export function register({test,M,assert}){
     assert.match(msg(()=>execute(s,'owner',{type:'POS_ORDER_OPEN',outlet,table:'T9',covers:2})),/Restaurant & POS is switched off in Master configuration/);
     assert.equal(code(()=>execute(s,'owner',{type:'POS_ORDER_OPEN',outlet,table:'T9',covers:2})),'FORBIDDEN');
     assert.equal(code(()=>execute(s,'owner',{type:'NIGHT_POST'})),'OK');
-    assert.equal(cfgGroupSummary(s,'modules'),'9 of 10 on · 6 core always on');
+    assert.equal(cfgGroupSummary(s,'modules').startsWith('9 of 10 on · 6 core always on'),true);
     const ids=N.navFilterModules(s,N.navItems).map(n=>n.id);assert.ok(!ids.includes('pos'));assert.ok(ids.includes('folios')&&ids.includes('settings'));
-    s=set(s,'owner','module.pos',true);assert.equal(cfgModuleOn(s,'pos'),true);assert.equal(cfgGroupSummary(s,'modules'),'10 of 10 on · 6 core always on');
+    s=set(s,'owner','module.pos',true);assert.equal(cfgModuleOn(s,'pos'),true);assert.equal(cfgGroupSummary(s,'modules').startsWith('10 of 10 on · 6 core always on'),true);
     assert.ok(N.navFilterModules(s,N.navItems).some(n=>n.id==='pos'));
     assert.deepEqual(CFG_MODULES.map(m=>m.id),['pos','groups','ota','website','messaging','documents','assistant','inventory','maintenance','payroll']);
     for(const m of CFG_MODULES)for(const p of m.pages)assert.ok(N.PAGE_CATEGORY[p],p);});

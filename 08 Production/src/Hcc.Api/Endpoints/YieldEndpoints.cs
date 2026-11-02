@@ -4,6 +4,8 @@ using Hcc.Contracts.Yield;
 using Hcc.Infrastructure.SqlServer;
 using Hcc.Infrastructure.SqlServer.Yield;
 
+using Hcc.Domain.Configuration;
+
 namespace Hcc.Api.Endpoints;
 
 /// <summary>
@@ -28,17 +30,18 @@ public static class YieldEndpoints
     {
         ArgumentNullException.ThrowIfNull(api);
         var g = api.MapHccSecured();
-        BillingEndpoints.Command<SaveYieldPlanRequest, YieldChangeResult>(g, "SaveYieldPlan", (sp, c, k, r, ct) => sp.GetRequiredService<YieldService>().SavePlanAsync(Ctx(c, "SaveYieldPlan", k), r, ct));
-        BillingEndpoints.Command<SaveYieldSeasonRequest, YieldChangeResult>(g, "SaveYieldSeason", (sp, c, k, r, ct) => sp.GetRequiredService<YieldService>().SaveSeasonAsync(Ctx(c, "SaveYieldSeason", k), r, ct));
-        BillingEndpoints.Command<SetYieldDayOfWeekRequest, YieldChangeResult>(g, "SetYieldDayOfWeek", (sp, c, k, r, ct) => sp.GetRequiredService<YieldService>().SetDayOfWeekAsync(Ctx(c, "SetYieldDayOfWeek", k), r, ct));
-        BillingEndpoints.Command<SaveYieldOccupancyRuleRequest, YieldChangeResult>(g, "SaveYieldOccupancyRule", (sp, c, k, r, ct) => sp.GetRequiredService<YieldService>().SaveOccupancyRuleAsync(Ctx(c, "SaveYieldOccupancyRule", k), r, ct));
-        BillingEndpoints.Command<SetYieldGuardrailsRequest, YieldChangeResult>(g, "SetYieldGuardrails", (sp, c, k, r, ct) => sp.GetRequiredService<YieldService>().SetGuardrailsAsync(Ctx(c, "SetYieldGuardrails", k), r, ct));
-        BillingEndpoints.Command<SaveYieldRestrictionRequest, YieldChangeResult>(g, "SaveYieldRestriction", (sp, c, k, r, ct) => sp.GetRequiredService<YieldService>().SaveRestrictionAsync(Ctx(c, "SaveYieldRestriction", k), r, ct));
-        BillingEndpoints.Command<SetYieldOverrideRequest, YieldChangeResult>(g, "SetYieldOverride", (sp, c, k, r, ct) => sp.GetRequiredService<YieldService>().SetOverrideAsync(Ctx(c, "SetYieldOverride", k), r, ct));
-        BillingEndpoints.Command<SetYieldForecastRequest, YieldChangeResult>(g, "SetYieldForecast", (sp, c, k, r, ct) => sp.GetRequiredService<YieldService>().SetForecastAsync(Ctx(c, "SetYieldForecast", k), r, ct));
-        BillingEndpoints.Command<PublishYieldRequest, YieldPublishResult>(g, "PublishYieldTariffs", (sp, c, k, r, ct) => sp.GetRequiredService<YieldService>().PublishAsync(Ctx(c, "PublishYieldTariffs", k), r, ct));
-        BillingEndpoints.Command<ProposeYieldPublishRequest, YieldProposalResult>(g, "ProposeYieldPublish", (sp, c, k, r, ct) => sp.GetRequiredService<YieldService>().ProposeAsync(Ctx(c, "ProposeYieldPublish", k), r, ct));
-        BillingEndpoints.Command<DecideYieldProposalRequest, YieldDecisionResult>(g, "DecideYieldProposal", (sp, c, k, r, ct) => sp.GetRequiredService<YieldService>().DecideAsync(Ctx(c, "DecideYieldProposal", k), r, ct));
+        var cmd = g.MapGroup(string.Empty).RequireHccFeature(FeatureIds.Yield); // ADM-1 (DEC-214): refused while the sub-function is off; reads stay on g
+        BillingEndpoints.Command<SaveYieldPlanRequest, YieldChangeResult>(cmd, "SaveYieldPlan", (sp, c, k, r, ct) => sp.GetRequiredService<YieldService>().SavePlanAsync(Ctx(c, "SaveYieldPlan", k), r, ct));
+        BillingEndpoints.Command<SaveYieldSeasonRequest, YieldChangeResult>(cmd, "SaveYieldSeason", (sp, c, k, r, ct) => sp.GetRequiredService<YieldService>().SaveSeasonAsync(Ctx(c, "SaveYieldSeason", k), r, ct));
+        BillingEndpoints.Command<SetYieldDayOfWeekRequest, YieldChangeResult>(cmd, "SetYieldDayOfWeek", (sp, c, k, r, ct) => sp.GetRequiredService<YieldService>().SetDayOfWeekAsync(Ctx(c, "SetYieldDayOfWeek", k), r, ct));
+        BillingEndpoints.Command<SaveYieldOccupancyRuleRequest, YieldChangeResult>(cmd, "SaveYieldOccupancyRule", (sp, c, k, r, ct) => sp.GetRequiredService<YieldService>().SaveOccupancyRuleAsync(Ctx(c, "SaveYieldOccupancyRule", k), r, ct));
+        BillingEndpoints.Command<SetYieldGuardrailsRequest, YieldChangeResult>(cmd, "SetYieldGuardrails", (sp, c, k, r, ct) => sp.GetRequiredService<YieldService>().SetGuardrailsAsync(Ctx(c, "SetYieldGuardrails", k), r, ct));
+        BillingEndpoints.Command<SaveYieldRestrictionRequest, YieldChangeResult>(cmd, "SaveYieldRestriction", (sp, c, k, r, ct) => sp.GetRequiredService<YieldService>().SaveRestrictionAsync(Ctx(c, "SaveYieldRestriction", k), r, ct));
+        BillingEndpoints.Command<SetYieldOverrideRequest, YieldChangeResult>(cmd, "SetYieldOverride", (sp, c, k, r, ct) => sp.GetRequiredService<YieldService>().SetOverrideAsync(Ctx(c, "SetYieldOverride", k), r, ct));
+        BillingEndpoints.Command<SetYieldForecastRequest, YieldChangeResult>(cmd, "SetYieldForecast", (sp, c, k, r, ct) => sp.GetRequiredService<YieldService>().SetForecastAsync(Ctx(c, "SetYieldForecast", k), r, ct));
+        BillingEndpoints.Command<PublishYieldRequest, YieldPublishResult>(cmd, "PublishYieldTariffs", (sp, c, k, r, ct) => sp.GetRequiredService<YieldService>().PublishAsync(Ctx(c, "PublishYieldTariffs", k), r, ct));
+        BillingEndpoints.Command<ProposeYieldPublishRequest, YieldProposalResult>(cmd, "ProposeYieldPublish", (sp, c, k, r, ct) => sp.GetRequiredService<YieldService>().ProposeAsync(Ctx(c, "ProposeYieldPublish", k), r, ct));
+        BillingEndpoints.Command<DecideYieldProposalRequest, YieldDecisionResult>(cmd, "DecideYieldProposal", (sp, c, k, r, ct) => sp.GetRequiredService<YieldService>().DecideAsync(Ctx(c, "DecideYieldProposal", k), r, ct));
 
         g.MapGet("/yield/calendar", async (HttpContext http, YieldQueries q, string? from, int? nights, CancellationToken ct) =>
         {

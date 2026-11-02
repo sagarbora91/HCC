@@ -134,15 +134,16 @@ const STATUS:Record<string,CFGChange['status']>={applied:'applied',scheduled:'sc
 export function configFromServer(v:SrvValues,history:SrvHistoryEntry[],gst?:SrvGstMaster|null):CFGState{
   const values={...v.values};
   const modulesOff=Object.entries(values).filter(([k,x])=>k.startsWith('module.')&&x===false).map(([k])=>k.slice('module.'.length));
+  const featuresOff=Object.entries(values).filter(([k,x])=>k.startsWith('feature.')&&x===false).map(([k])=>k.slice('feature.'.length)); // ADM-1
   const scheduled:CFGScheduled[]=v.scheduled.map(x=>{const h=history.find(e=>e.key===x.key&&e.effectiveFrom===x.effectiveFrom&&e.status==='scheduled');
     return {id:h?protoId(h.changeId):`sched:${x.key}:${x.effectiveFrom}`,key:x.key,value:x.value,effectiveFrom:x.effectiveFrom,by:h?.changedBy??'',at:h?utcToClock(h.at):''};});
   // cfgRevertBlock needs `after` = the live value for the one revertible change; others get a value that never matches.
   const changes:CFGChange[]=history.map(h=>({id:protoId(h.changeId),key:h.key,before:undefined,after:h.canRevert?values[h.key]:{notRevertible:h.revertBlock??true},
     effectiveFrom:h.effectiveFrom,at:utcToClock(h.at),by:h.changedBy,...(h.approvedBy?{approvedBy:h.approvedBy}:{}),status:STATUS[h.status]??'applied',
     ...(h.revertOf!=null?{revertOf:protoId(h.revertOf)}:{})}));
-  if(!gst)return {modulesOff,values,scheduled,changes};
+  if(!gst)return {modulesOff,featuresOff,values,scheduled,changes};
   const g=gstFromServer(gst,v.businessDate);
-  return {modulesOff,values:{...values,...g.values},scheduled:[...scheduled,...g.scheduled],changes:[...changes,...g.changes]};
+  return {modulesOff,featuresOff,values:{...values,...g.values},scheduled:[...scheduled,...g.scheduled],changes:[...changes,...g.changes]};
 }
 
 // ── GST master (DEC-069) ──

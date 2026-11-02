@@ -35,6 +35,7 @@ import {posSlice} from './pos';
 import {hrRatesFor,hrRatesDefaultFrom,hrMonthLabel,hrSettingDefs,hrSettingValue,hrLeavePolicy,type HRRates,type HRSettingDef} from './staff';
 import {cmpSettingDefs,type CMPSettingDef} from './compliance';
 import {GST_SEED,gstSeedDef,gstSeedOn,gstSpecifiedPremises,gstPct,GST_ILLUSTRATIVE,type GstKey} from '../gst';
+import {featureAll,featureById,featureOfPage,featureOfCommand,featureClosure,featureExempt,featureKey,type FeatureRef} from '../feature-catalogue'; // ADM-1
 
 // ───────────────────────────── Groups (fixed names — a test pins them) ─────────────────────────────
 export type CfgGroupId='property'|'rooms'|'frontdesk'|'money'|'pos'|'hkm'|'people'|'compliance'|'modules'|'users'|'messages'|'data';
@@ -80,9 +81,33 @@ export function cfgModuleOfCommand(type:string):CfgModule|undefined{
   return CFG_MODULES.find(m=>m.prefixes.some(p=>type.startsWith(p))&&!(m.except||[]).some(p=>type.startsWith(p)));
 }
 export const cfgModuleOfPage=(page:string)=>CFG_MODULES.find(m=>m.pages.includes(page));
-/** False when the page belongs to a module that is switched off (navigation, tiles, search and phone tabs hide it). */
-export const cfgPageOn=(s:State,page:string)=>{const m=cfgModuleOfPage(page);return !m||cfgModuleOn(s,m.id);};
+/** False when the page belongs to a module or a sub-function that is switched off (navigation, tiles, search and phone tabs hide it). */
+export const cfgPageOn=(s:State,page:string)=>{const m=cfgModuleOfPage(page);if(m&&!cfgModuleOn(s,m.id))return false;const f=featureOfPage(page);return !f||cfgFeatureOn(s,f.id);};
 export const cfgModuleOffMessage=(m:CfgModule)=>`${m.label} is switched off in Master configuration › Modules on/off. Its data is kept; the Owner or Tech admin can switch it back on.`;
+
+// ───────────────────────────── Sub-function switches (ADM-1, DEC-214 / DEC-215) ─────────────────────────────
+/** Features switched off by their full id (`frontdesk.reservations`). Core features are never in this list. */
+export const cfgFeaturesOff=(s:State):string[]=>s.configX?.featuresOff??[];
+/** On = not switched off, its module switch (if any) on, and every feature it requires on. Unknown ids are on (nothing to gate). */
+export function cfgFeatureOn(s:State,id:string):boolean{
+  const r=featureById(id);if(!r)return true;
+  if(r.feature.core)return true;
+  if(r.module.switch&&!cfgModuleOn(s,r.module.switch))return false;
+  if(cfgFeaturesOff(s).includes(id))return false;
+  return (r.feature.requires||[]).every(q=>cfgFeatureOn(s,q));
+}
+/** Why a feature is off (its own switch, its module switch or a required feature), or undefined when on. */
+export function cfgFeatureOffReason(s:State,id:string):string|undefined{
+  const r=featureById(id);if(!r||cfgFeatureOn(s,id))return undefined;
+  if(r.module.switch&&!cfgModuleOn(s,r.module.switch)){const m=CFG_MODULES.find(x=>x.id===r.module.switch);return m?`${m.label} module is switched off`:undefined;}
+  if(cfgFeaturesOff(s).includes(id))return 'Switched off';
+  const q=(r.feature.requires||[]).find(x=>!cfgFeatureOn(s,x));const d=q?featureById(q):undefined;
+  return d?`Needs ${d.feature.label} (${d.module.label}), which is off`:undefined;
+}
+export const cfgFeatureOffMessage=(r:FeatureRef)=>`${r.feature.label} (${r.module.label}) is switched off in Master configuration › Modules & features. Its data is kept; the Owner or Tech admin can switch it back on.`;
+/** Switchable (non-core) features, module order. */
+export const cfgSwitchableFeatures=()=>featureAll().filter(r=>!r.feature.core);
+export const CFG_CORE_REASON='Always on: money, statutory or sign-in path (DEC-215).';
 
 // ───────────────────────────── Setting definitions ─────────────────────────────
 export type CfgType='text'|'time'|'money'|'boolean'|'integer'|'percent'|'choice'|'fixed';
@@ -95,6 +120,7 @@ export type CfgStore=
   |{kind:'config'}
   |{kind:'module';read:(s:State)=>unknown;command:(s:State,v:unknown)=>Command}
   |{kind:'switch';module:CfgModuleId}
+  |{kind:'feature';feature:string}
   |{kind:'fixed';read:(s:State)=>string};
 /** One registry entry. Extends the BL-027 AdminSettingDef (key, category, label, unit, editable, approval, effective, help). */
 export type CfgSettingDef=Omit<AdminSettingDef,'type'>&{
@@ -175,8 +201,8 @@ export type CFGScheduled={id:string;key:string;value:unknown;effectiveFrom:strin
 export type CFGChange={id:string;key:string;before:unknown;after:unknown;effectiveFrom:string;at:string;by:string;approvedBy?:string;
   status:'applied'|'scheduled'|'withdrawn';revertOf?:string};
 /** State slice s.configX. Absent = defaults (old saves). */
-export type CFGState={modulesOff?:string[];values?:Record<string,unknown>;scheduled?:CFGScheduled[];changes?:CFGChange[]};
-export const cfgEnsure=(s:State):Required<CFGState>=>{const x=s.configX??(s.configX={});x.modulesOff??=[];x.values??={};x.scheduled??=[];x.changes??=[];return x as Required<CFGState>;};
+export type CFGState={modulesOff?:string[];featuresOff?:string[];values?:Record<string,unknown>;scheduled?:CFGScheduled[];changes?:CFGChange[]};
+export const cfgEnsure=(s:State):Required<CFGState>=>{const x=s.configX??(s.configX={});x.modulesOff??=[];x.featuresOff??=[];x.values??={};x.scheduled??=[];x.changes??=[];return x as Required<CFGState>;};
 
 /** The live value today (before any future-dated change). */
 export function cfgRaw(s:State,def:CfgSettingDef):unknown{
@@ -186,6 +212,7 @@ export function cfgRaw(s:State,def:CfgSettingDef):unknown{
     case 'config':return s.configX?.values?.[def.key]??def.default;
     case 'module':return st.read(s);
     case 'switch':return cfgModuleOn(s,st.module);
+    case 'feature':return !cfgFeaturesOff(s).includes(st.feature);
     case 'fixed':return st.read(s);
   }
 }
@@ -259,6 +286,9 @@ export function cfgWriteDirect(s:State,def:CfgSettingDef,v:unknown){
   if(st.kind==='settings')(s.settings as unknown as Record<string,unknown>)[def.key]=v;
   else if(st.kind==='config')cfgEnsure(s).values[def.key]=v;
   else if(st.kind==='switch'){const x=cfgEnsure(s);x.modulesOff=v?x.modulesOff.filter(m=>m!==st.module):[...new Set([...x.modulesOff,st.module])];}
+  else if(st.kind==='feature'){const x=cfgEnsure(s);
+    // Off switches every dependant off too (DEC-214 §2.2); on switches only this one (dependants are switched back one by one).
+    x.featuresOff=v?x.featuresOff.filter(f=>f!==st.feature):[...new Set([...x.featuresOff,...featureClosure(st.feature)])];}
   else throw new Error('cfgWriteDirect: '+def.key+' is not directly writable');
 }
 /** Applies scheduled changes whose date has come (called before every command; NEXT_DAY uses the new date). */
@@ -278,7 +308,10 @@ export function cfgApplyDue(s:State,date:string){
 export function cfgBeforeCommand(s:State,cmd:Command):string|undefined{
   cfgApplyDue(s,cmd.type==='NEXT_DAY'?addDays(s.date,1):s.date);
   const m=cfgModuleOfCommand(cmd.type);
-  return m&&!cfgModuleOn(s,m.id)?cfgModuleOffMessage(m):undefined;
+  if(m&&!cfgModuleOn(s,m.id))return cfgModuleOffMessage(m);
+  const f=featureOfCommand(cmd.type);
+  if(f&&!cfgFeatureOn(s,f.id)&&!featureExempt(f.id,cmd,s.date))return cfgFeatureOffMessage(f);
+  return undefined;
 }
 
 // ───────────────────────────── Permissions (DEC-058) ─────────────────────────────
@@ -341,7 +374,8 @@ export const cfgPendingRequests=(s:State,key?:string)=>s.approvals.filter(a=>a.k
 export function cfgGroupSummary(s:State,g:CfgGroupId):string{
   for(const p of providers)if(p.group===g&&p.summary)return p.summary(s);
   const defs=cfgGroupDefs(s,g);
-  if(g==='modules'){const on=CFG_MODULES.filter(m=>cfgModuleOn(s,m.id)).length;return `${on} of ${CFG_MODULES.length} on · ${CFG_CORE_MODULES.length} core always on`;}
+  if(g==='modules'){const on=CFG_MODULES.filter(m=>cfgModuleOn(s,m.id)).length;const sw=cfgSwitchableFeatures();const fon=sw.filter(r=>cfgFeatureOn(s,r.id)).length;
+    return `${on} of ${CFG_MODULES.length} on · ${CFG_CORE_MODULES.length} core always on · ${fon} of ${sw.length} sub-functions on`;}
   const keys=new Set(defs.map(d=>d.key));
   const pend=cfgPendingRequests(s).filter(a=>keys.has(String(a.target))).length+(s.configX?.scheduled??[]).filter(x=>keys.has(x.key)).length;
   const editable=defs.filter(d=>d.editable).length;
@@ -376,6 +410,10 @@ export function cfgImpact(s:State,def:CfgSettingDef,v:unknown,effectiveFrom:stri
   const st=def.store;
   if(st.kind==='switch'){const m=CFG_MODULES.find(x=>x.id===st.module);
     if(m)lines.push(v?`${m.label} appears again in menus, tiles, search and phone tabs; its commands work again.`:`${m.label} is hidden from menus, tiles, search, reminders and phone tabs, and its commands are refused. Its data and history are kept.`);}
+  if(st.kind==='feature'){const r=featureById(st.feature);
+    if(r){lines.push(v?`${r.feature.label} appears again; its commands work again.`:`${r.feature.label} is hidden and its commands are refused. Its data and history are kept.`);
+      const deps=featureClosure(st.feature).slice(1).map(id=>featureById(id)?.feature.label).filter(Boolean);
+      if(!v&&deps.length)lines.push(`Also switched off because they need it: ${deps.join(', ')}.`);}}
   return [...lines,...(def.impact?.(s,v)??[])];
 }
 
@@ -504,6 +542,9 @@ function builtins(){
   registerSettingsGroup({id:'modules',group:'modules',defs:CFG_MODULES.map(m=>({key:'module.'+m.id,label:m.label,type:'boolean' as const,unit:'on / off',help:m.note,store:{kind:'switch' as const,module:m.id},
     affects:'Menus, tiles, search, reminders and phone tabs; commands are refused while off. Data is kept.',
     impact:(s:State,v:unknown)=>v===false&&m.id==='pos'?[`${posSlice(s).orders.filter(o=>o.status==='Open').length} open restaurant check(s) stay open and can be settled after switching back on.`]:[]}))});
+  // ADM-1 sub-function switches: one boolean per non-core feature, same group, Tech admin may change (non-money, DEC-058 / DEC-218).
+  registerSettingsGroup({id:'features',group:'modules',defs:cfgSwitchableFeatures().map(r=>({key:featureKey(r.id),label:`${r.module.label} › ${r.feature.label}`,type:'boolean' as const,unit:'on / off',
+    help:r.feature.note,store:{kind:'feature' as const,feature:r.id},affects:'Its pages are hidden and its commands refused while off. Data is kept.'}))});
   registerSettingsGroup({id:'users',group:'users',defs:[
     {key:'users.active',label:'Active users',type:'fixed',read:s=>`${s.users.filter(u=>adminUserActive(s,u)).length} of ${s.users.length}`,fixedReason:'Users and roles are changed in Access control',help:'Create, disable and assign roles in Access control.'},
     {key:'sec.pinLock',label:'PIN lock on shared devices',type:'boolean',default:false,approver:'Owner',unit:'on / off',help:'Off by default; switch on deliberately (SCC rule). Simulated in the prototype.',affects:'Next sign-in on every device.'},

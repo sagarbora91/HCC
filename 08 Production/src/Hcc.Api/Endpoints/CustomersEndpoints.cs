@@ -3,6 +3,8 @@ using Hcc.Contracts.Customers;
 using Hcc.Infrastructure.SqlServer;
 using Hcc.Infrastructure.SqlServer.Customers;
 
+using Hcc.Domain.Configuration;
+
 namespace Hcc.Api.Endpoints;
 
 /// <summary>
@@ -24,19 +26,20 @@ public static class CustomersEndpoints
     {
         ArgumentNullException.ThrowIfNull(api);
         var g = api.MapHccSecured();
-        g.MapPost("/commands/" + CustomerCommands.OpPropose, async (HttpContext http, ProposeCustomerMergeRequest body, CustomerCommands c, CancellationToken ct) =>
+        var cmd = g.MapGroup(string.Empty).RequireHccFeature(FeatureIds.Crm); // ADM-1 (DEC-214): refused while the sub-function is off; reads stay on g
+        cmd.MapPost("/commands/" + CustomerCommands.OpPropose, async (HttpContext http, ProposeCustomerMergeRequest body, CustomerCommands c, CancellationToken ct) =>
             http.HccReply(await c.ProposeMergeAsync(http.HccCommand(CustomerCommands.OpPropose), body, ct)));
-        g.MapPost("/commands/" + CustomerCommands.OpDecide, async (HttpContext http, DecideCustomerMergeRequest body, CustomerCommands c, CancellationToken ct) =>
+        cmd.MapPost("/commands/" + CustomerCommands.OpDecide, async (HttpContext http, DecideCustomerMergeRequest body, CustomerCommands c, CancellationToken ct) =>
             http.HccReply(await c.DecideMergeAsync(http.HccCommand(CustomerCommands.OpDecide), body, ct)));
-        g.MapPost("/commands/" + CustomerCommands.OpAddTag, async (HttpContext http, AddCustomerTagRequest body, CustomerCommands c, CancellationToken ct) =>
+        cmd.MapPost("/commands/" + CustomerCommands.OpAddTag, async (HttpContext http, AddCustomerTagRequest body, CustomerCommands c, CancellationToken ct) =>
             http.HccReply(await c.AddTagAsync(http.HccCommand(CustomerCommands.OpAddTag), body, ct)));
-        g.MapPost("/commands/" + CustomerCommands.OpRemoveTag, async (HttpContext http, RemoveCustomerTagRequest body, CustomerCommands c, CancellationToken ct) =>
+        cmd.MapPost("/commands/" + CustomerCommands.OpRemoveTag, async (HttpContext http, RemoveCustomerTagRequest body, CustomerCommands c, CancellationToken ct) =>
             http.HccReply(await c.RemoveTagAsync(http.HccCommand(CustomerCommands.OpRemoveTag), body, ct)));
-        g.MapPost("/commands/" + CustomerCommands.OpAddNote, async (HttpContext http, AddCustomerNoteRequest body, CustomerCommands c, CancellationToken ct) =>
+        cmd.MapPost("/commands/" + CustomerCommands.OpAddNote, async (HttpContext http, AddCustomerNoteRequest body, CustomerCommands c, CancellationToken ct) =>
             http.HccReply(await c.AddNoteAsync(http.HccCommand(CustomerCommands.OpAddNote), body, ct)));
-        g.MapPost("/commands/" + CustomerCommands.OpPreferences, async (HttpContext http, SetCustomerPreferencesRequest body, CustomerCommands c, CancellationToken ct) =>
+        cmd.MapPost("/commands/" + CustomerCommands.OpPreferences, async (HttpContext http, SetCustomerPreferencesRequest body, CustomerCommands c, CancellationToken ct) =>
             http.HccReply(await c.SetPreferencesAsync(http.HccCommand(CustomerCommands.OpPreferences), body, ct)));
-        g.MapPost("/commands/" + CustomerCommands.OpConsent, async (HttpContext http, SetCustomerConsentRequest body, CustomerCommands c, CancellationToken ct) =>
+        cmd.MapPost("/commands/" + CustomerCommands.OpConsent, async (HttpContext http, SetCustomerConsentRequest body, CustomerCommands c, CancellationToken ct) =>
             http.HccReply(await c.SetConsentAsync(http.HccCommand(CustomerCommands.OpConsent), body, ct)));
 
         g.MapGet("/customers", async (HttpContext http, CustomerQueries cq, CancellationToken ct, string? q = null, string? tag = null, int page = 1, int pageSize = 50) =>

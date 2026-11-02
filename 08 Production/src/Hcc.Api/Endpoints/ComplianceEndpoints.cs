@@ -3,6 +3,8 @@ using Hcc.Contracts.Compliance;
 using Hcc.Infrastructure.SqlServer;
 using Hcc.Infrastructure.SqlServer.Compliance;
 
+using Hcc.Domain.Configuration;
+
 namespace Hcc.Api.Endpoints;
 
 /// <summary>
@@ -28,31 +30,32 @@ public static class ComplianceEndpoints
     {
         ArgumentNullException.ThrowIfNull(api);
         var g = api.MapHccSecured();
-        g.MapPost("/commands/" + ComplianceCommands.OpMarkDone, async (HttpContext http, MarkDoneRequest body, ComplianceCommands c, CancellationToken ct) =>
+        var cmd = g.MapGroup(string.Empty).RequireHccFeature(FeatureIds.Compliance); // ADM-1 (DEC-214): refused while the sub-function is off; reads stay on g
+        cmd.MapPost("/commands/" + ComplianceCommands.OpMarkDone, async (HttpContext http, MarkDoneRequest body, ComplianceCommands c, CancellationToken ct) =>
             http.HccReply(await c.MarkDoneAsync(http.HccCommand(ComplianceCommands.OpMarkDone), body, ct)));
-        g.MapPost("/commands/" + ComplianceCommands.OpMarkNotApplicable, async (HttpContext http, MarkNotApplicableRequest body, ComplianceCommands c, CancellationToken ct) =>
+        cmd.MapPost("/commands/" + ComplianceCommands.OpMarkNotApplicable, async (HttpContext http, MarkNotApplicableRequest body, ComplianceCommands c, CancellationToken ct) =>
             http.HccReply(await c.MarkNotApplicableAsync(http.HccCommand(ComplianceCommands.OpMarkNotApplicable), body, ct)));
-        g.MapPost("/commands/" + ComplianceCommands.OpReopen, async (HttpContext http, ReopenItemRequest body, ComplianceCommands c, CancellationToken ct) =>
+        cmd.MapPost("/commands/" + ComplianceCommands.OpReopen, async (HttpContext http, ReopenItemRequest body, ComplianceCommands c, CancellationToken ct) =>
             http.HccReply(await c.ReopenAsync(http.HccCommand(ComplianceCommands.OpReopen), body, ct)));
-        g.MapPost("/commands/" + ComplianceCommands.OpSetFy, async (HttpContext http, SetFyRequest body, ComplianceCommands c, CancellationToken ct) =>
+        cmd.MapPost("/commands/" + ComplianceCommands.OpSetFy, async (HttpContext http, SetFyRequest body, ComplianceCommands c, CancellationToken ct) =>
             http.HccReply(await c.SetFyAsync(http.HccCommand(ComplianceCommands.OpSetFy), body, ct)));
-        g.MapPost("/commands/" + ComplianceCommands.OpSaveProfile, async (HttpContext http, SaveProfileRequest body, ComplianceCommands c, CancellationToken ct) =>
+        cmd.MapPost("/commands/" + ComplianceCommands.OpSaveProfile, async (HttpContext http, SaveProfileRequest body, ComplianceCommands c, CancellationToken ct) =>
             http.HccReply(await c.SaveProfileAsync(http.HccCommand(ComplianceCommands.OpSaveProfile), body, ct)));
-        g.MapPost("/commands/" + ComplianceCommands.OpToggleArchive, async (HttpContext http, ToggleArchiveRequest body, ComplianceCommands c, CancellationToken ct) =>
+        cmd.MapPost("/commands/" + ComplianceCommands.OpToggleArchive, async (HttpContext http, ToggleArchiveRequest body, ComplianceCommands c, CancellationToken ct) =>
             http.HccReply(await c.ToggleArchiveAsync(http.HccCommand(ComplianceCommands.OpToggleArchive), body, ct)));
-        g.MapPost("/commands/" + ComplianceCommands.OpToggleCategory, async (HttpContext http, ToggleCategoryArchiveRequest body, ComplianceCommands c, CancellationToken ct) =>
+        cmd.MapPost("/commands/" + ComplianceCommands.OpToggleCategory, async (HttpContext http, ToggleCategoryArchiveRequest body, ComplianceCommands c, CancellationToken ct) =>
             http.HccReply(await c.ToggleCategoryAsync(http.HccCommand(ComplianceCommands.OpToggleCategory), body, ct)));
-        g.MapPost("/commands/" + ComplianceCommands.OpSaveCustom, async (HttpContext http, SaveCustomObligationRequest body, ComplianceCommands c, CancellationToken ct) =>
+        cmd.MapPost("/commands/" + ComplianceCommands.OpSaveCustom, async (HttpContext http, SaveCustomObligationRequest body, ComplianceCommands c, CancellationToken ct) =>
             http.HccReply(await c.SaveCustomAsync(http.HccCommand(ComplianceCommands.OpSaveCustom), body, ct)));
-        g.MapPost("/commands/" + ComplianceCommands.OpDeleteCustom, async (HttpContext http, DeleteCustomObligationRequest body, ComplianceCommands c, CancellationToken ct) =>
+        cmd.MapPost("/commands/" + ComplianceCommands.OpDeleteCustom, async (HttpContext http, DeleteCustomObligationRequest body, ComplianceCommands c, CancellationToken ct) =>
             http.HccReply(await c.DeleteCustomAsync(http.HccCommand(ComplianceCommands.OpDeleteCustom), body, ct)));
-        g.MapPost("/commands/" + ComplianceCommands.OpAddEvidence, async (HttpContext http, AddEvidenceRequest body, ComplianceCommands c, CancellationToken ct) =>
+        cmd.MapPost("/commands/" + ComplianceCommands.OpAddEvidence, async (HttpContext http, AddEvidenceRequest body, ComplianceCommands c, CancellationToken ct) =>
             http.HccReply(await c.AddEvidenceAsync(http.HccCommand(ComplianceCommands.OpAddEvidence), body, ct)));
-        g.MapPost("/commands/" + ComplianceCommands.OpDeleteEvidence, async (HttpContext http, DeleteEvidenceRequest body, ComplianceCommands c, CancellationToken ct) =>
+        cmd.MapPost("/commands/" + ComplianceCommands.OpDeleteEvidence, async (HttpContext http, DeleteEvidenceRequest body, ComplianceCommands c, CancellationToken ct) =>
             http.HccReply(await c.DeleteEvidenceAsync(http.HccCommand(ComplianceCommands.OpDeleteEvidence), body, ct)));
-        g.MapPost("/commands/" + ComplianceCommands.OpSaveSettings, async (HttpContext http, SaveSettingsRequest body, ComplianceCommands c, CancellationToken ct) =>
+        cmd.MapPost("/commands/" + ComplianceCommands.OpSaveSettings, async (HttpContext http, SaveSettingsRequest body, ComplianceCommands c, CancellationToken ct) =>
             http.HccReply(await c.SaveSettingsAsync(http.HccCommand(ComplianceCommands.OpSaveSettings), body, ct)));
-        g.MapPost("/commands/" + ComplianceCommands.OpGenerateCaPack, async (HttpContext http, GenerateCaPackRequest? body, ComplianceCommands c, CancellationToken ct) =>
+        cmd.MapPost("/commands/" + ComplianceCommands.OpGenerateCaPack, async (HttpContext http, GenerateCaPackRequest? body, ComplianceCommands c, CancellationToken ct) =>
             http.HccReply(await c.GenerateCaPackAsync(http.HccCommand(ComplianceCommands.OpGenerateCaPack), body ?? new GenerateCaPackRequest(), ct)));
 
         g.MapGet("/compliance/state", async (HttpContext http, ComplianceQueries q, CancellationToken ct) =>

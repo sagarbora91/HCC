@@ -49,6 +49,28 @@ public static class ConfigurationEndpoints
         return builder;
     }
 
+    /// <summary>
+    /// ADM-1 (DEC-214): refuses the endpoint (FORBIDDEN, prototype message, <c>details.reason</c> MODULE_OFF, <c>details.featureId</c>) while the
+    /// sub-function is switched off. Put it on the command routes of a switchable feature, after the session filter; reads stay open. Core
+    /// features throw at start-up (they cannot be switched off, DEC-215). The route carries <see cref="HccFeatureGateMetadata"/> for tests.
+    /// </summary>
+    public static TBuilder RequireHccFeature<TBuilder>(this TBuilder builder, string featureId) where TBuilder : IEndpointConventionBuilder
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        var f = Hcc.Domain.Configuration.FeatureCatalog.Feature(featureId)
+            ?? throw new ArgumentException($"'{featureId}' is not a catalogue feature.", nameof(featureId));
+        if (f.Core) throw new ArgumentException($"'{featureId}' is a core sub-function and is always on (DEC-215).", nameof(featureId));
+        builder.WithMetadata(new HccFeatureGateMetadata(featureId));
+        builder.AddEndpointFilter(async (ctx, next) =>
+        {
+            var http = ctx.HttpContext;
+            var (property, _) = http.HccActor();
+            await http.RequestServices.GetRequiredService<IModuleGate>().EnsureFeatureOnAsync(property, featureId, http.RequestAborted).ConfigureAwait(false);
+            return await next(ctx).ConfigureAwait(false);
+        });
+        return builder;
+    }
+
     public static RouteGroupBuilder MapConfigurationEndpoints(this RouteGroupBuilder api)
     {
         ArgumentNullException.ThrowIfNull(api);
@@ -115,3 +137,6 @@ public static class ConfigurationEndpoints
 
 /// <summary>Endpoint metadata of a route gated by <see cref="ConfigurationEndpoints.RequireHccModule{TBuilder}"/> (DEC-057, A11-01).</summary>
 public sealed record HccModuleGateMetadata(string ModuleId);
+
+/// <summary>Route metadata set by <see cref="ConfigurationEndpoints.RequireHccFeature{TBuilder}"/> (ADM-1).</summary>
+public sealed record HccFeatureGateMetadata(string FeatureId);

@@ -7,6 +7,8 @@ using Hcc.Infrastructure.SqlServer.Accounting;
 using Hcc.Infrastructure.SqlServer.Compliance;
 using Hcc.Infrastructure.SqlServer.Expenses;
 
+using Hcc.Domain.Configuration;
+
 namespace Hcc.Api.Endpoints;
 
 /// <summary>
@@ -42,13 +44,14 @@ public static class AccountingGstEndpoints
     {
         ArgumentNullException.ThrowIfNull(api);
         var g = api.MapHccSecured();
-        BillingEndpoints.Command<PostGstSetoffRequest, GstSetoffResult>(g, GstMonthService.OpSetoff, (sp, c, k, r, ct) => Service(sp).SetoffAsync(c, k, r, ct));
-        BillingEndpoints.Command<RecordGstPaymentRequest, GstRemittanceResult>(g, GstMonthService.OpPay, (sp, c, k, r, ct) => Service(sp).PayAsync(c, k, r, ct));
-        BillingEndpoints.Command<RecordStatutoryRemittanceRequest, GstRemittanceResult>(g, GstMonthService.OpRemit, (sp, c, k, r, ct) => Service(sp).RemitAsync(c, k, r, ct));
-        BillingEndpoints.Command<LockAccountingMonthRequest, AccountingMonthLockResult>(g, GstMonthService.OpLock, (sp, c, k, r, ct) => Service(sp).LockMonthAsync(c, k, r, ct));
-        BillingEndpoints.Command<LockAccountingMonthRequest, AccountingMonthLockResult>(g, GstMonthService.OpRequest, (sp, c, k, r, ct) => Service(sp).RequestMonthLockAsync(c, k, r, ct));
-        BillingEndpoints.Command<UnlockAccountingMonthRequest, AccountingMonthLockResult>(g, GstMonthService.OpUnlock, (sp, c, k, r, ct) => Service(sp).UnlockMonthAsync(c, k, r, ct));
-        BillingEndpoints.Command<SetGstOnAdvancesRequest, GstOnAdvancesResult>(g, GstMonthService.OpAdvances, (sp, c, k, r, ct) => Service(sp).SetGstOnAdvancesAsync(c, k, r, ct));
+        var cmd = g.MapGroup(string.Empty).RequireHccFeature(FeatureIds.Gst); // ADM-1 (DEC-214): refused while the sub-function is off; reads stay on g
+        BillingEndpoints.Command<PostGstSetoffRequest, GstSetoffResult>(cmd, GstMonthService.OpSetoff, (sp, c, k, r, ct) => Service(sp).SetoffAsync(c, k, r, ct));
+        BillingEndpoints.Command<RecordGstPaymentRequest, GstRemittanceResult>(cmd, GstMonthService.OpPay, (sp, c, k, r, ct) => Service(sp).PayAsync(c, k, r, ct));
+        BillingEndpoints.Command<RecordStatutoryRemittanceRequest, GstRemittanceResult>(cmd, GstMonthService.OpRemit, (sp, c, k, r, ct) => Service(sp).RemitAsync(c, k, r, ct));
+        BillingEndpoints.Command<LockAccountingMonthRequest, AccountingMonthLockResult>(cmd, GstMonthService.OpLock, (sp, c, k, r, ct) => Service(sp).LockMonthAsync(c, k, r, ct));
+        BillingEndpoints.Command<LockAccountingMonthRequest, AccountingMonthLockResult>(cmd, GstMonthService.OpRequest, (sp, c, k, r, ct) => Service(sp).RequestMonthLockAsync(c, k, r, ct));
+        BillingEndpoints.Command<UnlockAccountingMonthRequest, AccountingMonthLockResult>(cmd, GstMonthService.OpUnlock, (sp, c, k, r, ct) => Service(sp).UnlockMonthAsync(c, k, r, ct));
+        BillingEndpoints.Command<SetGstOnAdvancesRequest, GstOnAdvancesResult>(cmd, GstMonthService.OpAdvances, (sp, c, k, r, ct) => Service(sp).SetGstOnAdvancesAsync(c, k, r, ct));
         g.MapGet("/accounting/gst/month", async (HttpContext http, string? month, CancellationToken ct)
             => Results.Ok(await Service(http.RequestServices).MonthAsync(http.HccCaller(), month, ct).ConfigureAwait(false)));
         g.MapGet("/accounting/gst/locks", async (HttpContext http, CancellationToken ct)

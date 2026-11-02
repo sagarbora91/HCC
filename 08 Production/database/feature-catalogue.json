@@ -1,0 +1,967 @@
+{
+  "format": "hcc-feature-catalogue",
+  "version": 1,
+  "modules": [
+    {
+      "id": "frontdesk",
+      "label": "Front desk",
+      "features": [
+        {
+          "id": "frontdesk.roomboard",
+          "label": "Room board",
+          "core": true,
+          "pages": [
+            "rooms"
+          ],
+          "prefixes": [],
+          "except": [],
+          "requires": [],
+          "note": "Live room status, blocks and quick actions"
+        },
+        {
+          "id": "frontdesk.reservations",
+          "label": "Reservations",
+          "core": false,
+          "pages": [
+            "reservations",
+            "calendar"
+          ],
+          "prefixes": [
+            "BOOK",
+            "CONFIRM",
+            "CHANGE_DATES",
+            "CANCEL",
+            "BOOKING_COMPANY"
+          ],
+          "except": [],
+          "requires": [],
+          "note": "Advance bookings, holds, calendar and amendments. Walk-in check-in for today stays available while off."
+        },
+        {
+          "id": "frontdesk.checkin",
+          "label": "Arrivals & check-in",
+          "core": true,
+          "pages": [
+            "arrivals"
+          ],
+          "prefixes": [
+            "REGISTER",
+            "CHECKIN",
+            "MOVE",
+            "STAY_"
+          ],
+          "except": [],
+          "requires": [],
+          "note": "Registration, ID, check-in, room move, stay changes"
+        },
+        {
+          "id": "frontdesk.guests",
+          "label": "Guest register",
+          "core": true,
+          "pages": [
+            "guests"
+          ],
+          "prefixes": [
+            "GUEST_SAVE",
+            "GUEST_ID_VIEW",
+            "GUEST_PHOTO"
+          ],
+          "except": [],
+          "requires": [],
+          "note": "Guest profiles, IDs and photos"
+        },
+        {
+          "id": "frontdesk.alerts",
+          "label": "Reminders & wake-ups",
+          "core": false,
+          "pages": [
+            "desk-alerts"
+          ],
+          "prefixes": [
+            "RMD_",
+            "GSV_WAKE_"
+          ],
+          "except": [],
+          "requires": [],
+          "note": "Desk reminders and wake-up calls (LF-ALERTS)"
+        },
+        {
+          "id": "frontdesk.keys",
+          "label": "Room keys",
+          "core": false,
+          "pages": [
+            "keys"
+          ],
+          "prefixes": [
+            "KEY_"
+          ],
+          "except": [],
+          "requires": [],
+          "note": "Key cards through the Key Agent (KEYS)"
+        }
+      ]
+    },
+    {
+      "id": "cash",
+      "label": "Cash & billing",
+      "features": [
+        {
+          "id": "cash.folios",
+          "label": "Guests & folios",
+          "core": true,
+          "pages": [
+            "folios"
+          ],
+          "prefixes": [
+            "CHARGE",
+            "DISCOUNT",
+            "REFUND_",
+            "COMPANY_CREDIT_",
+            "CORRECTION_",
+            "CREDIT_NOTE",
+            "BILL_CORRECTION_",
+            "APPROVAL",
+            "CAT_",
+            "GUEST_RATE_",
+            "GUEST_CREDIT_"
+          ],
+          "except": [],
+          "requires": [],
+          "note": "Folio charges, discounts, refunds, credit notes and corrections"
+        },
+        {
+          "id": "cash.cashier",
+          "label": "Cashier & payments",
+          "core": true,
+          "pages": [
+            "cashier"
+          ],
+          "prefixes": [
+            "PAYMENT",
+            "SHIFT_",
+            "TILL_",
+            "CASH_BANK",
+            "OWNER_DRAWING",
+            "DEPOSIT_"
+          ],
+          "except": [],
+          "requires": [],
+          "note": "Payments, shifts, till and bank drops"
+        },
+        {
+          "id": "cash.cashbook",
+          "label": "Cash book",
+          "core": false,
+          "pages": [
+            "cashbook"
+          ],
+          "prefixes": [
+            "CB_"
+          ],
+          "except": [],
+          "requires": [],
+          "note": "Day-wise cash book with lock and reopen"
+        },
+        {
+          "id": "cash.counter",
+          "label": "Counter bills",
+          "core": false,
+          "pages": [
+            "counter-bills"
+          ],
+          "prefixes": [
+            "CTR_"
+          ],
+          "except": [],
+          "requires": [
+            "cash.folios"
+          ],
+          "note": "Walk-in counter bills (LF-UI)"
+        },
+        {
+          "id": "cash.expenses",
+          "label": "Expenses",
+          "core": false,
+          "pages": [
+            "expenses"
+          ],
+          "prefixes": [
+            "EXPENSE",
+            "EXP_"
+          ],
+          "except": [
+            "EXP_VENDOR_"
+          ],
+          "requires": [],
+          "note": "Expense entry, approval, petty cash, budgets, Udhaar"
+        },
+        {
+          "id": "cash.invoices",
+          "label": "Invoices & credit notes",
+          "core": true,
+          "pages": [],
+          "prefixes": [],
+          "except": [],
+          "requires": [],
+          "note": "GST invoices and credit notes (statutory)"
+        }
+      ]
+    },
+    {
+      "id": "pos",
+      "label": "Restaurant & POS",
+      "switch": "pos",
+      "features": [
+        {
+          "id": "pos.checks",
+          "label": "Outlets & checks",
+          "core": false,
+          "pages": [
+            "pos"
+          ],
+          "prefixes": [
+            "POS_ORDER_",
+            "POS_ITEM_",
+            "POS_KOT_",
+            "POS_SETTLE",
+            "POS_VOID_",
+            "POS_INVOICE_"
+          ],
+          "except": [],
+          "requires": [],
+          "note": "Checks, KOT, settlement and voids"
+        },
+        {
+          "id": "pos.menu",
+          "label": "Menu & prices",
+          "core": false,
+          "pages": [],
+          "prefixes": [
+            "POS_MENU_"
+          ],
+          "except": [],
+          "requires": [
+            "pos.checks"
+          ],
+          "note": "Menu availability and price changes"
+        }
+      ]
+    },
+    {
+      "id": "housekeeping",
+      "label": "Housekeeping",
+      "features": [
+        {
+          "id": "housekeeping.board",
+          "label": "Board & tasks",
+          "core": true,
+          "pages": [
+            "housekeeping"
+          ],
+          "prefixes": [
+            "TASK",
+            "BLOCK",
+            "UNBLOCK",
+            "STAYOVER_",
+            "REPAIR_REQUEST"
+          ],
+          "except": [],
+          "requires": [],
+          "note": "Cleaning tasks, inspections, room blocks"
+        },
+        {
+          "id": "housekeeping.complaints",
+          "label": "Complaints",
+          "core": false,
+          "pages": [],
+          "prefixes": [
+            "GSV_COMPLAINT_"
+          ],
+          "except": [],
+          "requires": [],
+          "note": "Guest complaints and service recovery"
+        },
+        {
+          "id": "housekeeping.lostfound",
+          "label": "Lost & found",
+          "core": false,
+          "pages": [],
+          "prefixes": [
+            "GSV_LF_"
+          ],
+          "except": [],
+          "requires": [],
+          "note": "Lost and found register"
+        }
+      ]
+    },
+    {
+      "id": "maintenance",
+      "label": "Maintenance",
+      "switch": "maintenance",
+      "features": [
+        {
+          "id": "maintenance.workorders",
+          "label": "Work orders",
+          "core": false,
+          "pages": [
+            "maintenance"
+          ],
+          "prefixes": [
+            "MNT_WO_",
+            "MNT_SPARE_",
+            "MNT_VENDOR_"
+          ],
+          "except": [],
+          "requires": [],
+          "note": "Work orders, parts and vendors"
+        },
+        {
+          "id": "maintenance.assets",
+          "label": "Assets, AMC & preventive plans",
+          "core": false,
+          "pages": [],
+          "prefixes": [
+            "MNT_ASSET_",
+            "MNT_AMC_",
+            "MNT_PLAN_",
+            "MNT_PM_"
+          ],
+          "except": [],
+          "requires": [
+            "maintenance.workorders"
+          ],
+          "note": "Asset register, AMCs and preventive maintenance"
+        }
+      ]
+    },
+    {
+      "id": "guestsvc",
+      "label": "Guest services",
+      "features": [
+        {
+          "id": "guestsvc.requests",
+          "label": "Guest requests",
+          "core": false,
+          "pages": [
+            "guest-services",
+            "gsv-my-requests"
+          ],
+          "prefixes": [
+            "GSV_REQUEST_",
+            "GSV_SETTINGS"
+          ],
+          "except": [],
+          "requires": [],
+          "note": "Service requests with SLAs"
+        },
+        {
+          "id": "guestsvc.inhouse",
+          "label": "In-house list",
+          "core": true,
+          "pages": [
+            "inhouse"
+          ],
+          "prefixes": [],
+          "except": [],
+          "requires": [],
+          "note": "Who is in the hotel right now"
+        },
+        {
+          "id": "guestsvc.handover",
+          "label": "Checklists & handover",
+          "core": false,
+          "pages": [
+            "handover"
+          ],
+          "prefixes": [
+            "HOV_"
+          ],
+          "except": [],
+          "requires": [],
+          "note": "Shift checklists and handover notes"
+        }
+      ]
+    },
+    {
+      "id": "messaging",
+      "label": "Guest messaging",
+      "switch": "messaging",
+      "features": [
+        {
+          "id": "messaging.messages",
+          "label": "Messages",
+          "core": false,
+          "pages": [
+            "messages"
+          ],
+          "prefixes": [
+            "MSG_SEND",
+            "MSG_RETRY",
+            "MSG_SIMULATE",
+            "MSG_CONSENT",
+            "MSG_RUN_RULES"
+          ],
+          "except": [],
+          "requires": [],
+          "note": "WhatsApp / SMS / e-mail to guests"
+        },
+        {
+          "id": "messaging.templates",
+          "label": "Templates & rules",
+          "core": false,
+          "pages": [],
+          "prefixes": [
+            "MSG_TEMPLATE",
+            "MSG_RULE"
+          ],
+          "except": [],
+          "requires": [
+            "messaging.messages"
+          ],
+          "note": "Message templates and trigger rules"
+        }
+      ]
+    },
+    {
+      "id": "documents",
+      "label": "Document capture",
+      "switch": "documents",
+      "features": [
+        {
+          "id": "documents.capture",
+          "label": "ID capture",
+          "core": false,
+          "pages": [
+            "documents"
+          ],
+          "prefixes": [
+            "MSG_DOC_"
+          ],
+          "except": [],
+          "requires": [],
+          "note": "Scan and file IDs and bills"
+        }
+      ]
+    },
+    {
+      "id": "customers",
+      "label": "Customers",
+      "features": [
+        {
+          "id": "customers.c360",
+          "label": "Customer 360",
+          "core": true,
+          "pages": [
+            "customers"
+          ],
+          "prefixes": [],
+          "except": [],
+          "requires": [],
+          "note": "Customer profiles and full stay history"
+        },
+        {
+          "id": "customers.crm",
+          "label": "CRM notes, tags & merge",
+          "core": false,
+          "pages": [],
+          "prefixes": [],
+          "except": [],
+          "requires": [],
+          "note": "Tags, notes, preferences, consent, merge"
+        }
+      ]
+    },
+    {
+      "id": "revenue",
+      "label": "Revenue & sales",
+      "features": [
+        {
+          "id": "revenue.yield",
+          "label": "Tariff & yield",
+          "core": false,
+          "pages": [
+            "yield"
+          ],
+          "prefixes": [
+            "YLD_",
+            "TARIFF_SCHEDULE"
+          ],
+          "except": [],
+          "requires": [],
+          "note": "Rate plans, seasons, guardrails, overrides"
+        },
+        {
+          "id": "revenue.groups",
+          "label": "Groups & companies",
+          "core": false,
+          "pages": [
+            "groups"
+          ],
+          "prefixes": [
+            "GRP_"
+          ],
+          "except": [],
+          "requires": [],
+          "note": "Group blocks, companies, credit limits (follows the Groups module switch)"
+        },
+        {
+          "id": "revenue.ota",
+          "label": "OTA channels",
+          "core": false,
+          "pages": [
+            "channels"
+          ],
+          "prefixes": [
+            "CHN_"
+          ],
+          "except": [
+            "CHN_WEB_",
+            "CHN_PAYOUT"
+          ],
+          "requires": [],
+          "note": "OTA inbound bookings and rate push (follows the OTA module switch)"
+        },
+        {
+          "id": "revenue.payouts",
+          "label": "OTA payouts",
+          "core": false,
+          "pages": [],
+          "prefixes": [
+            "CHN_PAYOUT"
+          ],
+          "except": [],
+          "requires": [
+            "revenue.ota"
+          ],
+          "note": "OTA payout receipts and commission"
+        },
+        {
+          "id": "revenue.website",
+          "label": "Direct booking site",
+          "core": false,
+          "pages": [
+            "booking-site"
+          ],
+          "prefixes": [
+            "CHN_WEB_"
+          ],
+          "except": [],
+          "requires": [],
+          "note": "Booking-engine requests (follows the Direct booking site module switch)"
+        }
+      ]
+    },
+    {
+      "id": "stock",
+      "label": "Stock & purchasing",
+      "features": [
+        {
+          "id": "stock.linen",
+          "label": "Linen & stock",
+          "core": false,
+          "pages": [
+            "inventory"
+          ],
+          "prefixes": [
+            "INV_"
+          ],
+          "except": [],
+          "requires": [],
+          "note": "Linen, amenities, laundry and counts (follows the Linen & stock module switch)"
+        },
+        {
+          "id": "stock.purchases",
+          "label": "Purchases & vendor payments",
+          "core": false,
+          "pages": [],
+          "prefixes": [
+            "EXP_VENDOR_"
+          ],
+          "except": [],
+          "requires": [
+            "cash.expenses"
+          ],
+          "note": "Vendor bills, payments, returns (ACC-2)"
+        },
+        {
+          "id": "stock.assets",
+          "label": "Asset register",
+          "core": false,
+          "pages": [],
+          "prefixes": [
+            "ACC_ASSET_"
+          ],
+          "except": [],
+          "requires": [],
+          "note": "Fixed assets, put-to-use, disposal (ACC-2)"
+        }
+      ]
+    },
+    {
+      "id": "people",
+      "label": "People & payroll",
+      "features": [
+        {
+          "id": "people.staff",
+          "label": "Staff, shifts & attendance",
+          "core": true,
+          "pages": [
+            "staff"
+          ],
+          "prefixes": [
+            "HR_STAFF_",
+            "HR_ROSTER_",
+            "HR_ATT_",
+            "HR_HOLIDAY_",
+            "HR_AGENDA_",
+            "HR_REQUEST_"
+          ],
+          "except": [],
+          "requires": [],
+          "note": "Staff register, roster, attendance"
+        },
+        {
+          "id": "people.leave",
+          "label": "Leave",
+          "core": false,
+          "pages": [],
+          "prefixes": [
+            "HR_LEAVE_"
+          ],
+          "except": [],
+          "requires": [],
+          "note": "Leave requests, approvals, entitlements"
+        },
+        {
+          "id": "people.payroll",
+          "label": "Payroll",
+          "core": false,
+          "pages": [],
+          "prefixes": [
+            "HR_PAYROLL_",
+            "HR_RATES_",
+            "HR_ADVANCE_",
+            "HR_PAYSLIP_",
+            "HR_FNF_",
+            "HR_STAT_"
+          ],
+          "except": [],
+          "requires": [],
+          "note": "Pay runs, advances, payslips, F&F (follows the Payroll module switch)"
+        },
+        {
+          "id": "people.myhr",
+          "label": "My shifts & pay",
+          "core": true,
+          "pages": [
+            "my-hr"
+          ],
+          "prefixes": [],
+          "except": [],
+          "requires": [],
+          "note": "Own shifts, leave and payslips (DEC-061)"
+        }
+      ]
+    },
+    {
+      "id": "closing",
+      "label": "Day closing",
+      "features": [
+        {
+          "id": "closing.dayclose",
+          "label": "Day close",
+          "core": true,
+          "pages": [
+            "closing"
+          ],
+          "prefixes": [
+            "DAY_",
+            "NIGHT_POST",
+            "NEXT_DAY",
+            "CLOSE_RUN"
+          ],
+          "except": [],
+          "requires": [],
+          "note": "Night posting, day close and reopen"
+        }
+      ]
+    },
+    {
+      "id": "accounting",
+      "label": "Accounting",
+      "features": [
+        {
+          "id": "accounting.ledgers",
+          "label": "Chart, ledgers & opening balances",
+          "core": true,
+          "pages": [
+            "accounting"
+          ],
+          "prefixes": [
+            "ACC_GROUP_",
+            "ACC_LEDGER_",
+            "ACC_OPENING_",
+            "ACC_MAP_",
+            "ACC_LOCK",
+            "ACC_UNLOCK"
+          ],
+          "except": [],
+          "requires": [],
+          "note": "Chart of accounts, party ledgers, period lock (ACC-1)"
+        },
+        {
+          "id": "accounting.vouchers",
+          "label": "Manual vouchers & loans",
+          "core": false,
+          "pages": [],
+          "prefixes": [
+            "ACC_MANUAL_",
+            "ACC_LOAN_"
+          ],
+          "except": [],
+          "requires": [],
+          "note": "Journal, contra, receipt and payment vouchers; loans"
+        },
+        {
+          "id": "accounting.gst",
+          "label": "GST set-off & month lock",
+          "core": false,
+          "pages": [],
+          "prefixes": [
+            "ACC_GST_",
+            "ACC_MONTH_",
+            "ACC_STAT_"
+          ],
+          "except": [],
+          "requires": [],
+          "note": "GST set-off, payment, month lock"
+        },
+        {
+          "id": "accounting.tds",
+          "label": "TDS",
+          "core": false,
+          "pages": [],
+          "prefixes": [
+            "ACC_TDS_"
+          ],
+          "except": [],
+          "requires": [],
+          "note": "TDS by payee type, remittance"
+        },
+        {
+          "id": "accounting.tally",
+          "label": "Tally export",
+          "core": false,
+          "pages": [],
+          "prefixes": [
+            "ACC_TALLY_"
+          ],
+          "except": [],
+          "requires": [],
+          "note": "Tally masters and vouchers (DEC-140)"
+        }
+      ]
+    },
+    {
+      "id": "reports",
+      "label": "Reports",
+      "features": [
+        {
+          "id": "reports.reports",
+          "label": "Reports",
+          "core": true,
+          "pages": [
+            "reports"
+          ],
+          "prefixes": [],
+          "except": [],
+          "requires": [],
+          "note": "Operations and finance reports"
+        },
+        {
+          "id": "reports.plans",
+          "label": "Meal plans & extras",
+          "core": false,
+          "pages": [
+            "plans-extras"
+          ],
+          "prefixes": [
+            "CAT_PLAN_"
+          ],
+          "except": [],
+          "requires": [],
+          "note": "Plan and extras catalogue (MA-2)"
+        }
+      ]
+    },
+    {
+      "id": "compliance",
+      "label": "Compliance",
+      "features": [
+        {
+          "id": "compliance.calendar",
+          "label": "Compliance calendar",
+          "core": false,
+          "pages": [
+            "compliance"
+          ],
+          "prefixes": [
+            "CMP_"
+          ],
+          "except": [],
+          "requires": [],
+          "note": "Obligations, firm profile, evidence (DEC-119)"
+        }
+      ]
+    },
+    {
+      "id": "assistant",
+      "label": "Management assistant",
+      "switch": "assistant",
+      "features": [
+        {
+          "id": "assistant.assistant",
+          "label": "Assistant",
+          "core": false,
+          "pages": [
+            "assistant"
+          ],
+          "prefixes": [
+            "AI_"
+          ],
+          "except": [],
+          "requires": [],
+          "note": "Questions about hotel data, anomaly alerts"
+        }
+      ]
+    },
+    {
+      "id": "admin",
+      "label": "Admin & setup",
+      "features": [
+        {
+          "id": "admin.access",
+          "label": "Access control",
+          "core": true,
+          "pages": [
+            "access"
+          ],
+          "prefixes": [
+            "USER",
+            "GRANT",
+            "POLICY_"
+          ],
+          "except": [],
+          "requires": [],
+          "note": "Users, roles, exceptions"
+        },
+        {
+          "id": "admin.config",
+          "label": "Master configuration",
+          "core": true,
+          "pages": [
+            "settings"
+          ],
+          "prefixes": [
+            "SETTING",
+            "CFG_",
+            "TAX_SCHEDULE"
+          ],
+          "except": [],
+          "requires": [],
+          "note": "Settings hub and module switches"
+        },
+        {
+          "id": "admin.masters",
+          "label": "Masters",
+          "core": false,
+          "pages": [],
+          "prefixes": [
+            "MST_",
+            "RMS_"
+          ],
+          "except": [],
+          "requires": [],
+          "note": "Rooms, floors, lists and catalogues (MA waves)"
+        },
+        {
+          "id": "admin.approvals",
+          "label": "Approvals & audit",
+          "core": true,
+          "pages": [
+            "approvals"
+          ],
+          "prefixes": [],
+          "except": [],
+          "requires": [],
+          "note": "Pending requests and audit trail"
+        },
+        {
+          "id": "admin.backup",
+          "label": "Backup & recovery",
+          "core": true,
+          "pages": [
+            "backup"
+          ],
+          "prefixes": [
+            "BACKUP_"
+          ],
+          "except": [],
+          "requires": [],
+          "note": "Backups and restore drill"
+        },
+        {
+          "id": "admin.health",
+          "label": "System health",
+          "core": true,
+          "pages": [
+            "syshealth"
+          ],
+          "prefixes": [
+            "SYS_"
+          ],
+          "except": [],
+          "requires": [],
+          "note": "Parked events, retry, last backup"
+        },
+        {
+          "id": "admin.prefs",
+          "label": "Appearance & display",
+          "core": true,
+          "pages": [
+            "prefs"
+          ],
+          "prefixes": [],
+          "except": [],
+          "requires": [],
+          "note": "Per-device preferences"
+        },
+        {
+          "id": "admin.legacy",
+          "label": "Legacy import",
+          "core": false,
+          "pages": [
+            "legacy-import"
+          ],
+          "prefixes": [],
+          "except": [],
+          "requires": [],
+          "note": "Old Lodge software import (LG)"
+        },
+        {
+          "id": "admin.roadmap",
+          "label": "Roadmap",
+          "core": false,
+          "pages": [
+            "roadmap"
+          ],
+          "prefixes": [],
+          "except": [],
+          "requires": [],
+          "note": "What is built and what is next"
+        }
+      ]
+    }
+  ]
+}

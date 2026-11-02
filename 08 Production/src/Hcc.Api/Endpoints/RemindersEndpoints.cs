@@ -4,6 +4,8 @@ using Hcc.Contracts.Reminders;
 using Hcc.Infrastructure.SqlServer;
 using Hcc.Infrastructure.SqlServer.Reminders;
 
+using Hcc.Domain.Configuration;
+
 namespace Hcc.Api.Endpoints;
 
 /// <summary>
@@ -24,11 +26,12 @@ public static class RemindersEndpoints
     {
         ArgumentNullException.ThrowIfNull(api);
         var g = api.MapHccSecured();
-        g.MapPost("/commands/" + ReminderCommands.OpSave, async (HttpContext http, SaveReminderRequest body, ReminderCommands c, CancellationToken ct) =>
+        var cmd = g.MapGroup(string.Empty).RequireHccFeature(FeatureIds.Alerts); // ADM-1 (DEC-214): refused while the sub-function is off; reads stay on g
+        cmd.MapPost("/commands/" + ReminderCommands.OpSave, async (HttpContext http, SaveReminderRequest body, ReminderCommands c, CancellationToken ct) =>
             http.HccReply(await c.SaveAsync(http.HccCommand(ReminderCommands.OpSave), body, Hcc.Domain.Reminders.ReminderRules.DefaultLeadDays, ct)));
-        g.MapPost("/commands/" + ReminderCommands.OpDone, async (HttpContext http, ReminderIdRequest body, ReminderCommands c, CancellationToken ct) =>
+        cmd.MapPost("/commands/" + ReminderCommands.OpDone, async (HttpContext http, ReminderIdRequest body, ReminderCommands c, CancellationToken ct) =>
             http.HccReply(await c.DoneAsync(http.HccCommand(ReminderCommands.OpDone), body, ct)));
-        g.MapPost("/commands/" + ReminderCommands.OpDismiss, async (HttpContext http, DismissReminderRequest body, ReminderCommands c, CancellationToken ct) =>
+        cmd.MapPost("/commands/" + ReminderCommands.OpDismiss, async (HttpContext http, DismissReminderRequest body, ReminderCommands c, CancellationToken ct) =>
             http.HccReply(await c.DismissAsync(http.HccCommand(ReminderCommands.OpDismiss), body, ct)));
         g.MapGet("/reminders", async (HttpContext http, ReminderQueries q, TimeProvider clock, CancellationToken ct, string? bucket = null) =>
         {

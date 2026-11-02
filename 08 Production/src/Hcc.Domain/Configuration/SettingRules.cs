@@ -289,6 +289,13 @@ public static partial class SettingRules
             lines.Add(v is { Kind: ConfigValueKind.Boolean, Flag: true }
                 ? $"{m.Label} appears again in menus, tiles, search and phone tabs; its commands work again."
                 : $"{m.Label} is hidden from menus, tiles, search, reminders and phone tabs, and its commands are refused. Its data and history are kept.");
+        if (s.Key.StartsWith("feature.", StringComparison.Ordinal) && FeatureCatalog.Feature(s.Key["feature.".Length..]) is { } f)
+        {
+            var on = v is { Kind: ConfigValueKind.Boolean, Flag: true };
+            lines.Add(on ? $"{f.Label} appears again; its commands work again." : $"{f.Label} is hidden and its commands are refused. Its data and history are kept.");
+            var deps = FeatureCatalog.Closure(f.Id).Skip(1).Select(id => FeatureCatalog.Feature(id)!.Label).ToList();
+            if (!on && deps.Count > 0) lines.Add($"Also switched off because they need it: {string.Join(", ", deps)}.");
+        }
         return lines;
     }
 }

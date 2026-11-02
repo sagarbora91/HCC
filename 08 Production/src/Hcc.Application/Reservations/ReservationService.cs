@@ -24,7 +24,7 @@ namespace Hcc.Application.Reservations;
 /// </summary>
 public sealed class ReservationService(IReservationStore reservations, IInventoryStore inventory, InventoryService inventoryService,
     ICommandRunner runner, IAccessPolicy access, IReservationMoneyCheck money, TimeProvider clock, ICompanyCreditGuard? credit = null,
-    IBookingSourceCheck? sources = null, Stays.DeskFieldService? desk = null)
+    IBookingSourceCheck? sources = null, Stays.DeskFieldService? desk = null, Configuration.IModuleGate? features = null)
 {
     public async Task<CommandResult<ReservationResult>> CreateAsync(CommandContext context, CreateReservationRequest request, CancellationToken ct = default)
     {
@@ -49,6 +49,9 @@ public sealed class ReservationService(IReservationStore reservations, IInventor
 
             var quote = await UsableQuoteAsync(tx, context.PropertyId, request.QuoteId, quoteVersion, now, c).ConfigureAwait(false);
             StayRules.Stay(StayDates.ToWire(quote.Arrival), StayDates.ToWire(quote.Departure), property.BusinessDate);
+            // ADM-1 (DEC-214 §2.2): while the Reservations sub-function is off only a walk-in for today may be booked (it is a check-in, not a reservation).
+            if (features is not null && quote.Arrival != property.BusinessDate)
+                await features.EnsureFeatureOnAsync(context.PropertyId, Hcc.Domain.Configuration.FeatureIds.Reservations, c).ConfigureAwait(false);
             var party = StayRules.Party(quote.Adults, quote.Children);
             var snap = await inventory.LoadSnapshotAsync(context.PropertyId, quote.Arrival, quote.Departure, now, tx, c).ConfigureAwait(false);
             var room = snap.Rooms.FirstOrDefault(r => r.RoomId == request.RoomId) ?? throw HccException.Validation("Choose a room.");

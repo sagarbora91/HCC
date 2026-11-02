@@ -3,6 +3,8 @@ using Hcc.Contracts.Handover;
 using Hcc.Infrastructure.SqlServer;
 using Hcc.Infrastructure.SqlServer.Handover;
 
+using Hcc.Domain.Configuration;
+
 namespace Hcc.Api.Endpoints;
 
 /// <summary>
@@ -25,21 +27,22 @@ public static class HandoverEndpoints
     {
         ArgumentNullException.ThrowIfNull(api);
         var g = api.MapHccSecured();
-        g.MapPost("/commands/" + HandoverCommands.OpSaveTemplate, async (HttpContext http, SaveHandoverTemplateRequest body, HandoverCommands c, CancellationToken ct) =>
+        var cmd = g.MapGroup(string.Empty).RequireHccFeature(FeatureIds.Handover); // ADM-1 (DEC-214): refused while the sub-function is off; reads stay on g
+        cmd.MapPost("/commands/" + HandoverCommands.OpSaveTemplate, async (HttpContext http, SaveHandoverTemplateRequest body, HandoverCommands c, CancellationToken ct) =>
             http.HccReply(await c.SaveTemplateAsync(http.HccCommand(HandoverCommands.OpSaveTemplate), body, ct)));
-        g.MapPost("/commands/" + HandoverCommands.OpToggleTemplate, async (HttpContext http, ToggleHandoverTemplateRequest body, HandoverCommands c, CancellationToken ct) =>
+        cmd.MapPost("/commands/" + HandoverCommands.OpToggleTemplate, async (HttpContext http, ToggleHandoverTemplateRequest body, HandoverCommands c, CancellationToken ct) =>
             http.HccReply(await c.ToggleTemplateAsync(http.HccCommand(HandoverCommands.OpToggleTemplate), body, ct)));
-        g.MapPost("/commands/" + HandoverCommands.OpTick, async (HttpContext http, TickChecklistItemRequest body, HandoverCommands c, CancellationToken ct) =>
+        cmd.MapPost("/commands/" + HandoverCommands.OpTick, async (HttpContext http, TickChecklistItemRequest body, HandoverCommands c, CancellationToken ct) =>
             http.HccReply(await c.TickAsync(http.HccCommand(HandoverCommands.OpTick), body, ct)));
-        g.MapPost("/commands/" + HandoverCommands.OpSubmitRun, async (HttpContext http, SubmitChecklistRunRequest body, HandoverCommands c, CancellationToken ct) =>
+        cmd.MapPost("/commands/" + HandoverCommands.OpSubmitRun, async (HttpContext http, SubmitChecklistRunRequest body, HandoverCommands c, CancellationToken ct) =>
             http.HccReply(await c.SubmitRunAsync(http.HccCommand(HandoverCommands.OpSubmitRun), body, ct)));
-        g.MapPost("/commands/" + HandoverCommands.OpReopenRun, async (HttpContext http, ReopenChecklistRunRequest body, HandoverCommands c, CancellationToken ct) =>
+        cmd.MapPost("/commands/" + HandoverCommands.OpReopenRun, async (HttpContext http, ReopenChecklistRunRequest body, HandoverCommands c, CancellationToken ct) =>
             http.HccReply(await c.ReopenRunAsync(http.HccCommand(HandoverCommands.OpReopenRun), body, ct)));
-        g.MapPost("/commands/" + HandoverCommands.OpSubmitNote, async (HttpContext http, SubmitHandoverNoteRequest body, HandoverCommands c, CancellationToken ct) =>
+        cmd.MapPost("/commands/" + HandoverCommands.OpSubmitNote, async (HttpContext http, SubmitHandoverNoteRequest body, HandoverCommands c, CancellationToken ct) =>
             http.HccReply(await c.SubmitNoteAsync(http.HccCommand(HandoverCommands.OpSubmitNote), body, ct)));
-        g.MapPost("/commands/" + HandoverCommands.OpAckNote, async (HttpContext http, AcknowledgeHandoverNoteRequest body, HandoverCommands c, CancellationToken ct) =>
+        cmd.MapPost("/commands/" + HandoverCommands.OpAckNote, async (HttpContext http, AcknowledgeHandoverNoteRequest body, HandoverCommands c, CancellationToken ct) =>
             http.HccReply(await c.AcknowledgeNoteAsync(http.HccCommand(HandoverCommands.OpAckNote), body, ct)));
-        g.MapPost("/commands/" + HandoverCommands.OpCarryDone, async (HttpContext http, CompleteCarryItemRequest body, HandoverCommands c, CancellationToken ct) =>
+        cmd.MapPost("/commands/" + HandoverCommands.OpCarryDone, async (HttpContext http, CompleteCarryItemRequest body, HandoverCommands c, CancellationToken ct) =>
             http.HccReply(await c.CompleteCarryAsync(http.HccCommand(HandoverCommands.OpCarryDone), body, ct)));
 
         g.MapGet("/handover/checklists", async (HttpContext http, HandoverQueries q, CancellationToken ct, string? date = null) =>
