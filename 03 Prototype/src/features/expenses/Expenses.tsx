@@ -9,7 +9,7 @@ import {money,expenseCounts,approvalKindLabel,EXPENSE_MANAGER_LIMIT,closingUnlim
 import {MstLink} from '../masters/MasterList';
 import {useHcc} from '../../app/context';
 import {Pill,Empty,shortDate} from '../../components/ui';
-import {FitPage,FitTabs,useFitTab,ScrollPanel,StatStrip,FitNote} from '../../components/fit';
+import {FitPage,FitTabs,useFitTab,ScrollPanel,StatStrip,FitNote,SplitView} from '../../components/fit';
 import {ExpVendors} from './vendors';
 import {seesVendorBooks} from '../accounting/shared';
 import {usePaged,ShowMore,DESKTOP_PAGE} from '../../components/ShowMore';
@@ -24,7 +24,7 @@ export function Expenses(){
   // FIT (DEC-194…196): the page's sub-screens are the sections (register … month & tax); the status tabs inside the register keep their ids.
   const books=seesVendorBooks(s,uid);const [asked,setSection]=useFitTab<ExpSection>('expenses',SECTION_IDS,'register');
   const section:ExpSection=asked==='vendors'&&!books?'register':asked;const regId=useId();
-  const [tab,setTab]=useState<typeof tabs[number]>('All');
+  const [tab,setTab]=useState<typeof tabs[number]>('All');const [reqOpen,setReqOpen]=useState(false); // FIT-2: the approval pane opens beside the register only when asked
   const [mode,setMode]=useState('');const [month,setMonth]=useState('');const [q,setQ]=useState('');
   const all=expLedgerFilter(s,{status:tab,mode,month,q}),list=all.slice(0,EXP_LEDGER_CAP);
   const pg=usePaged(list,DESKTOP_PAGE);
@@ -54,15 +54,18 @@ export function Expenses(){
   // The Accountant decides cash differences here (no cashier page); the counter never decides their own (SOD-004).
   const cashChecker=!permission('approve')&&rbacCanDecideCash(s,uid);
   const flat=(label:string,node:React.ReactNode)=><ScrollPanel label={label}>{node}</ScrollPanel>;
-  const register=<div className="fit-cols exp-fit-cols"><div>
-      <section className="card fit-panel exp-register" aria-labelledby={regId}>
-        <div className="exp-subbar"><div className="exp-reg-top"><div className="section-title fit-panel-head exp-reg-title"><h2 id={regId}>Expense register</h2></div>
-          <div className="tabs" role="tablist" aria-label="Expense status">{tabs.map(t=><button key={t} role="tab" aria-selected={t===tab} className={t===tab?'active':''} onClick={()=>setTab(t)}>{t}<span>{t==='All'?s.expenses.length:s.expenses.filter(e=>e.status===t).length}</span></button>)}</div></div>
-          <div className="form-row exp-filters"><label>Mode<select value={mode} onChange={e=>setMode(e.target.value)}><option value="">All</option>{mnyNames(s,'expenses').map(m=><option key={m}>{m}</option>)}</select></label>
+  const pendingReq=approvals.filter(a=>a.status==='Pending').length;
+  // FIT-2 (§12): one filter row (status is a select, not a second tab row), the table takes the rest of the height and scrolls inside itself;
+  // the approval requests open beside the register only when asked (SplitView list-only until then).
+  const registerCard=<section className="card fit-panel exp-register" aria-labelledby={regId}>
+        <div className="exp-subbar"><div className="form-row exp-filters"><div className="section-title fit-panel-head exp-reg-title"><h2 id={regId}>Expense register</h2></div>
+          <label>Status<select value={tab} onChange={e=>setTab(e.target.value as typeof tabs[number])} aria-label="Expense status">{tabs.map(t=><option key={t} value={t}>{t} ({t==='All'?s.expenses.length:s.expenses.filter(e=>e.status===t).length})</option>)}</select></label>
+          <label>Mode<select value={mode} onChange={e=>setMode(e.target.value)}><option value="">All</option>{mnyNames(s,'expenses').map(m=><option key={m}>{m}</option>)}</select></label>
             <label>Month<input type="month" value={month} onChange={e=>setMonth(e.target.value)}/></label>
             <label>Search<input value={q} onChange={e=>setQ(e.target.value)} placeholder="description / vendor / category"/></label>
             <details className="exp-lists"><summary className="btn small-btn">Lists &amp; photos</summary><div className="exp-lists-pop"><Pill>Bill photos up to 4 MB</Pill>
-              <MstLink spec="expenseCategories" label="Categories…"/><MstLink spec="expenseVendors" label="Vendors…"/><MstLink spec="paymentMethods" label="Funding sources…"/></div></details></div></div>
+              <MstLink spec="expenseCategories" label="Categories…"/><MstLink spec="expenseVendors" label="Vendors…"/><MstLink spec="paymentMethods" label="Funding sources…"/></div></details>
+            <button type="button" className="btn small-btn exp-req-toggle" aria-pressed={reqOpen} onClick={()=>setReqOpen(o=>!o)}>Approval requests ({pendingReq} pending)</button></div></div>
         <div className="fit-panel-body" data-fit-scroll="" tabIndex={0} aria-label="Expense register rows"><div className="table-wrap"><table><thead><tr><th>Description / reference</th><th>Category</th><th>Funding</th><th className="number">Amount</th><th>Status</th><th>Action</th></tr></thead><tbody>
           {pg.shown.map(e=><tr key={e.id}><td><strong>{expDescription(e)}</strong>{e.vendor&&!mnyVendor(s,e.vendor)&&<small>Not in the vendor list</small>}<ExpRowExtras e={e}/>
               <small>{e.id} · {shortDate(e.date)} · by {name(e.actor)}{e.reversalOf?` · reverses ${e.reversalOf}`:''}{e.reversedBy?` · reversed by ${e.reversedBy}`:''}</small>
@@ -70,8 +73,8 @@ export function Expenses(){
               <td>{e.category}</td><td>{mnyIsDrawer(s,e.method)?'Drawer cash':e.method}</td><td className="number">{money(e.amount)}</td><td><Pill tone={tone(e.status)}>{e.reversalOf?'Posted · reversal':e.status}</Pill></td>
               <td>{actions(e)}<ExpRowActions e={e}/></td></tr>)}
         </tbody></table>{!list.length&&<Empty title={tab==='All'?'No expenses recorded':`No ${tab.toLowerCase()} expenses`} body="Submitted expenses appear here for approval."/>}</div></div>
-        <div className="fit-panel-foot"><ShowMore p={pg}/>{all.length>EXP_LEDGER_CAP&&<FitNote text={`Showing the ${EXP_LEDGER_CAP} most recent of ${all.length} entries. Use the filters above (status / mode / month / search) to narrow.`}/>}</div></section></div>
-    <div><ScrollPanel title="Approval requests" label="Approval requests" actions={<span className="muted">Requests cannot be self-approved</span>}>
+        <div className="fit-panel-foot"><ShowMore p={pg}/>{all.length>EXP_LEDGER_CAP&&<FitNote text={`Showing the ${EXP_LEDGER_CAP} most recent of ${all.length} entries. Use the filters above (status / mode / month / search) to narrow.`}/>}</div></section>;
+  const requestsPane=<div className="exp-req-pane"><div className="section-title fit-panel-head"><h2>Approval requests</h2><span className="muted">Requests cannot be self-approved</span></div>
       {!approvals.length?<Empty title="No approval requests" body="Discounts above the limit, cash differences and closed-date corrections appear here."/>:<div className="request-list">{approvals.map(a=>{
         const cmd=(a.meta?.command as string|undefined)??'APPROVAL',g=s.bookings.find(b=>b.id===a.booking);
         const ownerOnly=['closed-date-correction','correction','credit-note'].includes(a.kind??'')&&user.role!=='Owner';
@@ -83,14 +86,15 @@ export function Expenses(){
               <button className="btn" disabled={busy} onClick={()=>run({type:cmd,id:a.id,approve:true,key:'approval:'+a.id},'Request approved')}>Approve</button>
               <button className="text-btn" disabled={busy} onClick={()=>run({type:cmd,id:a.id,approve:false,key:'approval:'+a.id},'Request rejected')}>Reject</button></>}</>)}
           {g&&<button className="text-btn" onClick={()=>booking(g.id)}>Folio</button>}
-        </div>;})}</div>}</ScrollPanel></div></div>;
+        </div>;})}</div>}</div>;
+  const register=<SplitView label="Expense register" ratio="3fr 2fr" list={registerCard} detail={reqOpen?requestsPane:null} empty={null} onCloseDetail={()=>setReqOpen(false)}/>;
   const body=section==='register'?register:section==='recurring'?flat('Recurring expenses',<ExpRecurring/>):section==='petty'?flat('Petty cash',<ExpPetty/>):section==='budgets'?flat('Monthly budgets',<ExpBudgets/>):section==='udhaar'?flat('Udhaar credit register',<ExpUdhaar/>):section==='vendors'?flat('Vendor payments',<ExpVendors/>):flat('Month and tax',<ExpMonth/>);
   const stats=[{title:'Posted today (net)',value:money(today.reduce((a,e)=>a+e.amount,0))},{title:'Drawer cash today',value:money(today.filter(e=>mnyIsDrawer(s,e.method)).reduce((a,e)=>a+e.amount,0))},
     {title:'Pending approval',value:String(s.expenses.filter(e=>e.status==='Pending').length)},{title:'Drafts',value:String(s.expenses.filter(e=>e.status==='Draft').length)},{title:'GST paid this month',value:money(expGstPaid(s,expYm(s.date)))}];
   return <FitPage title="Expenses & approvals" sub="Every expense accounted for. Every adjustment traceable." layout="fill"
       actions={<>{canSubmit&&<button className="btn primary" disabled={busy} onClick={()=>open({type:'expense'})}>+ Add expense</button>}
         {section==='register'&&canDecide&&<button type="button" className="btn small-btn" onClick={()=>csv('ledger')}><Download size={15}/> Ledger CSV</button>}</>}
-      toolbar={<StatStrip items={stats} variant="small"/>}
+      toolbar={<StatStrip items={stats} variant="small" compact collapseOnTablet/>}
       tabs={<FitTabs page="expenses" value={section} onChange={setSection} tabs={expSectionsFor(books).map(([id,label])=>({id,label}))}/>}>
     <ExpBanners onSection={setSection} fit/>
     {body}
