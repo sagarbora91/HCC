@@ -4054,6 +4054,7 @@ Columns of new entries are what HCC should show, from HCC's real data. The HTML 
 - **Legacy equivalents:** C7.RoomTariffCard
 - **Depends on:** nothing outside W7
 - **Notes:** Printed tariff card = the PDF of the rate sheet. No export today.
+- **F4-T1 (2 Nov 2026, F4-CONTRACT §1.7):** extended with the tariff card — A4 letterhead print of a card version (page `tariff-card` › Print; `features/reports/rate-sheet.tsx`), "Prices include GST @ <rate> %" from the published room lines, "Valid from" line, T&C footer from settings (blank-safe), English only; CSV of the card and of the version history; print = screen (same selector `trcRateSheet`); permission PERM-TRF-001 (Owner, Manager, Accountant, Reception, Cashier); PDF hook `renderPdf?.('rate-sheet', model)` for F7. Server data: `GET /api/v1/tariff-card`.
 
 #### rpt.admin.report-dictionary - Report dictionary
 - **Purpose:** Definitions of every metric and how zero is handled.
