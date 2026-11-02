@@ -98,6 +98,11 @@ export const SUB_SCREENS:SubScreen[]=[
   {page:'closing',id:'reopen-and-corrections',label:'Reopen & corrections',keywords:['closed-date correction','reopen a closed day']},
   {page:'compliance',id:'calendar',label:'Calendar'},
   {page:'compliance',id:'dashboard',label:'Dashboard',keywords:['compliance score']},
+  // FIT2-CLOSING
+  {page:'cashier',id:'expected-cash',label:'Expected cash',keywords:['drawer formula']},
+  {page:'cashier',id:'count-and-result',label:'Count & result',keywords:['count the drawer','cash count','difference approval']},
+  {page:'cashier',id:'cash-movements',label:'Cash movements'},
+  {page:'cashier',id:'cash-out',label:'Cash out',keywords:['bank deposit','till transfer','owner drawing']},
   // FIT-PEOPLE-B
   {page:'accounting',id:'vouchers',label:'Vouchers',keywords:['voucher list','day vouchers']},
   {page:'accounting',id:'manual',label:'Manual vouchers',keywords:['journal','contra','loan']},

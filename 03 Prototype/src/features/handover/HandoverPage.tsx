@@ -4,7 +4,7 @@ import React,{useState} from 'react';
 import {Send,CheckCheck,Plus,Pencil,Power,RotateCcw,TimerReset,FlaskConical,AlertTriangle,Printer} from 'lucide-react';
 import {useHcc} from '../../app/context';
 import {hovSlice,hovMyRuns,hovIncoming,hovNotesFor,hovDesksFor,hovIsManager,hovHasAccess,hovDashboard,hovDates,hovOverdueList,hovShiftAt,hovProgress,hovTime,hovOpenCarry,hovClockCap,HOV_SHIFT_TIMES,addMinutes} from '../../services/mock';
-import type {HOVRun,HOVDashRow} from '../../services/mock';
+import type {HOVRun,HOVDashRow,State} from '../../services/mock';
 import {Pill,Empty,dateLabel,shortDate} from '../../components/ui';
 import {FitPage,FitTabs,useFitTab,ScrollPanel,StatStrip,StepFlow,FitNote} from '../../components/fit';
 import {HovRunHead,HovItemRow,HovNoteView,HovRunPills,HovProgressBar,hovKey,hovName} from './shared';
@@ -40,6 +40,12 @@ function IncomingBanner(){
     <span>{inc.map(n=>`${n.desk} · ${n.shift} shift by ${hovName(s,n.author)}`).join(' · ')}</span></div>
     <button className="btn primary" onClick={()=>open({type:'hov-ack',id:inc[0].id})}><CheckCheck size={15}/>Read & acknowledge</button></div>;}
 
+/** FIT-2 rail row: the run's real result - items done, mandatory left, overdue, who/when it was submitted. */
+function runSummary(s:State,r:HOVRun){
+  const p=hovProgress(s,r);
+  if(r.status==='Submitted')return `Submitted${r.submittedAt?' '+hovTime(r.submittedAt):''} · ${p.done}/${p.total} done${r.late?' · late':''}`;
+  return `${p.pct}% · ${p.done}/${p.total} done · mandatory ${p.mandatoryDone}/${p.mandatory}${p.overdue?` · ${p.overdue} overdue`:''}`;}
+
 function Checklists(){
   const {s,uid}=useHcc();const runs=hovMyRuns(s,uid),cur=hovShiftAt(s.clock);
   const [sel,setSel]=useState('');
@@ -53,7 +59,7 @@ function Checklists(){
     <IncomingBanner/>
     <h2 className="hov-sub fit-ops-line">Current shift · {cur} ({HOV_SHIFT_TIMES[cur].start}–{HOV_SHIFT_TIMES[cur].end}){!now.length&&<span className="muted"> · Nothing scheduled for this shift.</span>}</h2>
     <StepFlow value={run.id} onChange={setSel}
-      steps={ordered.map(r=>({id:r.id,label:r.name,status:r.status==='Submitted'?'done' as const:r.id===run.id?'current' as const:'waiting' as const,note:r.shift===cur?'Current shift':r.shift+' shift'}))}>
+      steps={ordered.map(r=>({id:r.id,label:r.name,status:r.status==='Submitted'?'done' as const:r.id===run.id?'current' as const:'waiting' as const,note:r.shift===cur?'Current shift':r.shift+' shift',summary:runSummary(s,r)}))}>
       <ScrollPanel label={run.name+' checklist'} footer={run.date===s.date?<HovRunActions run={run}/>:undefined}>
         <HovRunHead run={run}/>
         <ul className="hov-items">{run.items.map(i=><HovItemRow key={i.id} run={run} item={i} editable={editable}/>)}</ul>
@@ -91,7 +97,7 @@ export function HovDashboardBody({compact,fit}:{compact?:boolean;fit?:boolean}){
       <div className="f-seg" role="group" aria-label="Group by">{(['role','desk'] as const).map(b=><button key={b} type="button" className={by===b?'on':''} aria-pressed={by===b} onClick={()=>setBy(b)}>By {b}</button>)}</div>
       <button className="btn" onClick={()=>{void printDocument();}}><Printer size={15}/>Print</button></div>
     <StatStrip items={[{title:'Completion',value:(total.items?Math.round(total.done*100/total.items):0)+'%'},{title:'Items overdue',value:String(over.length)},
-      {title:'Runs past shift end',value:String(lateRuns)},{title:'Notes not acknowledged',value:String(notes.length)}]} variant="small" className="hov-stats"/>
+      {title:'Runs past shift end',value:String(lateRuns)},{title:'Notes not acknowledged',value:String(notes.length)}]} variant="small" className="hov-stats" collapseOnTablet/>
     <div className="fit-cols">
       <div><ScrollPanel title={`Completion by ${by} · ${dateLabel(date)}`} label={`Completion by ${by}`}>
         <div className="table-wrap"><table><thead><tr><th>{by==='role'?'Role':'Desk'}</th><th className="number">Checklists</th><th className="number">Submitted</th><th className="number">Not started</th><th className="number">Items done</th><th>Completion</th><th className="number">Overdue</th><th className="number">Past shift end</th></tr></thead>
