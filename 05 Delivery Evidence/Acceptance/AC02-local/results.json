@@ -1,0 +1,140 @@
+[
+  {
+    "name": "phone",
+    "selector": ".drawer-overlay",
+    "box": {
+      "x": 0,
+      "y": 0,
+      "width": 390,
+      "height": 844
+    }
+  },
+  {
+    "name": "phone",
+    "selector": ".modal-overlay",
+    "box": {
+      "x": 0,
+      "y": 0,
+      "width": 390,
+      "height": 844
+    }
+  },
+  {
+    "name": "phone",
+    "selector": ".search-overlay",
+    "box": {
+      "x": 0,
+      "y": 0,
+      "width": 390,
+      "height": 844
+    }
+  },
+  {
+    "name": "phone",
+    "selector": ".modal-overlay",
+    "box": {
+      "x": 0,
+      "y": 0,
+      "width": 390,
+      "height": 844
+    }
+  },
+  {
+    "name": "phone",
+    "negativeControl": {
+      "x": 0,
+      "y": 6137.09375,
+      "width": 390,
+      "height": 844
+    }
+  },
+  {
+    "name": "phone",
+    "selector": ".modal-overlay",
+    "box": {
+      "x": 0,
+      "y": 0,
+      "width": 390,
+      "height": 844
+    }
+  },
+  {
+    "name": "phone",
+    "selector": ".exit-ask",
+    "box": {
+      "x": 0,
+      "y": 0,
+      "width": 390,
+      "height": 844
+    }
+  },
+  {
+    "name": "tablet",
+    "selector": ".drawer-overlay",
+    "box": {
+      "x": 0,
+      "y": 0,
+      "width": 673,
+      "height": 1006
+    }
+  },
+  {
+    "name": "tablet",
+    "selector": ".modal-overlay",
+    "box": {
+      "x": 0,
+      "y": 0,
+      "width": 673,
+      "height": 1006
+    }
+  },
+  {
+    "name": "tablet",
+    "selector": ".search-overlay",
+    "box": {
+      "x": 0,
+      "y": 0,
+      "width": 673,
+      "height": 1006
+    }
+  },
+  {
+    "name": "tablet",
+    "selector": ".modal-overlay",
+    "box": {
+      "x": 0,
+      "y": 0,
+      "width": 673,
+      "height": 1006
+    }
+  },
+  {
+    "name": "tablet",
+    "negativeControl": {
+      "x": 0,
+      "y": 1006,
+      "width": 862,
+      "height": 1006
+    }
+  },
+  {
+    "name": "tablet",
+    "selector": ".modal-overlay",
+    "box": {
+      "x": 0,
+      "y": 0,
+      "width": 673,
+      "height": 1006
+    }
+  },
+  {
+    "name": "tablet",
+    "selector": ".exit-ask",
+    "box": {
+      "x": 0,
+      "y": 0,
+      "width": 673,
+      "height": 1006
+    }
+  }
+]
