@@ -39,6 +39,7 @@ public class FeatureCatalogTests
             Assert.Equal(gm.GetProperty("id").GetString(), m.Id);
             Assert.Equal(gm.GetProperty("label").GetString(), m.Label);
             Assert.Equal(gm.TryGetProperty("switch", out var sw) ? sw.GetString() : null, m.Switch);
+            Assert.Equal(Strings(gm, "coarse"), m.Coarse);
             var gf = gm.GetProperty("features").EnumerateArray().ToList();
             Assert.Equal(gf.Count, m.Features.Count);
             for (var j = 0; j < gf.Count; j++)
@@ -53,6 +54,7 @@ public class FeatureCatalogTests
                 Assert.Equal(Strings(g, "prefixes"), f.Prefixes);
                 Assert.Equal(Strings(g, "except"), f.Except);
                 Assert.Equal(Strings(g, "requires"), f.Requires);
+                Assert.Equal(Strings(g, "permPrefixes"), f.PermPrefixes);
             }
         }
 

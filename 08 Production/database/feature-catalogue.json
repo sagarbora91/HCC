@@ -5,6 +5,10 @@
     {
       "id": "frontdesk",
       "label": "Front desk",
+      "coarse": [
+        "reservations",
+        "checkin"
+      ],
       "features": [
         {
           "id": "frontdesk.roomboard",
@@ -16,6 +20,9 @@
           "prefixes": [],
           "except": [],
           "requires": [],
+          "permPrefixes": [
+            "PERM-ROOM-"
+          ],
           "note": "Live room status, blocks and quick actions"
         },
         {
@@ -35,6 +42,9 @@
           ],
           "except": [],
           "requires": [],
+          "permPrefixes": [
+            "PERM-RES-"
+          ],
           "note": "Advance bookings, holds, calendar and amendments. Walk-in check-in for today stays available while off."
         },
         {
@@ -52,6 +62,10 @@
           ],
           "except": [],
           "requires": [],
+          "permPrefixes": [
+            "PERM-STY-",
+            "PERM-RATE-"
+          ],
           "note": "Registration, ID, check-in, room move, stay changes"
         },
         {
@@ -68,6 +82,9 @@
           ],
           "except": [],
           "requires": [],
+          "permPrefixes": [
+            "PERM-GST-"
+          ],
           "note": "Guest profiles, IDs and photos"
         },
         {
@@ -83,6 +100,9 @@
           ],
           "except": [],
           "requires": [],
+          "permPrefixes": [
+            "PERM-RMD-"
+          ],
           "note": "Desk reminders and wake-up calls (LF-ALERTS)"
         },
         {
@@ -97,6 +117,9 @@
           ],
           "except": [],
           "requires": [],
+          "permPrefixes": [
+            "PERM-KEY-"
+          ],
           "note": "Key cards through the Key Agent (KEYS)"
         }
       ]
@@ -104,6 +127,11 @@
     {
       "id": "cash",
       "label": "Cash & billing",
+      "coarse": [
+        "billing",
+        "payments",
+        "checkout"
+      ],
       "features": [
         {
           "id": "cash.folios",
@@ -127,6 +155,9 @@
           ],
           "except": [],
           "requires": [],
+          "permPrefixes": [
+            "PERM-FOL-"
+          ],
           "note": "Folio charges, discounts, refunds, credit notes and corrections"
         },
         {
@@ -146,6 +177,11 @@
           ],
           "except": [],
           "requires": [],
+          "permPrefixes": [
+            "PERM-PAY-",
+            "PERM-SHF-",
+            "PERM-DRW-"
+          ],
           "note": "Payments, shifts, till and bank drops"
         },
         {
@@ -160,6 +196,9 @@
           ],
           "except": [],
           "requires": [],
+          "permPrefixes": [
+            "PERM-CLS-"
+          ],
           "note": "Day-wise cash book with lock and reopen"
         },
         {
@@ -175,6 +214,9 @@
           "except": [],
           "requires": [
             "cash.folios"
+          ],
+          "permPrefixes": [
+            "PERM-CTR-"
           ],
           "note": "Walk-in counter bills (LF-UI)"
         },
@@ -193,6 +235,9 @@
             "EXP_VENDOR_"
           ],
           "requires": [],
+          "permPrefixes": [
+            "PERM-EXP-"
+          ],
           "note": "Expense entry, approval, petty cash, budgets, Udhaar"
         },
         {
@@ -203,6 +248,9 @@
           "prefixes": [],
           "except": [],
           "requires": [],
+          "permPrefixes": [
+            "PERM-INV-"
+          ],
           "note": "GST invoices and credit notes (statutory)"
         }
       ]
@@ -211,6 +259,9 @@
       "id": "pos",
       "label": "Restaurant & POS",
       "switch": "pos",
+      "coarse": [
+        "billing"
+      ],
       "features": [
         {
           "id": "pos.checks",
@@ -229,6 +280,9 @@
           ],
           "except": [],
           "requires": [],
+          "permPrefixes": [
+            "PERM-POS-"
+          ],
           "note": "Checks, KOT, settlement and voids"
         },
         {
@@ -243,6 +297,9 @@
           "requires": [
             "pos.checks"
           ],
+          "permPrefixes": [
+            "PERM-POS-"
+          ],
           "note": "Menu availability and price changes"
         }
       ]
@@ -250,6 +307,10 @@
     {
       "id": "housekeeping",
       "label": "Housekeeping",
+      "coarse": [
+        "housekeeping",
+        "inspect"
+      ],
       "features": [
         {
           "id": "housekeeping.board",
@@ -267,6 +328,9 @@
           ],
           "except": [],
           "requires": [],
+          "permPrefixes": [
+            "PERM-HK-"
+          ],
           "note": "Cleaning tasks, inspections, room blocks"
         },
         {
@@ -279,6 +343,9 @@
           ],
           "except": [],
           "requires": [],
+          "permPrefixes": [
+            "PERM-GSV-"
+          ],
           "note": "Guest complaints and service recovery"
         },
         {
@@ -291,6 +358,9 @@
           ],
           "except": [],
           "requires": [],
+          "permPrefixes": [
+            "PERM-GSV-"
+          ],
           "note": "Lost and found register"
         }
       ]
@@ -299,6 +369,9 @@
       "id": "maintenance",
       "label": "Maintenance",
       "switch": "maintenance",
+      "coarse": [
+        "housekeeping"
+      ],
       "features": [
         {
           "id": "maintenance.workorders",
@@ -314,6 +387,9 @@
           ],
           "except": [],
           "requires": [],
+          "permPrefixes": [
+            "PERM-MNT-"
+          ],
           "note": "Work orders, parts and vendors"
         },
         {
@@ -331,6 +407,9 @@
           "requires": [
             "maintenance.workorders"
           ],
+          "permPrefixes": [
+            "PERM-MNT-"
+          ],
           "note": "Asset register, AMCs and preventive maintenance"
         }
       ]
@@ -338,6 +417,9 @@
     {
       "id": "guestsvc",
       "label": "Guest services",
+      "coarse": [
+        "checkin"
+      ],
       "features": [
         {
           "id": "guestsvc.requests",
@@ -353,6 +435,9 @@
           ],
           "except": [],
           "requires": [],
+          "permPrefixes": [
+            "PERM-GSV-"
+          ],
           "note": "Service requests with SLAs"
         },
         {
@@ -365,6 +450,9 @@
           "prefixes": [],
           "except": [],
           "requires": [],
+          "permPrefixes": [
+            "PERM-STY-"
+          ],
           "note": "Who is in the hotel right now"
         },
         {
@@ -379,6 +467,9 @@
           ],
           "except": [],
           "requires": [],
+          "permPrefixes": [
+            "PERM-HND-"
+          ],
           "note": "Shift checklists and handover notes"
         }
       ]
@@ -387,6 +478,9 @@
       "id": "messaging",
       "label": "Guest messaging",
       "switch": "messaging",
+      "coarse": [
+        "reservations"
+      ],
       "features": [
         {
           "id": "messaging.messages",
@@ -404,6 +498,9 @@
           ],
           "except": [],
           "requires": [],
+          "permPrefixes": [
+            "PERM-MSG-"
+          ],
           "note": "WhatsApp / SMS / e-mail to guests"
         },
         {
@@ -419,6 +516,9 @@
           "requires": [
             "messaging.messages"
           ],
+          "permPrefixes": [
+            "PERM-MSG-"
+          ],
           "note": "Message templates and trigger rules"
         }
       ]
@@ -427,6 +527,9 @@
       "id": "documents",
       "label": "Document capture",
       "switch": "documents",
+      "coarse": [
+        "checkin"
+      ],
       "features": [
         {
           "id": "documents.capture",
@@ -440,6 +543,9 @@
           ],
           "except": [],
           "requires": [],
+          "permPrefixes": [
+            "PERM-DOC-"
+          ],
           "note": "Scan and file IDs and bills"
         }
       ]
@@ -447,6 +553,9 @@
     {
       "id": "customers",
       "label": "Customers",
+      "coarse": [
+        "reservations"
+      ],
       "features": [
         {
           "id": "customers.c360",
@@ -458,6 +567,9 @@
           "prefixes": [],
           "except": [],
           "requires": [],
+          "permPrefixes": [
+            "PERM-CRM-"
+          ],
           "note": "Customer profiles and full stay history"
         },
         {
@@ -468,6 +580,9 @@
           "prefixes": [],
           "except": [],
           "requires": [],
+          "permPrefixes": [
+            "PERM-CRM-"
+          ],
           "note": "Tags, notes, preferences, consent, merge"
         }
       ]
@@ -475,6 +590,9 @@
     {
       "id": "revenue",
       "label": "Revenue & sales",
+      "coarse": [
+        "reservations"
+      ],
       "features": [
         {
           "id": "revenue.yield",
@@ -489,6 +607,9 @@
           ],
           "except": [],
           "requires": [],
+          "permPrefixes": [
+            "PERM-YLD-"
+          ],
           "note": "Rate plans, seasons, guardrails, overrides"
         },
         {
@@ -503,6 +624,9 @@
           ],
           "except": [],
           "requires": [],
+          "permPrefixes": [
+            "PERM-GRP-"
+          ],
           "note": "Group blocks, companies, credit limits (follows the Groups module switch)"
         },
         {
@@ -520,6 +644,9 @@
             "CHN_PAYOUT"
           ],
           "requires": [],
+          "permPrefixes": [
+            "PERM-OTA-"
+          ],
           "note": "OTA inbound bookings and rate push (follows the OTA module switch)"
         },
         {
@@ -533,6 +660,9 @@
           "except": [],
           "requires": [
             "revenue.ota"
+          ],
+          "permPrefixes": [
+            "PERM-OTA-"
           ],
           "note": "OTA payout receipts and commission"
         },
@@ -548,6 +678,9 @@
           ],
           "except": [],
           "requires": [],
+          "permPrefixes": [
+            "PERM-WEB-"
+          ],
           "note": "Booking-engine requests (follows the Direct booking site module switch)"
         }
       ]
@@ -555,6 +688,9 @@
     {
       "id": "stock",
       "label": "Stock & purchasing",
+      "coarse": [
+        "housekeeping"
+      ],
       "features": [
         {
           "id": "stock.linen",
@@ -568,6 +704,9 @@
           ],
           "except": [],
           "requires": [],
+          "permPrefixes": [
+            "PERM-STK-"
+          ],
           "note": "Linen, amenities, laundry and counts (follows the Linen & stock module switch)"
         },
         {
@@ -582,6 +721,9 @@
           "requires": [
             "cash.expenses"
           ],
+          "permPrefixes": [
+            "PERM-EXP-"
+          ],
           "note": "Vendor bills, payments, returns (ACC-2)"
         },
         {
@@ -594,6 +736,9 @@
           ],
           "except": [],
           "requires": [],
+          "permPrefixes": [
+            "PERM-ACC-"
+          ],
           "note": "Fixed assets, put-to-use, disposal (ACC-2)"
         }
       ]
@@ -601,6 +746,9 @@
     {
       "id": "people",
       "label": "People & payroll",
+      "coarse": [
+        "housekeeping"
+      ],
       "features": [
         {
           "id": "people.staff",
@@ -619,6 +767,9 @@
           ],
           "except": [],
           "requires": [],
+          "permPrefixes": [
+            "PERM-HR-"
+          ],
           "note": "Staff register, roster, attendance"
         },
         {
@@ -631,6 +782,9 @@
           ],
           "except": [],
           "requires": [],
+          "permPrefixes": [
+            "PERM-HR-"
+          ],
           "note": "Leave requests, approvals, entitlements"
         },
         {
@@ -648,6 +802,9 @@
           ],
           "except": [],
           "requires": [],
+          "permPrefixes": [
+            "PERM-HR-"
+          ],
           "note": "Pay runs, advances, payslips, F&F (follows the Payroll module switch)"
         },
         {
@@ -660,6 +817,9 @@
           "prefixes": [],
           "except": [],
           "requires": [],
+          "permPrefixes": [
+            "PERM-HR-"
+          ],
           "note": "Own shifts, leave and payslips (DEC-061)"
         }
       ]
@@ -667,6 +827,9 @@
     {
       "id": "closing",
       "label": "Day closing",
+      "coarse": [
+        "close"
+      ],
       "features": [
         {
           "id": "closing.dayclose",
@@ -683,6 +846,9 @@
           ],
           "except": [],
           "requires": [],
+          "permPrefixes": [
+            "PERM-CLS-"
+          ],
           "note": "Night posting, day close and reopen"
         }
       ]
@@ -690,6 +856,9 @@
     {
       "id": "accounting",
       "label": "Accounting",
+      "coarse": [
+        "reports"
+      ],
       "features": [
         {
           "id": "accounting.ledgers",
@@ -708,6 +877,9 @@
           ],
           "except": [],
           "requires": [],
+          "permPrefixes": [
+            "PERM-ACC-"
+          ],
           "note": "Chart of accounts, party ledgers, period lock (ACC-1)"
         },
         {
@@ -721,6 +893,9 @@
           ],
           "except": [],
           "requires": [],
+          "permPrefixes": [
+            "PERM-ACC-"
+          ],
           "note": "Journal, contra, receipt and payment vouchers; loans"
         },
         {
@@ -735,6 +910,9 @@
           ],
           "except": [],
           "requires": [],
+          "permPrefixes": [
+            "PERM-ACC-"
+          ],
           "note": "GST set-off, payment, month lock"
         },
         {
@@ -747,6 +925,9 @@
           ],
           "except": [],
           "requires": [],
+          "permPrefixes": [
+            "PERM-ACC-"
+          ],
           "note": "TDS by payee type, remittance"
         },
         {
@@ -759,6 +940,9 @@
           ],
           "except": [],
           "requires": [],
+          "permPrefixes": [
+            "PERM-ACC-"
+          ],
           "note": "Tally masters and vouchers (DEC-140)"
         }
       ]
@@ -766,6 +950,9 @@
     {
       "id": "reports",
       "label": "Reports",
+      "coarse": [
+        "reports"
+      ],
       "features": [
         {
           "id": "reports.reports",
@@ -777,6 +964,9 @@
           "prefixes": [],
           "except": [],
           "requires": [],
+          "permPrefixes": [
+            "PERM-RPT-"
+          ],
           "note": "Operations and finance reports"
         },
         {
@@ -791,6 +981,9 @@
           ],
           "except": [],
           "requires": [],
+          "permPrefixes": [
+            "PERM-MST-"
+          ],
           "note": "Plan and extras catalogue (MA-2)"
         }
       ]
@@ -798,6 +991,9 @@
     {
       "id": "compliance",
       "label": "Compliance",
+      "coarse": [
+        "reports"
+      ],
       "features": [
         {
           "id": "compliance.calendar",
@@ -811,6 +1007,9 @@
           ],
           "except": [],
           "requires": [],
+          "permPrefixes": [
+            "PERM-CMP-"
+          ],
           "note": "Obligations, firm profile, evidence (DEC-119)"
         }
       ]
@@ -819,6 +1018,9 @@
       "id": "assistant",
       "label": "Management assistant",
       "switch": "assistant",
+      "coarse": [
+        "reports"
+      ],
       "features": [
         {
           "id": "assistant.assistant",
@@ -832,6 +1034,7 @@
           ],
           "except": [],
           "requires": [],
+          "permPrefixes": [],
           "note": "Questions about hotel data, anomaly alerts"
         }
       ]
@@ -839,6 +1042,9 @@
     {
       "id": "admin",
       "label": "Admin & setup",
+      "coarse": [
+        "admin"
+      ],
       "features": [
         {
           "id": "admin.access",
@@ -854,6 +1060,9 @@
           ],
           "except": [],
           "requires": [],
+          "permPrefixes": [
+            "PERM-ADM-"
+          ],
           "note": "Users, roles, exceptions"
         },
         {
@@ -870,6 +1079,9 @@
           ],
           "except": [],
           "requires": [],
+          "permPrefixes": [
+            "PERM-CFG-"
+          ],
           "note": "Settings hub and module switches"
         },
         {
@@ -883,6 +1095,9 @@
           ],
           "except": [],
           "requires": [],
+          "permPrefixes": [
+            "PERM-MST-"
+          ],
           "note": "Rooms, floors, lists and catalogues (MA waves)"
         },
         {
@@ -895,6 +1110,9 @@
           "prefixes": [],
           "except": [],
           "requires": [],
+          "permPrefixes": [
+            "PERM-APR-"
+          ],
           "note": "Pending requests and audit trail"
         },
         {
@@ -909,6 +1127,9 @@
           ],
           "except": [],
           "requires": [],
+          "permPrefixes": [
+            "PERM-SYS-"
+          ],
           "note": "Backups and restore drill"
         },
         {
@@ -923,6 +1144,9 @@
           ],
           "except": [],
           "requires": [],
+          "permPrefixes": [
+            "PERM-SYS-"
+          ],
           "note": "Parked events, retry, last backup"
         },
         {
@@ -935,6 +1159,7 @@
           "prefixes": [],
           "except": [],
           "requires": [],
+          "permPrefixes": [],
           "note": "Per-device preferences"
         },
         {
@@ -947,6 +1172,10 @@
           "prefixes": [],
           "except": [],
           "requires": [],
+          "permPrefixes": [
+            "PERM-LGC-",
+            "PERM-IMP-"
+          ],
           "note": "Old Lodge software import (LG)"
         },
         {
@@ -959,6 +1188,7 @@
           "prefixes": [],
           "except": [],
           "requires": [],
+          "permPrefixes": [],
           "note": "What is built and what is next"
         }
       ]
