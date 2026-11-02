@@ -1,0 +1,12 @@
+/* LF-docdb / LF-images: System health "Databases" rows (size bar against the 50 GB Express limit: amber at 70 %, red at 85 %) and the Owner's invoice title /
+   notes / footer printed under the document lines (B6). Colours are tokens only. */
+.adm-dbbar{height:8px;min-width:96px;border-radius:4px;background:var(--line);overflow:hidden}
+.adm-dbbar>span{display:block;height:100%;background:var(--success-fill)}
+.adm-dbbar-warn>span{background:var(--warn-fill)}
+.adm-dbbar-bad>span{background:var(--danger-fill)}
+.print-title{display:grid;gap:2px;margin:0 0 8px}
+.print-title strong{font-size:1.05em}
+.print-title span{color:var(--muted)}
+.print-notes{margin:10px 0 0;border-top:1px solid var(--line);padding-top:8px;font-size:.9em}
+.print-notes-text{white-space:pre-line;margin:0 0 6px}
+.print-notes-footer{margin:0;color:var(--muted)}
