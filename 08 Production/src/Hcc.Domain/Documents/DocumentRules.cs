@@ -27,6 +27,9 @@ public static class DocumentRules
 
     public const string Captured = "Captured", Confirmed = "Confirmed", Rejected = "Rejected", Purged = "Purged";
 
+    /// <summary>LF-images B5: a guest / party-member photo is a capture of its own kind (no OCR, no review; sealed like an ID image).</summary>
+    public const string PhotoKind = "photo";
+
     public static readonly IReadOnlyList<string> Kinds = ["aadhaar", "passport", "dl", "voter", "pan", "other"];
 
     public static readonly IReadOnlyList<string> ContentTypes = ["image/jpeg", "image/png", "image/webp"];
@@ -46,6 +49,7 @@ public static class DocumentRules
         "dl" => "Driving licence",
         "voter" => "Voter ID",
         "pan" => "PAN",
+        "photo" => "Photo",
         _ => "Other",
     };
 

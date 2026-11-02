@@ -19,7 +19,7 @@ public sealed class SqlDocumentStore(SqlConnectionFactory connections, IDocument
     private const string Cols = """
         c.capture_id, c.capture_ref, c.property_id, c.guest_id, c.stay_id, c.doc_kind, c.content_type, c.size_bytes, c.status, c.ocr_doc_kind, c.ocr_last4,
         c.ocr_confidence, c.ocr_sealed, c.captured_date, c.captured_utc, c.captured_by, c.confirmed_utc, c.confirmed_by, c.reject_reason, c.purged_utc,
-        CAST(CASE WHEN EXISTS (SELECT 1 FROM doc.id_capture_image i WHERE i.capture_id = c.capture_id) THEN 1 ELSE 0 END AS BIT), c.row_ver
+        CAST(CASE WHEN EXISTS (SELECT 1 FROM doc.id_capture_image i WHERE i.capture_id = c.capture_id) THEN 1 ELSE 0 END AS BIT), c.row_ver, c.party_seq
         """;
 
     private static string? S(SqlDataReader r, int i) => r.IsDBNull(i) ? null : r.GetString(i);
@@ -28,7 +28,7 @@ public sealed class SqlDocumentStore(SqlConnectionFactory connections, IDocument
 
     private static IdCaptureRow Read(SqlDataReader r) => new(r.GetInt64(0), r.GetGuid(1), r.GetInt32(2), r.GetInt64(3), r.IsDBNull(4) ? null : r.GetInt64(4), r.GetString(5), r.GetString(6),
         r.GetInt32(7), r.GetString(8), S(r, 9), S(r, 10), r.IsDBNull(11) ? null : r.GetByte(11), S(r, 12), DateOnly.FromDateTime(r.GetDateTime(13)),
-        DateTime.SpecifyKind(r.GetDateTime(14), DateTimeKind.Utc), r.GetInt32(15), U(r, 16), r.IsDBNull(17) ? null : r.GetInt32(17), S(r, 18), U(r, 19), r.GetBoolean(20), (byte[])r[21]);
+        DateTime.SpecifyKind(r.GetDateTime(14), DateTimeKind.Utc), r.GetInt32(15), U(r, 16), r.IsDBNull(17) ? null : r.GetInt32(17), S(r, 18), U(r, 19), r.GetBoolean(20), (byte[])r[21], r.IsDBNull(22) ? null : r.GetByte(22));
 
     private async Task<IReadOnlyList<IdCaptureRow>> QueryAsync(ICommandTransaction? tx, string sql, Action<SqlCommand> bind, CancellationToken ct)
     {
@@ -87,9 +87,9 @@ public sealed class SqlDocumentStore(SqlConnectionFactory connections, IDocument
         ArgumentNullException.ThrowIfNull(c);
         await using var cmd = Sql(tx).Command("""
             INSERT doc.id_capture(capture_ref, property_id, guest_id, stay_id, doc_kind, content_type, size_bytes, status, ocr_doc_kind, ocr_last4, ocr_confidence, ocr_sealed,
-                                  captured_date, captured_utc, captured_by)
+                                  captured_date, captured_utc, captured_by, party_seq)
             OUTPUT INSERTED.capture_id
-            VALUES (@ref, @p, @g, @s, @k, @t, @sz, 'Captured', @ok, @l4, @cf, @os, @d, @utc, @by);
+            VALUES (@ref, @p, @g, @s, @k, @t, @sz, 'Captured', @ok, @l4, @cf, @os, @d, @utc, @by, @ps);
             """);
         cmd.Parameters.Add("@ref", SqlDbType.UniqueIdentifier).Value = c.CaptureRef;
         cmd.Parameters.Add("@p", SqlDbType.Int).Value = c.PropertyId;
@@ -98,10 +98,11 @@ public sealed class SqlDocumentStore(SqlConnectionFactory connections, IDocument
         cmd.Parameters.Add("@k", SqlDbType.VarChar, 10).Value = c.DocKind;
         cmd.Parameters.Add("@t", SqlDbType.VarChar, 20).Value = c.ContentType;
         cmd.Parameters.Add("@sz", SqlDbType.Int).Value = c.SizeBytes;
-        cmd.Parameters.Add("@ok", SqlDbType.VarChar, 10).Value = c.OcrDocKind;
-        cmd.Parameters.Add("@l4", SqlDbType.VarChar, 4).Value = c.OcrLast4;
+        cmd.Parameters.Add("@ok", SqlDbType.VarChar, 10).Value = string.IsNullOrEmpty(c.OcrDocKind) ? DBNull.Value : c.OcrDocKind;   // a photo has no OCR
+        cmd.Parameters.Add("@ps", SqlDbType.TinyInt).Value = c.PartySeq is { } ps ? (byte)ps : DBNull.Value;
+        cmd.Parameters.Add("@l4", SqlDbType.VarChar, 4).Value = string.IsNullOrEmpty(c.OcrLast4) ? DBNull.Value : c.OcrLast4;
         cmd.Parameters.Add("@cf", SqlDbType.TinyInt).Value = (byte)c.OcrConfidence;
-        cmd.Parameters.Add("@os", SqlDbType.VarChar, 4000).Value = c.OcrSealed;
+        cmd.Parameters.Add("@os", SqlDbType.VarChar, 4000).Value = string.IsNullOrEmpty(c.OcrSealed) ? DBNull.Value : c.OcrSealed;
         cmd.Parameters.Add("@d", SqlDbType.Date).Value = c.CapturedDate.ToDateTime(TimeOnly.MinValue);
         cmd.Parameters.Add("@utc", SqlDbType.DateTime2).Value = c.CapturedUtc;
         cmd.Parameters.Add("@by", SqlDbType.Int).Value = c.CapturedBy;
@@ -186,6 +187,16 @@ public sealed class SqlDocumentStore(SqlConnectionFactory connections, IDocument
             cmd.Parameters.Add("@p", SqlDbType.Int).Value = propertyId;
             cmd.Parameters.Add("@prefix", SqlDbType.VarChar, 200).Value = Hcc.Application.GuestIds.GuestIdProtector.SecretPrefix + keyId + ":";
         }, ct);
+    }
+
+    public async Task SetPartyIdProfileAsync(ICommandTransaction tx, long guestId, int seq, string idType, string last4, CancellationToken ct = default)
+    {
+        await using var cmd = Sql(tx).Command("UPDATE gst.guest_party SET id_type = @t, id_last4 = @l WHERE guest_id = @g AND seq = @s;");
+        cmd.Parameters.Add("@g", SqlDbType.BigInt).Value = guestId;
+        cmd.Parameters.Add("@s", SqlDbType.TinyInt).Value = (byte)seq;
+        cmd.Parameters.Add("@t", SqlDbType.NVarChar, 40).Value = idType;
+        cmd.Parameters.Add("@l", SqlDbType.VarChar, 4).Value = last4;
+        await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
     }
 
     public async Task ResealOcrAsync(ICommandTransaction tx, long captureId, string ocrSealed, CancellationToken ct = default)
