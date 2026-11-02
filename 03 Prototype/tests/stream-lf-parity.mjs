@@ -36,10 +36,19 @@ export function register({test,M,assert}){
     const s=day(),b=s.counterX.bills.at(-1);assert.equal(b.settlement.mode,'udhaar');assert.ok(b.settlement.udhaarId);assert.equal(b.status,'Issued');assert.ok(b.no);
     assert.equal(b.total,b.net+b.tax);assert.equal(totals({lines:[],receipts:[]}).total,0);
   });
+  test(T+'GSTR-1 Table 13: the legacy series row (LGC) comes first, counts the period only, shows the cancelled bill; the HCC series follow',()=>{
+    const g=M.gstr1Summary(day(),'2026-10-01','2026-10-31',M.lfParityLegacyBills);
+    assert.deepEqual(g.documents[0],{docType:'LGC',first:'1101',last:'1108',count:8,cancelled:1});
+    assert.ok(g.documents.slice(1).every(d=>d.docType!=='LGC'),'one legacy row only');
+    assert.ok(g.documents.some(d=>d.docType==='INV'&&d.count>=1),'HCC invoices still listed');
+    assert.equal(M.gstr1Summary(day(),'2026-09-01','2026-09-30',M.lfParityLegacyBills).documents[0].first,'1090');
+    assert.equal(M.gstr1Summary(day(),'2026-10-01','2026-10-31').documents.some(d=>d.docType==='LGC'),false,'no provider → no legacy row');
+    assert.ok(g.rates.every(r=>r.documents>=0)&&!JSON.stringify(g.rates).includes('1101'),'legacy bills never reach the rate tables');
+  });
   test(T+'sync: every LF money command is mapped or listed as unmapped; booking client carries purpose / vehicle / basis; reminders read is gated',()=>{
     const types=X.lfmoney.commands.map(c=>c.type);
-    for(const t of ['STAY_RATE_CHANGE','GUEST_CREDIT_ACCOUNT_SET','GUEST_CREDIT_REQUEST','CTR_BILL_ISSUE','CTR_BILL_VOID_REQUEST','BILL_CORRECTION_REQUEST'])assert.ok(types.includes(t),t);
-    assert.deepEqual(Object.keys(X.lfmoney.unmapped).sort(),['GUEST_RATE_CLEAR','GUEST_RATE_SET']);
+    for(const t of ['GUEST_RATE_SET','GUEST_RATE_CLEAR','STAY_RATE_CHANGE','GUEST_CREDIT_ACCOUNT_SET','GUEST_CREDIT_REQUEST','CTR_BILL_ISSUE','CTR_BILL_VOID_REQUEST','BILL_CORRECTION_REQUEST'])assert.ok(types.includes(t),t);
+    assert.equal(X.lfmoney.unmapped,undefined); // GUEST_RATE_* are mapped since LF-finish (room-type id loader)
     const r=X.createRequestFromBook({room:'105',guest:'A',source:'Phone',purpose:'BUSINESS',vehicle:{no:'MH1',type:'Car'},checkoutBasis:'24h'});
     assert.equal(r.purposeCode,'BUSINESS');assert.equal(r.vehicleNo,'MH1');assert.equal(r.vehicleType,'Car');assert.equal(r.checkoutBasis,'24h');
     assert.ok(typeof X.READS['GET /reminders']==='function');

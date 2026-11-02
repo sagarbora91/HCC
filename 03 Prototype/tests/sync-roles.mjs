@@ -67,6 +67,7 @@ function routes(role){
     'GET /admin/exceptions':()=>({items:[]}),
     'GET /admin/audit':()=>({page:1,pageSize:100,total:0,items:[]}),
     'GET /reminders':()=>({bucket:'today',businessDate:'2026-10-24',items:[]}), // LF-ui
+    'GET /invoices/corrections':()=>[], // LF-finish
     'GET /admin/system-health':()=>({checkedUtc:'2026-10-24T04:00:00.000Z',parked:[],lastBackup:null,lastSuccessfulBackupUtc:null,lastRestoreDrill:null,eventLog:'off'}),
     'GET /configuration/requests':()=>({items:[]}),
     'GET /configuration/history':()=>({page:1,pageSize:100,total:0,items:[]}),

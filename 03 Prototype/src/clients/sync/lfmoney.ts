@@ -2,7 +2,8 @@
 //   server  POST /commands/ChangeStayRate | SetGuestCreditAccount | RequestGuestCredit | IssueCounterBill | RequestCounterBillVoid | RequestBillCorrection
 //   GUEST_RATE_SET → SetGuestAgreedRate, GUEST_RATE_CLEAR → ClearGuestAgreedRate (keyed by room-type id: roomTypeIdOf learns it from the masters slice or GET /masters/room-types).
 import {HccClientError} from '../errors';
-import {serverId} from './map';
+import {serverId,utcToClock} from './map';
+import type {BLCState,BLCCorrection} from '../../domain/types';
 import type {SyncArea,CommandCtx} from './types';
 
 const text=(v:unknown)=>String(v??'').trim();
@@ -22,9 +23,24 @@ async function roomTypeIdOf(c:CommandCtx,code:string):Promise<number>{
   c.ids.learn('roomType',code,id);return id;
 }
 
+type SrvCorrection={correctionId:number;oldInvoiceNo:string;creditNoteNo:string|null;newInvoiceNo:string|null;status:string;oldTotalPaise:number;newTotalPaise:number;
+  deltaPaise:number;settlement:string|null;reason:string;requestedUtc:string};
+export function billCorrectionsFromServer(rows:SrvCorrection[],bookings:{id:string;invoiceNo?:string}[]):BLCState{
+  const bookingOf=(inv:string)=>bookings.find(b=>b.invoiceNo===inv)?.id??'';
+  return {corrections:rows.map(r=>({id:String(r.correctionId),booking:bookingOf(r.oldInvoiceNo),oldInvoiceNo:r.oldInvoiceNo,
+    ...(r.creditNoteNo?{creditNoteNo:r.creditNoteNo}:{}),...(r.newInvoiceNo?{newInvoiceNo:r.newInvoiceNo}:{}),changes:[],reason:r.reason,requestedBy:'',at:utcToClock(r.requestedUtc),
+    approvalId:'',status:r.status as BLCCorrection['status'],oldTotal:r.oldTotalPaise,newTotal:r.newTotalPaise,delta:r.deltaPaise,
+    ...(r.settlement?{settlement:r.settlement as NonNullable<BLCCorrection['settlement']>}:{})}))};
+}
+
 export const lfmoney:SyncArea={
   id:'lfmoney',
-  loaders:[],
+  // Read side: the correction register (GET /invoices/corrections, the A2 "Bill updation report"). The list row carries totals, invoice numbers, status,
+  // reason and the request time; the per-change detail, requester and approval id are on the request screen only (not in the register row).
+  // Not readable yet (the server has no list route): counter bills, credit-guest ageing, stay rate-change history, per-guest agreed rates for all guests.
+  loaders:[{slice:'billCorrectionX',reads:['GET /invoices/corrections'],needs:['bookings'],async load(c){
+    const rows=await c.api.get<SrvCorrection[]>('/invoices/corrections');
+    return billCorrectionsFromServer(rows,c.current('bookings')??[]);}}],
   commands:[
     {type:'STAY_RATE_CHANGE',reload:['bookings'],async send(c){const k=c.cmd;
       await c.api.command('ChangeStayRate',{stayId:stayOf(c,text(k.booking)),ratePaise:k.rate===undefined?undefined:Number(k.rate),people:k.people===undefined?undefined:Number(k.people),

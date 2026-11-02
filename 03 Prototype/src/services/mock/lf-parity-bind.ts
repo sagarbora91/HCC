@@ -2,4 +2,4 @@
 import {execute} from './commands';
 import {lfParityBind} from '../../fixtures/ext/lf-parity';
 lfParityBind(execute);
-export {lfParityBind,lfParityDay,LF_PARITY,FORM_C as LF_PARITY_FORM_C} from '../../fixtures/ext/lf-parity';
+export {lfParityBind,lfParityDay,LF_PARITY,FORM_C as LF_PARITY_FORM_C,LF_PARITY_LEGACY_BILLS,lfParityLegacyBills} from '../../fixtures/ext/lf-parity';

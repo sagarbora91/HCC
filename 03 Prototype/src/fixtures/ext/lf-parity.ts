@@ -53,6 +53,13 @@ export function lfParityDay(s0:State,exec:Exec|undefined=engine):State{
   return s;
 }
 
+/** GSTR-1 Table 13 (LF §5, DEC-197): the old Lodge software's plain-numbered bills before cut-over (fictional). Handed to gstr1Summary(s,from,to,lfParityLegacyBills);
+ *  the series row LGC appears first, then INV / RST / CRN of the HCC series. One of the eight bills was cancelled in the old software. */
+export const LF_PARITY_LEGACY_BILLS:{no:string;date:string;cancelled:boolean}[]=[
+  ...[1101,1102,1103,1104,1105,1106,1107,1108].map((n,i)=>({no:String(n),date:`2026-10-${String(10+i).padStart(2,'0')}`,cancelled:n===1105})),
+  {no:'1090',date:'2026-09-28',cancelled:false}];
+export const lfParityLegacyBills=(from:string,to:string)=>LF_PARITY_LEGACY_BILLS.filter(b=>b.date>=from&&b.date<=to);
+
 export function extendBase(_s:State):void{}
 export const scenarioPatches:Record<string,(s:State)=>void>={[LF_PARITY]:s=>{Object.assign(s,lfParityDay(s));}};
 export const scenarioInfo:ScenarioInfo[]=[

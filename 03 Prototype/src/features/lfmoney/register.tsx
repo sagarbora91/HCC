@@ -4,6 +4,7 @@ import type {FeatureRegistration} from '../../app/registry';
 import {CounterBillsPage} from './CounterBills';
 import {StayRateModal,BillCorrectModal,AgreedRateModal,CreditAccountModal} from './modals';
 import {LfBookingActions} from './GuestMoney';
+import {MfCounterBills} from './Mobile';
 
 export const registration:FeatureRegistration={
   pages:{'counter-bills':CounterBillsPage},
@@ -11,4 +12,5 @@ export const registration:FeatureRegistration={
   modals:{'stay-rate':StayRateModal,'bill-correct':BillCorrectModal,'agreed-rate':AgreedRateModal,'credit-account':CreditAccountModal},
   wideModals:['bill-correct'],
   bookingActions:LfBookingActions,
+  mobile:{pages:{'counter-bills':MfCounterBills}},
 };

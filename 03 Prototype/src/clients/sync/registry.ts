@@ -53,6 +53,7 @@ import {lfmoney} from './lfmoney';
 import {reminders} from './reminders';
 // LF-ALERTS end
 // LF-IMAGES
+import {guestphoto} from './guestphoto';
 // LF-IMAGES end
 
 // W4-8 POS:
@@ -148,5 +149,6 @@ export const AREAS:SyncArea[]=[
   reminders,
   // LF-ALERTS end
   // LF-IMAGES
+  guestphoto,
   // LF-IMAGES end
 ];
