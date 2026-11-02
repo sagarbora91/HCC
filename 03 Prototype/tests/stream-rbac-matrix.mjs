@@ -68,6 +68,7 @@ const PAGES={
   approvals:['OWN MGR ACC','ADM-004 audit.view + APR-001 (DEC-063 G10: not the Cashier; Tech admin view at M4)'],
   backup:['OWN TAD','ADM-005 (DEC-063 G9: the Manager gets the Overview backup card instead)'],
   syshealth:['OWN TAD','PERM-SYS-001 (Wave C3, A09-05: parked outbox events, retry, last backup; the Administration area like Backup & recovery)'],
+  'counter-bills':['OWN MGR REC CSH','LF A7: PERM-CTR-001 counter.bill.issue = Owner, Manager, Reception, Cashier (nav gate = payments, as the Cashier shift)'], // LF-UI
   'desk-alerts':['OWN MGR REC ACC','LF B4: PERM-RMD-001 reminders.manage = Owner, Manager, Reception, Accountant (contract §11, same as the server seed 4705)'], // LF-ALERTS
   keys:['OWN MGR REC','KEYS room keys: PERM-KEY-001 read / 002 issue / 003 cancel = Owner, Manager, Reception (keys.configure tabs Owner + Manager, checked inside the page)'],
   'legacy-import':['OWN','PERM-LGC-001 (LG-UI: old Lodge data import; Owner only — the LG integrator hides the menu entry from the Tech admin with navRoleOk)'],

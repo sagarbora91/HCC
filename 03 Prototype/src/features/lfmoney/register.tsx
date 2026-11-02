@@ -7,7 +7,7 @@ import {LfBookingActions} from './GuestMoney';
 
 export const registration:FeatureRegistration={
   pages:{'counter-bills':CounterBillsPage},
-  nav:[{group:'CASH & BILLING',item:{id:'counter-bills',label:'Counter bills',icon:Receipt,p:['billing','payments']},after:'folios'}],
+  nav:[{group:'CASH & BILLING',item:{id:'counter-bills',label:'Counter bills',icon:Receipt,p:'payments'},after:'folios'}],
   modals:{'stay-rate':StayRateModal,'bill-correct':BillCorrectModal,'agreed-rate':AgreedRateModal,'credit-account':CreditAccountModal},
   wideModals:['bill-correct'],
   bookingActions:LfBookingActions,
