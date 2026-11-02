@@ -1,6 +1,6 @@
 # HCC Administration Panel: module switches and custom roles (plan v1)
 
-2 Nov 2026 · Status: **Draft for discussion with the owner. No code until the owner answers the questions in §7.** · Builds on DEC-040, DEC-057, DEC-058, DEC-062, DEC-063, DEC-079 and the RBAC matrix v2.
+2 Nov 2026 · Status: **Approved 2 Nov 2026 (APR-028): all §7 recommendations accepted, DEC-214…221. Build wave W2c `claude/adm`, migrations 4800–4849.** · Builds on DEC-040, DEC-057, DEC-058, DEC-062, DEC-063, DEC-079 and the RBAC matrix v2.
 
 **In one line:** one Owner page, **Administration**, where the owner (super admin) switches modules *and their sub-functions* on or off, creates named roles such as "Day shift manager" or "Night shift manager" from the built-in ones, decides what each role may see and do, module by module, and creates the users that hold those roles. Everything is enforced on the server, not only hidden in the menu.
 
@@ -136,7 +136,7 @@ Size: roughly the same as one accounting wave (ACC-2). Suggested slot in `HCC_Bu
 
 ---
 
-## 7. Decisions for the owner
+## 7. Decisions for the owner (all recommended answers accepted, APR-028 → DEC-214…221)
 
 | # | Question | Recommended answer |
 |---|---|---|
