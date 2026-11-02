@@ -15,10 +15,12 @@ import {DemoPill} from './demo/DemoToolbar';
 import {FitNavContext,type FitNav} from '../components/fit'; // FIT (DEC-194…196): sub-screen tab + breadcrumb tab crumb for desktop pages
 import {useReadOnly,READ_ONLY_HINT} from '../clients/react';
 import {ProductionApp,SyncStatus,type ServerBinding} from '../clients/sync/react'; // production build only (W4-0 server sync layer)
-import {extraPages,mobilePages} from './registry';
+import {extraPages,mobilePages,extraModals} from './registry';
 import {ModalHost} from './ModalHost';
 import {useDisplayMode,DisplayToggle} from './display';
 import {SearchPalette} from './SearchPalette';
+import {DeskAlerts} from './DeskAlerts'; // LF-ALERTS
+import {shortcutFor,shortcutAllowed} from './shortcuts'; // LF-ALERTS
 import {NavDrawer} from './NavDrawer';
 import {isNative,decideBack,hasStepBack,runStepBack,listenBackButton,styleStatusBar,listenStatusBarRestyle,exitApp,clearExports} from './native';
 import {MobileShell} from './mobile/MobileShell';
@@ -236,6 +238,23 @@ function AppShell({initial,server}:{initial:Restored;/** Production only: state,
   const ctx:Ctx={s,uid,user,m,page:current,go,modal,open,closeModal,booking,error,busy,run,toast,permission,act,search,setSearch,filter,setFilter,tab,setTab,arrivals,departures,pending,taskList,roomStatus,switchUser,fault,setFault,loadScenario,resetScenario,display,setDirty,openSearch:()=>{cancelBackFallback();setSearchOpen(true);},openMenu:()=>{cancelBackFallback();setMenuOpen(true);},signOut,prefs:prefsApi};
   const pages:Record<string,()=>React.ReactNode>={overview:()=><Overview/>,rooms:()=><RoomBoard/>,reservations:()=><Reservations/>,folios:()=><Reservations folio/>,housekeeping:()=><Housekeeping/>,expenses:()=><Expenses/>,closing:()=><DayClosing/>,reports:()=><Reports/>,access:()=><AccessControl/>,settings:()=><HotelSettings/>};
   for(const [id,Page] of Object.entries(extraPages))pages[id]=()=><Page/>;
+  // LF-ALERTS · A8 function keys (contract §9.3): desktop layout only; inert with a dialog open, without the permission, or when the target is not available
+  useEffect(()=>{
+    if(!signedIn||display.isMobile)return;
+    const on=(e:KeyboardEvent)=>{
+      const sc=shortcutFor(e);if(!sc)return;
+      if(modalRef.current||searchOpen||menuOpen)return;
+      if(!shortcutAllowed(sc,permission))return;
+      const hasModal=sc.modal?!!extraModals[sc.modal]||sc.modal==='new'||sc.modal==='shortcuts':false;
+      if(sc.page&&!allowedIds.includes(sc.page))return;
+      if(sc.modal&&!hasModal&&!sc.optional)return;
+      e.preventDefault();
+      if(sc.page&&sc.page!==current)go(sc.page);
+      if(sc.modal&&hasModal)open({type:sc.modal});
+    };
+    window.addEventListener('keydown',on);return ()=>window.removeEventListener('keydown',on);
+  });
+  // LF-ALERTS end
   useEffect(()=>{if(!signedIn)return;const l=navItems.find(n=>n.id===current)?.label;document.title=(l?l+' · ':'')+'Hotel Control Centre';},[current,signedIn]);
   const closed=isDayClosed(s);
 
@@ -246,6 +265,7 @@ function AppShell({initial,server}:{initial:Restored;/** Production only: state,
   if(!signedIn)return <HccContext.Provider value={ctx}><SignIn onPick={signIn}/></HccContext.Provider>;
   if(display.isMobile)return <HccContext.Provider value={ctx}>
     <MobileShell allowedIds={allowedIds} canGoBack={depth>0} onBack={back} tabKey={tabKey} onTab={onTab}>{pageBody}</MobileShell>
+    <DeskAlerts phone/>{/* LF-ALERTS */}
     {process.env.HCC_BUILD==='production'&&<SyncStatus/>}{toastEl}<ModalHost/>{menuOpen&&<NavDrawer onClose={()=>setMenuOpen(false)}/>}{searchOpen&&<SearchPalette onClose={()=>setSearchOpen(false)}/>}{exitEl}
   </HccContext.Provider>;
   const fitNav:FitNav={desktop:true,page:current,tabKey,seq:navSeq,setTabCrumb};
@@ -267,6 +287,7 @@ function AppShell({initial,server}:{initial:Restored;/** Production only: state,
             <DisplayToggle display={display} compact/>
           </div>
         </FitTopbar>
+        <DeskAlerts/>{/* LF-ALERTS · wake-up and reminder banner (contract §9.1) */}
         {process.env.HCC_BUILD==='production'?<SyncStatus/>:null}
         <FitContent>{pageBody}</FitContent>
       </main>

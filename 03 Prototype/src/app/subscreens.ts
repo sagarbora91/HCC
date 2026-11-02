@@ -9,9 +9,14 @@ import {rbacPosSeesDaySales,rbacTechAdminTemplates,rbacCanTally} from '../domain
 import {hovIsManager} from '../domain/streams/handover';
 import {yldProposals} from '../domain/streams/yield';
 import {keyCanConfigure} from '../domain/streams/keys';
+import {guestAccess} from '../domain/streams/guests'; // LF-DESK
 export type SubScreen={page:string;id:string;label:string;keywords?:string[]};
 export const SUB_SCREENS:SubScreen[]=[
   // FIT-FRONT
+  // LF-DESK
+  {page:'customers',id:'customers',label:'Customers'},
+  {page:'customers',id:'foreigner-register',label:'Foreigner register',keywords:['form c','foreign','immigration','passport','visa']},
+  // LF-DESK end
   // FIT-FRONT-B: reservations, arrivals, inhouse, guests have no sub-screens (fill / split pages).
   // F1-INT: KEYS room keys (from main)
   {page:'keys',id:'log',label:'Key log'},
@@ -167,6 +172,10 @@ export const SUB_SCREENS:SubScreen[]=[
   // LF-DESK
   // LF-DESK end
   // LF-ALERTS
+  {page:'desk-alerts',id:'today',label:'Today'},
+  {page:'desk-alerts',id:'upcoming',label:'Upcoming'},
+  {page:'desk-alerts',id:'done',label:'Done'},
+  {page:'desk-alerts',id:'wake-ups',label:'Wake-ups'},
   // LF-ALERTS end
   // LF-UI
   // LF-UI end
@@ -189,6 +198,7 @@ export const SUB_SCREEN_GATES:Record<string,(s:State,uid:string)=>boolean>={
   'pos:summary':rbacPosSeesDaySales,
   'messages:outbox':notTemplatesOnly,'messages:consent':notTemplatesOnly,
   'handover:dashboard':hovIsManager,'handover:templates':hovIsManager,
+  'customers:foreigner-register':(s,uid)=>guestAccess(s,uid).idDetails, // LF-DESK
   'keys:locks':(s,uid)=>keyCanConfigure(s,uid),'keys:encoder':(s,uid)=>keyCanConfigure(s,uid),
   'yield:publish-requests':s=>yldProposals(s).length>0,
   'access:sign-in-devices':()=>process.env.HCC_BUILD==='production',

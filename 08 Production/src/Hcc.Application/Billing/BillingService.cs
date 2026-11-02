@@ -78,6 +78,24 @@ public sealed class BillingService(ICommandRunner runner, IBillingStore store, I
         }, ct).ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// LF A6: the late check-out line, posted inside the caller's transaction. A service-kind line (a room-kind line is unique per night) dated the business
+    /// date, at the room GST slab of the stay's night rate (DEC-069: the night rate decides the slab); <paramref name="amountPaise"/> is the half-day amount.
+    /// </summary>
+    public async Task PostLateCheckoutAsync(ICommandTransaction tx, Caller caller, long folioId, DateOnly businessDate, long nightRatePaise, long amountPaise, string label, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(tx);
+        var f = await RequireFolioAsync(tx, caller, folioId, ct).ConfigureAwait(false);
+        var amount = new Paise(amountPaise).EnsureFieldRange();
+        var g = await gst.RoomNightAsync(tx, caller.PropertyId, businessDate, new Paise(nightRatePaise), ct).ConfigureAwait(false);
+        var line = new NewCharge(f.FolioId, ChargeKind.Service, businessDate, label, amount, g.Bps, GstMath.LineTax(amount, g.Bps), null, null, caller.PrincipalId, Now);
+        var id = await store.InsertChargeAsync(tx, line, ct).ConfigureAwait(false);
+        await RecordGstAsync(tx, id, g, line.Tax, ct).ConfigureAwait(false);
+        await store.TouchFolioAsync(tx, f.FolioId, ct).ConfigureAwait(false);
+        await tx.AuditAsync("LATE_CHECKOUT_POSTED", Target("folio", f.FolioId), $"{label} · {amount} + tax {line.Tax}", ct).ConfigureAwait(false);
+        await tx.PublishAsync("ChargePosted", f.FolioId, new { folioId = f.FolioId, chargeId = id, kind = "service", serviceDate = businessDate, amountPaise = amount.Value, taxPaise = line.Tax.Value }, ct).ConfigureAwait(false);
+    }
+
     // ── PostCharge (service) ──
 
     public async Task<CommandResult<ChargeResult>> PostChargeAsync(Caller caller, string idempotencyKey, PostChargeRequest req, CancellationToken ct = default)

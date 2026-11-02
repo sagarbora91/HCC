@@ -24,7 +24,7 @@ namespace Hcc.Application.Reservations;
 /// </summary>
 public sealed class ReservationService(IReservationStore reservations, IInventoryStore inventory, InventoryService inventoryService,
     ICommandRunner runner, IAccessPolicy access, IReservationMoneyCheck money, TimeProvider clock, ICompanyCreditGuard? credit = null,
-    IBookingSourceCheck? sources = null)
+    IBookingSourceCheck? sources = null, Stays.DeskFieldService? desk = null)
 {
     public async Task<CommandResult<ReservationResult>> CreateAsync(CommandContext context, CreateReservationRequest request, CancellationToken ct = default)
     {
@@ -79,6 +79,7 @@ public sealed class ReservationService(IReservationStore reservations, IInventor
                 new StayAllocation(room.RoomId, room.RoomTypeId, quote.Arrival, quote.Departure, block?.GroupBlockId), quote.Adults, quote.Children,
                 status, holdUntil, block is null ? source : "Group · " + block.Code, quote.QuoteId, nights, overrideNote,
                 JoinNotes(notes, block is null ? null : $"Group block {block.Code} · {block.Name}"), now, company), c).ConfigureAwait(false);
+            if (desk is not null) await desk.ApplyBookingAsync(tx, context.PropertyId, saved.ReservationId, request.PurposeCode, request.VehicleNo, request.VehicleType, request.CheckoutBasis, c).ConfigureAwait(false); // LF A3, A4, A6
             if (account is not null) await CompanyCreditCheck.NewAsync(credit!, tx, account, "stay", saved.ReservationId, "booking", c).ConfigureAwait(false);
             await inventory.MarkQuoteUsedAsync(tx, quote.QuoteId, saved.ReservationId, c).ConfigureAwait(false);
 

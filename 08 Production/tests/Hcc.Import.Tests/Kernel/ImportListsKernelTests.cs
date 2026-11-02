@@ -25,7 +25,7 @@ public class ImportListsKernelTests
     [Fact]
     public void Definitions_are_consistent_and_every_list_has_a_spec_with_the_template_columns()
     {
-        Assert.Equal(24, ImportLists.All.Count);
+        Assert.Equal(26, ImportLists.All.Count); // LF A3, A4: purposes, vehicle-types
         Assert.Equal(ImportLists.All.Count, ImportLists.All.Select(d => d.Wire).Distinct().Count());
         Assert.Equal(ImportLists.All.Count, ImportLists.All.Select(d => d.Proto).Distinct().Count());
         foreach (var d in ImportLists.All)

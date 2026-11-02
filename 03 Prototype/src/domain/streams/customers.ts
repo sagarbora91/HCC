@@ -4,6 +4,7 @@
 import type {State,Booking} from '../types';
 import {totals} from '../selectors';
 import {nights} from '../money';
+import {deskVehicleMatches} from './desk-fields'; // LF-DESK
 
 export type CustomerGuest=NonNullable<State['guests']>[number];
 /** One stay from the old Lodge desktop app (read only; no folio exists for it). `net` is paise, absent when the role may not see money. */
@@ -77,7 +78,7 @@ export function customerIndex(s:State,legacy?:LegacyLookup):Customer[]{
 export function customerSearch(list:Customer[],q:string,phoneOk=true):Customer[]{
   const text=q.trim();
   if(!text)return list;
-  if(/[a-z]/i.test(text)){const words=normName(text).split(' ').filter(Boolean);return list.filter(c=>words.every(w=>normName(c.name).includes(w)));}
+  if(/[a-z]/i.test(text)){const words=normName(text).split(' ').filter(Boolean);return list.filter(c=>words.every(w=>normName(c.name).includes(w))||c.stays.some(b=>deskVehicleMatches(b,text)));} // LF-DESK: or a vehicle number
   const digits=text.replace(/\D/g,'');
   if(!phoneOk||digits.length<3)return [];
   return list.filter(c=>c.phone.replace(/\D/g,'').includes(digits));

@@ -53,8 +53,10 @@ import {handlers as billCorrection} from './bill-correction';
 import {handlers as counter} from './counter';
 // LF-COUNTER end
 // LF-DESK
+import {handlers as desk} from './desk';
 // LF-DESK end
 // LF-ALERTS
+import {handlers as reminders} from './reminders';
 // LF-ALERTS end
 // LF-IMAGES
 import {handlers as guestPhotos} from './guestphotos'; // B5 party photos
@@ -75,8 +77,10 @@ const LF:Record<string,Handler>={ // LF lanes: spread your handlers inside your 
   ...counter,
   // LF-COUNTER end
   // LF-DESK
+  ...desk,
   // LF-DESK end
   // LF-ALERTS
+  ...reminders,
   // LF-ALERTS end
   // LF-IMAGES
   ...guestPhotos,

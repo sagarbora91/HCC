@@ -23,6 +23,24 @@ public class FrontDeskMastersSqlTests : IAsyncLifetime
     private FrontDeskMastersCommandsShim C => new(_w);
 
     [Fact]
+    public async Task LF_purposes_and_vehicle_types_read_their_defaults_save_by_the_masters_permission_and_retire()
+    {
+        var purposes = await _w.Queries.PlainListAsync(_w.PropertyId, FrontDeskMasterIds.Purposes, ct: Ct);
+        Assert.Equal(("BUSINESS", 8), (purposes.Items[0].Code, purposes.Total));
+        var vehicles = await _w.Queries.PlainListAsync(_w.PropertyId, FrontDeskMasterIds.VehicleTypes, ct: Ct);
+        Assert.Equal(["CAR", "BIKE", "TAXI", "BUS", "OTHER"], vehicles.Items.Select(x => x.Code).ToArray());
+        await Expect403(() => _w.Commands.SavePurposeAsync(_w.Ctx("reception", FdmWorld.Key()), new SavePlainListRequest(null, "WEDDING", "Wedding"), Ct));
+        var saved = (await _w.Commands.SavePurposeAsync(_w.Ctx("owner", FdmWorld.Key()), new SavePlainListRequest(null, "WEDDING", "Wedding"), Ct)).Value;
+        Assert.Equal("WEDDING", saved.Code);
+        Assert.Equal(9, (await _w.Queries.PlainListAsync(_w.PropertyId, FrontDeskMasterIds.Purposes, ct: Ct)).Total);
+        var v = (await _w.Commands.SaveVehicleTypeAsync(_w.Ctx("owner", FdmWorld.Key()), new SavePlainListRequest(null, "TEMPO", "Tempo traveller"), Ct)).Value;
+        var retired = await _w.Commands.RetireAsync(_w.Ctx("owner", FdmWorld.Key()), FrontDeskMasterIds.VehicleTypes, new FrontDeskRowRequest(v.RowId, v.Version), Ct);
+        Assert.Equal("TEMPO", retired.Value.Code);
+    }
+
+    private static async Task Expect403(Func<Task> action) => Assert.Equal(HccErrorCode.FORBIDDEN, (await Assert.ThrowsAsync<HccException>(action)).Code);
+
+    [Fact]
     public async Task Lists_read_their_defaults_with_negative_ids_until_the_first_change_and_mask_commission_without_money_visibility()
     {
         var hk = await _w.Queries.BookingSourcesAsync(_w.PropertyId, _w.Users["housekeeper"], ct: Ct);

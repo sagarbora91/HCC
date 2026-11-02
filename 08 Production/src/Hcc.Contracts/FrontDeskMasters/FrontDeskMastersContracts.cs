@@ -14,7 +14,10 @@ public static class FrontDeskMasterIds
     public const string NumberSeries = "numberSeries";
     public const string Policies = "policies";
 
-    public static readonly IReadOnlyList<string> All = [BookingSources, IdTypes, NumberSeries, Policies];
+    public const string Purposes = "purposes";           // LF A3
+    public const string VehicleTypes = "vehicleTypes";   // LF A4
+
+    public static readonly IReadOnlyList<string> All = [BookingSources, IdTypes, NumberSeries, Policies, Purposes, VehicleTypes];
 }
 
 /// <summary>A page of one list.</summary>
@@ -49,6 +52,12 @@ public sealed record SaveBookingSourceRequest(int? RowId, string Code, string Na
 /// <summary>SaveIdType K [V].</summary>
 public sealed record SaveIdTypeRequest(int? RowId, string Code, string Name, bool Accepted = true, bool NeedsPhoto = false, bool ForeignerOnly = false,
     int? SortOrder = null, string? ExpectedVersion = null);
+
+/// <summary>LF A3 purpose of visit / A4 vehicle type: a plain list (code + name). Usage = bookings using it.</summary>
+public sealed record PlainListView(int RowId, string Code, string Name, int SortOrder, bool Active, string? RetiredOn, int Usage, string UpdatedUtc, string Version);
+
+/// <summary>SavePurpose / SaveVehicleType K [V].</summary>
+public sealed record SavePlainListRequest(int? RowId, string Code, string Name, int? SortOrder = null, string? ExpectedVersion = null);
 
 /// <summary>SaveNumberSeries K [V] (Owner): a series that has issued documents keeps document, prefix, start, digits, reset and date.</summary>
 public sealed record SaveNumberSeriesRequest(int? RowId, string Code, string Name, string Document, string Prefix, int StartNo, int Padding, string Reset,

@@ -49,6 +49,7 @@ import {accountingFlows} from './accounting-flows'; // acc2-flows
 // LF-DESK
 // LF-DESK end
 // LF-ALERTS
+import {reminders} from './reminders';
 // LF-ALERTS end
 // LF-IMAGES
 // LF-IMAGES end
@@ -142,6 +143,7 @@ export const AREAS:SyncArea[]=[
   // LF-DESK
   // LF-DESK end
   // LF-ALERTS
+  reminders,
   // LF-ALERTS end
   // LF-IMAGES
   // LF-IMAGES end

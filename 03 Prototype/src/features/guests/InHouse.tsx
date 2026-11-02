@@ -3,7 +3,7 @@ import React,{useState} from 'react';
 import {bookingRef} from '../../domain/bookingRef';
 import {ArrowRight,Info,AlertCircle,Printer,MoveRight,CalendarPlus,LogOut} from 'lucide-react';
 import {useHcc} from '../../app/context';
-import {Booking,money,nights,totals,guestForBooking,guestView,staySegments,staySegmentLabel,stayInHouse,stayMoveAlternatives,stayDepartureBounds,stayCanExtend,available,occupant,plural,rmsRoomLine,rmsTypeName,mstFloorLabel} from '../../services/mock';
+import {stayDueOut,deskBasis,deskVehicleMatches,Booking,money,nights,totals,guestForBooking,guestView,staySegments,staySegmentLabel,stayInHouse,stayMoveAlternatives,stayDepartureBounds,stayCanExtend,available,occupant,plural,rmsRoomLine,rmsTypeName,mstFloorLabel} from '../../services/mock';
 import {Pill,Empty,shortDate,SearchBox} from '../../components/ui';
 import {FitPage,ScrollPanel,SplitView,FitNote,useWideSplit} from '../../components/fit';
 import {PrintListButton} from './FrontDeskList';
@@ -45,17 +45,17 @@ export function StayDetailModal({id}:{id?:string}){
 /** Page 'inhouse': list of in-house stays with detail panel. */
 export function InHousePage(){
   const {s,search,setSearch}=useHcc();const all=stayInHouse(s);
-  const list=all.filter(b=>`${b.guest} ${bookingRef(b)} ${b.room} ${staySegments(b).map(x=>x.room).join(' ')}`.toLowerCase().includes(search.toLowerCase()));
+  const list=all.filter(b=>`${b.guest} ${bookingRef(b)} ${b.room} ${staySegments(b).map(x=>x.room).join(' ')}`.toLowerCase().includes(search.toLowerCase())||deskVehicleMatches(b,search)); // LF-DESK: vehicle number
   const wide=useWideSplit();
   const [sel,setSel]=useState('');const b=list.find(x=>x.id===sel)||(wide?list[0]:undefined);
   // FIT (contract §6 'inhouse' = fill; the stay record sits beside the list as a split, slide-over below 900 px).
   const listPanel=<ScrollPanel title="Stays" label="In-house stays" actions={<span className="muted">{list.length} shown</span>}>
     {list.length?<ul className="gs-list">{list.map(x=>{const due=x.departure<=s.date;return <li key={x.id}><button className={'gs-list-item '+(b?.id===x.id?'active':'')} aria-pressed={b?.id===x.id} onClick={()=>setSel(x.id)}>
-      <span className="room-number">{x.room}</span><span className="gs-list-main"><strong>{x.guest}</strong><small>{bookingRef(x)} · {staySegmentLabel(x)}</small></span>
-      <span className="gs-list-tags">{due?<Pill tone="orange">Departure due</Pill>:<Pill tone="blue">to {shortDate(x.departure)}</Pill>}<span className="number">Balance {money(totals(x).balance)}</span></span></button></li>;})}</ul>
+      <span className="room-number">{x.room}</span><span className="gs-list-main"><strong>{x.guest}</strong><small>{bookingRef(x)} · {staySegmentLabel(x)}{x.vehicle?' · '+x.vehicle.no:''}</small></span>
+      <span className="gs-list-tags">{due?<Pill tone="orange">Departure due</Pill>:<Pill tone="blue">to {shortDate(x.departure)}</Pill>}<span className="ld-due" title="Due-out time">due {stayDueOut(s,x).slice(11,16)}{deskBasis(s,x)==='24h'?' · 24 h':''}</span><span className="number">Balance {money(totals(x).balance)}</span></span></button></li>;})}</ul>
     :<Empty title="No matching stays" body="Try another guest, room or booking."/>}</ScrollPanel>;
   return <FitPage title="In-house stays" sub={`${all.length} stay${all.length===1?'':'s'} in house · business date ${shortDate(s.date)}`} actions={<PrintListButton kind="inhouse"/>} layout="split"
-      toolbar={<SearchBox value={search} onChange={setSearch} placeholder="Search guest, room or booking…"/>}>
+      toolbar={<SearchBox value={search} onChange={setSearch} placeholder="Search guest, room, booking or vehicle…"/>}>
     {!all.length?<ScrollPanel label="In-house stays"><Empty title="No guests in house" body="Check in an arrival from Arrivals & check-in."/></ScrollPanel>:
     <SplitView label="In-house stays" ratio="2fr 3fr" onCloseDetail={()=>setSel('')} list={listPanel} detail={b?<div className="padded"><StayDetail b={b}/></div>:null}
       empty={<Empty title="Pick a stay" body="Its room segments, occupants, folio summary and actions open here."/>}/>}

@@ -94,8 +94,11 @@ export * from '../../domain/streams/counter';
 export {customerKeyForCredit} from '../../domain/streams/customers';
 // LF-COUNTER end
 // LF-DESK
+export * from '../../domain/streams/desk-fields';
 // LF-DESK end
 // LF-ALERTS
+export * from '../../domain/streams/reminders';
+export * from '../../app/shortcuts';
 // LF-ALERTS end
 // LF-IMAGES
 export * from '../../domain/streams/printnotes'; // LF-images B6: which branding text prints on which document

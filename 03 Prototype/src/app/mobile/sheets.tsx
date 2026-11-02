@@ -1,7 +1,7 @@
 // Mobile sheets for the demo controls (M24, collapsed DEMO pill) and the user menu (profile: change my password / PIN, display mode,
 // sign out; demo: switch user). The user menu is also the desktop profile dialog (top-bar name chip).
 import React from 'react';
-import {Layers,Users,RotateCcw,BookOpen,LogOut,Smartphone,FlaskConical,ArrowRight,KeyRound} from 'lucide-react';
+import {Layers,Users,RotateCcw,BookOpen,LogOut,Smartphone,FlaskConical,ArrowRight,KeyRound,Keyboard} from 'lucide-react';
 import {useHcc} from '../context';
 import {scenarios} from '../../services/mock';
 import {faultModes,FaultMode} from '../../services/mock/faults';
@@ -40,6 +40,7 @@ export function UserMenuSheet(){
       <button type="button" className="btn full mo-btn" onClick={()=>open({type:'own-credential'})}><KeyRound size={18}/>Change my {word}</button>
       {!prod&&<UserSelect/>}
       <div><span className="m-field-label"><Smartphone size={15}/> Display mode (this device only)</span><DisplayToggle display={display}/></div>
-      <PrefsQuickSheet/></div>
+      <PrefsQuickSheet/>
+      {!display.isMobile&&<button type="button" className="btn full mo-btn" onClick={()=>open({type:'shortcuts'})}><Keyboard size={18}/>Keyboard shortcuts</button>/* LF-ALERTS · A8 */}</div>
     <div className="modal-actions"><button className="btn" onClick={signOut}><LogOut size={18}/>Sign out</button></div></>;
 }

@@ -14,8 +14,11 @@ namespace Hcc.Application.Billing;
 /// also executes an approved company credit (DEC-041) so the credit and the departure commit or roll back together.
 /// The actor is the command's own context (session principal), never the request body.
 /// </summary>
-public sealed class BillingStayFolioPort(IBillingStore store, BillingService billing) : IStayFolioPort
+public sealed class BillingStayFolioPort(IBillingStore store, BillingService billing) : IStayFolioPort, ILateCheckoutPoster
 {
+    public Task PostAsync(ICommandTransaction tx, long folioId, DateOnly businessDate, long nightRatePaise, long amountPaise, string label, CancellationToken ct = default) =>
+        billing.PostLateCheckoutAsync(tx, new Caller(tx.Context.PropertyId, tx.Context.PrincipalId), folioId, businessDate, nightRatePaise, amountPaise, label, ct); // LF A6
+
     public Task<long> EnsureFolioAsync(ICommandTransaction tx, long reservationId, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(tx);

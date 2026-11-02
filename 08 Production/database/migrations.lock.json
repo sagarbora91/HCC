@@ -58,7 +58,16 @@
     {"version": 4691, "file": "4691_udhaar_guest_credit_link.sql", "reason": "F3 LF lanes: contract-assigned ranges 4660-4707 (LF-CONTRACT), merged in wave order"},
     {"version": 4692, "file": "4692_guest_credit_rbac_seed.sql", "reason": "F3 LF lanes: contract-assigned ranges 4660-4707 (LF-CONTRACT), merged in wave order"},
     {"version": 4693, "file": "4693_receipt_kind_guest_credit.sql", "reason": "F3 LF lanes: contract-assigned ranges 4660-4707 (LF-CONTRACT), merged in wave order"},
-    {"version": 4694, "file": "4694_guest_credit_account.sql", "reason": "F3 LF lanes: contract-assigned ranges 4660-4707 (LF-CONTRACT), merged in wave order"}
+    {"version": 4694, "file": "4694_guest_credit_account.sql", "reason": "F3 LF lanes: contract-assigned ranges 4660-4707 (LF-CONTRACT), merged in wave order"},
+    {"version": 4695, "file": "4695_desk_purpose.sql", "reason": "F3 LF lanes: contract-assigned ranges (LF-CONTRACT), merged in wave order"},
+    {"version": 4696, "file": "4696_desk_vehicle.sql", "reason": "F3 LF lanes: contract-assigned ranges (LF-CONTRACT), merged in wave order"},
+    {"version": 4697, "file": "4697_desk_form_c.sql", "reason": "F3 LF lanes: contract-assigned ranges (LF-CONTRACT), merged in wave order"},
+    {"version": 4698, "file": "4698_desk_checkout_basis.sql", "reason": "F3 LF lanes: contract-assigned ranges (LF-CONTRACT), merged in wave order"},
+    {"version": 4699, "file": "4699_desk_late_decision.sql", "reason": "F3 LF lanes: contract-assigned ranges (LF-CONTRACT), merged in wave order"},
+    {"version": 4700, "file": "4700_desk_import_masters.sql", "reason": "F3 LF lanes: contract-assigned ranges (LF-CONTRACT), merged in wave order"},
+    {"version": 4703, "file": "4703_alerts_wake_at.sql", "reason": "F3 LF lanes: contract-assigned ranges (LF-CONTRACT), merged in wave order"},
+    {"version": 4704, "file": "4704_alerts_reminder.sql", "reason": "F3 LF lanes: contract-assigned ranges (LF-CONTRACT), merged in wave order"},
+    {"version": 4705, "file": "4705_alerts_rbac_seed.sql", "reason": "F3 LF lanes: contract-assigned ranges (LF-CONTRACT), merged in wave order"}
   ],
   "migrations": [
     {"version": 1, "file": "0001_platform.sql", "sha256": "2CB8FB349156F501295E1148366BDFE406EC097C136093F09C6F0817542F46CC"},
@@ -221,6 +230,15 @@
     {"version": 4691, "file": "4691_udhaar_guest_credit_link.sql", "sha256": "0362718AFD92CDA32C6A9206BBB0E44FA6036354C33AD48907D6BED6EFADA89C"},
     {"version": 4692, "file": "4692_guest_credit_rbac_seed.sql", "sha256": "95440691AB23FBD16E040EF140E8855E3E0E0A9D58F4E46744664D52E3C7AA0A"},
     {"version": 4693, "file": "4693_receipt_kind_guest_credit.sql", "sha256": "4F5070806F7BB0DDCA20EB43C8D043254AEF335B506C6F6F9656CDD648B55DB7"},
-    {"version": 4694, "file": "4694_guest_credit_account.sql", "sha256": "85B3FCD5E62FB999F37EC407BBB8A976654F91EA1C7E96F9E9F2F941AD644A64"}
+    {"version": 4694, "file": "4694_guest_credit_account.sql", "sha256": "85B3FCD5E62FB999F37EC407BBB8A976654F91EA1C7E96F9E9F2F941AD644A64"},
+    {"version": 4695, "file": "4695_desk_purpose.sql", "sha256": "18D283C5E9A1D5E0E09333EE6D9F7D23F3A6AE59EACF60FFBA1A7F3C6AF2B949"},
+    {"version": 4696, "file": "4696_desk_vehicle.sql", "sha256": "78BE3B610AD2535BC1A2F278B6105FDE4F4C01994D57748419A4AE78718D8F54"},
+    {"version": 4697, "file": "4697_desk_form_c.sql", "sha256": "7BEF2BE1AD382407243F57B5A20E471531840FEDAA3BFA103DD8DBB2EF7B4E01"},
+    {"version": 4698, "file": "4698_desk_checkout_basis.sql", "sha256": "4C49C5607E6169648AAA8C967253F9DBCDDB2C9BF05D23A1B11D4A07C420DAEC"},
+    {"version": 4699, "file": "4699_desk_late_decision.sql", "sha256": "C3A11EABDD3BFAAA14FAC7820EB070A682E0B842D2CC16BE70C09D0BA04BE293"},
+    {"version": 4700, "file": "4700_desk_import_masters.sql", "sha256": "3DC7F6A4716005DDDABC54C8C8DA35F751D3715CF1FC30DB36D6BEF8F5F3A8B6"},
+    {"version": 4703, "file": "4703_alerts_wake_at.sql", "sha256": "392461A77CAF0D629CE63B17DEA3E0C4B7DF279D7336650C2BFD916D911F8AAC"},
+    {"version": 4704, "file": "4704_alerts_reminder.sql", "sha256": "91A75868DCDF51FBE6A8A1A5F2574CA22674E7A59160B5E6F7884FFE4BAB25F8"},
+    {"version": 4705, "file": "4705_alerts_rbac_seed.sql", "sha256": "BBD18B4626DDE6BB700C0638856BF80BBB6C87667E03EB9F93A4D431CFCB887D"}
   ]
 }

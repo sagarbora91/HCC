@@ -406,3 +406,33 @@ registerMaster(FDM_SERIES_SPEC);
 registerMaster(FDM_POLICY_SPEC);
 /** The four MA-5 specs (tests and the sync layer). */
 export const fdmSpecs=()=>[FDM_SOURCES,FDM_ID_TYPES,FDM_SERIES,FDM_POLICIES].map(id=>mstSpec(id)!);
+
+// LF-DESK · A3 Purposes of visit, A4 Vehicle types (LF contract §8.1, §8.2). Two plain lists (code + name), Owner / Tech admin (DEC-MA-1).
+export const FDM_PURPOSES='purposes',FDM_VEHICLE_TYPES='vehicleTypes';
+export const FDM_PURPOSE_SPEC:MasterSpec={
+  id:FDM_PURPOSES,label:'Purposes of visit',singular:'purpose of visit',group:'frontdesk',prefix:'PUR',money:false,permission:'masters',
+  help:'Why the guest is staying: asked at booking, required at check-in when “Purpose of visit required” is on, printed on the registration card.',
+  fields:[
+    {key:'code',label:'Code',type:'text',required:true,maxLength:20,placeholder:'BUSINESS'},
+    {key:'name',label:'Name',type:'text',required:true,maxLength:60,placeholder:'Business'},
+    {key:'sortOrder',label:'Sort order',type:'number',min:0,max:1_000_000},
+    {key:'active',label:'Active',type:'toggle'},
+  ],
+  inUse:(s,row)=>{const n=s.bookings.filter(b=>b.purpose===row.code).length;return {count:n,where:n?[`Bookings ${n}`]:[]};},
+  seed:s=>mastersSeed(FDM_PURPOSES,s),
+};
+export const FDM_VEHICLE_TYPE_SPEC:MasterSpec={
+  id:FDM_VEHICLE_TYPES,label:'Vehicle types',singular:'vehicle type',group:'frontdesk',prefix:'VTY',money:false,permission:'masters',
+  help:'Offered beside the vehicle number at booking and check-in (car, bike, taxi, bus …).',
+  fields:[
+    {key:'code',label:'Code',type:'text',required:true,maxLength:20,placeholder:'CAR'},
+    {key:'name',label:'Name',type:'text',required:true,maxLength:60,placeholder:'Car'},
+    {key:'sortOrder',label:'Sort order',type:'number',min:0,max:1_000_000},
+    {key:'active',label:'Active',type:'toggle'},
+  ],
+  inUse:(s,row)=>{const n=s.bookings.filter(b=>lc(b.vehicle?.type)===lc(row.name)).length;return {count:n,where:n?[`Bookings ${n}`]:[]};},
+  seed:s=>mastersSeed(FDM_VEHICLE_TYPES,s),
+};
+registerMaster(FDM_PURPOSE_SPEC);
+registerMaster(FDM_VEHICLE_TYPE_SPEC);
+// LF-DESK end

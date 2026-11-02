@@ -36,15 +36,23 @@ const GSV_REQUEST_CREATE:Handler=k=>{
   const priority=cmd.priority==='Urgent'?'Urgent':'Normal';
   const detail=txt(cmd.detail);assert(detail.length<=160,'Keep the detail under 160 characters.');
   assert(type!=='Other'||detail.length>=3,'Describe the request.');
-  let scheduledFor:string|undefined,dueAt:string;
+  let scheduledFor:string|undefined,dueAt:string,wakeAt:string|undefined; // wakeAt: LF-ALERTS
   if(type==='Wake-up call'){
     assert(/^([01]\d|2[0-3]):[0-5]\d$/.test(txt(cmd.time)),'Enter the wake-up time as HH:mm.');
     scheduledFor=s.date+'T'+txt(cmd.time);if(scheduledFor<=s.clock)scheduledFor=addDays(s.date,1)+'T'+txt(cmd.time);
+    // LF-ALERTS · B3 an explicit wakeAt (clock YYYY-MM-DDTHH:mm): today or tomorrow, after the clock; the SLA clock starts at the wake-up time
+    if(cmd.wakeAt!==undefined&&txt(cmd.wakeAt)){
+      const w=txt(cmd.wakeAt);assert(/^\d{4}-\d{2}-\d{2}T([01]\d|2[0-3]):[0-5]\d$/.test(w),'Enter the wake-up time as YYYY-MM-DDTHH:mm.');
+      assert(w.slice(0,10)===s.date||w.slice(0,10)===addDays(s.date,1),'A wake-up call can be set for today or tomorrow only.');
+      assert(w>s.clock,'The wake-up time must be after the current time.');scheduledFor=w;
+    }
+    wakeAt=scheduledFor;
+    // LF-ALERTS end
     dueAt=gsvAddMinutes(scheduledFor,gsvSlaMinutes(s,type,priority));
   }else dueAt=gsvAddMinutes(s.clock,gsvSlaMinutes(s,type,priority));
   if(cmd.assignee)checkAssignee(k,dept,cmd.assignee);
   const r:GSVRequest=clean({id:id('SR'),booking:x.id,room:x.room,guest:x.guest,type,detail,dept,assignee:cmd.assignee||undefined,priority,
-    status:cmd.assignee?'Assigned':'Open',createdAt:s.clock,dueAt,scheduledFor,by:k.uid,log:[log(k,'Logged'+(cmd.assignee?' · assigned to '+name(s,cmd.assignee):''))]} as GSVRequest);
+    status:cmd.assignee?'Assigned':'Open',createdAt:s.clock,dueAt,scheduledFor,wakeAt,by:k.uid,log:[log(k,'Logged'+(cmd.assignee?' · assigned to '+name(s,cmd.assignee):''))]} as GSVRequest);
   gsvEnsure(s).requests.push(r);
   return `${r.id} · room ${r.room} · ${type} · ${dept} · due ${dueAt.slice(11,16)}`;
 };
@@ -218,6 +226,17 @@ const GSV_SETTINGS:Handler=k=>{
   return `Guest-service settings · retention ${retentionDays}/${valuableRetentionDays} days`;
 };
 
-export const handlers:Record<string,Handler>={GSV_REQUEST_CREATE,GSV_REQUEST_ASSIGN,GSV_REQUEST_START,GSV_REQUEST_COMPLETE,GSV_REQUEST_CANCEL,
+// LF-ALERTS · B3 snooze a wake-up call by 5 minutes (audited): wakeAt, the schedule and the SLA move together. {id}
+const GSV_WAKE_SNOOZE:Handler=k=>{
+  const {s,assert}=k;k.req('reservations');const r=findRequest(k);
+  assert(r.type==='Wake-up call'&&r.wakeAt,'Only a wake-up call can be snoozed.','INVALID_TRANSITION');
+  assert(gsvIsOpen(r),'This request is already finished.','INVALID_TRANSITION');
+  const from=r.wakeAt!>s.clock?r.wakeAt!:s.clock,to=gsvAddMinutes(from,5);
+  const was=r.wakeAt!;r.wakeAt=to;r.scheduledFor=to;r.dueAt=gsvAddMinutes(to,gsvSlaMinutes(s,r.type,r.priority));
+  r.log.push(log(k,`Snoozed 5 minutes · ${was.slice(11,16)} → ${to.slice(11,16)}`));
+  return `${r.id} · room ${r.room} · wake-up snoozed to ${to.slice(11,16)}`;
+};
+// LF-ALERTS end
+export const handlers:Record<string,Handler>={GSV_WAKE_SNOOZE,GSV_REQUEST_CREATE,GSV_REQUEST_ASSIGN,GSV_REQUEST_START,GSV_REQUEST_COMPLETE,GSV_REQUEST_CANCEL,
   GSV_COMPLAINT_LOG,GSV_COMPLAINT_UPDATE,GSV_COMPLAINT_RESOLVE,GSV_COMPLAINT_RECOVERY,GSV_COMPLAINT_FOLLOWUP,
   GSV_LF_LOG,GSV_LF_CLAIM,GSV_LF_HANDOVER,GSV_LF_DISPOSE,GSV_SETTINGS};

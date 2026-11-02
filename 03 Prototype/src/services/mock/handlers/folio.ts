@@ -2,6 +2,7 @@
 // COMPANY_CREDIT_REQUEST, CORRECTION_REQUEST, CREDIT_NOTE). Replaces the built-in versions of the owned commands;
 // existing error message texts are kept (tests match on them).
 import type {Handler,Kit} from '../commands';
+import {deskCheckoutLate} from './desk'; // LF-DESK
 import type {Approval,Booking,Receipt} from '../../../domain/types';
 import {money,addDays} from '../../../domain/money';
 import {totals} from '../../../domain/selectors';
@@ -313,8 +314,9 @@ const CHECKOUT:Handler=k=>{
   req('checkout');open();const x=b();assert(x.status==='In house','This stay is not in house.','INVALID_TRANSITION');
   for(let d=x.arrival;d<x.departure;d=addDays(d,1))assert(x.lines.some(l=>l.kind==='room'&&l.date===d),'Post all agreed stay charges before checkout.','INVALID_TRANSITION');
   // LF-DESK · CHECKOUT late check-out (half-day / full-night / waived, §8.4)
+  const lateNote=deskCheckoutLate(k,x);
   // LF-DESK end
-  let detail='';
+  let detail=lateNote;
   const bal=totals(x).balance;
   if(bal>0){
     // Approved company credit for exactly this balance and folio version settles the folio to a receivable (AC-008).

@@ -178,9 +178,9 @@ public sealed class SqlGuestServicesStore(SqlConnectionFactory connections) : IG
     {
         ArgumentNullException.ThrowIfNull(request);
         await using var cmd = Sql(tx).Command("""
-            INSERT ops.guest_request(property_id, stay_id, room_id, guest_name, request_type, detail, dept, assignee_id, priority, status, created_utc, due_utc, scheduled_utc, created_by)
+            INSERT ops.guest_request(property_id, stay_id, room_id, guest_name, request_type, detail, dept, assignee_id, priority, status, created_utc, due_utc, scheduled_utc, created_by, wake_at_utc)
             OUTPUT INSERTED.request_id
-            VALUES (@p, @s, @room, @g, @t, @d, @dept, @a, @prio, @st, @c, @due, @sch, @by);
+            VALUES (@p, @s, @room, @g, @t, @d, @dept, @a, @prio, @st, @c, @due, @sch, @by, CASE WHEN @t = 'Wake-up call' THEN CONVERT(DATETIME2(0), @sch) END); -- LF-ALERTS B3 (4703): the wake-up time the desk alert reads
             """);
         P(cmd, "@p", SqlDbType.Int, request.PropertyId);
         P(cmd, "@s", SqlDbType.BigInt, request.Stay.StayId);

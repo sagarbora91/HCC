@@ -156,7 +156,7 @@ export async function register({test,assert,M}){
   srv.reset();
   const out=await rt.run({type:'CHECKOUT',id:'1303',key:'checkout:1303'});const outCall=srv.commands('CheckoutStay')[0];
   test('[W4-1 commands] CHECKOUT → CheckoutStay (stay id + stay version from the load)',()=>{
-    assert.ok(out.ok,out.text);assert.deepEqual(outCall.body,{stayId:55,expectedVersion:'S55f'});assert.equal(outCall.key,'checkout:1303');
+    assert.ok(out.ok,out.text);assert.deepEqual(outCall.body,{stayId:55,desk:true,expectedVersion:'S55f'});assert.equal(outCall.key,'checkout:1303');
     assert.equal(rt.get().state.bookings.find(b=>b.id==='1303').status,'Departed');
   });
 

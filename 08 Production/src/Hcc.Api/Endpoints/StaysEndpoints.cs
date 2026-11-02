@@ -18,6 +18,12 @@ public static class StaysEndpoints
         services.AddSingleton<IStaysStore, SqlStaysStore>();
         services.AddSingleton<IStayFolioPort, BillingStayFolioPort>(); // P4 folio rules (checkout settlement, company credit)
         services.AddSingleton<IStaysReadStore>(sp => new SqlStaysReadStore(sp.GetRequiredService<SqlPlatform>().Connections));
+        // LF-DESK: purpose / vehicle / Form C / check-out basis / late check-out (migrations 4695–4699), the six Front-desk settings, the folio poster
+        services.AddSingleton<Hcc.Application.Configuration.ISettingsProvider>(StaysSettings.Provider);
+        services.AddSingleton<IDeskFieldStore>(sp => new Hcc.Infrastructure.SqlServer.Stays.SqlDeskFieldStore(sp.GetRequiredService<SqlPlatform>().Connections));
+        services.AddSingleton<ILateCheckoutPoster>(sp => (Hcc.Application.Billing.BillingStayFolioPort)sp.GetRequiredService<IStayFolioPort>());
+        services.AddSingleton(sp => new DeskFieldService(sp.GetRequiredService<IDeskFieldStore>(), sp.GetService<Hcc.Application.Configuration.ISettingsReader>(),
+            sp.GetRequiredService<Hcc.Application.Access.IAccessPolicy>(), sp.GetService<ILateCheckoutPoster>()));
         services.AddSingleton<StaysCommands>();
         services.AddSingleton<IStayChangeStore, SqlStayChangeStore>();   // W3-7 room move / extend / shorten / early departure
         services.AddSingleton<IStayNightPricer, InventoryStayNightPricer>();
@@ -32,6 +38,15 @@ public static class StaysEndpoints
         var g = api.MapHccSecured();
         g.MapPost("/commands/" + StaysCommands.OpRegisterGuest, async (HttpContext http, RegisterGuestRequest body, StaysCommands cmds, CancellationToken ct) =>
             http.HccReply(await cmds.RegisterGuestAsync(http.HccCommand(StaysCommands.OpRegisterGuest), body, ct)));
+        g.MapPost("/commands/" + StaysCommands.OpPostLateCheckoutCharge, async (HttpContext http, LateCheckoutChargeRequest body, StaysCommands cmds, CancellationToken ct) =>
+            http.HccReply(await cmds.PostLateCheckoutChargeAsync(http.HccCommand(StaysCommands.OpPostLateCheckoutCharge), body, ct)));
+        g.MapPost("/commands/" + StaysCommands.OpSaveStayFormC, async (HttpContext http, SaveStayFormCRequest body, StaysCommands cmds, CancellationToken ct) =>
+            http.HccReply(await cmds.SaveStayFormCAsync(http.HccCommand(StaysCommands.OpSaveStayFormC), body, ct)));
+        g.MapGet("/stays/form-c", async (HttpContext http, DeskFieldService desk, CancellationToken ct, string? from = null, string? to = null) =>
+        {
+            var (p, u) = http.HccActor();
+            return Results.Ok(await desk.RegisterAsync(p, u, from, to, ct));
+        });
         g.MapPost("/commands/" + StaysCommands.OpCheckIn, async (HttpContext http, CheckInRequest body, StaysCommands cmds, CancellationToken ct) =>
             http.HccReply(await cmds.CheckInAsync(http.HccCommand(StaysCommands.OpCheckIn), body, ct)));
         g.MapPost("/commands/" + StaysCommands.OpCheckoutStay, async (HttpContext http, CheckoutStayRequest body, StaysCommands cmds, CancellationToken ct) =>

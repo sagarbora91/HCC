@@ -29,6 +29,8 @@ import {ADMIN_SETTINGS,adminSettingValue,adminUserActive,authorize,type AdminSet
 import {yldSlice,yldPct,YLD_ROUND_OPTIONS} from './yield';
 import {aiDirtyHours} from './assistant';
 import {gsvSettings,GSV_REQUEST_TYPES} from './services';
+import {deskSettingDefs} from './desk-fields'; // LF-DESK
+import {rmdSettingDefs} from './reminders'; // LF-ALERTS
 import {posSlice} from './pos';
 import {hrRatesFor,hrRatesDefaultFrom,hrMonthLabel,hrSettingDefs,hrSettingValue,hrLeavePolicy,type HRRates,type HRSettingDef} from './staff';
 import {cmpSettingDefs,type CMPSettingDef} from './compliance';
@@ -473,6 +475,8 @@ function builtins(){
     {key:'fd.idRequired',label:'ID documents required',type:'choice',options:['Lead guest only','Every adult guest'],default:'Every adult guest',unit:'choice',help:'Fictional ID metadata only in the prototype.',affects:'Registrations from now on.'},
     {key:'fd.noShowTime',label:'No-show cut-off',type:'time',default:'23:00',unit:'HH:mm (IST)',effective:'nextDay',help:'Confirmed arrivals not checked in by this time may be marked no-show.',affects:'Arrivals from the next business day.'},
   ]});
+  registerSettingsGroup({id:'lf-alerts',group:'frontdesk',defs:rmdSettingDefs}); // LF-ALERTS (contract §9.2)
+  registerSettingsGroup({id:'lf-desk',group:'frontdesk',defs:deskSettingDefs}); // LF-DESK (contract §8): purpose, Form C, check-out basis, grace, half day
   registerSettingsGroup({id:'gsv-sla',group:'frontdesk',defs:()=>[
     ...GSV_REQUEST_TYPES.map(t=>({key:'gsv.sla.'+t,label:'Guest request SLA · '+t,type:'integer' as const,min:5,max:480,suffix:'min',unit:'minutes',help:'Guest Services marks requests late after this.',
       read:(s:State)=>gsvSettings(s).sla[t],command:(_s:State,v:unknown)=>({type:'GSV_SETTINGS',sla:{[t]:v}}),affects:'Open and new guest requests are timed against the new SLA.'})),

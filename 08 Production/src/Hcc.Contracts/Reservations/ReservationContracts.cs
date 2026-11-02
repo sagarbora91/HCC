@@ -31,7 +31,8 @@ public sealed record ReservationCompany(string Name, string? Gstin, long? Compan
 /// group pickup (no global hold exemption). <c>RestrictionOverride</c> = reason; needs the approve permission (DEC-053).
 /// </summary>
 public sealed record CreateReservationRequest(long QuoteId, string QuoteVersion, GuestInput Guest, int RoomId, bool Hold = false,
-    string? RestrictionOverride = null, long? GroupBlockId = null, string? Source = null, string? Notes = null, CompanyInput? Company = null);
+    string? RestrictionOverride = null, long? GroupBlockId = null, string? Source = null, string? Notes = null, CompanyInput? Company = null,
+    string? PurposeCode = null, string? VehicleNo = null, string? VehicleType = null, string? CheckoutBasis = null);   // LF A3, A4, A6
 
 public sealed record ReservationResult(long ReservationId, string PublicNo, string Version, string Status, string? HoldUntil);
 
