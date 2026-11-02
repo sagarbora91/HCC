@@ -49,3 +49,8 @@ export function acc4Stamp<T extends {rows:unknown[][];freeze?:number}>(s:State,d
     return {...t,rows,...(typeof t.freeze==='number'?{freeze:t.freeze+1}:{})};
   });
 }
+
+/** F5-int (ACC4-CONTRACT §1.2): a CSV (trial balance, day book, statement, vouchers) of a reopened year — or the year after — starts with "PROVISIONAL — year reopened". */
+export function acc4StampCsv(s:State,dates:string[],csv:string):string{
+  return dates.some(d=>accYearProvisional(s,d))?ACC_PROVISIONAL_TEXT+'\r\n'+csv:csv;
+}

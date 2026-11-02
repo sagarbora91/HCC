@@ -10,6 +10,7 @@ import {ChnPill,ChnSimulated,stay,party} from './shared';
 import {PayoutsTab} from './payout';
 import {seesVendorBooks} from '../accounting/shared';
 import {chnTabFor,usePushChannel,StopSellToggle,type ChnTab} from './Channels';
+import {NetBanner} from '../admin/InternetPanel'; // F5-int: OTA off banner on the phone
 
 const pl=(n:number,w:string)=>`${n} ${w}${n===1?'':'s'}`;
 export function ChannelsMobile(){
@@ -18,6 +19,7 @@ export function ChannelsMobile(){
   const [ch,setCh]=usePushChannel();const pc=st.channels.find(c=>c.id===ch);
   return <div className="chn-m">
     <ChnSimulated text="Simulated channel manager — fictional OTAs, nothing is sent."/>
+    <NetBanner kind="ota"/>
     <ChipFilter<ChnTab> label="Channels view" value={t} onChange={v=>setTab(v)} options={[{id:'inbox',label:'Inbox',count:pend.length},{id:'channels',label:'Channels'},{id:'push',label:'Push'},...(hidden?[]:[{id:'commission' as const,label:'Commission'}]),...(po?[{id:'payouts' as const,label:'Payouts'}]:[])]}/>
     {t==='inbox'&&<>
       {pend.map(m=>{const c=chnAcceptCheck(s,m);return <ListCard key={m.id} onClick={()=>open({type:'chn-message',id:m.id})}

@@ -60,6 +60,8 @@ public static class AccountingEndpoints
         g.MapGet("/accounting/export/csv", async (DateOnly from, DateOnly to, HttpContext http, AccountingQueries q, CancellationToken ct) =>
         {
             var (name, csv) = await q.CsvAsync(http.HccCaller(), from, to, ct).ConfigureAwait(false);
+            if (await AccountingExportEndpoints.YearProvisionalAsync(http.RequestServices, http.HccCaller().PropertyId, from, to, ct).ConfigureAwait(false))
+                csv = Hcc.Application.Accounting.YearLockRules.ProvisionalText + "\r\n" + csv; // F5-int: ACC-4 §1.2 reopened year
             return Results.File(System.Text.Encoding.UTF8.GetBytes(csv), "text/csv; charset=utf-8", name);
         });
         g.MapGet("/accounting/export/tally", async (DateOnly from, DateOnly to, HttpContext http, AccountingQueries q, CancellationToken ct)

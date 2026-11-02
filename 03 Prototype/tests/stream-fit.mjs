@@ -98,7 +98,8 @@ export async function register({test,M,assert}){
     const FROM_MAIN=new Set(['03 Prototype/src/styles/m-keys.css','03 Prototype/src/app/mobile/MobileShell.tsx',
       '03 Prototype/src/app/mobile/sheets.tsx','03 Prototype/src/features/alerts/Mobile.tsx','03 Prototype/src/mobile/frontdesk/Arrivals.tsx','03 Prototype/src/mobile/admin/SystemHealth.tsx','03 Prototype/src/features/lfmoney/Mobile.tsx',
       '03 Prototype/src/features/accounting/Mobile.tsx','03 Prototype/src/mobile/admin/Settings.tsx',
-      '03 Prototype/src/features/tariffcard/TariffCardMobile.tsx','03 Prototype/src/styles/m-f4.css']);   // F4-T1: tariff card phone cards + its sheet (new feature, not FIT)
+      '03 Prototype/src/features/tariffcard/TariffCardMobile.tsx','03 Prototype/src/styles/m-f4.css',
+      '03 Prototype/src/features/channels/ChannelsMobile.tsx']);   // F5-int: phone OTA banner   // F4-T1: tariff card phone cards + its sheet (new feature, not FIT)
     const bad=out.split('\n').map(s=>s.trim()).filter(Boolean).filter(phone).filter(f=>!FROM_MAIN.has(f));
     assert.deepEqual(bad,[],'phone-layout files changed since '+FIT_BASE);
   });
