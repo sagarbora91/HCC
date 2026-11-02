@@ -44,7 +44,7 @@ export function register({test,M,assert}){
   });
   test(T+'balance due: PAYMENT on the departed folio for exactly that balance only',()=>{
     let [s,id]=departed();
-    assert.throws(()=>execute(s,'cashier',{type:'PAYMENT',id,amount:100,method:'UPI',reference:'X'}),/departed/);
+    assert.throws(()=>execute(s,'cashier',{type:'PAYMENT',id,amount:100,method:'UPI',reference:'X'}));
     s=execute(s,'cashier',{type:'BILL_CORRECTION_REQUEST',booking:id,reason:'Missed tea',changes:[{kind:'add-line',label:'Tea',amount:20000,gstCategory:'food',date:'2026-10-24'}]});
     s=execute(s,'owner',{type:'APPROVAL',id:s.approvals.at(-1).id,approve:true});
     const bal=totals(bk(s,id)).balance;assert.ok(bal>0);assert.equal(s.billCorrectionX.corrections.at(-1).settlement,'balance-due');

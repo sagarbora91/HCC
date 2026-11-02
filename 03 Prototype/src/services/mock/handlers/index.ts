@@ -50,6 +50,7 @@ import {handlers as stayRate} from './stay-rate';
 import {handlers as billCorrection} from './bill-correction';
 // LF-BILL end
 // LF-COUNTER
+import {handlers as counter} from './counter';
 // LF-COUNTER end
 // LF-DESK
 // LF-DESK end
@@ -70,6 +71,7 @@ const LF:Record<string,Handler>={ // LF lanes: spread your handlers inside your 
   ...billCorrection,
   // LF-BILL end
   // LF-COUNTER
+  ...counter,
   // LF-COUNTER end
   // LF-DESK
   // LF-DESK end

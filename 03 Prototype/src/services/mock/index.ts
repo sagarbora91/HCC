@@ -89,6 +89,8 @@ export * from '../../domain/streams/bill-correction';
 export {getLegacyBills} from '../../features/customers/legacy-source';
 // LF-BILL end
 // LF-COUNTER
+export * from '../../domain/streams/counter';
+export {customerKeyForCredit} from '../../domain/streams/customers';
 // LF-COUNTER end
 // LF-DESK
 // LF-DESK end

@@ -96,3 +96,7 @@ export function bookingIdLookup(s:State,q:string):Booking[]{
   const ref=(b:Booking)=>(b.publicNo||b.id).toLowerCase();
   return s.bookings.filter(b=>ref(b).includes(t)||b.id.toLowerCase()===t).sort((a,b)=>(ref(a)===t?-1:0)-(ref(b)===t?-1:0)||b.arrival.localeCompare(a.arrival)).slice(0,8);
 }
+
+// ── LF-COUNTER (contract §7, B2): ONE rule for a guest's credit-account key = the Udhaar party id the cut-over opening entry uses (server
+// CustomerRules.CreditKey): the phone's last 10 digits, or the guest id when the guest has no usable phone. Party ledger 1120/UD-<key>. ──
+export function customerKeyForCredit(g:{id:string;phone?:string}):string{const d=String(g.phone??'').replace(/\D/g,'');return d.length>=10?d.slice(-10):g.id;}
