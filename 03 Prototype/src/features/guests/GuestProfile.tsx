@@ -9,6 +9,7 @@ import {SearchBox,Pill,Empty,shortDate,dateLabel} from '../../components/ui';
 import {FitPage,ScrollPanel,SplitView,FitNote,useWideSplit} from '../../components/fit';
 import {GuestForm,emptyDraft,draftOf,hashOf} from './GuestForm';
 import {GuestIdValue} from './GuestId';
+import {PartyPhotos} from './PartyPhotos'; // LF-IMAGES B5
 
 export const statusTone=(st:string)=>st==='In house'?'green':st==='Confirmed'?'blue':st==='Departed'?'neutral':'orange';
 export function VerifiedPill({g}:{g:Guest}){return g.verified?<Pill tone="green">✓ Verified</Pill>:<Pill tone="orange">Not verified</Pill>;}
@@ -27,6 +28,7 @@ export function GuestDetails({g}:{g:Guest}){
     </div>
     <h3 className="gs-sub">Accompanying guests</h3>
     {g.party.length?<ul className="gs-party-list">{g.party.map((p,i)=><li key={i}><strong>{p.name}</strong><span>{p.ageBand}{p.relation?' · '+p.relation:''}</span></li>)}</ul>:<p className="muted">No accompanying guests recorded.</p>}
+    {process.env.HCC_BUILD!=='production'&&<PartyPhotos g={g}/>}{/* LF-IMAGES B5: photo per person (production: the server photo command, not wired here) */}
   </>;
 }
 

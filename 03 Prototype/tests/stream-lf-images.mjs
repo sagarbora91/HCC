@@ -70,4 +70,38 @@ export function register({test,M,assert}){
     const cn=printNotesFor(s,'credit-note');assert.deepEqual([cn.title,cn.notes,cn.footer],['','Refund within 7 days','Thank you.']);
     assert.equal(printNotesFor(s,'receipt').footer,'Thank you.');assert.deepEqual([printNotesFor(s,'receipt').title,printNotesFor(s,'receipt').notes],['','']);
     s=set(s,'owner','brand.receiptFooter','Receipt — keep for your records');assert.equal(printNotesFor(s,'receipt').footer,'Receipt — keep for your records');assert.equal(printNotesFor(s,'invoice').footer,'Thank you.');});
+
+  // ── B5 (DEC-201): a photo for the guest and for each accompanying guest; the member's full ID number is the DEC-193 guest-form field, sealed like the primary's on the server ──
+  const withParty=()=>{const s=seed();const g=s.guests[0];s.guests=s.guests.map((x,i)=>i?x:{...x,party:[{name:'Sita Test',ageBand:'Adult',relation:'Spouse',idType:'Aadhaar',idLast4:'1234'},{name:'Asha Test',ageBand:'Child',relation:'Child'}]});return [s,g.id];};
+  const img=n=>'data:image/jpeg;base64,'+Buffer.alloc(n,0xff).toString('base64');
+
+  test('[LF-IMAGES] B5 photo per person: primary and each party member get their own object, replacing keeps one object, removing deletes it',()=>{
+    let [s,id]=withParty();
+    s=execute(s,'reception',{type:'GUEST_PHOTO',id,dataUrl:img(2000)});
+    s=execute(s,'reception',{type:'GUEST_PHOTO',id,seq:1,dataUrl:img(3000)});
+    s=execute(s,'reception',{type:'GUEST_PHOTO',id,seq:2,dataUrl:img(4000)});
+    assert.deepEqual([0,1,2].map(q=>M.dobGet(s,M.dobPhotoRef(id,q)).bytes),[2000,3000,4000]);
+    assert.ok([0,1,2].every(q=>M.dobGet(s,M.dobPhotoRef(id,q)).kind==='guest-photo'));
+    const n=Object.keys(s.docObjectsX).length;
+    s=execute(s,'reception',{type:'GUEST_PHOTO',id,seq:1,dataUrl:img(5000)});assert.equal(Object.keys(s.docObjectsX).length,n);assert.equal(M.dobGet(s,M.dobPhotoRef(id,1)).bytes,5000);
+    s=execute(s,'reception',{type:'GUEST_PHOTO_REMOVE',id,seq:1});assert.equal(M.dobGet(s,M.dobPhotoRef(id,1)),undefined);assert.ok(M.dobGet(s,M.dobPhotoRef(id,2)));
+    assert.throws(()=>execute(s,'reception',{type:'GUEST_PHOTO_REMOVE',id,seq:1}),/no photo to remove/);});
+
+  test('[LF-IMAGES] B5 photo rules: above 150 KB refused with the server text, unknown member or guest refused, roles without check-in refused, nothing in the audit text',()=>{
+    let [s,id]=withParty();
+    assert.throws(()=>execute(s,'reception',{type:'GUEST_PHOTO',id,dataUrl:img(153601)}),e=>e.message===DOC_CAP_MESSAGE);
+    assert.doesNotThrow(()=>execute(s,'reception',{type:'GUEST_PHOTO',id,dataUrl:img(153600)}));
+    assert.throws(()=>execute(s,'reception',{type:'GUEST_PHOTO',id,seq:3,dataUrl:img(10)}),/Party member not found/);
+    assert.throws(()=>execute(s,'reception',{type:'GUEST_PHOTO',id,seq:7,dataUrl:img(10)}),/Select a party member/);
+    assert.throws(()=>execute(s,'reception',{type:'GUEST_PHOTO',id:'nobody',dataUrl:img(10)}),/Guest not found/);
+    assert.throws(()=>execute(s,'reception',{type:'GUEST_PHOTO',id,dataUrl:'not a data url'}),/Choose a file/);
+    for(const who of ['housekeeper','maintenance'])assert.throws(()=>execute(s,who,{type:'GUEST_PHOTO',id,dataUrl:img(10)}),e=>e.code==='FORBIDDEN'||/Access denied/.test(e.message));
+    s=execute(s,'reception',{type:'GUEST_PHOTO',id,seq:2,dataUrl:img(500)});
+    assert.ok(!/base64|data:image/.test(s.audit[0].detail));assert.match(s.audit[0].detail,/accompanying guest 2 \(Asha Test\)/);});
+
+  test('[LF-IMAGES] B5 the demo reference check counts a guest photo as in use only by its owner convention; party members keep their own ID fields (DEC-193)',()=>{
+    let [s,id]=withParty();s=execute(s,'reception',{type:'GUEST_PHOTO',id,seq:1,dataUrl:img(100)});
+    assert.equal(s.guests[0].party[0].idLast4,'1234');assert.equal(s.guests[0].party[0].idType,'Aadhaar');
+    assert.equal(M.dobSize(s).byKind['guest-photo'].count,1);
+    assert.equal(M.dobRefCheck(s).orphans,M.dobRefCheck(withParty()[0]).orphans);});
 }

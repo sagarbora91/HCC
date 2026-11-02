@@ -10,3 +10,8 @@
 .print-notes{margin:10px 0 0;border-top:1px solid var(--line);padding-top:8px;font-size:.9em}
 .print-notes-text{white-space:pre-line;margin:0 0 6px}
 .print-notes-footer{margin:0;color:var(--muted)}
+.gs-photo-list{display:flex;flex-wrap:wrap;gap:12px;list-style:none;margin:0;padding:0}
+.gs-photo-card{display:grid;gap:4px;justify-items:start;width:150px}
+.gs-photo-img{width:150px;height:150px;object-fit:cover;border-radius:6px;border:1px solid var(--line)}
+.gs-photo-none{display:grid;place-items:center;width:150px;height:150px;border:1px dashed var(--line);border-radius:6px}
+.gs-photo-actions{display:flex;gap:6px}

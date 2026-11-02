@@ -63,7 +63,8 @@ one text everywhere: "Take the photo again, closer and in good light." Banking s
 7. The B6 print models: the server has no PDF renderer yet, only the settings (registered, validated, readable); the web print templates read them.
 
 ## NOT built (lane stopped on budget; nothing half-wired)
-- **B5 captures per party member**: no member capture command / UI, no `Documents.tsx` / `GuestProfile.tsx` party cards, no registration-card party lines,
+- **B5 (built afterwards, see the B5 section below)**: the rest of this bullet is superseded; still not built: `Documents.tsx` party cards, registration-card party lines, production wiring of the photo screen.
+  (old text:) no member capture command / UI, no `Documents.tsx` / `GuestProfile.tsx` party cards, no registration-card party lines,
   no photo capture screen. Done for B5: migration 4707 (doc_kind `photo`, index by party), object kind `GuestPhoto`, `MSGDoc.partySeq` / kind `photo` types from
   the setup, caps for guest photos. `party_seq` itself and the sealed per-member number are DEC-193 (4620) on main; the capture service does not use them yet.
 - counter-bill print include (lf-ui includes `PrintNotes` itself), `tools/fit-modals.json`, `check-print-layout` run for the new print blocks.
@@ -95,3 +96,14 @@ one text everywhere: "Take the photo again, closer and in good light." Banking s
 ## Migrations / locks
 Main: 4670-4674, 4707 (+ lock entries with accepted out-of-order reasons). Documents stream: 0001-0002 with `migrations-docs.lock.json`. `Hcc.slnx` lines are inside the
 `LF-DOCDB` and `LF-IMAGES` range comments. Run `node tools/migrations-lock.mjs` and `node tools/migrations-lock.mjs --docs` (both in step at the last commit).
+
+## B5 (DEC-201) — added after the first report
+- **Server**: `CaptureIdDocumentRequest.PartySeq` / `IdCaptureView.PartySeq`; doc kind `photo` (no OCR, no review, confirmed at once, sealed like an ID image, kind GuestPhoto in HccDocuments);
+  an ID capture with `PartySeq` confirms into `gst.guest_party_id_secret` (`UpsertPartyAsync`, AAD with the seq) and sets the member's `id_type` / `id_last4`
+  (`SetPartyIdProfileAsync`); the registered guest's own number is untouched. Member must exist (404), seq 1-6 (400), non-ID roles refused (same permissions as ID capture).
+  Tests `B5_party_photo_...` and `B5_party_member_full_id_...` in `Hcc.Documents.Tests` (43/43 with them).
+- **Prototype**: `GUEST_PHOTO` / `GUEST_PHOTO_REMOVE` (`handlers/guestphotos.ts`, block `LF-IMAGES`), photo per person at `dobPhotoRef(guest, seq)`, 150 KB cap, `check-in` permission, never in audit text;
+  `features/guests/PartyPhotos.tsx` (one card per person, `compressDocPhoto` at the pick site, shown only to ID viewers) inside `GuestProfile.tsx` (demo build only: the production
+  build does not show it because the sync client does not map `GUEST_PHOTO` to `CaptureIdDocument {docKind: photo, partySeq}` yet - lf-int / W8). The member's full ID number was already
+  captured in the guest form by DEC-193. 3 new tests in `stream-lf-images.mjs` (10 in all).
+- Not done: `Documents.tsx` capture page cards, registration-card party lines (lf-desk left the placeholder), phone layout of the photo cards (reuses the same component), sync mapping.

@@ -75,6 +75,7 @@ export function dobRefCheck(s:State):{dangling:number;orphans:number}{
   for(const f of s.complianceX?.files??[])if(f.objectRef)refs.add(f.objectRef);
   for(const d of s.messagingX?.docs??[])if(d.objectRef)refs.add(d.objectRef);
   const have=new Set(Object.keys(s.docObjectsX??{}));
+  for(const g of s.guests??[])for(let q=0;q<=g.party.length;q++){const r=dobPhotoRef(g.id,q);if(have.has(r))refs.add(r);} // B5: a person's photo is referenced by its owner (by convention, no field)
   let dangling=0,orphans=0;
   for(const r of refs)if(!have.has(r))dangling++;
   for(const r of have)if(!refs.has(r))orphans++;
@@ -116,3 +117,7 @@ export function dobMigrateV12(s:State):boolean{
   if(slice)s.docObjectsX=slice;
   return changed;
 }
+
+/** LF-images B5 (DEC-201): the photo of a guest (seq 0 / absent) or of an accompanying guest (seq 1-6) is one object per person; replacing a photo reuses the ref. */
+export const dobPhotoRef=(guestId:string,seq=0)=>'DOB-PHOTO-'+guestId+'-'+seq;
+export const DOB_MAX_PARTY=6;

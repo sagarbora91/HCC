@@ -54,6 +54,7 @@ import {handlers as keys} from './keys'; // KEYS room keys
 // LF-ALERTS
 // LF-ALERTS end
 // LF-IMAGES
+import {handlers as guestPhotos} from './guestphotos'; // B5 party photos
 // LF-IMAGES end
 import {handlers as catalogue} from './catalogue'; // MA-2 (last: wraps folio APPROVAL)
 const ACC1:Record<string,Handler>={...accountingChart,...accountingOpening,}; // ACC-1 lanes: spread your handlers here, e.g. {...accountingChart}
@@ -72,6 +73,7 @@ const LF:Record<string,Handler>={ // LF lanes: spread your handlers inside your 
   // LF-ALERTS
   // LF-ALERTS end
   // LF-IMAGES
+  ...guestPhotos,
   // LF-IMAGES end
 };
 export const registry:Record<string,Handler>={...ACC1,...ACC2,...reservations,...guests,...folio,...housekeeping,...admin,...closing,...expenses,...yieldMod,...groups,...channels,...maintenance,...inventory,...handover,...services,...messaging,...pos,...staff,...accounting,...assistant,...compliance,...cashbook,...cashout,...masters,...credentials,...syshealth,...roommasters,...keys,...LF,...catalogue};
