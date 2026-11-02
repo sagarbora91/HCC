@@ -1,12 +1,26 @@
 // LF-ui · money commands of the LF waves in the production sync layer (contract §2–§7).
 //   server  POST /commands/ChangeStayRate | SetGuestCreditAccount | RequestGuestCredit | IssueCounterBill | RequestCounterBillVoid | RequestBillCorrection
-//   unmapped  GUEST_RATE_SET / GUEST_RATE_CLEAR: the server keys an agreed rate by room-type id, which no loader of this client holds yet.
+//   GUEST_RATE_SET → SetGuestAgreedRate, GUEST_RATE_CLEAR → ClearGuestAgreedRate (keyed by room-type id: roomTypeIdOf learns it from the masters slice or GET /masters/room-types).
 import {HccClientError} from '../errors';
 import {serverId} from './map';
 import type {SyncArea,CommandCtx} from './types';
 
 const text=(v:unknown)=>String(v??'').trim();
 const stayOf=(c:CommandCtx,id:string)=>{const s=c.ids.server('stay',id);if(s===undefined)throw new HccClientError('VALIDATION','This stay is not in house on the server. Refresh and try again.');return s;};
+
+/** Server room-type id for a prototype room-type code: IdDirectory, then the loaded room-type master, then one read of GET /masters/room-types. */
+async function roomTypeIdOf(c:CommandCtx,code:string):Promise<number>{
+  const known=c.ids.server('roomType',code);if(known!==undefined)return known;
+  const row=(c.state.mastersX?.rows?.roomTypes??[]).find(x=>x.code===code);
+  let id=Number(row?.id);
+  if(!Number.isSafeInteger(id)||id<=0){
+    const res=await c.api.get<unknown>('/masters/room-types');
+    const list=(Array.isArray(res)?res:((res as {items?:unknown[]})?.items??[])) as {roomTypeId:number;code:string}[];
+    id=Number(list.find(x=>x.code===code)?.roomTypeId);
+  }
+  if(!Number.isSafeInteger(id)||id<=0)throw new HccClientError('VALIDATION',`Room type ${code} is not on the server. Refresh and try again.`);
+  c.ids.learn('roomType',code,id);return id;
+}
 
 export const lfmoney:SyncArea={
   id:'lfmoney',
@@ -15,6 +29,11 @@ export const lfmoney:SyncArea={
     {type:'STAY_RATE_CHANGE',reload:['bookings'],async send(c){const k=c.cmd;
       await c.api.command('ChangeStayRate',{stayId:stayOf(c,text(k.booking)),ratePaise:k.rate===undefined?undefined:Number(k.rate),people:k.people===undefined?undefined:Number(k.people),
         children:k.children===undefined?undefined:Number(k.children),scope:text(k.scope),reason:text(k.reason)});}},
+    {type:'GUEST_RATE_SET',reload:[],async send(c){const k=c.cmd;
+      await c.api.command('SetGuestAgreedRate',{guestId:serverId(k.guestId,'Guest'),roomTypeId:await roomTypeIdOf(c,text(k.roomType)),ratePaise:Number(k.rate),
+        planCode:text(k.plan)||undefined,validTo:text(k.validTo)||undefined,note:text(k.note)||undefined});}},
+    {type:'GUEST_RATE_CLEAR',reload:[],async send(c){const k=c.cmd;
+      await c.api.command('ClearGuestAgreedRate',{guestId:serverId(k.guestId,'Guest'),roomTypeId:await roomTypeIdOf(c,text(k.roomType))});}},
     {type:'GUEST_CREDIT_ACCOUNT_SET',reload:[],async send(c){const k=c.cmd;
       await c.api.command('SetGuestCreditAccount',{guestId:serverId(k.guestId,'Guest'),limitPaise:Number(k.limit),active:k.active!==false,note:text(k.note)||undefined});}},
     {type:'GUEST_CREDIT_REQUEST',reload:['bookings'],async send(c){const k=c.cmd;
@@ -33,5 +52,4 @@ export const lfmoney:SyncArea={
         :x.kind==='remove-line'?{kind:'remove-line',chargeId:serverId(x.lineId as string,'Charge')}:{kind:'add-line',label:x.label,amountPaise:Number(x.amount),gstCategory:x.gstCategory,serviceDate:x.date});
       await c.api.command('RequestBillCorrection',{invoiceNo:b.invoiceNo,changes,reason:text(k.reason)});}},
   ],
-  unmapped:{GUEST_RATE_SET:'Server keys the agreed rate by room-type id; needs a room-type loader (carried).',GUEST_RATE_CLEAR:'As GUEST_RATE_SET.'},
 };
