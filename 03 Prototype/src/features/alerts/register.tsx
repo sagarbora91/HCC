@@ -7,7 +7,7 @@ import {MfDeskAlerts} from './Mobile';
 
 export const registration:FeatureRegistration={
   pages:{'desk-alerts':DeskAlertsPage},
-  nav:[{group:'FRONT DESK',item:{id:'desk-alerts',label:'Reminders & wake-ups',icon:BellRing,p:['checkin','expenses','approve']},after:'keys'}],
+  nav:[{group:'FRONT DESK',item:{id:'desk-alerts',label:'Reminders & wake-ups',icon:BellRing,p:['checkin','expenses','approve','reports']},after:'keys'}],
   modals:{'rmd-edit':RmdEditModal,shortcuts:ShortcutsModal},
   wideModals:['shortcuts'],
   mobile:{pages:{'desk-alerts':MfDeskAlerts}},

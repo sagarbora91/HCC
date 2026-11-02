@@ -11,6 +11,9 @@ export const RMD_DEFAULT_LEAD_DAYS=3;
 export const RMD_FRONT_DESK_ROLES:Role[]=['Owner','Manager','Reception','Cashier'];
 export const RMD_REPEATS=['none','monthly','yearly'] as const;
 export const rmdSlice=(s:State):RMDState=>{const x=s.remindersX??(s.remindersX={reminders:[],leadDaysDefault:RMD_DEFAULT_LEAD_DAYS});x.reminders??=[];return x;};
+/** PERM-RMD-001 (contract §11): Owner, Manager, Reception, Accountant. */
+export const RMD_MANAGE_ROLES:Role[]=['Owner','Manager','Reception','Accountant'];
+export const rmdCanManage=(s:State,uid:string)=>{const r=s.users.find(u=>u.id===uid);return !!r&&r.enabled&&RMD_MANAGE_ROLES.includes(r.role);};
 export const rmdRoleOf=(s:State,uid:string):Role|undefined=>s.users.find(u=>u.id===uid)?.role;
 /** Owner setting reminders.leadDaysDefault (0–60, default 3). */
 export function rmdLeadDefault(s:State):number{try{const v=Number(cfgValueOn(s,'reminders.leadDaysDefault'));return Number.isInteger(v)&&v>=0&&v<=60?v:RMD_DEFAULT_LEAD_DAYS;}catch{return RMD_DEFAULT_LEAD_DAYS;}}
@@ -34,6 +37,7 @@ export const rmdShowFrom=(r:RMDReminder)=>addDays(rmdDueDate(r),-r.leadDays);
 export type RMDBucket='today'|'upcoming'|'done';
 /** Reminders of a tab: today = open and due within the lead window (incl. overdue); upcoming = open and later; done = done / dismissed. */
 export function rmdList(s:State,uid:string,bucket:RMDBucket):RMDReminder[]{
+  if(!rmdCanManage(s,uid))return [];
   const all=rmdSlice(s).reminders.filter(r=>rmdVisibleTo(s,uid,r));
   const by=(a:RMDReminder,b:RMDReminder)=>rmdDueDate(a).localeCompare(rmdDueDate(b))||(a.time??'').localeCompare(b.time??'');
   if(bucket==='done')return all.filter(r=>r.status!=='open').sort((a,b)=>(b.doneAt??b.at).localeCompare(a.doneAt??a.at));

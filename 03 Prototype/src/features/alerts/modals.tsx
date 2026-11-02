@@ -1,7 +1,7 @@
 // LF-ALERTS · dialogs: 'rmd-edit' (new / edit reminder) and 'shortcuts' (keyboard shortcut list, user menu › Keyboard shortcuts).
 import React,{useState} from 'react';
 import {useHcc} from '../../app/context';
-import {rmdSlice,rmdLeadDefault,rmdRoleOf,RMD_REPEATS,SHORTCUTS,shortcutAllowed,type Role} from '../../services/mock';
+import {rmdCanManage,rmdSlice,rmdLeadDefault,rmdRoleOf,RMD_REPEATS,SHORTCUTS,shortcutAllowed,type Role} from '../../services/mock';
 import {Empty} from '../../components/ui';
 import type {ModalProps} from '../../app/registry';
 
@@ -11,7 +11,7 @@ export function RmdEditModal({id}:ModalProps){
   const r=id?rmdSlice(s).reminders.find(x=>x.id===id):undefined;
   const boss=['Owner','Manager'].includes(rmdRoleOf(s,uid)??'');
   const [f,setF]=useState({subject:r?.subject??'',date:r?.date??s.date,time:r?.time??'',leadDays:String(r?.leadDays??rmdLeadDefault(s)),role:r?.role??'all',repeat:r?.repeat??'none',note:r?.note??''});
-  if(!permission(['checkin','expenses','approve']))return <Empty title="Not permitted" body="Reminders need the check-in, expenses or approve permission."/>;
+  if(!rmdCanManage(s,uid))return <Empty title="Not permitted" body="Reminders need PERM-RMD-001 (Owner, Manager, Reception, Accountant)."/>;
   const set=(p:Partial<typeof f>)=>setF(x=>({...x,...p}));
   const mine=rmdRoleOf(s,uid);const roles:(Role|'all')[]=boss?['all',...ROLES]:['all',...(mine?[mine]:[])];
   return <><div className="modal-heading"><h2>{r?'Edit reminder':'New reminder'}</h2><p>Shows on the desk banner from the alert days before the date until it is done.</p></div>

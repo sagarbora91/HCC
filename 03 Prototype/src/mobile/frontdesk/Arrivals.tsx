@@ -6,7 +6,7 @@ import {bookingRef} from '../../domain/bookingRef';
 import React,{useState,useRef} from 'react';
 import {Check,ArrowRight,ArrowLeft,DoorOpen,AlertCircle,Printer,UserPlus,Info,Loader2,X,RotateCcw} from 'lucide-react';
 import {useHcc} from '../../app/context';
-import {Booking,money,nights,addDays,totals,gstForRoomNight,gstStayTax,gstPct,guestForBooking,stayArrivals,stayCheckinAlternatives,stayFreeRooms,staySegments,rmsRoomLine,rmsTypeName,mstFloorLabel} from '../../services/mock';
+import {mstRows,Booking,money,nights,addDays,totals,gstForRoomNight,gstStayTax,gstPct,guestForBooking,stayArrivals,stayCheckinAlternatives,stayFreeRooms,staySegments,rmsRoomLine,rmsTypeName,mstFloorLabel} from '../../services/mock';
 import {Fab,ListCard,Stepper,NumberStepper} from '../../app/mobile/components';
 import {Pill,Empty,shortDate} from '../../components/ui';
 import {GuestForm,emptyDraft,draftOf,hashOf} from '../../features/guests/GuestForm';
@@ -130,6 +130,7 @@ export function MfWalkin(){
   const c=useHcc();const {s,open,closeModal,permission,busy,modal}=c;
   const live=useRef(c);live.current=c;const settle=useSettle();
   const [screen,setScreen]=useState(0);
+  const [purpose,setPurpose]=useState(()=>mstRows(s,'purposes').find(r=>r.active)?.code??''); // LF-DESK: walk-ins send desk:true too
   const [departure,setDeparture]=useState(addDays(s.date,1));const [people,setPeople]=useState(1);
   const free=departure>s.date?stayFreeRooms(s,s.date,departure):[];
   const [room,setRoom]=useState('');const chosen=free.some(r=>r.id===room)?room:free[0]?.id||'';
@@ -138,7 +139,7 @@ export function MfWalkin(){
   const key=modal!.key;
   async function doCheckin(bid:string){
     setP(x=>({...x,checkin:'running',msg:undefined}));await settle();
-    const ok=await live.current.run({type:'CHECKIN',id:bid,key:key+':checkin'},'Walk-in checked in.');await settle();
+    const ok=await live.current.run({type:'CHECKIN',id:bid,desk:true,purpose:purpose||undefined,key:key+':checkin'},'Walk-in checked in.');await settle();
     const now=live.current.s.bookings.find(b=>b.id===bid)?.status;
     if(ok||now==='In house')setP(x=>({...x,checkin:'done',note:ok?x.note:'The confirmation was lost, but the record shows the guest checked in.'}));else setP(x=>({...x,checkin:'failed',msg:live.current.error}));
   }
@@ -146,7 +147,7 @@ export function MfWalkin(){
     setScreen(2);let bid=p.bid;
     if(!bid){
       const known=new Set(s.bookings.map(b=>b.id));setP(x=>({...x,book:'running',msg:undefined}));
-      const ok=await live.current.run({type:'BOOK',guest:d.name,email:d.email,people,room:chosen,arrival:s.date,departure,source:'Walk-in',notes:'Walk-in guest',key:key+':book'},'Walk-in reservation created.');
+      const ok=await live.current.run({type:'BOOK',guest:d.name,email:d.email,people,room:chosen,arrival:s.date,departure,source:'Walk-in',purpose:purpose||undefined,notes:'Walk-in guest',key:key+':book'},'Walk-in reservation created.');
       await settle();
       bid=live.current.s.bookings.find(b=>!known.has(b.id)&&b.room===chosen&&b.source==='Walk-in')?.id;
       if(!bid){setP(x=>({...x,book:'failed',msg:live.current.error||'The reservation was not created.'}));return;}
@@ -166,6 +167,7 @@ export function MfWalkin(){
     <Stepper steps={steps} current={screen}/>
     {screen===0&&<><div className="form mf-form">
         <label>Departure<input type="date" value={departure} min={addDays(s.date,1)} max={addDays(s.date,30)} onChange={e=>setDeparture(e.target.value)}/></label>
+        <label>Purpose of visit<select value={purpose} onChange={e=>setPurpose(e.target.value)}>{mstRows(s,'purposes').filter(r=>r.active).map(r=><option key={r.code} value={r.code}>{r.name}</option>)}</select></label>
         <NumberStepper label="Guests" value={people} min={1} max={4} onChange={setPeople}/>
         <p className="mf-count">{nights(s.date,departure)>0?`${nights(s.date,departure)} night${nights(s.date,departure)===1?'':'s'} · arrival today ${shortDate(s.date)}`:'Choose a departure after today.'}</p>
       </div>

@@ -1,14 +1,13 @@
 // LF-ALERTS · desk reminders (LF contract §9.2). Commands RMD_SAVE, RMD_DONE, RMD_DISMISS; slice s.remindersX.
 import type {Handler,Kit} from '../commands';
 import type {RMDReminder,Role} from '../../../domain/types';
-import {can} from '../../../domain/selectors';
-import {rmdSlice,rmdRoleOf,rmdRoll,rmdDueDate,rmdLeadDefault,RMD_REPEATS} from '../../../domain/streams/reminders';
+import {rmdCanManage,rmdSlice,rmdRoleOf,rmdRoll,rmdDueDate,rmdLeadDefault,RMD_REPEATS} from '../../../domain/streams/reminders';
 import {guestLooksLikeIdNumber} from '../../../domain/streams/guests';
 
 const DATE=/^\d{4}-\d{2}-\d{2}$/,TIME=/^([01]\d|2[0-3]):[0-5]\d$/;
 const ROLES:Role[]=['Owner','Manager','Reception','Cashier','Supervisor','Housekeeper','Accountant','Maintenance','Tech admin'];
 const txt=(v:unknown)=>String(v??'').trim();
-const may=(k:Kit)=>{if(!can(k.s,k.uid,['checkin','expenses','approve']))k.fail('FORBIDDEN','Access denied: a reminders permission (check-in, expenses or approve) is required.');};
+const may=(k:Kit)=>{if(!rmdCanManage(k.s,k.uid))k.fail('FORBIDDEN','Access denied: PERM-RMD-001 (reminders) is required.');};
 const find=(k:Kit)=>{const r=rmdSlice(k.s).reminders.find(x=>x.id===k.cmd.id);k.assert(r,'Reminder not found.','NOT_FOUND');return r!;};
 const isBoss=(k:Kit)=>{const r=rmdRoleOf(k.s,k.uid);return r==='Owner'||r==='Manager';};
 /** Who may act on a reminder: its author, an Owner / Manager, or anyone it is addressed to. */

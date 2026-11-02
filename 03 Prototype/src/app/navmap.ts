@@ -6,6 +6,7 @@ import type {Permission} from '../services/mock';
 import type {State} from '../domain/types';
 import {cfgPageOn} from '../domain/streams/config';
 import {cmpHasAccess} from '../domain/streams/compliance';
+import {rmdCanManage} from '../domain/streams/reminders'; // LF-ALERTS
 import {rbacCanViewClosing,rbacSeesApprovals,rbacIsRestaurant,rbacSeesBooks,rbacIsRole,rbacTechAdminTemplates,RBAC_RESTAURANT_PAGES} from '../domain/streams/rbac';
 
 export type CategoryId='front'|'cash'|'hkm'|'guestsvc'|'customers'|'revenue'|'stock'|'people'|'accounts'|'admin';
@@ -210,6 +211,7 @@ export function navFilterModules<T extends {id:string}>(s:State,items:readonly T
  * its own shifts & pay only. */
 export function navRoleOk(s:State,uid:string,page:string):boolean{
   if(rbacIsRestaurant(s,uid))return RBAC_RESTAURANT_PAGES.includes(page);
+  if(page==='desk-alerts')return rmdCanManage(s,uid); // LF-ALERTS: PERM-RMD-001 = Owner, Manager, Reception, Accountant
   if(page==='compliance')return cmpHasAccess(s,uid);
   if(page==='closing')return rbacCanViewClosing(s,uid);
   if(page==='approvals')return rbacSeesApprovals(s,uid);

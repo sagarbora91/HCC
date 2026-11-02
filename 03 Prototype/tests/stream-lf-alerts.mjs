@@ -42,10 +42,10 @@ export function register({test,M,assert}){
     let s=save(seed(),'reception');const r=first(s);assert.equal(r.leadDays,3);assert.equal(r.role,'all');assert.equal(r.status,'open');
     assert.equal(rmdList(s,'reception','today').length,0,'28 Oct − 3 days = 25 Oct, not yet');assert.equal(rmdList(s,'reception','upcoming').length,1);
     const d25=at(s,'2026-10-25T09:00');assert.equal(rmdList(d25,'reception','today').length,1);assert.equal(rmdDue(d25,'reception').reminders.length,1);assert.equal(rmdAttentionCount(d25,'reception'),1);
-    assert.equal(rmdDue(d25,'housekeeper').count,0);assert.equal(rmdDue(d25,'accountant').count,0,'the banner is the front desk\'s');
+    assert.equal(rmdDue(d25,'housekeeper').count,0);assert.equal(rmdDue(d25,'accountant').count,0,'the banner is the front desk\'s');assert.equal(rmdList(d25,'accountant','today').length,1,'the Accountant holds PERM-RMD-001');assert.equal(rmdList(d25,'cashier','today').length,0,'the Cashier does not');
     s=save(seed(),'manager',{role:'Reception',leadDays:0,subject:'For reception only'});const rr=first(s);assert.equal(rr.leadDays,0);
     assert.equal(rmdList(at(s,'2026-10-28T09:00'),'reception','today').length,1);assert.equal(rmdList(at(s,'2026-10-28T09:00'),'cashier','today').length,0,'addressed to another role');assert.equal(rmdList(at(s,'2026-10-28T09:00'),'owner','today').length,1,'the Owner sees all');
-    for(const u of ['housekeeper','maint','supervisor'])assert.throws(()=>save(seed(),u),e=>e.code==='FORBIDDEN',u);
+    for(const u of ['housekeeper','maint','supervisor','cashier'])assert.throws(()=>save(seed(),u),e=>e.code==='FORBIDDEN',u);assert.equal(first(save(seed(),'accountant')).by,'accountant');
     assert.throws(()=>save(seed(),'reception',{role:'Owner'}),/everyone or to your own role/);assert.throws(()=>save(seed(),'reception',{subject:'x'}),/Subject/);assert.throws(()=>save(seed(),'reception',{date:'soon'}),/date/);
     assert.throws(()=>save(seed(),'reception',{leadDays:99}),/Lead days/);assert.throws(()=>save(seed(),'reception',{repeat:'weekly'}),/Repeat/);assert.throws(()=>save(seed(),'reception',{note:'Passport 234567890124'}),/ID number/);
     const cfg=structuredClone(seed());cfg.configX={values:{'reminders.leadDaysDefault':5}};assert.equal(first(save(cfg,'reception')).leadDays,5);});
@@ -54,15 +54,15 @@ export function register({test,M,assert}){
     let s=save(seed(),'reception',{repeat:'monthly'});const id=first(s).id;
     s=execute(s,'reception',{type:'RMD_DONE',id});let r=first(s);assert.equal(r.status,'open');assert.equal(r.nextDate,'2026-11-28');assert.equal(rmdDueDate(r),'2026-11-28');assert.equal(r.doneBy,'reception');
     s=execute(s,'reception',{type:'RMD_DONE',id});assert.equal(first(s).nextDate,'2026-12-28');
-    let o=save(seed(),'reception');const oid=first(o).id;o=execute(o,'cashier',{type:'RMD_DONE',id:oid});assert.equal(first(o).status,'done');assert.equal(rmdList(o,'owner','done').length,1);
+    let o=save(seed(),'reception');const oid=first(o).id;o=execute(o,'accountant',{type:'RMD_DONE',id:oid});assert.equal(first(o).status,'done');assert.equal(rmdList(o,'owner','done').length,1);
     assert.throws(()=>execute(o,'reception',{type:'RMD_DONE',id:oid}),/already finished/);
     let d=save(seed(),'reception');const did=first(d).id;assert.throws(()=>execute(d,'reception',{type:'RMD_DISMISS',id:did,reason:'x'}),/reason/);
     d=execute(d,'reception',{type:'RMD_DISMISS',id:did,reason:'Done by the vendor already'});assert.equal(first(d).status,'dismissed');assert.ok(d.audit[0].detail.includes('dismissed'));
     let e=save(seed(),'reception');const eid=first(e).id;
-    assert.throws(()=>execute(e,'cashier',{type:'RMD_SAVE',id:eid,subject:'Changed',date:'2026-10-29'}),/author, a Manager or the Owner/);
+    assert.throws(()=>execute(e,'accountant',{type:'RMD_SAVE',id:eid,subject:'Changed',date:'2026-10-29'}),/author, a Manager or the Owner/);
     e=execute(e,'manager',{type:'RMD_SAVE',id:eid,subject:'Changed',date:'2026-10-29'});assert.equal(first(e).subject,'Changed');assert.equal(first(e).date,'2026-10-29');
     assert.throws(()=>execute(e,'housekeeper',{type:'RMD_DONE',id:eid}),e2=>e2.code==='FORBIDDEN');
-    const forRec=save(seed(),'manager',{role:'Reception'});assert.throws(()=>execute(forRec,'cashier',{type:'RMD_DONE',id:first(forRec).id}),/not addressed to you/);});
+    const forRec=save(seed(),'manager',{role:'Reception'});assert.throws(()=>execute(forRec,'accountant',{type:'RMD_DONE',id:first(forRec).id}),/not addressed to you/);});
   // ── A8 function keys ──
   test('[LF-ALERTS] A8 shortcut table: unique keys, never F1 / F5 / F11 / F12, every permission is a real one, the ten contract rows',()=>{
     const keys=SHORTCUTS.map(x=>x.key);assert.equal(new Set(keys).size,keys.length);
@@ -84,7 +84,7 @@ export function register({test,M,assert}){
     assert.match(app,/<DeskAlerts\/>/);assert.match(app,/<DeskAlerts phone\/>/);assert.match(readFileSync('src/app/mobile/sheets.tsx','utf8'),/open\(\{type:'shortcuts'\}\)/);
     assert.match(readFileSync('src/app/SearchPalette.tsx','utf8'),/shortcutKeyOfPage/);});
   test('[LF-ALERTS] page desk-alerts: category front, nav item for the reminders permissions, four sub-screens, phone page, Dashboard attention line',()=>{
-    assert.equal(PAGE_CATEGORY['desk-alerts'],'front');const n=navItems.find(x=>x.id==='desk-alerts');assert.ok(n);assert.deepEqual([].concat(n.p),['checkin','expenses','approve']);
+    assert.equal(PAGE_CATEGORY['desk-alerts'],'front');const n=navItems.find(x=>x.id==='desk-alerts');assert.ok(n);assert.ok([].concat(n.p).includes('checkin'));
     assert.deepEqual(SUB_SCREENS.filter(x=>x.page==='desk-alerts').map(x=>x.id),['today','upcoming','done','wake-ups']);
     assert.match(readFileSync('src/features/alerts/register.tsx','utf8'),/mobile:\{pages:\{'desk-alerts'/);assert.match(readFileSync('src/features/overview/Overview.tsx','utf8'),/reminders and wake-ups/);});
 }

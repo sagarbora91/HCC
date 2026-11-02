@@ -3,7 +3,7 @@ import React,{useState,useRef,useEffect} from 'react';
 import {bookingRef} from '../../domain/bookingRef';
 import {Check,ArrowRight,ArrowLeft,DoorOpen,AlertCircle,BedDouble,Printer,UserPlus,Info,Loader2,X} from 'lucide-react';
 import {useHcc} from '../../app/context';
-import {deskVehicleMatches,Booking,Room,money,nights,addDays,totals,gstForRoomNight,gstStayTax,gstPct,guestForBooking,guestComplete,stayArrivals,stayRoomEligibility,stayCheckinAlternatives,stayFreeRooms,guestView,staySegments,plural,rmsRoomLine} from '../../services/mock';
+import {mstRows,deskVehicleMatches,Booking,Room,money,nights,addDays,totals,gstForRoomNight,gstStayTax,gstPct,guestForBooking,guestComplete,stayArrivals,stayRoomEligibility,stayCheckinAlternatives,stayFreeRooms,guestView,staySegments,plural,rmsRoomLine} from '../../services/mock';
 import {Pill,Empty,shortDate,SearchBox} from '../../components/ui';
 import {FitPage,ScrollPanel,FitNote} from '../../components/fit';
 import {GuestForm,emptyDraft,draftOf,hashOf} from './GuestForm';
@@ -140,6 +140,7 @@ export function WalkinModal(){
   // Latest context values for the sequential flow (run's fault mode and the state are per render).
   const live=useRef(c);live.current=c;const renders=useRef(0);renders.current++;
   const settle=async()=>{const start=renders.current;for(let i=0;i<50&&renders.current===start;i++)await new Promise(r=>setTimeout(r,20));};
+  const [purpose,setPurpose]=useState(()=>mstRows(s,'purposes').find(r=>r.active)?.code??''); // LF-DESK: walk-ins send desk:true too
   const [departure,setDeparture]=useState(addDays(s.date,1));const [people,setPeople]=useState(1);
   const free=departure>s.date?stayFreeRooms(s,s.date,departure):[];
   const [room,setRoom]=useState('');const chosen=free.some(r=>r.id===room)?room:free[0]?.id||'';
@@ -151,7 +152,7 @@ export function WalkinModal(){
   const key=modal!.key;
   async function doCheckin(bid:string){
     setP(x=>({...x,checkin:'running',msg:undefined}));await settle();
-    const ok=await live.current.run({type:'CHECKIN',id:bid,key:key+':checkin'},'Walk-in checked in.');await settle();
+    const ok=await live.current.run({type:'CHECKIN',id:bid,desk:true,purpose:purpose||undefined,key:key+':checkin'},'Walk-in checked in.');await settle();
     const st=live.current.s.bookings.find(b=>b.id===bid)?.status;
     if(ok||st==='In house')setP(x=>({...x,checkin:'done',note:ok?x.note:'The confirmation was lost, but the record shows the guest checked in.'}));else setP(x=>({...x,checkin:'failed',msg:live.current.error}));
   }
@@ -159,7 +160,7 @@ export function WalkinModal(){
     let bid=p.bid;
     if(!bid){
       const known=new Set(s.bookings.map(b=>b.id));setP(x=>({...x,book:'running',msg:undefined}));
-      const ok=await live.current.run({type:'BOOK',guest:d.name,email:d.email,people,room:chosen,arrival:s.date,departure,source:'Walk-in',notes:'Walk-in guest',key:key+':book'},'Walk-in reservation created.');
+      const ok=await live.current.run({type:'BOOK',guest:d.name,email:d.email,people,room:chosen,arrival:s.date,departure,source:'Walk-in',purpose:purpose||undefined,notes:'Walk-in guest',key:key+':book'},'Walk-in reservation created.');
       await settle();
       bid=live.current.s.bookings.find(b=>!known.has(b.id)&&b.room===chosen&&b.source==='Walk-in')?.id;
       if(!bid){setP(x=>({...x,book:'failed',msg:live.current.error||'The reservation was not created.'}));return;}
@@ -192,6 +193,7 @@ export function WalkinModal(){
       <div className="form gs-walkin-stay">
         <div className="form-row"><label>Departure<input type="date" value={departure} min={addDays(s.date,1)} max={addDays(s.date,30)} disabled={!!p.bid} onChange={e=>setDeparture(e.target.value)}/></label>
           <label>Guests<select value={people} disabled={!!p.bid} onChange={e=>setPeople(Number(e.target.value))}>{[1,2,3,4].map(n=><option key={n} value={n}>{n}</option>)}</select></label></div>
+        <label>Purpose of visit<select value={purpose} disabled={!!p.bid} onChange={e=>setPurpose(e.target.value)}>{mstRows(s,'purposes').filter(r=>r.active).map(r=><option key={r.code} value={r.code}>{r.name}</option>)}</select></label>
         <label>Room (vacant, ready and free until departure)<select value={p.bid?p.room:chosen} disabled={!!p.bid||!free.length} onChange={e=>setRoom(e.target.value)}>{p.bid?<option>{p.room}</option>:free.map(r=><option key={r.id} value={r.id}>{r.id} · {r.type} · {money(r.rate)}/night</option>)}</select>
           {!free.length&&!p.bid&&<span className="gs-field-error">No room is vacant, ready and free for these dates. Try a shorter stay.</span>}</label>
         {!p.bid&&chosen&&<p className="muted"><BedDouble size={12}/> {nights(s.date,departure)||0} night{nights(s.date,departure)===1?'':'s'} · arrival today {shortDate(s.date)}</p>}
