@@ -2,8 +2,8 @@
 //   server  POST /commands/ChangeStayRate | SetGuestCreditAccount | RequestGuestCredit | IssueCounterBill | RequestCounterBillVoid | RequestBillCorrection
 //   GUEST_RATE_SET → SetGuestAgreedRate, GUEST_RATE_CLEAR → ClearGuestAgreedRate (keyed by room-type id: roomTypeIdOf learns it from the masters slice or GET /masters/room-types).
 import {HccClientError} from '../errors';
-import {serverId,utcToClock} from './map';
-import type {BLCState,BLCCorrection} from '../../domain/types';
+import {serverId,protoId,protoUserId,utcToClock} from './map';
+import type {BLCState,BLCCorrection,CTRState,CTRBill,STRState,GuestAgreedRate} from '../../domain/types';
 import type {SyncArea,CommandCtx} from './types';
 
 const text=(v:unknown)=>String(v??'').trim();
@@ -33,12 +33,56 @@ export function billCorrectionsFromServer(rows:SrvCorrection[],bookings:{id:stri
     ...(r.settlement?{settlement:r.settlement as NonNullable<BLCCorrection['settlement']>}:{})}))};
 }
 
+type SrvCounterLine={seq:number;label:string;extraId:string|null;menuItemId:string|null;qty:number;unitPaise:number;amountPaise:number;gstCategory:string;taxBps:number;sac:string};
+type SrvCounterBill={billId:number;invoiceNo:string;businessDate:string;issuedUtc:string;issuedBy:number;partyName:string;partyPhone:string|null;partyGstin:string|null;partyAddress:string|null;
+  guestId:number|null;companyId:number|null;discountPaise:number;discountReason:string|null;netPaise:number;taxPaise:number;cgstPaise:number;sgstPaise:number;totalPaise:number;remark:string|null;
+  settlementMode:string;method:string|null;reference:string|null;udhaarId:number|null;status:string;creditNoteNo:string|null;creditNoteReason:string|null;voidApprovalId:number|null;lines:SrvCounterLine[]};
+/** GET /counter-bills → s.counterX (newest first on the server; the prototype list is oldest first). */
+export function counterBillsFromServer(rows:SrvCounterBill[]):CTRState{
+  const bills:CTRBill[]=rows.map(r=>{
+    const b:CTRBill={id:protoId(r.billId),no:r.invoiceNo,date:String(r.businessDate).slice(0,10),at:utcToClock(r.issuedUtc),by:protoUserId(r.issuedBy),
+      party:{name:r.partyName,...(r.partyPhone?{phone:r.partyPhone}:{}),...(r.partyGstin?{gstin:r.partyGstin}:{}),...(r.partyAddress?{address:r.partyAddress}:{}),
+        ...(r.guestId?{guestId:protoId(r.guestId)}:{}),...(r.companyId?{companyId:protoId(r.companyId)}:{})},
+      lines:r.lines.map(l=>({id:protoId(r.billId)+'-'+l.seq,label:l.label,...(l.extraId?{extraId:l.extraId}:{}),...(l.menuItemId?{menuItemId:l.menuItemId}:{}),qty:l.qty,unit:l.unitPaise,amount:l.amountPaise,
+        gstCategory:l.gstCategory,taxBps:l.taxBps,sac:l.sac})),
+      ...(r.discountPaise>0?{discount:{amount:r.discountPaise,reason:r.discountReason??''}}:{}),
+      net:r.netPaise,tax:r.taxPaise,cgst:r.cgstPaise,sgst:r.sgstPaise,total:r.totalPaise,...(r.remark?{remark:r.remark}:{}),
+      settlement:{mode:r.settlementMode as CTRBill['settlement']['mode'],...(r.method?{method:r.method}:{}),...(r.reference?{reference:r.reference}:{}),
+        ...(r.udhaarId?{udhaarId:protoId(r.udhaarId)}:{}),...(r.companyId&&r.settlementMode==='company'?{companyId:protoId(r.companyId)}:{})},
+      status:r.status==='Credited'?'Credited':'Issued',...(r.creditNoteNo?{creditNoteNo:r.creditNoteNo}:{}),...(r.creditNoteReason?{creditNoteReason:r.creditNoteReason}:{}),
+      ...(r.voidApprovalId?{voidApprovalId:protoId(r.voidApprovalId)}:{})};
+    return b;}).reverse();
+  return {bills};
+}
+
+type SrvRateChange={changeId:number;stayId:number;reservationId:number;roomNo:string;businessDate:string;changedUtc:string;changedBy:number;approvalId:number|null;approvedBy:number|null;
+  scope:string;reason:string;oldRatePaise:number;newRatePaise:number;oldPeople:number;newPeople:number;oldChildren:number;newChildren:number;effectiveFrom:string;repostedJson:string};
+const repostedOf=(j:string):{reversal:string;line:string;night:string}[]=>{try{const a=JSON.parse(j);return Array.isArray(a)?a.map(x=>({reversal:String(x?.reversal??''),line:String(x?.line??''),night:String(x?.night??'')})):[];}catch{return [];}};
+/** GET /stays/rate-changes → s.stayRateX (applied changes, oldest first). */
+export function rateChangesFromServer(rows:SrvRateChange[]):STRState{
+  return {changes:rows.map(r=>({id:protoId(r.changeId),booking:protoId(r.reservationId),room:r.roomNo,date:String(r.businessDate).slice(0,10),at:utcToClock(r.changedUtc),by:protoUserId(r.changedBy),
+    ...(r.approvalId?{approvalId:protoId(r.approvalId)}:{}),...(r.approvedBy?{approvedBy:protoUserId(r.approvedBy)}:{}),scope:r.scope as STRState['changes'][number]['scope'],reason:r.reason,
+    oldRate:r.oldRatePaise,newRate:r.newRatePaise,oldPeople:r.oldPeople,newPeople:r.newPeople,oldChildren:r.oldChildren,newChildren:r.newChildren,effectiveFrom:String(r.effectiveFrom).slice(0,10),
+    reposted:repostedOf(r.repostedJson)})).reverse()};
+}
+
+type SrvCreditGuest={guestId:number;name:string;phone:string|null;limitPaise:number;active:boolean;customerKey:string;note:string|null;openPaise:number;oldestOpenDate:string|null};
+export type CreditAccountView={limit:number;active:boolean;customerKey:string;setBy:string;at:string;note?:string};
+/** GET /guests/credit → the creditAccount of each guest (merged into the guests slice by the frontdesk loader). */
+export function creditAccountsFromServer(rows:SrvCreditGuest[]):Map<string,CreditAccountView>{
+  return new Map(rows.map(r=>[protoId(r.guestId),{limit:r.limitPaise,active:r.active,customerKey:r.customerKey,setBy:'',at:'',...(r.note?{note:r.note}:{})}]));
+}
+export type {GuestAgreedRate};
+
 export const lfmoney:SyncArea={
   id:'lfmoney',
   // Read side: the correction register (GET /invoices/corrections, the A2 "Bill updation report"). The list row carries totals, invoice numbers, status,
   // reason and the request time; the per-change detail, requester and approval id are on the request screen only (not in the register row).
-  // Not readable yet (the server has no list route): counter bills, credit-guest ageing, stay rate-change history, per-guest agreed rates for all guests.
-  loaders:[{slice:'billCorrectionX',reads:['GET /invoices/corrections'],needs:['bookings'],async load(c){
+  // Still not listed on the server: per-guest agreed rates for all guests (GET /guests/{id}/money, one guest at a time).
+  // LF-finish list reads: GET /counter-bills (counterX), GET /stays/rate-changes (stayRateX), GET /guests/credit (creditAccount, merged by the guests loader in frontdesk.ts).
+  loaders:[{slice:'counterX',reads:['GET /counter-bills'],async load(c){return counterBillsFromServer(await c.api.get<SrvCounterBill[]>('/counter-bills'));}},
+    {slice:'stayRateX',reads:['GET /stays/rate-changes'],async load(c){return rateChangesFromServer(await c.api.get<SrvRateChange[]>('/stays/rate-changes'));}},
+    {slice:'billCorrectionX',reads:['GET /invoices/corrections'],needs:['bookings'],async load(c){
     const rows=await c.api.get<SrvCorrection[]>('/invoices/corrections');
     return billCorrectionsFromServer(rows,c.current('bookings')??[]);}}],
   commands:[

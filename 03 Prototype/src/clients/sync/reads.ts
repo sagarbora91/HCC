@@ -84,6 +84,10 @@ export const READS={
   'GET /reminders':one(wide('PERM-RMD-001')),
   // LF-BILL A2: the bill-correction register = InvoicePermissions.View (PERM-INV-001), as the invoice reads.
   'GET /invoices/corrections':one(wide('PERM-INV-001',true)),
+  // LF-finish: counter bills = PERM-CTR-001 (Owner, Manager, Reception, Cashier); credit guests = PERM-FOL-010 (money roles); applied rate changes = PERM-STY-010 (Owner, Manager, Reception).
+  'GET /counter-bills':one(wide('PERM-CTR-001')),
+  'GET /guests/credit':one(wide('PERM-FOL-010')),
+  'GET /stays/rate-changes':one(wide('PERM-STY-010')),
   // PERM-CFG-001 is a VIEW permission (Owner A, Tech admin V), so /me/capabilities lists it for both; requests also answer CFG-002/003 holders.
   'GET /configuration/requests':one(wide('PERM-CFG-001',true),wide('PERM-CFG-002'),wide('PERM-CFG-003')),
   'GET /configuration/history':CONFIG,

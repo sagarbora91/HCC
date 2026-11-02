@@ -25,17 +25,20 @@ import type {SyncArea,LoaderCtx,CommandCtx,SliceKey} from './types';
 import {serverId} from './map';
 import {allPages,bookingOf,roomIdOf,versionOf,type SrvGuestPage} from './frontdesk/shared';
 import {companyCreditApprovalId,issueInvoiceAfterCheckout,invoiceStepWarning,FOLIO_SLICES} from './money';
+import {creditAccountsFromServer} from './lfmoney';
 
 type Guest=NonNullable<State['guests']>[number];
 
 async function loadGuests(c:LoaderCtx):Promise<Guest[]>{
   const items=await allPages(async page=>{const r=await c.api.get<SrvGuestPage>('/guests',{page,pageSize:500});return {items:r.items,total:r.total};});
+  const credit=c.mayRead('GET /guests/credit')?creditAccountsFromServer(await c.api.get<Parameters<typeof creditAccountsFromServer>[0]>('/guests/credit').catch(()=>[])):new Map();   // LF-finish: money roles only
   return items.map(g=>{
     const id=String(g.guestId);c.ids.learn('guest',id,g.guestId);c.ids.setVersion('guest',id,g.version);
     const out:Guest={id,name:g.name,phone:g.phone,email:g.email??'',address:g.address??'',nationality:g.nationality,idType:g.idType??'',idLast4:g.idLast4??'',
       preferences:g.preferences??'',notes:g.notes??'',party:g.party.map(p=>{const m:Guest['party'][number]={name:p.name,ageBand:p.ageBand,relation:p.relation??''}; // DEC-193: the member's own ID, masked (never the number)
         if(p.idType)m.idType=p.idType;if(p.idLast4&&/^[0-9A-Za-z]{4}$/.test(p.idLast4))m.idLast4=p.idLast4;return m;}),verified:g.verified,
       origin:g.origin==='auto'?'auto':'manual',version:1};
+    const ca=credit.get(id);if(ca)out.creditAccount=ca;
     if(g.company)out.company=g.company;if(g.gstin)out.gstin=g.gstin;
     if(g.dob)out.dob=String(g.dob).slice(0,10);   // LG: returned only to contact-detail readers (LG-R5)
     return out;

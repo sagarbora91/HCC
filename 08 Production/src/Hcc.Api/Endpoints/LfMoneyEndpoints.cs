@@ -24,6 +24,9 @@ public static class LfMoneyEndpoints
         services.AddSingleton<GuestCreditCommands>();
         services.AddSingleton<Hcc.Application.Billing.IGuestCreditReceivables>(sp => sp.GetRequiredService<GuestCreditCommands>());
         services.AddSingleton<Hcc.Application.Billing.ILfApprovalHandler>(sp => sp.GetRequiredService<GuestCreditCommands>());
+        // LF-finish list reads
+        services.AddSingleton<Hcc.Application.Counter.ILfMoneyReadStore>(sp => new SqlLfMoneyReadStore(sp.GetRequiredService<SqlPlatform>().Connections));
+        services.AddSingleton<Hcc.Application.Counter.LfMoneyReadService>();
         // LF A7 counter bills (INV series source 'counter'; void = 'counter-credit' approval → credit note)
         services.AddSingleton<Hcc.Application.Counter.ICounterBillStore, SqlCounterBillStore>();
         services.AddSingleton<Hcc.Application.Invoices.IInvoiceSource, Hcc.Application.Counter.CounterInvoiceSource>();
@@ -73,6 +76,21 @@ public static class LfMoneyEndpoints
         {
             var (p, u) = http.HccActor();
             return Results.Ok(await c.ListAsync(p, u, ct));
+        });
+        g.MapGet("/counter-bills", async (HttpContext http, Hcc.Application.Counter.LfMoneyReadService c, CancellationToken ct) =>
+        {
+            var (p, u) = http.HccActor();
+            return Results.Ok(await c.CounterBillsAsync(p, u, ct));
+        });
+        g.MapGet("/guests/credit", async (HttpContext http, Hcc.Application.Counter.LfMoneyReadService c, CancellationToken ct) =>
+        {
+            var (p, u) = http.HccActor();
+            return Results.Ok(await c.CreditGuestsAsync(p, u, ct));
+        });
+        g.MapGet("/stays/rate-changes", async (HttpContext http, Hcc.Application.Counter.LfMoneyReadService c, CancellationToken ct) =>
+        {
+            var (p, u) = http.HccActor();
+            return Results.Ok(await c.RateChangesAsync(p, u, ct));
         });
         g.MapGet("/guests/{id:long}/money", async (HttpContext http, long id, LfMoneyGuestCommands c, CancellationToken ct) =>
         {

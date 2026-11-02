@@ -147,7 +147,10 @@
     "GET /guest-services/lost-found-categories": "/guest-services/lost-found-categories?page=1&pageSize=200",
     "GET /guest-services/lost-found-categories/history": "/guest-services/lost-found-categories/history?page=1&pageSize=200",
     "GET /reminders": "/reminders?bucket=today",
-    "GET /invoices/corrections": "/invoices/corrections"
+    "GET /invoices/corrections": "/invoices/corrections",
+    "GET /counter-bills": "/counter-bills",
+    "GET /guests/credit": "/guests/credit",
+    "GET /stays/rate-changes": "/stays/rate-changes"
   },
   "roles": {
     "OWN": {
@@ -1096,7 +1099,10 @@
         "GET /guest-services/lost-found-categories": "200",
         "GET /guest-services/lost-found-categories/history": "200",
         "GET /reminders": "200",
-        "GET /invoices/corrections": "200"
+        "GET /invoices/corrections": "200",
+        "GET /counter-bills": "200",
+        "GET /guests/credit": "200",
+        "GET /stays/rate-changes": "200"
       }
     },
     "MGR": {
@@ -1855,7 +1861,10 @@
         "GET /guest-services/lost-found-categories": "200",
         "GET /guest-services/lost-found-categories/history": "403",
         "GET /reminders": "200",
-        "GET /invoices/corrections": "200"
+        "GET /invoices/corrections": "200",
+        "GET /counter-bills": "200",
+        "GET /guests/credit": "200",
+        "GET /stays/rate-changes": "200"
       }
     },
     "REC": {
@@ -2339,7 +2348,10 @@
         "GET /guest-services/lost-found-categories": "200",
         "GET /guest-services/lost-found-categories/history": "403",
         "GET /reminders": "200",
-        "GET /invoices/corrections": "200"
+        "GET /invoices/corrections": "200",
+        "GET /counter-bills": "200",
+        "GET /guests/credit": "200",
+        "GET /stays/rate-changes": "200"
       }
     },
     "CSH": {
@@ -2678,7 +2690,10 @@
         "GET /guest-services/lost-found-categories": "200",
         "GET /guest-services/lost-found-categories/history": "403",
         "GET /reminders": "403",
-        "GET /invoices/corrections": "200"
+        "GET /invoices/corrections": "200",
+        "GET /counter-bills": "200",
+        "GET /guests/credit": "200",
+        "GET /stays/rate-changes": "403"
       }
     },
     "ACC": {
@@ -3097,7 +3112,10 @@
         "GET /guest-services/lost-found-categories": "200",
         "GET /guest-services/lost-found-categories/history": "403",
         "GET /reminders": "200",
-        "GET /invoices/corrections": "200"
+        "GET /invoices/corrections": "200",
+        "GET /counter-bills": "403",
+        "GET /guests/credit": "200",
+        "GET /stays/rate-changes": "403"
       }
     },
     "SUP": {
@@ -3356,7 +3374,10 @@
         "GET /guest-services/lost-found-categories": "200",
         "GET /guest-services/lost-found-categories/history": "403",
         "GET /reminders": "403",
-        "GET /invoices/corrections": "403"
+        "GET /invoices/corrections": "403",
+        "GET /counter-bills": "403",
+        "GET /guests/credit": "403",
+        "GET /stays/rate-changes": "403"
       }
     },
     "HKP": {
@@ -3580,7 +3601,10 @@
         "GET /guest-services/lost-found-categories": "200",
         "GET /guest-services/lost-found-categories/history": "403",
         "GET /reminders": "403",
-        "GET /invoices/corrections": "403"
+        "GET /invoices/corrections": "403",
+        "GET /counter-bills": "403",
+        "GET /guests/credit": "403",
+        "GET /stays/rate-changes": "403"
       }
     },
     "MNT": {
@@ -3789,7 +3813,10 @@
         "GET /guest-services/lost-found-categories": "200",
         "GET /guest-services/lost-found-categories/history": "403",
         "GET /reminders": "403",
-        "GET /invoices/corrections": "403"
+        "GET /invoices/corrections": "403",
+        "GET /counter-bills": "403",
+        "GET /guests/credit": "403",
+        "GET /stays/rate-changes": "403"
       }
     },
     "TAD": {
@@ -4028,7 +4055,10 @@
         "GET /guest-services/lost-found-categories": "200",
         "GET /guest-services/lost-found-categories/history": "200",
         "GET /reminders": "403",
-        "GET /invoices/corrections": "403"
+        "GET /invoices/corrections": "403",
+        "GET /counter-bills": "403",
+        "GET /guests/credit": "403",
+        "GET /stays/rate-changes": "403"
       }
     },
     "RST": {
@@ -4212,7 +4242,10 @@
         "GET /guest-services/lost-found-categories": "200",
         "GET /guest-services/lost-found-categories/history": "403",
         "GET /reminders": "403",
-        "GET /invoices/corrections": "403"
+        "GET /invoices/corrections": "403",
+        "GET /counter-bills": "403",
+        "GET /guests/credit": "403",
+        "GET /stays/rate-changes": "403"
       }
     }
   }

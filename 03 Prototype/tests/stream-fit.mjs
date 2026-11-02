@@ -96,7 +96,7 @@ export async function register({test,M,assert}){
     // F2 (APK v19 defect fixes V17-4 / V15-4, intended): MobileShell.tsx. F3 LF lanes add their features to phone screens (not FIT layout changes):
     // desk purpose / vehicle / reminders (sheets.tsx, alerts Mobile.tsx, Arrivals.tsx), docdb databases panel (SystemHealth.tsx).
     const FROM_MAIN=new Set(['03 Prototype/src/styles/m-keys.css','03 Prototype/src/app/mobile/MobileShell.tsx',
-      '03 Prototype/src/app/mobile/sheets.tsx','03 Prototype/src/features/alerts/Mobile.tsx','03 Prototype/src/mobile/frontdesk/Arrivals.tsx','03 Prototype/src/mobile/admin/SystemHealth.tsx']);
+      '03 Prototype/src/app/mobile/sheets.tsx','03 Prototype/src/features/alerts/Mobile.tsx','03 Prototype/src/mobile/frontdesk/Arrivals.tsx','03 Prototype/src/mobile/admin/SystemHealth.tsx','03 Prototype/src/features/lfmoney/Mobile.tsx']);   // LF-finish L5: phone counter bills
     const bad=out.split('\n').map(s=>s.trim()).filter(Boolean).filter(phone).filter(f=>!FROM_MAIN.has(f));
     assert.deepEqual(bad,[],'phone-layout files changed since '+FIT_BASE);
   });

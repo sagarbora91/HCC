@@ -1,0 +1,46 @@
+using Hcc.Application.Counter;
+using Hcc.Application.Stays;
+using Hcc.Closing.Tests.Harness;
+using Hcc.Contracts;
+using Hcc.Domain.Errors;
+
+namespace Hcc.Counter.Tests.Sql;
+
+/// <summary>LF-finish list reads on a disposable HccTest_* hotel: counter bills (PERM-CTR-001 roles), credit guests with the open Udhaar balance (PERM-FOL-010
+/// roles) and applied rate changes (PERM-STY-010 roles); a role without the permission (the Accountant) is refused with FORBIDDEN, no money leaves.</summary>
+public sealed class LfMoneyReadsTests
+{
+    private const string HotelGstin = "27AAAAA0000A1Z2"; // fictional, valid checksum
+    private static CancellationToken Ct => TestContext.Current.CancellationToken;
+
+    [Fact]
+    public async Task Counter_bills_credit_guests_and_rate_changes_are_listed_to_money_roles_only()
+    {
+        await using var h = await Hotel.CreateAsync(Ct);
+        await h.ScalarAsync($"UPDATE inv.property SET gstin = '{HotelGstin}', address = N'12 Station Road, Latur (fictional)' WHERE property_id = {h.PropertyId};", Ct);
+        var reads = h.Get<LfMoneyReadService>();
+
+        var bill = await h.Get<CounterBillService>().IssueAsync(h.Ctx(h.Reception, CounterBillService.OpIssue), new IssueCounterBillRequest(new("Walk-in R (fictional)"),
+            [new("Laundry · shirts", 3, 5000, "laundry"), new("Tea", 2, 2500, "food")], new("paid", "UPI", "UPI-REF-R")), Ct);
+        var bills = await reads.CounterBillsAsync(h.PropertyId, h.Reception, Ct);
+        var row = Assert.Single(bills);
+        Assert.Equal((bill.Value.BillId, bill.Value.InvoiceNo, "Issued", bill.Value.TotalPaise, 2), (row.BillId, row.InvoiceNo, row.Status, row.TotalPaise, row.Lines.Count));
+        Assert.Equal(bill.Value.TotalPaise, (await reads.CounterBillsAsync(h.PropertyId, h.Owner, Ct)).Single().TotalPaise);
+        Assert.Equal(HccErrorCode.FORBIDDEN, (await Assert.ThrowsAsync<HccException>(() => reads.CounterBillsAsync(h.PropertyId, h.Accountant, Ct))).Code);
+
+        var (_, stay, _) = await h.SeedInHouseAsync("101", "2026-10-24", "2026-10-27", 200000, Ct);
+        var guest = await h.LongAsync($"SELECT guest_id FROM gst.stay WHERE stay_id = {stay}", Ct);
+        await h.ScalarAsync($"UPDATE gst.guest SET phone = '+91 98200 01051' WHERE guest_id = {guest}", Ct);
+        Assert.Empty(await reads.CreditGuestsAsync(h.PropertyId, h.Owner, Ct));
+        await h.Get<LfMoneyGuestCommands>().SetCreditAccountAsync(h.Ctx(h.Owner, LfMoneyGuestCommands.OpSetCreditAccount), new(guest, 1_000_000, true, "Regular"), Ct);
+        var cg = Assert.Single(await reads.CreditGuestsAsync(h.PropertyId, h.Reception, Ct));
+        Assert.Equal((guest, 1_000_000L, true, "9820001051", 0L), (cg.GuestId, cg.LimitPaise, cg.Active, cg.CustomerKey, cg.OpenPaise));
+
+        Assert.Empty(await reads.RateChangesAsync(h.PropertyId, h.Owner, Ct));
+        await h.Billing.PostRoomNightAsync(h.As(h.Owner), Hotel.Key(), new Hcc.Contracts.Billing.PostRoomNightRequest(stay, Hotel.Day1), Ct);
+        await h.Get<StayRateCommands>().ChangeAsync(h.Ctx(h.Owner, StayRateCommands.OpChangeStayRate), new(stay, 180000, null, null, "today-next", "Regular guest"), Ct);
+        var rc = Assert.Single(await reads.RateChangesAsync(h.PropertyId, h.Manager, Ct));
+        Assert.Equal((stay, "101", 200000L, 180000L, "today-next"), (rc.StayId, rc.RoomNo, rc.OldRatePaise, rc.NewRatePaise, rc.Scope));
+        Assert.Equal(HccErrorCode.FORBIDDEN, (await Assert.ThrowsAsync<HccException>(() => reads.RateChangesAsync(h.PropertyId, h.Accountant, Ct))).Code);
+    }
+}
