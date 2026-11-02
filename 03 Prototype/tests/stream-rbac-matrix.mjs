@@ -183,6 +183,11 @@ const CMDS={
   // MA-0 masters framework (DEC-MA-1: the `masters` permission = Owner + Tech admin by default; money lists Owner-only per spec).
   ...Object.fromEntries(['MST_MASTER_SAVE','MST_MASTER_RETIRE','MST_MASTER_REACTIVATE','MST_MASTER_REORDER','MST_MASTER_DELETE'].map(c=>[c,C('OWN TAD','MA-0 masters (DEC-MA-1)')])),
   SYS_RETRY_PARKED:C('OWN TAD','PERM-SYS-001 (Wave C3, A09-05: RetryParkedEvent)'),
+  // F4-T3 quick wins: feedback at check-out (role list in the handler), day-close sweep ('close'), Owner follow-ups / feedback address / printer test ('admin').
+  FBK_RECORD:C('OWN MGR REC CSH','F4-T3 qw-feedback: Reception, Manager, Owner, Cashier at check-out'),
+  FBK_FOLLOWUP_SWEEP:C('OWN MGR','F4-T3: system sweep at day close, gated by the coarse close permission'),
+  FBK_FOLLOWUP_DONE:C('OWN TAD','F4-T3: admin (Owner follow-up calls)'),FBK_URL_SET:C('OWN TAD','F4-T3: admin'),
+  QW_PRINTER_TEST:C('OWN TAD','F4-T3 PERM-FBK-003: admin'),QW_PRINTER_SET:C('OWN TAD','F4-T3 PERM-FBK-003: admin (demo only)'),
   // MA-8 masters import (JSON import and Paste rows): the `masters` permission (Owner + Tech admin); a money list inside the file is refused per list unless the Owner imports it.
   MST_IMPORT:C('OWN TAD','MA-8 masters import (DEC-MA-1, DEC-058)'),
   // MA-1 rooms master tools (range add, renumber, out of order): the rooms master's `masters` permission (old → new: 199 → 203 commands).
