@@ -38,6 +38,7 @@ import {handlers as cashout} from './cashout';
 import {handlers as masters} from './masters';
 import {handlers as credentials} from './credentials'; // A02b-05 self-service password / PIN change
 import {handlers as syshealth} from './syshealth';
+import {handlers as feedbackQw} from './feedback'; // F4-T3
 import {handlers as roommasters} from './roommasters';
 import {handlers as keys} from './keys'; // KEYS room keys
 // LF lanes: ONE import line inside your own block (append only); spread it in the LF object below.
@@ -92,6 +93,7 @@ const F4:Record<string,Handler>={ // F4 lanes: spread your handlers inside your 
   // F4-T2
   // F4-T2 end
   // F4-T3
+  ...feedbackQw,
   // F4-T3 end
 };
 export const registry:Record<string,Handler>={...ACC1,...ACC2,...reservations,...guests,...folio,...housekeeping,...admin,...closing,...expenses,...yieldMod,...groups,...channels,...maintenance,...inventory,...handover,...services,...messaging,...pos,...staff,...accounting,...assistant,...compliance,...cashbook,...cashout,...masters,...credentials,...syshealth,...roommasters,...keys,...LF,...F4,...catalogue};
