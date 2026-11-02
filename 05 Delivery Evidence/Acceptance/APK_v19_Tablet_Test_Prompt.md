@@ -178,7 +178,7 @@ versionCode / versionName from dumpsys, install command result, launch OK.
 same table
 
 ## D. Device-only defects (V17-1..4, V15-4, V16-3)
-same table (include the cold-start seconds in D1)
+same table
 
 ## E. Themes, bars, camera, ID
 
