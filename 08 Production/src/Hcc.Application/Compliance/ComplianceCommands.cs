@@ -360,6 +360,7 @@ public sealed partial class ComplianceCommands(ICommandRunner runner, IAccessPol
         }
 
         if (content.Length > ComplianceRules.MaxFileBytes) throw HccException.Validation("An evidence file can be at most 5 MB.");
+        if (type.StartsWith("image/", StringComparison.OrdinalIgnoreCase) && content.Length > ComplianceRules.MaxImageBytes) throw HccException.Validation(ComplianceRules.ImageTooLarge);   // LF-images G1
         return await runner.RunAsync(ctx with { Operation = OpAddEvidence }, req, async (tx, c) =>
         {
             var (snap, cal, _) = await LoadAsync(tx, ctx.PropertyId, c).ConfigureAwait(false);

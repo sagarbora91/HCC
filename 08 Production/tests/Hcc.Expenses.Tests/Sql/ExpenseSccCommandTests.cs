@@ -1,6 +1,7 @@
 using System.Data;
 using Hcc.Contracts;
 using Hcc.Contracts.Expenses;
+using Hcc.Domain.Expenses;
 using Hcc.Expenses.Tests.Harness;
 using static Hcc.Expenses.Tests.Harness.Assertions;
 
@@ -121,8 +122,11 @@ public class ExpenseSccCommandTests(ExpensesDb db) : IClassFixture<ExpensesDb>
         var photo = await db.Queries.BillPhotoAsync(db.PropertyId, Who.Manager, withGst.ExpenseId, Ct);
         Assert.Equal(("image/jpeg", Convert.ToBase64String(jpeg)), (photo.ContentType, photo.ImageBase64));
         await Fails(HccErrorCode.NOT_FOUND, () => db.Queries.BillPhotoAsync(db.PropertyId, Who.Cashier, withGst.ExpenseId, Ct)); // not theirs (own-only reader)
-        var tooBig = Convert.ToBase64String(new byte[4 * 1024 * 1024 + 1]);
-        Assert.Equal("Photo too large (max 4MB)", (await Fails(HccErrorCode.VALIDATION, () => db.Commands.SubmitAsync(db.Ctx(Who.Reception),
+        // LF-images (G1): the bill photo is held to 153,600 bytes (the app compresses to about 150 KB); 153,600 is accepted, one more is refused.
+        var atCap = Convert.ToBase64String(jpeg.Concat(new byte[ExpenseScc.PhotoMaxBytes - jpeg.Length]).ToArray());
+        await Submit(Who.Reception, Req("cap " + Tag(), 100) with { BillPhotoBase64 = atCap, BillPhotoContentType = "image/jpeg" });
+        var tooBig = Convert.ToBase64String(jpeg.Concat(new byte[ExpenseScc.PhotoMaxBytes + 1 - jpeg.Length]).ToArray());
+        Assert.Equal("Take the photo again, closer and in good light.", (await Fails(HccErrorCode.VALIDATION, () => db.Commands.SubmitAsync(db.Ctx(Who.Reception),
             Req("x " + Tag(), 100) with { BillPhotoBase64 = tooBig, BillPhotoContentType = "image/jpeg" }, Ct))).Message);
         await Fails(HccErrorCode.VALIDATION, () => db.Commands.SubmitAsync(db.Ctx(Who.Reception), Req("x " + Tag(), 100) with { BillPhotoBase64 = "AAAA", BillPhotoContentType = "text/html" }, Ct));
 

@@ -80,6 +80,7 @@ export {LEGACY_SAMPLE} from '../../fixtures/ext/legacy-sample'; // W1a LG: ficti
 // LG end
 // LF lanes: export lines for your domain streams inside your own block (append only).
 // LF-DOCDB
+export * from '../../domain/streams/docobjects'; // LF-docdb: docObjectsX mirror of the documents database (contract §1.10)
 // LF-DOCDB end
 // LF-RATE
 // LF-RATE end
@@ -92,4 +93,5 @@ export {LEGACY_SAMPLE} from '../../fixtures/ext/legacy-sample'; // W1a LG: ficti
 // LF-ALERTS
 // LF-ALERTS end
 // LF-IMAGES
+export * from '../../domain/streams/printnotes'; // LF-images B6: which branding text prints on which document
 // LF-IMAGES end

@@ -149,10 +149,10 @@ public sealed class HccEventLogLoggerProvider(IOperatorAlertSink sink) : ILogger
     /// <summary>Category of the generic host (it logs a BackgroundService whose ExecuteAsync threw, then stops the host).</summary>
     public const string HostCategory = "Microsoft.Extensions.Hosting.Internal.Host";
 
-    /// <summary>The HCC categories forwarded from Information up: every <see cref="OutboxPollingWorker"/>, the failure logger, retention, schema guard.</summary>
+    /// <summary>The HCC categories forwarded from Information up: every <see cref="OutboxPollingWorker"/>, the failure logger, retention, schema guard, the documents sweep.</summary>
     public static readonly IReadOnlySet<string> OperatorCategories = typeof(OutboxPollingWorker).Assembly.GetTypes()
         .Where(t => t.IsSubclassOf(typeof(OutboxPollingWorker)) && !t.IsAbstract)
-        .Concat([typeof(OutboxFailureLogger), typeof(RetentionWorker), typeof(SchemaGuard)])
+        .Concat([typeof(OutboxFailureLogger), typeof(RetentionWorker), typeof(SchemaGuard), typeof(Hcc.Api.Endpoints.DocumentSweepWorker)])   // LF-docdb: the nightly orphan sweep reaches the Event Log too
         .Select(t => t.FullName!).ToHashSet(StringComparer.Ordinal);
 
     public IOperatorAlertSink Sink { get; } = sink;

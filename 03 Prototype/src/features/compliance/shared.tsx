@@ -1,4 +1,5 @@
 // Compliance calendar (SCC tax module in full, DEC-116) — shared UI pieces for the desktop page, the phone page, the dialogs and the dashboard card.
+import {dobUrl} from '../../domain/streams/docobjects';
 import React,{useMemo,useSyncExternalStore} from 'react';
 import {useHcc} from '../../app/context';
 import {cmpSlice,cmpPayableFeed,cmpRichSegments,cmpOpeningMonth,cmpWhen,type CMPPayableFeed,type CMPMonth,type CMPCatFilter,type CMPQuarterKey,type State,
@@ -43,7 +44,7 @@ export function useCmpFeed():CMPPayableFeed|undefined{
   return process.env.HCC_BUILD==='production'?srv.data:local;
 }
 
-// ── Evidence files: the demo keeps the content in s.complianceFilesX; production downloads it from the server ──
+// ── Evidence files: the demo keeps the content in s.docObjectsX (LF-docdb); production downloads it from the server ──
 type SrvFile={fileName:string;contentType:string;base64:string};
 const b64Bytes=(b64:string)=>{const bin=atob(b64),a=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)a[i]=bin.charCodeAt(i);return a;};
 export const cmpDataUrlBytes=(dataUrl:string)=>{const i=dataUrl.indexOf(',');return b64Bytes(i<0?dataUrl:dataUrl.slice(i+1));};
@@ -51,7 +52,7 @@ export const cmpDataUrlBytes=(dataUrl:string)=>{const i=dataUrl.indexOf(',');ret
 export async function cmpFileBytes(s:State,id:string):Promise<{bytes:Uint8Array;type:string;name:string}|null>{
   const f=cmpSlice(s).files.find(x=>x.id===id);if(!f)return null;
   if(process.env.HCC_BUILD==='production'){const r=await getSyncRuntime().api.get<SrvFile>(`/compliance/evidence/${encodeURIComponent(id)}`);return {bytes:b64Bytes(r.base64),type:r.contentType,name:r.fileName};}
-  const d=s.complianceFilesX?.[id];return d?{bytes:cmpDataUrlBytes(d),type:f.type,name:f.name}:null;
+  const d=dobUrl(s,f.objectRef,s.complianceFilesX?.[id]);return d?{bytes:cmpDataUrlBytes(d),type:f.type,name:f.name}:null; // LF-docdb: the demo's content is in s.docObjectsX (a pre-v13 file still reads its inline value in s.complianceFilesX until the save is moved)
 }
 /** SCC "View" (shell file viewer) → HCC saves or shares the file (browser download / Android share sheet). */
 export function useCmpOpenFile(){

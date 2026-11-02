@@ -65,13 +65,14 @@ public sealed partial class HccServer : IAsyncDisposable
         await using (var conn = new SqlConnection(SqlConnectionFactory.LocalDevConnectionString(server, "master")))
         {
             await conn.OpenAsync(ct);
-            await using var cmd = new SqlCommand($"CREATE DATABASE [{name}];", conn) { CommandTimeout = 120 };
+            await using var cmd = new SqlCommand($"CREATE DATABASE [{name}]; CREATE DATABASE [{name}Documents];", conn) { CommandTimeout = 120 };   // LF-docdb: the pair
             await cmd.ExecuteNonQueryAsync(ct);
         }
 
         try
         {
             await h.Platform.Migrations.MigrateAsync(ct);   // 0001 → latest, every module block
+            await h.Platform.DocumentMigrations.MigrateAsync(ct);   // LF-docdb: HccDocuments, its own journal
             h.PropertyId = Convert.ToInt32(await h.ScalarAsync(seedSql, ct), CultureInfo.InvariantCulture);
 
             var builder = WebApplication.CreateBuilder();
@@ -128,6 +129,11 @@ public sealed partial class HccServer : IAsyncDisposable
         await using var conn = new SqlConnection(SqlConnectionFactory.LocalDevConnectionString(Server, "master"));
         await conn.OpenAsync();
         await using var cmd = new SqlCommand($"""
+            IF DB_ID(N'{Name}Documents') IS NOT NULL
+            BEGIN
+              ALTER DATABASE [{Name}Documents] SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
+              DROP DATABASE [{Name}Documents];
+            END
             IF DB_ID(N'{Name}') IS NOT NULL
             BEGIN
               ALTER DATABASE [{Name}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE;

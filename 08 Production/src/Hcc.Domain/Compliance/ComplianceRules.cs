@@ -20,6 +20,12 @@ public static class ComplianceRules
     /// <summary>HCC safeguard (SCC has no limit): an evidence file up to 5 MB.</summary>
     public const int MaxFileBytes = 5 * 1024 * 1024;
 
+    /// <summary>LF-images (G1, OQ-1): an evidence file that is a picture (content type image/*) is held to 150 KB like every photo; a PDF (a challan) keeps 5 MB.</summary>
+    public const int MaxImageBytes = 153_600;
+
+    /// <summary>The refusal text of a picture above <see cref="MaxImageBytes"/>.</summary>
+    public const string ImageTooLarge = "Take the photo again, closer and in good light.";
+
     /// <summary>HCC column limits for SCC's free texts (SCC has none).</summary>
     public const int MaxFirmName = 120, MaxPan = 20, MaxGstin = 20, MaxNotes = 500, MaxEvidenceRef = 200, MaxReviewer = 200, MaxName = 200, MaxText = 2000, MaxShort = 200,
         MaxListLines = 40, MaxFileName = 200;

@@ -449,6 +449,13 @@ function builtins(){
     {key:'brand.legalName',label:'Legal name (Tally company)',type:'text',maxLength:100,allowEmpty:true,default:'',approver:'Owner',unit:'text, ≤ 100 chars, optional',help:'The registered name of the firm, exactly as the company is named in Tally. Empty = the property display name.',affects:'Tally masters and vouchers files exported after the change.'},
     {key:'brand.invoiceHeader',label:'Invoice header line',type:'text',maxLength:80,default:'HCC Demo Residency · fictional property',unit:'text, ≤ 80 chars',help:'Second line of the invoice header.'},
     {key:'brand.invoiceFooter',label:'Invoice footer',type:'text',maxLength:120,default:'Thank you for staying with us.',unit:'text, ≤ 120 chars',help:isProductionBuild()?'Last line of invoices and receipts.':'The demonstration watermark is always printed as well.'},
+    // LF-IMAGES (B6, LF-CONTRACT §10.2): the legacy NoteMaster / MainTitle / SubTitle — printed at print time (not stored on the document) on the folio invoice,
+    // counter bill, POS invoice, credit note and receipts. Non-money group: Owner and Tech admin (DEC-058). Hindi labels stay the separate "Document language".
+    {key:'brand.invoiceTitle',label:'Invoice title',type:'text',maxLength:60,default:'Tax invoice',unit:'text, ≤ 60 chars',help:'The heading of invoices, counter bills and POS tax invoices.'},
+    {key:'brand.invoiceSubtitle',label:'Invoice subtitle',type:'text',maxLength:120,allowEmpty:true,default:'',unit:'text, ≤ 120 chars, optional',help:'A line under the invoice title (for example the licence or the tagline).'},
+    {key:'brand.invoiceNotes',label:'Notes on invoices',type:'text',maxLength:600,allowEmpty:true,default:'',unit:'text, ≤ 600 chars, optional',help:'Terms, check-out time, bank details, "subject to Latur jurisdiction". Printed under the invoice; line breaks are kept.'},
+    {key:'brand.receiptFooter',label:'Receipt footer',type:'text',maxLength:120,allowEmpty:true,default:'',unit:'text, ≤ 120 chars, optional',help:'Last line of receipts (when empty the invoice footer is used).'},
+    {key:'brand.creditNoteNotes',label:'Notes on credit notes',type:'text',maxLength:300,allowEmpty:true,default:'',unit:'text, ≤ 300 chars, optional',help:'Printed under every credit note.'},
     {key:'brand.printFormat',label:'Print format',type:'choice',options:['A4','A5','80 mm thermal'],default:'A4',unit:'choice',help:'Default paper for invoices and receipts.'},
     {key:'brand.language',label:'Document language',type:'choice',options:['English','English + Hindi labels'],default:'English',unit:'choice',help:'Labels on printed documents.'},
   ]});

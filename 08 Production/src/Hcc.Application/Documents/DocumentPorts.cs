@@ -135,11 +135,11 @@ public sealed class SimulatedIdOcrEngine : IIdOcrEngine
 public sealed record IdCaptureRow(
     long CaptureId, Guid CaptureRef, int PropertyId, long GuestId, long? StayId, string DocKind, string ContentType, int SizeBytes, string Status,
     string? OcrDocKind, string? OcrLast4, int? OcrConfidence, string? OcrSealed, DateOnly CapturedDate, DateTime CapturedUtc, int CapturedBy,
-    DateTime? ConfirmedUtc, int? ConfirmedBy, string? RejectReason, DateTime? PurgedUtc, bool ImageAvailable, byte[] RowVer);
+    DateTime? ConfirmedUtc, int? ConfirmedBy, string? RejectReason, DateTime? PurgedUtc, bool ImageAvailable, byte[] RowVer, int? PartySeq = null);
 
 public sealed record NewIdCapture(
     Guid CaptureRef, int PropertyId, long GuestId, long? StayId, string DocKind, string ContentType, int SizeBytes,
-    string OcrDocKind, string OcrLast4, int OcrConfidence, string OcrSealed, DateOnly CapturedDate, DateTime CapturedUtc, int CapturedBy);
+    string OcrDocKind, string OcrLast4, int OcrConfidence, string OcrSealed, DateOnly CapturedDate, DateTime CapturedUtc, int CapturedBy, int? PartySeq = null);
 
 /// <summary>Persistence of capture metadata and the sealed OCR text (<c>doc.id_capture</c>, migration 2100); touches <c>gst.guest</c> only to read it and to set the ID type/last 4.</summary>
 public interface IDocumentStore
@@ -163,6 +163,9 @@ public interface IDocumentStore
     Task SetStatusAsync(ICommandTransaction tx, long captureId, string status, int principalId, DateTime utc, string? rejectReason, CancellationToken ct = default);
 
     /// <summary>Sets the guest profile's ID type and last 4 (the display values; the number itself goes through IGuestIdStore).</summary>
+    /// <summary>LF-images B5 (DEC-201): the party member's ID type and last 4 for display (gst.guest_party, 4620).</summary>
+    Task SetPartyIdProfileAsync(ICommandTransaction tx, long guestId, int seq, string idType, string last4, CancellationToken ct = default);
+
     Task SetGuestIdProfileAsync(ICommandTransaction tx, long guestId, string idType, string last4, CancellationToken ct = default);
 
     /// <summary>Row-locked captures of the property not yet purged and captured on or before <paramref name="cutoff"/>.</summary>

@@ -21,8 +21,12 @@ public static class ExpenseScc
     public const int DescriptionMax = 300;
     public const int NoteMax = 200;
 
-    /// <summary>SCC readPhoto: a picked file above 4 MB is refused; the app sends the photo scaled to 1000 px wide at JPEG 0.7.</summary>
-    public const int PhotoMaxBytes = 4 * 1024 * 1024;
+    /// <summary>LF-images (G1, LF-CONTRACT 1.11): the app compresses the bill photo to about 150 KB (SCC sent 1000 px wide at JPEG 0.7 and refused a picked file above 4 MB);
+    /// the server refuses above 153,600 bytes with <see cref="PhotoTooLarge"/>. DEC-120's "SCC in full" covers the expense rules, not the pixel size.</summary>
+    public const int PhotoMaxBytes = 153_600;
+
+    /// <summary>The refusal text of a photo above the cap (same words as the ID image, the guest photo and the prototype).</summary>
+    public const string PhotoTooLarge = "Take the photo again, closer and in good light.";
 
     /// <summary>SCC budgets: tab "near limit" at ≥ 85 %, alert warning at ≥ 90 %, error at ≥ 100 % (1287, 1306-1308).</summary>
     public const int BudgetNear = 85;

@@ -87,4 +87,52 @@ public sealed class SchemaGuardTests
         Assert.Equal(HttpStatusCode.OK, (await GetAsync(serverPc, "/system/health")).Status);
         Assert.Equal(HttpStatusCode.Unauthorized, (await GetAsync(lan, "/me/capabilities")).Status);
     }
+
+    [Fact]
+    public async Task LF_docdb_documents_database_behind_the_build_answers_503_naming_the_documents_database_and_recovers()
+    {
+        await using var s = await ServerAsync();
+        using var serverPc = s.CookieClient();
+        using var lan = s.CookieClient();
+        lan.DefaultRequestHeaders.Add(LanHeader, "192.168.1.50");
+        var guard = s.Services.GetRequiredService<SchemaGuard>();
+        Assert.Equal(HttpStatusCode.OK, (await GetAsync(serverPc, "/system/health")).Status);
+
+        // The documents journal loses its newest migration (the new build started before the documents migrate step).
+        string name, checksum;
+        await using (var conn = await s.Platform.Documents.OpenAsync(Ct))
+        {
+            await using (var q = new Microsoft.Data.SqlClient.SqlCommand("SELECT name, checksum_sha256 FROM dbo.schema_migration WHERE version = 2;", conn))
+            await using (var r = await q.ExecuteReaderAsync(Ct))
+            {
+                await r.ReadAsync(Ct);
+                (name, checksum) = (r.GetString(0), r.GetString(1));
+            }
+
+            await using var cmd = new Microsoft.Data.SqlClient.SqlCommand("DELETE dbo.schema_migration WHERE version = 2;", conn);
+            await cmd.ExecuteNonQueryAsync(Ct);
+        }
+
+        guard.Invalidate();
+        var behind = await GetAsync(serverPc, "/system/health");
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, behind.Status);
+        Assert.Equal("SCHEMA_BEHIND", behind.Error!.Details!["reason"].GetString());
+        Assert.Equal("documents", behind.Error.Details["database"].GetString());
+        Assert.Equal("Documents database schema is behind this build: run `Hcc.Api migrate` (applied 1 of 2).", behind.Error.Message);   // the server PC sees the counts
+        var forLan = await GetAsync(lan, "/me/capabilities");
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, forLan.Status);
+        Assert.Equal(Hcc.Api.Hosting.SchemaGuard.PublicMessage, forLan.Error!.Message);   // no counts on the LAN
+
+        // "migrate" ran: the journal has its row again (re-running 0002 itself is not part of this test: its objects exist).
+        await using (var conn = await s.Platform.Documents.OpenAsync(Ct))
+        await using (var ins = new Microsoft.Data.SqlClient.SqlCommand("INSERT dbo.schema_migration(version, name, checksum_sha256) VALUES (2, @n, @c);", conn))
+        {
+            ins.Parameters.AddWithValue("@n", name);
+            ins.Parameters.AddWithValue("@c", checksum);
+            await ins.ExecuteNonQueryAsync(Ct);
+        }
+
+        guard.Invalidate();
+        Assert.Equal(HttpStatusCode.OK, (await GetAsync(serverPc, "/system/health")).Status);
+    }
 }

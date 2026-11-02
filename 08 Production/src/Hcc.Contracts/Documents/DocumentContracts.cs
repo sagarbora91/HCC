@@ -5,13 +5,13 @@ namespace Hcc.Contracts.Documents;
 // needs the ID-view permission, never cached, never part of a stored command result. Legal risk recorded in DEC-068 (Aadhaar Act 2016).
 
 /// <summary>POST /api/v1/commands/CaptureIdDocument (K). <c>DocKind</c>: aadhaar | passport | dl | voter | pan | other. Image: JPEG/PNG/WebP, up to 4 MB, base64.</summary>
-public sealed record CaptureIdDocumentRequest(long GuestId, long? StayId, string DocKind, string ContentType, string ImageBase64);
+public sealed record CaptureIdDocumentRequest(long GuestId, long? StayId, string DocKind, string ContentType, string ImageBase64, int? PartySeq = null);
 
 /// <summary>A capture as every role sees it: masked extracted number, no image, no name/date of birth.</summary>
 public sealed record IdCaptureView(
     long CaptureId, long GuestId, long? StayId, string DocKind, string IdType, string ContentType, int SizeBytes, string Status,
     string OcrDocKind, string OcrIdMasked, int OcrConfidence, DateOnly CapturedDate, DateTime CapturedUtc, int CapturedBy,
-    DateTime? ConfirmedUtc, int? ConfirmedBy, string RejectReason, bool ImageAvailable, string Version);
+    DateTime? ConfirmedUtc, int? ConfirmedBy, string RejectReason, bool ImageAvailable, string Version, int? PartySeq = null);
 
 /// <summary>POST /api/v1/commands/ConfirmIdCapture (K): after reviewing the image, accept the OCR number or type the corrected one. Writes the sealed guest ID.</summary>
 public sealed record ConfirmIdCaptureRequest(long CaptureId, string ExpectedVersion, bool AcceptOcr, string? IdNumber);

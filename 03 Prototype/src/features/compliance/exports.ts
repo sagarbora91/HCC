@@ -1,6 +1,7 @@
 // Compliance calendar — the evidence ZIP (SCC exportEvidenceZip L2045–2098): the selected FY's files in <Month>_<Category>_<Name>__<itemId>
-// folders with an index.csv manifest, file Evidence_<firm>_<FY>.zip. Demo: built on the device from s.complianceFilesX (stored, not deflated —
+// folders with an index.csv manifest, file Evidence_<firm>_<FY>.zip. Demo: built on the device from s.docObjectsX (or the pre-v13 s.complianceFilesX) (stored, not deflated —
 // compression is not a rule); production: built by the hotel server (GET /compliance/evidence-zip) and saved here.
+import {dobUrl} from '../../domain/streams/docobjects';
 import {cmpSlice,cmpEvidenceZipPlan,cmpFyLabel,type State} from '../../services/mock';
 import {zipStored} from '../../app/xlsx';
 import {saveBinaryFile,saveAndReport} from '../../app/native';
@@ -13,7 +14,7 @@ const b64Bytes=(b64:string)=>{const bin=atob(b64),a=new Uint8Array(bin.length);f
 /** The demo's ZIP bytes (null when the FY has no files). */
 export function cmpZipBytes(s:State):{fileName:string;bytes:Uint8Array;files:number}|null{
   const plan=cmpEvidenceZipPlan(s),enc=new TextEncoder(),files:{name:string;data:Uint8Array}[]=[];
-  for(const e of plan.entries){const d=s.complianceFilesX?.[e.fileId];if(!d)continue;try{files.push({name:e.path,data:cmpDataUrlBytes(d)});}catch{/* SCC skips an unreadable file */}}
+  for(const e of plan.entries){const d=dobUrl(s,cmpSlice(s).files.find(f=>f.id===e.fileId)?.objectRef,s.complianceFilesX?.[e.fileId]);if(!d)continue;try{files.push({name:e.path,data:cmpDataUrlBytes(d)});}catch{/* SCC skips an unreadable file */}}
   if(!files.length)return null;
   files.push({name:'index.csv',data:enc.encode(plan.index)});
   return {fileName:plan.fileName,bytes:zipStored(files),files:files.length-1};

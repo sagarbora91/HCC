@@ -116,9 +116,9 @@ export function register({test,M,assert}){
     assert.equal(view(s,c.id+'-Nov').due,'2026-11-30');assert.equal(cmpFindCard(cmpSlice(s),c.id+'-Apr'),undefined);
     for(let n=0;n<31;n++)s=execute(s,'owner',{type:'CMP_CUSTOM_SAVE',name:'Same name',months:['May'],dueDay:n});assert.equal(cmpSlice(s).custom.length,32);// no cap, no duplicate-name check
     s=execute(s,'accountant',{type:'CMP_EVIDENCE_ADD',itemId:c.id+'-Nov',name:'noc.pdf',dataUrl:'data:application/pdf;base64,JVBERg=='});
-    const fid=cmpSlice(s).files.at(-1).id;assert.ok(s.complianceFilesX[fid]);
+    const fid=cmpSlice(s).files.at(-1).id;assert.ok(s.docObjectsX['DOB-'+fid]);// LF-docdb: the content is in the documents mirror
     s=execute(s,'owner',{type:'CMP_CUSTOM_DELETE',id:c.id});assert.equal(cmpSlice(s).custom.some(o=>o.id===c.id),false);assert.equal(cmpSlice(s).files.some(f=>f.id===fid),false);
-    assert.equal(s.complianceFilesX[fid],undefined);assert.match(s.audit[0].detail,/1 evidence file\(s\) removed/);});
+    assert.equal(s.docObjectsX['DOB-'+fid],undefined);assert.match(s.audit[0].detail,/1 evidence file\(s\) removed/);});
 
   test('[CMP] evidence files (5 MB each): attach and remove; a file or an evidence reference completes the evidence pack',()=>{
     let s=seed();assert.deepEqual([M.cmpEvidenceCompleteness(s,'fy').doneSatisfied,M.cmpEvidenceCompleteness(s,'fy').doneTotal,M.cmpEvidenceCompleteness(s,'fy').missing.map(m=>m.id)],[47,49,['jn4','jl11']]);
@@ -127,7 +127,7 @@ export function register({test,M,assert}){
     assert.deepEqual(M.cmpEvidenceCompleteness(s,'fy').missing.map(m=>m.id),['jl11']);assert.equal(M.cmpEvidenceCompleteness(s,'June').doneSatisfied,8);
     assert.throws(()=>execute(s,'accountant',{type:'CMP_EVIDENCE_ADD',fy:2026,itemId:'jn4',name:'big.bin',dataUrl:'data:application/octet-stream;base64,'+'A'.repeat(7*1024*1024)}),/5 MB/);
     assert.throws(()=>execute(s,'accountant',{type:'CMP_EVIDENCE_ADD',fy:2026,itemId:'jn4',name:'x',dataUrl:'not a file'}),/Choose a file/);
-    s=execute(s,'accountant',{type:'CMP_EVIDENCE_DELETE',id:f.id});assert.equal(cmpSlice(s).files.some(e=>e.id===f.id),false);assert.equal(s.complianceFilesX[f.id],undefined);});
+    s=execute(s,'accountant',{type:'CMP_EVIDENCE_DELETE',id:f.id});assert.equal(cmpSlice(s).files.some(e=>e.id===f.id),false);assert.equal(s.docObjectsX['DOB-'+f.id],undefined);});
 
   test('[CMP] ≈₹ payable from HCC data: EPF / ESIC = employee + employer, PT, from the LOCKED pay run of the month; GST = output tax of issued invoices',()=>{
     const s=seed(),run=M.hrSlice(s).runs.find(r=>r.month==='2026-08'&&r.status==='Locked'),sum=f=>run.lines.reduce((a,l)=>a+f(l),0);

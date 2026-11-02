@@ -9,6 +9,7 @@ import {
   CMP_ENTITIES,cmpSlice,cmpHasAccess,cmpFindCard,cmpItemMonth,cmpRecord,cmpParseDue,cmpRenderFYText,cmpStripHtml,cmpFyLabel,cmpBuiltInObligations,
   cmpPackCounts,cmpPackLines,cmpTypeLabel,cmpCatLabel,cmpFyOfDate,cmpLicenceObligations,type CMPProfile,
 } from '../../../domain/streams/compliance';
+import {dobPut,dobDelete,dobEvidenceRef} from '../../../domain/streams/docobjects'; // LF-docdb: evidence content lives in s.docObjectsX
 import {nights} from '../../../domain/money';
 
 const slice=(k:Kit):CMPState=>{const x=cmpSlice(k.s);k.s.complianceX=x;return x;};
@@ -146,7 +147,7 @@ export const handlers:Record<string,Handler>={
     manage(k);const x=slice(k),id=txt(k.cmd.id),ob=x.custom.find(o=>o.id===id);k.assert(ob,'Custom obligation not found.','NOT_FOUND');
     x.custom=x.custom.filter(o=>o.id!==id);
     const gone=x.files.filter(f=>f.itemId.startsWith(id+'-'));
-    if(gone.length){x.files=x.files.filter(f=>!f.itemId.startsWith(id+'-'));const store={...(k.s.complianceFilesX??{})};for(const f of gone)delete store[f.id];k.s.complianceFilesX=store;}
+    if(gone.length){x.files=x.files.filter(f=>!f.itemId.startsWith(id+'-'));let docs=k.s.docObjectsX;for(const f of gone)docs=dobDelete({docObjectsX:docs},f.objectRef);k.s.docObjectsX=docs;if(k.s.complianceFilesX){const old={...k.s.complianceFilesX};for(const f of gone)delete old[f.id];k.s.complianceFilesX=old;}}
     return `${id} · ${ob!.name} deleted${gone.length?` · ${gone.length} evidence file(s) removed`:''}`;},
 
   // SCC evAttachHere / confirmDone files (L2294–2299, L2419–2424): files per FY and item (firm required). HCC limit: 5 MB a file.
@@ -157,13 +158,15 @@ export const handlers:Record<string,Handler>={
     const b64=data.slice(m![0].length),pad=b64.endsWith('==')?2:b64.endsWith('=')?1:0,size=Math.floor(b64.length*3/4)-pad;
     k.assert(size<=CMP_FILE_MAX_BYTES,'An evidence file can be at most 5 MB.');
     const fid=k.id('CMPF');x.files.push({id:fid,fy,itemId:id,name,size,type:m![1]||'application/octet-stream',addedBy:k.uid,addedAt:k.s.clock});
-    k.s.complianceFilesX={...(k.s.complianceFilesX??{}),[fid]:data};
+    let stored;try{stored=dobPut(k.s,{ref:dobEvidenceRef(fid),kind:'compliance-evidence',owner:fid,dataUrl:data,at:k.s.clock,by:k.uid});}
+    catch(x){return k.fail('VALIDATION',x instanceof Error?x.message:'The file could not be stored.');}
+    k.s.docObjectsX=stored;x.files[x.files.length-1].objectRef=dobEvidenceRef(fid); // LF-docdb: the content lives in the documents mirror
     return `${label(c,fy)} · ${cmpFyLabel(fy)} · evidence attached · ${name}`;},
 
   // SCC evDelete (L2288–2293): removes one file.
   CMP_EVIDENCE_DELETE:k=>{
     access(k);const x=slice(k),fid=txt(k.cmd.id),f=x.files.find(e=>e.id===fid);k.assert(f,'Evidence file not found.','NOT_FOUND');
-    x.files=x.files.filter(e=>e.id!==fid);const store={...(k.s.complianceFilesX??{})};delete store[fid];k.s.complianceFilesX=store;
+    x.files=x.files.filter(e=>e.id!==fid);k.s.docObjectsX=dobDelete(k.s,f!.objectRef);if(k.s.complianceFilesX?.[fid]){const old={...k.s.complianceFilesX};delete old[fid];k.s.complianceFilesX=old;} // pre-v13 inline value
     const c=cmpFindCard(x,f!.itemId);
     return `${c?label(c,f!.fy):f!.itemId} · ${cmpFyLabel(f!.fy)} · evidence removed · ${f!.name}`;},
 

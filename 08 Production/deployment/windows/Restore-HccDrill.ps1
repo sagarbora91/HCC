@@ -20,6 +20,11 @@
      The server folder must be changeable only by administrators (F-M06: the task runs as SYSTEM). -SkipGuestIdCheck skips it (logged).
   6. Drops the scratch database (unless -KeepScratch) and appends a JSON line to drill-history.jsonl next to the log
      (guestIdCheck = ok / no guest IDs / FAILED / skipped).
+  LF-docdb (LF-CONTRACT 1.9): the drill covers BOTH databases. Steps 1-4 run for the main database (HccDrill_<stamp>) and then for the documents
+  database (HccDrill_<stamp>Documents, from its own FULL + DIFF chain): restore, CHECKDB, per-table row counts. The guest ID check (step 5) runs on
+  the main scratch copy. The reference check (Invoke-HccDocumentRefCheck) then counts object_ref values in the scratch main database with no live
+  object in the scratch documents database; it must be 0 for a chain taken in one run. One RestoreDrill row per database is recorded in the MAIN
+  database's plat.backup_run (database_name). -DocumentsDatabase '' skips the documents part (an install made before LF).
   Exit code 0 = passed, 1 = failed. -WhatIf prints the plan only (no SQL connection, no files).
   A09-05: the result is recorded in <Database>.plat.backup_run (Admin & Setup > System health shows the last drill); a failed drill also
   writes an Error to the Windows Event Log (source HCC, event 2002; skipped silently when the source is not registered).
@@ -27,7 +32,7 @@
 #>
 [CmdletBinding(SupportsShouldProcess)]
 param(
-    [string]$SqlInstance, [string]$Database, [string]$BackupDirectory, [string]$LogDirectory, [string]$ScratchDirectory,
+    [string]$SqlInstance, [string]$Database, [string]$DocumentsDatabase, [string]$BackupDirectory, [string]$LogDirectory, [string]$ScratchDirectory,
     [string]$ScratchName, [switch]$KeepScratch, [switch]$TrustServerCertificate, [string]$ConfigPath, [string]$BackupKeyFile,
     [string]$ServerDirectory, [switch]$SkipGuestIdCheck
 )
@@ -36,6 +41,8 @@ $ErrorActionPreference = 'Stop'
 $cfg = Get-HccOpsConfig -Path $ConfigPath
 if (-not $SqlInstance) { $SqlInstance = $cfg.SqlInstance }
 if (-not $Database) { $Database = $cfg.Database }
+if (-not $PSBoundParameters.ContainsKey('DocumentsDatabase')) { $DocumentsDatabase = Get-HccDocumentsDatabaseName -Config $cfg }   # LF-docdb
+if ($DocumentsDatabase) { Assert-HccDatabaseName $DocumentsDatabase | Out-Null; if ($DocumentsDatabase -eq $Database) { throw 'DocumentsDatabase must differ from Database.' } }
 if (-not $BackupDirectory) { $BackupDirectory = $cfg.BackupDirectory }
 if (-not $LogDirectory) { $LogDirectory = if ($cfg.LogDirectory) { $cfg.LogDirectory } else { Join-Path $BackupDirectory 'Logs' } }
 if (-not $ScratchDirectory) { $ScratchDirectory = if ($cfg.ScratchDirectory) { $cfg.ScratchDirectory } else { Join-Path $BackupDirectory 'DrillScratch' } }
@@ -50,6 +57,8 @@ $started = (Get-Date).ToUniversalTime()
 if (-not $ScratchName) { $ScratchName = 'HccDrill_' + $started.ToString('yyyyMMddHHmmss') }
 Assert-HccScratchName $ScratchName | Out-Null
 if ($ScratchName -eq $Database) { throw 'The scratch database must differ from the live database.' }
+$ScratchDocs = if ($DocumentsDatabase) { $ScratchName + 'Documents' } else { '' }   # LF-docdb: HccDrill_<stamp>Documents
+if ($ScratchDocs) { Assert-HccScratchName $ScratchDocs | Out-Null }
 $log = Join-Path $LogDirectory ('restore-drill_{0:yyyyMMdd_HHmmss}.log' -f $started)
 
 if (-not $PSCmdlet.ShouldProcess("$SqlInstance / $ScratchName", "Restore newest backup of [$Database] from $BackupDirectory, DBCC CHECKDB, row-count check, guest ID check, drop scratch")) {
@@ -58,29 +67,33 @@ if (-not $PSCmdlet.ShouldProcess("$SqlInstance / $ScratchName", "Restore newest 
     Write-HccLog "DRY RUN: encrypted backups (.bak.hccenc) would be checked and decrypted with $BackupKeyFile into $ScratchDirectory (private: SYSTEM, Administrators, $sqlService) and deleted afterwards" -LogFile $null
     Write-HccLog "DRY RUN: would RESTORE as [$ScratchName] with MOVE into $ScratchDirectory on $SqlInstance (live database untouched)" -LogFile $null
     Write-HccLog 'DRY RUN: would run DBCC CHECKDB and compare per-table row counts with the live database' -LogFile $null
+    if ($DocumentsDatabase) {
+        Write-HccLog "DRY RUN: documents database: would pick the newest FULL (+ later DIFF) backup of [$DocumentsDatabase], RESTORE it as [$ScratchDocs], run DBCC CHECKDB and the row-count check" -LogFile $null
+        Write-HccLog "DRY RUN: reference check: would count object_ref values in [$ScratchName] with no live object in [$ScratchDocs] (must be 0), then drop both scratch databases" -LogFile $null
+    }
     if ($SkipGuestIdCheck) { Write-HccLog 'DRY RUN: guest ID check SKIPPED (-SkipGuestIdCheck): the drill would not prove that stored ID numbers open' -LogFile $null }
     else { Write-HccLog ('DRY RUN: guest ID check: would run ' + (Join-Path $ServerDirectory 'Hcc.Api.exe') + ' verify-guest-id --database ' + $ScratchName + ' (opens the newest sealed ID number per key with the installed key; never prints a number; no guest IDs = reported, not a failure)') -LogFile $null }
+    if ($DocumentsDatabase) { Write-HccLog "DRY RUN: would record one RestoreDrill row per database ([$Database] and [$DocumentsDatabase], database_name) in [$Database].plat.backup_run" -LogFile $null }
     Write-HccLog "DRY RUN: would record the result (RestoreDrill) in [$Database].plat.backup_run for System health; a failed drill also goes to the Windows Event Log (source $script:HccEventSource, event $($script:HccEventIds.DrillFailed))" -LogFile $null
     Write-HccLog ('DRY RUN: would drop the scratch database and log to ' + $log) -LogFile $null
     return
 }
 
-$result = [ordered]@{ startedUtc = $started.ToString('o'); database = $Database; scratch = $ScratchName; full = $null; differential = $null; checkdb = 'not run'; rowCounts = 'not run'; guestIdCheck = 'not run'; passed = $false; error = $null }
-$created = $false
-$script:plainCopies = @()
-$script:drillKey = $null
-try {
+# LF-docdb: restore + CHECKDB + row counts of ONE database (the original body of the drill), run for the main and then the documents database.
+# Results go to $script:copy (a function's output stream is not used: Write-HccLog may write to it).
+function Restore-HccDrillCopy {
+    param([Parameter(Mandatory)][string]$LiveDb, [Parameter(Mandatory)][string]$ScratchDb)
     $names = @(Get-ChildItem -LiteralPath $BackupDirectory -Filter '*.bak*' -File | ForEach-Object Name)
-    $chain = Select-HccRestoreChain -Names $names -Database $Database
-    if (-not $chain) { throw "No FULL backup of [$Database] found in $BackupDirectory." }
-    $result.full = $chain.Full; $result.differential = $chain.Differential
-    Write-HccLog "Drill start: restoring $($chain.Full) $(if ($chain.Differential) { '+ ' + $chain.Differential })as [$ScratchName]" -LogFile $log
+    $chain = Select-HccRestoreChain -Names $names -Database $LiveDb
+    if (-not $chain) { throw "No FULL backup of [$LiveDb] found in $BackupDirectory." }
+    $script:copy = [ordered]@{ full = $chain.Full; differential = $chain.Differential; checkdb = 'not run'; cmp = $null }
+    Write-HccLog "Drill start: restoring $($chain.Full) $(if ($chain.Differential) { '+ ' + $chain.Differential })as [$ScratchDb]" -LogFile $log
     if (-not (Test-Path -LiteralPath $ScratchDirectory)) { Set-HccProtectedDirectory -Path $ScratchDirectory -ModifyAccounts @($sqlService, $cfg.BackupAccount) }
     # Encrypted backups: verify + decrypt into the private scratch folder (deleted in finally).
     function Get-PlainBackup([string]$file) {
         if ($file -notlike "*$script:HccEncryptedSuffix") { return (Join-Path $BackupDirectory $file) }
         if (-not $script:drillKey) { $script:drillKey = Read-HccBackupKey -Path $BackupKeyFile }
-        $plain = Join-Path $ScratchDirectory ($ScratchName + '_' + $file.Substring(0, $file.Length - $script:HccEncryptedSuffix.Length))
+        $plain = Join-Path $ScratchDirectory ($ScratchDb + '_' + $file.Substring(0, $file.Length - $script:HccEncryptedSuffix.Length))
         $script:plainCopies += $plain
         Unprotect-HccBackupFile -Source (Join-Path $BackupDirectory $file) -Destination $plain -Key $script:drillKey
         Write-HccLog "Decrypted and integrity-checked $file" -LogFile $log
@@ -96,21 +109,21 @@ try {
         $col = $f -split '\|'
         $parts = @($col[0].Trim(), $col[2].Trim())   # LogicalName | PhysicalName | Type (D data, L log)
         $ext = if ($parts[1] -eq 'L') { '.ldf' } else { '.mdf' }
-        $moves += ('MOVE {0} TO {1}' -f (ConvertTo-HccSqlLiteral $parts[0]), (ConvertTo-HccSqlLiteral (Join-Path $ScratchDirectory ($ScratchName + '_' + $parts[0] + $ext))))
+        $moves += ('MOVE {0} TO {1}' -f (ConvertTo-HccSqlLiteral $parts[0]), (ConvertTo-HccSqlLiteral (Join-Path $ScratchDirectory ($ScratchDb + '_' + $parts[0] + $ext))))
     }
     if ($moves.Count -eq 0) { throw 'RESTORE FILELISTONLY returned no files.' }
-    $sq = ConvertTo-HccSqlName $ScratchName
+    $sq = ConvertTo-HccSqlName $ScratchDb
     $recovery = if ($chain.Differential) { 'NORECOVERY' } else { 'RECOVERY' }
-    $created = $true
+    $script:scratchCreated += $ScratchDb
     Invoke-HccSql -Instance $SqlInstance -TrustServerCertificate:$trust -Query ('RESTORE DATABASE {0} FROM DISK = {1} WITH {2}, {3}, CHECKSUM, STATS = 25;' -f $sq, (ConvertTo-HccSqlLiteral $fullPath), ($moves -join ', '), $recovery) | Out-Null
     if ($chain.Differential) {
         Invoke-HccSql -Instance $SqlInstance -TrustServerCertificate:$trust -Query ('RESTORE DATABASE {0} FROM DISK = {1} WITH RECOVERY, CHECKSUM;' -f $sq, (ConvertTo-HccSqlLiteral $diffPath)) | Out-Null
     }
-    Write-HccLog 'Restore finished.' -LogFile $log
+    Write-HccLog "[$LiveDb] Restore finished." -LogFile $log
 
     Invoke-HccSql -Instance $SqlInstance -TrustServerCertificate:$trust -Query ("DBCC CHECKDB ({0}) WITH NO_INFOMSGS, ALL_ERRORMSGS;" -f $sq) | Out-Null
-    $result.checkdb = 'clean'
-    Write-HccLog 'DBCC CHECKDB: clean.' -LogFile $log
+    $script:copy.checkdb = 'clean'
+    Write-HccLog "[$LiveDb] DBCC CHECKDB: clean." -LogFile $log
 
     $countSql = "SET NOCOUNT ON; SELECT s.name + '.' + t.name + '|' + CAST(SUM(p.rows) AS varchar(20)) FROM {0}.sys.tables t JOIN {0}.sys.schemas s ON s.schema_id = t.schema_id JOIN {0}.sys.partitions p ON p.object_id = t.object_id AND p.index_id IN (0,1) GROUP BY s.name, t.name;"
     function Get-Counts([string]$db) {
@@ -119,13 +132,36 @@ try {
         foreach ($line in ($txt -split "`r?`n")) { if ($line -match '^(?<t>[^|\s]+)\|(?<n>\d+)\s*$') { $h[$Matches['t']] = [long]$Matches['n'] } }
         return $h
     }
-    $restored = Get-Counts $ScratchName
-    $live = Get-Counts $Database
+    $restored = Get-Counts $ScratchDb
+    $live = Get-Counts $LiveDb
     $cmp = Compare-HccRowCounts -Restored $restored -Live $live
-    $result.rowCounts = if ($cmp.Ok) { 'ok' } else { 'FAILED' }
-    $result.tables = $cmp.Tables; $result.restoredRows = $cmp.RestoredRows; $result.liveRows = $cmp.LiveRows
+    $script:copy.cmp = $cmp
     Write-HccLog ("Row counts: {0} tables, {1} rows restored vs {2} rows live now; {3} table(s) differ (normal if the hotel has worked since the backup); missing from restore: {4}." -f $cmp.Tables, $cmp.RestoredRows, $cmp.LiveRows, $cmp.DifferingTables.Count, $cmp.MissingTables.Count) -LogFile $log
     if (-not $cmp.Ok) { throw ('Row-count check failed. Missing tables: ' + ($cmp.MissingTables -join ', ')) }
+}
+
+$result = [ordered]@{ startedUtc = $started.ToString('o'); database = $Database; scratch = $ScratchName; full = $null; differential = $null; checkdb = 'not run'; rowCounts = 'not run'; guestIdCheck = 'not run'; passed = $false; error = $null }
+$script:scratchCreated = @()
+$script:plainCopies = @()
+$script:drillKey = $null
+try {
+    # Main database, then (LF-docdb) the documents database: each from its own FULL + DIFF chain, each into its own scratch copy.
+    Restore-HccDrillCopy -LiveDb $Database -ScratchDb $ScratchName
+    $result.full = $script:copy.full; $result.differential = $script:copy.differential; $result.checkdb = $script:copy.checkdb
+    $cmp = $script:copy.cmp
+    $result.rowCounts = if ($cmp.Ok) { 'ok' } else { 'FAILED' }
+    $result.tables = $cmp.Tables; $result.restoredRows = $cmp.RestoredRows; $result.liveRows = $cmp.LiveRows
+    if ($DocumentsDatabase) {
+        Restore-HccDrillCopy -LiveDb $DocumentsDatabase -ScratchDb $ScratchDocs
+        $dcmp = $script:copy.cmp
+        $result.documents = [ordered]@{ database = $DocumentsDatabase; scratch = $ScratchDocs; full = $script:copy.full; differential = $script:copy.differential; checkdb = $script:copy.checkdb
+            rowCounts = if ($dcmp.Ok) { 'ok' } else { 'FAILED' }; tables = $dcmp.Tables; restoredRows = $dcmp.RestoredRows; liveRows = $dcmp.LiveRows }
+        # Reference check: every object_ref of the restored main database must have a live object in the restored documents database.
+        $dangling = Invoke-HccDocumentRefCheck -SqlInstance $SqlInstance -MainDatabase $ScratchName -DocumentsDatabase $ScratchDocs -TrustServerCertificate:$trust
+        $result.danglingRefs = $dangling
+        Write-HccLog "Document reference check: $dangling dangling reference(s) between [$ScratchName] and [$ScratchDocs]." -LogFile $log
+        if ($dangling -gt 0) { throw "Document reference check failed: $dangling object_ref value(s) in the restored main database have no object in the restored documents database." }
+    }
 
     # A07-03 / A09-07: the restored ID numbers must open with the key installed on this PC (the key is never in the backup).
     if ($SkipGuestIdCheck) {
@@ -150,18 +186,24 @@ finally {
     $left = Remove-HccPlainCopies -Paths @($script:plainCopies) -LogFile $log   # A09-13: also after a failed drill; never silently left
     if ($left.Count -gt 0) { $result.plainCopiesLeft = $left.Count }
     if ($script:drillKey) { [Array]::Clear($script:drillKey, 0, $script:drillKey.Length) }
-    if ($created -and -not $KeepScratch) {
-        try {
-            Assert-HccScratchName $ScratchName | Out-Null
-            $sq = ConvertTo-HccSqlName $ScratchName
-            Invoke-HccSql -Instance $SqlInstance -TrustServerCertificate:$trust -Query ("IF DB_ID({0}) IS NOT NULL BEGIN ALTER DATABASE {1} SET SINGLE_USER WITH ROLLBACK IMMEDIATE; DROP DATABASE {1}; END" -f (ConvertTo-HccSqlLiteral $ScratchName), $sq) | Out-Null
-            Write-HccLog "Scratch database $ScratchName dropped." -LogFile $log
+    if ($script:scratchCreated.Count -gt 0 -and -not $KeepScratch) {
+        foreach ($scratch in $script:scratchCreated) {
+            try {
+                Assert-HccScratchName $scratch | Out-Null
+                $sq = ConvertTo-HccSqlName $scratch
+                Invoke-HccSql -Instance $SqlInstance -TrustServerCertificate:$trust -Query ("IF DB_ID({0}) IS NOT NULL BEGIN ALTER DATABASE {1} SET SINGLE_USER WITH ROLLBACK IMMEDIATE; DROP DATABASE {1}; END" -f (ConvertTo-HccSqlLiteral $scratch), $sq) | Out-Null
+                Write-HccLog "Scratch database $scratch dropped." -LogFile $log
+            }
+            catch { Write-HccLog ("Could not drop scratch database ${scratch}: " + $_.Exception.Message) -LogFile $log -Level WARN }
         }
-        catch { Write-HccLog ("Could not drop scratch database ${ScratchName}: " + $_.Exception.Message) -LogFile $log -Level WARN }
     }
     $result.finishedUtc = (Get-Date).ToUniversalTime().ToString('o')
     try { Add-Content -LiteralPath (Join-Path $LogDirectory 'drill-history.jsonl') -Value ($result | ConvertTo-Json -Compress) -Encoding UTF8 } catch { Write-Host "Could not write drill history: $($_.Exception.Message)" }
     $why = if ($result.passed) { $null } else { Get-HccFailureReason ([string]$result.error) }
     Write-HccBackupRun -SqlInstance $SqlInstance -Database $Database -Kind RestoreDrill -Succeeded ([bool]$result.passed) -StartedUtc $started -FileName ([string]$result.full) -Reason $why -TrustServerCertificate:$trust -LogFile $log | Out-Null
+    if ($DocumentsDatabase) {   # LF-docdb: one RestoreDrill row per database, both in the MAIN database's plat.backup_run
+        $docFile = if ($result.Contains('documents')) { [string]$result.documents.full } else { '' }
+        Write-HccBackupRun -SqlInstance $SqlInstance -Database $DocumentsDatabase -MainDatabase $Database -Kind RestoreDrill -Succeeded ([bool]$result.passed) -StartedUtc $started -FileName $docFile -Reason $why -TrustServerCertificate:$trust -LogFile $log | Out-Null
+    }
 }
 if (-not $result.passed) { exit 1 }

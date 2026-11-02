@@ -29,10 +29,10 @@ public static class AccountingGstEndpoints
     private static GstMonthService Build(IServiceProvider sp)
     {
         var platform = sp.GetRequiredService<SqlPlatform>();
-        var expenses = new ExpenseMonthLockAdapter(new SqlExpenseStore(platform.Connections), new SqlExpenseRegisterStore(platform.Connections));
+        var expenses = new ExpenseMonthLockAdapter(new SqlExpenseStore(platform.Connections, platform.DocumentObjects), new SqlExpenseRegisterStore(platform.Connections));
         return new GstMonthService(platform.Commands, sp.GetRequiredService<IAccountingStore>(), sp.GetService<IGstMonthStore>() ?? new SqlGstMonthStore(platform.Connections),
             sp.GetRequiredService<Hcc.Application.Access.IAccessPolicy>(), sp.GetRequiredService<TimeProvider>(), sp.GetService<IGstManualVouchers>(), expenses,
-            new ComplianceCardHook(new SqlComplianceStore(platform.Connections)), sp.GetService<IOpeningEntryStore>(),
+            new ComplianceCardHook(new SqlComplianceStore(platform.Connections, platform.DocumentObjects)), sp.GetService<IOpeningEntryStore>(),
             sp.GetService<Hcc.Application.Payroll.IPayrollStore>() is { } payroll ? new PayRunMonthCheck(payroll) : null); // ACC-2 integration (ruling 6)
     }
 

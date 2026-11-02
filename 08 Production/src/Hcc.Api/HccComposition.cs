@@ -23,7 +23,7 @@ public static class HccComposition
         services.AddSingleton(TimeProvider.System);
         services.AddHostedService<OutboxFailureLogger>();  // A08-02: failed and parked outbox deliveries as log warnings
         services.AddSingleton(sp => new SchemaGuard(platform.Connections, new EmbeddedMigrationSource(), sp.GetRequiredService<TimeProvider>(),
-            sp.GetRequiredService<ILogger<SchemaGuard>>()));   // A09-04: refuse to serve while the schema is behind this build
+            sp.GetRequiredService<ILogger<SchemaGuard>>(), platform.Documents, new EmbeddedMigrationSource(EmbeddedMigrationSource.DocsPrefix)));   // A09-04: refuse to serve while the schema is behind this build
         services.AddHccAccess(configuration, platform);  // P1: sessions, THE IAccessPolicy (scope resolvers from the modules below)
         services.AddInventoryModule(configuration);      // P2 (+ Hcc:GroupBlocks:Enabled, DEC-080)
         services.AddReservationsModule();                // P2
@@ -76,6 +76,7 @@ public static class HccComposition
         services.AddKeysModule();                        // KEYS room keys (HCC_KeyAgent_Spec_v1)
         // LF lanes: ONE services.Add<Lane>Module(); line inside your own block (append only).
         // LF-DOCDB
+        services.AddDocumentObjectsModule();             // LF-docdb: HccDocuments object store, release consumer, daily sweep (contract §1)
         // LF-DOCDB end
         // LF-RATE
         // LF-RATE end
@@ -133,7 +134,20 @@ public static class HccComposition
             if (!await HealthDetailsAllowedAsync(http, ct)) return Results.Ok(new HealthResult("ok", null, null, time));
             await using var conn = await connections.OpenAsync(ct);
             var version = await MigrationRunner.CurrentVersionAsync(conn, ct);
-            return Results.Ok(new HealthResult("ok", conn.Database, version, time));
+            var docs = http.RequestServices.GetService<Hcc.Infrastructure.SqlServer.SqlPlatform>()?.Documents;
+            string? docDb = null; int? docVersion = null;
+            if (docs is not null)
+            {
+                try
+                {
+                    await using var dconn = await docs.OpenAsync(ct);
+                    docDb = dconn.Database;
+                    docVersion = await MigrationRunner.CurrentVersionAsync(dconn, ct);
+                }
+                catch (Hcc.Domain.Errors.HccException) { docDb = docs.Database; }   // unreachable: the main health still answers
+            }
+
+            return Results.Ok(new HealthResult("ok", conn.Database, version, time, docDb, docVersion));
         });
         api.MapHccDiscovery();           // P7: GET /system/discovery (no auth, no secrets)
         api.MapAccessEndpoints();        // P1 (sign-in/out, /me/capabilities, admin)
@@ -199,6 +213,7 @@ public static class HccComposition
         // LG end
         // LF lanes: ONE api.Map<Lane>Endpoints(); line inside your own block (append only).
         // LF-DOCDB
+        api.MapDocumentObjectEndpoints(); // LF-docdb: POST /admin/documents/sweep (PERM-DOC-006)
         // LF-DOCDB end
         // LF-RATE
         // LF-RATE end

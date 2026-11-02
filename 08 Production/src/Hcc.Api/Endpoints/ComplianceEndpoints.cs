@@ -16,7 +16,7 @@ public static class ComplianceEndpoints
 {
     public static IServiceCollection AddHccCompliance(this IServiceCollection services)
     {
-        services.AddSingleton(sp => new SqlComplianceStore(sp.GetRequiredService<SqlPlatform>().Connections));
+        services.AddSingleton(sp => new SqlComplianceStore(sp.GetRequiredService<SqlPlatform>().Connections, sp.GetRequiredService<SqlPlatform>().DocumentObjects));
         services.AddSingleton<IComplianceStore>(sp => sp.GetRequiredService<SqlComplianceStore>());
         services.AddSingleton<IComplianceReadStore>(sp => sp.GetRequiredService<SqlComplianceStore>());
         services.AddSingleton<ComplianceCommands>();

@@ -413,6 +413,43 @@ public class DocumentsSqlTests : IAsyncLifetime
         var p = (await w.Svc.PurgeAsync(w.Ctx("OWN"), new PurgeIdCapturesRequest("30 day rule"), Ct)).Value;
         Assert.Equal((1, 30), (p.Purged, p.RetentionDays));
     }
+    // ── LF-images B5 (DEC-201): a photo and a full ID per accompanying guest ──
+
+    private async Task<int> PartyAsync(int seq = 1)
+    {
+        await _w.ScalarAsync($"INSERT gst.guest_party(guest_id, seq, name, age_band) VALUES ({_w.GuestId}, {seq}, N'Sita Test', 'Adult');", Ct);
+        return seq;
+    }
+
+    [Fact]
+    public async Task B5_party_photo_is_captured_sealed_confirmed_at_once_and_bound_to_the_member()
+    {
+        var seq = await PartyAsync();
+        var photo = (await _w.Svc.CaptureAsync(_w.Ctx("REC"), new CaptureIdDocumentRequest(_w.GuestId, null, "photo", "image/png", Imgs.B64(Imgs.Scan("aadhaar", Number)), seq), Ct)).Value;
+        Assert.Equal(("photo", "Confirmed", seq, true), (photo.DocKind, photo.Status, photo.PartySeq, photo.ImageAvailable));
+        Assert.Equal(1, await _w.LongAsync($"SELECT COUNT(*) FROM doc.id_capture WHERE capture_id = {photo.CaptureId} AND party_seq = {seq} AND doc_kind = 'photo' AND ocr_sealed IS NULL;", Ct));
+        var all = await _w.DumpAsync("SELECT * FROM doc.id_capture_image;");
+        Assert.DoesNotContain(Number, all, StringComparison.Ordinal);                  // sealed like an ID image, never plain
+        await Fails(HccErrorCode.NOT_FOUND, () => _w.Svc.CaptureAsync(_w.Ctx("REC"), new CaptureIdDocumentRequest(_w.GuestId, null, "photo", "image/png", Imgs.B64(Imgs.Scan("aadhaar", Number)), 4), Ct));   // no member 4
+        await Fails(HccErrorCode.VALIDATION, () => _w.Svc.CaptureAsync(_w.Ctx("REC"), new CaptureIdDocumentRequest(_w.GuestId, null, "photo", "image/png", Imgs.B64(Imgs.Scan("aadhaar", Number)), 7), Ct));
+        await Fails(HccErrorCode.FORBIDDEN, () => _w.Svc.CaptureAsync(_w.Ctx("HKP"), new CaptureIdDocumentRequest(_w.GuestId, null, "photo", "image/png", Imgs.B64(Imgs.Scan("aadhaar", Number)), seq), Ct));   // non-ID roles never capture
+    }
+
+    [Fact]
+    public async Task B5_party_member_full_id_is_sealed_in_the_member_secret_and_shows_masked_on_the_member()
+    {
+        var seq = await PartyAsync(2);
+        var v = (await _w.Svc.CaptureAsync(_w.Ctx("REC"), new CaptureIdDocumentRequest(_w.GuestId, null, "aadhaar", "image/png", Imgs.B64(Imgs.Scan("aadhaar", Number)), seq), Ct)).Value;
+        Assert.Equal(seq, v.PartySeq);
+        var done = (await _w.Svc.ConfirmAsync(_w.Ctx("REC"), new ConfirmIdCaptureRequest(v.CaptureId, v.Version, true, null), Ct)).Value;
+        Assert.Equal("Confirmed", done.Status);
+        Assert.Equal(1, await _w.LongAsync($"SELECT COUNT(*) FROM gst.guest_party_id_secret WHERE guest_id = {_w.GuestId} AND seq = {seq};", Ct));
+        Assert.Equal(0, await _w.LongAsync($"SELECT COUNT(*) FROM gst.guest_id_secret WHERE guest_id = {_w.GuestId};", Ct));   // the registered guest's own number is untouched
+        Assert.Equal(($"Aadhaar", Number[^4..]), ((string)(await _w.ScalarAsync($"SELECT id_type FROM gst.guest_party WHERE guest_id = {_w.GuestId} AND seq = {seq};", Ct))!, (string)(await _w.ScalarAsync($"SELECT id_last4 FROM gst.guest_party WHERE guest_id = {_w.GuestId} AND seq = {seq};", Ct))!));
+        var dump = await _w.DumpAsync("SELECT * FROM gst.guest_party;", "SELECT * FROM gst.guest_party_id_secret;", "SELECT * FROM doc.id_capture;", "SELECT * FROM plat.audit_event;", "SELECT * FROM plat.outbox;");
+        Assert.DoesNotContain(Number, dump, StringComparison.Ordinal);
+    }
+
 }
 
 /// <summary>A09-08: with the Production OCR engine (not configured) a scan is refused clearly and nothing, least of all an invented ID number, is stored.</summary>
@@ -442,4 +479,5 @@ public class DocumentsNotConfiguredTests : IAsyncLifetime
         // the refusal is not shown to someone who may not capture IDs at all
         Assert.Equal(HccErrorCode.FORBIDDEN, (await Assert.ThrowsAsync<HccException>(() => _w.Svc.CaptureAsync(_w.Ctx("HKP"), request, Ct))).Code);
     }
+
 }

@@ -47,8 +47,9 @@ export type CMPRecord={done?:boolean;na?:boolean;filedOn?:string;notes?:string;e
 export type CMPCustom={id:string;cat:CMPCat;name:string;freq:string;dueDay:number;months:string[];form:string;who:string;what:string;why:string;penalty:string;
   responsible:string;reviewer:string;risk:''|'High'|'Medium'|'Low';buffer:number|null;checklist:string[];workflow:string[];evidence:string[];urgent:false;
   updatedBy?:string;updatedAt?:string};
-/** An evidence file (SCC SaagarEvidence, keyed firm|FY|item). The content lives in s.complianceFilesX (prototype) or on the server. */
-export type CMPFile={id:string;fy:number;itemId:string;name:string;size:number;type:string;addedBy:string;addedAt:string};
+/** An evidence file (SCC SaagarEvidence, keyed firm|FY|item). The content lives in s.docObjectsX (prototype, LF) or on the server. */
+export type CMPFile={id:string;fy:number;itemId:string;name:string;size:number;type:string;addedBy:string;addedAt:string;
+  /** LF §1.10 (SCHEMA 13): the content lives in s.docObjectsX under this ref (v12 saves kept it in s.complianceFilesX). */ objectRef?:string};
 /** HCC safeguard: what an Owner reopen removed (SCC deletes it without a trace). */
 export type CMPReopened={fy:number;itemId:string;part:'done'|'na';record:CMPRecord;reopenedBy:string;reopenedAt:string;reopenReason:string};
 export type CMPPack={id:string;at:string;by:string;to:string;toName:string;counts:{overdue:number;due:number;filed:number;na:number};lines:string[]};

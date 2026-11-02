@@ -1,5 +1,6 @@
 // Stream C · Folio dialogs: booking/folio (SCR-08), payment with mixed tenders (SCR-09), charge/discount, checkout with
 // company credit (SCR-10), sample invoice, refund request, correction request and credit note.
+import {PrintTitle,PrintNotes} from '../exports/PrintNotes';
 import {printDocument} from '../../app/native';
 import {bookingRef} from '../../domain/bookingRef';
 import React,{useState} from 'react';
@@ -186,6 +187,7 @@ export function InvoiceModal({id}:{id:string}){
   return <><div className="invoice"><div className="invoice-top"><Hotel size={34}/><div><h2>{s.settings.hotel}</h2><p>{process.env.HCC_BUILD==='production'?'Hotel Control Centre':'Hotel Control Centre · Fictional property'}</p></div></div>
     {process.env.HCC_BUILD==='production'?<div className="invoice-stamp">Folio summary — the tax invoice is issued and kept on the hotel server</div>
       :<div className="invoice-stamp" aria-label="Demonstration — not a tax invoice">Demonstration — not a tax invoice · fictional records only</div>}
+    <PrintTitle doc="invoice"/>
     <div className="invoice-meta"><div><small>GUEST</small><h3>{b.guest}</h3><p>Room {b.room} · {plural(b.people,'guest')}</p>{b.company&&<p>Bill to: {b.company.name}{b.company.gstin?<><br/>GSTIN (placeholder): {b.company.gstin}</>:null}</p>}</div>
       <div><small>{b.invoiceNo?(process.env.HCC_BUILD==='production'?'TAX INVOICE NO.':'SAMPLE INVOICE NO.'):'FOLIO PREVIEW'}</small><h3>{b.invoiceNo??'Not yet issued'}</h3><p>{process.env.HCC_BUILD==='production'?(b.invoiceNo?'Issued by the hotel server':'Issued after checkout'):b.invoiceNo?'Allocated once at checkout':'A number is allocated once at checkout'}</p><IssueInvoiceAction b={b} className="btn small-btn no-print"/><p>{shortDate(b.arrival)} — {shortDate(b.departure)} · {b.id}</p></div></div>
     <table><thead><tr><th>Description</th><th>Date</th><th>Net</th><th>GST rate</th><th>CGST</th><th>SGST</th></tr></thead><tbody>{b.lines.map(l=>{const g=gstLineSplit(l);return <tr key={l.id}><td>{l.label}</td><td>{shortDate(l.date)}</td><td>{money(l.amount)}</td><td>{gstPct(l.taxBps)}</td><td>{money(g.cgst)} <small>@{gstHalfPct(l.taxBps)}</small></td><td>{money(g.sgst)} <small>@{gstHalfPct(l.taxBps)}</small></td></tr>;})}</tbody></table>
@@ -194,6 +196,8 @@ export function InvoiceModal({id}:{id:string}){
       <div><span>Balance</span><strong>{money(t.balance)}</strong></div><div><span>Refundable deposit held separately</span><strong>{money(t.deposit)}</strong></div></div>
     {!!b.creditNotes?.length&&<div className="folio-cn-list"><small>{process.env.HCC_BUILD==='production'?'CREDIT NOTES':'SAMPLE CREDIT NOTES'}</small>{b.creditNotes.map(c=><p key={c.id}>{c.no} · {shortDate(c.date)} · {money(c.amount)} before tax · {c.reason}</p>)}</div>}
     <p className="footnote">{process.env.HCC_BUILD==='production'?'GST from the dated GST master, intra-state (CGST + SGST), per line, half away from zero. The issued tax invoice is the hotel server’s document.':'GST from the dated GST master, intra-state (CGST + SGST), per line, half away from zero — illustrative, CA to confirm. All names, transactions and references are fictional. Demonstration — not a tax invoice.'}</p></div>
+    <PrintNotes doc="invoice"/>
+    {!!b.creditNotes?.length&&<PrintNotes doc="credit-note"/>}
     <div className="modal-actions no-print"><button className="btn" onClick={()=>booking(b.id)}>Back to folio</button><button className="btn primary" onClick={()=>{void printDocument();}}><Printer size={16}/> Print / save PDF</button></div></>;
 }
 

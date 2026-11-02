@@ -120,6 +120,26 @@ public class RegistryAndRulesTests
     }
 
     [Fact]
+    public void LF_images_B6_print_notes_and_titles_are_registered_with_their_limits_in_the_non_money_branding_group()
+    {
+        // LF-IMAGES (B6): the legacy NoteMaster / MainTitle / SubTitle; Owner and Tech admin (DEC-058: not a money group), read at print time.
+        foreach (var (key, max, def, empty) in new[] { ("brand.invoiceTitle", 60, "Tax invoice", false), ("brand.invoiceSubtitle", 120, "", true), ("brand.invoiceNotes", 600, "", true),
+                     ("brand.receiptFooter", 120, "", true), ("brand.creditNoteNotes", 300, "", true) })
+        {
+            var r = S(key);
+            Assert.Equal((ConfigGroupIds.Property, SettingType.Text, max, def, empty), (r.Group.Id, r.Type, r.Definition.MaxLength, r.Definition.Default.Text, r.Definition.AllowEmpty));
+            Assert.False(r.Group.Money);
+            Assert.Null(SettingRules.Validate(r, T(new string('x', max))));
+            Assert.Equal($"Use at most {max} characters.", SettingRules.Validate(r, T(new string('x', max + 1))));
+        }
+
+        Assert.Null(SettingRules.Validate(S("brand.invoiceNotes"), T("Check-out 11:00\nSubject to Latur jurisdiction")));   // multi-line is kept
+        Assert.Equal("Invoice title is required.", SettingRules.Validate(S("brand.invoiceTitle"), T("  ")));
+        Assert.Null(SettingRules.Validate(S("brand.invoiceNotes"), T(string.Empty)));
+        Assert.Equal("A5", S("brand.printFormat").Definition.Options![1].Text);
+    }
+
+    [Fact]
     public void Validation_messages_are_plain_and_per_field()
     {
         Assert.Equal("Enter a time as HH:mm.", SettingRules.Validate(S("checkin"), T("25:00")));
