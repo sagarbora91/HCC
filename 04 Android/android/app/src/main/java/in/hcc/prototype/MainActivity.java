@@ -2,6 +2,7 @@ package in.hcc.prototype;
 
 import android.content.pm.ApplicationInfo;
 import android.os.Bundle;
+import android.content.res.Configuration;
 import android.webkit.WebView;
 import com.getcapacitor.BridgeActivity;
 
@@ -17,5 +18,12 @@ public class MainActivity extends BridgeActivity {
         if ((getApplicationInfo().flags & ApplicationInfo.FLAG_DEBUGGABLE) == 0) WebView.setWebContentsDebuggingEnabled(false);
         // CP-4: apply the stored "honour the system font size" flag (default true = text zoom follows the Android setting) at every start.
         if (getBridge() != null) TextZoomPlugin.apply(this, getBridge().getWebView());
+    }
+
+    /** V17-1: rotation / night-mode / density changes are handled here (configChanges), so ask for the system-bar insets again. */
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        StatusBarColorPlugin.reapplyInsets(getWindow().getDecorView());
     }
 }
