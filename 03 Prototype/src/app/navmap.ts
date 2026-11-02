@@ -1,6 +1,8 @@
 // Navigation map: the ten module categories, which category every page belongs to, and the search index built from it.
 // Pure data + pure functions (no React state). Modules Home, the hamburger menu, the breadcrumb and the search palette all read this,
 // so a page cannot be missing from one of them. A new page must be added to PAGE_CATEGORY (a test enforces it).
+import {dgsCanView} from '../domain/streams/digest'; // F4-T2
+import {rctCanView} from '../domain/streams/rpt-revcat'; // F4-T2
 import {Store,Receipt,Wrench,HeartHandshake,Users,TrendingUp,Package,IdCard,ChartNoAxesCombined,ShieldCheck,LayoutDashboard} from 'lucide-react';
 import type {Permission} from '../services/mock';
 import type {State} from '../domain/types';
@@ -55,6 +57,8 @@ export const PAGE_CATEGORY:Record<string,CategoryId>={
   'tariff-card':'revenue',
   // F4-T1 end
   // F4-T2
+  'owner-digest':'accounts',
+  'revenue-category':'accounts',
   // F4-T2 end
   // F4-T3
   // F4-T3 end
@@ -90,7 +94,7 @@ export const PAGE_BLURB:Record<string,string>={
   yield:'Tariff, seasons and rate restrictions',groups:'Group blocks, companies and credit',channels:'OTA channels and commissions','booking-site':'Direct booking website',
   inventory:'Linen, amenities and supplies',
   staff:'Staff, attendance, leave and payroll','my-hr':'Your shifts, leave and pay',
-  closing:'Close the business day',reports:'Revenue, occupancy and cash reports',accounting:'Ledger, vouchers and period locks',assistant:'Ask questions about your hotel data',compliance:'GST, TDS, PF, ESIC and PT due dates',
+  'owner-digest':'Yesterday in one page: occupancy, revenue, collections, held drafts','revenue-category':'Revenue by room type and collections by tender',closing:'Close the business day',reports:'Revenue, occupancy and cash reports',accounting:'Ledger, vouchers and period locks',assistant:'Ask questions about your hotel data',compliance:'GST, TDS, PF, ESIC and PT due dates',
   'plans-extras':'Catalogue vs free-text charges, meal plans, discount reasons',
   access:'Users, roles and permissions',settings:'All settings in one place: 12 groups, modules on/off',approvals:'Pending approvals and the audit trail',backup:'Backup and restore data',syshealth:'Stuck background work and the last backups',roadmap:'What is planned next',
   'legacy-import':'Load guests, history and opening balances from the old software',
@@ -226,6 +230,10 @@ export function navFilterModules<T extends {id:string}>(s:State,items:readonly T
 export function navRoleOk(s:State,uid:string,page:string):boolean{
   if(rbacIsRestaurant(s,uid))return RBAC_RESTAURANT_PAGES.includes(page);
   if(page==='tariff-card')return trcCan(s,uid,'view'); // F4-T1: PERM-TRF-001 (not housekeeping / maintenance, DEC-061)
+  // F4-T2
+  if(page==='owner-digest')return dgsCanView(s,uid);      // PERM-DGS-001: Owner only
+  if(page==='revenue-category')return rctCanView(s,uid);  // PERM-RPT-001 + 002: Owner, Manager, Accountant (DEC-202 #1)
+  // F4-T2 end
   if(page==='desk-alerts')return rmdCanManage(s,uid); // LF-ALERTS: PERM-RMD-001 = Owner, Manager, Reception, Accountant
   if(page==='compliance')return cmpHasAccess(s,uid);
   if(page==='closing')return rbacCanViewClosing(s,uid);

@@ -107,3 +107,7 @@ export * from '../../domain/streams/printnotes'; // LF-images B6: which branding
 // F4-T1
 export * from '../../domain/streams/tariffcard';
 // F4-T1 end
+// F4-T2
+export * from '../../domain/streams/rpt-revcat';
+export * from '../../domain/streams/digest';
+// F4-T2 end

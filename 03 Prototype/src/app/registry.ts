@@ -44,6 +44,7 @@ import {registration as lfMoney} from '../features/lfmoney/register';
 import {registration as tariffCard} from '../features/tariffcard/register';
 // F4-T1 end
 // F4-T2
+import {registration as f4Digest} from '../features/digest/register';
 // F4-T2 end
 // F4-T3
 // F4-T3 end
@@ -77,6 +78,7 @@ export const registrations:FeatureRegistration[]=[reservations,guests,customers,
   tariffCard,
   // F4-T1 end
   // F4-T2
+  f4Digest,
   // F4-T2 end
   // F4-T3
   // F4-T3 end

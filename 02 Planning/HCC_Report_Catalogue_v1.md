@@ -4339,3 +4339,7 @@ Only business choices. Each has a recommendation.
 
 **HCC inventory items that are not entries** (the inventory has 82 headings plus a planned list): `ac-exports` is a capability of the renderer (section 1.5); `fd-live-roomboard`, `fd-live-calendar`, `fd-live-reservations` and `fd-live-inhouse` are live screens, wrapped by `rpt.rooms.room-status`, `rpt.rooms.rooms-left`, `rpt.guests.reservations-register` and `rpt.guests.inhouse-list`; `ad-approvals-inbox` is a work queue; `ad-overview` is a dashboard; `ad-assistant` is a question tool; `rs-kot` and `rs-86` are documents (ETP spot 30); `ac-tally-simulated` and the ACC-3 `ac-tally-xml` are one entry (`rpt.acc.tally-xml`); `mn-pos-day-summary` and `tx-rep-gst-lines` are pointer headings.
 
+
+<!-- F4-T2 -->
+- rpt.money.revenue-by-category-tender - Revenue by room category and tender | Money and cash | built (F4-T2) | P1 | roles Owner, Accountant, Manager (PERM-RPT-001 + PERM-RPT-002) | money y | Blocks A (revenue by room type, ties to rpt.money.revenue-tax), B (tender columns, ties to daily-collections) and C (bridge); stay-basis toggle; CSV and Excel equal the screen.
+<!-- F4-T2 end -->
