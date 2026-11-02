@@ -15,3 +15,6 @@ Files: `03 Prototype/src/features/expenses/Expenses.tsx`, `ExpenseModal.tsx`, `s
 ## Not done / notes
 - No new `subscreens.ts` lines (no new sub-screens).
 - Checks: see the lane report (tsc / npm test / build / fit-screen-check were queued behind the shared lock).
+
+## Checks (2 Nov 2026)
+tsc clean; npm test 2352/2352; npm run build OK; `node tools/fit-screen-check.mjs --pages expenses` PASS, 0 failing of 948 (no page scroll, fonts equal to the baseline) - report fit-check-20261102-0625.md.

@@ -11,6 +11,6 @@
 .app-shell .fit-page .exp-req-pane .request-list{padding:0}
 /* add-expense dialog: sections + rail */
 .modal.fit-modal:has(.exp-add-task){width:min(900px,100%)}
-.exp-add-task .fit-form{height:min(430px,calc(100dvh - 250px));min-height:260px}
+.exp-add-task .fit-form{height:min(430px,calc(100vh - 250px));height:min(430px,calc(100dvh - 250px));min-height:260px}
 .exp-add-task .fit-form-body>.form-row,.exp-add-task .fit-form-body>label{margin-bottom:10px}
 .exp-add-task .fit-form-actions{justify-content:flex-end}

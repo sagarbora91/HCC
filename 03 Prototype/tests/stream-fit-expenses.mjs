@@ -27,7 +27,7 @@ export function register({test,assert}){
   test('[FIT2-EXPENSES] register: no status tab row; status is a select in the one filter row with the same options and counts',()=>{
     const html=page(F.Expenses,'expenses');
     assert.ok(!/role="tablist" aria-label="Expense status"/.test(html),'no second tab row');
-    const opts=[...html.matchAll(/<option value="(All|Draft|Pending|Posted|Rejected|Reversed|Void)">\1 \((\d+)\)<\/option>/g)];
+    const opts=[...html.matchAll(/<option value="(All|Draft|Pending|Posted|Rejected|Reversed|Void)"(?: selected="")?>\1 \((\d+)\)<\/option>/g)];
     assert.deepEqual(opts.map(m=>m[1]),['All','Draft','Pending','Posted','Rejected','Reversed','Void']);
     const s=F.seed();assert.equal(Number(opts[0][2]),s.expenses.length,'All count is the real count');
     assert.equal(Number(opts[2][2]),s.expenses.filter(e=>e.status==='Pending').length);
