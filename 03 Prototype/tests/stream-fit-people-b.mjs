@@ -50,7 +50,7 @@ export function register({test,assert}){
     for(const t of ['Vouchers','Trial balance','Statements','Day book','Chart of accounts','Parties','Opening balances','Exceptions','Reconciliation','Mapping','Tally export','P&amp;L','Balance sheet','GST summary'])assert.ok(html.includes('>'+t+'<'),t);
     const tb=render(F.AccountingPage,'accounting',{tabKey:'tb'});assert.equal(selected(tb),'tb');assert.match(tb,/Control ledgers/);
     assert.match(html,/class="fit-page-actions"><button class="btn primary"[^>]*><svg[^]*?Lock period/,'Lock period is the first header action');
-    assert.ok(html.includes('class="fit-stats"')&&html.includes('Total debits')&&html.includes('id="acc-lock-why"')===html.includes('aria-describedby="acc-lock-why"'),'StatStrip in the toolbar; the lock reason keeps its id');
+    assert.ok(/class="fit-stats[ "]/.test(html)&&html.includes('Total debits')&&html.includes('id="acc-lock-why"')===html.includes('aria-describedby="acc-lock-why"'),'StatStrip in the toolbar; the lock reason keeps its id');
     assert.ok(/class="fit-panel-body" data-fit-scroll="" tabindex="0" aria-label="Vouchers — accounting"/.test(html),'section content in one ScrollPanel');
   });
   test('[FIT-PEOPLE-B] accounting: role rules unchanged — Manager has no Tally export (an asked or remembered tally tab falls back to Vouchers); cashier/reception/housekeeper: not available',()=>{

@@ -11,3 +11,7 @@ None: accounting has no StepFlow/FormSections; the stat strip is the always-visi
 
 ## Checks
 See the lane report (tsc, npm test, build, fit-screen-check --pages accounting at tab-land and lap-1366).
+
+## Results
+- tsc clean; `npm test` all pass incl. stream-fit2-accounting (26); the FIT-PEOPLE-B accounting assertion was loosened from `class="fit-stats"` to `/class="fit-stats[ "]/` (compact adds a class). `npm run build` clean.
+- `fit-screen-check --pages accounting --viewports tab-land,lap-1366 --no-scale-pass --no-modals`: PASS, 0 failing of 150 (no page scroll, fonts equal to baseline). Text-scale 1.3 pass and modals not run.
