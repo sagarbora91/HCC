@@ -1,4 +1,5 @@
 // F4-T3 qw-feedback · feedback at check-out, complaint on low stars, 7-day follow-ups, summary/overdue selectors. Names prefixed [FBK].
+import {tillClear} from './_till.mjs';
 export function register({test,M,assert}){
   const {seed,execute,fbkSummary,fbkOverdue,fbkSlice,fbkBillLine,fbkOverdueLine,gsvSlice,can}=M;
   const code=c=>e=>e.code===c;
@@ -33,4 +34,10 @@ export function register({test,M,assert}){
     s=execute(s,'owner',{type:'FBK_URL_SET',url:'hotel.example/feedback',key:'u1'});assert.equal(fbkBillLine(s),'Tell us how we did: hotel.example/feedback');
     assert.throws(()=>execute(s,'reception',{type:'FBK_URL_SET',url:'x',key:'u2'}),code('FORBIDDEN'));
     s=execute(s,'owner',{type:'FBK_URL_SET',url:'',key:'u3'});assert.equal(fbkBillLine(s),'');});
+  test('[FBK] day close runs the follow-up sweep (no extra command): seeded items older than 7 days get one open follow-up each',()=>{
+    let s=seed();for(const b of s.bookings.filter(b=>b.status==='Confirmed')){s=execute(s,'owner',{type:'REGISTER',id:b.id});s=execute(s,'owner',{type:'CHECKIN',id:b.id});}
+    s=execute(s,'owner',{type:'EXPENSE_APPROVE',id:'EXP-102',approve:true});s=execute(s,'owner',{type:'NIGHT_POST'});
+    s=execute(s,'owner',{type:'SHIFT_CLOSE',counted:M.drawer(s)});s=tillClear(M,s);
+    const want=fbkOverdue(s,s.date).total;assert.ok(want>0);
+    s=execute(s,'owner',{type:'DAY_CLOSE'});assert.equal(fbkSlice(s).followUps.filter(f=>f.status==='open').length,want);});
 }

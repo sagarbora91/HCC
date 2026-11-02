@@ -28,6 +28,17 @@ export function fbkOverdue(s:State,date:string):{complaints:number;lostFound:num
 }
 /** Digest line, e.g. "3 unresolved for 7+ days (2 complaints, 1 lost-and-found item)". */
 export const fbkOverdueLine=(o:ReturnType<typeof fbkOverdue>)=>o.total?`${o.total} unresolved for ${FBK_OVERDUE_DAYS}+ days (${o.complaints} complaint${o.complaints===1?'':'s'}, ${o.lostFound} lost-and-found item${o.lostFound===1?'':'s'})`:'Nothing unresolved for 7+ days';
+/** Day-close sweep: one open follow-up per complaint / lost-and-found item unresolved 7+ days; follow-ups of resolved items close by themselves. Idempotent. */
+export function fbkSweep(s:State,newId:(prefix:string)=>string):{added:number;total:number}{
+  const x=fbkEnsure(s),o=fbkOverdue(s,s.date);let added=0;
+  for(const r of o.rows){
+    if(x.followUps.some(f=>f.source===r.source&&f.ref===r.ref&&f.status==='open'))continue;
+    const fid=newId('FUP');x.followUps.push({id:fid,source:r.source,ref:r.ref,since:r.since,taskId:fid,status:'open'});added++; // the row IS the Owner's call task
+  }
+  const live=new Set(o.rows.map(r=>fbkFollowKey(r.source,r.ref)));
+  for(const f of x.followUps)if(f.status==='open'&&!live.has(fbkFollowKey(f.source,f.ref)))f.status='done';
+  return {added,total:o.total};
+}
 export const fbkSummaryLine=(x:ReturnType<typeof fbkSummary>)=>x.count?`${x.count} feedback, average ${x.avg} of 5${x.low?` (${x.low} low)`:''}`:'No feedback recorded';
 /** Text line printed on bills and invoices; empty (line hidden) until the owner sets the address (Q12). */
 export const fbkBillLine=(s:State):string=>{const u=(fbkSlice(s).url||'').trim();return u?`Tell us how we did: ${u}`:'';};

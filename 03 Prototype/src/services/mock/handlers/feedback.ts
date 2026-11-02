@@ -6,7 +6,7 @@
 //  FBK_URL_SET {url} — Owner; the feedback address printed on bills.  QW_PRINTER_TEST {id} / QW_PRINTER_SET {id,online} — printer test page.
 import type {Handler} from '../commands';
 import type {FBKEntry} from '../../../domain/types';
-import {fbkEnsure,fbkEntryOf,fbkOverdue,fbkFollowKey,FBK_LOW_STARS,FBK_FEEDBACK_ROLES} from '../../../domain/streams/feedback';
+import {fbkEnsure,fbkEntryOf,fbkSweep,FBK_LOW_STARS,FBK_FEEDBACK_ROLES} from '../../../domain/streams/feedback';
 import {gsvEnsure,gcatResolve} from '../../../domain/streams/services';
 import {sysPrinters,sysTestPageText} from '../../../domain/streams/syshealth';
 
@@ -36,15 +36,8 @@ export const handlers:Record<string,Handler>={
   },
   FBK_FOLLOWUP_SWEEP:k=>{
     const {s,id,req}=k;req('close');
-    const x=fbkEnsure(s),o=fbkOverdue(s,s.date);let n=0;
-    for(const r of o.rows){
-      if(x.followUps.some(f=>f.source===r.source&&f.ref===r.ref&&f.status==='open'))continue;
-      const fid=id('FUP');x.followUps.push({id:fid,source:r.source,ref:r.ref,since:r.since,taskId:fid,status:'open'});n++; // the follow-up row IS the Owner's call task (no HK task: keeps housekeeping boards clean)
-    }
-    // A follow-up closes by itself once its complaint / item is no longer unresolved.
-    const live=new Set(o.rows.map(r=>fbkFollowKey(r.source,r.ref)));
-    for(const f of x.followUps)if(f.status==='open'&&!live.has(fbkFollowKey(f.source,f.ref))){f.status='done';}
-    return `Follow-up sweep · ${n} new · ${o.total} unresolved`;
+    const r=fbkSweep(s,id);
+    return `Follow-up sweep · ${r.added} new · ${r.total} unresolved`;
   },
   FBK_FOLLOWUP_DONE:k=>{
     const {s,cmd,req,assert}=k;req('admin');const f=fbkEnsure(s).followUps.find(x=>x.id===cmd.id);assert(f,'Follow-up not found.','NOT_FOUND');
