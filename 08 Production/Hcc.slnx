@@ -195,6 +195,7 @@
     <File Path="database/migrations/4696_desk_vehicle.sql" />
     <File Path="database/migrations/4697_desk_form_c.sql" />
     <File Path="database/migrations/4698_desk_checkout_basis.sql" />
+    <File Path="database/migrations/4699_desk_late_decision.sql" />
     <!-- LF-DESK end -->
     <!-- LF-ALERTS 4703-4706 -->
     <File Path="database/migrations/4703_alerts_wake_at.sql" />
