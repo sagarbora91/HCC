@@ -4,7 +4,7 @@
 // BL-027) live in Rooms and rate plans; the dated GST master (DEC-069) in Money and tax. Registry: domain/streams/config.ts.
 import React,{useState,useEffect} from 'react';
 import {Lock,CalendarClock,Search,ChevronRight} from 'lucide-react';
-import {money,rateFor,adminRoomTypes,adminBaseRate,gstMasterSummary,GST_ILLUSTRATIVE,authorize,mstSeesMoney,cfgGroup,cfgCanChange,cfgDisplay,cfgScheduled,cfgShow,cfgPendingRequests,cfgHistory,CFG_SECTIONS,
+import {money,rateFor,adminRoomTypes,adminBaseRate,gstMasterSummary,GST_ILLUSTRATIVE,authorize,mstSeesMoney,cfgGroup,cfgDefs,cfgCanChange,cfgDisplay,cfgScheduled,cfgShow,cfgPendingRequests,cfgHistory,CFG_SECTIONS,
   type CfgGroupId,type CfgSettingDef,rmsTypeName} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {Pill,Empty,shortDate} from '../../components/ui';
@@ -20,6 +20,20 @@ export function scheduleBlock(s:ReturnType<typeof useHcc>['s'],uid:string){
   const d=authorize(s,uid,'PERM-ADM-003',{act:true});
   return d.decision==='allow'?undefined:d.decision==='approval'?'Request only — ask the Owner':s.users.find(u=>u.id===uid)?.role==='Tech admin'?'Owner changes this — money and tax are Owner-only (DEC-058)':d.reason;
 }
+/** FIT-2: 2-3 headline current values per group for the rail (read-only, from the live registry; secrets and Owner-only values are never shown, money is masked like the summary). */
+const HEAD_KEYS:Partial<Record<CfgGroupId,string[]>>={
+  property:['hotel','brand.printFormat','brand.language'],rooms:['yld.floorBps','yld.ceilBps'],frontdesk:['checkin','checkout','fd.deposit'],
+  money:['currency','invoicePrefix','discountLimit'],pos:['pos.outlets'],hkm:['ai.dirtyHours','hk.maxRoomsPerAttendant','mnt.pmLeadDays'],
+  users:['users.active','sec.pinLock'],messages:['msg.senderName','msg.marketing'],data:['data.backupTime','data.backupKeep','data.restoreDrillDays'],
+};
+export function cfgHeads(s:ReturnType<typeof useHcc>['s'],uid:string,g:CfgGroupId):string{
+  if(g==='modules')return '';
+  const defs=cfgDefs(s).filter(d=>d.group===g&&!d.panel&&!d.secret&&d.visibility!=='owner');
+  const want=HEAD_KEYS[g];
+  const pick=(want?want.map(k=>defs.find(d=>d.key===k)).filter((d):d is CfgSettingDef=>!!d):[]);
+  const list=(pick.length?pick:defs).slice(0,3);
+  return list.map(d=>`${d.label.replace(/ \(.*\)$/,'')}: ${cfgMoneyMask(s,uid,cfgDisplay(s,uid,d))}`).join(' · ');
+}
 const GROUP_IDS=['property','rooms','frontdesk','money','pos','hkm','people','compliance','modules','users','messages','data'] as const;
 /** True below 900 px (the SplitView slide-over breakpoint): the group list is the first thing seen, a group opens over it. */
 // FIT (DEC-194, contract §6 'settings' = split; FitPage keeps the default layout because .fit-page.fit-split would collide with SplitView's own .fit-split grid class): SplitView — the 12 groups with live summaries (ScrollPanel) on the left, the selected group's
@@ -34,13 +48,14 @@ export function HotelSettings(){
   const [picked,setPicked]=useState(!!boot);
   useEffect(()=>{if(boot)setSel(boot);},[boot]); // eslint-disable-line react-hooks/exhaustive-deps
   const rows=cfgListRows(s,uid,q);
+  const heads=Object.fromEntries(rows.map(r=>[r.id,cfgHeads(s,uid,r.id)])) as Record<string,string>;
   const current=rows.some(r=>r.id===sel)?sel:rows[0]?.id;
   const list=<ScrollPanel label="Configuration groups">
     {!rows.length&&<p className="muted padded">No setting matches “{q}”.</p>}
     {CFG_SECTIONS.map(sec=>{const l=rows.filter(r=>r.section===sec);if(!l.length)return null;
       return <div key={sec} className="cfg-sec"><h2>{sec}</h2><ul>{l.map(r=><li key={r.id}>
         <button type="button" className={'cfg-item'+(r.id===current?' on':'')} aria-current={r.id===current?'true':undefined} onClick={()=>{setSel(r.id);setPicked(true);}}>
-          <span><strong>{r.label}</strong><small>{r.summary}{r.hits?` · ${r.hits} match${r.hits>1?'es':''}`:''}</small></span>
+          <span><strong>{r.label}</strong><small>{r.summary}{r.hits?` · ${r.hits} match${r.hits>1?'es':''}`:''}</small>{heads[r.id]&&<small className="cfg-heads" title={heads[r.id]}>{heads[r.id]}</small>}</span>
           {r.readOnly&&<span className="cfg-ro"><Lock size={12}/> Read only</span>}<ChevronRight size={16} aria-hidden="true"/></button></li>)}</ul></div>;})}
   </ScrollPanel>;
   const detail=current&&(!narrow||picked)?<div className="cfg-detail"><CfgGroupDetail g={current} q={q}/></div>:null;

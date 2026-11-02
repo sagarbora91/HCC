@@ -22,7 +22,7 @@ export function Backup(){
           <div className="stat"><div className="stat-label">Destination</div><strong className="hk-stat-text">Office NAS</strong><small>{HK_BACKUP_DESTINATION}</small></div>
           <div className="stat"><div className="stat-label">Retention</div><strong className="hk-stat-text">14 d · 8 w · 12 m</strong><small>{HK_BACKUP_RETENTION}</small></div>
         </div></div>}
-      tabs={<FitTabs page="backup" value={tab} onChange={setTab} tabs={BACKUP_TABS.map(t=>({...t}))}/>}>
+      tabs={<FitTabs page="backup" value={tab} onChange={setTab} tabs={BACKUP_TABS.map(t=>({...t,count:t.id==='history'?rows.length:HK_RESTORE_STEPS.length}))}/>}>
     {tab==='history'
       ?<ScrollPanel title="Backup history" label="Backup history" footer={<FitNote text="Scheduled runs are derived from the simulated clock; manual runs come from the audit trail."/>}>
         <div className="table-wrap"><table className="hk-table"><thead><tr><th>Time</th><th>Type</th><th>Result</th><th>Note</th></tr></thead>
