@@ -126,7 +126,7 @@ public sealed class SqlBillingStore(SqlConnectionFactory connections) : IBilling
     {
         await using var cmd = Cmd(tx, $"""
             SELECT {LineColumns} FROM bill.charge WITH (UPDLOCK, HOLDLOCK)
-            WHERE folio_id = @f AND service_date = @d AND kind = 'room' AND reverses_charge_id IS NULL;
+            WHERE folio_id = @f AND service_date = @d AND kind = 'room' AND reverses_charge_id IS NULL AND reversed_by_charge_id IS NULL;
             """);
         cmd.Parameters.Add("@f", SqlDbType.BigInt).Value = folioId;
         cmd.Parameters.Add("@d", SqlDbType.Date).Value = serviceDate;
@@ -151,7 +151,16 @@ public sealed class SqlBillingStore(SqlConnectionFactory connections) : IBilling
         Utc(cmd, "@u", c.PostedUtc);
         cmd.Parameters.Add("@p", SqlDbType.Int).Value = c.PrincipalId;
         cmd.Parameters.Add("@apr", SqlDbType.BigInt).Value = (object?)c.ApprovalId ?? DBNull.Value;
-        return (long)(await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false))!;
+        var id = (long)(await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false))!;
+        if (c.ReversesChargeId is { } original) // 4686: the original is marked reversed (the one update the append-only trigger allows)
+        {
+            await using var mark = Cmd(tx, "UPDATE bill.charge SET reversed_by_charge_id = @r WHERE charge_id = @o AND reversed_by_charge_id IS NULL;");
+            mark.Parameters.Add("@r", SqlDbType.BigInt).Value = id;
+            mark.Parameters.Add("@o", SqlDbType.BigInt).Value = original;
+            await mark.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+        }
+
+        return id;
     }
 
     public async Task<long> InsertReceiptAsync(ICommandTransaction tx, NewReceipt r, CancellationToken ct)

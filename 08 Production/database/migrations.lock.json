@@ -49,7 +49,9 @@
     {"version": 4692, "file": "4692_guest_credit_rbac_seed.sql", "reason": "LF wave block 4670-4719 reserved by DEC-200 before KEYS 4720/4721 landed (LF-CONTRACT §11)"},
     {"version": 4693, "file": "4693_receipt_kind_guest_credit.sql", "reason": "LF wave block 4670-4719 reserved by DEC-200 before KEYS 4720/4721 landed (LF-CONTRACT §11)"},
     {"version": 4694, "file": "4694_guest_credit_account.sql", "reason": "LF wave block 4670-4719 reserved by DEC-200 before KEYS 4720/4721 landed (LF-CONTRACT §11)"},
-    {"version": 4685, "file": "4685_lgc_bill_cancelled.sql", "reason": "LF wave block 4670-4719 reserved by DEC-200 (LF-CONTRACT §11)"}
+    {"version": 4685, "file": "4685_lgc_bill_cancelled.sql", "reason": "LF wave block 4670-4719 reserved by DEC-200 (LF-CONTRACT §11)"},
+    {"version": 4686, "file": "4686_charge_reversed_by.sql", "reason": "LF wave block 4670-4719 reserved by DEC-200 (LF-CONTRACT §11): rate-change re-post (coordinator ruling 2 Nov) and its request meta"},
+    {"version": 4690, "file": "4690_stay_rate_request.sql", "reason": "LF wave block 4670-4719 reserved by DEC-200 (LF-CONTRACT §11): rate-change re-post (coordinator ruling 2 Nov) and its request meta"}
   ],
   "migrations": [
     {"version": 1, "file": "0001_platform.sql", "sha256": "2CB8FB349156F501295E1148366BDFE406EC097C136093F09C6F0817542F46CC"},
@@ -203,6 +205,8 @@
     {"version": 4692, "file": "4692_guest_credit_rbac_seed.sql", "sha256": "95440691AB23FBD16E040EF140E8855E3E0E0A9D58F4E46744664D52E3C7AA0A"},
     {"version": 4693, "file": "4693_receipt_kind_guest_credit.sql", "sha256": "4F5070806F7BB0DDCA20EB43C8D043254AEF335B506C6F6F9656CDD648B55DB7"},
     {"version": 4694, "file": "4694_guest_credit_account.sql", "sha256": "85B3FCD5E62FB999F37EC407BBB8A976654F91EA1C7E96F9E9F2F941AD644A64"},
-    {"version": 4685, "file": "4685_lgc_bill_cancelled.sql", "sha256": "BC22AC7C41B398CF550CFD59421684E17E1AE4B2C453E7BBA0440F4687ED53D2"}
+    {"version": 4685, "file": "4685_lgc_bill_cancelled.sql", "sha256": "BC22AC7C41B398CF550CFD59421684E17E1AE4B2C453E7BBA0440F4687ED53D2"},
+    {"version": 4686, "file": "4686_charge_reversed_by.sql", "sha256": "D2C91F86FCFEDEE3B075A76F948DAD4F3259F1E498881FE16109215C5B3C292F"},
+    {"version": 4690, "file": "4690_stay_rate_request.sql", "sha256": "787CFC09F30F3ECF3348EE3C2500F7C1690558922A55AEE2973631C085C156EA"}
   ]
 }

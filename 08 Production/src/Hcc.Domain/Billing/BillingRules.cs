@@ -17,6 +17,14 @@ public enum AdjustmentAction
     CashDifference,
     CashBanking,
     TillTransfer,
+    /// <summary>LF A1 (4679): rate / guest-count change of an in-house stay; executed when approved (Stays StayRateCommands).</summary>
+    RateChange,
+    /// <summary>LF A2 (4679): correction of a departed stay's bill (Owner); executed when approved (Invoices BillCorrectionService).</summary>
+    BillCorrection,
+    /// <summary>LF B2 (4679): the balance goes on the guest's own credit account at check-out (Manager within PERM-PAY-005, Owner beyond).</summary>
+    GuestCredit,
+    /// <summary>LF A7 (4679): void of a counter bill = a credit note (Owner); target_kind 'counter', no folio.</summary>
+    CounterCredit,
 }
 
 /// <summary>Approval states (prototype <c>Approval.status</c>).</summary>
@@ -50,6 +58,10 @@ public static class BillingCodes
         AdjustmentAction.CashDifference => "cash-difference",
         AdjustmentAction.CashBanking => "cash-banking",
         AdjustmentAction.TillTransfer => "till-transfer",
+        AdjustmentAction.RateChange => "rate-change",
+        AdjustmentAction.BillCorrection => "bill-correction",
+        AdjustmentAction.GuestCredit => "guest-credit",
+        AdjustmentAction.CounterCredit => "counter-credit",
         _ => throw new ArgumentOutOfRangeException(nameof(a), a, "Unknown action."),
     };
 
@@ -62,6 +74,10 @@ public static class BillingCodes
         "cash-difference" => AdjustmentAction.CashDifference,
         "cash-banking" => AdjustmentAction.CashBanking,
         "till-transfer" => AdjustmentAction.TillTransfer,
+        "rate-change" => AdjustmentAction.RateChange,
+        "bill-correction" => AdjustmentAction.BillCorrection,
+        "guest-credit" => AdjustmentAction.GuestCredit,
+        "counter-credit" => AdjustmentAction.CounterCredit,
         _ => throw HccException.Validation("Action must be discount, refund, credit or correction."),
     };
 
@@ -103,6 +119,10 @@ public static class ApprovalRules
     /// </summary>
     public static bool IsExpired(ApprovalStatus status, AdjustmentAction action, DateTime expiresUtc, DateTime nowUtc)
         => !NeverLapses(action) && nowUtc > expiresUtc && (status == ApprovalStatus.Pending || (status == ApprovalStatus.Approved && action != AdjustmentAction.Discount));
+
+    /// <summary>LF-money actions decided by their own module (<c>ILfApprovalDecisions</c>), not by the folio adjustment switch.</summary>
+    public static bool IsLfMoney(AdjustmentAction action) => action is AdjustmentAction.RateChange or AdjustmentAction.BillCorrection
+        or AdjustmentAction.GuestCredit or AdjustmentAction.CounterCredit;
 
     /// <summary>
     /// DEC-073: a bank deposit or a till transfer waits until it is decided. The cash has already left the drawer, so the request never

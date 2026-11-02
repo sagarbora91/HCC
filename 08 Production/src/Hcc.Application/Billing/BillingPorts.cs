@@ -219,3 +219,12 @@ public sealed record CashDeskShiftRead(ShiftRow Shift, string? Reason, int? Clos
 public sealed record CashDeskTillRead(TillRow Till, CashDeskShiftRead? Active, CashDeskShiftRead? LastClosed);
 
 public sealed record CashDeskRead(DateOnly? BusinessDate, IReadOnlyList<CashDeskTillRead> Tills);
+
+/// <summary>
+/// LF-money approvals (LF-CONTRACT §2, §4, §6, §7) decided through the shared DecideApproval command: 'rate-change', 'bill-correction',
+/// 'guest-credit', 'counter-credit'. Runs inside the DecideApproval transaction; the implementation checks who may decide and executes.
+/// </summary>
+public interface ILfApprovalDecisions
+{
+    Task<Hcc.Contracts.Billing.ApprovalResult> DecideAsync(ICommandTransaction tx, Caller caller, ApprovalRow approval, bool approve, string reason, string expectedVersion, CancellationToken ct);
+}

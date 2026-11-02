@@ -31,7 +31,7 @@ namespace Hcc.Application.Billing;
 public sealed class BillingService(ICommandRunner runner, IBillingStore store, IAccessPolicy policy, IStayNightSource stays,
     IGstRateResolver gst, TimeProvider clock, IGstChargeSnapshots? gstSnapshots = null, Closing.IBusinessDayGuard? days = null,
     ICashOutDecisions? cashOut = null, Groups.ICompanyCreditGuard? credit = null, MoneyMasters.IPaymentMethodSource? methods = null,
-    IRoomNightBundle? bundles = null, Accounting.CashGuardService? cashGuard = null)
+    IRoomNightBundle? bundles = null, Accounting.CashGuardService? cashGuard = null, ILfApprovalDecisions? lf = null)
 {
     private DateTime Now => clock.GetUtcNow().UtcDateTime;
 
@@ -184,6 +184,7 @@ public sealed class BillingService(ICommandRunner runner, IBillingStore store, I
         ArgumentNullException.ThrowIfNull(req);
         var action = BillingCodes.ParseAction(req.Action);
         if (action == AdjustmentAction.CashDifference) throw HccException.Validation("Cash differences are raised by submitting a shift count.");
+        if (ApprovalRules.IsLfMoney(action)) throw HccException.Validation("Rate changes, bill corrections, guest credit and counter-bill voids have their own requests.");
         if (action is AdjustmentAction.CashBanking or AdjustmentAction.TillTransfer)
             throw HccException.Validation("Bank deposits and till transfers are raised by recording them on the cashier screen (DEC-073)."); // Wave B1
         var reason = BillingText.Required(req.Reason, 200, "A reason is required.");
@@ -298,6 +299,9 @@ public sealed class BillingService(ICommandRunner runner, IBillingStore store, I
             if (peek.Action is AdjustmentAction.CashBanking or AdjustmentAction.TillTransfer) // Wave B1, DEC-073: same decision as ConfirmCashBanking / AcceptTillTransfer
                 return cashOut is null ? throw Invalid("Bank deposits and till transfers are decided on the cashier screen.")
                     : await cashOut.DecideAsync(tx, caller, peek, req.Approve, decisionReason, req.ExpectedVersion, ct2).ConfigureAwait(false);
+            if (ApprovalRules.IsLfMoney(peek.Action)) // LF-money: rate change, bill correction, guest credit, counter-bill void
+                return lf is null ? throw Invalid("This request is decided by its own module.")
+                    : await lf.DecideAsync(tx, caller, peek, req.Approve, decisionReason, req.ExpectedVersion, ct2).ConfigureAwait(false);
 
             var f = await RequireFolioAsync(tx, caller, peek.FolioId!.Value, ct2).ConfigureAwait(false);
             var a = (await store.LockApprovalAsync(tx, req.ApprovalId, ct2).ConfigureAwait(false))!;
@@ -428,7 +432,7 @@ public sealed class BillingService(ICommandRunner runner, IBillingStore store, I
     {
         var peek = await store.PeekApprovalAsync(tx, req.ApprovalId, ct2).ConfigureAwait(false);
         if (peek is null || peek.PropertyId != caller.PropertyId) throw NotFound("Approval request not found.");
-        if (peek.Action is not (AdjustmentAction.Refund or AdjustmentAction.Credit))
+        if (peek.Action is not (AdjustmentAction.Refund or AdjustmentAction.Credit or AdjustmentAction.GuestCredit))
             throw Invalid("Discounts and corrections are posted when they are approved; only refunds and company credit are executed separately.");
         var permission = peek.Action == AdjustmentAction.Refund ? BillingPermissions.RefundExecute : BillingPermissions.Checkout;
         await policy.RequireAsync(caller.PropertyId, caller.PrincipalId, permission, AccessScopes.Any, ct: ct2).ConfigureAwait(false);

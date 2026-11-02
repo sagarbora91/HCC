@@ -14,6 +14,11 @@ public static class LfMoneyEndpoints
     {
         services.AddSingleton<ILfGuestMoneyStore>(sp => new SqlLfGuestMoneyStore(sp.GetRequiredService<SqlPlatform>().Connections));
         services.AddSingleton<LfMoneyGuestCommands>();
+        // LF A1 rate change + the LF-money approval decisions (DecideApproval delegates 'rate-change' / 'bill-correction' / 'guest-credit' / 'counter-credit')
+        services.AddSingleton<IStayRateStore, Hcc.Infrastructure.SqlServer.Stays.SqlStayRateStore>();
+        services.AddSingleton<StayRateCommands>();
+        services.AddSingleton<Hcc.Application.Billing.ILfApprovalHandler, StayRateApprovalHandler>();
+        services.AddSingleton<Hcc.Application.Billing.ILfApprovalDecisions, Hcc.Application.Billing.LfApprovalDecisions>();
         return services;
     }
 
@@ -27,6 +32,10 @@ public static class LfMoneyEndpoints
             http.HccReply(await c.ClearAgreedRateAsync(http.HccCommand(LfMoneyGuestCommands.OpClearAgreedRate), body, ct)));
         g.MapPost("/commands/" + LfMoneyGuestCommands.OpSetCreditAccount, async (HttpContext http, SetGuestCreditAccountRequest body, LfMoneyGuestCommands c, CancellationToken ct) =>
             http.HccReply(await c.SetCreditAccountAsync(http.HccCommand(LfMoneyGuestCommands.OpSetCreditAccount), body, ct)));
+        g.MapPost("/commands/" + StayRateCommands.OpChangeStayRate, async (HttpContext http, ChangeStayRateRequest body, StayRateCommands c, CancellationToken ct) =>
+            http.HccReply(await c.ChangeAsync(http.HccCommand(StayRateCommands.OpChangeStayRate), body, ct)));
+        g.MapPost("/stays/{id:long}/rate-change", async (HttpContext http, long id, ChangeStayRateRequest body, StayRateCommands c, CancellationToken ct) =>
+            http.HccReply(await c.ChangeAsync(http.HccCommand(StayRateCommands.OpChangeStayRate), body with { StayId = id }, ct)));
         g.MapGet("/guests/{id:long}/money", async (HttpContext http, long id, LfMoneyGuestCommands c, CancellationToken ct) =>
         {
             var (p, u) = http.HccActor();
