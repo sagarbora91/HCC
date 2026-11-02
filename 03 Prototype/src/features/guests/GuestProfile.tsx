@@ -4,7 +4,7 @@ import {bookingRef} from '../../domain/bookingRef';
 import React,{useState} from 'react';
 import {Printer,Hotel,ShieldCheck,UserPlus,Lock} from 'lucide-react';
 import {useHcc} from '../../app/context';
-import {Guest,Booking,guestView,guestAccess,guestById,guestStays,guestSearch,guestDuplicates,guestComplete,totals,money,nights,staySegmentLabel,plural} from '../../services/mock';
+import {deskPurposeLabel,stayDueOut,deskBasis,Guest,Booking,guestView,guestAccess,guestById,guestStays,guestSearch,guestDuplicates,guestComplete,totals,money,nights,staySegmentLabel,plural} from '../../services/mock';
 import {SearchBox,Pill,Empty,shortDate,dateLabel} from '../../components/ui';
 import {FitPage,ScrollPanel,SplitView,FitNote,useWideSplit} from '../../components/fit';
 import {GuestForm,emptyDraft,draftOf,hashOf} from './GuestForm';
@@ -78,7 +78,13 @@ export function RegistrationCard({id}:{id?:string}){
       <div><span>Company / GSTIN</span><strong>{v?.company?`${v.company}${v.gstin?' · '+v.gstin:''}`:'—'}</strong></div>
       <div><span>Agreed nightly tariff</span><strong>{money(b.rate)} + GST</strong></div>
       <div><span>Room history</span><strong>{staySegmentLabel(b)||b.room}</strong></div>
-      <div><span>Booking source</span><strong>{b.source}</strong></div></div>
+      <div><span>Booking source</span><strong>{b.source}</strong></div>
+      {/* LF-DESK · purpose, vehicle, due-out, Form C summary */}
+      <div><span>Purpose of visit</span><strong>{deskPurposeLabel(s,b.purpose)||'—'}</strong></div>
+      <div><span>Vehicle</span><strong>{b.vehicle?`${b.vehicle.no}${b.vehicle.type?' · '+b.vehicle.type:''}`:'—'}</strong></div>
+      <div><span>Due out</span><strong>{stayDueOut(s,b).replace('T',' ')} · {deskBasis(s,b)==='24h'?'24 hours':'fixed time'}</strong></div>
+      {b.formC&&<div><span>Form C</span><strong>Recorded · arrived from {b.formC.arrivedFrom}</strong></div>}
+      {/* LF-DESK end */}</div>
     <h3 className="gs-sub">Accompanying guests</h3>
     {g?.party.length?<table><thead><tr><th>Name</th><th>Age band</th><th>Relation</th></tr></thead><tbody>{g.party.map((p,i)=><tr key={i}><td>{p.name}</td><td>{p.ageBand}</td><td>{p.relation||'—'}</td></tr>)}</tbody></table>:<p className="muted">None recorded.</p>}
     <div className="gs-sign"><div><span/>Guest signature</div><div><span/>Front desk</div></div>

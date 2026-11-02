@@ -68,6 +68,7 @@ const PAGES={
   approvals:['OWN MGR ACC','ADM-004 audit.view + APR-001 (DEC-063 G10: not the Cashier; Tech admin view at M4)'],
   backup:['OWN TAD','ADM-005 (DEC-063 G9: the Manager gets the Overview backup card instead)'],
   syshealth:['OWN TAD','PERM-SYS-001 (Wave C3, A09-05: parked outbox events, retry, last backup; the Administration area like Backup & recovery)'],
+  'desk-alerts':['OWN MGR REC CSH','LF B4: PERM-RMD-001 reminders.manage = prototype check-in / expenses / approve (Owner, Manager, Reception, Cashier); the server grants Owner, Manager, Reception, Accountant (contract §11) — alignment is an open question'], // LF-ALERTS
   keys:['OWN MGR REC','KEYS room keys: PERM-KEY-001 read / 002 issue / 003 cancel = Owner, Manager, Reception (keys.configure tabs Owner + Manager, checked inside the page)'],
   'legacy-import':['OWN','PERM-LGC-001 (LG-UI: old Lodge data import; Owner only — the LG integrator hides the menu entry from the Tech admin with navRoleOk)'],
   roadmap:['OWN MGR CSH ACC','Not in the matrix (informational page); current gate accepted'],
@@ -90,6 +91,8 @@ function surfaces(M,s,uid){
 const C=(roles,src)=>[roles,src];
 const CMDS={
   BOOK:C('OWN MGR REC','RES-002'),CONFIRM:C('OWN MGR REC','RES-002'),CHANGE_DATES:C('OWN MGR REC','RES-003'),MOVE:C('OWN MGR REC','RES-003/STY-002'),STAY_EARLY_DEPARTURE:C('OWN MGR REC','STY-002 (EarlyDeparture)'),CANCEL:C('OWN MGR REC','RES-004'),
+  GSV_WAKE_SNOOZE:C('OWN MGR REC','LF B3 (reservations)'),RMD_SAVE:C('OWN MGR REC CSH','PERM-RMD-001'),RMD_DONE:C('OWN MGR REC CSH','PERM-RMD-001'),RMD_DISMISS:C('OWN MGR REC CSH','PERM-RMD-001'), // LF-ALERTS
+  STAY_CHECKOUT_BASIS:C('OWN MGR REC','STY-001 (LF A6)'),STAY_FORM_C:C('OWN MGR REC','STY-001 (LF A5)'),STAY_LATE_CHARGE:C('OWN MGR REC','STY-003 (LF A6)'), // LF-DESK
   REGISTER:C('OWN MGR REC','GST-002'),GUEST_SAVE:C('OWN MGR REC','GST-002'),GUEST_ID_VIEW:C('OWN MGR REC','GST-003 (DEC-068 Show ID)'),CHECKIN:C('OWN MGR REC','STY-001'),CHECKOUT:C('OWN MGR REC','STY-003'),
   COMPANY_CREDIT_REQUEST:C('OWN MGR REC','PAY-005 + §7 (raised by REC)'),
   CHARGE:C('OWN MGR REC CSH','FOL-002'),POST_NIGHTS:C('OWN MGR REC CSH','FOL-002'),DISCOUNT:C('OWN MGR REC','FOL-003'),

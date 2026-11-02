@@ -43,6 +43,7 @@ export const PAGE_CATEGORY:Record<string,CategoryId>={
   prefs:'admin', // CP-1 Appearance & display (every role, this device only)
   // LF lanes: your PAGE_CATEGORY line inside your own block (contract §11: 'desk-alerts':'front' = LF-ALERTS, 'counter-bills':'cash' = LF-UI).
   // LF-ALERTS
+  'desk-alerts':'front',
   // LF-ALERTS end
   // LF-UI
   // LF-UI end
@@ -84,6 +85,7 @@ export const PAGE_BLURB:Record<string,string>={
   'legacy-import':'Load guests, history and opening balances from the old software',
   keys:'Room key cards: issue, re-issue, reactivate, cancel, key log and counts',
   prefs:'Text size, motion, start page, lists, messages (this device)',
+  'desk-alerts':'Desk reminders with alert days and guests\' wake-up calls', // LF-ALERTS
 };
 
 /** Extra words people type for a page (synonyms, hotel jargon, Hindi-English habits). The label and category are matched too. */
@@ -128,6 +130,7 @@ export const PAGE_KEYWORDS:Record<string,string[]>={
   syshealth:['system health','health','parked','stuck','retry','outbox','event log','alerts','errors','backup failed','last backup','restore drill'],
   keys:['key','keys','room key','key card','keycard','card','encoder','lock','lost card','reissue','re-issue','reactivate','recharge','extend key','manual key','chabi','chaabi','key log','door lock','bis'],
   'legacy-import':['legacy import','old software','lodge','old data','import history','dry run','migration','legacy','previous software'],
+  'desk-alerts':['reminder','reminders','alert','alerts','wake up','wake-up','wakeup','alarm','alert days','due date'], // LF-ALERTS
   roadmap:['roadmap','future','planned','modules','phases'],
   prefs:['appearance','display','text size','font','font size','bigger text','larger text','zoom','motion','animation','density','compact','start page','home page','page size','rows','toast','messages','preferences','my settings','theme'],
 };

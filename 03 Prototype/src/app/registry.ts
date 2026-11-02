@@ -34,6 +34,7 @@ import {registration as prefs} from '../features/prefs/register'; // CP-1 Appear
 import {registration as keysMod} from '../features/keys/register'; // KEYS room keys ('keys', 'key-panel')
 // LF lanes: ONE import line inside your own block; add the registration name inside your block in `registrations` below.
 // LF-ALERTS
+import {registration as lfAlerts} from '../features/alerts/register';
 // LF-ALERTS end
 // LF-UI
 // LF-UI end
@@ -58,6 +59,7 @@ export const registrations:FeatureRegistration[]=[reservations,guests,customers,
   yieldMod,groups,channels,maintenance,inventory,handover,services,messaging,pos,staff,accounting,assistant,compliance,
   cashbook,masters,m_frontdesk,m_money,m_ops,m_admin,roommasters,catalogue,prefs,keysMod,
   // LF-ALERTS
+  lfAlerts,
   // LF-ALERTS end
   // LF-UI
   // LF-UI end

@@ -126,19 +126,21 @@ def csv_loader(dir_for_fy):
     return load
 
 
-def run_reader(mdb_dir: Path, fys: dict[str, Path], raw_root: Path, log) -> None:
+def run_reader(mdb_dir: Path, fys: dict[str, Path], raw_root: Path, log, tables=None) -> None:
     ps1 = HERE / "extract_read.ps1"
     for fy, mdb in fys.items():
         out = raw_root / fy
         log(f"reading {mdb.name} -> raw/{fy}")
-        cp = subprocess.run(["pwsh", "-NoProfile", "-File", str(ps1), "-MdbPath", str(mdb), "-OutDir", str(out)],
-                            capture_output=True, text=True, encoding="utf-8")
+        cmd = ["pwsh", "-NoProfile", "-File", str(ps1), "-MdbPath", str(mdb), "-OutDir", str(out)]
+        if tables:  # LF-DESK: a short table list (the --purposes / --vehicle-types switches)
+            cmd += ["-Tables", ",".join(tables)]
+        cp = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8")
         seen = {}
         for line in cp.stdout.splitlines():
             parts = line.split("\t")
             if parts[0] == "OK" and len(parts) == 3:
                 seen[parts[1]] = int(parts[2])
-        missing = [t for t in REQUIRED if t not in seen]
+        missing = [t for t in (tables or REQUIRED) if t not in seen]
         if missing:
             err = (cp.stderr or "").strip().splitlines()[-1:] or [""]
             raise ExtractError(f"reader failed for {mdb.name}: missing {missing} (exit {cp.returncode}) {err[0][:200]}")
@@ -1103,6 +1105,81 @@ def print_summary(totals, warnings, log):
 
 # --------------------------------------------------------------------------- self-test
 
+# --------------------------------------------------------------------------- LF-DESK: master names only (--purposes / --vehicle-types)
+MASTER_HEADER = ["code", "name", "sortOrder", "active"]
+
+
+def master_code(name: str, taken: set) -> str:
+    base = re.sub(r"[^A-Z0-9]+", "-", name.upper()).strip("-")[:20].strip("-") or "X"
+    code, n = base, 2
+    while code in taken:
+        suffix = f"-{n}"
+        code = base[: 20 - len(suffix)] + suffix
+        n += 1
+    taken.add(code)
+    return code
+
+
+def master_names(rows: list[dict], prefer: re.Pattern) -> list[str]:
+    """Distinct, non-placeholder names of a legacy master table (names only; no guest data). Column: the first matching `prefer`, else the second column."""
+    if not rows:
+        return []
+    cols = list(rows[0].keys())
+    col = next((c for c in cols if prefer.search(c)), cols[1] if len(cols) > 1 else cols[0])
+    seen, out = set(), []
+    for r in rows:
+        nm = R.real_text(r.get(col, ""))[:60]
+        if nm and nm.lower() not in seen:
+            seen.add(nm.lower())
+            out.append(nm)
+    return out
+
+
+def master_lists(a, log=print) -> int:
+    """Write purposes.csv / vehicle-types.csv in the HCC import-template layout (code,name,sortOrder,active) from the newest FY file."""
+    out = Path(a.out).resolve()
+    if inside_git_work_tree(out):
+        log(f"refusing --out inside a git work tree: {out}")
+        return 1
+    jobs = []
+    if a.purposes:
+        jobs.append(("PurposeOFVisitMaster", "purposes.csv", re.compile(r"purpose", re.I)))
+    if a.vehicle_types:
+        jobs.append(("VehicleMaster", "vehicle-types.csv", re.compile(r"vehicle.*(name|type)|^name$", re.I)))
+    if a.raw_dir:
+        rd = Path(a.raw_dir)
+        names = sorted({p.name.split("__")[0] for p in rd.glob("*__*.csv")})
+        if not names:
+            log("no raw files found")
+            return 1
+        loader = csv_loader(lambda fy, t: rd / f"{fy}__{t}.csv")
+        latest = names[-1]
+    else:
+        mdb_dir = Path(a.mdb_dir)
+        fys = {}
+        for p in sorted(mdb_dir.glob("*.mdb")):
+            fy = R.fy_label_from_filename(p.name)
+            if fy:
+                fys[fy] = p
+        if not fys:
+            log("no LodgeYY-YY.mdb files found")
+            return 1
+        latest = sorted(fys)[-1]
+        raw_root = out / "raw"
+        run_reader(mdb_dir, {latest: fys[latest]}, raw_root, log, tables=[j[0] for j in jobs])
+        loader = csv_loader(lambda fy, t: raw_root / fy / f"{t}.csv")
+    src = Source(latest, loader)
+    for table, fname, prefer in jobs:
+        names = master_names(src[table], prefer)
+        taken: set = set()
+        rows = [{"code": master_code(nm, taken), "name": nm, "sortOrder": (i + 1) * 10, "active": "yes"} for i, nm in enumerate(names)]
+        n = write_csv(out / fname, MASTER_HEADER, rows)
+        log(f"{fname}: {n} rows from {table} ({latest})")
+    if not a.raw_dir and not a.keep_raw:
+        shutil.rmtree(out / "raw", ignore_errors=True)
+    return 0
+
+
 def self_test() -> int:
     sys.path.insert(0, str(HERE))
     import selftest_checks  # noqa: F401  (tools/legacy/selftest_checks.py)
@@ -1123,9 +1200,19 @@ def main(argv=None) -> int:
     ap.add_argument("--raw-dir", help=argparse.SUPPRESS)
     ap.add_argument("--today", help=argparse.SUPPRESS)
     ap.add_argument("--self-test", action="store_true")
+    ap.add_argument("--purposes", action="store_true", help="LF-DESK: write purposes.csv (names of PurposeOFVisitMaster) in the import-template layout")
+    ap.add_argument("--vehicle-types", action="store_true", help="LF-DESK: write vehicle-types.csv (names of VehicleMaster) in the import-template layout")
     a = ap.parse_args(argv)
     if a.self_test:
         return self_test()
+    if a.purposes or a.vehicle_types:
+        if (not a.mdb_dir and not a.raw_dir) or not a.out:
+            ap.error("--purposes / --vehicle-types need --out and --mdb-dir")
+        try:
+            return master_lists(a)
+        except ExtractError as e:
+            print("error: " + str(e))
+            return 1
     if not a.mdb_dir or not a.out:
         ap.error("--mdb-dir and --out are required")
     try:

@@ -88,8 +88,11 @@ export {LEGACY_SAMPLE} from '../../fixtures/ext/legacy-sample'; // W1a LG: ficti
 // LF-COUNTER
 // LF-COUNTER end
 // LF-DESK
+export * from '../../domain/streams/desk-fields';
 // LF-DESK end
 // LF-ALERTS
+export * from '../../domain/streams/reminders';
+export * from '../../app/shortcuts';
 // LF-ALERTS end
 // LF-IMAGES
 // LF-IMAGES end

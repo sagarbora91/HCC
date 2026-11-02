@@ -19,6 +19,7 @@ import {fdmSourceOf} from '../../../domain/streams/frontdesk-master';
 import {mstFail} from '../../../domain/streams/masters';
 import {grpCompany,grpExposure,grpBookingExposure,grpCreditRefusal} from '../../../domain/streams/groups';
 import type {GRPCompany} from '../../../domain/streams/groups';
+import {deskBook} from './desk'; // LF-DESK
 
 /**
  * DEC-076: after a booking billed to company account `c` was created or changed, refuse (the whole command is discarded) when it raised the
@@ -93,6 +94,7 @@ export const handlers:Record<string,Handler>={
     // LF-RATE · BOOK rate:'agreed' (§3)
     // LF-RATE end
     // LF-DESK · BOOK purpose / vehicle / checkoutBasis (§8)
+    deskBook(k,x);
     // LF-DESK end
     s.bookings.push(x);
     if(account)creditCheck(k,account,x,before);

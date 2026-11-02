@@ -50,8 +50,10 @@ import {handlers as keys} from './keys'; // KEYS room keys
 // LF-COUNTER
 // LF-COUNTER end
 // LF-DESK
+import {handlers as desk} from './desk';
 // LF-DESK end
 // LF-ALERTS
+import {handlers as reminders} from './reminders';
 // LF-ALERTS end
 // LF-IMAGES
 // LF-IMAGES end
@@ -68,8 +70,10 @@ const LF:Record<string,Handler>={ // LF lanes: spread your handlers inside your 
   // LF-COUNTER
   // LF-COUNTER end
   // LF-DESK
+  ...desk,
   // LF-DESK end
   // LF-ALERTS
+  ...reminders,
   // LF-ALERTS end
   // LF-IMAGES
   // LF-IMAGES end

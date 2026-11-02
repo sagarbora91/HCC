@@ -7,6 +7,7 @@ import {navItems} from './nav';
 import {trapTab,useReturnFocus} from '../components/ui';
 import {buildSearchEntries,searchEntries,visibleEntries,categoryOf,PAGE_CATEGORY,DASHBOARD,navFilterModules,type SearchEntry} from './navmap';
 import {SUB_SCREENS,subScreenOpen,type SubScreen} from './subscreens';
+import {shortcutKeyOfPage} from './shortcuts'; // LF-ALERTS
 
 /** FIT (DEC-196): every sub-screen tab is a result "Page › Tab" that opens with go(page,{tab}). Same page permission as its page. */
 type Entry=SearchEntry&{tab?:string};
@@ -65,6 +66,8 @@ export function SearchPalette({onClose}:{onClose:()=>void}){
             <span className="search-ic" aria-hidden="true"><Icon size={18}/></span>
             <span className="search-main"><strong><Hl text={e.label} terms={terms}/></strong>
               <small className="search-path">{e.path.map((p,k)=><React.Fragment key={k}>{k>0&&<ChevronRight size={12} aria-hidden="true"/>}<span><Hl text={p} terms={terms}/></span></React.Fragment>)}</small></span>
+            {/* LF-ALERTS · A8: the function key of a page */}
+            {e.kind==='page'&&!(e as Entry).tab&&shortcutKeyOfPage(e.page)&&!display.isMobile&&<kbd className="search-key">{shortcutKeyOfPage(e.page)}</kbd>}
             {e.kind==='action'?<span className="search-tag">Action</span>:<ArrowRight size={16} aria-hidden="true" className="search-go"/>}
           </li>;})}
         {terms.length>0&&!hits.length&&<li className="search-empty" role="presentation">Nothing matches “{q.trim()}”. Try a shorter word, or a page name like “reservations”, “cashier” or “reports”.</li>}

@@ -3,7 +3,7 @@ import React,{useState,useRef,useEffect} from 'react';
 import {bookingRef} from '../../domain/bookingRef';
 import {Check,ArrowRight,ArrowLeft,DoorOpen,AlertCircle,BedDouble,Printer,UserPlus,Info,Loader2,X} from 'lucide-react';
 import {useHcc} from '../../app/context';
-import {Booking,Room,money,nights,addDays,totals,gstForRoomNight,gstStayTax,gstPct,guestForBooking,guestComplete,stayArrivals,stayRoomEligibility,stayCheckinAlternatives,stayFreeRooms,guestView,staySegments,plural,rmsRoomLine} from '../../services/mock';
+import {deskVehicleMatches,Booking,Room,money,nights,addDays,totals,gstForRoomNight,gstStayTax,gstPct,guestForBooking,guestComplete,stayArrivals,stayRoomEligibility,stayCheckinAlternatives,stayFreeRooms,guestView,staySegments,plural,rmsRoomLine} from '../../services/mock';
 import {Pill,Empty,shortDate,SearchBox} from '../../components/ui';
 import {FitPage,ScrollPanel,FitNote} from '../../components/fit';
 import {GuestForm,emptyDraft,draftOf,hashOf} from './GuestForm';
@@ -13,6 +13,7 @@ import {PrintListButton} from './FrontDeskList';
 import {bookingIdLookup} from '../../domain/streams/customers';
 import {guestPartyIdMissing} from '../../domain/streams/guests';
 import type {Guest} from '../../domain/streams/guests';
+import {useDeskFields} from './DeskFields'; // LF-DESK
 
 /** DEC-193: a red "ID missing" chip per adult / senior of the party without an ID on file (check-in is refused until each has one). Photo never asked. */
 export function PartyIdChips({g}:{g:Guest|undefined}){
@@ -31,7 +32,7 @@ function RoomState({b}:{b:Booking}){const {s}=useHcc();const e=stayRoomEligibili
 /** Page 'arrivals': today's arrivals (Confirmed, arrival ≤ business date) + Walk-in. */
 export function ArrivalsPage(){
   const {s,uid,open,booking,permission,search,setSearch}=useHcc();
-  const list=stayArrivals(s).filter(b=>`${b.guest} ${bookingRef(b)} ${b.room}`.toLowerCase().includes(search.toLowerCase()));
+  const list=stayArrivals(s).filter(b=>`${b.guest} ${bookingRef(b)} ${b.room}`.toLowerCase().includes(search.toLowerCase())||deskVehicleMatches(b,search)); // LF-DESK: vehicle number
   // Booking-ID lookup (any status): the one place to find a booking by its ID (Customers search by name or mobile only).
   const found=bookingIdLookup(s,search).filter(b=>!list.some(x=>x.id===b.id));
   const today=s.bookings.filter(b=>b.status==='In house'&&staySegments(b)[0]?.from===s.date);
@@ -58,7 +59,7 @@ export function ArrivalsPage(){
     </tbody></table>{!list.length&&<Empty title="No arrivals waiting" body="Everyone expected today has checked in. Use Walk-in for guests without a reservation."/>}</div></ScrollPanel>;
   return <FitPage title="Arrivals & check-in" sub={sub}
       actions={<>{canWalkin?<button className="btn primary" onClick={()=>open({type:'guest-walkin'})}><UserPlus size={16}/>Walk-in</button>:<span className="muted">Walk-in needs reservation and check-in permissions.</span>}<PrintListButton kind="arrivals"/></>}
-      toolbar={<><SearchBox value={search} onChange={setSearch} placeholder="Search guest, room or booking ID…"/><span className="muted">{list.length} awaiting check-in</span></>}>
+      toolbar={<><SearchBox value={search} onChange={setSearch} placeholder="Search guest, room, booking ID or vehicle…"/><span className="muted">{list.length} awaiting check-in</span></>}>
     {lookup||checkedIn?<div className="fit-cols"><div>{table}</div><div>{lookup}{checkedIn}</div></div>:table}
   </FitPage>;
 }
@@ -74,6 +75,7 @@ export function CheckinModal({id}:{id?:string}){
   const [bid,setBid]=useState(id||'');const b=s.bookings.find(x=>x.id===bid);
   const [tariffOk,setTariffOk]=useState(false);const [editGuest,setEditGuest]=useState(false);const [q,setQ]=useState('');
   const g=b?guestForBooking(s,b):undefined;
+  const desk=useDeskFields(b); // LF-DESK
   const regDone=!!b&&b.registered&&(!g||g.origin==='auto'||guestComplete(g));
   const elig=b?stayRoomEligibility(s,b):{ok:false,reasons:[]};
   const done=[!!b,regDone,elig.ok,tariffOk,true,b?.status==='In house'];
@@ -123,8 +125,9 @@ export function CheckinModal({id}:{id?:string}){
       <div className="modal-actions">{prev}{permission('payments')?<button type="button" className="btn" onClick={()=>open({type:'payment',id:b.id})}>Record advance / deposit</button>:<span className="muted">Payments permission needed to record an advance.</span>}<button type="button" className="btn primary" onClick={()=>setStep(6)}>{t.paid||t.deposit?'Continue':'Skip'} <ArrowRight size={16}/></button></div></>;}
   else if(b&&step===6){const missing=done.slice(0,4).map((x,i)=>x?null:stepNames[i]).filter(Boolean);
     body=<><div className="summary-list"><div><span>Guest</span><strong>{b.guest}</strong></div><div><span>Room</span><strong>{b.room} · {room?.type}</strong></div><div><span>Stay</span><strong>{shortDate(b.arrival)} — {shortDate(b.departure)}</strong></div><div><span>Tariff</span><strong>{money(b.rate)}/night</strong></div></div>
+      {desk.node}
       {missing.length>0&&<div className="gs-deny" role="alert"><AlertCircle size={18}/><div><strong>Complete these steps first:</strong> {missing.join(', ')}.</div></div>}
-      <div className="modal-actions">{prev}<button type="button" className="btn primary" disabled={busy||missing.length>0} onClick={()=>run({type:'CHECKIN',id:b.id,key:'checkin:'+b.id},`Checked in to room ${b.room}. Room board updated.`)}><DoorOpen size={16}/>Check in</button></div></>;}
+      <div className="modal-actions">{prev}<button type="button" className="btn primary" disabled={busy||missing.length>0||!!desk.problem} onClick={()=>run({type:'CHECKIN',id:b.id,...desk.payload(),key:'checkin:'+b.id},`Checked in to room ${b.room}. Room board updated.`)}><DoorOpen size={16}/>Check in</button></div></>;}
   return <><div className="modal-heading"><div className="eyebrow">ARRIVALS · GUIDED CHECK-IN{b?' · '+bookingRef(b):''}</div><h2>{b?b.guest:'Find the reservation'}</h2>{b&&<p>Room {b.room} · {shortDate(b.arrival)} — {shortDate(b.departure)} · {b.people} guest{b.people>1?'s':''}</p>}{b&&b.status!=='In house'&&<PartyIdChips g={g}/>}</div>
     {b?.status!=='In house'&&<Progress step={step} done={done} setStep={setStep} reachable={reachable}/>}
     <div className="gs-step-body"><h3 className="gs-sub">{b?.status==='In house'?'Checked in':`Step ${step} of 6 · ${stepNames[step-1]}`}</h3>{body}</div></>;

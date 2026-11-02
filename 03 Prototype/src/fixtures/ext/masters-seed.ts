@@ -250,6 +250,13 @@ export const SEED_LF_CATEGORIES:[string,string,GSVDept,number,boolean][]=[['JEWE
 export const seedComplaintCategories=():GcatRow[]=>SEED_COMPLAINT_CATEGORIES.map(([code,name,department,slaHours],i)=>({id:'gcc-'+code.toLowerCase(),code,name,sortOrder:step(i),active:true,department,slaHours}));
 export const seedLostFoundCategories=():LfcRow[]=>SEED_LF_CATEGORIES.map(([code,name,department,slaHours,valuable],i)=>({id:'lfc-'+code.toLowerCase(),code,name,sortOrder:step(i),active:true,department,slaHours,valuable}));
 
+// LF-DESK · A3 purposes of visit, A4 vehicle types (contract §8.1, §8.2) — fictional list; the legacy names come through tools/legacy/extract.py
+export const SEED_PURPOSES:[string,string][]=[['BUSINESS','Business'],['TOURISM','Tourism'],['FAMILY','Family function'],['MEDICAL','Medical'],['EDUCATION','Education'],
+  ['OFFICIAL','Official'],['TRANSIT','Transit'],['OTHER','Other']];
+export const SEED_VEHICLE_TYPES:[string,string][]=[['CAR','Car'],['BIKE','Bike'],['TAXI','Taxi'],['BUS','Bus'],['OTHER','Other']];
+const deskRows=(pfx:string,list:[string,string][]):MasterRow[]=>list.map(([code,name],i)=>({id:pfx+code.toLowerCase(),code,name,sortOrder:step(i),active:true}));
+// LF-DESK end
+
 // ───────────────────────────── The registry: master id → seed rows ─────────────────────────────
 /** Seed rows of every seeded master (ids = the registered master ids). A spec's `seed` hook is `s=>mastersSeed(id,s)`. */
 export const MASTERS_SEED:Record<string,(s:State)=>MasterRow[]>={
@@ -277,6 +284,8 @@ export const MASTERS_SEED:Record<string,(s:State)=>MasterRow[]>={
   hkZones:s=>seedHkZones(s),
   complaintCategories:()=>seedComplaintCategories(),
   lostFoundCategories:()=>seedLostFoundCategories(),
+  purposes:()=>deskRows('pur-',SEED_PURPOSES), // LF-DESK
+  vehicleTypes:()=>deskRows('vty-',SEED_VEHICLE_TYPES), // LF-DESK
 };
 /** Seed rows of a master (fresh copies; [] for a master without a seed). */
 export const mastersSeed=(id:string,s:State):MasterRow[]=>MASTERS_SEED[id]?.(s)??[];

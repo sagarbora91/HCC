@@ -1,6 +1,6 @@
 import React from 'react';
-import {Wallet,Brush,Sunset,ArrowRight} from 'lucide-react';
-import {money,drawer,mstFloorGroups,rmsListed} from '../../services/mock';
+import {Wallet,Brush,Sunset,ArrowRight,BellRing} from 'lucide-react';
+import {money,drawer,mstFloorGroups,rmsListed,rmdAttentionCount} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {BookingTable} from '../reservations/BookingTable';
 import {CmpDueCard} from '../compliance/DueCard';
@@ -13,7 +13,7 @@ const OV_TABS=[{id:'arrivals',label:'Arrivals'},{id:'departures',label:'Departur
 const OV_IDS=['arrivals','departures','in-house'] as const;
 type OvTab=typeof OV_IDS[number];
 export function Overview(){
-  const {s,user,m,act,open,go,arrivals,departures,pending,roomStatus,permission}=useHcc();
+  const {s,uid,user,m,act,open,go,arrivals,departures,pending,roomStatus,permission}=useHcc();
   // FIT (DEC-194/196, contract §6 'overview'): the Arrivals / Departures / In house tabs are page sub-screens (FitTabs), the four headline
   // figures sit in the toolbar StatStrip, and every other block keeps its content in a panel of three columns that each scroll on their own.
   const [tab,setTab]=useFitTab<OvTab>('overview',OV_IDS,'arrivals');
@@ -41,6 +41,9 @@ export function Overview(){
       <ScrollPanel title="Needs your attention" label="Attention, cash and balances, compliance and backup" actions={<span className="count">{pending+inspection}</span>}>
         <div className="attention fit-ov-attention">
           <div className="attention-item"><span className="attention-icon orange"><Wallet size={19}/></span><div><strong>{pending} pending approvals</strong><p>Expenses and requested adjustments</p><button className="text-btn" onClick={()=>go('expenses')}>Review requests <ArrowRight size={14}/></button></div></div>
+          {/* LF-ALERTS · desk reminders and wake-ups due (contract §9.2) */}
+          {rmdAttentionCount(s,uid)>0&&permission(['checkin','expenses','approve'])&&<div className="attention-item"><span className="attention-icon orange"><BellRing size={19}/></span><div><strong>{rmdAttentionCount(s,uid)} reminders and wake-ups</strong><p>Inside their alert days or due now</p><button className="text-btn" onClick={()=>go('desk-alerts')}>Open reminders <ArrowRight size={14}/></button></div></div>}
+          {/* LF-ALERTS end */}
           <div className="attention-item"><span className="attention-icon blue"><Brush size={19}/></span><div><strong>{inspection} rooms awaiting inspection</strong><p>A final check before the next guest</p><button className="text-btn" onClick={()=>go('housekeeping')}>View housekeeping <ArrowRight size={14}/></button></div></div>
           <div className="closing-note"><Sunset size={22}/><div><strong>Keep the day in balance</strong><p>Review room charges and reconcile cash before closing.</p><button className="text-btn" onClick={()=>go('closing')}>Open day closing <ArrowRight size={14}/></button></div></div>
         </div>

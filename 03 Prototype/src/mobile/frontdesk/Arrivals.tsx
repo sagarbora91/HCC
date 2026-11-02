@@ -17,6 +17,7 @@ import {MfRows,MfSearch,useMfTop} from './shared';
 import {bookingIdLookup} from '../../domain/streams/customers';
 import {statusTone} from '../../features/guests/GuestProfile';
 import {PrintListButton} from '../../features/guests/FrontDeskList';
+import {useDeskFields} from '../../features/guests/DeskFields'; // LF-DESK
 
 /** Waits until React has re-rendered with the result of the last run() (the context's state is per render). */
 function useSettle(){const renders=useRef(0);renders.current++;
@@ -56,6 +57,7 @@ export function MfCheckin({id}:{id?:string}){
   const [tariffOk,setTariffOk]=useState(false);const [editGuest,setEditGuest]=useState(false);const [q,setQ]=useState('');
   const [fail,setFail]=useState('');
   const st=mfCheckinState(s,b,tariffOk);
+  const desk=useDeskFields(b); // LF-DESK
   const [step,setStep]=useState(()=>st.start);
   useStepBack(step>1,()=>{setStep(x=>Math.max(1,x-1));setFail('');});
   if(!permission('checkin'))return <Empty title="Not permitted" body="Check-in needs the check-in permission."/>;
@@ -67,7 +69,7 @@ export function MfCheckin({id}:{id?:string}){
   const prevBtn=step>1?<button type="button" className="btn" onClick={()=>goStep(step-1)}><ArrowLeft size={16}/>Back</button>:<button type="button" className="btn" onClick={closeModal}>Cancel</button>;
   async function checkin(){
     if(!b)return;setFail('');
-    const ok=await run({type:'CHECKIN',id:b.id,key:'checkin:'+b.id},`Checked in to room ${b.room}. Room board updated.`);await new Promise(r=>setTimeout(r,40));
+    const ok=await run({type:'CHECKIN',id:b.id,...desk.payload(),key:'checkin:'+b.id},`Checked in to room ${b.room}. Room board updated.`);await new Promise(r=>setTimeout(r,40));
     const now=live.current.s.bookings.find(x=>x.id===b.id)?.status;
     if(!ok&&now!=='In house')setFail(live.current.error||'The check-in was not recorded.');
   }
@@ -109,12 +111,13 @@ export function MfCheckin({id}:{id?:string}){
       <div className="modal-actions">{prevBtn}<button type="button" className="btn primary" onClick={()=>goStep(6)}>{t.paid||t.deposit?'Next':'Skip'} <ArrowRight size={16}/></button></div></>;}
   else if(b&&step===6){
     body=<><MfRows rows={[['Guest',b.guest],['Room',`${b.room} · ${room?.type||''}`],['Stay',`${shortDate(b.arrival)} – ${shortDate(b.departure)}`],['Tariff',money(b.rate)+' / night']]}/>
+      {desk.node}
       {st.missing.length>0&&<div className="mf-deny" role="alert"><AlertCircle size={18}/><div><strong>Complete these steps first:</strong> {st.missing.join(', ')}.</div></div>}
       {fail&&<div className="mf-recover" role="alert"><AlertCircle size={18}/><div><strong>Check-in was not completed — nothing was changed.</strong><p>{fail}</p>
         <div className="mf-inline"><button className="btn small-btn primary" disabled={busy} onClick={checkin}><RotateCcw size={15}/>Retry</button>
           <button className="btn small-btn" onClick={()=>goStep(3)}>Choose another room</button>
           <button className="btn small-btn" onClick={()=>{closeModal();go('arrivals');}}>Back to arrivals</button></div></div></div>}
-      <div className="modal-actions">{prevBtn}<button type="button" className="btn primary" disabled={busy||st.missing.length>0} onClick={checkin}><DoorOpen size={16}/>Check in</button></div></>;}
+      <div className="modal-actions">{prevBtn}<button type="button" className="btn primary" disabled={busy||st.missing.length>0||!!desk.problem} onClick={checkin}><DoorOpen size={16}/>Check in</button></div></>;}
   return <><div className="modal-heading"><div className="eyebrow">CHECK-IN{b?' · '+bookingRef(b):''}</div><h2>{b?b.guest:'Find the reservation'}</h2>{b&&<p>Room {b.room} · {shortDate(b.arrival)} – {shortDate(b.departure)} · {b.people} guest{b.people>1?'s':''}</p>}{b&&b.status!=='In house'&&<PartyIdChips g={g}/>}</div>
     {b?.status!=='In house'&&<Stepper steps={mfCheckinSteps} current={step-1}/>}
     {b?.status!=='In house'&&<h3 className="mf-sub">Step {step} of 6 · {mfCheckinSteps[step-1]}</h3>}

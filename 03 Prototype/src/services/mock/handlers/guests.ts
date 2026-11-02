@@ -6,6 +6,7 @@ import {blockedTonight,available,occupant} from '../../../domain/selectors';
 import {nights} from '../../../domain/money';
 import {Guest,GuestDraft,guestValidate,guestClean,guestFieldLabels,staySegments,guestIdNumberError,guestDobCleared,guestPartyIdMessage,guestIdKind} from '../../../domain/streams/guests';
 import type {GuestParty} from '../../../domain/streams/guests';
+import {deskCheckin} from './desk'; // LF-DESK
 
 /** DEC-193: an edit that does not retype a member's number keeps that member's stored ID while the member at the same seq keeps the same
  *  name and ID kind (the edit form never carries the number); otherwise the old member's ID goes with them. */
@@ -105,8 +106,9 @@ export const handlers:Record<string,Handler>={
     // LF-RATE · CHECKIN rate:'agreed' (§3)
     // LF-RATE end
     // LF-DESK · CHECKIN purpose / vehicle / Form C / checkoutBasis / checkedInAt (§8)
+    const deskNote=deskCheckin(k,x);
     // LF-DESK end
-    x.status='In house';x.segments=[{room:r.id,from:s.date}];x.version++;return x.guest+' → room '+r.id;
+    x.status='In house';x.segments=[{room:r.id,from:s.date}];x.version++;return x.guest+' → room '+r.id+deskNote;
   },
   /** Move room / extend / shorten. Confirmed bookings behave exactly as M1. In-house: target validated (reserved) before the old room
    *  is released; old segment closed, new one opened; old room Dirty + one HK task. Any failure throws before mutation (AC-009). Intended PERM-STY-002. */
