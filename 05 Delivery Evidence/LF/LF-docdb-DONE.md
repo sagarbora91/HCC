@@ -1,4 +1,4 @@
-# LF-docdb + LF-images — lane L2 DONE (draft, numbers filled at the end of the file)
+# LF-docdb + LF-images — lane L2 DONE (partial: B5 member captures not built, see below)
 
 Branch `claude/lf-docdb` (cut from setup commit f71e6fbb). Lane L2 of wave F3 (LF): contract section 1 (the separate documents database, DEC-200),
 section 1.11 (G1 on-device compression and the size caps), section 10 (B5 party photos / IDs, B6 invoice notes).
@@ -72,9 +72,26 @@ one text everywhere: "Take the photo again, closer and in good light." Banking s
 ## Integration needed (lf-int)
 - `handlers/index.ts` (`LF-DOCDB` block) needs nothing: this lane adds no mock commands. `services/mock/index.ts` blocks `LF-DOCDB` (docobjects) and
   `LF-IMAGES` (printnotes) are filled; `HccComposition.cs` `LF-DOCDB` services/endpoints lines are filled.
-- Hash pins: the compliance fixture still holds its demo file in `complianceFilesX` (BASE / FY26 hashes unchanged); readers fall back to it until a save is moved.
-  The integrator's single FY26 re-pin may move the fixture to `docObjectsX` if wanted.
+- **Hash re-pin (the announced one):** the compliance fixture's demo evidence file moved from `complianceFilesX` to `docObjectsX` (otherwise a restored BASE would be rewritten by
+  the v13 move and the persistence round-trip tests would fail). That changes the BASE / FY26 hashes: the pinned-hash tests listed below fail until the integrator re-pins once.
 - `tools/lf-drill-check.ps1` is not written (needs Windows): run `Initialize-HccDatabase.ps1 -WhatIf`, `Backup-HccDatabase.ps1 -WhatIf`, `Restore-HccDrill.ps1 -WhatIf`
   and `tests\Test-HccDeployment.ps1` on the hotel PC.
 - `ETP_Reuse_Pending.md`: a real OCR engine in W8 may want a larger image than 150 KB.
 - Other lanes' tests that build their own `SqlPlatform` need nothing (the documents database is only touched when an image is stored).
+
+## Tests (this worktree, SQL test server on this machine)
+- `npx tsc --noEmit`: clean. `npm test`: **2392 / 2403 pass**. The 11 failures: `[FIT] no phone-layout file changed since the wave base` (pre-existing, ignore) and the 10 pinned
+  BASE / FY26 hash tests ([CAT], [FDM], [MFX] x2, [MST], [OPSM], [PPL], [PERF], [POS-MST], [RMS]) which fail only because of the fixture move above (integrator re-pin).
+  New: `tests/stream-lf-docdb.mjs` 8 tests, `tests/stream-lf-images.mjs` 7 tests; `stream-compliance.mjs` / `stream-expenses-scc.mjs` adjusted to the refs and the 150 KB cap.
+- `dotnet build "08 Production/Hcc.slnx"`: 0 warnings, 0 errors.
+- `Hcc.Documents.Tests` 41/41 (new: `DocumentObjectStoreTests`, 14 tests on the two-database harness `DocumentsDatabases`: store, caps text, derived name rule, both read paths,
+  DOC_MISSING, release consumer, move job end to end (12 rows, zero remaining, second run moves nothing), sweep, ref check, health rows, journal status).
+- `Hcc.Platform.Tests` MigrationLock 9/9 (new `DocumentsMigrationLockTests`, 3 tests: both lock files), `Hcc.Configuration.Tests` RegistryAndRules 13/13 (B6 keys),
+  `Hcc.Compliance.Tests` ComplianceSqlTests 13/13 + 1 new (image cap / PDF), `Hcc.Expenses.Tests` ExpenseSccCommandTests 10/10 (cap at 153,600 and +1),
+  `Hcc.Integration.Tests` SystemHealth + SchemaGuard 4/4 (new: databases block over HTTP, sweep permission, documents-behind 503), `Hcc.Operations.Tests` OperatorAlerts 7/7.
+- `Hcc.Operations.Tests` whole project: 3 pre-existing Linux-only failures in `HostingTests` ("BackupDirectory must be a full folder path": Windows paths on Linux), unrelated.
+- PowerShell: `tests/Test-HccDeployment.ps1` has 8 new checks; **not executed (no Windows)**; the scripts were edited with care but never run.
+
+## Migrations / locks
+Main: 4670-4674, 4707 (+ lock entries with accepted out-of-order reasons). Documents stream: 0001-0002 with `migrations-docs.lock.json`. `Hcc.slnx` lines are inside the
+`LF-DOCDB` and `LF-IMAGES` range comments. Run `node tools/migrations-lock.mjs` and `node tools/migrations-lock.mjs --docs` (both in step at the last commit).
