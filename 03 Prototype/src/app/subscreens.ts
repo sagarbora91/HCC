@@ -191,6 +191,9 @@ export const SUB_SCREENS:SubScreen[]=[
   {page:'tariff-card',id:'print',label:'Print',keywords:['rate sheet','print','csv']},
   // F4-T1 end
   // F4-T2
+  {page:'revenue-category',id:'a',label:'A. Revenue by category',keywords:['room type revenue','occupancy']},
+  {page:'revenue-category',id:'b',label:'B. Collections by tender',keywords:['cash','upi','card','tender']},
+  {page:'revenue-category',id:'c',label:'C. Bridge',keywords:['tie out','advances']},
   // F4-T2 end
   // F4-T3
   // F4-T3 end
