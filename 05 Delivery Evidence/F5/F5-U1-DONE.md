@@ -19,4 +19,7 @@ Branch `claude/f5` (worktree `/home/user/wt-f5`), commits prefixed `F5-U1:`. Scr
 1. Server side of the PROVISIONAL stamp: Tally / report export endpoints and `MarkReexportAsync` (prototype only here). Not stamped yet in the prototype: trial balance, day book, ledger statement and day voucher CSVs.
 2. OCR scan button "Internet off — enter the ID by hand" and the hidden payment-link actions (contract §6) are not done here; the gate is E1's (`netOn`).
 3. Phone Channels page (`ChannelsMobile.tsx`) has no OTA banner (phone file, left alone).
-4. Fit check (Playwright) result: see the section below.
+
+## Counts
+- `npx tsc --noEmit` clean; `npm test` **2516/2516** (was 2499; +17 new tests: ui4 8, egress-ui 6, golden4 3); `npm run build` ok; `dotnet build "08 Production/Hcc.slnx"` 0 warnings, 0 errors (no C# changed in this lane).
+- Fit check (`tools/fit-screen-check.mjs --pages accounting,settings --roles owner --viewports tab-land,lap-1366`): 148 checks, 0 failing, PASS — every accounting tab including Year end / Bank reconciliation / Clearing, and every settings group including Internet access (`F5-U1-fit-check.md`). Phone widths are not covered by that tool; the phone views use cards, 48 px buttons and no table.
