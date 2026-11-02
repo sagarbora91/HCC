@@ -28,7 +28,7 @@ export function register({test,M,assert}){
     s=step(s,'pick');assert.equal(last(s).state,'picked');s=step(s,'wait');assert.equal(last(s).state,'waiting_card');
     s=step(s,'finish');assert.equal(last(s).state,'done');assert.ok(last(s).cardNo);
     const cards=keyActiveCards(s,id);assert.equal(cards.length,1);assert.equal(cards[0].status,'active');assert.equal(cards[0].to,'2026-10-26T12:00');
-    const c=keyCounts(s,{booking:id});assert.deepEqual([c.issued,c.reissued,c.reactivatedTotal],[1,0,0]);assert.equal(keyCountLine(c),'Issued 1, Re-issued 0, Reactivated 0');});
+    const c=keyCounts(s,{booking:id});assert.deepEqual([c.issued,c.reissued,c.reactivatedTotal],[1,0,0]);assert.equal(keyCountLine(c),'Issued 1, Re-issued 0, Extended 0, Reactivated 0');});
 
   test('[KEY] re-issue, extend and reactivate need a reason; a lost card marks the old card lost; Issued 1, Re-issued 2, Reactivated 1',()=>{
     let [s,id]=stay();s=online(s);
@@ -40,7 +40,7 @@ export function register({test,M,assert}){
     s=execute(s,'manager',{type:'KEY_SIM',supportsExtend:true,key:'sim-ext'});
     s=req(s,'manager',id,'extended','extension',{validTo:'2026-10-27'});s=step(s);
     const c=keyCounts(s,{booking:id});assert.deepEqual([c.issued,c.reissued,c.extended,c.reactivatedTotal],[1,2,1,1]);
-    assert.equal(keyCountLine(c),'Issued 1, Re-issued 2, Reactivated 1');
+    assert.equal(keyCountLine(c),'Issued 1, Re-issued 2, Extended 1, Reactivated 0');
     assert.equal(keySlice(s).cards.filter(x=>x.status==='lost').length,1);assert.equal(keySlice(s).cards.filter(x=>x.status==='active').length,1);
     assert.equal(keyActiveCards(s,id)[0].to,'2026-10-27T12:00');
     assert.equal(keyCounts(s,{room:'105'}).reissued,2);});

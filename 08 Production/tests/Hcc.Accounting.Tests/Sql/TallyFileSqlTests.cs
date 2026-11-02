@@ -49,7 +49,8 @@ public sealed class TallyFileSqlTests(AccountingDb db) : IClassFixture<Accountin
         var row = await db.ScalarAsync("SELECT COUNT(*) FROM acc.tally_file WHERE property_id = @p AND kind = 'masters' AND sha256 = @s AND byte_count = @b;",
             ("@p", SqlDbType.Int, db.PropertyId), ("@s", SqlDbType.Char, first.Sha256), ("@b", SqlDbType.Int, first.Bytes));
         Assert.Equal(1, Convert.ToInt32(row));
-        Assert.Equal(2, Convert.ToInt32(await db.ScalarAsync("SELECT COUNT(*) FROM acc.tally_file WHERE property_id = @p AND kind = 'masters';", ("@p", SqlDbType.Int, db.PropertyId))));
+        // At least our two exports: the sibling test in this class also logs a masters file in the shared fixture database, in either order.
+        Assert.True(Convert.ToInt32(await db.ScalarAsync("SELECT COUNT(*) FROM acc.tally_file WHERE property_id = @p AND kind = 'masters';", ("@p", SqlDbType.Int, db.PropertyId))) >= 2);
 
         var v = await q.VouchersAsync(db.As("ACC"), new DateOnly(2026, 9, 1), new DateOnly(2026, 9, 7), Ct);
         Assert.Equal(1, Convert.ToInt32(await db.ScalarAsync("SELECT COUNT(*) FROM acc.tally_file WHERE property_id = @p AND kind = 'vouchers' AND sha256 = @s;",

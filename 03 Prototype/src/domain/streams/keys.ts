@@ -70,7 +70,7 @@ export function keyCounts(s:State,by:{booking?:string;room?:string}):KEYCounts{
   const c={issued:0,reissued:0,extended:0,reactivated:0,cancelled:0,read:0,reactivatedTotal:0};
   for(const j of keySlice(s).jobs){if(j.state!=='done')continue;if(by.booking&&j.booking!==by.booking)continue;if(by.room&&j.room!==by.room)continue;c[j.event]++;}
   c.reactivatedTotal=c.extended+c.reactivated;return c;}
-export const keyCountLine=(c:KEYCounts)=>`Issued ${c.issued}, Re-issued ${c.reissued}, Reactivated ${c.reactivatedTotal}`;
+export const keyCountLine=(c:KEYCounts)=>`Issued ${c.issued}, Re-issued ${c.reissued}, Extended ${c.extended}, Reactivated ${c.reactivated}`;
 export const keyActiveCards=(s:State,booking:string)=>keySlice(s).cards.filter(c=>c.booking===booking&&(c.status==='active'||c.status==='manual'));
 export const keyJobsOf=(s:State,booking:string)=>[...keySlice(s).jobs].filter(j=>j.booking===booking).reverse();
 
