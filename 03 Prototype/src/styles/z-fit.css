@@ -297,3 +297,6 @@ html:has(.fit-signin),html:has(.fit-signin) body,html:has(.fit-signin) #root{hei
   .modal.fit-modal>.modal-body{padding:0}
   .modal.fit-modal .modal-body .modal-heading,.modal.fit-modal .modal-body .modal-actions,.fit-panel-body thead th{position:static}
 }
+/* F1-int: Room keys (KEYS from main) in the fit page — the ScrollPanel scrolls, so the module's own max-height boxes are released. */
+.fit-page .key-log-table,.fit-page .key-locks-table{max-height:none;min-height:0;overflow:visible}
+.fit-page .key-log-card{margin-bottom:12px;flex:none}

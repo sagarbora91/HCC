@@ -8,10 +8,15 @@ import {chnCommissionHidden} from '../domain/streams/channels';
 import {rbacPosSeesDaySales,rbacTechAdminTemplates,rbacCanTally} from '../domain/streams/rbac';
 import {hovIsManager} from '../domain/streams/handover';
 import {yldProposals} from '../domain/streams/yield';
+import {keyCanConfigure} from '../domain/streams/keys';
 export type SubScreen={page:string;id:string;label:string;keywords?:string[]};
 export const SUB_SCREENS:SubScreen[]=[
   // FIT-FRONT
   // FIT-FRONT-B: reservations, arrivals, inhouse, guests have no sub-screens (fill / split pages).
+  // F1-INT: KEYS room keys (from main)
+  {page:'keys',id:'log',label:'Key log'},
+  {page:'keys',id:'locks',label:'Lock mapping'},
+  {page:'keys',id:'encoder',label:'Encoder'},
   // FIT-CASH
   // FIT-OPS
   {page:'maintenance',id:'orders',label:'Work orders'},
@@ -177,6 +182,7 @@ export const SUB_SCREEN_GATES:Record<string,(s:State,uid:string)=>boolean>={
   'pos:summary':rbacPosSeesDaySales,
   'messages:outbox':notTemplatesOnly,'messages:consent':notTemplatesOnly,
   'handover:dashboard':hovIsManager,'handover:templates':hovIsManager,
+  'keys:locks':(s,uid)=>keyCanConfigure(s,uid),'keys:encoder':(s,uid)=>keyCanConfigure(s,uid),
   'yield:publish-requests':s=>yldProposals(s).length>0,
   'access:sign-in-devices':()=>process.env.HCC_BUILD==='production',
 };

@@ -92,7 +92,9 @@ export async function register({test,M,assert}){
       out=execFileSync('git',['diff','--name-only',FIT_BASE,'HEAD'],{stdio:'pipe',maxBuffer:64*1024*1024}).toString();
     }catch(e){console.log(`SKIP [FIT] git or base ${FIT_BASE} unavailable (${String(e.message).split('\n')[0]})`);return;}
     const phone=f=>/(^|\/)03 Prototype\/src\/(mobile|app\/mobile)\//.test(f)||/Mobile\.tsx$/.test(f)||/(^|\/)03 Prototype\/src\/styles\/(mobile[^/]*|m-[^/]*)\.css$/.test(f);
-    const bad=out.split('\n').map(s=>s.trim()).filter(Boolean).filter(phone);
+    // Phone files that arrived from main by a merge (not a FIT change): KEYS module's own new phone sheet (F1 merge of main 8a377f32).
+    const FROM_MAIN=new Set(['03 Prototype/src/styles/m-keys.css']);
+    const bad=out.split('\n').map(s=>s.trim()).filter(Boolean).filter(phone).filter(f=>!FROM_MAIN.has(f));
     assert.deepEqual(bad,[],'phone-layout files changed since '+FIT_BASE);
   });
 
