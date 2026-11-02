@@ -44,10 +44,13 @@ import {handlers as keys} from './keys'; // KEYS room keys
 // LF-DOCDB
 // LF-DOCDB end
 // LF-RATE
+import {handlers as stayRate} from './stay-rate';
 // LF-RATE end
 // LF-BILL
+import {handlers as billCorrection} from './bill-correction';
 // LF-BILL end
 // LF-COUNTER
+import {handlers as counter} from './counter';
 // LF-COUNTER end
 // LF-DESK
 // LF-DESK end
@@ -63,10 +66,13 @@ const LF:Record<string,Handler>={ // LF lanes: spread your handlers inside your 
   // LF-DOCDB
   // LF-DOCDB end
   // LF-RATE
+  ...stayRate,
   // LF-RATE end
   // LF-BILL
+  ...billCorrection,
   // LF-BILL end
   // LF-COUNTER
+  ...counter,
   // LF-COUNTER end
   // LF-DESK
   // LF-DESK end

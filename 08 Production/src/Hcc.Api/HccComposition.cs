@@ -79,6 +79,7 @@ public static class HccComposition
         services.AddDocumentObjectsModule();             // LF-docdb: HccDocuments object store, release consumer, daily sweep (contract §1)
         // LF-DOCDB end
         // LF-RATE
+        services.AddLfMoneyModule();                     // LF-money L1: agreed rate, guest credit account (§3, §7)
         // LF-RATE end
         // LF-BILL
         // LF-BILL end
@@ -216,6 +217,7 @@ public static class HccComposition
         api.MapDocumentObjectEndpoints(); // LF-docdb: POST /admin/documents/sweep (PERM-DOC-006)
         // LF-DOCDB end
         // LF-RATE
+        api.MapLfMoneyEndpoints();       // LF-money L1
         // LF-RATE end
         // LF-BILL
         // LF-BILL end

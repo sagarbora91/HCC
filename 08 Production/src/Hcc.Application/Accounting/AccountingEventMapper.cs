@@ -46,10 +46,26 @@ public static class AccountingEventMapper
             "company-credit" => "Company credit",
             "deposit-apply" => "Deposit applied at check-out", // ACC-2 flows (A6a)
             "ota-credit" => "OTA credit",                      // ACC-2 flows (A13)
+            "guest-credit" => "Guest credit",                  // LF B2
             _ => kind,
         };
-        var narration = kind is "company-credit" or "deposit-apply" or "ota-credit" ? $"{label} · folio {N(folioId)} · receipt {N(receiptId)}" : $"{label} · {tender} · folio {N(folioId)} · receipt {N(receiptId)}";
+        var narration = kind is "company-credit" or "deposit-apply" or "ota-credit" or "guest-credit" ? $"{label} · folio {N(folioId)} · receipt {N(receiptId)}" : $"{label} · {tender} · folio {N(folioId)} · receipt {N(receiptId)}";
         return SourceRules.WithParties(SourceRules.FolioReceipt(ReceiptKey(receiptId), kind, tender, businessDate, amountPaise, narration), parties);
+    }
+
+    /// <summary>LF A7: a counter bill (counter:&lt;id&gt;) or its credit note (counter-credit:&lt;id&gt;) — SourceRules.Counter on the settlement side.</summary>
+    public static AccountingSource CounterBill(Counter.CounterBillPostedEvent e, bool credit, PartyContext? parties = null)
+    {
+        ArgumentNullException.ThrowIfNull(e);
+        var settlement = e.Mode switch { "udhaar" => SourceRules.UdhaarKey, "company" => "receipt:company-credit", _ => "method:" + e.Tender };
+        var p = (parties ?? PartyContext.None) with
+        {
+            Udhaar = e.Mode == "udhaar" ? PartyLedgers.Udhaar(e.PartyName, e.PartyPhone) : null,
+            Company = e.CompanyId is { } c ? PartyLedgers.Company(c) : null,
+        };
+        return SourceRules.WithParties(SourceRules.Counter((credit ? "counter-credit:" : "counter:") + N(e.BillId), credit, e.BusinessDate, settlement, e.FoodPaise, e.RoomPaise,
+            e.ServicePaise, e.DiscountPaise, e.CgstPaise, e.SgstPaise, e.TotalPaise,
+            $"{(credit ? "Counter bill credited" : "Counter bill")} · {e.InvoiceNo}{(credit ? " · credit note " + e.CreditNoteNo : "")} · {e.PartyName} · {e.Mode} · bill {N(e.BillId)}"), p);
     }
 
     public static string CompanyPaymentKey(long paymentId) => "company-payment:" + N(paymentId);

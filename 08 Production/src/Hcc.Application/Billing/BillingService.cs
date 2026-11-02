@@ -31,7 +31,8 @@ namespace Hcc.Application.Billing;
 public sealed class BillingService(ICommandRunner runner, IBillingStore store, IAccessPolicy policy, IStayNightSource stays,
     IGstRateResolver gst, TimeProvider clock, IGstChargeSnapshots? gstSnapshots = null, Closing.IBusinessDayGuard? days = null,
     ICashOutDecisions? cashOut = null, Groups.ICompanyCreditGuard? credit = null, MoneyMasters.IPaymentMethodSource? methods = null,
-    IRoomNightBundle? bundles = null, Accounting.CashGuardService? cashGuard = null)
+    IRoomNightBundle? bundles = null, Accounting.CashGuardService? cashGuard = null, ILfApprovalDecisions? lf = null,
+    IGuestCreditReceivables? guestCredit = null)
 {
     private DateTime Now => clock.GetUtcNow().UtcDateTime;
 
@@ -141,7 +142,13 @@ public sealed class BillingService(ICommandRunner runner, IBillingStore store, I
             }
 
             var f = await RequireFolioAsync(tx, caller, folioId, ct2).ConfigureAwait(false);
-            if (kind is ReceiptKind.Payment or ReceiptKind.Deposit && !f.IsOpen) throw Invalid("This booking is no longer open.");
+            if (kind is ReceiptKind.Payment or ReceiptKind.Deposit && !f.IsOpen)
+            {
+                // LF A2: a corrected bill (balance-due) is paid on the departed folio for exactly that balance (check-out left it at 0).
+                var due = f.ReservationStatus == "Departed" && kind == ReceiptKind.Payment ? (await FiguresAsync(tx, f.FolioId, ct2).ConfigureAwait(false)).Balance : Paise.Zero;
+                if (due <= Paise.Zero) throw Invalid("This booking is no longer open.");
+                if (amount != due) throw HccException.Validation($"A departed stay's corrected bill is paid for exactly its balance ({due}).");
+            }
             if (kind == ReceiptKind.DepositReturn)
             {
                 var figures = await FiguresAsync(tx, f.FolioId, ct2).ConfigureAwait(false);
@@ -184,6 +191,7 @@ public sealed class BillingService(ICommandRunner runner, IBillingStore store, I
         ArgumentNullException.ThrowIfNull(req);
         var action = BillingCodes.ParseAction(req.Action);
         if (action == AdjustmentAction.CashDifference) throw HccException.Validation("Cash differences are raised by submitting a shift count.");
+        if (ApprovalRules.IsLfMoney(action)) throw HccException.Validation("Rate changes, bill corrections, guest credit and counter-bill voids have their own requests.");
         if (action is AdjustmentAction.CashBanking or AdjustmentAction.TillTransfer)
             throw HccException.Validation("Bank deposits and till transfers are raised by recording them on the cashier screen (DEC-073)."); // Wave B1
         var reason = BillingText.Required(req.Reason, 200, "A reason is required.");
@@ -298,6 +306,9 @@ public sealed class BillingService(ICommandRunner runner, IBillingStore store, I
             if (peek.Action is AdjustmentAction.CashBanking or AdjustmentAction.TillTransfer) // Wave B1, DEC-073: same decision as ConfirmCashBanking / AcceptTillTransfer
                 return cashOut is null ? throw Invalid("Bank deposits and till transfers are decided on the cashier screen.")
                     : await cashOut.DecideAsync(tx, caller, peek, req.Approve, decisionReason, req.ExpectedVersion, ct2).ConfigureAwait(false);
+            if (ApprovalRules.IsLfMoney(peek.Action)) // LF-money: rate change, bill correction, guest credit, counter-bill void
+                return lf is null ? throw Invalid("This request is decided by its own module.")
+                    : await lf.DecideAsync(tx, caller, peek, req.Approve, decisionReason, req.ExpectedVersion, ct2).ConfigureAwait(false);
 
             var f = await RequireFolioAsync(tx, caller, peek.FolioId!.Value, ct2).ConfigureAwait(false);
             var a = (await store.LockApprovalAsync(tx, req.ApprovalId, ct2).ConfigureAwait(false))!;
@@ -406,7 +417,7 @@ public sealed class BillingService(ICommandRunner runner, IBillingStore store, I
         {
             var peek = await store.PeekApprovalAsync(tx, approvalId, ct).ConfigureAwait(false);
             if (peek is null || peek.PropertyId != caller.PropertyId || peek.FolioId != f.FolioId) throw NotFound("Company credit approval not found for this folio.");
-            if (peek.Action != AdjustmentAction.Credit) throw Invalid("The approval named at checkout is not a company credit.");
+            if (peek.Action is not (AdjustmentAction.Credit or AdjustmentAction.GuestCredit)) throw Invalid("The approval named at checkout is not a company or guest credit.");
             await ExecuteCoreAsync(tx, caller, new ExecuteAdjustmentRequest(approvalId, peek.Version, null, null, null), checkVersion: false, ct).ConfigureAwait(false);
         }
 
@@ -428,7 +439,7 @@ public sealed class BillingService(ICommandRunner runner, IBillingStore store, I
     {
         var peek = await store.PeekApprovalAsync(tx, req.ApprovalId, ct2).ConfigureAwait(false);
         if (peek is null || peek.PropertyId != caller.PropertyId) throw NotFound("Approval request not found.");
-        if (peek.Action is not (AdjustmentAction.Refund or AdjustmentAction.Credit))
+        if (peek.Action is not (AdjustmentAction.Refund or AdjustmentAction.Credit or AdjustmentAction.GuestCredit))
             throw Invalid("Discounts and corrections are posted when they are approved; only refunds and company credit are executed separately.");
         var permission = peek.Action == AdjustmentAction.Refund ? BillingPermissions.RefundExecute : BillingPermissions.Checkout;
         await policy.RequireAsync(caller.PropertyId, caller.PrincipalId, permission, AccessScopes.Any, ct: ct2).ConfigureAwait(false);
@@ -476,6 +487,15 @@ public sealed class BillingService(ICommandRunner runner, IBillingStore store, I
 
             receipt = new NewReceipt(f.FolioId, ReceiptKind.Refund, tender, a.Amount, parent.Receipt.ReceiptId, f.BusinessDate, tillId, shiftId, reference, a.ApprovalId, caller.PrincipalId, now);
         }
+        else if (a.Action == AdjustmentAction.GuestCredit) // LF B2: the balance goes on the guest's own credit account (Udhaar receivable)
+        {
+            if (f.ReservationStatus != "InHouse") throw Invalid("This stay is not in house.");
+            if (figures.Balance != a.Amount || a.TargetVersion != f.Version) throw Stale("The folio changed after this approval. Request guest credit again.");
+            if (guestCredit is null) throw Invalid("Guest credit is not available.");
+            await guestCredit.EnsureWithinLimitAsync(tx, caller, f, a.Amount, ct2).ConfigureAwait(false);
+            receipt = new NewReceipt(f.FolioId, ReceiptKind.GuestCredit, GuestCreditTender, a.Amount, null, f.BusinessDate, null, null,
+                $"Guest credit · approval {a.ApprovalId}", a.ApprovalId, caller.PrincipalId, now);
+        }
         else
         {
             if (f.ReservationStatus != "InHouse") throw Invalid("This stay is not in house.");
@@ -486,6 +506,7 @@ public sealed class BillingService(ICommandRunner runner, IBillingStore store, I
         }
 
         var receiptId = await store.InsertReceiptAsync(tx, receipt, ct2).ConfigureAwait(false);
+        if (receipt.Kind == ReceiptKind.GuestCredit) await guestCredit!.RaiseAsync(tx, caller, f, a.Amount, receiptId, ct2).ConfigureAwait(false);
         if (receipt.ShiftId is { } sid)
             await CashDesk.RecordReceiptMovementAsync(store, tx, sid, receipt.TillId!.Value, f.BusinessDate, receipt.Kind, receiptId, receipt.Amount, f.FolioId, receipt.Reference, caller.PrincipalId, now, ct2).ConfigureAwait(false);
         var folioVersion = await store.TouchFolioAsync(tx, f.FolioId, ct2).ConfigureAwait(false);
@@ -495,6 +516,9 @@ public sealed class BillingService(ICommandRunner runner, IBillingStore store, I
         await tx.PublishAsync("ReceiptRecorded", f.FolioId, new { folioId = f.FolioId, receiptId, kind = FolioTotals.KindCode(receipt.Kind), tender = receipt.Tender, amountPaise = a.Amount.Value, businessDate = f.BusinessDate }, ct2).ConfigureAwait(false);
         return new ApprovalResult(a.ApprovalId, BillingCodes.Code(a.Action), nameof(ApprovalStatus.Executed), a.Amount.Value, newVersion, receiptId, folioVersion, null);
     }
+
+    /// <summary>LF B2: the tender name of a guest-credit receipt.</summary>
+    public const string GuestCreditTender = "Guest credit";
 
     // ── helpers ──
 

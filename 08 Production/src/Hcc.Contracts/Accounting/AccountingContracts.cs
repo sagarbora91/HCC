@@ -9,6 +9,8 @@ namespace Hcc.Contracts.Accounting;
 public static class AccountingEvents
 {
     // P4 billing / payments (existing payloads).
+    public const string CounterBillIssued = "CounterBillIssued";     // LF A7: Hcc.Application.Counter.CounterBillPostedEvent
+    public const string CounterBillCredited = "CounterBillCredited"; // LF A7: the void's credit note (same payload + creditNoteNo)
     public const string ChargePosted = "ChargePosted";          // {folioId, chargeId, kind room|service|discount|correction, serviceDate, amountPaise, taxPaise}
     public const string ReceiptRecorded = "ReceiptRecorded";    // {folioId, receiptId, kind, tender, amountPaise, businessDate}
     public const string ApprovalDecided = "ApprovalDecided";    // {approvalId, action, status, folioId}: correction + Executed → reversal line (not published as ChargePosted today)
@@ -68,6 +70,7 @@ public static class AccountingEvents
          UdhaarCreditRaised,                                                                     // ACC-1 (acc1-parties, DEC-144)
          ManualVoucherApproved, ManualVoucherVoided,                                             // ACC-2 (acc2-manual, contract §2)
          OtaPayoutRecorded, UdhaarPaymentReversed,                                               // ACC-2 flows
+         CounterBillIssued, CounterBillCredited,                                                 // LF A7
          .. PurchaseEvents.All];                                                                 // ACC-2 acc2-purchase (contract §3)
 }
 

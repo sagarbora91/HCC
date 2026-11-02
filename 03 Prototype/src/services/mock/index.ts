@@ -83,10 +83,15 @@ export {LEGACY_SAMPLE} from '../../fixtures/ext/legacy-sample'; // W1a LG: ficti
 export * from '../../domain/streams/docobjects'; // LF-docdb: docObjectsX mirror of the documents database (contract §1.10)
 // LF-DOCDB end
 // LF-RATE
+export * from '../../domain/streams/stay-rate';
 // LF-RATE end
 // LF-BILL
+export * from '../../domain/streams/bill-correction';
+export {getLegacyBills} from '../../features/customers/legacy-source';
 // LF-BILL end
 // LF-COUNTER
+export * from '../../domain/streams/counter';
+export {customerKeyForCredit} from '../../domain/streams/customers';
 // LF-COUNTER end
 // LF-DESK
 // LF-DESK end

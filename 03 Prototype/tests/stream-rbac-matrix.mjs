@@ -159,6 +159,11 @@ const CMDS={
   ...Object.fromEntries(['HOV_ITEM','HOV_RUN_SUBMIT','HOV_NOTE_SUBMIT','HOV_NOTE_ACK','HOV_CARRY_DONE'].map(c=>[c,C('OWN MGR REC CSH SUP HKP MNT','Module 19 R1/R7')])),
   ...Object.fromEntries(['KEY_REQUEST','KEY_CANCEL','KEY_READ','KEY_MANUAL'].map(c=>[c,C('OWN MGR REC','KEYS PERM-KEY-001/002/003 (coarse: checkin / checkout)')])),
   ...Object.fromEntries(['KEY_LOCK_SAVE','KEY_ENCODER','KEY_SIM','KEY_AGENT_STEP','KEY_CLOCK'].map(c=>[c,C('OWN MGR','KEYS PERM-KEY-004 keys.configure (coarse: approve); the encoder switches are demo only')])),
+  // LF-money (L1 lf-money, contract §2–§7): rate change, agreed rate, bill correction, counter bills, guest credit.
+  STAY_RATE_CHANGE:C('OWN MGR REC','LF PERM-STY-010'),GUEST_RATE_SET:C('OWN','LF PERM-GST-010 (Owner)'),GUEST_RATE_CLEAR:C('OWN','LF PERM-GST-010 (Owner)'),
+  BILL_CORRECTION_REQUEST:C('OWN MGR REC CSH ACC','LF PERM-FOL-010 (FOL-005 holders)'),
+  CTR_BILL_ISSUE:C('OWN MGR REC CSH','LF PERM-CTR-001'),CTR_BILL_VOID_REQUEST:C('OWN MGR REC CSH','LF PERM-CTR-002'),
+  GUEST_CREDIT_ACCOUNT_SET:C('OWN','LF PERM-GST-011 (Owner)'),GUEST_CREDIT_REQUEST:C('OWN MGR REC','LF B2 (as company credit: checkout)'),
   ...Object.fromEntries(['HOV_RUN_REOPEN','HOV_TEMPLATE_SAVE','HOV_TEMPLATE_TOGGLE','HOV_CLOCK'].map(c=>[c,C('OWN MGR','Module 19 R2 (approve)')])),
   ...Object.fromEntries(['INV_ISSUE','INV_USE','INV_ROOM_CHANGE','INV_LAUNDRY_SEND','INV_LAUNDRY_RECEIVE','INV_LOSS','INV_COUNT_SUBMIT'].map(c=>[c,C('OWN MGR SUP HKP MNT','Module 16 §3')])),
   INV_GRN:C('OWN MGR SUP','Module 16 (housekeeping + inspect/expenses)'),INV_COUNT_POST:C('OWN MGR SUP','Module 16 (inspect)'),INV_ITEM_SET:C('OWN MGR SUP','Module 16 (inspect)'),

@@ -127,7 +127,8 @@ public sealed class InvoiceQueries(IInvoiceStore store, IAccessPolicy policy, II
             {
                 var i = originals[n.InvoiceId];
                 return new Gstr1CreditNote(n.CreditNoteNo, i.Recipient.Type, i.Recipient.InterState, i.Figures.Total, n.Lines);
-            }).ToList());
+            }).ToList(),
+            await store.LegacyBillsInRangeAsync(propertyId, from, to, ct).ConfigureAwait(false)); // LF B7: legacy Lodge series → Table 13 'LGC'
         return new Gstr1View(from, to,
             result.Rates.Select(r => new Gstr1RateView(r.Section, r.Bps, r.Taxable.Value, r.Cgst.Value, r.Sgst.Value, r.Igst.Value, r.Documents)).ToList(),
             result.Sac.Select(r => new Gstr1SacView(r.Sac, r.Bps, r.Taxable.Value, r.Cgst.Value, r.Sgst.Value, r.Igst.Value)).ToList(),

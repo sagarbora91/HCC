@@ -16,7 +16,7 @@ public sealed class SqlUdhaarBackfillStore : IUdhaarBackfillStore
     private const string Sql = """
         SELECT r.receivable_id, r.credit_date, r.customer_name, r.mobile, r.amount_paise, r.kind, r.gst_bps
         FROM ops.udhaar_receivable r WITH (UPDLOCK, HOLDLOCK)
-        WHERE r.property_id = @p
+        WHERE r.property_id = @p AND r.receipt_id IS NULL AND r.counter_bill_id IS NULL -- LF B2 / A7 (4691): guest-credit and counter-bill receivables have no sale of their own
           AND NOT EXISTS (SELECT 1 FROM plat.outbox o WHERE o.event_type = @e AND o.aggregate_id = r.receivable_id AND (o.property_id = @p OR o.property_id IS NULL))
           AND NOT EXISTS (SELECT 1 FROM acc.source x WHERE x.property_id = @p AND x.source_key = CONCAT('udhaar:', r.receivable_id))
         ORDER BY r.receivable_id;

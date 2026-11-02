@@ -65,7 +65,7 @@ public sealed record SupplierInfo(string Name, string? Gstin, string StateName, 
 public sealed record InvoiceRecord(long InvoiceId, int PropertyId, InvoiceDocType DocType, string InvoiceNo, string FyCode, int Seq, DateOnly InvoiceDate,
     string SourceKind, long SourceId, string SourceRef, DateOnly? PeriodFrom, DateOnly? PeriodTo, Recipient Recipient, string SupplierName,
     string SupplierGstin, string SupplierState, string? SupplierAddress, IReadOnlyList<InvoiceLine> Lines, InvoiceFigures Figures, string AmountWords,
-    int IssuedBy, DateTime IssuedUtc);
+    int IssuedBy, DateTime IssuedUtc, int Revision = 1);
 
 public sealed record CreditNoteRecord(long CreditNoteId, int PropertyId, string CreditNoteNo, string FyCode, int Seq, DateOnly NoteDate, long InvoiceId,
     long RequestId, CreditMode Mode, string Reason, IReadOnlyList<CreditLine> Lines, IReadOnlyList<long?> FolioChargeIds, InvoiceFigures Figures,
@@ -133,6 +133,9 @@ public interface IInvoiceStore
     Task<IReadOnlyList<InvoiceRecord>> InvoicesInRangeAsync(int propertyId, DateOnly from, DateOnly to, CancellationToken ct);
 
     Task<IReadOnlyList<CreditNoteRecord>> CreditNotesInRangeAsync(int propertyId, DateOnly from, DateOnly to, CancellationToken ct);
+
+    /// <summary>LF B7 (LF-CONTRACT §5): legacy Lodge bills (lgc.bill) dated in the period — GSTR-1 Table 13 'LGC' row only.</summary>
+    Task<IReadOnlyList<Hcc.Domain.Invoices.Gstr1LegacyBill>> LegacyBillsInRangeAsync(int propertyId, DateOnly from, DateOnly to, CancellationToken ct);
 
     Task<IReadOnlyList<CreditNoteRequestRow>> RequestsAsync(int propertyId, string? status, CancellationToken ct);
 }

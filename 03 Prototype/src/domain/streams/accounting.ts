@@ -65,7 +65,7 @@ export const accItcSplit=(itc:number):[string,number][]=>{const g=gstSplit(itc);
 // ── State slice ──
 export type ACCEntry={account:string;debit:number;credit:number};
 export type ACCVoucherType='Sales'|'Receipt'|'Payment'|'Journal'|'Purchase'|'Contra'; // ACC-2: Tally's Purchase and Contra (contract §1)
-export type ACCSourceKind='line'|'receipt'|'expense'|'closing'|'pos'|'opening'|'manual'|'purchase'|'vendor'|'tax'|'ota'|'payroll'; // ACC-2 (contract §1) // ACC-1: 'opening' = the hand-entered opening entry (contract §5)
+export type ACCSourceKind='line'|'receipt'|'expense'|'closing'|'pos'|'opening'|'manual'|'purchase'|'vendor'|'tax'|'ota'|'payroll'|'counter'; // LF-COUNTER: counter bills (§6) // ACC-2 (contract §1) // ACC-1: 'opening' = the hand-entered opening entry (contract §5)
 export type ACCVoucher={no:string;date:string;type:ACCVoucherType;narration:string;
   source:{kind:ACCSourceKind;id:string;sub:string;booking?:string};entries:ACCEntry[];unmapped:string[]};
 export type ACCLock={date:string;lockedAt:string;lockedBy:string;vouchers:ACCVoucher[];debit:number;credit:number;count:number};
@@ -272,6 +272,8 @@ export function accLiveVouchers(s:State,date:string,mapping=accMapping(s)):ACCVo
       if(r.kind==='ota-credit'){const ch=accOtaChannelOf(s,b);push({date,type:'Journal',narration:`OTA credit · ${b.otaChannel??ch??''} · ${r.reference} · ${b.guest}`,source:src},miss,[dr(pt(map('receipt:ota',miss),{channel:ch}),r.amount),cr(map('folio:guest',miss),r.amount)]);continue;}
       // ── end ACC-2 flows ──
       const counter=pt(map('receipt:'+r.kind,miss),ctx);
+      // LF-COUNTER (§7 B2): the folio balance to the guest's Udhaar account — Journal Dr 1120/UD-<customerKey> · Cr 1100 (mirror of company credit).
+      if(r.kind==='guest-credit'){const ud=(s.expensesX?.udhaar??[]).find(u=>u.booking===b.id&&u.amount===r.amount);push({date,type:'Journal',narration:`Guest credit · ${r.reference} · ${b.guest}`,source:src},miss,[dr(pt(map('receipt:udhaar',miss),{udhaar:ud?accUdhaarPartyId(ud):undefined}),r.amount),cr(map('folio:guest',miss),r.amount)]);continue;}
       if(r.kind==='company-credit'){push({date,type:'Journal',narration:`Company credit · ${r.reference} · ${b.guest}`,source:src},miss,[dr(counter,r.amount),cr(map('folio:guest',miss),r.amount)]);continue;}
       const tender=pt(map('method:'+r.method,miss),ctx),inflow=RECEIPT_IN.includes(r.kind);
       const label=r.kind==='payment'?'Payment received':r.kind==='deposit'?'Deposit received':r.kind==='refund'?'Payment refunded':r.kind==='deposit-return'?'Deposit returned':r.kind;
@@ -319,7 +321,9 @@ export function accLiveVouchers(s:State,date:string,mapping=accMapping(s)):ACCVo
   // room or other revenue (the credit's kind) · Cr CGST · Cr SGST (the GST inside the gross, expUdGst). Rows raised before ACC-1: other, no GST.
   // A credit later written off keeps this voucher (the write-off is the bad-debt journal A18, a later wave).
   for(const r of s.expensesX?.udhaar??[]){
-    if(r.date!==date||!r.amount)continue;const miss:string[]=[],g=expUdGst(r),ctx={udhaar:accUdhaarPartyId(r)};
+    if(r.date!==date||!r.amount)continue;
+    if(r.booking||r.counterBill)continue; // LF-COUNTER: a guest-credit (journal on the folio receipt) or counter-bill receivable (the counter Sales voucher) is not a second sale
+    const miss:string[]=[],g=expUdGst(r),ctx={udhaar:accUdhaarPartyId(r)};
     push({date,type:'Sales',narration:`Udhaar credit · ${r.name} · ${expUdKind(r)}${r.gstBps?' · GST '+(r.gstBps/100)+' %':''} · credit ${r.id}`,source:{kind:'receipt',id:'udhaar:'+r.id,sub:'udhaar-credit'}},miss,
       [dr(pt(map('receipt:udhaar',miss),ctx),r.amount),cr(map(expUdRevenueKey(r),miss),g.taxable),cr(map('folio:cgst',miss),g.cgst),cr(map('folio:sgst',miss),g.sgst)]);
   }
@@ -373,6 +377,11 @@ export function accLiveVouchers(s:State,date:string,mapping=accMapping(s)):ACCVo
   if(diff){const miss:string[]=[],cash=pt(map('method:Cash',miss),{method:'Cash'}),acct=map(accCashDiffKey(diff),miss); // ACC-1: an over → closing:cash-over (4950), a short → 5900
     push({date,type:'Journal',narration:`Cash ${diff>0?'over':'short'} accepted at shift close · ${date}`,source:{kind:'closing',id:`CLOSE/${date}/cash-difference`,sub:'cash-difference'}},miss,
       diff>0?[dr(cash,diff),cr(acct,diff)]:[dr(acct,-diff),cr(cash,-diff)]);}
+  // ── LF-COUNTER (contract §6, A7): a counter bill — Sales Dr tender / 1120/<customer> / 1110/<company> (total) · Cr revenue by line class
+  // (food 4200, service 4100, room 4000) · Dr 4900 discount · Cr 2110 / 2120; its credit note on the void date reverses every entry. ──
+  for(const v of accCounterVouchers(s,date)){const miss:string[]=[];push({date,type:'Sales',narration:v.narration,source:v.source},miss,
+    v.lines.map(l=>{const a=l.party?pt(map(l.key,miss),l.party):map(l.key,miss);return l.amount>=0?dr(a,l.amount):cr(a,-l.amount);}));}
+  // ── end LF-COUNTER ──
   // ── ACC-2 manual (acc2-manual, contract §2): approved manual vouchers (and a voided one that has a reversal) post on their date as
   // entered — ledger codes / party ids, no mapping — source {kind:'manual', id, sub: template ?? 'journal'}. ──
   out.push(...accManualVouchersOn(s,date));
@@ -447,6 +456,7 @@ export function accDates(s:State):string[]{
   accManualDates(s).forEach(x=>d.add(x)); // ACC-2: manual vouchers (contract §2)
   (s.channelsX?.payouts??[]).forEach(p=>d.add(p.date)); // ACC-2 flows: OTA payouts (A13)
   accPayrollDates(s).forEach(x=>d.add(x)); // ACC-2 parity: payroll sources
+  (s.counterX?.bills??[]).forEach(b=>{d.add(b.date);const c=b.status==='Credited'?s.approvals.find(a=>a.id===b.voidApprovalId)?.decidedAt?.slice(0,10):undefined;if(c)d.add(c);}); // LF-COUNTER: counter bills and credit notes
   return [...d].filter(x=>/^\d{4}-\d{2}-\d{2}$/.test(x)&&x<=s.date).sort().reverse();
 }
 /** Vouchers for every date up to and including `date` (cumulative trial balance). */
@@ -544,6 +554,7 @@ export function accMapRows(s:State):ACCMapRow[]{
   for(const p of grpSlice(s).payments??[]){add('receipt:company-credit');add('method:'+p.method);if(p.tds)add('tax:tds-receivable');} // ACC-1: company payments; ACC-2 tds: 1360
   posSlice(s).receipts.forEach(r=>{add('pos:sales');if(r.tax){add('pos:cgst');add('pos:sgst');}add('method:'+r.method);});
   accPayrollKeyUses(s).forEach(add); // ACC-2 parity: payroll sources
+  for(const v of (s.counterX?.bills??[]).flatMap(b=>accCounterVouchers(s,b.date).filter(x=>x.source.id.startsWith('counter:'+b.id))))for(const l of v.lines)add(l.key); // LF-COUNTER
   const keys=[...new Set([...Object.keys(ACC_DEFAULT_MAP),...Object.keys(uses)])];
   const order=Object.keys(KEY_LABEL);
   return keys.sort((a,b)=>order.indexOf(a.split(':')[0])-order.indexOf(b.split(':')[0])).map(key=>{const account=map[key]??'';
@@ -574,6 +585,7 @@ export function accSourceOf(s:State,v:ACCVoucher):{booking?:Booking;line?:Line;r
   if(accSlice(s).server)return {}; // server source keys (charge:…, receipt:…, pos:…) are not prototype record ids
   if(v.source.kind==='pos')return {posReceipt:posSlice(s).receipts.find(r=>r.id===v.source.id)};
   if(v.source.kind==='manual')return {}; // ACC-2: a manual voucher is its own source (accountingX.manual)
+  if(v.source.kind==='counter')return {}; // LF-COUNTER: a counter bill is not a folio record
   if(v.source.kind==='ota')return {}; // ACC-2 flows: an OTA payout is not a folio record
   if(v.source.kind==='closing'||v.source.sub==='udhaar-payment'||v.source.sub==='udhaar-credit'||v.source.sub==='company-payment')return {}; // DEC-130 / ACC-1: not folio records
   const i=v.source.id.indexOf('/'),bid=v.source.id.slice(0,i),rid=v.source.id.slice(i+1),booking=s.bookings.find(b=>b.id===bid);
@@ -659,4 +671,24 @@ ${body}
 </ENVELOPE>
 `;
   return {xml,count:vs.length,debit:t.debit,credit:t.credit,from,to,dates:dates.length,simulated:true,dateList:dates,reexport,provisional,reopened,lagging,pending,legacy};
+}
+
+// ── LF-COUNTER (contract §6, A7) · the counter-bill accounting source (server SourceRules.Counter / CounterCredit) ──
+/** Signed lines (+ = debit) by mapping key with an optional party context, for a date: the issue (bill date) and the credit note (void date). */
+export function accCounterVouchers(s:State,date:string):{narration:string;source:{kind:'counter';id:string;sub:string};lines:{key:string;amount:number;party?:ACCPartyCtx}[]}[]{
+  const out:ReturnType<typeof accCounterVouchers>=[];
+  for(const b of s.counterX?.bills??[]){
+    const credit=b.status==='Credited'?s.approvals.find(a=>a.id===b.voidApprovalId)?.decidedAt?.slice(0,10)??b.date:undefined;
+    if(b.date!==date&&credit!==date)continue;
+    const st=b.settlement,ud=st.udhaarId?(s.expensesX?.udhaar??[]).find(u=>u.id===st.udhaarId):undefined;
+    const side=st.mode==='paid'?{key:'method:'+(st.method??''),party:{method:st.method}}:st.mode==='udhaar'?{key:'receipt:udhaar',party:{udhaar:ud?accUdhaarPartyId(ud):undefined}}:{key:'receipt:company-credit',party:{company:st.companyId}};
+    const rev=new Map<string,number>();for(const l of b.lines){const k=l.gstCategory==='food'?'line:food':l.gstCategory==='room'?'line:room':'line:service';rev.set(k,(rev.get(k)??0)+l.amount);}
+    const disc=b.discount?.amount??0;
+    const lines=[{key:side.key,amount:b.total,party:side.party as ACCPartyCtx},...[...rev].map(([key,v])=>({key,amount:-v})),...(disc?[{key:'line:discount',amount:disc}]:[]),
+      {key:'folio:cgst',amount:-b.cgst},{key:'folio:sgst',amount:-b.sgst}].filter(l=>l.amount);
+    if(b.date===date)out.push({narration:`Counter bill ${b.no} · ${b.party.name} · ${st.mode}${st.method?' · '+st.method:''}`,source:{kind:'counter',id:'counter:'+b.id,sub:'counter-bill'},lines});
+    if(credit===date)out.push({narration:`Credit note ${b.creditNoteNo} · counter bill ${b.no} · ${b.party.name}${b.creditNoteReason?' · '+b.creditNoteReason:''}`,source:{kind:'counter',id:'counter:'+b.id+'/credit',sub:'counter-credit'},
+      lines:lines.map(l=>({...l,amount:-l.amount}))});
+  }
+  return out;
 }
