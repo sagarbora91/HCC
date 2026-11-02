@@ -459,4 +459,4 @@ export type DGSState={drafts:DGSDraft[]};   // s.digestX
 /** §4 feedback (T3) */
 export type FBKEntry={id:string;booking:string;stars:1|2|3|4|5;comment?:string;complaintId?:string;at:string;by:string};
 export type FBKFollowUp={id:string;source:'complaint'|'lostfound';ref:string;since:string;taskId?:string;status:'open'|'done'};
-export type FBKState={entries:FBKEntry[];followUps:FBKFollowUp[]};   // s.feedbackX
+export type FBKState={entries:FBKEntry[];followUps:FBKFollowUp[];/** F4-T3: feedback address printed on bills (blank = line hidden, Q12). */url?:string};   // s.feedbackX

@@ -1,0 +1,8 @@
+/* F4-T3 quick wins: audit diff, feedback sheet, LAN health banner, printers. Colours come from tokens only. */
+.av-diff{margin-top:6px;font-size:.85em}
+.av-diff mark{background:var(--warn-bg);color:var(--warn-text);padding:0 4px;border-radius:4px}
+.fbk-sheet{border:1px solid var(--line);border-radius:10px;padding:12px;margin:12px 0;background:var(--surface-2)}
+.fbk-stars{display:flex;gap:6px;margin:8px 0}
+.fbk-stars button{min-width:48px;min-height:48px;font-size:1.3em;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink)}
+.fbk-stars button[aria-pressed="true"]{background:var(--warn-bg);border-color:var(--warn-border);color:var(--warn-text);font-weight:700}
+.qw-banner{display:flex;gap:8px;align-items:center;padding:8px 12px;margin:0 0 8px;border:1px solid var(--warn-border);border-radius:8px;background:var(--warn-bg);color:var(--warn-text)}

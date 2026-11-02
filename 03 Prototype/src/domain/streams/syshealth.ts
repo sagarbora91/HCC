@@ -20,20 +20,21 @@ export type SYSBackupRun={kind:string;ok:boolean;at:string;file?:string;sizeByte
 export type SYSState={source:'server'|'demo';parked:SYSParked[];lastBackup?:SYSBackupRun;lastOkBackupAt?:string;lastDrill?:SYSBackupRun;
   /** Windows Event Log source HCC on the server PC: on | off | unavailable (not Windows / demo). */
   eventLog?:'on'|'off'|'unavailable';checkedAt?:string;
-  /** LF §1.9: main + documents database rows. */ databases?:import('../types').SYSDatabase[]};
+  /** LF §1.9: main + documents database rows. */ databases?:import('../types').SYSDatabase[];
+  /** F4-T3: printers (test page, offline banner). Absent = the two demo printers. */ printers?:SYSPrinter[]};
 export type SYSView=Required<Pick<SYSState,'source'|'parked'>>&Omit<SYSState,'source'|'parked'>&{eventLog:'on'|'off'|'unavailable'};
 
 /** The shipped server consumers (migration 2900) as people call them (same table as SystemHealthService.ConsumerLabels). */
 export const SYS_CONSUMER_LABELS:Record<string,string>={
   'accounting-vouchers':'Accounting vouchers','housekeeping-tasks':'Check-out cleaning tasks','housekeeping-stayover':'Stay-over cleaning tasks',
-  'messaging-triggers':'Guest messages','ota-channel-manager':'OTA channel manager',
+  'messaging-triggers':'Guest messages','ota-channel-manager':'OTA channel manager','feedback-followups':'Owner follow-up calls (F4-T3)',
 };
 export const sysConsumerLabel=(consumer:string)=>SYS_CONSUMER_LABELS[consumer]??consumer;
 /** What a parked event of each consumer holds up (shown under the label). */
 export const SYS_CONSUMER_EFFECT:Record<string,string>={
   'accounting-vouchers':'A voucher is missing; the accounting date cannot be locked until it is booked.',
   'housekeeping-tasks':'A check-out cleaning task was not created.','housekeeping-stayover':'A stay-over cleaning task was not created.',
-  'messaging-triggers':'A guest message was not prepared.','ota-channel-manager':'A channel update was not sent.',
+  'messaging-triggers':'A guest message was not prepared.','ota-channel-manager':'A channel update was not sent.','feedback-followups':'An Owner follow-up call was not created.',
 };
 /** Failed attempts after which the server parks an event (OutboxConsumer.ParkAfterFailures). */
 export const SYS_PARK_AFTER=5;
@@ -103,4 +104,10 @@ export const SYS_EVENT_LOG_TEXT:Record<SYSView['eventLog'],string>={
 };
 
 // F4-T3 · printers block (F4-CONTRACT §4)
+export type SYSPrinter={id:string;name:string;kind:'A4'|'thermal';online:boolean;lastTestAt?:string;lastTestOk?:boolean};
+export const SYS_DEMO_PRINTERS:SYSPrinter[]=[{id:'prt-front',name:'Front desk (A4 laser)',kind:'A4',online:true},{id:'prt-kitchen',name:'Kitchen order printer (thermal)',kind:'thermal',online:true}];
+export const sysPrinters=(s:State):SYSPrinter[]=>s.sysHealthX?.printers??SYS_DEMO_PRINTERS.map(p=>({...p}));
+export const sysPrintersOffline=(s:State):SYSPrinter[]=>sysPrinters(s).filter(p=>!p.online);
+/** The test page the "Print test page" button prints (also read by the server printer-test endpoint). */
+export const sysTestPageText=(s:State,p:SYSPrinter)=>`${s.settings.hotel}\nPrinter test page\n${p.name}\n${s.clock.replace('T',' ')} IST\nIf you can read this, the printer works.`;
 // F4-T3 end

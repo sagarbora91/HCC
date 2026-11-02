@@ -227,7 +227,7 @@ Columns of new entries are what HCC should show, from HCC's real data. The HTML 
 | rpt.rest.sales-by-item | Sales by item | Restaurant | planned | P2 | - | y |
 | rpt.rest.sales-by-outlet-hour | Sales by outlet and hour | Restaurant | planned | P3 | - | y |
 | rpt.rest.voids | POS voids | Restaurant | planned | P2 | - | y |
-| rpt.admin.audit-log | Audit log | Admin and audit | built | P1 | - | n |
+| rpt.admin.audit-log | Audit log (filters: actor, entity type, entity id, date; before/after view; CSV; money masked for roles without money, DEC-061) - F4-T3 | Admin and audit | built | P1 | - | n |
 | rpt.admin.export-log | Export and print log | Admin and audit | planned | P2 | - | n |
 | rpt.admin.scheduled-runs | Scheduled runs | Admin and audit | planned | P2 | - | n |
 | rpt.admin.system-health | System health | Admin and audit | built | P2 | - | n |

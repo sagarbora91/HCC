@@ -66,6 +66,8 @@ export * from '../../domain/streams/history';
 export * from '../../domain/streams/masters';
 export * from '../../domain/credentials';
 export * from '../../domain/streams/syshealth';
+export * from '../../domain/streams/audit-viewer'; // F4-T3 qw-audit
+export * from '../../domain/streams/feedback'; // F4-T3 qw-feedback + qw-alerts
 export * from '../../domain/streams/mastersio'; export {mstImportPreview} from './mastersio'; // MA-8 masters import / export
 export * from '../../domain/streams/roommasters';
 export * from '../../domain/streams/money-master'; export * from '../../domain/streams/money-master-specs'; // MA-3 money masters

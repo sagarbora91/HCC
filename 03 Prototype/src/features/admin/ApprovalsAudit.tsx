@@ -1,8 +1,9 @@
 // SCR-17 Approvals & audit (BL-026): approvals inbox with derived expiry/invalidation, pending expenses, full audit log.
 import React,{useState} from 'react';
 import {bookingRef} from '../../domain/bookingRef';
-import {Lock} from 'lucide-react';
-import {money,authorize,adminApprovalInbox,adminDecideBlock,adminAuditFilter,adminAuditDetailVisible,adminUserActive,adminExpenseBlock,ADMIN_INBOX_TABS} from '../../services/mock';
+import {Lock,Download} from 'lucide-react';
+import {saveCsv} from '../../app/native'; // F4-T3
+import {money,authorize,adminApprovalInbox,adminDecideBlock,avFilter,avEntity,avEntityId,avEntities,avDiffFor,avCsv,AV_REPORT_ID,adminAuditDetailVisible,adminUserActive,adminExpenseBlock,ADMIN_INBOX_TABS} from '../../services/mock';
 import type {AdminInboxRow} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {Pill,Empty,shortDate,clockTime} from '../../components/ui';
@@ -85,10 +86,10 @@ function Expenses(){
 
 type AuditF=ReturnType<typeof useAuditFilters>;
 function useAuditFilters(){
-  const [actor,setActor]=useState(''),[action,setAction]=useState(''),[text,setText]=useState(''),[from,setFrom]=useState(''),[to,setTo]=useState('');
+  const [actor,setActor]=useState(''),[action,setAction]=useState(''),[entity,setEntity]=useState(''),[entityId,setEntityId]=useState(''),[text,setText]=useState(''),[from,setFrom]=useState(''),[to,setTo]=useState('');
   const [limit,setLimit]=useState(PAGE);
   const reset=(f:(v:string)=>void)=>(e:React.ChangeEvent<HTMLInputElement|HTMLSelectElement>)=>{f(e.target.value);setLimit(PAGE);};
-  return {actor,action,text,from,to,limit,setLimit,reset,setActor,setAction,setText,setFrom,setTo};
+  return {actor,action,entity,entityId,text,from,to,limit,setLimit,reset,setEntity,setEntityId,setActor,setAction,setText,setFrom,setTo};
 }
 function AuditFilters({f}:{f:AuditF}){
   const {s}=useHcc();
@@ -96,6 +97,8 @@ function AuditFilters({f}:{f:AuditF}){
   return <div className="adm-filters form-row">
       <label>Actor<select value={f.actor} onChange={f.reset(f.setActor)}><option value="">All actors</option>{actors.map(a=><option key={a}>{a}</option>)}</select></label>
       <label>Action<select value={f.action} onChange={f.reset(f.setAction)}><option value="">All actions</option>{actions.map(a=><option key={a}>{a}</option>)}</select></label>
+      <label>Entity type<select value={f.entity} onChange={f.reset(f.setEntity)}><option value="">All types</option>{avEntities(s).map(a=><option key={a}>{a}</option>)}</select></label>
+      <label>Entity id<input value={f.entityId} onChange={f.reset(f.setEntityId)} placeholder="HCC-1041, EXP-102, gst.room…"/></label>
       <label>Contains text<input value={f.text} onChange={f.reset(f.setText)} placeholder="booking, room, setting…"/></label>
       <label>From<input type="date" value={f.from} onChange={f.reset(f.setFrom)}/></label><label>To<input type="date" value={f.to} onChange={f.reset(f.setTo)}/></label>
     </div>;
@@ -103,14 +106,14 @@ function AuditFilters({f}:{f:AuditF}){
 function AuditLog({f}:{f:AuditF}){
   const {s,uid}=useHcc();
   const d=authorize(s,uid,'PERM-ADM-004');
-  const {actor,action,text,from,to,limit,setLimit}=f;
+  const {actor,action,entity,entityId,text,from,to,limit,setLimit}=f;
   if(d.decision!=='allow')return <ScrollPanel title="Audit log" label="Audit log" actions={<Lock size={18}/>}><p className="adm-lock padded">{d.reason} Audit view is limited to Owner, Manager, Accountant and Tech admin (view).</p></ScrollPanel>;
   const detail=adminAuditDetailVisible(s,uid);
-  const list=adminAuditFilter(s,{actor,action,text,from,to});
+  const filt={actor,action,entity,entityId,text,from,to},list=avFilter(s,filt); // F4-T3 qw-audit
   return <ScrollPanel title="Audit log" label="Audit log"
-      actions={<span className="muted">{s.audit.length} events</span>}
+      actions={<><span className="muted">{s.audit.length} events</span> <button className="btn small-btn" aria-label={`Download CSV (${AV_REPORT_ID})`} onClick={()=>{void saveCsv(`audit-log_${s.date}.csv`,avCsv(s,uid,filt));}}><Download size={14}/> CSV</button></>}
       footer={<><span className="muted">Showing {Math.min(limit,list.length)} of {list.length}</span>{list.length>limit&&<button className="btn small-btn" onClick={()=>setLimit(limit+PAGE)}>Load {Math.min(PAGE,list.length-limit)} more</button>}
         <FitNote text={`Simulated clock · browser-local history${detail?'':' · before/after details restricted for your role (action and time only)'}`}/></>}>
-    {list.length?<div className="audit-list">{list.slice(0,limit).map(a=><div key={a.id}><span className="audit-dot"/><div><strong>{a.action}</strong><p>{detail?a.detail:'Details restricted'}</p><small>{a.actor} · {shortDate(a.at.slice(0,10))} {clockTime(a.at)} IST · {a.id}</small></div></div>)}</div>:<Empty title="No matching events" body="Clear a filter to see more."/>}
+    {list.length?<div className="audit-list">{list.slice(0,limit).map(a=><div key={a.id}><span className="audit-dot"/><div><strong>{a.action}</strong><p>{detail?a.detail:'Details restricted'}</p>{detail&&avDiffFor(s,uid,a).length>0&&<table className="adm-table av-diff" aria-label={`Changes in ${a.id}`}><thead><tr><th>Field</th><th>Before</th><th>After</th></tr></thead><tbody>{avDiffFor(s,uid,a).map((c,i)=><tr key={i}><td>{c.key}</td><td>{c.before}</td><td><mark>{c.after}</mark></td></tr>)}</tbody></table>}<small>{a.actor} · {shortDate(a.at.slice(0,10))} {clockTime(a.at)} IST · {a.id} · {avEntity(a)}{avEntityId(a)?' '+avEntityId(a):''}</small></div></div>)}</div>:<Empty title="No matching events" body="Clear a filter to see more."/>}
   </ScrollPanel>;
 }

@@ -2,6 +2,7 @@
 // company credit (SCR-10), sample invoice, refund request, correction request and credit note.
 import {PrintTitle,PrintNotes} from '../exports/PrintNotes';
 import {printDocument} from '../../app/native';
+import {FeedbackSheet,FeedbackBillLine} from '../guest-services/Feedback'; // F4-T3
 import {bookingRef} from '../../domain/bookingRef';
 import React,{useState} from 'react';
 import {Receipt,Printer,Info,ShieldCheck,Check,ArrowRight,Hotel,Plus,Trash2,RotateCcw,Building2,AlertTriangle} from 'lucide-react';
@@ -176,6 +177,7 @@ export function CheckoutModal({id}:{id:string}){
     <CompanyCreditPanel b={b}/>
     {blockers.length>0?<div className="info-note folio-blockers" role="status"><AlertTriangle size={17}/><div><strong>Checkout is blocked until:</strong><ul>{blockers.map(x=><li key={x}>{x}</li>)}</ul></div></div>
       :<div className="info-note"><Info size={17}/>Checkout preserves all stay charges, marks the room dirty, creates exactly one housekeeping task and {process.env.HCC_BUILD==='production'?'then issues the tax invoice':'allocates a sample invoice number once'}. Repeating checkout returns the same result.</div>}
+    <FeedbackSheet booking={b.id}/>{/* F4-T3 */}
     <div className="modal-actions"><button className="btn" onClick={()=>booking(b.id)}>Review folio</button>
       {permission('payments')&&(t.balance>0||t.deposit>0)&&<button className="btn subtle" disabled={busy} onClick={()=>open({type:'payment',id:b.id})}>Settle / return deposit</button>}
       <button className="btn primary" disabled={busy} onClick={()=>run({type:'CHECKOUT',id:b.id,...(ota.on?{otaCredit:true}:{}),key:'checkout:'+b.id+(ota.on?':ota':'')},'Checkout completed. Housekeeping task created.',{after:()=>booking(b.id)})}>Confirm checkout <ArrowRight size={16}/></button></div></>;
@@ -197,6 +199,7 @@ export function InvoiceModal({id}:{id:string}){
     {!!b.creditNotes?.length&&<div className="folio-cn-list"><small>{process.env.HCC_BUILD==='production'?'CREDIT NOTES':'SAMPLE CREDIT NOTES'}</small>{b.creditNotes.map(c=><p key={c.id}>{c.no} · {shortDate(c.date)} · {money(c.amount)} before tax · {c.reason}</p>)}</div>}
     <p className="footnote">{process.env.HCC_BUILD==='production'?'GST from the dated GST master, intra-state (CGST + SGST), per line, half away from zero. The issued tax invoice is the hotel server’s document.':'GST from the dated GST master, intra-state (CGST + SGST), per line, half away from zero — illustrative, CA to confirm. All names, transactions and references are fictional. Demonstration — not a tax invoice.'}</p></div>
     <PrintNotes doc="invoice"/>
+    <FeedbackBillLine/>{/* F4-T3 */}
     {!!b.creditNotes?.length&&<PrintNotes doc="credit-note"/>}
     <div className="modal-actions no-print"><button className="btn" onClick={()=>booking(b.id)}>Back to folio</button><button className="btn primary" onClick={()=>{void printDocument();}}><Printer size={16}/> Print / save PDF</button></div></>;
 }

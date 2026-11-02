@@ -75,7 +75,12 @@
     {"version": 4370, "file": "4370_revcat_indexes.sql", "reason": "F4 parallel lanes T2/T3 (block 4370-4399 reserved by F4-CONTRACT)"},
     {"version": 4375, "file": "4375_digest_draft.sql", "reason": "F4 parallel lanes T2/T3 (block 4370-4399 reserved by F4-CONTRACT)"},
     {"version": 4376, "file": "4376_digest_draft_table.sql", "reason": "F4 parallel lanes T2/T3 (block 4370-4399 reserved by F4-CONTRACT)"},
-    {"version": 4377, "file": "4377_digest_rbac_seed.sql", "reason": "F4 parallel lanes T2/T3 (block 4370-4399 reserved by F4-CONTRACT)"}
+    {"version": 4377, "file": "4377_digest_rbac_seed.sql", "reason": "F4 parallel lanes T2/T3 (block 4370-4399 reserved by F4-CONTRACT)"},
+    {"version": 4390, "file": "4390_audit_viewer_index.sql", "reason": "F4 parallel lane T3 (block 4370-4399 reserved by F4-CONTRACT)"},
+    {"version": 4393, "file": "4393_guest_feedback.sql", "reason": "F4 parallel lane T3 (block 4370-4399 reserved by F4-CONTRACT)"},
+    {"version": 4394, "file": "4394_feedback_followup.sql", "reason": "F4 parallel lane T3 (block 4370-4399 reserved by F4-CONTRACT)"},
+    {"version": 4395, "file": "4395_feedback_rbac_seed.sql", "reason": "F4 parallel lane T3 (block 4370-4399 reserved by F4-CONTRACT)"},
+    {"version": 4397, "file": "4397_printers.sql", "reason": "F4 parallel lane T3 (block 4370-4399 reserved by F4-CONTRACT)"}
   ],
   "migrations": [
     {"version": 1, "file": "0001_platform.sql", "sha256": "2CB8FB349156F501295E1148366BDFE406EC097C136093F09C6F0817542F46CC"},
@@ -255,6 +260,11 @@
     {"version": 4370, "file": "4370_revcat_indexes.sql", "sha256": "771370B88F399B56D62403632C78FC1775A3837ACCBB4F32863E9DFEC1FC62BD"},
     {"version": 4375, "file": "4375_digest_draft.sql", "sha256": "44BE8E3C2D81DEBB334790300D97F80028E6D07209320C0EFAC0E2779F7F2DE3"},
     {"version": 4376, "file": "4376_digest_draft_table.sql", "sha256": "15F3E78EB3843976364B9B2C7B12650C12184CFC6DD3B219218E29DB4752BA82"},
-    {"version": 4377, "file": "4377_digest_rbac_seed.sql", "sha256": "AFFF7D24B4A355BCC3E78BD111DB780331EA520B61717B74EE8DC6F9232E975D"}
+    {"version": 4377, "file": "4377_digest_rbac_seed.sql", "sha256": "AFFF7D24B4A355BCC3E78BD111DB780331EA520B61717B74EE8DC6F9232E975D"},
+    {"version": 4390, "file": "4390_audit_viewer_index.sql", "sha256": "3AEE9B56A8864F3EE1DCBF85E8DC375D91C0B741299A8A4FB4D25B0FD157D141"},
+    {"version": 4393, "file": "4393_guest_feedback.sql", "sha256": "CD10122335AAD9E0D41F26364F8157ED2D098801160486B2B421C4A363CF7C85"},
+    {"version": 4394, "file": "4394_feedback_followup.sql", "sha256": "0A0ACE159A39D638E415F975CD8C735DA3DA349390F4096C5D4F11777E774141"},
+    {"version": 4395, "file": "4395_feedback_rbac_seed.sql", "sha256": "9E28392BDCC5A5C630B324723D7466F154879C218BF9C712BA3DCAF66FFA58C6"},
+    {"version": 4397, "file": "4397_printers.sql", "sha256": "32B485CFF62E8DEF24C16EBF156F0EFDC802166D9BFF2339414963F294E2591F"}
   ]
 }

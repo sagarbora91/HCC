@@ -73,6 +73,7 @@ public sealed partial class SystemHealthService(ICommandRunner runner, IAccessPo
         ["housekeeping-stayover"] = "Stay-over cleaning tasks",
         ["messaging-triggers"] = "Guest messages",
         ["ota-channel-manager"] = "OTA channel manager",
+        ["feedback-followups"] = "Owner follow-up calls (F4-T3)",
     };
 
     [GeneratedRegex(@"^[A-Za-z][A-Za-z0-9_.]{0,59}( -?\d{1,6})?$")]
