@@ -202,6 +202,42 @@ public interface IUserAdministration
     Task<UserVersionResult> BootstrapOwnerAsync(BootstrapOwnerRequest request, CancellationToken ct = default);
 }
 
+/// <summary>
+/// ADM-2 roles as data (brief §2.2): custom roles C01…C99, each a copy of one built-in base role (never OWN), edited by the Owner only
+/// (PERM-ADM-002 + an active OWN role). Every command refuses built-in roles and the actor's own role, bumps the role and policy versions and
+/// writes an audit row ROLE_&lt;VERB&gt; plus a plat.policy_version row with before / after.
+/// </summary>
+public interface IRoleAdministration
+{
+    Task<CommandResult<RoleChangeResult>> CreateRoleAsync(AuthenticatedSession actor, string idempotencyKey, CreateRoleRequest request, CancellationToken ct = default);
+
+    Task<CommandResult<RoleChangeResult>> UpdateRoleAsync(AuthenticatedSession actor, string idempotencyKey, UpdateRoleRequest request, CancellationToken ct = default);
+
+    Task<CommandResult<RoleChangeResult>> SetRoleFeatureAsync(AuthenticatedSession actor, string idempotencyKey, SetRoleFeatureRequest request, CancellationToken ct = default);
+
+    Task<CommandResult<RoleChangeResult>> SetRoleGrantAsync(AuthenticatedSession actor, string idempotencyKey, SetRoleGrantRequest request, CancellationToken ct = default);
+
+    Task<CommandResult<RoleChangeResult>> RetireRoleAsync(AuthenticatedSession actor, string idempotencyKey, RetireRoleRequest request, CancellationToken ct = default);
+
+    /// <summary>Versioned policy changes, newest first (PERM-ADM-001/002/004 at any mode).</summary>
+    Task<PolicyHistoryResult> HistoryAsync(AuthenticatedSession actor, int take, CancellationToken ct = default);
+}
+
+/// <summary>
+/// ADM-2 per-role feature levels (brief §2.3). A user with several roles gets the union (highest level); built-in roles and core features are
+/// always full. Read per request (no cache), like the policy.
+/// </summary>
+public interface IFeatureAccess
+{
+    Task<RoleFeatureAccess> LevelAsync(int propertyId, int principalId, string featureId, CancellationToken ct = default);
+
+    /// <summary>The non-full levels of the user (GET /me/capabilities <c>features</c>).</summary>
+    Task<IReadOnlyDictionary<string, RoleFeatureAccess>> LevelsAsync(int propertyId, int principalId, CancellationToken ct = default);
+
+    /// <summary>Throws FORBIDDEN (reason MODULE_OFF, featureId, roleCode) unless the user's level on the feature is full.</summary>
+    Task EnsureFullAsync(int propertyId, int principalId, string featureId, CancellationToken ct = default);
+}
+
 public interface ICapabilitiesQuery
 {
     Task<CapabilitiesResult> GetAsync(AuthenticatedSession session, CancellationToken ct = default);

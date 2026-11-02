@@ -2,6 +2,7 @@ using System.Data;
 using Hcc.Application.Access;
 using Hcc.Contracts;
 using Hcc.Contracts.Access;
+using Hcc.Domain.Access;
 using Hcc.Domain.Errors;
 using Hcc.Infrastructure.SqlServer.Connection;
 
@@ -26,7 +27,7 @@ public sealed class SqlAccessAdminQueries(SqlConnectionFactory connections, IAcc
         await using var conn = await connections.OpenAsync(ct).ConfigureAwait(false);
         await using var q = connections.Command("""
             SELECT user_id, display_name, enabled FROM plat.app_user WHERE property_id = @p ORDER BY user_id;
-            SELECT r.user_id, r.role_code FROM plat.user_role r JOIN plat.app_user u ON u.user_id = r.user_id
+            SELECT r.user_id, r.role_code FROM plat.v_user_role_effective r JOIN plat.app_user u ON u.user_id = r.user_id
              WHERE u.property_id = @p AND r.valid_from_utc <= SYSUTCDATETIME() AND (r.valid_until_utc IS NULL OR r.valid_until_utc > SYSUTCDATETIME());
             """, conn);
         q.Parameters.Add("@p", SqlDbType.Int).Value = actor.PropertyId;
@@ -36,7 +37,7 @@ public sealed class SqlAccessAdminQueries(SqlConnectionFactory connections, IAcc
         var roles = new List<(int UserId, string Role)>();
         await rd.NextResultAsync(ct).ConfigureAwait(false);
         while (await rd.ReadAsync(ct).ConfigureAwait(false)) roles.Add((rd.GetInt32(0), rd.GetString(1)));
-        var items = users.Select(u => new StaffNameView(u.Id, u.Name, u.Enabled, roles.Where(r => r.UserId == u.Id).Select(r => r.Role).ToList())).ToList();
+        var items = users.Select(u => new StaffNameView(u.Id, u.Name, u.Enabled, roles.Where(r => r.UserId == u.Id).Select(r => r.Role).Distinct(StringComparer.Ordinal).ToList())).ToList();
         return new StaffDirectoryResult(items);
     }
 
@@ -46,14 +47,18 @@ public sealed class SqlAccessAdminQueries(SqlConnectionFactory connections, IAcc
         await RequireAnyAsync(actor, ["PERM-ADM-001", "PERM-ADM-002", "PERM-ADM-003"], ct).ConfigureAwait(false);
         await using var conn = await connections.OpenAsync(ct).ConfigureAwait(false);
         await using var q = connections.Command("""
-            SELECT role_code, name, credential_kind, owner_only_assign FROM plat.role ORDER BY sort_order, role_code;
+            SELECT role_code, name, credential_kind, owner_only_assign, is_custom, base_role, money, version, CASE WHEN retired_utc IS NULL THEN 0 ELSE 1 END
+              FROM plat.role ORDER BY sort_order, role_code;
             SELECT role_code, permission_id, mode, scope, limit_value, limit_unit FROM plat.role_grant ORDER BY role_code, permission_id;
             SELECT role_code, permission_id, reason FROM plat.role_deny ORDER BY role_code, permission_id;
             SELECT permission_id, resource_action, kind, is_money FROM plat.permission ORDER BY permission_id;
+            SELECT role_code, feature_id, access FROM plat.role_feature WHERE access <> 'FULL' ORDER BY role_code, feature_id;
             """, conn);
         await using var rd = await q.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        var roles = new List<(string Code, string Name, string Kind, bool OwnerOnly)>();
-        while (await rd.ReadAsync(ct).ConfigureAwait(false)) roles.Add((rd.GetString(0), rd.GetString(1), rd.GetString(2), rd.GetBoolean(3)));
+        var roles = new List<(string Code, string Name, string Kind, bool OwnerOnly, bool Custom, string? Base, bool Money, int Version, bool Retired)>();
+        while (await rd.ReadAsync(ct).ConfigureAwait(false))
+            roles.Add((rd.GetString(0), rd.GetString(1), rd.GetString(2), rd.GetBoolean(3), rd.GetBoolean(4), rd.IsDBNull(5) ? null : rd.GetString(5), rd.GetBoolean(6), rd.GetInt32(7),
+                rd.GetInt32(8) == 1));
         var grants = new List<(string Role, CapabilityGrant Grant)>();
         await rd.NextResultAsync(ct).ConfigureAwait(false);
         while (await rd.ReadAsync(ct).ConfigureAwait(false))
@@ -64,8 +69,15 @@ public sealed class SqlAccessAdminQueries(SqlConnectionFactory connections, IAcc
         var perms = new List<PermissionView>();
         await rd.NextResultAsync(ct).ConfigureAwait(false);
         while (await rd.ReadAsync(ct).ConfigureAwait(false)) perms.Add(new PermissionView(rd.GetString(0), rd.GetString(1), rd.GetString(2), rd.GetBoolean(3)));
+        var features = new List<(string Role, string Feature, string Access)>();
+        await rd.NextResultAsync(ct).ConfigureAwait(false);
+        while (await rd.ReadAsync(ct).ConfigureAwait(false)) features.Add((rd.GetString(0), rd.GetString(1), RoleRules.ToWire(RoleRules.Parse(rd.GetString(2)))));
+        // ADM-2: custom roles carry base, money, non-full features and version; built-ins keep their shape (not custom, no base, no features).
         return new RolesResult(roles.Select(r => new RoleTemplateView(r.Code, r.Name, r.Kind, r.OwnerOnly,
-            grants.Where(g => g.Role == r.Code).Select(g => g.Grant).ToList(), denies.Where(d => d.Role == r.Code).Select(d => d.Deny).ToList())).ToList(), perms);
+            grants.Where(g => g.Role == r.Code).Select(g => g.Grant).ToList(), denies.Where(d => d.Role == r.Code).Select(d => d.Deny).ToList(),
+            r.Custom, r.Base, r.Money,
+            r.Custom ? features.Where(f => f.Role == r.Code).ToDictionary(f => f.Feature, f => f.Access, StringComparer.Ordinal) : null,
+            r.Version, r.Retired)).ToList(), perms);
     }
 
     public async Task<ExceptionsResult> ExceptionsAsync(AuthenticatedSession actor, bool includeRevoked, CancellationToken ct = default)

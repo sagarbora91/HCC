@@ -57,7 +57,7 @@ public sealed class SqlReminderStore(SqlConnectionFactory connections) : IRemind
 
     public async Task<IReadOnlyCollection<string>> RolesOfUserAsync(ICommandTransaction tx, int userId, CancellationToken ct = default)
     {
-        await using var cmd = Sql(tx).Command("SELECT role_code FROM plat.user_role WHERE user_id = @u AND valid_from_utc <= SYSUTCDATETIME() AND (valid_until_utc IS NULL OR valid_until_utc > SYSUTCDATETIME())");
+        await using var cmd = Sql(tx).Command("SELECT DISTINCT role_code FROM plat.v_user_role_effective WHERE user_id = @u AND valid_from_utc <= SYSUTCDATETIME() AND (valid_until_utc IS NULL OR valid_until_utc > SYSUTCDATETIME())");
         P(cmd, "@u", SqlDbType.Int, userId);
         return await RolesAsync(cmd, ct).ConfigureAwait(false);
     }
@@ -105,7 +105,7 @@ public sealed class SqlReminderStore(SqlConnectionFactory connections) : IRemind
         await using var conn = await connections.OpenAsync(ct).ConfigureAwait(false);
         await using var cmd = connections.Command(Select + """
              WHERE property_id = @p AND (role_code = 'all' OR created_by = @u
-                    OR role_code IN (SELECT role_code FROM plat.user_role WHERE user_id = @u AND valid_from_utc <= SYSUTCDATETIME() AND (valid_until_utc IS NULL OR valid_until_utc > SYSUTCDATETIME()))
+                    OR role_code IN (SELECT role_code FROM plat.v_user_role_effective WHERE user_id = @u AND valid_from_utc <= SYSUTCDATETIME() AND (valid_until_utc IS NULL OR valid_until_utc > SYSUTCDATETIME()))
                     OR EXISTS (SELECT 1 FROM plat.user_role x WHERE x.user_id = @u AND x.role_code = 'OWN' AND x.valid_from_utc <= SYSUTCDATETIME() AND (x.valid_until_utc IS NULL OR x.valid_until_utc > SYSUTCDATETIME())))
              ORDER BY remind_date, reminder_id
             """, conn);
@@ -120,7 +120,7 @@ public sealed class SqlReminderStore(SqlConnectionFactory connections) : IRemind
     public async Task<IReadOnlyCollection<string>> RolesOfUserAsync(int userId, CancellationToken ct = default)
     {
         await using var conn = await connections.OpenAsync(ct).ConfigureAwait(false);
-        await using var cmd = connections.Command("SELECT role_code FROM plat.user_role WHERE user_id = @u AND valid_from_utc <= SYSUTCDATETIME() AND (valid_until_utc IS NULL OR valid_until_utc > SYSUTCDATETIME())", conn);
+        await using var cmd = connections.Command("SELECT DISTINCT role_code FROM plat.v_user_role_effective WHERE user_id = @u AND valid_from_utc <= SYSUTCDATETIME() AND (valid_until_utc IS NULL OR valid_until_utc > SYSUTCDATETIME())", conn);
         P(cmd, "@u", SqlDbType.Int, userId);
         return await RolesAsync(cmd, ct).ConfigureAwait(false);
     }

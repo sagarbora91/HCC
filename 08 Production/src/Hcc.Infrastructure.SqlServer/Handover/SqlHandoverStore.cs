@@ -452,7 +452,7 @@ public sealed class SqlHandoverPrincipals(SqlConnectionFactory connections) : IH
     {
         await using var conn = await connections.OpenAsync(ct).ConfigureAwait(false);
         await using var cmd = connections.Command("""
-            SELECT r.role_code FROM plat.user_role r JOIN plat.app_user u ON u.user_id = r.user_id
+            SELECT DISTINCT r.role_code FROM plat.v_user_role_effective r JOIN plat.app_user u ON u.user_id = r.user_id
              WHERE r.user_id = @u AND u.property_id = @p AND r.valid_from_utc <= @now AND (r.valid_until_utc IS NULL OR r.valid_until_utc > @now);
             """, conn);
         cmd.P("@u", SqlDbType.Int, principalId);
