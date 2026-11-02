@@ -104,7 +104,7 @@ export const frontdesk:SyncArea={
     type:'STAY_FORM_C',reload:['bookings'],
     async send(c){const id=String(c.cmd.id);bookingOf(c,id);await c.api.command('SaveStayFormC',{stayId:stayIdOf(c,id),formC:c.cmd.formC});},
   },{
-    type:'STAY_LATE_CHARGE',reload:['bookings',...FOLIO_SLICES],
+    type:'STAY_LATE_CHARGE',reload:['bookings'], // LF-int: posts a folio charge, raises no approval (keeps the frontdesk area self-contained)
     async send(c){const id=String(c.cmd.id);bookingOf(c,id);
       await c.api.command('PostLateCheckoutCharge',{stayId:stayIdOf(c,id),expectedVersion:versionOf(c,'stay',id,'Stay'),charge:String(c.cmd.charge??''),reason:c.cmd.reason?String(c.cmd.reason):undefined});},
   },{
