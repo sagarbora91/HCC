@@ -8,6 +8,7 @@ import {customerIndex,customerSearch,customerService,type Customer} from '../../
 import {getLegacyLookup,ensureLegacy} from './legacy-source';
 import {PageTitle,SearchBox,Pill,Empty,shortDate,dateLabel} from '../../components/ui';
 import {usePaged,ShowMore,DESKTOP_PAGE,PHONE_PAGE} from '../../components/ShowMore';
+import {GuestMoneySections} from '../lfmoney/GuestMoney';
 import {GuestDetails,VerifiedPill,statusTone} from '../guests/GuestProfile';
 import {FitPage,FitTabs,ScrollPanel,SplitView,FitNote,useWideSplit,useFitTab} from '../../components/fit';
 import {ForeignerRegisterPanel} from '../guests/FormCPrint'; // LF-DESK
@@ -103,6 +104,7 @@ function Profile({c}:{c:Customer}){
     {dups.length>0&&<div className="gs-dup" role="status"><div><strong>Possible match: {dups.map(m=>`${m.guest.id} (${m.reason==='phone'?'same phone':'same name'})`).join(', ')}</strong>
       <div className="inline">{dups.map(m=><button key={m.guest.id} className="text-btn" onClick={()=>open({type:'guest-profile',id:m.guest.id})}>Open {m.guest.id}</button>)}</div></div></div>}
     <GuestDetails g={g}/>
+    <GuestMoneySections guestId={g.id}/>{/* LF-UI B1/B2 */}
     <div className="inline gs-actions">{access.edit&&<button type="button" className="btn" onClick={()=>open({type:'guest-profile',id:g.id})}>Edit profile</button>}
       {latest&&<button type="button" className="btn" onClick={()=>open({type:'guest-regcard',id:latest.id})}><Printer size={15}/>Registration card</button>}</div></div>;
 }

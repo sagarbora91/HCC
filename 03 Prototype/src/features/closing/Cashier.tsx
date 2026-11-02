@@ -2,18 +2,19 @@
 import React,{useState} from 'react';
 import {bookingRefOf} from '../../domain/bookingRef';
 import {Wallet,ArrowRight,ShieldCheck,Check,X} from 'lucide-react';
-import {money,shiftExpected,shiftMovements,shiftStatus,SHIFT_MANAGER_DIFF_LIMIT,closingUnlimitedRoles,isDayClosed,cxSlice,cxPending} from '../../services/mock';
+import {money,shiftExpected,shiftMovements,shiftStatus,SHIFT_MANAGER_DIFF_LIMIT,closingUnlimitedRoles,isDayClosed,cxSlice,cxPending,udGuestOutstanding} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {Pill,Empty,dateLabel} from '../../components/ui';
 import {FitPage,ScrollPanel,StepFlow,useFitTab} from '../../components/fit';
 import {ShiftCountForm} from './ShiftCount';
 import {OpenShiftForm,CashOutPanel,CashOutActions} from './CashOut';
+import {CreditGuests} from '../lfmoney/GuestMoney'; // LF-UI B2
 
 /** Detail column of a drawer movement without a booking or outlet bill (Wave B1: banking, transfers, drawings). */
 const MOVE_KIND:Record<string,string>={'expense-reversal':'Reversal',expense:'Expense',banking:'Bank deposit','transfer-out':'Till transfer','transfer-in':'Till transfer','owner-drawing':'Owner drawing','staff-advance':'Salary advance'}; // ACC-2 integration: the parity lane's cash advance movement
 
 /** Step ids = SUB_SCREENS 'cashier' (kebab-case of the labels). */
-export const CASHIER_STEPS=['expected-cash','count-and-result','cash-movements','cash-out'] as const;
+export const CASHIER_STEPS=['expected-cash','count-and-result','cash-movements','cash-out','credit-guests'] as const;
 type CashierStep=typeof CASHIER_STEPS[number];
 
 export function Cashier(){
@@ -44,6 +45,7 @@ export function Cashier(){
         :s.shiftClose?`Counted ${money(s.shiftClose.counted)} · ${diffText(closeDiff)}`:'Shift closed · no count recorded'},
     {id:'cash-movements',label:'Cash movements',status:'done' as const,summary:`${mv.length} movement${mv.length===1?'':'s'} · net ${net<0?'−':'+'}${money(Math.abs(net))}`},
     {id:'cash-out',label:'Cash out',status:pend?'current' as const:'done' as const,summary:pend?`${pend} awaiting a second person`:outToday?`${outToday} record${outToday===1?'':'s'} today`:'Nothing banked or drawn today'},
+    {id:'credit-guests',label:'Credit guests',status:'done' as const,summary:`${udGuestOutstanding(s).filter(r=>r.open>0).length} guest(s) owing · ${money(udGuestOutstanding(s).reduce((a,r)=>a+r.open,0))}`},
   ];
   let body:React.ReactNode;
   if(step==='expected-cash')body=<ScrollPanel title="Expected cash" label="Shift status and expected cash" actions={<Wallet size={19}/>}>
@@ -72,6 +74,7 @@ export function Cashier(){
               <td>{name(m.actor)}</td><td className="number">{m.amount>=0?'+':'−'}{money(Math.abs(m.amount))}</td></tr>)}
           </tbody></table>{!mv.length&&<Empty title="No cash movements today" body="Cash receipts, deposits, returns, refunds, restaurant cash bills, posted cash expenses, bank deposits, till transfers and Owner drawings appear here."/>}</div>
         </ScrollPanel>;
+  else if(step==='credit-guests')body=<ScrollPanel title="Credit guests" label="Credit guests"><CreditGuests/></ScrollPanel>;
   else body=<CashOutPanel fit/>;
   return <FitPage title="Cashier shift" sub={`One cash shift per business day · ${dateLabel(s.date)} · opening float carried from the last counted close`} layout="steps"
       actions={<><CashOutActions/><button className="btn" onClick={()=>go('closing')}>Day closing <ArrowRight size={15}/></button></>}>

@@ -47,6 +47,7 @@ export const PAGE_CATEGORY:Record<string,CategoryId>={
   'desk-alerts':'front',
   // LF-ALERTS end
   // LF-UI
+  'counter-bills':'cash',
   // LF-UI end
   access:'admin',settings:'admin',approvals:'admin',backup:'admin',roadmap:'admin',
 };

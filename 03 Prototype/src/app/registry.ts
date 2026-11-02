@@ -37,6 +37,7 @@ import {registration as keysMod} from '../features/keys/register'; // KEYS room 
 import {registration as lfAlerts} from '../features/alerts/register';
 // LF-ALERTS end
 // LF-UI
+import {registration as lfMoney} from '../features/lfmoney/register';
 // LF-UI end
 export type ModalProps={id?:string;room?:string};
 export type FeatureRegistration={
@@ -62,6 +63,7 @@ export const registrations:FeatureRegistration[]=[reservations,guests,customers,
   lfAlerts,
   // LF-ALERTS end
   // LF-UI
+  lfMoney,
   // LF-UI end
 ];
 export const mobilePages=Object.assign({},...registrations.map(r=>r.mobile?.pages||{})) as Record<string,React.ComponentType>;

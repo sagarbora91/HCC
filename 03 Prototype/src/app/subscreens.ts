@@ -178,6 +178,9 @@ export const SUB_SCREENS:SubScreen[]=[
   {page:'desk-alerts',id:'wake-ups',label:'Wake-ups'},
   // LF-ALERTS end
   // LF-UI
+  {page:'counter-bills',id:'new-bill',label:'New bill'},
+  {page:'counter-bills',id:'bills',label:'Bills'},
+  {page:'cashier',id:'credit-guests',label:'Credit guests',keywords:['guest credit','udhaar','outstanding']},
   // LF-UI end
 ];
 
