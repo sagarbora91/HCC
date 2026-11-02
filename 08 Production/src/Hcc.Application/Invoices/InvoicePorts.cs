@@ -65,7 +65,7 @@ public sealed record SupplierInfo(string Name, string? Gstin, string StateName, 
 public sealed record InvoiceRecord(long InvoiceId, int PropertyId, InvoiceDocType DocType, string InvoiceNo, string FyCode, int Seq, DateOnly InvoiceDate,
     string SourceKind, long SourceId, string SourceRef, DateOnly? PeriodFrom, DateOnly? PeriodTo, Recipient Recipient, string SupplierName,
     string SupplierGstin, string SupplierState, string? SupplierAddress, IReadOnlyList<InvoiceLine> Lines, InvoiceFigures Figures, string AmountWords,
-    int IssuedBy, DateTime IssuedUtc);
+    int IssuedBy, DateTime IssuedUtc, int Revision = 1);
 
 public sealed record CreditNoteRecord(long CreditNoteId, int PropertyId, string CreditNoteNo, string FyCode, int Seq, DateOnly NoteDate, long InvoiceId,
     long RequestId, CreditMode Mode, string Reason, IReadOnlyList<CreditLine> Lines, IReadOnlyList<long?> FolioChargeIds, InvoiceFigures Figures,

@@ -142,7 +142,13 @@ public sealed class BillingService(ICommandRunner runner, IBillingStore store, I
             }
 
             var f = await RequireFolioAsync(tx, caller, folioId, ct2).ConfigureAwait(false);
-            if (kind is ReceiptKind.Payment or ReceiptKind.Deposit && !f.IsOpen) throw Invalid("This booking is no longer open.");
+            if (kind is ReceiptKind.Payment or ReceiptKind.Deposit && !f.IsOpen)
+            {
+                // LF A2: a corrected bill (balance-due) is paid on the departed folio for exactly that balance (check-out left it at 0).
+                var due = f.ReservationStatus == "Departed" && kind == ReceiptKind.Payment ? (await FiguresAsync(tx, f.FolioId, ct2).ConfigureAwait(false)).Balance : Paise.Zero;
+                if (due <= Paise.Zero) throw Invalid("This booking is no longer open.");
+                if (amount != due) throw HccException.Validation($"A departed stay's corrected bill is paid for exactly its balance ({due}).");
+            }
             if (kind == ReceiptKind.DepositReturn)
             {
                 var figures = await FiguresAsync(tx, f.FolioId, ct2).ConfigureAwait(false);

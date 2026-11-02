@@ -24,6 +24,15 @@ public static class LfMoneyEndpoints
         services.AddSingleton<GuestCreditCommands>();
         services.AddSingleton<Hcc.Application.Billing.IGuestCreditReceivables>(sp => sp.GetRequiredService<GuestCreditCommands>());
         services.AddSingleton<Hcc.Application.Billing.ILfApprovalHandler>(sp => sp.GetRequiredService<GuestCreditCommands>());
+        // LF A7 counter bills (INV series source 'counter'; void = 'counter-credit' approval → credit note)
+        services.AddSingleton<Hcc.Application.Counter.ICounterBillStore, SqlCounterBillStore>();
+        services.AddSingleton<Hcc.Application.Invoices.IInvoiceSource, Hcc.Application.Counter.CounterInvoiceSource>();
+        services.AddSingleton<Hcc.Application.Counter.CounterBillService>();
+        services.AddSingleton<Hcc.Application.Billing.ILfApprovalHandler>(sp => sp.GetRequiredService<Hcc.Application.Counter.CounterBillService>());
+        // LF A2 bill correction after check-out (CRN + corrected lines + revision invoice)
+        services.AddSingleton<Hcc.Application.Invoices.IBillCorrectionStore>(sp => new SqlBillCorrectionStore(sp.GetRequiredService<SqlPlatform>().Connections));
+        services.AddSingleton<Hcc.Application.Invoices.BillCorrectionService>();
+        services.AddSingleton<Hcc.Application.Billing.ILfApprovalHandler>(sp => sp.GetRequiredService<Hcc.Application.Invoices.BillCorrectionService>());
         return services;
     }
 
@@ -45,6 +54,17 @@ public static class LfMoneyEndpoints
             http.HccReply(await c.RequestAsync(http.HccCommand(GuestCreditCommands.OpRequest), body with { StayId = id }, ct)));
         g.MapPost("/commands/" + GuestCreditCommands.OpRequest, async (HttpContext http, GuestCreditRequestBody body, GuestCreditCommands c, CancellationToken ct) =>
             http.HccReply(await c.RequestAsync(http.HccCommand(GuestCreditCommands.OpRequest), body, ct)));
+        g.MapPost("/counter-bills", async (HttpContext http, Hcc.Application.Counter.IssueCounterBillRequest body, Hcc.Application.Counter.CounterBillService c, CancellationToken ct) =>
+            http.HccReply(await c.IssueAsync(http.HccCommand(Hcc.Application.Counter.CounterBillService.OpIssue), body, ct)));
+        g.MapPost("/counter-bills/{id:long}/void", async (HttpContext http, long id, Hcc.Application.Counter.RequestCounterBillVoidRequest body, Hcc.Application.Counter.CounterBillService c, CancellationToken ct) =>
+            http.HccReply(await c.RequestVoidAsync(http.HccCommand(Hcc.Application.Counter.CounterBillService.OpRequestVoid), body with { BillId = id }, ct)));
+        g.MapPost("/invoices/{no}/corrections", async (HttpContext http, string no, Hcc.Application.Invoices.RequestBillCorrectionRequest body, Hcc.Application.Invoices.BillCorrectionService c, CancellationToken ct) =>
+            http.HccReply(await c.RequestAsync(http.HccCommand(Hcc.Application.Invoices.BillCorrectionService.OpRequest), body with { InvoiceNo = Uri.UnescapeDataString(no) }, ct)));
+        g.MapGet("/invoices/corrections", async (HttpContext http, Hcc.Application.Invoices.BillCorrectionService c, CancellationToken ct) =>
+        {
+            var (p, u) = http.HccActor();
+            return Results.Ok(await c.ListAsync(p, u, ct));
+        });
         g.MapGet("/guests/{id:long}/money", async (HttpContext http, long id, LfMoneyGuestCommands c, CancellationToken ct) =>
         {
             var (p, u) = http.HccActor();
