@@ -10,9 +10,17 @@ public static class RevenueDigestEndpoints
     public static IServiceCollection AddRevenueDigestModule(this IServiceCollection services)
     {
         services.AddSingleton<IRevenueCategorySource>(sp => new SqlRevenueCategorySource(sp.GetRequiredService<SqlPlatform>().Connections));
-        services.AddSingleton<RevenueByCategoryQueries>();
+        services.AddSingleton(sp => new RevenueByCategoryQueries(sp.GetRequiredService<Hcc.Application.Closing.IReportSource>(), sp.GetRequiredService<IRevenueCategorySource>(),
+            sp.GetRequiredService<Hcc.Application.Access.IAccessPolicy>(), new Hcc.Application.Accounting.AccountingReportQueries(sp.GetRequiredService<Hcc.Application.Accounting.IAccountingStore>(),
+                sp.GetRequiredService<Hcc.Application.Access.IAccessPolicy>(), sp.GetService<Hcc.Application.Import.IOpeningBalanceSource>(), sp.GetService<Hcc.Application.Accounting.IReportOpeningSource>(),
+                sp.GetService<Hcc.Application.Accounting.IReportPartyNames>(),
+                sp.GetService<Hcc.Application.Accounting.ILedgerMonthBalanceStore>() ?? new Hcc.Infrastructure.SqlServer.Accounting.SqlLedgerMonthBalanceStore(sp.GetRequiredService<SqlPlatform>().Connections),
+                sp.GetService<TimeProvider>()))); // Block C closes to the six-column trial balance
         services.AddSingleton<IDigestDraftStore>(sp => new SqlDigestDraftStore(sp.GetRequiredService<SqlPlatform>().Connections));
         services.AddSingleton<DigestDraftQueries>();
+        services.AddSingleton(sp => new DigestDraftProjector(sp.GetRequiredService<SqlPlatform>().Outbox, sp.GetRequiredService<SqlPlatform>().Connections,
+            sp.GetRequiredService<Hcc.Application.Closing.IReportSource>(), sp.GetRequiredService<IRevenueCategorySource>(), sp.GetRequiredService<TimeProvider>()));
+        services.AddHostedService<DigestDraftWorker>();
         return services;
     }
 
@@ -26,4 +34,10 @@ public static class RevenueDigestEndpoints
             Results.Ok(await q.ListAsync(http.HccCaller(), date, ct).ConfigureAwait(false)));
         return api;
     }
+}
+
+/// <summary>Polls the outbox for BusinessDayClosed events and writes the held digest drafts (never sends).</summary>
+public sealed class DigestDraftWorker(DigestDraftProjector projector, ILogger<DigestDraftWorker> logger) : OutboxPollingWorker(logger, "Owner digest draft projection")
+{
+    protected override Task PollAsync(CancellationToken ct) => projector.RunOnceAsync(ct: ct);
 }

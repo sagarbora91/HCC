@@ -8,9 +8,10 @@ Built
 
 Tests: `tests/stream-rpt-revcat.mjs`, `tests/stream-digest.mjs`, RBAC matrix entries; server `tests/Hcc.Closing.Tests/Unit/RevenueByCategoryTests.cs` (4 pass).
 
-Not done / for the integrator
-- Legacy FY header and the LG bill and receipt tie-out (rule 4): `legacy` is always false; `lgc` data is not read yet.
-- Block C against the trial balance: the prototype bridge is built from folio data (opening and closing due, advances) and reports whether the trial balance balances; the ledger-by-ledger comparison on the April golden month is not asserted. The server bridge has no opening / closing due (needs full history).
-- Server: the digest drafts are not yet written by the server day close (store, query and endpoint exist); production page wiring reads the prototype selector, not the new endpoint.
-- Nav gate: `owner-digest` uses the coarse `admin` permission (Owner and Tech admin see it; the page refuses Tech admin); `revenue-category` uses `reports` (Cashier sees the entry, the page refuses). Documented in the RBAC matrix test.
-- `subscreens.ts` F4-T2 block left empty.
+Second pass (coordinator gaps)
+1. Legacy FY: prototype `rctLegacyReport` (lgc-shaped bills and receipts, header "Legacy data (old Lodge software)", unmapped room kept as `unassigned`); server `RevenueByCategoryCalculator.ComputeLegacy` fed by `SqlRevenueCategorySource.LegacyAsync` (lgc.bill / lgc.receipt, room type from the rooms master by name); when the range holds legacy bills the endpoint returns that report. Tests assert Σ components, GST and receipts equal the inputs (the LG §6 sums); the real-data per-FY comparison against `totals.json` was not run here (no legacy files in this environment).
+2. Block C vs trial balance: prototype `tb.rows` (7 ledger rows: 1100 opening / closing due, 2000 advances start / end, credits raised on 1110 / 1115 / 1120) asserted on ACC-RULEBOOK April 2026 (all tie, difference 0); server bridge has opening / closing due and advances (`FolioBalances` via SQL) and `Ledgers` rows from the six-column TB (`AccountingReportQueries`). Server test uses the golden-month TB figures as data (no database in this run), plus a broken-ledger case.
+3. Server day close: `DigestDraftProjector` consumes the `BusinessDayClosed` outbox event (same pattern as the OTA channel-manager projector, hosted worker `DigestDraftWorker`) and writes the two held drafts into digest.draft in the consumer transaction; nothing is sent. Pending approvals count covers folio approvals only; reorder / complaint counts are 0 until T3.
+4. Nav gates: `navRoleOk` hides `owner-digest` from everyone but the Owner and `revenue-category` from everyone but Owner, Manager, Accountant; RBAC matrix updated.
+
+Still open: the production page reads the prototype selector rather than the new endpoint; `subscreens.ts` F4-T2 block empty; the real-data legacy tie-out per FY.

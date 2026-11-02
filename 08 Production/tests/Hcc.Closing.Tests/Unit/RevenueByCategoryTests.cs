@@ -95,4 +95,74 @@ public sealed class RevenueByCategoryTests
         Assert.Equal(0, r.C.Difference);
         Assert.Equal(r.BTotal.AdvancesReceived - r.BTotal.AdvancesAdjusted - r.BTotal.AdvancesRefunded, r.C.AdvanceMovement);
     }
+
+    [Fact]
+    public void Block_C_closes_with_opening_and_closing_due_and_ties_to_the_trial_balance_ledger_by_ledger()
+    {
+        var (data, cat) = Sample();
+        // Folio due after D2 = lines + tax − (payments, deposit applied, credits, − refunds); the sample leaves the opening at zero.
+        var gross = data.Lines.Sum(l => l.Amount.Value + l.Tax.Value);
+        var received = 100000 - 10000 + 500000 + 5000;      // payments less refund
+        var credits = 400000;                                 // company credit
+        var adjusted = 20000;                                 // deposit applied
+        var opening = new FolioBalances(0, 0);
+        var closing = new FolioBalances(gross - received - adjusted - credits, 50000 - 20000);
+        var r = RevenueByCategoryCalculator.Compute(data, cat, D1, D2, RevenueByCategoryCalculator.BusinessDate, opening, closing);
+        Assert.Equal(0, r.C.Difference);
+        Assert.Equal(closing.DuePaise, r.C.ClosingDue);
+        var broken = RevenueByCategoryCalculator.Compute(data, cat, D1, D2, RevenueByCategoryCalculator.BusinessDate, opening, closing with { DuePaise = closing.DuePaise + 100 });
+        Assert.Equal(100, broken.C.Difference);
+        // The ACC-RULEBOOK April 2026 golden month's trial balance (figures as the prototype test asserts them): guest ledger 0 / 0, advances 10,000 -> 31,500,
+        // company credit 63,000 raised on 1110, OTA 21,000 on 1115, Udhaar none.
+        var golden = new RevenueByCategoryReport(D1, D2, "business-date", [], r.ATotal, [], new RevenueRowB("total", "Total", 0, 0, 0, 0, 6300000, 0, 2100000, new Dictionary<string, long>(), 3150000, 1000000, 0, 0, 0),
+            new RevenueBridge(5460000, 4520000, 1000000, 2150000, 0, 0, 0, 1000000, 3150000, 8400000));
+        var tb = new Dictionary<string, LedgerFigures>
+        {
+            ["1100"] = new(0, 0, 55650000), ["2000"] = new(-1000000, -3150000, 1000000), ["1110"] = new(4000000, 0, 6300000), ["1115"] = new(0, 0, 2100000),
+        };
+        var rows = RevenueByCategoryCalculator.LedgerRows(golden, code => tb.GetValueOrDefault(code, new LedgerFigures(0, 0, 0)));
+        Assert.Equal(7, rows.Count);
+        Assert.All(rows, x => Assert.True(x.Ok, $"{x.Account} {x.What}: report {x.Report} vs ledger {x.Ledger}"));
+        var off = RevenueByCategoryCalculator.LedgerRows(golden, code => code == "1115" ? new LedgerFigures(0, 0, 1) : tb.GetValueOrDefault(code, new LedgerFigures(0, 0, 0)));
+        Assert.False(off.Single(x => x.Account == "1115").Ok);
+    }
+
+    [Fact]
+    public void Legacy_range_reproduces_the_bill_and_receipt_sums_under_the_legacy_header_and_keeps_an_unmapped_room()
+    {
+        var bills = new List<LegacyBillRow>
+        {
+            new("Deluxe", 200000, 10000, 5000, 600, 300, 15000, 24000, 250, 108, 54),
+            new(null, 100000, 0, 0, 0, 0, 0, 12000, 0, 0, 0),
+        };
+        var receipts = new List<LegacyReceiptRow>
+        {
+            new("Deluxe", "advance", "UPI", 50000), new("Deluxe", "payment", "CASH", 200000), new(null, "security", "CASH", 1000), new("Deluxe", "refund", "CASH", 3000),
+        };
+        var r = RevenueByCategoryCalculator.ComputeLegacy(new RevenueLegacyData(bills, receipts), D1, D2);
+        Assert.True(r.Legacy);
+        Assert.Equal("Legacy data (old Lodge software)", RevenueByCategoryReport.LegacyHeader);
+        Assert.Equal(300000, r.ATotal.RoomTariff);
+        Assert.Equal(10000, r.ATotal.ExtraPerson);
+        Assert.Equal(5000 + 600 + 300, r.ATotal.OtherCharges);
+        Assert.Equal(-15000, r.ATotal.Discounts);
+        Assert.Equal(bills.Sum(b => b.RoomGst + b.FbGst + b.LaundryGst + b.OtherGst), r.ATotal.Cgst + r.ATotal.Sgst);
+        Assert.Equal(r.ATotal.Net + r.ATotal.Cgst + r.ATotal.Sgst, r.ATotal.Gross);
+        Assert.Equal(r.ATotal.Net, r.A.Sum(x => x.Net));
+        Assert.Equal(100000, r.A.Single(x => x.Key == RevenueByCategoryCalculator.Unassigned).RoomTariff);
+        Assert.Equal((50000L, 197000L, 1000L, 3000L, 247000L), (r.BTotal.Upi, r.BTotal.Cash, r.BTotal.AdvancesReceived, r.BTotal.Refunds, r.BTotal.NetReceived));
+        Assert.Equal(1000, r.B.Single(x => x.Key == RevenueByCategoryCalculator.Unassigned).AdvancesReceived);
+    }
+
+    [Fact]
+    public void Digest_whatsapp_text_is_counts_only_and_the_email_carries_money()
+    {
+        var (data, cat) = Sample();
+        var facts = new DigestFacts(D2, DailyPackCalculator.Compute(data, D2, D2), RevenueByCategoryCalculator.Compute(data, cat, D2, D2), 3, 2);
+        var wa = DigestBodies.WhatsApp(facts);
+        Assert.DoesNotContain("₹", wa, StringComparison.Ordinal);
+        Assert.Contains("Pending approvals 3", wa, StringComparison.Ordinal);
+        Assert.Contains("Arrivals tomorrow 2", wa, StringComparison.Ordinal);
+        Assert.Contains("₹", DigestBodies.Email(facts), StringComparison.Ordinal);
+    }
 }
