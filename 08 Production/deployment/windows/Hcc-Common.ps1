@@ -22,13 +22,55 @@ function Assert-HccScratchName {
 function ConvertTo-HccSqlLiteral { param([string]$Value) return "N'" + $Value.Replace("'", "''") + "'" }
 function ConvertTo-HccSqlName { param([string]$Value) return '[' + $Value.Replace(']', ']]') + ']' }
 
+# --- LF-docdb: the two databases (LF-CONTRACT 1.9) -----------------------------------------------------------------------------
+# The documents database name: hcc-ops.json DocumentsDatabase; empty there means "<Database>Documents" is NOT assumed (an old install without one).
+function Get-HccDocumentsDatabaseName {
+    param([Parameter(Mandatory)][object]$Config)
+    $name = [string]$Config['DocumentsDatabase']
+    if ([string]::IsNullOrWhiteSpace($name)) { return '' }
+    Assert-HccDatabaseName $name | Out-Null
+    return $name
+}
+
+# Databases one backup run covers: main FIRST, documents SECOND (no documents entry = main only).
+function Get-HccDatabaseList {
+    param([Parameter(Mandatory)][object]$Config, [string]$Main)
+    if (-not $Main) { $Main = [string]$Config['Database'] }
+    Assert-HccDatabaseName $Main | Out-Null
+    $docs = Get-HccDocumentsDatabaseName -Config $Config
+    if ($docs -and $docs -eq $Main) { throw 'DocumentsDatabase must differ from Database.' }
+    $list = @($Main)
+    if ($docs) { $list += $docs }
+    return , $list
+}
+
+# The reference check of a restore (and of the drill): how many object_ref values of the main database have no live object in the documents
+# database. Both databases live on one instance, so one query reads both. Pure: the SQL is unit-tested, Invoke-HccDocumentRefCheck runs it.
+function Get-HccDocumentRefCheckSql {
+    param([Parameter(Mandatory)][string]$MainDatabase, [Parameter(Mandatory)][string]$DocumentsDatabase)
+    Assert-HccDatabaseName $MainDatabase | Out-Null
+    Assert-HccDatabaseName $DocumentsDatabase | Out-Null
+    $m = ConvertTo-HccSqlName $MainDatabase; $d = ConvertTo-HccSqlName $DocumentsDatabase
+    $refs = @('doc.id_capture_image', 'ops.expense_bill_photo', 'pay.banking_slip', 'cmp.evidence_content') | ForEach-Object { "SELECT object_ref FROM $m.$_ WHERE object_ref IS NOT NULL" }
+    return ('SET NOCOUNT ON; SELECT COUNT(*) FROM ({0}) r WHERE NOT EXISTS (SELECT 1 FROM {1}.dob.object o WHERE o.object_ref = r.object_ref AND o.deleted_utc IS NULL);' -f ($refs -join ' UNION ALL '), $d)
+}
+
+function Invoke-HccDocumentRefCheck {
+    param([Parameter(Mandatory)][string]$SqlInstance, [Parameter(Mandatory)][string]$MainDatabase, [Parameter(Mandatory)][string]$DocumentsDatabase, [switch]$TrustServerCertificate)
+    $out = Invoke-HccSql -Instance $SqlInstance -TrustServerCertificate:$TrustServerCertificate -Query (Get-HccDocumentRefCheckSql -MainDatabase $MainDatabase -DocumentsDatabase $DocumentsDatabase)
+    $m = [regex]::Match([string]$out, '(?m)^\s*(\d+)\s*$')
+    if (-not $m.Success) { throw "The document reference check returned no count: $out" }
+    return [int]$m.Groups[1].Value
+}
+
 # --- configuration ------------------------------------------------------------------------------------------------------
 # hcc-ops.json (next to the scripts, created by the installer from hcc-ops.sample.json) supplies defaults; parameters win.
 function Get-HccOpsConfig {
     param([string]$Path)
     if (-not $Path) { $Path = Join-Path $PSScriptRoot 'hcc-ops.json' }
     $cfg = [ordered]@{ SqlInstance = '.\SQLEXPRESS'; Database = 'Hcc'; BackupDirectory = ''; LogDirectory = ''; RetentionDays = 30; KeepMinFulls = 3; PreMigrateRetentionDays = 90; ScratchDirectory = ''; TrustServerCertificate = $null
-        EncryptBackups = $true; BackupKeyFile = ''; BackupAccount = ''; ServerDirectory = '' }
+        EncryptBackups = $true; BackupKeyFile = ''; BackupAccount = ''; ServerDirectory = ''
+        DocumentsDatabase = 'HccDocuments' }   # LF-docdb (DEC-200): the separate documents database; '' = none (old install)
     if (Test-Path -LiteralPath $Path) {
         $json = Get-Content -LiteralPath $Path -Raw | ConvertFrom-Json
         foreach ($p in $json.PSObject.Properties) { if ($cfg.Contains($p.Name)) { $cfg[$p.Name] = $p.Value } }
@@ -833,13 +875,23 @@ function Write-HccOperationFailure {
 # nothing happens before that migration ran. Pure (unit-tested): every value is quoted with ConvertTo-HccSqlLiteral.
 function Get-HccBackupRunSql {
     param([Parameter(Mandatory)][string]$Database, [Parameter(Mandatory)][ValidateSet('Full', 'Differential', 'PreMigration', 'RestoreDrill')][string]$Kind,
-        [bool]$Succeeded, [Parameter(Mandatory)][datetime]$StartedUtc, [Parameter(Mandatory)][datetime]$FinishedUtc, [string]$FileName, [object]$SizeBytes, [string]$Reason, [string]$HostName = $env:COMPUTERNAME)
+        [bool]$Succeeded, [Parameter(Mandatory)][datetime]$StartedUtc, [Parameter(Mandatory)][datetime]$FinishedUtc, [string]$FileName, [object]$SizeBytes, [string]$Reason, [string]$HostName = $env:COMPUTERNAME,
+        [string]$MainDatabase)
     Assert-HccDatabaseName $Database | Out-Null
     $inv = [Globalization.CultureInfo]::InvariantCulture
     $t = { param($d) "'" + $d.ToString('yyyy-MM-ddTHH:mm:ss', $inv) + "'" }
     $s = { param($v, $max) if ($null -eq $v -or "$v" -eq '') { 'NULL' } else { $x = "$v"; if ($x.Length -gt $max) { $x = $x.Substring(0, $max) }; ConvertTo-HccSqlLiteral $x } }
     $size = if ($null -ne $SizeBytes -and "$SizeBytes" -match '^\d+$') { "$SizeBytes" } else { 'NULL' }
     $finished = if ($FinishedUtc -lt $StartedUtc) { $StartedUtc } else { $FinishedUtc }
+    # LF-docdb: the run row of the DOCUMENTS database is written to the MAIN database's plat.backup_run with database_name (migration 4671);
+    # the main database's own rows keep the exact statement they always had (database_name defaults to 'Hcc').
+    if ($MainDatabase -and $MainDatabase -ne $Database) {
+        Assert-HccDatabaseName $MainDatabase | Out-Null
+        $mainTable = (ConvertTo-HccSqlName $MainDatabase) + '.plat.backup_run'
+        return ('IF OBJECT_ID({0}) IS NOT NULL INSERT {1}(kind, succeeded, started_utc, finished_utc, file_name, size_bytes, reason, host_name, database_name) VALUES ({2}, {3}, {4}, {5}, {6}, {7}, {8}, {9}, {10});' -f
+            (ConvertTo-HccSqlLiteral $mainTable), $mainTable, (ConvertTo-HccSqlLiteral $Kind), $(if ($Succeeded) { 1 } else { 0 }), (& $t $StartedUtc), (& $t $finished),
+            (& $s $FileName 260), $size, (& $s $Reason 400), (& $s $HostName 64), (ConvertTo-HccSqlLiteral $Database))
+    }
     $table = (ConvertTo-HccSqlName $Database) + '.plat.backup_run'
     return ('IF OBJECT_ID({0}) IS NOT NULL INSERT {1}(kind, succeeded, started_utc, finished_utc, file_name, size_bytes, reason, host_name) VALUES ({2}, {3}, {4}, {5}, {6}, {7}, {8}, {9});' -f
         (ConvertTo-HccSqlLiteral $table), $table, (ConvertTo-HccSqlLiteral $Kind), $(if ($Succeeded) { 1 } else { 0 }), (& $t $StartedUtc), (& $t $finished),
@@ -850,9 +902,9 @@ function Get-HccBackupRunSql {
 # written as Warning 2003 (the panel would otherwise show an older result). Returns $true when recorded.
 function Write-HccBackupRun {
     param([Parameter(Mandatory)][string]$SqlInstance, [Parameter(Mandatory)][string]$Database, [Parameter(Mandatory)][string]$Kind, [bool]$Succeeded,
-        [Parameter(Mandatory)][datetime]$StartedUtc, [string]$FileName, [object]$SizeBytes, [string]$Reason, [switch]$TrustServerCertificate, [string]$LogFile)
+        [Parameter(Mandatory)][datetime]$StartedUtc, [string]$FileName, [object]$SizeBytes, [string]$Reason, [switch]$TrustServerCertificate, [string]$LogFile, [string]$MainDatabase)
     try {
-        $sql = Get-HccBackupRunSql -Database $Database -Kind $Kind -Succeeded $Succeeded -StartedUtc $StartedUtc -FinishedUtc ((Get-Date).ToUniversalTime()) -FileName $FileName -SizeBytes $SizeBytes -Reason $Reason
+        $sql = Get-HccBackupRunSql -Database $Database -Kind $Kind -Succeeded $Succeeded -StartedUtc $StartedUtc -FinishedUtc ((Get-Date).ToUniversalTime()) -FileName $FileName -SizeBytes $SizeBytes -Reason $Reason -MainDatabase $MainDatabase
         Invoke-HccSql -Instance $SqlInstance -Query $sql -TrustServerCertificate:$TrustServerCertificate | Out-Null
         return $true
     }

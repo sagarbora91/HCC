@@ -1,10 +1,11 @@
 using System.Data;
 using System.Globalization;
 using Hcc.Application.Documents;
+using Hcc.Infrastructure.SqlServer.Documents;
 using Hcc.Infrastructure.SqlServer.Connection;
 using Microsoft.Data.SqlClient;
 
-namespace Hcc.Infrastructure.SqlServer.Documents;
+namespace Hcc.Infrastructure.SqlServer.DocumentObjects;
 
 public sealed record DocumentMoveResult(int Moved, int Cleared, int Remaining, IReadOnlyList<string> StuckTables);
 
@@ -92,8 +93,9 @@ public sealed class DocumentMoveJob(SqlConnectionFactory main, SqlDocumentConnec
                     {
                         foreach (var row in batch)
                         {
-                            var o = new NewDocumentObject(row.PropertyId, t.Kind, t.OwnerTable, row.Key, row.ContentType,
-                                t.Sealed ? null : row.Bytes, t.Sealed ? row.Text : null, 0);
+                            ReadOnlyMemory<byte>? plain = null;
+                            if (!t.Sealed && row.Bytes is { } bytes) plain = new ReadOnlyMemory<byte>(bytes);
+                            var o = new NewDocumentObject(row.PropertyId, t.Kind, t.OwnerTable, row.Key, row.ContentType, plain, t.Sealed ? row.Text : null, 0);
                             var objectRef = await store.PutAsync(o, ct).ConfigureAwait(false);
                             await using var upd = main.Command(t.SetRefSql, conn, tx);
                             upd.Parameters.Add("@ref", SqlDbType.UniqueIdentifier).Value = objectRef;

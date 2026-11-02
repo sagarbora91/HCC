@@ -3,6 +3,7 @@ using Hcc.Application.Documents;
 using Hcc.Application.Health;
 using Hcc.Infrastructure.SqlServer;
 using Hcc.Infrastructure.SqlServer.Documents;
+using Hcc.Infrastructure.SqlServer.DocumentObjects;
 using Hcc.Infrastructure.SqlServer.Health;
 
 namespace Hcc.Api.Endpoints;

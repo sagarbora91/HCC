@@ -1,6 +1,6 @@
 using Hcc.Application.Documents;
 
-namespace Hcc.Infrastructure.SqlServer.Documents;
+namespace Hcc.Infrastructure.SqlServer.DocumentObjects;
 
 /// <summary>
 /// LF-docdb: the four <c>Hcc</c> tables whose content moved to <c>HccDocuments</c> (contract §1.1), with the SQL the move job, the sweep and the

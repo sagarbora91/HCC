@@ -1,10 +1,11 @@
 using System.Text.Json;
 using Hcc.Application.Commands;
 using Hcc.Application.Documents;
+using Hcc.Infrastructure.SqlServer.Documents;
 using Hcc.Infrastructure.SqlServer.Outbox;
 using Microsoft.Data.SqlClient;
 
-namespace Hcc.Infrastructure.SqlServer.Documents;
+namespace Hcc.Infrastructure.SqlServer.DocumentObjects;
 
 /// <summary>
 /// LF-docdb (contract §1.7): the consumer of <c>DocumentObjectReleased</c>. A purged / deleted <c>Hcc</c> row publishes the event inside its own

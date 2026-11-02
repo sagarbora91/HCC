@@ -1,4 +1,4 @@
--- HccDocuments 0002 · LF-docdb (contract §1.3, §1.9): plat.doc_meta('main_database', '<name>') is written by the move job so a restore of a
+-- HccDocuments 0002 · LF-docdb (contract §1.3, §1.9): plat.doc_meta('main_database', 'name') is written by the move job so a restore of a
 -- wrong pair of databases is detected by check-documents.
 CREATE SCHEMA plat;
 GO

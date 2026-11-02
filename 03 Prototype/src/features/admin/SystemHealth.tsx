@@ -3,7 +3,7 @@
 // and whether the Windows Event Log source HCC is registered. No guest data: consumer, event type, attempts, times, error TYPE only.
 import React from 'react';
 import {Activity,RotateCcw,TriangleAlert,CheckCircle2,Lock} from 'lucide-react';
-import {sysHealthView,sysHoursSince,sysKindLabel,sysRunResult,SYS_CONSUMER_EFFECT,SYS_EVENT_LOG_TEXT,SYS_PARK_AFTER,type SYSParked,type SYSBackupRun} from '../../services/mock';
+import {sysHealthView,sysHoursSince,sysKindLabel,sysRunResult,sysBytes,sysDbTone,SYS_CONSUMER_EFFECT,SYS_EVENT_LOG_TEXT,SYS_PARK_AFTER,type SYSParked,type SYSBackupRun} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {Pill,Empty,dateLabel,clockTime} from '../../components/ui';
 import {FitPage,ScrollPanel,FitNote} from '../../components/fit';
@@ -18,6 +18,18 @@ function RunText({r}:{r?:SYSBackupRun}){
   if(!r)return <span className="muted">None recorded yet</span>;
   return <>{r.ok?<Pill tone="green"><CheckCircle2 size={11}/> {sysRunResult(r)}</Pill>:<Pill tone="orange"><TriangleAlert size={11}/> {sysRunResult(r)}</Pill>} {sysKindLabel(r.kind)} · {sysWhen(r.at)}
     {r.reason&&<small className="adm-wrap">Reason: {r.reason}</small>}{r.file&&<small className="adm-wrap">{r.file}</small>}</>;
+}
+
+/** LF-docdb (contract §1.9): the "Databases" rows — main and documents — each with a size bar (amber at 70 %, red at 85 % of the 50 GB Express limit) and its last backup. */
+export function DatabasesTable({rows}:{rows:NonNullable<ReturnType<typeof sysHealthView>['databases']>}){
+  return <div className="table-wrap"><table className="adm-table" aria-label="Databases"><thead><tr><th>Database</th><th>Version</th><th>Size (of 50 GB)</th><th>Last backup</th></tr></thead><tbody>
+    {rows.map(d=><tr key={d.name}><td className="adm-wrap"><strong>{d.name}</strong><small>{d.kind==='documents'?'Photos and documents':'Everything else'}{!d.reachable?' · NOT REACHABLE':''}</small>
+        {d.kind==='documents'&&d.objectCount!==undefined&&<small>{d.objectCount} file(s) · {sysBytes(d.contentBytes??0)}{d.danglingRefs?` · ${d.danglingRefs} missing`:''}{d.orphanObjects?` · ${d.orphanObjects} unused`:''}</small>}</td>
+      <td>{d.schemaVersion}</td>
+      <td><div className={`adm-dbbar adm-dbbar-${sysDbTone(d.pct)}`} role="progressbar" aria-valuenow={d.pct} aria-valuemin={0} aria-valuemax={100} aria-label={`${d.name} uses ${d.pct} percent of its 50 GB`}><span style={{width:Math.max(2,d.pct)+'%'}}/></div>
+        <small>{sysBytes(d.dataBytes)} · {d.pct} %</small></td>
+      <td>{d.lastBackup?sysWhen(d.lastBackup):<span className="muted">None yet</span>}</td></tr>)}
+  </tbody></table></div>;
 }
 
 export function SystemHealth(){
@@ -40,6 +52,7 @@ export function SystemHealth(){
     </ScrollPanel></div><div>
     <ScrollPanel title="Backups" label="Backups" actions={hours!==undefined&&hours>26?<Pill tone="orange">Last good backup {hours} h ago</Pill>:undefined}
         footer={<FitNote text="Recorded by the backup scripts on the server PC after every run."/>}>
+      {v.databases&&v.databases.length>0&&<DatabasesTable rows={v.databases}/>}
       <div className="table-wrap"><table className="adm-table"><tbody>
         <tr><th scope="row">Last backup</th><td className="adm-wrap"><RunText r={v.lastBackup}/></td></tr>
         <tr><th scope="row">Last good backup</th><td>{v.lastOkBackupAt?<>{sysWhen(v.lastOkBackupAt)}{hours!==undefined&&<small>{hours} hour{hours===1?'':'s'} ago</small>}</>:<span className="muted">None recorded yet</span>}</td></tr>

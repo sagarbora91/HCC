@@ -9,6 +9,8 @@ import type {State} from '../types';
 import {isProductionBuild} from '../build';
 import {addDays,addMinutes} from '../money';
 import {hkBackupStatus} from './housekeeping';
+import {dobSize,dobRefCheck} from './docobjects';
+import type {SYSDatabase} from '../types';
 
 /** One parked event. Times are in the prototype clock format (IST, YYYY-MM-DDTHH:mm). */
 export type SYSParked={consumer:string;label:string;outboxId:string;eventType:string;attempts:number;errorType:string;firstFailedAt:string;lastFailedAt:string;parkedAt:string};
@@ -53,12 +55,35 @@ function demoBackups(s:State):Pick<SYSView,'lastBackup'|'lastOkBackupAt'|'lastDr
   const dow=new Date(s.date+'T12:00:00Z').getUTCDay(),sunday=addDays(s.date,-(dow===0&&s.clock<s.date+'T03:30'?7:dow));
   return {lastBackup,lastOkBackupAt:b.last?.at,lastDrill:{kind:'RestoreDrill',ok:true,at:sunday+'T03:30'}};
 }
+/** SQL Server Express allows 50 GB of data per database (LF-CONTRACT §1.9). */
+export const SYS_DB_LIMIT_BYTES=50*1024*1024*1024;
+export const sysDbPct=(dataBytes:number)=>Math.min(100,Math.floor(dataBytes*100/SYS_DB_LIMIT_BYTES));
+/** Bar colour thresholds of the Databases panel: amber at 70 %, red at 85 % of the limit. */
+export const sysDbTone=(pct:number):'ok'|'warn'|'bad'=>pct>=85?'bad':pct>=70?'warn':'ok';
+/** The demo's two fictional database rows: the main database (fictional size) and the documents database sized from the demo's docObjectsX slice. */
+export function sysDemoDatabases(s:State):SYSDatabase[]{
+  const z=dobSize(s),chk=dobRefCheck(s),back=demoBackups(s);
+  const mainData=1_740_000_000,docData=64*1024*1024+Math.round(z.total*1.15);
+  return [
+    {name:'Hcc',kind:'main',schemaVersion:'4674',reachable:true,dataBytes:mainData,logBytes:128*1024*1024,limitBytes:SYS_DB_LIMIT_BYTES,pct:sysDbPct(mainData),
+      ...(back.lastOkBackupAt?{lastBackup:back.lastOkBackupAt}:{}),...(back.lastDrill?{lastDrill:back.lastDrill.at}:{})},
+    {name:'HccDocuments',kind:'documents',schemaVersion:'0002',reachable:true,dataBytes:docData,logBytes:72*1024*1024,limitBytes:SYS_DB_LIMIT_BYTES,pct:sysDbPct(docData),
+      objectCount:z.count,contentBytes:z.total,danglingRefs:chk.dangling,orphanObjects:chk.orphans,
+      ...(back.lastOkBackupAt?{lastBackup:back.lastOkBackupAt}:{}),...(back.lastDrill?{lastDrill:back.lastDrill.at}:{})},
+  ];
+}
+/** "1.7 GB" / "64 MB" for the Databases panel. */
+export function sysBytes(n:number):string{
+  if(n>=1024**3)return (n/1024**3).toFixed(n>=10*1024**3?0:1)+' GB';
+  if(n>=1024**2)return Math.round(n/1024**2)+' MB';
+  return Math.max(0,Math.round(n/1024))+' KB';
+}
 const EMPTY_SERVER:SYSView={source:'server',parked:[],eventLog:'unavailable'};
 /** What the System health page shows. Production: the server's answer only (empty until loaded). Demo: the stored slice, else the demo event. */
 export function sysHealthView(s:State):SYSView{
   const x=s.sysHealthX;
   if(isProductionBuild()||x?.source==='server')return x?{...x,eventLog:x.eventLog??'unavailable'}:EMPTY_SERVER;
-  return {source:'demo',parked:x?.parked??sysDemoParked(s),...demoBackups(s),eventLog:'unavailable'};
+  return {source:'demo',parked:x?.parked??sysDemoParked(s),...demoBackups(s),eventLog:'unavailable',databases:sysDemoDatabases(s)};
 }
 /** Parked events of the accounting consumer (block the accounting lock; the demo's accounting page shows them as "stuck"). */
 export const sysParkedAccounting=(s:State)=>sysHealthView(s).parked.filter(p=>p.consumer==='accounting-vouchers').length;

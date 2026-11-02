@@ -779,6 +779,51 @@ Check 'Build-Installer without Inno Setup: skips with exit 0' {
     $LASTEXITCODE -eq 0 -and $out -match 'DRY RUN'
 }
 
+# --- LF-docdb: the documents database (LF-CONTRACT 1.9) ---------------------------------------------------------------------
+Check 'LF-docdb database list: main first, documents second; no documents entry = main only; same name refused' {
+    $both = Get-HccDatabaseList -Config ([ordered]@{ Database = 'Hcc'; DocumentsDatabase = 'HccDocuments' })
+    $old = Get-HccDatabaseList -Config ([ordered]@{ Database = 'Hcc'; DocumentsDatabase = '' })
+    $both.Count -eq 2 -and $both[0] -eq 'Hcc' -and $both[1] -eq 'HccDocuments' -and $old.Count -eq 1 -and $old[0] -eq 'Hcc' -and
+    (Throws { Get-HccDatabaseList -Config ([ordered]@{ Database = 'Hcc'; DocumentsDatabase = 'Hcc' }) }) -and (Throws { Get-HccDatabaseList -Config ([ordered]@{ Database = 'Hcc'; DocumentsDatabase = 'EtpReporting' }) })
+}
+Check 'LF-docdb default config names HccDocuments; the sample hcc-ops.json carries it' {
+    (Get-HccOpsConfig -Path (Join-Path $env:TEMP 'none-hcc-ops.json')).DocumentsDatabase -eq 'HccDocuments' -and (Get-Content -LiteralPath (Join-Path $root 'hcc-ops.sample.json') -Raw) -match '"DocumentsDatabase":\s*"HccDocuments"'
+}
+Check 'LF-docdb backup file names are per database (HccDocuments_FULL_...) and retention never mixes the two' {
+    $d = New-HccBackupFileName -Database HccDocuments -Type Full -UtcNow $now
+    $d -eq 'HccDocuments_FULL_20261025T120000Z.bak' -and (ConvertFrom-HccBackupFileName ($d + '.hccenc')).Database -eq 'HccDocuments' -and
+    @(Select-HccBackupsToDelete -Names @($d, (Nm Full 200), (Nm Full 201), (Nm Full 202), (Nm Full 203)) -Database HccDocuments -UtcNow $now -RetentionDays 30 -KeepMinFulls 3).Count -eq 0 -and
+    (Select-HccRestoreChain -Names @($d, (Nm Full 1)) -Database HccDocuments).Full -eq $d
+}
+Check 'LF-docdb backup result of the documents database is written to the MAIN database with database_name; the main statement is unchanged' {
+    $start = [datetime]::SpecifyKind([datetime]'2026-10-26 02:30:00', 'Utc')
+    $docs = Get-HccBackupRunSql -Database HccDocuments -MainDatabase Hcc -Kind Full -Succeeded $true -StartedUtc $start -FinishedUtc $start.AddSeconds(5) -FileName 'HccDocuments_FULL_20261026T023000Z.bak.hccenc' -SizeBytes 10 -HostName 'HOTEL-PC'
+    $main = Get-HccBackupRunSql -Database Hcc -MainDatabase Hcc -Kind Full -Succeeded $true -StartedUtc $start -FinishedUtc $start.AddSeconds(5) -HostName 'HOTEL-PC'
+    $docs -match '^IF OBJECT_ID\(N''\[Hcc\]\.plat\.backup_run''\) IS NOT NULL INSERT \[Hcc\]\.plat\.backup_run\(kind, succeeded, started_utc, finished_utc, file_name, size_bytes, reason, host_name, database_name\) VALUES \(N''Full'', 1, .*N''HccDocuments''\);$' -and
+    $main -notmatch 'database_name' -and $main -match '^IF OBJECT_ID\(N''\[Hcc\]\.plat\.backup_run''\)'
+}
+Check 'LF-docdb reference check SQL reads the four content tables of the main database and the live objects of the documents database' {
+    $q = Get-HccDocumentRefCheckSql -MainDatabase HccDrill_1 -DocumentsDatabase HccDrill_1Documents
+    $q -match 'doc\.id_capture_image' -and $q -match 'ops\.expense_bill_photo' -and $q -match 'pay\.banking_slip' -and $q -match 'cmp\.evidence_content' -and
+    $q -match '\[HccDrill_1Documents\]\.dob\.object' -and $q -match 'deleted_utc IS NULL' -and (Throws { Get-HccDocumentRefCheckSql -MainDatabase Hcc -DocumentsDatabase EtpReporting })
+}
+Check 'LF-docdb Initialize-HccDatabase -WhatIf creates both databases and gives the service the same rights in both; -DocumentsDatabase "" keeps the old single database' {
+    $r = DryRun 'Initialize-HccDatabase.ps1' @('-ServiceAccount', 'NT SERVICE\HccServer', '-BackupDirectory', 'D:\HccBackups')
+    $o = DryRun 'Initialize-HccDatabase.ps1' @('-ServiceAccount', 'NT SERVICE\HccServer', '-BackupDirectory', 'D:\HccBackups', '-DocumentsDatabase', '')
+    $r.Exit -eq 0 -and $r.Out -match 'CREATE DATABASE \[Hcc\]' -and $r.Out -match 'CREATE DATABASE \[HccDocuments\]' -and $r.Out -match 'USE \[HccDocuments\]; IF USER_ID' -and
+    $o.Exit -eq 0 -and $o.Out -notmatch 'HccDocuments' -and (DryRun 'Initialize-HccDatabase.ps1' @('-DocumentsDatabase', 'EtpReporting', '-ServiceAccount', 'x\y', '-BackupDirectory', 'D:\b')).Exit -ne 0
+}
+Check 'LF-docdb Backup -WhatIf plans both databases (main first) and records the documents run in the main database; -Database HccDocuments backs up only that one' {
+    $b = DryRun 'Backup-HccDatabase.ps1' @('-Type', 'Full', '-BackupDirectory', $tmp, '-ConfigPath', (Join-Path $tmp 'none.json'))
+    $one = DryRun 'Backup-HccDatabase.ps1' @('-Type', 'Full', '-BackupDirectory', $tmp, '-ConfigPath', (Join-Path $tmp 'none.json'), '-Database', 'HccDocuments')
+    $iMain = $b.Out.IndexOf('BACKUP DATABASE [Hcc] TO DISK'); $iDocs = $b.Out.IndexOf('BACKUP DATABASE [HccDocuments] TO DISK')
+    $b.Exit -eq 0 -and $iMain -ge 0 -and $iDocs -gt $iMain -and $b.Out -match 'database_name = HccDocuments' -and $one.Exit -eq 0 -and $one.Out -notmatch 'BACKUP DATABASE \[Hcc\] '
+}
+Check 'LF-docdb Restore-HccDrill -WhatIf names both scratch copies and the reference check' {
+    $r = DryRun 'Restore-HccDrill.ps1' @('-BackupDirectory', $tmp, '-ConfigPath', (Join-Path $tmp 'none.json'))
+    $r.Exit -eq 0 -and $r.Out -match 'documents database: would pick the newest FULL' -and $r.Out -match 'HccDrill_\d+Documents' -and $r.Out -match 'reference check: would count object_ref' -and $r.Out -match 'one RestoreDrill row per database'
+}
+
 Write-Host ''
 Write-Host "Passed: $script:passed  Failed: $script:failed"
 if ($script:failed -gt 0) { exit 1 }

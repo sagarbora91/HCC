@@ -28,6 +28,7 @@ import {EXP_VOID_REASONS,EXP_MAX_PAISE,EXP_PHOTO_MAX_BYTES,EXP_DESC_MAX,EXP_UD_D
   expMonthUnlockRefusal,type EXPState,type ExpRecTpl,type ExpEditLog} from '../../../domain/streams/expenses-scc';
 import {expUdGst,type ExpUdKind} from '../../../domain/streams/expenses-scc'; // ACC-1 (acc1-parties): Udhaar credit raised (contract §4)
 import {gstForFood,gstForRoomNight,gstForService} from '../../../domain/gst';
+import {dobPut,dobDelete} from '../../../domain/streams/docobjects'; // LF-docdb: bill photos live in s.docObjectsX (contract §1.10)
 // ACC-2 acc2-purchase (contract §3): purchase fields at entry (GST kind, RCM rate, ITC guard DEC-143), stamped at approval (RCM, capital, TDS),
 // the asset register row of a capital purchase, returns approved by the Owner only.
 import {expPurchaseEntry,expPurchaseStamp,expIsReturn} from '../../../domain/streams/expenses-vendor';
@@ -68,6 +69,16 @@ function billPhoto(k:Kit,v:unknown):string|undefined{
   const b64=m![2],bytes=Math.floor(b64.length*3/4)-(b64.endsWith('==')?2:b64.endsWith('=')?1:0);
   if(bytes>EXP_PHOTO_MAX_BYTES)k.fail('VALIDATION','Photo too large (max 4MB)');
   return String(v);
+}
+/** LF-docdb: the bill photo goes to the documents mirror (a replaced photo is released); the record keeps only the ref. A photo above the 150 KB cap is refused with the server's words. */
+function storeBillPhoto(k:Kit,e:Expense,photo:string){
+  const s=k.s,ref=k.id('DOB');
+  let next;
+  try{next=dobPut(s,{ref,kind:'expense-bill',owner:e.id,dataUrl:photo,at:s.clock,by:k.uid});}
+  catch(x){return k.fail('VALIDATION',x instanceof Error?x.message:'The bill photo could not be stored.');}
+  s.docObjectsX=next;
+  if(e.billPhotoRef)s.docObjectsX=dobDelete(s,e.billPhotoRef);
+  e.billPhotoRef=ref;delete e.billPhoto;
 }
 /** GST on the bill: rate in basis points 0–10000 (≤ 100 %), amount in paise ≥ 0; both kept only when > 0 (SCC normEntry). */
 function gst(k:Kit,amount:number):{gstRateBps?:number;gstPaise?:number}{
@@ -143,7 +154,7 @@ export const handlers:Record<string,Handler>={
     if(description)e.description=description;
     if(txt(cmd.notes))e.notes=txt(cmd.notes).slice(0,300);
     if(txt(cmd.receipt))e.receipt=txt(cmd.receipt).slice(0,120);
-    if(photo)e.billPhoto=photo;
+    if(photo)storeBillPhoto(k,e,photo);
     s.expenses.push(e);
     if(ven.isNew)addVendor(k,ven.name);
     return (draft?'Expense draft saved · ':'Expense submitted · ')+(description||ven.name||cat.name)+(date!==s.date?` · dated ${date}`:'')+over+alertText(k,cat.name,date,amount);
@@ -242,13 +253,13 @@ export const handlers:Record<string,Handler>={
     if((e.receipt??'')!==(receipt??'')){old.receipt=e.receipt??'';nu.receipt=receipt??'';}
     // DEC-135: the ITC flag is logged when 'allowed' is set or cleared (adding / removing GST alone changes only the GST fields).
     {const was=e.gstPaise?e.itc==='allowed'?'allowed':'disallowed':'',now=itc??'';if(was!==now&&(was==='allowed'||now==='allowed')){old.itc=was;nu.itc=now;}}
-    if(photo){old.billPhoto=e.billPhoto||e.hasBillPhoto?'(present)':'(none)';nu.billPhoto='(changed)';}
+    if(photo){old.billPhoto=e.billPhotoRef||e.billPhoto||e.hasBillPhoto?'(present)':'(none)';nu.billPhoto='(changed)';}
     e.amount=amount;e.category=cat.name;e.method=pm.name;
     if(description)e.description=description;else delete e.description;
     delete e.gstPaise;delete e.gstRateBps;delete e.itc;Object.assign(e,g);if(itc)e.itc=itc;
     delete e.gstKind;delete e.rcm;delete e.rcmBps;Object.assign(e,pe.fields); // ACC-2
     if(receipt)e.receipt=receipt;else delete e.receipt;
-    if(photo)e.billPhoto=photo;
+    if(photo)storeBillPhoto(k,e,photo);
     e.editLog=[...(e.editLog??[]),{at:s.clock,by:uid,old,new:nu,reason}];
     if(!own&&!(e.editors??[]).includes(uid))e.editors=[...(e.editors??[]),uid];
     return `${e.id} · changed · ${reason}`+over+alertText(k,cat.name,e.date,e.status==='Pending'?amount:0);

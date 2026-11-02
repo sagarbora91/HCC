@@ -195,7 +195,7 @@ export function register({test,M,assert}){
     const big='data:image/jpeg;base64,'+'A'.repeat(Math.ceil((4194304+1)/3)*4);
     assert.throws(()=>execute(seed(),'reception',{type:'EXPENSE',description:'x',category:'Supplies',amount:100,method:'UPI',billPhoto:big}),/Photo too large \(max 4MB\)/);
     const ok=execute(seed(),'reception',{type:'EXPENSE',description:'x',category:'Supplies',amount:100,method:'UPI',billPhoto:P.slipDataUrl(new Uint8Array(3000).fill(0xff))});
-    assert.match(ok.expenses.at(-1).billPhoto,/^data:image\/jpeg;base64,/);
+    assert.match(ok.docObjectsX[ok.expenses.at(-1).billPhotoRef].dataUrl,/^data:image\/jpeg;base64,/);assert.equal(ok.expenses.at(-1).billPhoto,undefined);// LF-docdb: the photo lives in the documents mirror
     assert.throws(()=>execute(seed(),'reception',{type:'EXPENSE',description:'x',category:'Supplies',amount:100,method:'UPI',billPhoto:'data:text/html;base64,AAAA'}),/JPEG or PNG/);});
 
   // ── 3. Edit and void through HCC's role and approval rules ──

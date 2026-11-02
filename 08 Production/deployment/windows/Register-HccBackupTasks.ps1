@@ -13,6 +13,8 @@
   folder, or any .ps1/.json in it, can be changed by anyone other than SYSTEM, Administrators or TrustedInstaller. -InstallScripts
   copies the scripts (and hcc-ops.json) there from this folder first and sets that folder's permissions (owner Administrators,
   inheritance removed, SYSTEM/Administrators full, Users read).
+  LF-docdb: the Full and Differential tasks and the drill name no -Database, so each run covers BOTH databases (hcc-ops.json Database +
+  DocumentsDatabase), main first, documents second (LF-CONTRACT 1.9).
   Re-running replaces the tasks. -Unregister removes them.
 # ETP-REUSE: replace/align with ETP's Task Scheduler registration script when V:\ETP is available.
 #>

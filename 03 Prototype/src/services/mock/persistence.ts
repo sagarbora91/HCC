@@ -7,6 +7,7 @@ import {mstRows,mstNextSort,type MasterRow} from '../../domain/streams/masters';
 import {HRM_HOLIDAYS,HRM_LEAVE_TYPES} from '../../domain/streams/people-masters';
 import {cmpIsLegacy,cmpFromLegacy,cmpStampFyChoice} from '../../domain/streams/compliance';
 import {expMigrateItc} from '../../domain/streams/expenses-scc';
+import {dobMigrateV12} from '../../domain/streams/docobjects';
 /** Oldest saved schema that is migrated instead of reset (W05-B review F-04). */
 export const MIGRATE_FROM_SCHEMA=7;
 /** One-time state migrations keyed on the saved schema; each is a no-op on current-shape state. Returns true when a shape-detected
@@ -48,6 +49,8 @@ function migrate(s:State&{schema:number}):boolean{
   // SCC decisions wave (DEC-135; SCHEMA stays 10 — the shape is detected, so this is idempotent): an expense saved with GST on the bill before
   // the ITC flag existed is ITC disallowed (nothing is claimed unless someone marks it).
   if(expMigrateItc(s))changed=true;
+  // LF-docdb (SCHEMA 13, contract §1.10; shape-detected, idempotent): bill photos and evidence files move into the docObjectsX slice.
+  if(dobMigrateV12(s))changed=true;
   s.schema=SCHEMA;
   return changed;
 }

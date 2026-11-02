@@ -5,6 +5,10 @@
   user who is sysadmin on the SQL Server instance.
 .DESCRIPTION
   - CREATE DATABASE [Hcc] if missing (never touches any other database; only names starting with "Hcc" are accepted).
+  - LF-docdb (DEC-200, LF-CONTRACT 1.2, 1.9): also CREATE DATABASE [HccDocuments] (-DocumentsDatabase; '' = none, an old install): the separate database
+    for ID images, bill photos, deposit slips and compliance evidence, with its own 50 GB Express allowance. The same service login gets the same
+    rights there (db_datareader + db_datawriter + EXECUTE, no db_owner) and the backup account the same backup rights. Its schema is built by
+    "Hcc.Api.exe migrate" (second migration journal, then the move of existing images). The uninstaller never drops either database.
   - Runtime login (F-L08): CREATE LOGIN [<ServiceAccount>] FROM WINDOWS; in Hcc only db_datareader + db_datawriter + EXECUTE. It is NOT
     db_owner: the HCC service never changes the schema, so it cannot alter tables or disable the append-only audit trigger. An
     earlier db_owner membership is removed. The schema is built and upgraded by the MIGRATION principal: the administrator who runs
@@ -26,6 +30,7 @@
 param(
     [string]$SqlInstance = '.\SQLEXPRESS',
     [string]$Database = 'Hcc',
+    [string]$DocumentsDatabase = 'HccDocuments',   # LF-docdb: '' = no documents database (an install made before LF)
     [Parameter(Mandatory)][string]$ServiceAccount,     # e.g. WORKPC\svc-hcc  or  NT SERVICE\HccServer
     [Parameter(Mandatory)][string]$BackupDirectory,
     [string]$BackupAccount = 'NT AUTHORITY\SYSTEM',   # the account Register-HccBackupTasks.ps1 runs the tasks as
@@ -36,6 +41,7 @@ param(
 $ErrorActionPreference = 'Stop'
 . "$PSScriptRoot\Hcc-Common.ps1"
 Assert-HccDatabaseName $Database | Out-Null
+if ($DocumentsDatabase) { Assert-HccDatabaseName $DocumentsDatabase | Out-Null; if ($DocumentsDatabase -eq $Database) { throw 'DocumentsDatabase must differ from Database.' } }
 foreach ($acct in @($ServiceAccount, $BackupAccount)) { if ($acct -notmatch '^[^\[\]'';]+$') { throw "Account '$acct' contains characters that are not allowed." } }
 if (-not [IO.Path]::IsPathRooted($BackupDirectory)) { throw 'BackupDirectory must be a full path.' }
 $sqlService = Get-HccSqlServiceAccount -Instance $SqlInstance
@@ -45,14 +51,24 @@ $db = ConvertTo-HccSqlName $Database
 $login = ConvertTo-HccSqlName $ServiceAccount
 $backupLogin = ConvertTo-HccSqlName $BackupAccount
 $runtime = if ($RuntimeDbOwner) { "ALTER ROLE db_owner ADD MEMBER $login;" } else { (Get-HccRuntimeGrantSql -User $login) + (" IF IS_ROLEMEMBER('db_owner', {0}) = 1 ALTER ROLE db_owner DROP MEMBER {1};" -f (ConvertTo-HccSqlLiteral $ServiceAccount), $login) }
-$steps = @(
-    ('IF DB_ID({0}) IS NULL CREATE DATABASE {1};' -f (ConvertTo-HccSqlLiteral $Database), $db),
-    ('IF SUSER_ID({0}) IS NULL CREATE LOGIN {1} FROM WINDOWS WITH DEFAULT_DATABASE = {2};' -f (ConvertTo-HccSqlLiteral $ServiceAccount), $login, $db),
-    ('USE {0}; IF USER_ID({1}) IS NULL CREATE USER {2} FOR LOGIN {2}; {3}' -f $db, (ConvertTo-HccSqlLiteral $ServiceAccount), $login, $runtime)
-)
+$steps = @()
+$dbs = @($Database)   # LF-docdb: main first, documents second
+if ($DocumentsDatabase) { $dbs += $DocumentsDatabase }
+foreach ($dbName in $dbs) {
+    $dq = ConvertTo-HccSqlName $dbName
+    $steps += ('IF DB_ID({0}) IS NULL CREATE DATABASE {1};' -f (ConvertTo-HccSqlLiteral $dbName), $dq)
+}
+$steps += ('IF SUSER_ID({0}) IS NULL CREATE LOGIN {1} FROM WINDOWS WITH DEFAULT_DATABASE = {2};' -f (ConvertTo-HccSqlLiteral $ServiceAccount), $login, $db)
+foreach ($dbName in $dbs) {
+    $dq = ConvertTo-HccSqlName $dbName
+    $steps += ('USE {0}; IF USER_ID({1}) IS NULL CREATE USER {2} FOR LOGIN {2}; {3}' -f $dq, (ConvertTo-HccSqlLiteral $ServiceAccount), $login, $runtime)
+}
 if ($BackupAccount -ne $ServiceAccount) {
     $steps += ('IF SUSER_ID({0}) IS NULL CREATE LOGIN {1} FROM WINDOWS;' -f (ConvertTo-HccSqlLiteral $BackupAccount), $backupLogin)
-    $steps += ('USE {0}; IF USER_ID({1}) IS NULL CREATE USER {2} FOR LOGIN {2}; ALTER ROLE db_backupoperator ADD MEMBER {2}; ALTER ROLE db_datareader ADD MEMBER {2};' -f $db, (ConvertTo-HccSqlLiteral $BackupAccount), $backupLogin)
+    foreach ($dbName in $dbs) {
+        $dq = ConvertTo-HccSqlName $dbName
+        $steps += ('USE {0}; IF USER_ID({1}) IS NULL CREATE USER {2} FOR LOGIN {2}; ALTER ROLE db_backupoperator ADD MEMBER {2}; ALTER ROLE db_datareader ADD MEMBER {2};' -f $dq, (ConvertTo-HccSqlLiteral $BackupAccount), $backupLogin)
+    }
 }
 # A09-05: the backup account records each run's result for System health (role from migration 3920; skipped before that migration).
 $steps += ("USE {0}; IF DATABASE_PRINCIPAL_ID(N'hcc_backup_reporter') IS NOT NULL AND USER_ID({1}) IS NOT NULL AND IS_ROLEMEMBER(N'hcc_backup_reporter', {1}) = 0 ALTER ROLE hcc_backup_reporter ADD MEMBER {2};" -f $db, (ConvertTo-HccSqlLiteral $BackupAccount), $backupLogin)
@@ -72,6 +88,6 @@ foreach ($s in $steps) { Invoke-HccSql -Instance $SqlInstance -Query $s -TrustSe
 Set-HccProtectedDirectory -Path $BackupDirectory -ModifyAccounts $folderWriters
 $problems = @(Test-HccProtectedDirectory -Path $BackupDirectory -AllowedAccounts $folderWriters)
 if ($problems.Count -gt 0) { throw ("The backup folder is still not private: " + ($problems -join '; ')) }
-Write-Host "Database [$Database] ready on $SqlInstance. Runtime login ${ServiceAccount}: $(if ($RuntimeDbOwner) { 'db_owner' } else { 'read/write/execute only' }). Backup account: $BackupAccount."
+Write-Host "Database(s) [$($dbs -join '], [')] ready on $SqlInstance. Runtime login ${ServiceAccount}: $(if ($RuntimeDbOwner) { 'db_owner' } else { 'read/write/execute only' }). Backup account: $BackupAccount."
 Write-Host "Backup folder $BackupDirectory is private (SYSTEM, Administrators, $($folderWriters -join ', ')). Turn on BitLocker for that drive (INSTALL.md section 7)."
 Write-Host 'Next: Hcc.Api.exe migrate (as this administrator), Start-Service HccServer, then .\Initialize-HccProperty.ps1 (creates the hotel and the first Owner).'

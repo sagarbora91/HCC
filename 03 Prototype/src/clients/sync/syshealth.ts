@@ -7,6 +7,7 @@
 //   commands SYS_RETRY_PARKED {consumer, outboxId} → RetryParkedEvent; reloads sysHealthX (the released event leaves the list at once;
 //            the consumer's next poll delivers it, or parks it again with one more attempt).
 import type {SYSState,SYSParked,SYSBackupRun} from '../../domain/streams/syshealth';
+import type {SYSDatabase} from '../../domain/types';
 import {HccClientError} from '../errors';
 import type {SyncArea} from './types';
 import {utcToClock} from './map';
@@ -14,7 +15,15 @@ import {utcToClock} from './map';
 /** Server wire shapes (08 Production/src/Hcc.Contracts/Health/SystemHealthContracts.cs). */
 export type SrvParkedEvent={consumer:string;consumerLabel:string;outboxId:number;eventType:string;attempts:number;errorType:string;firstFailedUtc:string;lastFailedUtc:string;parkedUtc:string};
 export type SrvBackupRun={kind:string;succeeded:boolean;startedUtc:string;finishedUtc:string;fileName:string|null;sizeBytes:number|null;reason:string|null};
-export type SrvSystemHealth={checkedUtc:string;parked:SrvParkedEvent[];lastBackup:SrvBackupRun|null;lastSuccessfulBackupUtc:string|null;lastRestoreDrill:SrvBackupRun|null;eventLog:string};
+/** LF-docdb (contract §1.9): one row of the Databases block. */
+export type SrvDatabase={name:string;kind:string;schemaVersion:string;reachable:boolean;dataBytes:number;logBytes:number;limitBytes:number;pct:number;
+  objectCount:number|null;contentBytes:number|null;danglingRefs:number|null;orphanObjects:number|null;lastBackupUtc:string|null;lastDrillUtc:string|null};
+export type SrvSystemHealth={checkedUtc:string;parked:SrvParkedEvent[];lastBackup:SrvBackupRun|null;lastSuccessfulBackupUtc:string|null;lastRestoreDrill:SrvBackupRun|null;eventLog:string;databases?:SrvDatabase[]|null};
+export function databaseFromServer(d:SrvDatabase):SYSDatabase{
+  return {name:d.name,kind:d.kind==='documents'?'documents':'main',schemaVersion:d.schemaVersion,reachable:d.reachable,dataBytes:d.dataBytes,logBytes:d.logBytes,limitBytes:d.limitBytes,pct:d.pct,
+    ...(d.objectCount!=null?{objectCount:d.objectCount}:{}),...(d.contentBytes!=null?{contentBytes:d.contentBytes}:{}),...(d.danglingRefs!=null?{danglingRefs:d.danglingRefs}:{}),
+    ...(d.orphanObjects!=null?{orphanObjects:d.orphanObjects}:{}),...(d.lastBackupUtc?{lastBackup:utcToClock(d.lastBackupUtc)}:{}),...(d.lastDrillUtc?{lastDrill:utcToClock(d.lastDrillUtc)}:{})};
+}
 
 export function parkedFromServer(p:SrvParkedEvent):SYSParked{
   return {consumer:p.consumer,label:p.consumerLabel||p.consumer,outboxId:String(p.outboxId),eventType:p.eventType,attempts:p.attempts,errorType:p.errorType,
@@ -35,6 +44,7 @@ export function healthFromServer(h:SrvSystemHealth):SYSState{
   if(last)out.lastBackup=last;
   if(h.lastSuccessfulBackupUtc)out.lastOkBackupAt=utcToClock(h.lastSuccessfulBackupUtc);
   if(drill)out.lastDrill=drill;
+  if(h.databases?.length)out.databases=h.databases.map(databaseFromServer);
   return out;
 }
 /** RetryParkedEvent body from the prototype command (outbox id as the server's number). */

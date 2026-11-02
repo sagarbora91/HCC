@@ -22,4 +22,4 @@ CREATE TABLE dob.object_content(
   object_id BIGINT NOT NULL CONSTRAINT PK_dob_object_content PRIMARY KEY CONSTRAINT FK_dob_object_content REFERENCES dob.object ON DELETE CASCADE,
   content VARBINARY(MAX) NULL,
   sealed_text VARCHAR(MAX) NULL,
-  CONSTRAINT CK_dob_object_content_one CHECK ((content IS NULL) <> (sealed_text IS NULL)));
+  CONSTRAINT CK_dob_object_content_one CHECK ((content IS NULL AND sealed_text IS NOT NULL) OR (content IS NOT NULL AND sealed_text IS NULL)));

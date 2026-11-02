@@ -4,6 +4,7 @@
 // SCC decisions wave (27 Oct 2026): DEC-129 budgets and templates are kept by the Owner only (others read them; posting stays with expense
 // users); DEC-130 an Udhaar payment is a desk receipt (cash into the open shift's drawer); DEC-131 Owner unlock of a locked month with a
 // reason; DEC-135 ITC allowed / disallowed on a bill's GST.
+import {dobUrl} from '../../domain/streams/docobjects';
 import React,{useState} from 'react';
 import {AlertTriangle,Camera,Copy,Download,Eye,Lock,Repeat,Unlock} from 'lucide-react';
 import {money,mnyCategoryNames,mnyNames,mnyIsDrawer,mnyMethod,rbacCanSubmitExpense,rbacCanDecideExpense,closingUnlimitedRoles,EXPENSE_MANAGER_LIMIT,can,cxCashBlocked,
@@ -94,7 +95,7 @@ export function ExpPhotoModal({id}:{id?:string}){
   const {s,closeModal}=useHcc();const e=s.expenses.find(x=>x.id===id);
   return <><div className="modal-heading"><h2>Bill photo</h2><p>{e?`${e.id} · ${expDescription(e)} · ${money(e.amount)}`:''}</p></div>
     {!e?<Empty title="Expense not found"/>:process.env.HCC_BUILD==='production'?<BillPhotoProd id={e.id}/>
-      :e.billPhoto?<img className="exp-photo-full" src={e.billPhoto} alt={`Bill photo of ${e.id}`}/>:<p className="muted">No photo stored.</p>}
+      :dobUrl(s,e.billPhotoRef,e.billPhoto)?<img className="exp-photo-full" src={dobUrl(s,e.billPhotoRef,e.billPhoto)} alt={`Bill photo of ${e.id}`}/>:<p className="muted">No photo stored.</p>}
     <div className="modal-actions"><button type="button" className="btn" onClick={closeModal}>Close</button></div></>;
 }
 
@@ -132,7 +133,7 @@ export function ExpEditModal({id}:{id?:string}){
     <GstFields amount={amount} rate={f.rate} gst={f.gst} onRate={v=>setF({...f,rate:v})} onGst={v=>setF({...f,gst:v})}/>
     <ItcField gst={Number.isNaN(gst)?0:gst} amount={amount} value={f.itc} onChange={v=>setF({...f,itc:v})}/>
     <label>Bill / receipt number<input maxLength={120} value={f.receipt} onChange={x=>setF({...f,receipt:x.target.value})}/></label>
-    {(e.billPhoto||e.hasBillPhoto)&&<small className="muted">A photo is already attached — choosing a new one replaces it.</small>}
+    {(e.billPhotoRef||e.billPhoto||e.hasBillPhoto)&&<small className="muted">A photo is already attached — choosing a new one replaces it.</small>}
     <BillPhotoPicker value={f.photo} onChange={v=>setF({...f,photo:v})}/>
     <label>Reason for change (required)<input maxLength={200} value={f.reason} onChange={x=>setF({...f,reason:x.target.value})}/></label>
     {gst>amount&&amount>0&&<label className="checkbox-line"><input type="checkbox" checked={f.confirmGst} onChange={x=>setF({...f,confirmGst:x.target.checked})}/> {expGstOverMessage(gst,amount)}</label>}
@@ -428,7 +429,7 @@ export function ExpRowExtras({e}:{e:Expense}){
     {e.cashDeductionLost&&<small><CashDeductionBadge lost/></small>}
     {e.source&&<small><Pill>{e.source==='petty'?'petty cash':'recurring'}</Pill></small>}
     {e.status==='Void'&&<small>Void · {e.voidReason}</small>}
-    {(e.billPhoto||e.hasBillPhoto)&&<button type="button" className="text-btn" onClick={()=>open({type:'exp-photo',id:e.id})}><Eye size={13}/> Bill photo</button>}
+    {(e.billPhotoRef||e.billPhoto||e.hasBillPhoto)&&<button type="button" className="text-btn" onClick={()=>open({type:'exp-photo',id:e.id})}><Eye size={13}/> Bill photo</button>}
     {!!e.editLog?.length&&<small>Changed {e.editLog.length}× · last: {e.editLog.at(-1)!.reason}</small>}</>;
 }
 /** ACC-2 (contract §3.5): a vendor return / credit note is requested by Owner, Manager or Accountant with the payments permission. */

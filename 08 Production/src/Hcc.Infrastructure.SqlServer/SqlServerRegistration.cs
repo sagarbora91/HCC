@@ -1,6 +1,7 @@
 using Hcc.Application.Commands;
 using Hcc.Application.Documents;
 using Hcc.Infrastructure.SqlServer.Documents;
+using Hcc.Infrastructure.SqlServer.DocumentObjects;
 using Hcc.Infrastructure.SqlServer.Commands;
 using Hcc.Infrastructure.SqlServer.Connection;
 using Hcc.Infrastructure.SqlServer.Migrations;
