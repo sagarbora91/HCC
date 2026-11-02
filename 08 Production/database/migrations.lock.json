@@ -67,7 +67,11 @@
     {"version": 4700, "file": "4700_desk_import_masters.sql", "reason": "F3 LF lanes: contract-assigned ranges (LF-CONTRACT), merged in wave order"},
     {"version": 4703, "file": "4703_alerts_wake_at.sql", "reason": "F3 LF lanes: contract-assigned ranges (LF-CONTRACT), merged in wave order"},
     {"version": 4704, "file": "4704_alerts_reminder.sql", "reason": "F3 LF lanes: contract-assigned ranges (LF-CONTRACT), merged in wave order"},
-    {"version": 4705, "file": "4705_alerts_rbac_seed.sql", "reason": "F3 LF lanes: contract-assigned ranges (LF-CONTRACT), merged in wave order"}
+    {"version": 4705, "file": "4705_alerts_rbac_seed.sql", "reason": "F3 LF lanes: contract-assigned ranges (LF-CONTRACT), merged in wave order"},
+    {"version": 4370, "file": "4370_revcat_indexes.sql", "reason": "F4 contract reserves 4370-4379 for lane T2; dev databases are rebuilt, the integrator renumbers above 4721 if a live database is ever migrated"},
+    {"version": 4375, "file": "4375_digest_draft.sql", "reason": "F4 contract reserves 4370-4379 for lane T2; dev databases are rebuilt, the integrator renumbers above 4721 if a live database is ever migrated"},
+    {"version": 4376, "file": "4376_digest_draft_table.sql", "reason": "F4 contract reserves 4370-4379 for lane T2; dev databases are rebuilt, the integrator renumbers above 4721 if a live database is ever migrated"},
+    {"version": 4377, "file": "4377_digest_rbac_seed.sql", "reason": "F4 contract reserves 4370-4379 for lane T2; dev databases are rebuilt, the integrator renumbers above 4721 if a live database is ever migrated"}
   ],
   "migrations": [
     {"version": 1, "file": "0001_platform.sql", "sha256": "2CB8FB349156F501295E1148366BDFE406EC097C136093F09C6F0817542F46CC"},
@@ -239,6 +243,10 @@
     {"version": 4700, "file": "4700_desk_import_masters.sql", "sha256": "3DC7F6A4716005DDDABC54C8C8DA35F751D3715CF1FC30DB36D6BEF8F5F3A8B6"},
     {"version": 4703, "file": "4703_alerts_wake_at.sql", "sha256": "392461A77CAF0D629CE63B17DEA3E0C4B7DF279D7336650C2BFD916D911F8AAC"},
     {"version": 4704, "file": "4704_alerts_reminder.sql", "sha256": "91A75868DCDF51FBE6A8A1A5F2574CA22674E7A59160B5E6F7884FFE4BAB25F8"},
-    {"version": 4705, "file": "4705_alerts_rbac_seed.sql", "sha256": "BBD18B4626DDE6BB700C0638856BF80BBB6C87667E03EB9F93A4D431CFCB887D"}
+    {"version": 4705, "file": "4705_alerts_rbac_seed.sql", "sha256": "BBD18B4626DDE6BB700C0638856BF80BBB6C87667E03EB9F93A4D431CFCB887D"},
+    {"version": 4370, "file": "4370_revcat_indexes.sql", "sha256": "771370B88F399B56D62403632C78FC1775A3837ACCBB4F32863E9DFEC1FC62BD"},
+    {"version": 4375, "file": "4375_digest_draft.sql", "sha256": "44BE8E3C2D81DEBB334790300D97F80028E6D07209320C0EFAC0E2779F7F2DE3"},
+    {"version": 4376, "file": "4376_digest_draft_table.sql", "sha256": "15F3E78EB3843976364B9B2C7B12650C12184CFC6DD3B219218E29DB4752BA82"},
+    {"version": 4377, "file": "4377_digest_rbac_seed.sql", "sha256": "AFFF7D24B4A355BCC3E78BD111DB780331EA520B61717B74EE8DC6F9232E975D"}
   ]
 }
