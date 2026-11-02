@@ -94,6 +94,7 @@ public static class HccComposition
         // LF-IMAGES end
         // F4 lanes: ONE services.Add<Lane>Module(); line inside your own block (append only).
         // F4-T1
+        services.AddTariffCardModule();                 // F4-T1 tariff card (PERM-TRF-001…003)
         // F4-T1 end
         // F4-T2
         // F4-T2 end
@@ -238,6 +239,9 @@ public static class HccComposition
         // LF-ALERTS end
         // LF-IMAGES
         // LF-IMAGES end
+        // F4-T1
+        api.MapTariffCardEndpoints();    // F4-T1 tariff card
+        // F4-T1 end
         app.MapHccWebApp(app.Configuration); // W4 F3 (H1): the production web build (index.html) on the same origin
         return api;
     }

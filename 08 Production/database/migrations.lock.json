@@ -67,7 +67,11 @@
     {"version": 4700, "file": "4700_desk_import_masters.sql", "reason": "F3 LF lanes: contract-assigned ranges (LF-CONTRACT), merged in wave order"},
     {"version": 4703, "file": "4703_alerts_wake_at.sql", "reason": "F3 LF lanes: contract-assigned ranges (LF-CONTRACT), merged in wave order"},
     {"version": 4704, "file": "4704_alerts_reminder.sql", "reason": "F3 LF lanes: contract-assigned ranges (LF-CONTRACT), merged in wave order"},
-    {"version": 4705, "file": "4705_alerts_rbac_seed.sql", "reason": "F3 LF lanes: contract-assigned ranges (LF-CONTRACT), merged in wave order"}
+    {"version": 4705, "file": "4705_alerts_rbac_seed.sql", "reason": "F3 LF lanes: contract-assigned ranges (LF-CONTRACT), merged in wave order"},
+    {"version": 4380, "file": "4380_trc_tables.sql", "reason": "F4-CONTRACT reserves 4380-4389 for lane T1 (tariff card); numbered below KEYS 4720/4721 by the wave plan"},
+    {"version": 4381, "file": "4381_trc_tariff_dayset.sql", "reason": "F4-CONTRACT reserves 4380-4389 for lane T1 (tariff card); numbered below KEYS 4720/4721 by the wave plan"},
+    {"version": 4382, "file": "4382_trc_publish_log.sql", "reason": "F4-CONTRACT reserves 4380-4389 for lane T1 (tariff card); numbered below KEYS 4720/4721 by the wave plan"},
+    {"version": 4383, "file": "4383_trc_rbac_seed.sql", "reason": "F4-CONTRACT reserves 4380-4389 for lane T1 (tariff card); numbered below KEYS 4720/4721 by the wave plan"}
   ],
   "migrations": [
     {"version": 1, "file": "0001_platform.sql", "sha256": "2CB8FB349156F501295E1148366BDFE406EC097C136093F09C6F0817542F46CC"},
@@ -239,6 +243,10 @@
     {"version": 4700, "file": "4700_desk_import_masters.sql", "sha256": "3DC7F6A4716005DDDABC54C8C8DA35F751D3715CF1FC30DB36D6BEF8F5F3A8B6"},
     {"version": 4703, "file": "4703_alerts_wake_at.sql", "sha256": "392461A77CAF0D629CE63B17DEA3E0C4B7DF279D7336650C2BFD916D911F8AAC"},
     {"version": 4704, "file": "4704_alerts_reminder.sql", "sha256": "91A75868DCDF51FBE6A8A1A5F2574CA22674E7A59160B5E6F7884FFE4BAB25F8"},
-    {"version": 4705, "file": "4705_alerts_rbac_seed.sql", "sha256": "BBD18B4626DDE6BB700C0638856BF80BBB6C87667E03EB9F93A4D431CFCB887D"}
+    {"version": 4705, "file": "4705_alerts_rbac_seed.sql", "sha256": "BBD18B4626DDE6BB700C0638856BF80BBB6C87667E03EB9F93A4D431CFCB887D"},
+    {"version": 4380, "file": "4380_trc_tables.sql", "sha256": "F7C401C9461AE15BDAF436A05B9AF6B70689FA5D3F97523B16764DF3DBA44957"},
+    {"version": 4381, "file": "4381_trc_tariff_dayset.sql", "sha256": "EF43E05A7F41840CA017A14F70A9DAF3462172A0932D180195C2E746869A4CF1"},
+    {"version": 4382, "file": "4382_trc_publish_log.sql", "sha256": "7E245DA46DE0F54585D5946FB63F3C1B6D11916D5E3CD5CB287C4262671CCE41"},
+    {"version": 4383, "file": "4383_trc_rbac_seed.sql", "sha256": "55B4D879E14A122C323594F49962447F9B48C0512FC006E87AA4A15567239FD8"}
   ]
 }
