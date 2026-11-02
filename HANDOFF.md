@@ -3,6 +3,7 @@
 > **Current status (2 Nov 2026): read Session 13r (F1: FIT + FIT-2 + KEYS merged on `claude/f1-gate`, PR to main, gate pending on the hotel PC), then 13q (F1…F11 wave plan); earlier: read Session 13o (ACC-3 on main 83df0300, rulings DEC-203…208 / APR-026, owner items OP-21 children's IDs and OP-22 Tally import), then 13n (FIT started, DEC-194…202, LF planned) and 13m (ACC-2 and W1a LG on main; legacy dry run all FYs MATCH).** Everything earlier is history. New sessions start by reading `E:\Projects\HCC\Resume.md`, which points here. Next on this PC: FIT (`claude/fit`), then APK v19, then LF.
 
 ## Status
+- **2 Nov 2026 (cloud session): Administration panel planned and approved** — `02 Planning/HCC_Admin_Panel_Plan_v1.md` (module / sub-function switches, custom roles from a base role, users, audit; APR-028, DEC-214…221; build wave **W2c ADM** on `claude/adm`, migrations 4800–4849, after LF and before HB). Branch `claude/admin-panel-plan` holds the documents only; no code yet.
 - **M0** planning package: done (`02 Planning/`), approved (APR-003).
 - **M1** foundation: done (`05 Delivery Evidence/M1/M1_Delivery_Summary.md`).
 - **M2/M3** desktop prototype: built by 6 parallel streams, merged on branch-equivalent code in `03 Prototype`. All 12 MVP modules; modules 13–26 roadmap page only.
