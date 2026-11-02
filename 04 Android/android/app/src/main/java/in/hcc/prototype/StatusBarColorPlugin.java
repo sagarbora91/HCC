@@ -13,6 +13,7 @@ import android.view.View;
 import android.view.Window;
 import androidx.annotation.NonNull;
 import androidx.core.graphics.ColorUtils;
+import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
 import com.getcapacitor.JSObject;
@@ -77,17 +78,28 @@ public class StatusBarColorPlugin extends Plugin {
     static void apply(Activity activity, int top, int bottom) {
         final Window window = activity.getWindow();
         final View decor = window.getDecorView();
-        window.setBackgroundDrawable(new BarBackground(decor, top, bottom));
+        // V17-2/V17-1: an unchanged pair is not repainted (no needless window-background swap per resize event)
+        final Drawable current = decor.getBackground();
+        final boolean same = current instanceof BarBackground && ((BarBackground) current).top == top && ((BarBackground) current).bottom == bottom;
+        if (!same) window.setBackgroundDrawable(new BarBackground(decor, top, bottom));
         final WindowInsetsControllerCompat controller = WindowCompat.getInsetsController(window, decor);
         controller.setAppearanceLightStatusBars(ColorUtils.calculateLuminance(top) > 0.5);
         controller.setAppearanceLightNavigationBars(ColorUtils.calculateLuminance(bottom) > 0.5);
+        reapplyInsets(decor);
+    }
+
+    /** V17-1: the window-background swap / IME animation can leave the decor view without its system-bar padding (the web view then grows under the
+     *  bars until a rotation). Ask for a fresh inset dispatch now and once the layout pass is done. */
+    static void reapplyInsets(final View decor) {
+        ViewCompat.requestApplyInsets(decor);
+        decor.post(() -> ViewCompat.requestApplyInsets(decor));
     }
 
     /** Window background: `bottom` everywhere, `top` over the decor view's top padding (= the status-bar inset Capacitor reserves). */
     static final class BarBackground extends Drawable {
         private final View decor;
-        private final int top;
-        private final int bottom;
+        final int top;
+        final int bottom;
         private final Paint paint = new Paint();
 
         BarBackground(View decor, int top, int bottom) {
