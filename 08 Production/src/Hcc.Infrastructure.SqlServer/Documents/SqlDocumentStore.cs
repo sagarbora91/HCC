@@ -9,8 +9,9 @@ using Microsoft.Data.SqlClient;
 
 namespace Hcc.Infrastructure.SqlServer.Documents;
 
-/// <summary>SQL adapter of <see cref="IDocumentStore"/> and <see cref="IDocumentImageStore"/> (schema <c>doc</c>, migration 2100). Only sealed text reaches SQL.</summary>
-public sealed class SqlDocumentStore(SqlConnectionFactory connections) : IDocumentStore, IDocumentImageStore
+/// <summary>SQL adapter of <see cref="IDocumentStore"/> and <see cref="IDocumentImageStore"/> (schema <c>doc</c>, migration 2100). Only sealed text reaches SQL.
+/// LF-docdb: with an <see cref="IDocumentObjectStore"/> the sealed image lives in HccDocuments and <c>doc.id_capture_image</c> keeps only the ref (contract §1.5); a row with no ref still reads its inline column.</summary>
+public sealed class SqlDocumentStore(SqlConnectionFactory connections, IDocumentObjectStore? objects = null) : IDocumentStore, IDocumentImageStore
 {
     private static SqlCommandTransaction Sql(ICommandTransaction tx) =>
         tx as SqlCommandTransaction ?? throw new InvalidOperationException("The document store needs the SQL command transaction.");
@@ -177,7 +178,8 @@ public sealed class SqlDocumentStore(SqlConnectionFactory connections) : IDocume
             SELECT {Cols} FROM doc.id_capture c WITH (UPDLOCK, ROWLOCK)
             WHERE c.property_id = @p
               AND ((c.ocr_sealed IS NOT NULL AND LEFT(c.ocr_sealed, LEN(@prefix)) COLLATE Latin1_General_BIN2 <> @prefix)
-                   OR EXISTS (SELECT 1 FROM doc.id_capture_image i WITH (UPDLOCK, ROWLOCK) WHERE i.capture_id = c.capture_id AND LEFT(i.sealed, LEN(@prefix)) COLLATE Latin1_General_BIN2 <> @prefix))
+                   OR EXISTS (SELECT 1 FROM doc.id_capture_image i WITH (UPDLOCK, ROWLOCK) WHERE i.capture_id = c.capture_id
+                                AND (i.object_ref IS NOT NULL OR LEFT(i.sealed, LEN(@prefix)) COLLATE Latin1_General_BIN2 <> @prefix)))
             ORDER BY c.capture_id;
             """, cmd =>
         {
@@ -196,14 +198,48 @@ public sealed class SqlDocumentStore(SqlConnectionFactory connections) : IDocume
 
     public async Task ReplaceAsync(ICommandTransaction tx, long captureId, string sealedImage, CancellationToken ct = default)
     {
+        if (objects is not null && await RefOfAsync(tx, captureId, ct).ConfigureAwait(false) is { } objectRef)
+        {
+            await objects.ResealAsync(objectRef, sealedImage, ct).ConfigureAwait(false);
+            return;
+        }
+
         await using var cmd = Sql(tx).Command("UPDATE doc.id_capture_image SET sealed = @s WHERE capture_id = @c;");
         cmd.Parameters.Add("@c", SqlDbType.BigInt).Value = captureId;
         cmd.Parameters.Add("@s", SqlDbType.VarChar, -1).Value = sealedImage;
         if (await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false) != 1) throw new InvalidOperationException("The capture image to re-seal was not found.");
     }
 
+    private async Task<Guid?> RefOfAsync(ICommandTransaction tx, long captureId, CancellationToken ct)
+    {
+        await using var cmd = Sql(tx).Command("SELECT object_ref FROM doc.id_capture_image WHERE capture_id = @c;");
+        cmd.Parameters.Add("@c", SqlDbType.BigInt).Value = captureId;
+        return await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false) as Guid?;
+    }
+
     public async Task PutAsync(ICommandTransaction tx, long captureId, string sealedImage, CancellationToken ct = default)
     {
+        if (objects is not null)
+        {
+            // Contract §1.8: the object is written first, in its own committed transaction on HccDocuments; this command's Hcc transaction then stores the ref.
+            int propertyId, by; string docKind;
+            await using (var q = Sql(tx).Command("SELECT property_id, captured_by, doc_kind FROM doc.id_capture WHERE capture_id = @c;"))
+            {
+                q.Parameters.Add("@c", SqlDbType.BigInt).Value = captureId;
+                await using var r = await q.ExecuteReaderAsync(ct).ConfigureAwait(false);
+                if (!await r.ReadAsync(ct).ConfigureAwait(false)) throw new InvalidOperationException("The capture to attach an image to was not found.");
+                (propertyId, by, docKind) = (r.GetInt32(0), r.GetInt32(1), r.GetString(2));
+            }
+
+            var kind = docKind switch { "legacy" => DocumentObjectKind.LegacyImage, "photo" => DocumentObjectKind.GuestPhoto, _ => DocumentObjectKind.IdImage };
+            var objectRef = await objects.PutAsync(new NewDocumentObject(propertyId, kind, "doc.id_capture", captureId, "image/jpeg", null, sealedImage, by), ct).ConfigureAwait(false);
+            await using var put = Sql(tx).Command("INSERT doc.id_capture_image(capture_id, sealed, object_ref) VALUES (@c, NULL, @r);");
+            put.Parameters.Add("@c", SqlDbType.BigInt).Value = captureId;
+            put.Parameters.Add("@r", SqlDbType.UniqueIdentifier).Value = objectRef;
+            await put.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+            return;
+        }
+
         await using var cmd = Sql(tx).Command("INSERT doc.id_capture_image(capture_id, sealed) VALUES (@c, @s);");
         cmd.Parameters.Add("@c", SqlDbType.BigInt).Value = captureId;
         cmd.Parameters.Add("@s", SqlDbType.VarChar, -1).Value = sealedImage;
@@ -216,7 +252,7 @@ public sealed class SqlDocumentStore(SqlConnectionFactory connections) : IDocume
         try
         {
             SqlCommand cmd;
-            const string sql = "SELECT sealed FROM doc.id_capture_image WHERE capture_id = @c;";
+            const string sql = "SELECT sealed, object_ref FROM doc.id_capture_image WHERE capture_id = @c;";
             if (tx is not null) cmd = Sql(tx).Command(sql);
             else
             {
@@ -224,11 +260,21 @@ public sealed class SqlDocumentStore(SqlConnectionFactory connections) : IDocume
                 cmd = connections.Command(sql, own);
             }
 
+            string? inline; Guid? objectRef; bool found;
             await using (cmd)
             {
                 cmd.Parameters.Add("@c", SqlDbType.BigInt).Value = captureId;
-                return await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false) as string;
+                await using var r = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+                found = await r.ReadAsync(ct).ConfigureAwait(false);
+                inline = found && !r.IsDBNull(0) ? r.GetString(0) : null;
+                objectRef = found && !r.IsDBNull(1) ? r.GetGuid(1) : null;
             }
+
+            if (!found) return null;
+            if (objectRef is null) return inline;
+            if (objects is null) throw new InvalidOperationException("This image is in the documents database, which is not configured.");
+            var got = await objects.GetAsync(objectRef.Value, ct).ConfigureAwait(false);
+            return got?.SealedText ?? throw DocumentObjectAccess.Missing();
         }
         finally
         {
@@ -238,8 +284,10 @@ public sealed class SqlDocumentStore(SqlConnectionFactory connections) : IDocume
 
     public async Task DeleteAsync(ICommandTransaction tx, long captureId, CancellationToken ct = default)
     {
+        var objectRef = await RefOfAsync(tx, captureId, ct).ConfigureAwait(false);
         await using var cmd = Sql(tx).Command("DELETE doc.id_capture_image WHERE capture_id = @c;");
         cmd.Parameters.Add("@c", SqlDbType.BigInt).Value = captureId;
         await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+        if (objectRef is { } r) await DocumentObjectAccess.PublishReleaseAsync(tx, r, "id-image", captureId, ct).ConfigureAwait(false);
     }
 }

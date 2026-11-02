@@ -14,7 +14,7 @@ using Microsoft.Data.SqlClient;
 namespace Hcc.Infrastructure.SqlServer.Expenses;
 
 /// <summary>SQL adapter of <see cref="IExpenseStore"/> (ops.expense, migrations 0800 + 4150 + 4190 ITC flag). Row lock: UPDLOCK; versioned updates (STALE_VERSION).</summary>
-public sealed class SqlExpenseStore(SqlConnectionFactory connections) : IExpenseStore
+public sealed class SqlExpenseStore(SqlConnectionFactory connections, Hcc.Application.Documents.IDocumentObjectStore? objects = null) : IExpenseStore
 {
     private const string Columns = """
         e.expense_id, e.property_id, e.vendor, e.category, e.amount_paise, e.method, e.business_date, e.status, e.submitted_by, e.notes, e.receipt, e.reason,
@@ -178,30 +178,57 @@ public sealed class SqlExpenseStore(SqlConnectionFactory connections) : IExpense
     public async Task PutBillPhotoAsync(ICommandTransaction tx, long expenseId, string contentType, byte[] image, int by, DateTime nowUtc, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(image);
+        Guid? newRef = null, oldRef = null;
+        if (objects is not null)
+        {
+            // LF-docdb (contract §1.8): the object first, in its own committed transaction; this Hcc transaction stores the ref.
+            int propertyId;
+            await using (var q = Sql(tx).Command("SELECT e.property_id, (SELECT object_ref FROM ops.expense_bill_photo WHERE expense_id = @id) FROM ops.expense e WHERE e.expense_id = @id;"))
+            {
+                Add(q, "@id", SqlDbType.BigInt, expenseId);
+                await using var r = await q.ExecuteReaderAsync(ct).ConfigureAwait(false);
+                if (!await r.ReadAsync(ct).ConfigureAwait(false)) throw new InvalidOperationException("The expense to attach a bill photo to was not found.");
+                propertyId = r.GetInt32(0);
+                oldRef = r.IsDBNull(1) ? null : r.GetGuid(1);
+            }
+
+            newRef = await objects.PutAsync(new Hcc.Application.Documents.NewDocumentObject(propertyId, Hcc.Application.Documents.DocumentObjectKind.ExpenseBill, "ops.expense", expenseId,
+                contentType, image, null, by), ct).ConfigureAwait(false);
+        }
+
         await using var cmd = Sql(tx).Command("""
-            UPDATE ops.expense_bill_photo SET content_type = @t, size_bytes = @n, image = @i, updated_by = @by, updated_utc = @now WHERE expense_id = @id;
-            IF @@ROWCOUNT = 0 INSERT ops.expense_bill_photo(expense_id, content_type, size_bytes, image, updated_by, updated_utc) VALUES (@id, @t, @n, @i, @by, @now);
+            UPDATE ops.expense_bill_photo SET content_type = @t, size_bytes = @n, image = @i, object_ref = @ref, updated_by = @by, updated_utc = @now WHERE expense_id = @id;
+            IF @@ROWCOUNT = 0 INSERT ops.expense_bill_photo(expense_id, content_type, size_bytes, image, object_ref, updated_by, updated_utc) VALUES (@id, @t, @n, @i, @ref, @by, @now);
             """);
         Add(cmd, "@id", SqlDbType.BigInt, expenseId);
         Add(cmd, "@t", SqlDbType.VarChar, contentType, 10);
         Add(cmd, "@n", SqlDbType.Int, image.Length);
-        Add(cmd, "@i", SqlDbType.VarBinary, image, -1);
+        cmd.Parameters.Add("@i", SqlDbType.VarBinary, -1).Value = newRef is null ? image : DBNull.Value;
+        cmd.Parameters.Add("@ref", SqlDbType.UniqueIdentifier).Value = newRef is null ? DBNull.Value : newRef.Value;
         Add(cmd, "@by", SqlDbType.Int, by);
         Add(cmd, "@now", SqlDbType.DateTime2, nowUtc);
         await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+        if (oldRef is { } old) await Documents.DocumentObjectAccess.PublishReleaseAsync(tx, old, "expense-bill", expenseId, ct).ConfigureAwait(false);
     }
 
     public async Task<(string ContentType, byte[] Image)?> BillPhotoAsync(int propertyId, long expenseId, CancellationToken ct = default)
     {
         await using var conn = await connections.OpenAsync(ct).ConfigureAwait(false);
         await using var cmd = connections.Command("""
-            SELECT bp.content_type, bp.image FROM ops.expense_bill_photo bp JOIN ops.expense e ON e.expense_id = bp.expense_id
+            SELECT bp.content_type, bp.image, bp.object_ref FROM ops.expense_bill_photo bp JOIN ops.expense e ON e.expense_id = bp.expense_id
             WHERE bp.expense_id = @id AND e.property_id = @p;
             """, conn);
         Add(cmd, "@id", SqlDbType.BigInt, expenseId);
         Add(cmd, "@p", SqlDbType.Int, propertyId);
-        await using var rd = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        return await rd.ReadAsync(ct).ConfigureAwait(false) ? (rd.GetString(0), (byte[])rd[1]) : null;
+        string type; byte[]? inline; Guid? objectRef;
+        await using (var rd = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false))
+        {
+            if (!await rd.ReadAsync(ct).ConfigureAwait(false)) return null;
+            (type, inline, objectRef) = (rd.GetString(0), rd.IsDBNull(1) ? null : (byte[])rd[1], rd.IsDBNull(2) ? null : rd.GetGuid(2));
+        }
+
+        // LF-docdb: a row with a ref reads from HccDocuments; a row without one still reads its inline column (until migration 4719).
+        return (type, objectRef is { } r ? await Documents.DocumentObjectAccess.ReadAsync(objects, r, ct).ConfigureAwait(false) : inline ?? throw Documents.DocumentObjectAccess.Missing());
     }
 
     public async Task InsertEditAsync(ICommandTransaction tx, long expenseId, int by, DateTime nowUtc, string reason, string oldJson, string newJson, CancellationToken ct = default)

@@ -51,6 +51,11 @@ public sealed class SqlRetentionPurge(SqlConnectionFactory connections, AccessOp
         INSERT @ids(transfer_id)
         SELECT TOP (@n) t.transfer_id FROM pay.cash_transfer t WITH (UPDLOCK)
          WHERE t.kind = 'banking' AND t.slip_purged_utc IS NULL AND t.recorded_utc < @cut ORDER BY t.transfer_id;
+        -- LF-docdb (contract §1.7): the photo's object in HccDocuments is released by the document-release consumer.
+        INSERT plat.outbox(event_type, aggregate_id, payload, property_id)
+        SELECT 'DocumentObjectReleased', b.transfer_id, CONCAT('{"objectRef":"', b.object_ref, '","kind":"banking-slip"}'), t.property_id
+          FROM pay.banking_slip b JOIN @ids i ON i.transfer_id = b.transfer_id JOIN pay.cash_transfer t ON t.transfer_id = b.transfer_id
+         WHERE b.object_ref IS NOT NULL;
         DELETE b FROM pay.banking_slip b JOIN @ids i ON i.transfer_id = b.transfer_id;
         UPDATE t SET slip_purged_utc = @now FROM pay.cash_transfer t JOIN @ids i ON i.transfer_id = t.transfer_id;
         DECLARE @done INT = @@ROWCOUNT;

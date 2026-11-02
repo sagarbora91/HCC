@@ -16,7 +16,7 @@ public static class ExpensesEndpoints
 {
     public static IServiceCollection AddExpensesModule(this IServiceCollection services)
     {
-        services.AddSingleton<IExpenseStore>(sp => new SqlExpenseStore(sp.GetRequiredService<SqlPlatform>().Connections));
+        services.AddSingleton<IExpenseStore>(sp => new SqlExpenseStore(sp.GetRequiredService<SqlPlatform>().Connections, sp.GetRequiredService<SqlPlatform>().DocumentObjects));
         services.AddSingleton<IExpenseRegisterStore>(sp => new SqlExpenseRegisterStore(sp.GetRequiredService<SqlPlatform>().Connections));
         services.AddSingleton<IExpenseMasterSource>(sp => new SqlExpenseMasterSource(sp.GetRequiredService<SqlPlatform>().Connections));
         services.AddSingleton<IAccessScopeResolver>(sp => new SqlExpenseScopeResolver(sp.GetRequiredService<SqlPlatform>().Connections)); // "submission" (O)
