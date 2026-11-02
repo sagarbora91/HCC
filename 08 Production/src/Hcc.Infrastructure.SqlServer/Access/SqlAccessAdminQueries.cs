@@ -91,7 +91,7 @@ public sealed class SqlAccessAdminQueries(SqlConnectionFactory connections, IAcc
         return new ExceptionsResult(items);
     }
 
-    public async Task<AuditPage> AuditAsync(AuthenticatedSession actor, int page, int pageSize, string? action, int? principalId, DateOnly? from, DateOnly? to, CancellationToken ct = default)
+    public async Task<AuditPage> AuditAsync(AuthenticatedSession actor, int page, int pageSize, string? action, int? principalId, DateOnly? from, DateOnly? to, CancellationToken ct = default, string? entity = null, string? entityId = null)
     {
         ArgumentNullException.ThrowIfNull(actor);
         if (page < 1) throw HccException.Validation("page starts at 1.");
@@ -102,6 +102,8 @@ public sealed class SqlAccessAdminQueries(SqlConnectionFactory connections, IAcc
         const string Where = """
             WHERE a.property_id = @p AND (@action IS NULL OR a.action = @action) AND (@who IS NULL OR a.principal_id = @who)
               AND (@from IS NULL OR a.at_utc >= @from) AND (@to IS NULL OR a.at_utc < @to)
+              AND (@entity IS NULL OR a.target = @entity OR a.target LIKE @entity + ':%')
+              AND (@eid IS NULL OR CHARINDEX(@eid, a.target) > 0 OR CHARINDEX(@eid, a.detail) > 0)
             """;
         await using var q = connections.Command($"""
             SELECT COUNT(*) FROM plat.audit_event a {Where};
@@ -115,15 +117,18 @@ public sealed class SqlAccessAdminQueries(SqlConnectionFactory connections, IAcc
         // Dates are hotel-local (Asia/Kolkata, +05:30): [from 00:00 IST, to+1 00:00 IST).
         q.Parameters.Add("@from", SqlDbType.DateTime2).Value = from is { } f ? f.ToDateTime(TimeOnly.MinValue).AddMinutes(-330) : DBNull.Value;
         q.Parameters.Add("@to", SqlDbType.DateTime2).Value = to is { } t ? t.AddDays(1).ToDateTime(TimeOnly.MinValue).AddMinutes(-330) : DBNull.Value;
+        q.Parameters.Add("@entity", SqlDbType.VarChar, 60).Value = string.IsNullOrWhiteSpace(entity) ? DBNull.Value : entity.Trim().Replace("%", "", StringComparison.Ordinal).Replace("_", "", StringComparison.Ordinal);
+        q.Parameters.Add("@eid", SqlDbType.NVarChar, 60).Value = string.IsNullOrWhiteSpace(entityId) ? DBNull.Value : entityId.Trim();
         q.Parameters.Add("@skip", SqlDbType.Int).Value = (page - 1) * pageSize;
         q.Parameters.Add("@take", SqlDbType.Int).Value = pageSize;
+        var seesMoney = await policy.HasAsync(actor.PropertyId, actor.UserId, "PERM-RPT-002", ct: ct).ConfigureAwait(false); // DEC-061: money masked without it
         await using var rd = await q.ExecuteReaderAsync(ct).ConfigureAwait(false);
         await rd.ReadAsync(ct).ConfigureAwait(false);
         var total = rd.GetInt32(0);
         var items = new List<AuditEventView>();
         await rd.NextResultAsync(ct).ConfigureAwait(false);
         while (await rd.ReadAsync(ct).ConfigureAwait(false))
-            items.Add(new AuditEventView(rd.GetInt64(0), DateTime.SpecifyKind(rd.GetDateTime(1), DateTimeKind.Utc), rd.GetInt32(2), rd.GetString(3), rd.GetString(4), rd.GetString(5), rd.GetString(6),
+            items.Add(new AuditEventView(rd.GetInt64(0), DateTime.SpecifyKind(rd.GetDateTime(1), DateTimeKind.Utc), rd.GetInt32(2), rd.GetString(3), rd.GetString(4), rd.GetString(5), seesMoney ? rd.GetString(6) : Hcc.Domain.Audit.AuditViewRules.MaskMoney(rd.GetString(6)),
                 rd.IsDBNull(7) ? null : rd.GetString(7)));
         return new AuditPage(page, pageSize, total, items);
     }

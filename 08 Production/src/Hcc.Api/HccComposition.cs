@@ -98,6 +98,7 @@ public static class HccComposition
         // F4-T2
         // F4-T2 end
         // F4-T3
+        services.AddFeedbackModule();
         // F4-T3 end
         return services;
     }
@@ -200,6 +201,7 @@ public static class HccComposition
         api.MapKeysEndpoints();          // KEYS room keys
         api.MapYieldEndpoints();         // W2-12
         api.MapGuestServicesEndpoints(); // W2-9
+        api.MapFeedbackEndpoints();      // F4-T3
         api.MapPayrollEndpoints();       // W2-2
         api.MapSetupEndpoints();         // W3-b first-time setup
         api.MapDocumentsEndpoints();     // W3-3 ID document capture

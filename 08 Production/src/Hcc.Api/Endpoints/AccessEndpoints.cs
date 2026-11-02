@@ -209,8 +209,8 @@ public static class AccessEndpoints
             Results.Ok(await q.RolesAsync(http.GetHccSession(), ct).ConfigureAwait(false)));
         admin.MapGet("/exceptions", async (HttpContext http, IAccessAdminQueries q, bool? includeRevoked, CancellationToken ct) =>
             Results.Ok(await q.ExceptionsAsync(http.GetHccSession(), includeRevoked ?? false, ct).ConfigureAwait(false)));
-        admin.MapGet("/audit", async (HttpContext http, IAccessAdminQueries q, int? page, int? pageSize, string? action, int? principalId, DateOnly? from, DateOnly? to, CancellationToken ct) =>
-            Results.Ok(await q.AuditAsync(http.GetHccSession(), page ?? 1, pageSize ?? 50, action, principalId, from, to, ct).ConfigureAwait(false)));
+        admin.MapGet("/audit", async (HttpContext http, IAccessAdminQueries q, int? page, int? pageSize, string? action, int? principalId, DateOnly? from, DateOnly? to, string? entity, string? entityId, CancellationToken ct) =>
+            Results.Ok(await q.AuditAsync(http.GetHccSession(), page ?? 1, pageSize ?? 50, action, principalId, from, to, ct, entity, entityId).ConfigureAwait(false)));
 
         var commands = api.MapGroup("/commands").RequireHccSession();
         Command<CreateUserRequest, UserVersionResult>(commands, "CreateUser", (u, s, k, b, ct) => u.CreateUserAsync(s, k, b, ct));
