@@ -127,7 +127,7 @@ public sealed partial class Hotel : IAsyncDisposable
         await using (var conn = new SqlConnection(SqlConnectionFactory.LocalDevConnectionString(server, "master")))
         {
             await conn.OpenAsync(ct);
-            await using var cmd = new SqlCommand($"CREATE DATABASE [{name}];", conn) { CommandTimeout = 120 };
+            await using var cmd = new SqlCommand($"CREATE DATABASE [{name}]; CREATE DATABASE [{name}Documents];", conn) { CommandTimeout = 120 };
             try
             {
                 await cmd.ExecuteNonQueryAsync(ct);
@@ -141,6 +141,7 @@ public sealed partial class Hotel : IAsyncDisposable
         try
         {
             await h.Platform.Migrations.MigrateAsync(ct);
+            await h.Platform.DocumentMigrations.MigrateAsync(ct); // LF-int: the documents database twin (LF-docdb)
             await h.SeedAsync(ct);
             var config = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
             {
@@ -306,6 +307,11 @@ public sealed partial class Hotel : IAsyncDisposable
             BEGIN
               ALTER DATABASE [{Name}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
               DROP DATABASE [{Name}];
+            END
+            IF DB_ID(N'{Name}Documents') IS NOT NULL
+            BEGIN
+              ALTER DATABASE [{Name}Documents] SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
+              DROP DATABASE [{Name}Documents];
             END
             """, conn) { CommandTimeout = 120 };
         await cmd.ExecuteNonQueryAsync();

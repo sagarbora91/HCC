@@ -17,7 +17,7 @@ public sealed partial class PermissionSeedCoverageTests
     [GeneratedRegex(@"""(PERM-[A-Z]+-\d{3})""")]
     private static partial Regex QuotedPermission();
 
-    [GeneratedRegex(@"\('(PERM-[A-Z]+-\d{3})', '[^']*', '(?:VIEW|ACTION)', [01]\)")]
+    [GeneratedRegex(@"\('(PERM-[A-Z]+-\d{3})', '(?:[^']|'')*', '(?:VIEW|ACTION)', [01]\)")] // LF-int: a description may hold an escaped quote ('')
     private static partial Regex SeededPermission();
 
     [GeneratedRegex(@"\('[A-Z]{3}', '(PERM-[A-Z]+-\d{3})', '[ALRVM]', '[PSAO]'")]
