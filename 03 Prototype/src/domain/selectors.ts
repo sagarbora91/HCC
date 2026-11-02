@@ -2,6 +2,7 @@
 import {Booking,State,Permission,Room} from './types';
 import {addDays} from './money';
 import {adminTariffOn} from './streams/admin';
+import {rolEffectiveGrants} from './streams/roles'; // ADM-2: a custom role's own coarse grants
 import {lineTax} from './gst';
 import {rmsOffline} from './streams/roomoffline';
 import {mnyIsDrawer} from './streams/money-master';
@@ -36,7 +37,7 @@ export function totals(b:Booking){
 }
 /** Coarse module gate. Disabled users and users whose assignment expired (expiresOn < business date) are denied. Owner: stream E. */
 /** Permission check. An array means any-of (e.g. a page several roles reach through different permissions). */
-export function can(s:State,uid:string,p:Permission|readonly Permission[]){const u=s.users.find(x=>x.id===uid);if(!u?.enabled||(u.expiresOn&&s.date>u.expiresOn))return false;const g=s.grants[u.role]||[];return Array.isArray(p)?p.some(x=>g.includes(x)):g.includes(p as Permission);}
+export function can(s:State,uid:string,p:Permission|readonly Permission[]){const u=s.users.find(x=>x.id===uid);if(!u?.enabled||(u.expiresOn&&s.date>u.expiresOn))return false;const g=rolEffectiveGrants(s,u);return Array.isArray(p)?p.some(x=>g.includes(x)):g.includes(p as Permission);}
 /** Owner: stream A. Room free for nights [a, d): not blocked (blockedDuring), and no overlapping Confirmed / In house
  *  booking or Held booking whose hold is still running (s.clock < holdUntil; a Held booking without holdUntil never lapses). */
 /** Availability ignoring soft holds (group blocks): out-of-service blocks and live bookings only. */

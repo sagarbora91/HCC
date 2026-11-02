@@ -52,7 +52,9 @@ export type SyncMe={userId:number;uid:string;displayName:string;role:import('../
   grants:{permissionId:string;mode:string;scope:string;limit?:number|null;limitUnit?:string|null}[];
   /** Field → mask kind (RBAC §9). Masked values arrive masked from the server; never unmask on the client. */fieldMasks:Record<string,string>;
   /** What this session signed in with (DEC-062): the "Change my password / PIN" sheet asks for that kind. */credentialKind?:'PASSWORD'|'PIN';
-  /** A06-01: an administrator set this password / PIN — nothing but changing it (and signing out) until it is changed. */mustChange?:boolean};
+  /** A06-01: an administrator set this password / PIN — nothing but changing it (and signing out) until it is changed. */mustChange?:boolean;
+  /** ADM-2: the custom role held (server code C01…C99), if any. */customRole?:string;
+  /** ADM-2: non-full feature levels from /me/capabilities (featureId → off | view). */features?:Record<string,'off'|'view'>};
 
 export interface LoaderCtx{
   api:SyncApi;

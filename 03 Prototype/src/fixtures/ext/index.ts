@@ -19,4 +19,5 @@ import * as accountingRulebook from './accounting-rulebook'; // ACC-1 acc1-tests
 import * as assistant from './assistant';
 import * as compliance from './compliance';
 import * as lfParity from './lf-parity'; // LF-ui lf-tests
-export const extensions=[reservations,guests,folio,housekeeping,admin,closing,yieldMod,groups,channels,maintenance,inventory,handover,services,messaging,pos,staff,accounting,accountingRulebook,assistant,compliance,lfParity];
+import * as customRoles from './roles'; // ADM-2
+export const extensions=[reservations,guests,folio,housekeeping,admin,closing,yieldMod,groups,channels,maintenance,inventory,handover,services,messaging,pos,staff,accounting,accountingRulebook,assistant,compliance,lfParity,customRoles];

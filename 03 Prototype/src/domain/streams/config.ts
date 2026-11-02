@@ -35,6 +35,7 @@ import {posSlice} from './pos';
 import {hrRatesFor,hrRatesDefaultFrom,hrMonthLabel,hrSettingDefs,hrSettingValue,hrLeavePolicy,type HRRates,type HRSettingDef} from './staff';
 import {cmpSettingDefs,type CMPSettingDef} from './compliance';
 import {GST_SEED,gstSeedDef,gstSeedOn,gstSpecifiedPremises,gstPct,GST_ILLUSTRATIVE,type GstKey} from '../gst';
+import {rolPageLevel} from './roles'; // ADM-2
 import {featureAll,featureById,featureOfPage,featureOfCommand,featureClosure,featureExempt,featureKey,type FeatureRef} from '../feature-catalogue'; // ADM-1
 
 // ───────────────────────────── Groups (fixed names — a test pins them) ─────────────────────────────
@@ -82,6 +83,8 @@ export function cfgModuleOfCommand(type:string):CfgModule|undefined{
 }
 export const cfgModuleOfPage=(page:string)=>CFG_MODULES.find(m=>m.pages.includes(page));
 /** False when the page belongs to a module or a sub-function that is switched off (navigation, tiles, search and phone tabs hide it). */
+/** ADM-2: property switches plus the user's role (a custom role with the page's feature off). */
+export const cfgPageOnFor=(s:State,uid:string,page:string)=>cfgPageOn(s,page)&&rolPageLevel(s,uid,page)!=='off';
 export const cfgPageOn=(s:State,page:string)=>{const m=cfgModuleOfPage(page);if(m&&!cfgModuleOn(s,m.id))return false;const f=featureOfPage(page);return !f||cfgFeatureOn(s,f.id);};
 export const cfgModuleOffMessage=(m:CfgModule)=>`${m.label} is switched off in Master configuration › Modules on/off. Its data is kept; the Owner or Tech admin can switch it back on.`;
 

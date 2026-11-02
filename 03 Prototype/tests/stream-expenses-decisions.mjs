@@ -171,7 +171,7 @@ export function register({test,M,assert}){
     assert.ok(Mo.some(l=>l.endsWith(`,${id},Posted,allowed`)));assert.ok(Mo.some(l=>l.endsWith(',Posted,disallowed')));assert.ok(L.some(l=>l.endsWith(',EXP-102,Pending,')),'no GST → empty ITC cell');});
   test('[EXP-DEC] DEC-135 · restore migration: an expense saved with GST before the flag is ITC disallowed (shape-detected, idempotent, SCHEMA unchanged)',()=>{
     const s=seed();const old={...s,expenses:[...s.expenses,{id:'EXP-OLD',vendor:'',category:'Supplies',amount:11800,method:'UPI',date:s.date,status:'Posted',actor:'reception',description:'Old bill',gstPaise:1800,gstRateBps:1800,approver:'owner'}]};
-    const r=M.restoreState(JSON.stringify(old));assert.equal(r.state.expenses.find(e=>e.id==='EXP-OLD').itc,'disallowed');assert.equal(r.state.schema,M.SCHEMA);assert.equal(M.SCHEMA,13);
+    const r=M.restoreState(JSON.stringify(old));assert.equal(r.state.expenses.find(e=>e.id==='EXP-OLD').itc,'disallowed');assert.equal(r.state.schema,M.SCHEMA);assert.equal(M.SCHEMA,14); // 13 → 14 ADM-2
     assert.equal(r.state.expenses.find(e=>e.id==='EXP-102').itc,undefined,'no GST, no flag');
     assert.deepEqual(M.restoreState(JSON.stringify(r.state)).state,r.state,'idempotent');
     assert.equal(M.expMigrateItc(r.state),false);});

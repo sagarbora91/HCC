@@ -31,7 +31,9 @@ export type SrvCapabilityGrant={permissionId:string;mode:string;scope:string;lim
 export type SrvCapabilities={userId:number;propertyId:number;displayName:string;credentialKind:string;roles:string[];
   permissions:SrvCapabilityGrant[];fieldMasks:Record<string,string>;session:{idleExpiresUtc:string;absoluteExpiresUtc:string;idleTimeoutSeconds:number};
   /** A06-01: the session's password / PIN was set by an administrator and must be changed first (CapabilitiesResult.MustChangeCredential). */
-  mustChangeCredential?:boolean};
+  mustChangeCredential?:boolean;
+  /** ADM-2 (brief §2.3): non-full feature levels of the signed-in user's roles (absent = everything full). */
+  features?:Record<string,string>};
 
 /** Server availability reason → client AvailabilityReason code. */
 export const SERVER_REASON:Record<string,string>={'Over capacity':'OverCapacity',RESTRICTED:'Restricted'};

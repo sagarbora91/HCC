@@ -26,7 +26,8 @@ import type {HccPolicy,PolicyCell,PolicyException,CFGState,CFGChange,CFGSchedule
 import {HccClientError} from '../errors';
 import type {SyncArea,LoaderCtx,CommandCtx,SyncMe} from './types';
 import {serverId,protoId,utcToClock,clockToUtc,utcToDate} from './map';
-import {ROLE_MAP,permissionsFromGrants} from './capabilities';
+import {ROLE_MAP,permissionsFromGrants,featureLevelsFrom,isCustomRoleCode} from './capabilities';
+import type {CustomRole,ROLState} from '../../domain/streams/roles'; // ADM-2
 import {gstinProblem} from '../../domain/gstin';
 import {isTdsKey} from '../../domain/tds'; // ACC-2 tds: dated TDS rate overrides
 import {OWN_CREDENTIAL_CHANGE,ownCredentialProblem,type CredKind} from '../../domain/credentials';
@@ -36,7 +37,9 @@ export type SrvGrant={permissionId:string;mode:string;scope:string;limit?:number
 export type SrvUserRole={roleCode:string;validFromUtc:string;validUntilUtc?:string|null};
 export type SrvUser={userId:number;loginName:string;displayName:string;enabled:boolean;credentialKind:string;lockedOut:boolean;roles:SrvUserRole[];version:string};
 export type SrvPage<T>={items:T[];page:number;pageSize:number;total:number};
-export type SrvRole={roleCode:string;name:string;credentialKind:string;ownerOnlyAssign:boolean;grants:SrvGrant[];denies:{permissionId:string;reason:string}[]};
+export type SrvRole={roleCode:string;name:string;credentialKind:string;ownerOnlyAssign:boolean;grants:SrvGrant[];denies:{permissionId:string;reason:string}[];
+  /** ADM-2 (brief §2.3): custom roles C01…C99 — base code, money flag, non-full feature levels, policy version. Absent on built-ins. */
+  isCustom?:boolean;baseRole?:string|null;money?:boolean;features?:Record<string,string>|null;version?:number|string|null;retired?:boolean;retiredUtc?:string|null};
 export type SrvRoles={roles:SrvRole[];permissions:{permissionId:string;resourceAction:string;kind:string;isMoney:boolean}[]};
 export type SrvException={exceptionId:number;userId:number;permissionId:string;effect:string;mode:string;scope:string;limit?:number|null;limitUnit?:string|null;
   reason:string;validUntilUtc:string;grantedBy:number;grantedUtc:string;revokedUtc?:string|null};
@@ -57,6 +60,7 @@ export type SrvRequest={requestId:number;key:string;label:string;summary:string;
 // ───────────── Mapping helpers ─────────────
 /** Prototype role → server role code (inverse of ROLE_MAP). */
 export function roleCode(role:string):string{
+  if(isCustomRoleCode(role))return role; // ADM-2: a custom role id is its server code
   const hit=Object.entries(ROLE_MAP).find(([,r])=>r===role);
   if(!hit)throw new HccClientError('VALIDATION',`Choose a role (${role} is not a server role).`);
   return hit[0];
@@ -68,12 +72,15 @@ export function expiresOnOf(untilUtc:string|null|undefined):string|undefined{
 }
 const ROLE_RANK=Object.keys(ROLE_MAP);
 /** Server user → prototype User (one role per user in the prototype: the highest-ranked role still valid, else the latest). */
-export function userFromServer(u:SrvUser,date:string):User{
-  const rs=[...u.roles].sort((a,b)=>ROLE_RANK.indexOf(a.roleCode)-ROLE_RANK.indexOf(b.roleCode));
+export function userFromServer(u:SrvUser,date:string,customBases:Record<string,Role>={}):User{
+  // ADM-2: a custom role ranks just below its base; unknown codes last.
+  const rank=(code:string)=>{const i=ROLE_RANK.indexOf(code);if(i>=0)return i;const b=customBases[code];return b?ROLE_RANK.findIndex(k=>ROLE_MAP[k]===b)+0.5:99;};
+  const rs=[...u.roles].sort((a,b)=>rank(a.roleCode)-rank(b.roleCode));
   const live=rs.filter(r=>{const e=expiresOnOf(r.validUntilUtc);return !e||e>=date;});
   const r=live[0]??[...rs].sort((a,b)=>String(b.validUntilUtc).localeCompare(String(a.validUntilUtc)))[0];
-  const role=(r&&ROLE_MAP[r.roleCode])||'Reception';
+  const role=(r&&(ROLE_MAP[r.roleCode]??customBases[r.roleCode]))||'Reception';
   const out:User={id:protoId(u.userId),name:u.displayName,role,enabled:u.enabled};
+  if(r&&!ROLE_MAP[r.roleCode]&&customBases[r.roleCode])out.customRole=r.roleCode;
   const exp=expiresOnOf(r?.validUntilUtc);if(exp)out.expiresOn=exp;
   if(r?.validFromUtc)out.assignedOn=utcToDate(r.validFromUtc);
   return out;
@@ -115,6 +122,26 @@ export function policyFromServer(roles:SrvRoles|null,exceptions:SrvException[],m
 export function grantsFromPolicy(p:HccPolicy):Record<Role,Permission[]>{
   return Object.fromEntries(adminTemplateRoles(p).map(r=>[r,permissionsFromGrants(Object.entries(p.templates[r]??{}).filter(([,c])=>c.effect!=='deny')
     .map(([permissionId,c])=>({permissionId,mode:modeOf(c)})))])) as unknown as Record<Role,Permission[]>;
+}
+/** ADM-2: custom roles of GET /admin/roles → rolesX (built-ins stay in the policy templates). Cells and limits as policyFromServer. */
+export function rolesFromServer(roles:SrvRoles|null):ROLState{
+  const out:CustomRole[]=[];
+  for(const r of roles?.roles??[]){
+    if(!(r.isCustom||isCustomRoleCode(r.roleCode)))continue;
+    const base=ROLE_MAP[String(r.baseRole??'')];if(!base)continue;
+    const template:Record<string,PolicyCell>={},limits:Record<string,number>={};
+    for(const g of r.grants){template[g.permissionId]=cellOf(g);const l=limitOf(g);if(l!==undefined&&String(g.mode).toUpperCase()==='L')limits[g.permissionId]=l;}
+    for(const d of r.denies)template[d.permissionId]={effect:'deny',scope:'P'};
+    const v=Number(r.version);
+    out.push({id:r.roleCode,name:r.name,base,money:r.money!==false,features:featureLevelsFrom(r.features??undefined),
+      grants:permissionsFromGrants(r.grants.map(g=>({permissionId:g.permissionId,mode:g.mode}))),template,limits,
+      ...(r.retired||r.retiredUtc?{retired:true}:{}),createdBy:'',createdOn:'',version:Number.isFinite(v)?v:1});
+  }
+  return {roles:out,history:[]};
+}
+/** Policy cell → server SetRoleGrant mode (null = remove; deny is not a grid cell on the server). */
+export function grantModeOf(effect:string,mode?:string):string|null{
+  return effect==='none'?null:effect==='limit'?'L':effect==='request'?'R':mode==='view'?'V':mode==='masked'?'M':'A';
 }
 export const cfgRequestId=(requestId:number)=>'CFG-REQ-'+requestId;
 const REQUEST_STATUS:Record<string,Approval['status']>={Pending:'Pending',Approved:'Approved',Rejected:'Rejected',Expired:'Expired',Executed:'Executed',Invalidated:'Invalidated',Withdrawn:'Invalidated'};
@@ -205,8 +232,9 @@ async function allPages<T>(c:LoaderCtx,path:string,max=10):Promise<T[]>{
 }
 async function loadUsers(c:LoaderCtx):Promise<User[]>{
   const list=await allPages<SrvUser>(c,'/admin/users');const date=c.current('date');
+  const bases=Object.fromEntries((c.current('rolesX')?.roles??[]).map(r=>[r.id,r.base])) as Record<string,Role>; // ADM-2
   for(const u of list){c.ids.learn('user',protoId(u.userId),u.userId);c.ids.setVersion('user',protoId(u.userId),u.version);}
-  return list.map(u=>userFromServer(u,date)).sort((a,b)=>Number(a.id)-Number(b.id));
+  return list.map(u=>userFromServer(u,date,bases)).sort((a,b)=>Number(a.id)-Number(b.id));
 }
 async function loadPolicy(c:LoaderCtx):Promise<HccPolicy>{
   if(!isAdmin(c))return policyFromServer(null,[],c.me);
@@ -214,6 +242,12 @@ async function loadPolicy(c:LoaderCtx):Promise<HccPolicy>{
   const exc=c.mayRead('GET /admin/exceptions')?await optional(()=>c.api.get<{items:SrvException[]}>('/admin/exceptions'),{items:[]}):{items:[]};
   for(const e of exc.items)c.ids.learn('exception',protoId(e.exceptionId),e.exceptionId);
   return policyFromServer(roles,exc.items,c.me);
+}
+async function loadRoles(c:LoaderCtx):Promise<ROLState>{
+  if(!isAdmin(c)||!c.mayRead('GET /admin/roles'))return c.current('rolesX')??{roles:[],history:[]};
+  const x=rolesFromServer(await optional(()=>c.api.get<SrvRoles>('/admin/roles'),null));
+  for(const r of x.roles)c.ids.setVersion('role',r.id,String(r.version));
+  return x;
 }
 async function loadApprovals(c:LoaderCtx):Promise<Approval[]>{
   const r=await optional(()=>c.api.get<{items:SrvRequest[]}>('/configuration/requests',{status:''}),{items:[]});
@@ -261,12 +295,16 @@ export function loginFor(cmd:Command):string{
 const noSelf=(cmd:Command,me:SyncMe)=>String(cmd.id??'')===me.uid?'Use another administrator account to change your own access.':undefined;
 
 const usersReload=['users','policy','grants'] as const;
+const rolesReload=['rolesX','users','policy','grants'] as const; // ADM-2
+const rolOf=(s:State,id:unknown)=>s.rolesX?.roles.find(r=>r.id===String(id??''));
+const rolVersion=(c:CommandCtx,id:string)=>Number(c.ids.version('role',id)??rolOf(c.state,id)?.version??0);
 const configReload=['configX','settings','configHistory','approvals'] as const;
 
 export const admin:SyncArea={
   id:'admin',
   loaders:[
-    {slice:'users',requires:'admin',reads:['GET /admin/users'],needs:['date'],load:loadUsers},
+    {slice:'rolesX',requires:'admin',reads:['GET /admin/roles'],load:loadRoles}, // ADM-2 custom roles
+    {slice:'users',requires:'admin',reads:['GET /admin/users'],needs:['date','rolesX'],load:loadUsers},
     {slice:'policy',load:loadPolicy},
     {slice:'grants',needs:['policy'],requires:'admin',async load(c){return grantsFromPolicy(c.current('policy')!);}},
     {slice:'approvals',needs:['users'],requires:['admin','approve'],reads:['GET /configuration/requests'],load:loadApprovals},
@@ -281,23 +319,26 @@ export const admin:SyncArea={
       async send(c){const u=userOf(c.state,c.cmd.id)!;
         await c.api.command('SetUserEnabled',{userId:serverId(u.id,'User'),enabled:!u.enabled,expectedVersion:userVersion(c,u.id)});}},
     {type:'USER_CREATE',reload:[...usersReload],
-      precheck:cmd=>{const n=String(cmd.name??'').trim();return n.length<2||n.length>40?'Enter the person’s name (2–40 characters).':!ROLE_RANK.some(k=>ROLE_MAP[k]===cmd.role)?'Choose a role.':undefined;},
+      precheck:cmd=>{const n=String(cmd.name??'').trim();return n.length<2||n.length>40?'Enter the person’s name (2–40 characters).':!(cmd.customRole?isCustomRoleCode(String(cmd.customRole)):ROLE_RANK.some(k=>ROLE_MAP[k]===cmd.role))?'Choose a role.':undefined;},
       async send(c){const cmd=c.cmd;
         const r=await c.api.command<{userId:number;version:string}>('CreateUser',{loginName:loginFor(cmd),displayName:String(cmd.name).trim(),
-          roles:[{roleCode:roleCode(cmd.role),validFromUtc:null,validUntilUtc:cmd.expiresOn?untilUtcOf(cmd.expiresOn):null}]});
+          roles:[{roleCode:cmd.customRole?String(cmd.customRole):roleCode(cmd.role),validFromUtc:null,validUntilUtc:cmd.expiresOn?untilUtcOf(cmd.expiresOn):null}]});
         c.ids.learn('user',protoId(r.userId),r.userId);
         return {result:{userId:protoId(r.userId),loginName:loginFor(cmd),credentialNeeded:true}};}},
     {type:'USER_UPDATE',reload:[...usersReload],
       precheck:(cmd,s,me)=>{const u=userOf(s,cmd.id);if(!u)return 'User not found.';
         if(cmd.name!==undefined&&String(cmd.name).trim()!==u.name)return 'Renaming a user is not available on the server yet (no server command) — change role, expiry or status only.';
-        if((cmd.role!==undefined||cmd.enabled!==undefined||cmd.expiresOn!==undefined)&&u.id===me.uid)return noSelf(cmd,me);
-        return cmd.role===undefined&&cmd.enabled===undefined&&cmd.expiresOn===undefined?'Nothing changed.':undefined;},
+        if((cmd.role!==undefined||cmd.customRole!==undefined||cmd.enabled!==undefined||cmd.expiresOn!==undefined)&&u.id===me.uid)return noSelf(cmd,me);
+        return cmd.role===undefined&&cmd.customRole===undefined&&cmd.enabled===undefined&&cmd.expiresOn===undefined?'Nothing changed.':undefined;},
       async send(c){const cmd=c.cmd,u=userOf(c.state,cmd.id)!,userId=serverId(u.id,'User');let version=userVersion(c,u.id);
-        const role=(cmd.role??u.role) as Role;const expiresOn=cmd.expiresOn!==undefined?(cmd.expiresOn||undefined):u.expiresOn;
+        const expiresOn=cmd.expiresOn!==undefined?(cmd.expiresOn||undefined):u.expiresOn;
         const until=expiresOn?untilUtcOf(expiresOn):null;
-        if(role!==u.role||cmd.expiresOn!==undefined){
-          version=(await c.api.command<{version:string}>('AssignRole',{userId,roleCode:roleCode(role),validFromUtc:null,validUntilUtc:until,expectedVersion:version},{step:'role'})).version;
-          if(role!==u.role)version=(await c.api.command<{version:string}>('RevokeRole',{userId,roleCode:roleCode(u.role),expectedVersion:version},{step:'revoke'})).version;
+        // ADM-2: the server code held = the custom role's code (C01…) or the built-in role's code.
+        const was=u.customRole??roleCode(u.role);
+        const now=cmd.customRole!==undefined?(cmd.customRole?String(cmd.customRole):roleCode(String(cmd.role??u.role))):cmd.role!==undefined?roleCode(String(cmd.role)):was;
+        if(now!==was||cmd.expiresOn!==undefined){
+          version=(await c.api.command<{version:string}>('AssignRole',{userId,roleCode:now,validFromUtc:null,validUntilUtc:until,expectedVersion:version},{step:'role'})).version;
+          if(now!==was)version=(await c.api.command<{version:string}>('RevokeRole',{userId,roleCode:was,expectedVersion:version},{step:'revoke'})).version;
         }
         if(cmd.enabled!==undefined&&!!cmd.enabled!==u.enabled)await c.api.command('SetUserEnabled',{userId,enabled:!!cmd.enabled,expectedVersion:version},{step:'enabled'});}},
     {type:'USER_EXCEPTION',reload:[...usersReload],
@@ -311,6 +352,30 @@ export const admin:SyncArea={
           await c.api.command('RevokeException',{userId:serverId(e.user,'User'),exceptionId:serverId(e.id,'Exception'),expectedVersion:userVersion(c,e.user)});return;}
         await c.api.command('GrantException',{userId:serverId(cmd.user,'User'),permissionId:String(cmd.perm),effect:cmd.effect==='deny'?'DENY':'ALLOW',mode:'A',scope:'P',
           limit:null,limitUnit:null,reason:String(cmd.reason).trim(),validUntilUtc:untilUtcOf(cmd.expires),expectedVersion:userVersion(c,String(cmd.user))});}},
+    // ADM-2 custom roles (brief §2.2). The role id is the server role code; the server re-checks Owner, money, SoD and self-edit.
+    {type:'ROL_CREATE',reload:[...rolesReload],
+      precheck:cmd=>{const n=String(cmd.name??'').trim();return n.length<2||n.length>40?'Enter a role name (2–40 characters).':cmd.base==='Owner'||!ROLE_RANK.some(k=>ROLE_MAP[k]===cmd.base)?'Choose a base role.':undefined;},
+      async send(c){const cmd=c.cmd;
+        const r=await c.api.command<{roleCode:string;version?:number|string}>('CreateRole',{name:String(cmd.name).trim(),baseRole:roleCode(String(cmd.base)),...(cmd.money!==undefined?{money:!!cmd.money}:{})});
+        return {result:{id:r?.roleCode}};}},
+    {type:'ROL_UPDATE',reload:[...rolesReload],precheck:(cmd,s)=>rolOf(s,cmd.id)?undefined:'Role not found.',
+      async send(c){const cmd=c.cmd,id=String(cmd.id);
+        await c.api.command('UpdateRole',{roleCode:id,...(cmd.name!==undefined?{name:String(cmd.name).trim()}:{}),...(cmd.money!==undefined?{money:!!cmd.money}:{}),expectedVersion:rolVersion(c,id)});}},
+    {type:'ROL_FEATURE_SET',reload:[...rolesReload],
+      precheck:(cmd,s)=>!rolOf(s,cmd.id)?'Role not found.':!['off','view','full'].includes(cmd.access)?'Choose Off, View or Full.':undefined,
+      async send(c){const cmd=c.cmd;
+        await c.api.command('SetRoleFeature',{roleCode:String(cmd.id),featureId:String(cmd.feature),access:String(cmd.access),expectedVersion:rolVersion(c,String(cmd.id))});}},
+    {type:'ROL_GRANT_SET',reload:[...rolesReload],
+      precheck:(cmd,s)=>!rolOf(s,cmd.id)?'Role not found.':cmd.limit===undefined&&cmd.effect==='deny'?'Deny cells are not set on a custom role: choose Not granted.':undefined,
+      async send(c){const cmd=c.cmd,id=String(cmd.id),perm=String(cmd.perm);const r=rolOf(c.state,id)!;
+        if(cmd.limit!==undefined){const cell=r.template[perm];const pct=perm==='PERM-RATE-001';
+          await c.api.command('SetRoleGrant',{roleCode:id,expectedVersion:rolVersion(c,id),permissionId:perm,mode:'L',scope:cell?.scope??'P',limit:pct?Number(cmd.limit)*100:Number(cmd.limit),limitUnit:pct?'BPS':'PAISE'});return;}
+        const mode=grantModeOf(String(cmd.effect),cmd.mode);const lim=r.limits[perm];
+        await c.api.command('SetRoleGrant',{roleCode:id,expectedVersion:rolVersion(c,id),permissionId:perm,mode,scope:mode?String(cmd.scope??r.template[perm]?.scope??'P'):null,
+          ...(mode==='L'&&lim!==undefined?{limit:perm==='PERM-RATE-001'?lim*100:lim,limitUnit:perm==='PERM-RATE-001'?'BPS':'PAISE'}:{})});}},
+    {type:'ROL_RETIRE',reload:[...rolesReload],
+      precheck:(cmd,s)=>!rolOf(s,cmd.id)?'Role not found.':s.users.some(u=>u.customRole===cmd.id&&u.enabled)?'Enabled users still hold this role: move them to another role first.':undefined,
+      async send(c){await c.api.command('RetireRole',{roleCode:String(c.cmd.id),expectedVersion:rolVersion(c,String(c.cmd.id))});}},
     // No screen yet (DEC-062): credentials and shared-device registration. The PIN / password goes only to the server.
     {type:'USER_CREDENTIAL',reload:['users'],
       // A caller-chosen key is required: the runtime's fallback key is a digest of the command, which would include the PIN.

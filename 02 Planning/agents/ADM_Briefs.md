@@ -122,3 +122,29 @@ Evidence `05 Delivery Evidence/Admin/ADM-DONE.md`: what was built, test counts, 
 **Role-string sweep** (`"OWN"` / `"MGR"` checks): `ReminderRules`/`ReminderCommands` (roles from `SqlReminderStore.RolesOfUserAsync` → now `v_user_role_effective`), `HandoverRules` (`SqlHandoverStore.RoleCodesAsync` → view), `CatalogueCommands` OWN check (`SqlCatalogueStore.RoleCodesAsync` → view), staff directory (`SqlAccessAdminQueries.DirectoryAsync` → view, distinct), sign-in roles (`SqlSessionService` → view). Unchanged on purpose: `StayRateRules.MoneyRoles` / `CatalogueRules.DiscountRoles` (validate configured role lists, not the actor), `ImportPlanner` / `SqlImportStore` OWN refusals (import never assigns Owner), `SqlStayRateStore.AuthorityAsync` (joins the custom role's own grants), `SqlUserAdministration` OWN checks (Owner is never a base).
 
 **Hotel-PC compile watch list**: new files `RoleRules.cs`, `SqlRoleAdministration.cs`, tests `Hcc.Access.Tests/Sql/RoleAdministrationTests.cs`, `Hcc.Access.Tests/Unit/RoleRulesTests.cs`, `Hcc.Configuration.Tests/Sql/RoleFeatureHttpTests.cs`; pattern variables `m` / `s` in `SetRoleGrantAsync` (conditional + throw expressions), `int.Parse(ReadOnlySpan<char>, IFormatProvider)`, `Enumerable.Max` over the enum, `KeyValuePair` deconstruction; `OUTPUT … INTO @v` on `plat.policy_version` (has a trigger); migration 4800 batch split by `GO`; `RoleFeatureHttpTests` posts `{}` bodies to the accounting routes and signs a PIN user in on a seeded device; any test asserting `/me/capabilities` `roles` exactly (custom codes are appended) or exact `RoleTemplateView` JSON.
+
+## Lane P API (prototype, ADM-2 lane P — lane U codes against this)
+All exported from `src/services/mock` (source `src/domain/streams/roles.ts`, commands `src/services/mock/handlers/roles.ts`).
+
+Types: `RoleAccess='off'|'view'|'full'`; `CustomRole` (§3.1 + optional `baseCopy:{grants,template,limits}` = the frozen copy of the base taken at creation, which `full` and money-on restore); `ROLState={roles,history:PolicyChange[]}` in `s.rolesX`; `User.customRole?` (role id `C01`…, = server code). SCHEMA 14.
+
+Helpers:
+- `rolState(s)`, `rolList(s)`, `rolCustom(s,id)`, `rolOfUser(s,uid)`, `rolHolders(s,id)` (enabled users), `rolRoleName(s,u)` (custom name or built-in)
+- `rolCanBeBase(role)`, `rolMoneyLocked(base)`, `rolCredentialKind(base):'PASSWORD'|'PIN'`, `rolIsMoneyPerm(permId)`, `ROL_ACCESS`, `ROL_SOD_PERMS`, `ROL_OWN_PAY`
+- `rolEffectiveGrants(s,u):Permission[]`, `rolEffectiveTemplate(s,u)`, `rolCustomLimit(s,role,perm)`
+- `rolRoleFeatureLevel(role,featureId)`, `rolFeatureLevel(s,uid,featureId)`, `rolPageLevel(s,uid,page)`, `cfgPageOnFor(s,uid,page)` (config.ts); `navFilterModules(s,items,uid)` uses it
+- `rolCommandBlock(s,uid,cmd):string|undefined` (execute() refuses FORBIDDEN with it; same sentences as the server: "… is not part of your role <name>." / "… is view only for your role <name>.")
+- `rolFeaturePerms(featureId):{coarse,ids}`, `rolGridModules()` (non-core features per module, for the grid)
+- `rolPreview(s,roleId)` → `{role,base,money,moneyLocked,grants,pages,hiddenPages,features:[{id,label,module,core,level}],users}`
+- `rolSodBlock(s,role,permId,cell,limit?):string|undefined` (note: takes `s` — compares with the base copy)
+- `rolApplyFeature`, `rolApplyMoney`, `rolNewRole`, `rolNextId` (used by the handlers / fixture; UI should send commands instead)
+- `rolSeedDemo(s)` (fixture: C01 Day shift manager, C02 Night shift manager, users `daymgr` / `nightmgr`; applied to FY26 only, BASE unchanged)
+
+Lane P rule: a role with **every** switchable feature of a module `off` has that module's core features (pages + commands) off too — this is how the day-shift manager loses the Accounting page (`accounting.ledgers` is core). Modules with only core features are never affected.
+
+Commands (Owner only: PERM-ADM-002 allow + role Owner; never the actor's own role; built-in ids refused "Built-in roles are read-only"):
+- `ROL_CREATE {name,base,money?}` → id `C01`… · `ROL_UPDATE {id,name?,money?}` · `ROL_FEATURE_SET {id,feature,access}` (`full` also adds perms when already full) · `ROL_GRANT_SET {id,perm,effect:'allow'|'deny'|'limit'|'request'|'none',scope?,mode?}` or `{id,perm,limit}` · `ROL_RETIRE {id}` (refused while an enabled user holds it)
+- `USER_CREATE {name,customRole}` / `USER_UPDATE {id,customRole}` (`customRole:''` or a `role` clears it); a money custom role is assigned by the Owner only, non-money also by the Tech admin. User name suffix = the custom role's name.
+- History: `s.rolesX.history` (newest first, `version` = policy version); merge with `policy.history` for the Audit tab.
+
+Sync: `ROL_*` → `CreateRole` / `UpdateRole` / `SetRoleFeature` / `SetRoleGrant` / `RetireRole` (expectedVersion = loaded role version); slice `rolesX` ← `GET /admin/roles` custom rows; users with a custom code get `customRole` + base `role`; `/me/capabilities` `features` + custom code → the signed-in user's `rolesX` row (overlayMe). Not mapped yet: `GET /admin/policy-history` (lane U may add it for the Audit tab).

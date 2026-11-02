@@ -47,12 +47,22 @@ export function permissionsFromGrants(grants:{permissionId:string;mode:string}[]
   return (Object.keys(PERMISSION_MAP) as Permission[]).filter(p=>{const r=PERMISSION_MAP[p];
     return grants.some(g=>r.any.includes(g.permissionId)&&r.modes.includes(String(g.mode||'A').toUpperCase()));});
 }
+/** ADM-2: custom role codes (C01…C99, brief §2.1). */
+export const isCustomRoleCode=(code:string)=>/^C\d{2}$/.test(code);
+/** ADM-2: /me/capabilities `features` → off / view levels (unknown values and `full` dropped). */
+export function featureLevelsFrom(f:Record<string,string>|undefined):Record<string,'off'|'view'>{
+  const out:Record<string,'off'|'view'>={};
+  for(const [k,v] of Object.entries(f??{})){const l=String(v).toLowerCase();if(l==='off'||l==='view')out[k]=l;}
+  return out;
+}
 export function meFromCapabilities(c:SrvCapabilities):SyncMe{
   const grants=c.permissions??[];
+  const customRole=(c.roles??[]).find(isCustomRoleCode);
   const role=(c.roles??[]).map(r=>ROLE_MAP[r]).find(Boolean)??UNKNOWN_ROLE;
   return {userId:c.userId,uid:protoUserId(c.userId),displayName:c.displayName,role,roles:[...(c.roles??[])],permIds:[...new Set(grants.map(g=>g.permissionId))],
     permissions:permissionsFromGrants(grants),grants:grants.map(g=>({...g})),fieldMasks:{...(c.fieldMasks??{})},
-    credentialKind:String(c.credentialKind).toUpperCase()==='PIN'?'PIN':'PASSWORD',mustChange:!!c.mustChangeCredential};
+    credentialKind:String(c.credentialKind).toUpperCase()==='PIN'?'PIN':'PASSWORD',mustChange:!!c.mustChangeCredential,
+    ...(customRole?{customRole}:{}),features:featureLevelsFrom(c.features)};
 }
 /** Puts the signed-in user into the assembled state so the unchanged can()/ctx.permission/ctx.user work: an enabled user record
  *  with the user's prototype role, and that role's grants = the mapped capabilities (applied last, over any loaded s.grants). */
@@ -60,6 +70,15 @@ export function overlayMe(s:State,me:SyncMe|null):State{
   if(!me)return s;
   const users=s.users.filter(u=>u.id!==me.uid);
   const prev=s.users.find(u=>u.id===me.uid);
-  users.push({...(prev??{}),id:me.uid,name:me.displayName,role:me.role,enabled:true,expiresOn:undefined} as State['users'][number]);
-  return {...s,users,grants:{...s.grants,[me.role]:[...me.permissions]}};
+  const user={...(prev??{}),id:me.uid,name:me.displayName,role:me.role,enabled:true,expiresOn:undefined} as State['users'][number];
+  if(me.customRole)user.customRole=me.customRole;else delete user.customRole;
+  users.push(user);
+  const next={...s,users,grants:{...s.grants,[me.role]:[...me.permissions]}};
+  if(!me.customRole)return next;
+  // ADM-2: the signed-in user's custom role carries their effective feature levels and coarse grants (can(), page hiding,
+  // execute()'s role gate); the rest of a loaded row (name, money, cells) is kept.
+  const rx=s.rolesX??{roles:[],history:[]};const was=rx.roles.find(r=>r.id===me.customRole);
+  const row={...(was??{id:me.customRole,name:me.customRole,base:me.role,money:true,template:{},limits:{},createdBy:'',createdOn:'',version:1}),
+    base:me.role,features:{...(me.features??{})},grants:[...me.permissions]};
+  return {...next,rolesX:{...rx,roles:[...rx.roles.filter(r=>r.id!==me.customRole),row]}};
 }

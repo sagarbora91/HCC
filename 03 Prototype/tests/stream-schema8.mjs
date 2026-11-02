@@ -2,7 +2,7 @@
 // Masters wave: SCHEMA 8 → 9; SCC port wave: 9 → 10. v7, v8 and v9 saves all migrate to the current SCHEMA.
 export function register({test,M,assert}){
   const v7Save=()=>{const s=structuredClone(M.seed());delete s.complianceX;delete s.cashbookX;delete s.configX;s.schema=7;return JSON.stringify(s);};
-  test('[S8] SCHEMA is 13 (LF legacy parity) and a fresh seed carries it',()=>{assert.equal(M.SCHEMA,13);assert.equal(M.seed().schema,13);});
+  test('[S8] SCHEMA is 14 (ADM-2 custom roles; was 13 LF legacy parity) and a fresh seed carries it',()=>{assert.equal(M.SCHEMA,14);assert.equal(M.seed().schema,14);});
   test('[S8] a v7 save without Wave 0.5 slices restores without reset and is upgraded to the current SCHEMA',()=>{
     const r=M.restoreState(v7Save());assert.equal(r.reset,false);assert.equal(r.state.schema,M.SCHEMA);
     assert.equal(r.state.bookings.length,M.seed().bookings.length,'bookings kept');assert.equal(M.drawer(r.state),M.drawer(M.seed()),'drawer unchanged');});

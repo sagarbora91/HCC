@@ -40,6 +40,7 @@ import {handlers as credentials} from './credentials'; // A02b-05 self-service p
 import {handlers as syshealth} from './syshealth';
 import {handlers as roommasters} from './roommasters';
 import {handlers as keys} from './keys'; // KEYS room keys
+import {handlers as roles} from './roles'; // ADM-2 custom roles (wraps USER_CREATE / USER_UPDATE: after admin)
 // LF lanes: ONE import line inside your own block (append only); spread it in the LF object below.
 // LF-DOCDB
 // LF-DOCDB end
@@ -86,4 +87,4 @@ const LF:Record<string,Handler>={ // LF lanes: spread your handlers inside your 
   ...guestPhotos,
   // LF-IMAGES end
 };
-export const registry:Record<string,Handler>={...ACC1,...ACC2,...reservations,...guests,...folio,...housekeeping,...admin,...closing,...expenses,...yieldMod,...groups,...channels,...maintenance,...inventory,...handover,...services,...messaging,...pos,...staff,...accounting,...assistant,...compliance,...cashbook,...cashout,...masters,...credentials,...syshealth,...roommasters,...keys,...LF,...catalogue};
+export const registry:Record<string,Handler>={...ACC1,...ACC2,...reservations,...guests,...folio,...housekeeping,...admin,...closing,...expenses,...yieldMod,...groups,...channels,...maintenance,...inventory,...handover,...services,...messaging,...pos,...staff,...accounting,...assistant,...compliance,...cashbook,...cashout,...masters,...credentials,...syshealth,...roommasters,...keys,...roles,...LF,...catalogue};
