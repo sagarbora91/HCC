@@ -9,6 +9,8 @@ import {tabsFor,MobileTab,isLargeText,isLongTitle,tabLabel} from './tabs';
 import {usePrefs} from '../prefs';
 import {dateLabel} from '../../components/ui';
 import {isDayClosed} from '../../services/mock';
+/** V15-4: a tab label wraps between words only (never "Approval" / "s") and shrinks a little on a 360 px phone instead. */
+const TAB_LABEL_STYLE:React.CSSProperties={overflowWrap:'normal',wordBreak:'keep-all',fontSize:'min(calc(16px * min(var(--hcc-text,1), 1.1)), 4vw)'};
 export function MobileShell({allowedIds,children,canGoBack,onBack,tabKey,onTab}:{allowedIds:string[];children:React.ReactNode;canGoBack:boolean;onBack:()=>void;tabKey:string;onTab:(t:MobileTab|'more')=>void}){
   const {s,user,page,open,pending,taskList,arrivals,display,openSearch,openMenu}=useHcc();
   const tabs=tabsFor(user.role,allowedIds);
@@ -24,15 +26,15 @@ export function MobileShell({allowedIds,children,canGoBack,onBack,tabKey,onTab}:
     <header className="m-appbar">
       {showBack?<button className="m-icon" aria-label="Back" onClick={onBack}><ArrowLeft size={22}/></button>:<span className="m-brand" aria-hidden><Hotel size={20}/></span>}
       <div className="m-titles"><div className="m-title">{title}</div>
-        <span className={'m-date '+(closed?'closed':'open')} title="Simulated business date"><CalendarDays size={12}/>Business date {dateLabel(s.date).replace(/ \d{4}$/,'')} · <b>{closed?'Closed':'Open'}</b></span></div>
+        <span className={'m-date '+(closed?'closed':'open')} title="Simulated business date" style={{minWidth:0}}><CalendarDays size={12} style={{flexShrink:0}}/><span style={{minWidth:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>Business date {dateLabel(s.date).replace(/ \d{4}$/,'')} ·</span><b style={{flexShrink:0}}>{closed?'Closed':'Open'}</b></span></div>
       <button className="m-search" aria-label="Search pages and actions" onClick={openSearch}><Search size={22}/></button>
       {process.env.HCC_BUILD==='production'?null:<button className="m-demo-pill" onClick={()=>open({type:'demo'})} aria-label="Open demo controls"><FlaskConical size={14}/><span className="m-demo-text">DEMO</span></button>}
       <button className="m-avatar" aria-label={`User menu: ${user.name}`} onClick={()=>open({type:'user-menu'})}>{user.name[0]}</button>
     </header>
     <main className="m-content" id="m-content">{page!==HOME_PAGE&&<div className="m-crumbs"><Breadcrumb page={page} label={navItems.find(n=>n.id===page)?.label||''}/></div>}{children}</main>
     <nav className="m-tabbar" aria-label="Main tabs">
-      {tabs.map(t=>{const n=badge(t);return <button key={t.key} className={active(t)?'on':''} aria-current={active(t)?'page':undefined} onClick={()=>onTab(t)}><span className="m-tab-icon"><t.icon size={22}/>{n>0&&<b aria-label={`${n} open`}>{n}</b>}</span><span>{tabLabel(t,large)}</span></button>;})}
-      <button onClick={openMenu} aria-haspopup="dialog"><span className="m-tab-icon"><Menu size={22}/></span><span>Menu</span></button>
+      {tabs.map(t=>{const n=badge(t);return <button key={t.key} className={active(t)?'on':''} aria-current={active(t)?'page':undefined} onClick={()=>onTab(t)}><span className="m-tab-icon"><t.icon size={22}/>{n>0&&<b aria-label={`${n} open`}>{n}</b>}</span><span style={TAB_LABEL_STYLE}>{tabLabel(t,large)}</span></button>;})}
+      <button onClick={openMenu} aria-haspopup="dialog"><span className="m-tab-icon"><Menu size={22}/></span><span style={TAB_LABEL_STYLE}>Menu</span></button>
     </nav>
   </div>;
 }
