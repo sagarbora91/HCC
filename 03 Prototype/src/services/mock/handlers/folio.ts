@@ -25,6 +25,8 @@ function companyCreditCheck(k:Kit,x:Booking,amount:number){
   const refusal=grpCreditRefusal(c!,grpExposure(k.s,c!)-grpBookingExposure(k.s,x),amount,'stay on company credit');
   if(refusal)k.fail('INVALID_TRANSITION',refusal);
 }
+import {strCanApprove,strRefusal} from '../../../domain/streams/stay-rate'; // LF-RATE
+import {strApply} from './stay-rate'; // LF-RATE
 import {cxCashBlocked} from '../../../domain/streams/cashout';
 import {accCashEnforce} from '../../../domain/streams/accounting-guards'; // ACC-2 flows (contract §7, B9)
 import {chnChannelOfBooking,chnOtaCreditRefusal} from '../../../domain/streams/channels'; // ACC-2 flows (contract §4, A13)
@@ -261,6 +263,14 @@ const APPROVAL:Handler=k=>{
     }
     // LF lanes: your approval kind as a separate `if(kind==='<kind>'){…}` statement inside your own block (folioKind must know the kind).
     // LF-RATE · APPROVAL branch
+    if(kind==='rate-change'){
+      assert(x&&x.status==='In house','A rate change applies to an in-house stay only.','INVALID_TRANSITION');stale();
+      const m=a!.meta as Record<string,any>;
+      assert(strCanApprove(s,uid,x!,Number(m.rate)),'This rate is below what a Manager may allow (PERM-RATE-001). An Owner must approve it.','FORBIDDEN');
+      const refusal=strRefusal(s,x,{rate:m.rate,people:m.people,children:m.children,scope:m.scope,reason:a!.reason});if(refusal)fail('INVALID_TRANSITION',refusal);
+      const ch=strApply(k,x!,{rate:Number(m.rate),people:Number(m.people),children:Number(m.children),scope:m.scope,reason:a!.reason},a!);
+      a!.status='Executed';a!.meta={...a!.meta,change:ch.id};extra=` · rate ${money(ch.oldRate)} → ${money(ch.newRate)} applied`+(ch.reposted.length?` · ${ch.reposted.length} night(s) re-posted`:'');
+    }
     // LF-RATE end
     // LF-BILL · APPROVAL branch
     // LF-BILL end

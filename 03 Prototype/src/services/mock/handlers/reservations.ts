@@ -55,6 +55,7 @@ function restrictions(k:Kit,type:string,arrival:string,departure:string){
   return ` · restriction overridden (${v.map(x=>x.code+' '+x.restriction).join(', ')}): ${reason.slice(0,200)}`;
 }
 
+import {guestAgreedGuestOf,guestAgreedRateFor} from '../../../domain/streams/stay-rate'; // LF-RATE
 export const handlers:Record<string,Handler>={
   BOOK:k=>{
     const {s,cmd,req,open,assert,id}=k;
@@ -91,6 +92,12 @@ export const handlers:Record<string,Handler>={
     const before=account?grpExposure(s,account):0;
     if(account)x.company={...x.company!,account:account.id};
     // LF-RATE · BOOK rate:'agreed' (§3)
+    if(cmd.rate==='agreed'){
+      const gid=guestAgreedGuestOf(s,{guestId:cmd.guestId,phone});
+      const ag=guestAgreedRateFor(s,gid,r!.type,cmd.arrival);
+      assert(ag,'This guest has no agreed rate for this room type on the arrival date. Use the tariff.');
+      x.rate=ag!.rate;x.rateSource='agreed';
+    }
     // LF-RATE end
     // LF-DESK · BOOK purpose / vehicle / checkoutBasis (§8)
     // LF-DESK end

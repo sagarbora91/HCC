@@ -82,6 +82,7 @@ export {LEGACY_SAMPLE} from '../../fixtures/ext/legacy-sample'; // W1a LG: ficti
 // LF-DOCDB
 // LF-DOCDB end
 // LF-RATE
+export * from '../../domain/streams/stay-rate';
 // LF-RATE end
 // LF-BILL
 // LF-BILL end

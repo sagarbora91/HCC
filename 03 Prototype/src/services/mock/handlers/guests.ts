@@ -48,6 +48,7 @@ function upsert(k:Kit,d:GuestDraft,existingId:string|undefined,verified:boolean)
 }
 const link=(x:Booking,g:Guest)=>{if(x.guestId!==g.id){x.guestId=g.id;x.version++;}};
 
+import {guestAgreedRateFor} from '../../../domain/streams/stay-rate'; // LF-RATE
 export const handlers:Record<string,Handler>={
   /** Create/edit a guest profile. {guest:GuestDraft, id?:guestId, booking?:bookingId to link, verified?:boolean, version?}. Intended PERM-GST-002. */
   GUEST_SAVE:k=>{
@@ -103,6 +104,12 @@ export const handlers:Record<string,Handler>={
     k.assert(!blockedTonight(s,r)&&r.hk==='Ready'&&!occupant(s,r.id),'The room must be vacant, ready and unblocked.','NOT_AVAILABLE');
     k.assert(available(s,r.id,x.arrival,x.departure,x.id),'The room allocation conflicts with another booking.','NOT_AVAILABLE');
     // LF-RATE · CHECKIN rate:'agreed' (§3)
+    if(k.cmd.rate==='agreed'){
+      const ag=guestAgreedRateFor(s,x.guestId,r.type,x.arrival);
+      k.assert(ag,'This guest has no agreed rate for this room type on the arrival date. Use the tariff.');
+      k.assert(!x.lines.some(l=>l.kind==='room'),'Room nights are already posted at the booked rate.','INVALID_TRANSITION');
+      x.rate=ag!.rate;x.rateSource='agreed';
+    }
     // LF-RATE end
     // LF-DESK · CHECKIN purpose / vehicle / Form C / checkoutBasis / checkedInAt (§8)
     // LF-DESK end
