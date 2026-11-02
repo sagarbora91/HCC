@@ -198,6 +198,7 @@
     <File Path="database/migrations/4682_bill_correction.sql" />
     <File Path="database/migrations/4683_bill_correction_rbac_seed.sql" />
     <File Path="database/migrations/4684_lgc_bill_date_index.sql" />
+    <File Path="database/migrations/4685_lgc_bill_cancelled.sql" />
     <!-- LF-BILL end -->
     <!-- LF-COUNTER 4687-4694 -->
     <File Path="database/migrations/4687_counter_source_kind.sql" />

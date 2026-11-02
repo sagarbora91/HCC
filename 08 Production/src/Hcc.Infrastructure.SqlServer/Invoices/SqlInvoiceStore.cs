@@ -490,4 +490,20 @@ public sealed class SqlInvoiceStore(SqlConnectionFactory connections) : IInvoice
             P(cmd, "@t", SqlDbType.Date, Date(to));
             return await ReadNotesAsync(cmd, ct).ConfigureAwait(false);
         }, ct);
+
+    // LF B7 (LF-CONTRACT §5; migrations 4684 index, 4685 cancel flag): the legacy Lodge series in the period.
+    public Task<IReadOnlyList<Hcc.Domain.Invoices.Gstr1LegacyBill>> LegacyBillsInRangeAsync(int propertyId, DateOnly from, DateOnly to, CancellationToken ct) =>
+        WithAsync<IReadOnlyList<Hcc.Domain.Invoices.Gstr1LegacyBill>>(null, """
+            SELECT legacy_bill_no, bill_date, cancelled FROM lgc.bill WHERE property_id = @p AND bill_date BETWEEN @f AND @t ORDER BY legacy_bill_no;
+            """, async cmd =>
+        {
+            P(cmd, "@p", SqlDbType.Int, propertyId);
+            P(cmd, "@f", SqlDbType.Date, Date(from));
+            P(cmd, "@t", SqlDbType.Date, Date(to));
+            var list = new List<Hcc.Domain.Invoices.Gstr1LegacyBill>();
+            await using var rd = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+            while (await rd.ReadAsync(ct).ConfigureAwait(false))
+                list.Add(new(rd.GetInt32(0), DateOnly.FromDateTime(rd.GetDateTime(1)), rd.GetBoolean(2)));
+            return list;
+        }, ct);
 }

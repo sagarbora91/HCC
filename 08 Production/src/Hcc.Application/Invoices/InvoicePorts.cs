@@ -134,6 +134,9 @@ public interface IInvoiceStore
 
     Task<IReadOnlyList<CreditNoteRecord>> CreditNotesInRangeAsync(int propertyId, DateOnly from, DateOnly to, CancellationToken ct);
 
+    /// <summary>LF B7 (LF-CONTRACT §5): legacy Lodge bills (lgc.bill) dated in the period — GSTR-1 Table 13 'LGC' row only.</summary>
+    Task<IReadOnlyList<Hcc.Domain.Invoices.Gstr1LegacyBill>> LegacyBillsInRangeAsync(int propertyId, DateOnly from, DateOnly to, CancellationToken ct);
+
     Task<IReadOnlyList<CreditNoteRequestRow>> RequestsAsync(int propertyId, string? status, CancellationToken ct);
 }
 
