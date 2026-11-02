@@ -27,8 +27,8 @@ function LogTab(){
       <label>User<select value={f.user} onChange={e=>set('user',e.target.value)}><option value="">All</option>{users.map(u=><option key={u} value={u}>{keyUserName(s,u)}</option>)}</select></label>
       <label>Event<select value={f.event} onChange={e=>set('event',e.target.value)}><option value="">All</option>{KEY_EVENTS.map(e=><option key={e} value={e}>{KEY_EVENT_LABEL[e]}</option>)}</select></label>
       <button className="btn" onClick={()=>{void printDocument();}}><Printer size={15}/>Print</button>
-    </div>
-    <div className="small-stats key-totals" aria-label="Totals">
+    </div></section>
+    <ScrollPanel label="Key log"><div className="small-stats key-totals" aria-label="Totals">
       <div><span>Issued</span><strong className="number">{t.issued}</strong></div>
       <div><span>Re-issued</span><strong className="number">{t.reissued}</strong></div>
       <div><span>Extended</span><strong className="number">{t.extended}</strong></div>
@@ -36,8 +36,8 @@ function LogTab(){
       <div><span>Cancelled</span><strong className="number">{t.cancelled}</strong></div>
       <div><span>Read</span><strong className="number">{t.read}</strong></div>
       <div><span>Rows shown</span><strong className="number">{r.total}</strong></div>
-    </div></section>
-    <ScrollPanel label="Key log">{r.rows.length?<div className="table-wrap key-log-table"><table><thead><tr><th>When</th><th>Event</th><th>Reason</th><th>Room</th><th>Booking</th><th>By</th><th>State</th><th>Card</th></tr></thead>
+    </div>
+    {r.rows.length?<div className="table-wrap key-log-table"><table><thead><tr><th>When</th><th>Event</th><th>Reason</th><th>Room</th><th>Booking</th><th>By</th><th>State</th><th>Card</th></tr></thead>
       <tbody>{r.rows.map(j=><tr key={j.id}><td>{when(j.at)}</td><td>{KEY_EVENT_LABEL[j.event]}{j.kind==='manual'?' (manual)':''}</td><td>{j.reason?KEY_REASON_LABEL[j.reason]:'—'}</td><td>{j.room??'—'}</td><td>{j.booking??'—'}</td><td>{keyUserName(s,j.by)}</td><td><KeyStatePill j={j}/></td><td>{j.cardNo??'—'}</td></tr>)}</tbody></table></div>
       :<Empty title="No key events match" body="Change the filters, or issue a key from a booking."/>}
   </ScrollPanel></>;}
