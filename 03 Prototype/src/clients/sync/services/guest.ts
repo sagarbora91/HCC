@@ -50,7 +50,7 @@ const clean=<T extends object>(o:T):T=>{for(const k of Object.keys(o))if((o as R
 export function requestFromServer(r:SrvRequest,booking:string|undefined,log:GSVLog[]):GSVRequest{
   return clean({id:String(r.requestId),booking:booking??'',room:r.roomNo,guest:r.guestName,type:r.requestType as GSVRequestType,detail:r.detail,dept:r.dept as GSVDept,
     assignee:r.assigneeId==null?undefined:String(r.assigneeId),priority:(r.priority==='Urgent'?'Urgent':'Normal') as GSVRequest['priority'],status:r.status as GSVRequest['status'],
-    createdAt:utcToClock(r.createdUtc),dueAt:utcToClock(r.dueUtc),scheduledFor:r.scheduledUtc?utcToClock(r.scheduledUtc):undefined,startedAt:r.startedUtc?utcToClock(r.startedUtc):undefined,
+    createdAt:utcToClock(r.createdUtc),dueAt:utcToClock(r.dueUtc),scheduledFor:r.scheduledUtc?utcToClock(r.scheduledUtc):undefined,wakeAt:r.requestType==='Wake-up call'&&r.scheduledUtc?utcToClock(r.scheduledUtc):undefined,startedAt:r.startedUtc?utcToClock(r.startedUtc):undefined,
     doneAt:r.doneUtc?utcToClock(r.doneUtc):undefined,note:r.guestNote??undefined,cancelReason:r.cancelReason??undefined,by:log[0]?.by??'',log} as GSVRequest);
 }
 export function complaintFromServer(c:SrvComplaint,booking:string|undefined,log:GSVLog[]):GSVComplaint{
@@ -138,6 +138,9 @@ export const guestServices:SyncArea={
     {type:'GSV_REQUEST_CANCEL',reload:['servicesX'],
       precheck:(cmd:Cmd)=>txt(cmd.reason).length>=3?undefined:'Enter the reason for cancelling.',
       async send(c){await c.api.command('CancelServiceRequest',{requestId:num(c.cmd.id,'Request'),reason:txt(c.cmd.reason)},{expectedVersion:ver(c,'gsvRequest',c.cmd.id)});}},
+
+    {type:'GSV_WAKE_SNOOZE',reload:['servicesX'],
+      async send(c){await c.api.command('SnoozeWakeUp',{requestId:num(c.cmd.id,'Request')},{expectedVersion:ver(c,'gsvRequest',c.cmd.id)});}},
 
     {type:'GSV_COMPLAINT_LOG',reload:['servicesX'],
       precheck:(cmd:Cmd)=>txt(cmd.guest).length>=2||cmd.booking?undefined:'Enter the guest’s name.',

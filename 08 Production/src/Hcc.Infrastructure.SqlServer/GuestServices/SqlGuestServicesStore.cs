@@ -228,6 +228,20 @@ public sealed class SqlGuestServicesStore(SqlConnectionFactory connections) : IG
         return await VersionAfterAsync(cmd, "This request", ct).ConfigureAwait(false);
     }
 
+    public async Task<byte[]> SnoozeWakeAsync(ICommandTransaction tx, long requestId, DateTime wakeUtc, DateTime dueUtc, byte[] expected, CancellationToken ct = default)
+    {
+        await using var cmd = Sql(tx).Command("""
+            UPDATE ops.guest_request SET wake_at_utc = CONVERT(DATETIME2(0), @w), scheduled_utc = @w, due_utc = @due
+            WHERE request_id = @id AND row_ver = @e;
+            SELECT @@ROWCOUNT AS n, (SELECT row_ver FROM ops.guest_request WHERE request_id = @id) AS v;
+            """);
+        P(cmd, "@w", SqlDbType.DateTime2, wakeUtc);
+        P(cmd, "@due", SqlDbType.DateTime2, dueUtc);
+        P(cmd, "@id", SqlDbType.BigInt, requestId);
+        P(cmd, "@e", SqlDbType.Binary, expected, 8);
+        return await VersionAfterAsync(cmd, "This request", ct).ConfigureAwait(false);
+    }
+
     private static async Task<byte[]> VersionAfterAsync(SqlCommand cmd, string what, CancellationToken ct)
     {
         await using var rd = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
