@@ -8,6 +8,7 @@ import {money,addDays,nights,addMinutes,OPENING_TIME} from '../../domain/money';
 import {can,available,occupant,totals,drawer,rateFor} from '../../domain/selectors';
 import {gstForRoomNight,gstForCharge,gstCategoryOfLabel,gstForFolioAdjustment} from '../../domain/gst';
 import {cfgBeforeCommand} from '../../domain/streams/config';
+import {keyAfterCheckout} from '../../domain/streams/keys'; // KEYS: check-out hook (never blocks)
 import {mnyMethodFor,mnyIsDrawer} from '../../domain/streams/money-master';
 import {catPlanNight} from '../../domain/streams/catalogue';
 
@@ -190,6 +191,7 @@ export function execute(input:State,uid:string,cmd:Command):State{
   if(cmd.key)s.processed.push(cmd.key);
   // Simulated clock: every successful command advances one minute (deterministic, DEC-030).
   if(cmd.type!=='NEXT_DAY')s.clock=addMinutes(s.clock,1);
+  if(cmd.type==='CHECKOUT'){try{keyAfterCheckout(s,uid,cmd.id);}catch{/* a key problem never blocks check-out (spec 6.8) */}}
   s.audit.unshift({id:id('audit'),at:s.clock,actor:user.name,action:cmd.type.split('_').join(' '),detail});
   return cowFinish(input,s);
 }

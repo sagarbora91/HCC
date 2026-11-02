@@ -1,0 +1,217 @@
+﻿rpt_file,status,duplicate_note,used_by_code,used_by_menu,form_files,copies_in,in_live_install_copy,size_bytes,modified,subreport_streams,hcc_catalogue_match,match_method,hcc_status_priority,notes
+AdvanceBookingDetail by Nikita.rpt,duplicate,variant of advancebookingdetail.rpt,,,,"F,UV,UV926",N,47104,2022-08-09,0,not carried (cat 4.2 Part B),cat-part-B,,
+AdvanceBookingDetail.rpt,used,,frmreport.cmdprint_Click,Report > Advance Booking Detail,frmreport,"F,LIVE,UV,UV926",Y,47104,2023-08-13,0,not carried,cat-legacy-id,,cat 4.1 A37; HCC rpt.guests.reservations-register
+AdvanceBookingDetailReport OLD.rpt,duplicate,dated/author/old copy (base not matched exactly),,,,LIVE,Y,26112,2013-02-17,0,not carried (cat 4.2 Part B),cat-part-B,,
+AdvanceBookingDetailReport.rpt,orphan,,,,,"F,LIVE,UV,UV926",Y,26112,2013-12-05,0,not carried (cat 4.2 Part B),cat-part-B,,
+AlertUserDefineReport.rpt,used,,frmAlertType.UserDefineAlert,,frmAlertType,"F,LIVE,UV,UV926",Y,17408,2014-06-10,0,rpt.admin.desk-reminders,cat-legacy-id,planned/P3,C7.AlertsGuestInfo
+BalanceRoom.rpt,used,,frmreport.cmdprint_Click,,frmreport,"F,LIVE,UV,UV926",Y,47104,2025-10-10,0,rpt.rooms.rooms-left,inferred,planned/P2,A7 probably
+BankRegister.rpt,used,,frmvoucherRegister.cmdprint_Click,Account Report  > Contra Register,frmvoucherRegister,"F,LIVE,UV,UV926",Y,41472,2016-01-23,0,not carried,cat-legacy-id,,cat 4.3 C6: accounting module switched off in Lodge; HCC ACC reports
+BillSummary.rpt,used,,frmDaycloseReport.cmdBillSummary_Click,Report > Lodging Report,frmDaycloseReport,"F,LIVE,UV,UV926",Y,88241,2026-01-28,0,rpt.tax.invoice-register,cat-legacy-id,planned/P1,multi-bill print inferred
+BillSummaryAccount-OLD.rpt,duplicate,variant of billsummaryaccount.rpt,,,,"F,UV,UV926",N,74404,2022-04-20,0,not carried (cat 4.2 Part B),cat-part-B,,
+BillSummaryAccount.rpt,used,,frmDaycloseReport.cmdBillSummaryAccount_Click,Report > Lodging Report,frmDaycloseReport,"F,LIVE,UV,UV926",Y,73480,2022-08-09,0,rpt.money.collection-detail,cat-legacy-id,planned/P1,
+BillSummaryAccountDetail.rpt,used,,frmDaycloseReport.cmdBillSummaryAccountDetail_Click,Report > Lodging Report,frmDaycloseReport,"F,UV,UV926",N,60416,2022-09-07,0,rpt.money.collection-detail,cat-legacy-id,planned/P1,
+BillSummaryAccountReport.rpt,orphan,,,,,"F,UV,UV926",N,120832,2024-07-18,0,not carried (cat 4.2 Part B),cat-part-B,,
+BillSummaryFinalize.rpt,used,,frmreport.cmdprint_Click,Administrator > Bill Finalize Report > Finalize Bill Detail Summary Report,frmreport,"F,LIVE,UV,UV926",Y,67072,2015-01-03,0,not carried,cat-legacy-id,,"cat 4.1 A46,A57-A60: finalize tables empty; replaced by rpt.tax.bill-corrections"
+BillSummaryOLD (2).rpt,orphan,,,,,LIVE,Y,64512,2016-04-08,0,not carried (cat 4.2 Part B),cat-part-B,,
+BillSummaryOLD.rpt,duplicate,variant of billsummary.rpt,,,,LIVE,Y,84618,2016-03-02,0,not carried (cat 4.2 Part B),cat-part-B,,
+BillSummerFinalizeShort.rpt,used,,frmreport.cmdprint_Click,Administrator > Bill Finalize Report > Finalize Bill Summary Report,frmreport,"F,LIVE,PANCH,UV,UV926",Y,30720,2013-07-12,0,not carried,cat-legacy-id,,"cat 4.1 A46,A57-A60: finalize tables empty; replaced by rpt.tax.bill-corrections"
+BillSummerShort.rpt,used,,frmDaycloseReport.cmdBillSummary1_Click,Report > Lodging Report,frmDaycloseReport,"F,LIVE,UV,UV926",Y,56832,2022-08-09,0,rpt.tax.invoice-register,cat-legacy-id,planned/P1,multi-bill print inferred
+BillSummerShortD OLD.rpt,duplicate,variant of billsummershortd.rpt,,,,LIVE,Y,62976,2016-01-21,0,not carried (cat 4.2 Part B),cat-part-B,,
+BillSummerShortD.rpt,used,,frmDaycloseReport.cmdBillSummary1_Click,Report > Lodging Report,frmDaycloseReport,"F,LIVE,UV,UV926",Y,64512,2016-03-09,0,rpt.tax.invoice-register,cat-legacy-id,planned/P1,multi-bill print inferred
+BillSummerShortDOLD.rpt,duplicate,variant of billsummershortd.rpt,,,,LIVE,Y,62976,2016-01-21,0,not carried (cat 4.2 Part B),cat-part-B,,
+BillUpdationDifference new.rpt,duplicate,variant of billupdationdifference.rpt,,,,"F,UV,UV926",N,38912,2019-02-06,0,not carried (cat 4.2 Part B),cat-part-B,,
+BillUpdationDifference.rpt,used,,frmreport.cmdprint_Click,Report > Bill Updation Report,frmreport,"F,LIVE,UV,UV926",Y,37888,2019-02-26,0,rpt.tax.bill-corrections,cat-legacy-id,planned/P1,A4; 1.16 M BillUpdationOLDDetail rows show this is used heavily
+BillWiseOustandingDetailReport.rpt,used,,frmreport.cmdprint_Click,Report > Guest Detail Report > Bill Wise Outstanding Detail,frmreport,"F,LIVE,UV,UV926",Y,28160,2022-02-21,0,not carried,cat-legacy-id,,cat 4.1 A28 (inside rpt.acc.ageing)
+BillWisePaymentModeReport.rpt,used,,frmDaycloseReport.cmdBillwisePaymentmode_Click,Report > Lodging Report,frmDaycloseReport,"F,F0,UV,UV0,UV926",N,133632,2025-02-20,0,rpt.money.collection-detail,cat-legacy-id,planned/P1,
+BusinessDetailReport.rpt,used,,frmreport.cmdprint_Click,Report > Business From Company,frmreport,"F,LIVE,UV,UV926",Y,25600,2013-07-12,0,rpt.guests.company-business,cat-legacy-id,planned/P2,A12
+CancelItemReport.rpt,used,,frmDaycloseReport.cmdCancelItem_Click,Report > Lodging Report,frmDaycloseReport,"F,LIVE,UV,UV926",Y,36864,2022-08-09,0,rpt.admin.cancelled-lines,cat-legacy-id,planned/P2,C1.CancelItem
+CanteenCoupenDetail.rpt,orphan,,,,,"F,LIVE,UV,UV926",Y,26624,2016-03-04,0,not carried (cat 4.2 Part B),cat-part-B,,
+CashBook.rpt,used,,frmvoucherRegister.cmdprint_Click,Account Report  > Register > Cash Book,frmvoucherRegister,"F,LIVE,UV,UV926",Y,34304,2016-01-23,0,not carried,cat-legacy-id,,cat 4.3 C6: accounting module switched off in Lodge; HCC ACC reports
+CFormReport.rpt,used,,frmRoomBooking.cmdSave_Click,,frmRoomBooking,"F,LIVE,UV,UV926",Y,68608,2013-03-28,0,rpt.guests.form-c-register,cat-legacy-id,planned/P1,
+CheckInReport Naivedya.rpt,duplicate,variant of checkinreport.rpt,,,,"F,LIVE,UV,UV926",Y,69120,2013-02-23,0,not carried (cat 4.2 Part B),cat-part-B,,
+CheckInReport.rpt,used,,frmRoomBooking.cmdSave_Click;frmSalesBillReport.cmdCheckInReport_Click,Transaction > Sales Bill Report,frmRoomBooking;frmSalesBillReport,"F,LIVE,UV,UV926",Y,169364,2023-05-20,0,rpt.guests.guest-register,cat-legacy-id,planned/P1,
+CheckInReportD.rpt,used,,frmRoomBooking.cmdSave_Click;frmSalesBillReport.cmbPhotoAddress_Click;frmSalesBillReport.cmdCheckInReport_Click,Transaction > Sales Bill Report,frmRoomBooking;frmSalesBillReport,"F,LIVE,UV,UV926",Y,147790,2016-04-07,0,rpt.guests.guest-register,cat-legacy-id,planned/P1,
+CollectionDetail.rpt,used,,frmreport.cmdprint_Click,Report > Collection Detail,frmreport,"F,LIVE,UV,UV926",Y,43520,2022-02-21,0,rpt.money.collection-detail,cat-legacy-id,planned/P1,
+CombineLuxuryAndServiceTaxCalculateReport.rpt,used,,frmreport.cmdprint_Click,Report > Taxation Report > Calculate Tax Report,frmreport,"F,LIVE,UV,UV926",Y,54272,2022-08-09,0,not carried,cat-legacy-id,,cat 4.1 A21 Calculate Tax
+CommissionPaymentDetailReport.rpt,used,,frmreport.cmdprint_Click,Report > Commission Payment Detail,frmreport,"F,LIVE,UV,UV926",Y,45056,2022-08-09,0,not carried,cat-legacy-id,,"cat 4.4 dropped by owner (A14, A8)"
+CompanyTariffDetail.rpt,used,,frmreport.cmdprint_Click,Report > Guest Detail Report > Guest Tariff Detail,frmreport,"F,LIVE,UV,UV926",Y,47104,2022-02-17,0,rpt.guests.guest-tariff,cat-legacy-id,planned/P2,A42
+CompanyTariffDetailData2Report.rpt,duplicate,dated/author/old copy (base not matched exactly),,,,"F,LIVE,UV,UV926",Y,25088,2013-02-17,0,not carried (cat 4.2 Part B),cat-part-B,,
+ComposedTrialBalance.rpt,used,,frmAccountReport.cmdbutton_Click,,frmAccountReport,"F,LIVE,UV,UV926",Y,31744,2016-01-23,0,not carried,cat-legacy-id,,cat 4.3 C6: accounting module switched off in Lodge; HCC ACC reports
+Copy of RoomStatusDetailReport.rpt,duplicate,variant of roomstatusdetailreport.rpt,,,,LIVE,Y,52736,2013-02-17,0,not carried (cat 4.2 Part B),cat-part-B,,
+CounterCashHandOverReport.rpt,used,,frmreport.cmdprint_Click,Transaction > Counter Cash Hand Over Report,frmreport,"F,LIVE,UV,UV926",Y,31232,2016-06-30,0,rpt.money.shift-report,cat-legacy-id,planned/P1,A38
+CounterCashierDetailReport-New.rpt,duplicate,variant of countercashierdetailreport.rpt,,,,"F,UV,UV926",N,81031,2018-01-12,0,not carried (cat 4.2 Part B),cat-part-B,,
+CounterCashierDetailReport.rpt,used,,frmCouCaseesReportI.cmdprintdetail_Click,Transaction > Counter Cashier's Report,frmCouCaseesReportI,"F,LIVE,UV,UV926",Y,109730,2022-03-07,0,rpt.money.day-pack,cat-legacy-id,built/P1,
+CounterCashierReport.rpt,used,,Module1.bas.PrintCounterCashier;frmCouCaseesReportI.cmdprint_Click;frmDayclose.PrintCounterCashier,Transaction > Day Close | Transaction > Counter Cashier's Report,Module1.bas;frmCouCaseesReportI;frmDayclose,"F,LIVE,UV,UV926",Y,96830,2023-01-09,0,rpt.money.closing-report,cat-legacy-id,built/P1,
+CounterCashierReportShort by nikita.rpt,duplicate,variant of countercashierreportshort.rpt,,,,"F,UV,UV926",N,94780,2023-01-09,0,not carried (cat 4.2 Part B),cat-part-B,,
+CounterCashierReportShort.rpt,used,,Module1.bas.PrintCounterCashier;frmCouCaseesReportI.cmdprint_Click;frmDayclose.PrintCounterCashier,Transaction > Day Close | Transaction > Counter Cashier's Report,Module1.bas;frmCouCaseesReportI;frmDayclose,"F,LIVE,UV,UV926",Y,107121,2025-02-21,0,rpt.money.closing-report,cat-legacy-id,built/P1,
+CounterCashierReportShortD.rpt,used,,Module1.bas.PrintCounterCashier;frmCouCaseesReportI.cmdprint_Click,Transaction > Counter Cashier's Report,Module1.bas;frmCouCaseesReportI,"F,LIVE,UV,UV926",Y,87616,2023-01-09,0,rpt.money.closing-report,cat-legacy-id,built/P1,
+CounterCashierReportShortDOLD.rpt,duplicate,variant of countercashierreportshortd.rpt,,,,LIVE,Y,81683,2015-12-02,0,not carried (cat 4.2 Part B),cat-part-B,,
+CurrentStockReport.rpt,used,,frmPurchaseReport.cmdprint_Click,Store > Current Stock Report,frmPurchaseReport,"F,LIVE,UV,UV926",Y,31744,2023-08-14,0,not carried,cat-legacy-id,,cat 4.1/4.3 laundry and store modules unused; covered by HCC stock
+CusomerDepositReport.rpt,used,,frmCustomerDeposit.Report,,frmCustomerDeposit,"F,LIVE,UV,UV926",Y,46080,2022-12-31,0,rpt.money.collection-detail,cat-legacy-id,planned/P1,
+CusomerDepositReport31-12-22.rpt,duplicate,variant of cusomerdepositreport.rpt,,,,"F,UV,UV926",N,46080,2019-07-05,0,not carried (cat 4.2 Part B),cat-part-B,,
+CustomerDetail by nikita.rpt,duplicate,variant of customerdetail.rpt,,,,"F,UV,UV926",N,48128,2023-03-04,0,not carried (cat 4.2 Part B),cat-part-B,,
+CustomerDetail-28-01-26.rpt,duplicate,variant of customerdetail.rpt,,,,"F,UV,UV926",N,59392,2026-01-28,0,not carried (cat 4.2 Part B),cat-part-B,,
+CustomerDetail.rpt,used,,frmCustomerDeposit.cmdGuestLedger_Click;frmreport.cmdprint_Click,Report > Guest Detail Report > Guest Ledger Detail,frmCustomerDeposit;frmreport,"F,LIVE,UV,UV926",Y,62976,2026-01-28,0,rpt.acc.statement,inferred,built/P1,A27 guest ledger detail
+CustomerOutstanding by nikita.rpt,duplicate,variant of customeroutstanding.rpt,,,,"F,UV,UV926",N,40448,2023-02-27,0,not carried (cat 4.2 Part B),cat-part-B,,
+CustomerOutstanding.rpt,used,,frmreport.cmdprint_Click,Report > Guest Detail Report > Guest Outstanding,frmreport,"F,LIVE,UV,UV926",Y,40448,2023-04-11,0,rpt.acc.ageing,inferred,ACC-3/P1,A22 guest outstanding
+CustomerReceiveOrReturn.rpt,used,,frmLaundryReport.cmdprint_Click;frmSalesBill.cmdLaundryBalance_Click;frmreport.cmdprint_Click,Laundry Transaction > Laundry Receive/Return Report | Laundry Transaction > Guest Receive/Return | Transaction > Lodging Bill,frmLaundryReport;frmSalesBill;frmreport,"F,LIVE,UV,UV926",Y,69632,2019-07-27,0,not carried,cat-legacy-id,,cat 4.1/4.3 laundry and store modules unused; covered by HCC stock
+CustomerRefundReport.rpt,used,,frmreport.cmdprint_Click,Report > Guest Detail Report > Guest Refund Detail,frmreport,"F,LIVE,UV,UV926",Y,35840,2021-08-27,0,rpt.money.refunds,cat-legacy-id,planned/P2,A41
+CustomerTariffDetail.rpt,used,,frmreport.cmdprint_Click,Report > Guest Detail Report > Guest Tariff Detail,frmreport,"F,LIVE,UV,UV926",Y,48640,2024-10-27,0,rpt.guests.guest-tariff,cat-legacy-id,planned/P2,A42
+CustomerTariffDetailData2Report.rpt,duplicate,dated/author/old copy (base not matched exactly),,,,"F,LIVE,UV,UV926",Y,25088,2013-02-17,0,not carried (cat 4.2 Part B),cat-part-B,,
+DayBookRegister.rpt,used,,frmvoucherRegister.cmdprint_Click,Account Report  > Register > Day Book,frmvoucherRegister,"F,LIVE,UV,UV926",Y,37376,2016-01-23,0,not carried,cat-legacy-id,,cat 4.3 C6: accounting module switched off in Lodge; HCC ACC reports
+DayEndDetail.rpt,used,,frmDaycloseReport.cmdDayEndDetail_Click,Report > Lodging Report,frmDaycloseReport,"F,LIVE,UV,UV926",Y,58368,2013-02-17,3,rpt.money.day-pack,cat-legacy-id,built/P1,
+DayEndReportA.rpt,used,,Module1.bas.PrintDayEndReportA;frmDayclose.PrintDayEndReportA;frmreport.cmdDERA_Click,Report > Day End Report | Transaction > Day Close,Module1.bas;frmDayclose;frmreport,"F,LIVE,UV,UV926",Y,159232,2021-09-03,4,rpt.money.closing-report,cat-legacy-id,built/P1,
+DayEndReportAD.rpt,used,,Module1.bas.PrintDayEndReportA;frmreport.cmdDERA_Click,Report > Day End Report,Module1.bas;frmreport,"F,LIVE,UV,UV926",Y,163840,2016-04-07,4,rpt.money.closing-report,cat-legacy-id,built/P1,
+DayEndReportB By mangesh.rpt,duplicate,variant of dayendreportb.rpt,,,,"F,UV,UV926",N,174592,2022-01-11,5,not carried (cat 4.2 Part B),cat-part-B,,
+DayEndReportB.rpt,used,,Module1.bas.PrintDayEndReportB;frmDayclose.PrintDayEndReportB;frmreport.cmdDERB_Click,Report > Day End Report | Transaction > Day Close,Module1.bas;frmDayclose;frmreport,"F,LIVE,UV,UV926",Y,174592,2025-12-04,5,rpt.money.closing-report,cat-legacy-id,built/P1,
+DayEndReportBD.rpt,used,,Module1.bas.PrintDayEndReportB;frmreport.cmdDERB_Click,Report > Day End Report,Module1.bas;frmreport,"F,LIVE,UV,UV926",Y,188416,2016-08-02,5,rpt.money.closing-report,cat-legacy-id,built/P1,
+DayEndReportBDOLD.rpt,duplicate,variant of dayendreportbd.rpt,,,,LIVE,Y,183296,2016-03-16,0,not carried (cat 4.2 Part B),cat-part-B,,
+DayEndReportCD.rpt,used,,Module1.bas.PrintDayEndReportC;frmreport.cmdDERC_Click,Report > Day End Report,Module1.bas;frmreport,"F,LIVE,UV,UV926",Y,96256,2016-05-31,3,rpt.money.closing-report,cat-legacy-id,built/P1,
+DayEndReportInDetail-OLD.rpt,duplicate,variant of dayendreportindetail.rpt,,,,"F,UV,UV926",N,121724,2021-09-03,0,not carried (cat 4.2 Part B),cat-part-B,,
+DayEndReportInDetail.rpt,used,,Module1.bas.PrintDayEndReportInDetail;frmDayclose.PrintDayEndReportInDetail;frmreport.cmdDayEndReportInDetail_Click,Transaction > Day Close,Module1.bas;frmDayclose;frmreport,"F,LIVE,UV,UV926",Y,124585,2022-04-15,0,rpt.money.day-pack,cat-legacy-id,built/P1,
+DepositDetailReport.rpt,used,,Module1.bas.PrintCounterCashierDepositDetail;frmCouCaseesReportI.cmdDepositDetail_Click,Transaction > Counter Cashier's Report,Module1.bas;frmCouCaseesReportI,"F,LIVE,UV,UV926",Y,50176,2016-04-23,0,rpt.money.collection-detail,cat-legacy-id,planned/P1,
+DepositDetailReportOLD.rpt,duplicate,variant of depositdetailreport.rpt,,,,"F,LIVE,UV,UV926",Y,48128,2016-04-15,0,not carried (cat 4.2 Part B),cat-part-B,,
+DetailTrialBalance.rpt,used,,frmAccountReport.cmdbutton_Click,,frmAccountReport,"F,LIVE,UV,UV926",Y,24576,2016-01-23,0,not carried,cat-legacy-id,,cat 4.3 C6: accounting module switched off in Lodge; HCC ACC reports
+DirectBill.rpt,used,,frmDirectBill.SaveRecord;frmDuplicateKOTRef.cmdprint_Click;frmSalesBillReport.cmdBillPrint_Click;frmSalesBillReport.msfg_DblClick,Transaction > Sales Bill Report,frmDirectBill;frmDuplicateKOTRef;frmSalesBillReport,"F,LIVE,PANCH,UV,UV926",Y,89994,2024-01-04,0,rpt.money.counter-bills,cat-legacy-id,planned/P2,
+DirectBillDetailReport.rpt,used,,frmreport.cmdprint_Click,Report > Direct Bill Detail Report,frmreport,"F,LIVE,UV,UV926",Y,38912,2016-06-14,0,rpt.money.counter-bills,cat-legacy-id,planned/P2,
+DirectBillDetailReportOLD.rpt,duplicate,variant of directbilldetailreport.rpt,,,,"F,LIVE,UV,UV926",Y,36864,2015-12-09,0,not carried (cat 4.2 Part B),cat-part-B,,
+DirectBillSummary.rpt,used,,frmCouCaseesReportI.cmdDirectBillBottom_Click;frmLaundryReport.cmdSummary_Click;frmSalesBillReport.cmdSummary_Click,Transaction > Sales Bill Report | Transaction > Counter Cashier's Report,frmCouCaseesReportI;frmLaundryReport;frmSalesBillReport,"F,LIVE,UV,UV926",Y,44544,2013-07-15,0,rpt.money.counter-bills,cat-legacy-id,planned/P2,
+DirectBillSummaryReport.rpt,used,,frmCouCaseesReportI.cmdDirectBill_Click,Transaction > Counter Cashier's Report,frmCouCaseesReportI,"F,LIVE,UV,UV926",Y,66048,2015-10-18,0,rpt.money.counter-bills,cat-legacy-id,planned/P2,
+DonationCouponPrinting.rpt,used,,frmSalesBillReport.cmdprint_Click,Transaction > Sales Bill Report,frmSalesBillReport,"F,LIVE,UV,UV926",Y,66048,2015-12-04,0,not carried,cat-legacy-id,,cat 4.3 C4.DonationCoupon
+DuplicateCustomerDetail.rpt,used,,frmCustomerMaster.cmdDuplicateGuest_Click,Master Information > Guest Information,frmCustomerMaster,"F,UV,UV926",N,27136,2023-02-27,0,rpt.guests.customer-history,cat-legacy-id,partial/P2,C8.DuplicateCustomer
+EmpAdvanceReport.rpt,used,,frmCouCaseesReportI.Command3_Click,Transaction > Counter Cashier's Report,frmCouCaseesReportI,"F,LIVE,UV,UV926",Y,40448,2022-02-22,0,not carried,cat-legacy-id,,cat 4.1 A51-A54 / C2: HR unused in Lodge; HCC people reports
+EmployeeAttandance.rpt,used,,frmCouCaseesReportI.cmdEmployeeAttandance_Click,Transaction > Counter Cashier's Report,frmCouCaseesReportI,"F,LIVE,UV,UV926",Y,19456,2013-02-17,0,not carried,cat-legacy-id,,cat 4.1 A51-A54 / C2: HR unused in Lodge; HCC people reports
+EmployeeAttendenceReport.rpt,used,,frmreport.cmdprint_Click,HR Department > Employee Attendance Report,frmreport,"F,LIVE,UV,UV926",Y,133560,2014-06-17,0,not carried,cat-legacy-id,,cat 4.1 A51-A54 / C2: HR unused in Lodge; HCC people reports
+EmployeeLedgerReport.rpt,used,,frmreport.cmdprint_Click,HR Department > Employee Ledger,frmreport,"F,LIVE,UV,UV926",Y,20992,2013-02-17,0,not carried,cat-legacy-id,,cat 4.1 A51-A54 / C2: HR unused in Lodge; HCC people reports
+EmployeeSalaryadvance.rpt,used,,frmreport.cmdprint_Click,HR Department > Employee Salary Advance Report,frmreport,"F,LIVE,UV,UV926",Y,34304,2022-02-26,0,not carried,cat-legacy-id,,cat 4.1 A51-A54 / C2: HR unused in Lodge; HCC people reports
+FoodBillSubReport.rpt,orphan,,,,,"F,LIVE,UV,UV926",Y,43008,2013-02-17,0,not carried (cat 4.2 Part B),cat-part-B,,
+FoodLaundryDetail.rpt,used,,frmreport.cmdprint_Click,Report > Room Service Detail > Food Laundry Detail,frmreport,"F,LIVE,UV,UV926",Y,39424,2022-08-09,0,rpt.guests.service-lines,cat-legacy-id,planned/P2,"A5,A6,A43,C4.RoomServedItemDetail"
+FoodLaundryDetailData2Report.rpt,duplicate,dated/author/old copy (base not matched exactly),,,,"F,LIVE,UV,UV926",Y,24576,2013-02-17,0,not carried (cat 4.2 Part B),cat-part-B,,
+FunctionProspectusReport.rpt,used,,frmFunctionProspectus.Report;frmFunctionProspectus.SaveRecord,Transaction > Function Prospectus Detail > Function Prospectus,frmFunctionProspectus,"F,LIVE,UV,UV926",Y,120894,2018-02-28,0,not carried,cat-legacy-id,,cat 4.3 C8.FunctionProspectus; hall booking is a new HCC module
+FunctionProspectusSaleBillReport By Nikita.rpt,duplicate,variant of functionprospectussalebillreport.rpt,,,,"F,UV,UV926",N,206652,2019-01-25,0,not carried (cat 4.2 Part B),cat-part-B,,
+FunctionProspectusSaleBillReport.rpt,used,,frmFunctionProspectusSalesBill.Report;frmFunctionProspectusSalesBill.SaveRecord,Transaction > Function Prospectus Detail > Function Prospectus Sales Bill,frmFunctionProspectusSalesBill,"F,LIVE,UV,UV926",Y,123991,2023-07-18,0,not carried,cat-legacy-id,,cat 4.3 C8.FunctionProspectus; hall booking is a new HCC module
+GRCFormatReport.rpt,used,,frmSalesBill.cmdGRCFormat_Click,Transaction > Lodging Bill,frmSalesBill,"F,UV,UV926",N,54784,2023-07-18,0,rpt.tax.invoice-register / rpt.guests.guest-register,inferred,planned/P1 planned/P1,trial bill and registration-card layout: confirm which HCC print covers them
+GSTR1Report - Copy.rpt,duplicate,variant of gstr1report.rpt,,,,"F,UV,UV926",N,109056,2021-09-02,1,not carried (cat 4.2 Part B),cat-part-B,,
+GSTR1Report.rpt,used,,frmreport.cmdprint_Click,Report > GST R1 Report,frmreport,"F,LIVE,UV,UV926",Y,109056,2025-01-25,1,rpt.tax.gstr1,cat-legacy-id,built/P1,A1
+GSTR1ReportIGST.rpt,used,,frmreport.cmdprint_Click,Report > GST R1 Report,frmreport,"F,UV,UV926",N,122947,2025-01-25,1,rpt.tax.gstr1,inferred,built/P1,"IGST layout; HCC is CGST+SGST only (DEC-136, catalogue B44 same logic)"
+GSTR1StandardReport - Copy.rpt,duplicate,variant of gstr1standardreport.rpt,,,,"F,UV,UV926",N,127546,2021-09-02,1,not carried (cat 4.2 Part B),cat-part-B,,
+GSTR1StandardReport.rpt,used,,frmreport.cmdprint_Click,Report > GST R1 Report,frmreport,"F,UV,UV926",N,127701,2022-06-15,1,rpt.tax.gstr1,cat-legacy-id,built/P1,A1
+GuestInformationReport.rpt,used,,frmAlertType.GuestDOB;frmreport.cmdprint_Click,Report > Guest Detail Report > Guest Information Report,frmAlertType;frmreport,"F,LIVE,UV,UV926",Y,36352,2022-02-21,0,rpt.guests.guest-directory,cat-legacy-id,planned/P3,A55
+GuestRegister.rpt,used,,frmDaycloseReport.cmdGuestRegister_Click,Report > Lodging Report,frmDaycloseReport,"F,LIVE,UV,UV926",Y,53760,2022-08-09,0,rpt.guests.guest-register,cat-legacy-id,planned/P1,
+GuestRegisterD.rpt,used,,frmDaycloseReport.cmdGuestRegister_Click,Report > Lodging Report,frmDaycloseReport,"F,LIVE,UV,UV926",Y,43520,2016-03-30,0,rpt.guests.guest-register,cat-legacy-id,planned/P1,
+GuestRegisterData2Report.rpt,duplicate,dated/author/old copy (base not matched exactly),,,,"F,LIVE,UV,UV926",Y,29184,2013-02-17,0,not carried (cat 4.2 Part B),cat-part-B,,
+HSNDetail.rpt,orphan,,,,,"F0,UV0",N,26624,2018-09-08,0,not carried (cat 4.2 Part B),cat-part-B,,
+LaundryDetailReport.rpt,orphan,,,,,"F,LIVE,UV,UV926",Y,33792,2016-05-31,0,not carried (cat 4.2 Part B),cat-part-B,,
+LaundryReport.rpt,used,,frmreport.cmdprint_Click,Laundry Transaction > Guest Laundry Balance | Report > Room Service Detail > Laundry Statement,frmreport,"F,LIVE,UV,UV926",Y,30720,2022-08-09,0,rpt.guests.service-lines,cat-legacy-id,planned/P2,"A5,A6,A43,C4.RoomServedItemDetail"
+LaundryStatus.rpt,used,,frmLaundryReport.cmdprint_Click,Laundry Transaction > Laundry Status,frmLaundryReport,"F,LIVE,UV,UV926",Y,51712,2013-02-17,0,not carried,cat-legacy-id,,cat 4.1/4.3 laundry and store modules unused; covered by HCC stock
+LaundryStockDetailReport.rpt,used,,frmreport.cmdprint_Click,Store > Laundry Stock Detail Report,frmreport,"F,LIVE,UV,UV926",Y,19456,2013-02-17,0,not carried,cat-legacy-id,,cat 4.1/4.3 laundry and store modules unused; covered by HCC stock
+Ledger.rpt,used,,frmvoucherRegister.cmdprint_Click,Account Report  > Register > Ledger,frmvoucherRegister,"F,LIVE,UV,UV926",Y,37376,2016-01-23,0,not carried,cat-legacy-id,,cat 4.3 C6: accounting module switched off in Lodge; HCC ACC reports
+LodgingBillReceipt-ORG.rpt,duplicate,variant of lodgingbillreceipt.rpt,,,,"F,UV,UV926",N,44032,2020-02-27,0,not carried (cat 4.2 Part B),cat-part-B,,
+LodgingBillReceipt.rpt,used,,frmDuplicateKOTRef.cmdprint_Click;frmSalesBill.cmdKOTPrint_Click,Transaction > Lodging Bill,frmDuplicateKOTRef;frmSalesBill,"F,LIVE,UV,UV926",Y,53760,2022-12-13,0,rpt.tax.invoice-register,cat-legacy-id,planned/P1,multi-bill print inferred
+LodgingBillReceiptCancelKot.rpt,orphan,,,,,"F,LIVE,UV,UV926",Y,36864,2020-02-27,0,not carried (cat 4.2 Part B),cat-part-B,,
+LodgingMaterialStockDetailReport.rpt,used,,frmreport.cmdprint_Click,Store > Lodging Material Stock Detail Report,frmreport,"F,LIVE,UV,UV926",Y,18432,2013-02-17,0,not carried,cat-legacy-id,,cat 4.1/4.3 laundry and store modules unused; covered by HCC stock
+LuxuryTax 03-10.rpt,duplicate,variant of luxurytax.rpt,,,,LIVE,Y,28672,2013-02-17,0,not carried (cat 4.2 Part B),cat-part-B,,
+LuxuryTax by Nikita.rpt,duplicate,variant of luxurytax.rpt,,,,"F,UV,UV926",N,60416,2022-08-09,0,not carried (cat 4.2 Part B),cat-part-B,,
+LuxuryTax.rpt,used,,frmreport.cmdprint_Click,Report > Lodge GST Report | Report > Luxury Tax Report,frmreport,"F,LIVE,UV,UV926",Y,56320,2025-12-19,0,rpt.tax.gst-by-bill,cat-legacy-id,planned/P1,A18-A20 (three menu items)
+LuxuryTaxCalculateReport.rpt,used,,frmreport.cmdprint_Click,Report > Taxation Report > Calculate Tax Report,frmreport,"F,LIVE,UV,UV926",Y,50176,2022-08-09,0,not carried,cat-legacy-id,,cat 4.1 A21 Calculate Tax
+LuxuryTaxFinalize.rpt,used,,frmreport.cmdprint_Click,Administrator > Bill Finalize Report > Luxury Tax Report,frmreport,"F,LIVE,UV,UV926",Y,28672,2013-04-05,0,not carried,cat-legacy-id,,"cat 4.1 A46,A57-A60: finalize tables empty; replaced by rpt.tax.bill-corrections"
+MultiSalesBill.rpt,orphan,,,,,"F0,LIVE,UV0",Y,118272,2013-02-17,0,not carried (cat 4.2 Part B),cat-part-B,,
+NRIBusinessDetailReport.rpt,used,,frmreport.cmdprint_Click,Report > NRI(foreigner) Report,frmreport,"F,LIVE,UV,UV926",Y,25600,2013-07-12,0,rpt.guests.form-c-register,cat-legacy-id,planned/P1,
+OccupancyAverage.rpt,used,,frmreport.cmdprint_Click,Report > Occupancy Average,frmreport,"F,LIVE,UV,UV926",Y,32256,2022-08-09,0,rpt.rooms.occupancy,cat-legacy-id,built/P1,A35
+OccupiedDetail.rpt,orphan,,,,,"F,LIVE,UV,UV926",Y,25600,2013-02-17,0,not carried (cat 4.2 Part B),cat-part-B,,
+OPayment.rpt,orphan,,,,,"F,UV,UV926",N,33280,2018-09-01,0,not carried (cat 4.2 Part B),cat-part-B,,
+OtherDeposit.rpt,used,,frmCouCaseesReportI.Command1_Click,Transaction > Counter Cashier's Report,frmCouCaseesReportI,"F,LIVE,UV,UV926",Y,28160,2025-05-06,0,not carried,cat-legacy-id,,cat 4.1 A17 / 4.3 owner and other-deposit tables empty
+OtherDepositNew.rpt,used,,frmDaycloseReport.cmdOtherDeposite_Click,Report > Lodging Report,frmDaycloseReport,"F,LIVE,UV,UV926",Y,30720,2022-02-17,0,not carried,cat-legacy-id,,cat 4.1 A17 / 4.3 owner and other-deposit tables empty
+OtherDepositReceipt.rpt,used,,frmOtherDeposit.SaveRecord,Transaction > Other Depositer,frmOtherDeposit,"F,UV,UV926",N,41984,2025-05-09,0,not carried,cat-legacy-id,,cat 4.1 A17 / 4.3 owner and other-deposit tables empty
+OtherItemDetail By Nikita.rpt,duplicate,variant of otheritemdetail.rpt,,,,"F,UV,UV926",N,28672,2023-04-11,0,not carried (cat 4.2 Part B),cat-part-B,,
+OtherItemDetail.rpt,used,,frmreport.cmdprint_Click,Report > Room Service Detail > Other Item Detail,frmreport,"F,LIVE,UV,UV926",Y,32768,2023-07-31,0,rpt.guests.service-lines,cat-legacy-id,planned/P2,"A5,A6,A43,C4.RoomServedItemDetail"
+OwnerBankLedgerReport.rpt,used,,frmreport.cmdprint_Click,Report > Owner/ Bank Ledger Report ,frmreport,"F,LIVE,UV,UV926",Y,30720,2019-11-26,0,not carried,cat-legacy-id,,cat 4.1 A17 / 4.3 owner and other-deposit tables empty
+OwnerBankLedgerReport1.rpt,orphan,,,,,"F,UV,UV926",N,33280,2019-05-28,0,not carried (cat 4.2 Part B),cat-part-B,,
+OwnerPaymentDetail.rpt,used,,frmDaycloseReport.cmdOwnerPayment_Click,Report > Lodging Report,frmDaycloseReport,"F,LIVE,UV,UV926",Y,31232,2022-08-09,0,not carried,cat-legacy-id,,cat 4.1 A17 / 4.3 owner and other-deposit tables empty
+OwnerReceiptDetail.rpt,used,,frmDaycloseReport.CmdOwnerReceipt_Click,Report > Lodging Report,frmDaycloseReport,"F,LIVE,UV,UV926",Y,34304,2022-08-09,0,not carried,cat-legacy-id,,cat 4.1 A17 / 4.3 owner and other-deposit tables empty
+PaidOutDetail.rpt,used,,frmDaycloseReport.cmdPaidOutDetail_Click;frmreport.cmdprint_Click,Report > Lodging Report | Report > Paid Out Detail,frmDaycloseReport;frmreport,"F,LIVE,UV,UV926",Y,52224,2022-08-09,0,rpt.money.expense-register; rpt.money.expenses-by-head,cat-legacy-id,partial/P1 planned/P1,A50
+PaidOutSummary.rpt,used,,frmDaycloseReport.Command1_Click;frmreport.cmdprint_Click,Report > Lodging Report | Report > Paid Out Detail,frmDaycloseReport;frmreport,"F,LIVE,UV,UV926",Y,41472,2021-08-16,0,rpt.money.expense-register; rpt.money.expenses-by-head,cat-legacy-id,partial/P1 planned/P1,A50
+PaymentRegister.rpt,used,,frmvoucherRegister.cmdprint_Click,Account Report  > Payment Register,frmvoucherRegister,"F,LIVE,UV,UV926",Y,35840,2016-01-29,0,not carried,cat-legacy-id,,cat 4.3 C6: accounting module switched off in Lodge; HCC ACC reports
+PhotoAddressProof.rpt,used,,frmSalesBillReport.cmbPhotoAddress_Click,Transaction > Sales Bill Report,frmSalesBillReport,"F,LIVE,UV,UV926",Y,63488,2023-06-26,0,rpt.guests.guest-register,cat-legacy-id,planned/P1,
+PreviousAdvancePaymentReport.rpt,used,,frmCouCaseesReportI.Command2_Click,Transaction > Counter Cashier's Report,frmCouCaseesReportI,"F,LIVE,UV,UV926",Y,20480,2013-07-02,0,rpt.money.receipts-deposits,cat-legacy-id,built/P1,
+RateChangeDetailReport.rpt,used,,frmreport.cmdprint_Click,Report > Rate Change Detail,frmreport,"F,LIVE,UV,UV926",Y,40448,2022-08-09,0,rpt.guests.rate-changes,cat-legacy-id,planned/P1,A36
+RateChangeDetailReportD.rpt,orphan,,,,,"F,LIVE,UV,UV926",Y,40960,2016-01-23,0,not carried (cat 4.2 Part B),cat-part-B,,
+ReceiptRegister.rpt,used,,frmvoucherRegister.cmdprint_Click,Account Report  > Receipt Register ,frmvoucherRegister,"F,LIVE,UV,UV926",Y,35840,2016-01-29,0,not carried,cat-legacy-id,,cat 4.3 C6: accounting module switched off in Lodge; HCC ACC reports
+ReferenceWiseCollectionReport 03-10.rpt,duplicate,variant of referencewisecollectionreport.rpt,,,,LIVE,Y,45056,2016-01-22,0,not carried (cat 4.2 Part B),cat-part-B,,
+ReferenceWiseCollectionReport.rpt,used,,frmreport.cmdprint_Click,Report > Reference / Booking Wise Report,frmreport,"F,LIVE,UV,UV926",Y,74394,2023-04-07,0,not carried,cat-legacy-id,,"cat 4.4 dropped by owner (A14, A8)"
+RestaurantPayment.rpt,used,,frmreport.cmdprint_Click,Report > Restaurant Payment,frmreport,"F,LIVE,UV,UV926",Y,33280,2015-12-03,0,not carried,cat-legacy-id,,"cat 4.1 A9,A47 / C8.RetaurantBill"
+RetaurantBill.rpt,used,,frmRetaurantPurchaseBill.Report;frmRetaurantPurchaseBill.SaveRecord,Restaurant Transaction > Restaurant Purchase Bill,frmRetaurantPurchaseBill,"F,LIVE,UV,UV926",Y,49152,2013-02-17,0,not carried,cat-legacy-id,,"cat 4.1 A9,A47 / C8.RetaurantBill"
+RetaurantPurchaseReport.rpt,used,,frmreport.cmdprint_Click,Restaurant Transaction > Restaurant Purchase Report,frmreport,"F,LIVE,UV,UV926",Y,18944,2013-05-07,0,not carried,cat-legacy-id,,"cat 4.1 A9,A47 / C8.RetaurantBill"
+RetaurantSupplierOutstanding.rpt,orphan,,,,,"F,LIVE,UV,UV926",Y,16896,2013-07-12,0,not carried (cat 4.2 Part B),cat-part-B,,
+RoomServedItemDetail by Nikita.rpt,duplicate,variant of roomserveditemdetail.rpt,,,,"F,UV,UV926",N,59392,2023-04-28,0,not carried (cat 4.2 Part B),cat-part-B,,
+RoomServedItemDetail.rpt,used,,frmSalesBill.cmdItemDetailReport_Click;frmSalesBillReport.cmdItemDetail_Click,Transaction > Sales Bill Report | Transaction > Lodging Bill,frmSalesBill;frmSalesBillReport,"F,LIVE,UV,UV926",Y,59904,2025-09-25,0,rpt.guests.service-lines,cat-legacy-id,planned/P2,"A5,A6,A43,C4.RoomServedItemDetail"
+RoomServedItemDetailDateWise.rpt,used,,frmreport.cmdprint_Click,Report > Room Service Detail > Food Laundry Detail,frmreport,"F,LIVE,UV,UV926",Y,64512,2022-08-09,0,rpt.guests.service-lines,cat-legacy-id,planned/P2,"A5,A6,A43,C4.RoomServedItemDetail"
+RoomServedItemDetailDateWise2.rpt,orphan,,,,,"F,UV,UV926",N,55808,2019-02-02,0,not carried (cat 4.2 Part B),cat-part-B,,
+RoomStatusDetailReport.rpt,used,,frmreport.cmdprint_Click,,frmreport,"F,LIVE,UV,UV926",Y,78198,2019-02-06,0,rpt.rooms.room-status,cat-legacy-id,planned/P1,A26 (Occupancy Room A29 not carried)
+RoomStatusReport.rpt,used,,frmSalesBill.cmdRoomStatus_Click;frmreport.cmdprint_Click,Report > Occupancy Room | Report > Todays Room Status | Transaction > Lodging Bill,frmSalesBill;frmreport,"F,LIVE,UV,UV926",Y,61952,2025-02-21,0,rpt.rooms.room-status,cat-legacy-id,planned/P1,A26 (Occupancy Room A29 not carried)
+RoomTraiffCard.rpt,used,,mdimain.mnuRoomTariffCard_Click,,mdimain,"F,LIVE,UV,UV926",Y,34304,2021-09-06,0,rpt.admin.rate-sheet,cat-legacy-id,partial/P2,C7.RoomTariffCard
+RoomTransactionDetailReport.rpt,used,,frmreport.cmdprint_Click,Report > Room Transaction Detail,frmreport,"F,LIVE,UV,UV926",Y,52224,2022-08-09,0,rpt.rooms.room-wise-revenue,cat-legacy-id,planned/P2,A11/A44/C1.TariffSalesDetail
+RoomWiseAllocationDetail.rpt,used,,frmreport.cmdprint_Click,Report > Room Wise Allocation Detail,frmreport,"F,LIVE,UV,UV926",Y,185316,2024-10-08,0,rpt.rooms.allocation-grid,cat-legacy-id,planned/P2,A31/A56
+RoomWiseHouseKeepingPeriodReport.rpt,used,,frmreport.cmdprint_Click,Report > Room Wise House Keeping Period,frmreport,"F,LIVE,UV,UV926",Y,27136,2022-08-09,0,rpt.rooms.hk-turnaround,cat-legacy-id,planned/P2,A40
+RoomWiseLaundryStockDetail.rpt,used,,frmreport.cmdprint_Click,Store > Room Wise Laundry Stock Detail Report,frmreport,"F,LIVE,UV,UV926",Y,20480,2013-02-17,0,not carried,cat-legacy-id,,cat 4.1/4.3 laundry and store modules unused; covered by HCC stock
+RoomWiseTransactionSummaryReport.rpt,used,,frmreport.cmdprint_Click,Report > Room Wise Transaction Summary Report,frmreport,"F,LIVE,UV,UV926",Y,25600,2015-05-18,0,rpt.rooms.room-wise-revenue,cat-legacy-id,planned/P2,A11/A44/C1.TariffSalesDetail
+SalarySheetDos.rpt,used,,frmreport.cmdprint_Click,HR Department > Salary Sheet,frmreport,"F,LIVE,UV,UV926",Y,34816,2013-02-17,0,not carried,cat-legacy-id,,cat 4.1 A51-A54 / C2: HR unused in Lodge; HCC people reports
+SaleBillDirectReport.rpt,orphan,,,,,"F,LIVE,UV,UV926",Y,56832,2013-02-17,0,not carried (cat 4.2 Part B),cat-part-B,,
+SalesBill - 05-01-24.rpt,duplicate,variant of salesbill.rpt,,,,"F,UV,UV926",N,377963,2023-05-31,2,not carried (cat 4.2 Part B),cat-part-B,,
+SalesBill - 14-7-26.rpt,duplicate,variant of salesbill.rpt,,,,UV926,N,894399,2026-06-25,0,not carried (cat 4.2 Part B),cat-part-B,,
+SalesBill - 5-10-26-ORG.rpt,duplicate,variant of salesbill.rpt,,,,UV,N,1167652,2025-12-12,0,not carried (cat 4.2 Part B),cat-part-B,,
+SalesBill - Copy.rpt,duplicate,variant of salesbill.rpt,,,,LIVE,Y,237844,2017-09-06,0,not carried (cat 4.2 Part B),cat-part-B,,
+SalesBill - With IGST.rpt,duplicate,variant of salesbill.rpt,,,,"F,UV,UV926",N,399559,2023-01-14,2,not carried (cat 4.2 Part B),cat-part-B,,
+SalesBill 03-10.rpt,duplicate,variant of salesbill.rpt,,,,LIVE,Y,229325,2017-09-21,0,not carried (cat 4.2 Part B),cat-part-B,,
+SalesBill 16-03-2020.rpt,duplicate,variant of salesbill.rpt,,,,LIVE,Y,273408,2018-03-16,0,not carried (cat 4.2 Part B),cat-part-B,,
+SalesBill 25-11-2022.rpt,duplicate,variant of salesbill.rpt,,,,"F,UV,UV926",N,396415,2022-10-01,2,not carried (cat 4.2 Part B),cat-part-B,,
+SalesBill by Nikita.rpt,duplicate,variant of salesbill.rpt,,,,"F,UV,UV926",N,399772,2023-04-05,2,not carried (cat 4.2 Part B),cat-part-B,,
+SalesBill-28-11-24.rpt,duplicate,variant of salesbill.rpt,,,,"F,UV,UV926",N,1166833,2024-11-11,2,not carried (cat 4.2 Part B),cat-part-B,,
+SalesBill-A5 Report.rpt,duplicate,variant of salesbill.rpt,,,,"F,UV,UV926",N,1461721,2024-09-21,2,not carried (cat 4.2 Part B),cat-part-B,,
+SalesBill-Amerpreet.rpt,duplicate,variant of salesbill.rpt,,,,LIVE,Y,232251,2016-06-14,0,not carried (cat 4.2 Part B),cat-part-B,,
+SalesBill-Working.rpt,duplicate,variant of salesbill.rpt,,,,"F,UV,UV926",N,405504,2022-09-08,2,not carried (cat 4.2 Part B),cat-part-B,,
+SalesBill.rpt,used,,Module1.bas.DELsalesbillprint;frmSalesBill.cmdokEnd_Click;frmSalesBillReport.cmdprint_Click,Transaction > Sales Bill Report | Transaction > Lodging Bill,Module1.bas;frmSalesBill;frmSalesBillReport,"F,LIVE,PANCH,UV,UV926",Y,1167652,2025-12-12,2,rpt.tax.invoice-register,cat-legacy-id,planned/P1,multi-bill print inferred identical bytes to SalesBill - 5-10-26-ORG.rpt
+SalesBill_Old17022013.rpt,duplicate,variant of salesbill.rpt,,,,LIVE,Y,129024,2013-02-17,0,not carried (cat 4.2 Part B),cat-part-B,,
+SalesBillD.rpt,used,,frmSalesBill.cmdokEnd_Click;frmSalesBillReport.cmdprint_Click,Transaction > Sales Bill Report | Transaction > Lodging Bill,frmSalesBill;frmSalesBillReport,"F,LIVE,UV,UV926",Y,80642,2022-02-19,0,rpt.tax.invoice-register,cat-legacy-id,planned/P1,multi-bill print inferred
+SalesBillFinalize.rpt,used,,frmreport.cmdprint_Click,Administrator > Bill Finalize Report > Finalize Sales Bill Report,frmreport,"F,LIVE,PANCH,UV,UV926",Y,128000,2013-06-22,2,not carried,cat-legacy-id,,"cat 4.1 A46,A57-A60: finalize tables empty; replaced by rpt.tax.bill-corrections"
+SalesBillMultipleBillPrint By Nikita.rpt,duplicate,variant of salesbillmultiplebillprint.rpt,,,,"F,UV,UV926",N,655806,2023-04-11,2,not carried (cat 4.2 Part B),cat-part-B,,
+SalesBillMultipleBillPrint org.rpt,duplicate,variant of salesbillmultiplebillprint.rpt,,,,"F,UV,UV926",N,318165,2020-02-03,2,not carried (cat 4.2 Part B),cat-part-B,,
+SalesBillMultipleBillPrint.rpt,used,,frmreport.cmdprint_Click,Transaction > Multiple Sales Bill Print,frmreport,"F,LIVE,UV,UV926",Y,330103,2025-09-25,2,rpt.tax.invoice-register,cat-legacy-id,planned/P1,multi-bill print inferred
+ServiceTaxCalculateReport.rpt,used,,frmreport.cmdprint_Click,Report > Taxation Report > Calculate Tax Report,frmreport,"F,LIVE,UV,UV926",Y,32768,2022-08-09,0,not carried,cat-legacy-id,,cat 4.1 A21 Calculate Tax
+ServiceTaxDetailReport.rpt,used,,frmreport.cmdprint_Click,Report > Taxation Report > Service Tax Detail Report,frmreport,"F,LIVE,UV,UV926",Y,40448,2022-08-09,0,rpt.tax.gst-by-bill,cat-legacy-id,planned/P1,A18-A20 (three menu items)
+ServiceTaxReport.rpt,used,,frmreport.cmdprint_Click,Report > Taxation Report > Service Tax Report,frmreport,"F,LIVE,UV,UV926",Y,50688,2022-08-09,0,rpt.tax.gst-by-bill,cat-legacy-id,planned/P1,A18-A20 (three menu items)
+ServiceTaxReportFinalize.rpt,used,,frmreport.cmdprint_Click,Administrator > Bill Finalize Report > Service Tax Report,frmreport,"F,LIVE,UV,UV926",Y,22016,2014-10-20,0,not carried,cat-legacy-id,,"cat 4.1 A46,A57-A60: finalize tables empty; replaced by rpt.tax.bill-corrections"
+SupplierOutstanding.rpt,used,,frmPurchaseReport.cmdprint_Click;frmreport.cmdprint_Click,Laundry Transaction > Laundry Supplier Outstanding | Restaurant Transaction > Restaurant Supplier Outstanding Report | Store > Supplier Outstanding,frmPurchaseReport;frmreport,"F,LIVE,UV,UV926",Y,17408,2013-07-16,0,not carried,cat-legacy-id,,cat 4.1/4.3 laundry and store modules unused; covered by HCC stock
+SupplierPayment.rpt,used,,frmCouCaseesReportI.cmdPurchasePayment_Click,Transaction > Counter Cashier's Report,frmCouCaseesReportI,"F,LIVE,UV,UV926",Y,24576,2013-02-17,0,not carried,cat-legacy-id,,cat 4.1/4.3 laundry and store modules unused; covered by HCC stock
+TankerDetailReport.rpt,used,,frmreport.cmdprint_Click,Report > Tanker detail report,frmreport,"F,LIVE,UV,UV926",Y,33792,2016-03-17,0,not carried,cat-legacy-id,,cat 4.1 A32
+TankerDetailReportOLD.rpt,duplicate,variant of tankerdetailreport.rpt,,,,LIVE,Y,32768,2016-03-04,0,not carried (cat 4.2 Part B),cat-part-B,,
+TariffSalesDetail.rpt,used,,frmDaycloseReport.cmdTariffSalesDetail_Click,Report > Lodging Report,frmDaycloseReport,"F,UV,UV926",N,32768,2023-09-07,0,rpt.rooms.room-wise-revenue,cat-legacy-id,planned/P2,A11/A44/C1.TariffSalesDetail
+TodaysCheckOutDetail.rpt,orphan,,,,,"F,LIVE,UV,UV926",Y,26624,2013-02-17,0,not carried (cat 4.2 Part B),cat-part-B,,
+TodaysCreditDetail.rpt,used,,frmCouCaseesReportI.cmdCreditDetail_Click,Transaction > Counter Cashier's Report,frmCouCaseesReportI,"F,LIVE,UV,UV926",Y,24064,2013-04-15,0,rpt.money.credit-bills,cat-legacy-id,planned/P1,
+TodaysCustomerDeposit by Nikita.rpt,duplicate,variant of todayscustomerdeposit.rpt,,,,"F,UV,UV926",N,41472,2023-04-11,0,not carried (cat 4.2 Part B),cat-part-B,,
+TodaysCustomerDeposit By Sagar.rpt,duplicate,variant of todayscustomerdeposit.rpt,,,,"F,UV,UV926",N,41472,2021-09-08,0,not carried (cat 4.2 Part B),cat-part-B,,
+TodaysCustomerDeposit ORG13062014.rpt,duplicate,variant of todayscustomerdeposit.rpt,,,,LIVE,Y,26112,2014-06-13,0,not carried (cat 4.2 Part B),cat-part-B,,
+TodaysCustomerDeposit.rpt,used,,frmCouCaseesReportI.cmdDeposit_Click,Transaction > Counter Cashier's Report,frmCouCaseesReportI,"F,LIVE,UV,UV926",Y,44544,2023-04-12,0,rpt.money.collection-detail,cat-legacy-id,planned/P1,
+TodaysCustomerOtherDiscount.rpt,used,,frmCouCaseesReportI.cmdOtherDiscount_Click,Transaction > Counter Cashier's Report,frmCouCaseesReportI,"F,LIVE,UV,UV926",Y,22016,2013-07-23,0,rpt.money.discount-log,cat-legacy-id,planned/P2,C2.OtherDiscount
+TodaysExpenses By Sagar.rpt,duplicate,variant of todaysexpenses.rpt,,,,"F,UV,UV926",N,32768,2021-09-08,0,not carried (cat 4.2 Part B),cat-part-B,,
+TodaysExpenses.rpt,used,,frmCouCaseesReportI.cmdPettyCash_Click,Transaction > Counter Cashier's Report,frmCouCaseesReportI,"F,LIVE,UV,UV926",Y,32768,2023-04-11,0,rpt.money.expense-register; rpt.money.expenses-by-head,cat-legacy-id,partial/P1 planned/P1,A50
+TodaysOtherCollection.rpt,used,,frmCouCaseesReportI.cmdTodaysOtherCollection_Click,Transaction > Counter Cashier's Report,frmCouCaseesReportI,"F,LIVE,UV,UV926",Y,20480,2013-02-17,0,not carried,cat-legacy-id,,cat 4.1 A17 / 4.3 owner and other-deposit tables empty
+TodaysPaymentDetail.rpt,orphan,,,,,"F,LIVE,UV,UV926",Y,24064,2013-02-17,0,not carried (cat 4.2 Part B),cat-part-B,,
+TodaysPurchasePayment.rpt,orphan,,,,,"F,LIVE,UV,UV926",Y,17920,2013-02-17,0,not carried (cat 4.2 Part B),cat-part-B,,
+TrialSalesBill.rpt,used,,frmSalesBill.cmdDetailReport_Click,Transaction > Lodging Bill,frmSalesBill,"F,LIVE,UV,UV926",Y,158952,2025-12-12,0,rpt.tax.invoice-register / rpt.guests.guest-register,inferred,planned/P1 planned/P1,trial bill and registration-card layout: confirm which HCC print covers them
+UserWiseCheckInCheckOutReport.rpt,used,,frmreport.cmdprint_Click,Report > Userwise Check-In  Check-Out Report,frmreport,"F,UV,UV926",N,34304,2023-05-01,0,rpt.guests.userwise-activity,cat-legacy-id,planned/P2,A33
+VoucherRegister.rpt,used,,frmvoucherRegister.cmdprint_Click,Account Report  > Journal Register,frmvoucherRegister,"F,LIVE,UV,UV926",Y,38400,2016-01-23,0,not carried,cat-legacy-id,,cat 4.3 C6: accounting module switched off in Lodge; HCC ACC reports
+WrongPaymentEntry.rpt,used,,mdimain.mnuWrongPaymentEntry_Click,,mdimain,"F,LIVE,UV,UV926",Y,29696,2022-08-10,0,rpt.money.payment-corrections,cat-legacy-id,planned/P2,C7.WrongPaymentEntry
+balancesheet.rpt,referenced-file-missing,,frmAccountReport.cmdbutton_Click,,,,N,,,,,,,code names a .rpt that is in no folder
+departmentwisesales.rpt,referenced-file-missing,,frmDaycloseReport.cmdGroupWiseSalesSummary_Click,,,,N,,,,,,,code names a .rpt that is in no folder
+exciseliquer.rpt,referenced-file-missing,,frmDaycloseReport.cmdexciseReport_Click,,,,N,,,,,,,code names a .rpt that is in no folder
+functionprosalesbillreport.rpt,referenced-dead-form,,frmFunctionProspectusSalesBill1.(decl),,,,N,,,,,,,code names a .rpt that is in no folder
+ledgertrialbalance.rpt,referenced-file-missing,,frmAccountReport.cmdbutton_Click,,,,N,,,,,,,code names a .rpt that is in no folder
+poreport.rpt,referenced-dead-form,,frmscrapNote.Report,,,,N,,,,,,,code names a .rpt that is in no folder
+profitloss.rpt,referenced-dead-form,,frmAccountReport.cmdbutton_Click,,,,N,,,,,,,code names a .rpt that is in no folder
+purchaseregister.rpt,referenced-file-missing,,frmvoucherRegister.cmdprint_Click,,,,N,,,,,,,code names a .rpt that is in no folder
+salesregister.rpt,referenced-file-missing,,frmvoucherRegister.cmdprint_Click,,,,N,,,,,,,code names a .rpt that is in no folder
+supfinancerledger.rpt,referenced-dead-form,,frmSubFinancer.Report,,,,N,,,,,,,code names a .rpt that is in no folder
+supplierreciptreport.rpt,referenced-dead-form,,frmDonerReceipt.Report;frmRefund.Report,,,,N,,,,,,,code names a .rpt that is in no folder
+todayssalesreport.rpt,referenced-file-missing,,frmDaycloseReport.cmdItemWiseSales_Click,,,,N,,,,,,,code names a .rpt that is in no folder
+voucher.rpt,referenced-file-missing,,frmAccountReport.cmdbutton_Click,,,,N,,,,,,,code names a .rpt that is in no folder

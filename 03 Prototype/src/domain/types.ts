@@ -312,6 +312,8 @@ export type State={
   maintenanceX?:import('./streams/maintenance').MNTState;
   inventoryX?:import('./streams/inventory').INVState;
   handoverX?:import('./streams/handover').HOVState;
+  /** KEYS room keys: lock mapping overrides, encoder state, job log, card ledger (optional; absent in old saves, no SCHEMA bump). */
+  keysX?:import('./streams/keys').KEYSlice;
   servicesX?:import('./streams/services').GSVState;
   messagingX?:import('./streams/messaging').MSGState;
   posX?:import('./streams/pos').POSState;

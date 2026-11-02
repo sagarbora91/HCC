@@ -73,6 +73,7 @@ public static class HccComposition
         // LG
         services.AddLegacyModule();                      // W1a LG legacy Lodge importer (contract §5)
         // LG end
+        services.AddKeysModule();                        // KEYS room keys (HCC_KeyAgent_Spec_v1)
         return services;
     }
 
@@ -158,6 +159,7 @@ public static class HccComposition
         api.MapStockEndpoints();         // W2-8
         api.MapMessagingEndpoints();     // W2-10
         api.MapHandoverEndpoints();      // W2-11
+        api.MapKeysEndpoints();          // KEYS room keys
         api.MapYieldEndpoints();         // W2-12
         api.MapGuestServicesEndpoints(); // W2-9
         api.MapPayrollEndpoints();       // W2-2
