@@ -109,6 +109,7 @@ function routes(role){
     'GET /guest-services/lost-items':({query})=>page([],query,'items'),
     'GET /guest-services/settings':()=>({slaMinutes:{},retentionDays:90,valuableRetentionDays:180,version:null}),
     'GET /guest-services/stays':()=>({items:[]}),
+    'GET /guest-services/feedback':()=>({count:0,average:null,items:[]}),'GET /guest-services/feedback/follow-ups':()=>[], // F4-T3
     'GET /guest-services/histories/:kind':()=>[],
     'GET /handover/checklists':()=>({date:BD,runs:[]}),
     'GET /handover/templates':()=>({templates:[]}),

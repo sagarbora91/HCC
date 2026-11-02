@@ -67,6 +67,7 @@ const PAGES={
   settings:['OWN TAD','ADM-003 + DEC-057/058 (DEC-063 G9: no Manager requests)'],
   approvals:['OWN MGR ACC','ADM-004 audit.view + APR-001 (DEC-063 G10: not the Cashier; Tech admin view at M4)'],
   backup:['OWN TAD','ADM-005 (DEC-063 G9: the Manager gets the Overview backup card instead)'],
+  'tariff-card':['OWN MGR ACC REC CSH','PERM-TRF-001 (F4-T1): view card, history, print; not Restaurant / housekeeping / maintenance (DEC-061)'],
   'owner-digest':['OWN','PERM-DGS-001 (F4-T2): Owner only; navRoleOk hides it from every other role'],
   'revenue-category':['OWN MGR ACC','PERM-RPT-001 + PERM-RPT-002 (F4-T2; DEC-202 #1): Owner, Manager, Accountant; navRoleOk hides it from the Cashier and the rest'],
   syshealth:['OWN TAD','PERM-SYS-001 (Wave C3, A09-05: parked outbox events, retry, last backup; the Administration area like Backup & recovery)'],
@@ -187,6 +188,9 @@ const CMDS={
   ...Object.fromEntries(['MST_MASTER_SAVE','MST_MASTER_RETIRE','MST_MASTER_REACTIVATE','MST_MASTER_REORDER','MST_MASTER_DELETE'].map(c=>[c,C('OWN TAD','MA-0 masters (DEC-MA-1)')])),
   SYS_RETRY_PARKED:C('OWN TAD','PERM-SYS-001 (Wave C3, A09-05: RetryParkedEvent)'),
   // F4-T3 quick wins: feedback at check-out (role list in the handler), day-close sweep ('close'), Owner follow-ups / feedback address / printer test ('admin').
+  // F4-T1 tariff card: Manager drafts + proposes, Owner publishes / rejects / weekend days / import (DEC-058).
+  ...Object.fromEntries(['TRC_DRAFT_SAVE','TRC_PROPOSE','TRC_DISCARD'].map(c=>[c,C('OWN MGR','PERM-TRF-002 (F4-T1)')])),
+  ...Object.fromEntries(['TRC_PUBLISH','TRC_REJECT','TRC_WEEKEND_SET','TRC_IMPORT'].map(c=>[c,C('OWN','PERM-TRF-003 (F4-T1, DEC-058)')])),
   FBK_RECORD:C('OWN MGR REC CSH','F4-T3 qw-feedback: Reception, Manager, Owner, Cashier at check-out'),
   FBK_FOLLOWUP_SWEEP:C('OWN MGR','F4-T3: system sweep at day close, gated by the coarse close permission'),
   FBK_FOLLOWUP_DONE:C('OWN TAD','F4-T3: admin (Owner follow-up calls)'),FBK_URL_SET:C('OWN TAD','F4-T3: admin'),
