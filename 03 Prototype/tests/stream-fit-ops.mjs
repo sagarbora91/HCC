@@ -58,13 +58,13 @@ export function register({test,assert}){
   test('[FIT-OPS] handover: tabs checklists / handover / dashboard / templates, default My checklists; a run is a StepFlow with the sign-off in the panel footer',()=>{
     store.clear();const d=render('handover','owner');
     assert.ok(/data-tab="checklists"[^>]*aria-selected="true"/.test(d)&&d.includes('data-tab="templates"'));
-    assert.ok(d.includes('class="fit-steps"')&&d.includes('aria-label="Steps"'));
+    assert.ok(d.includes('class="fit-steps has-summary"')&&d.includes('aria-label="Steps"'));
     const foot=d.slice(d.indexOf('class="fit-panel-foot"'));
     assert.ok(/Submit checklist|Submitted by|Reopen/.test(foot),'sign-off lives in .fit-panel-foot, outside the scrolling body');
     const body=d.slice(d.indexOf('class="fit-panel-body"'),d.indexOf('class="fit-panel-foot"'));
     assert.ok(!body.includes('Submit checklist'),'the sign-off button is not inside the scrolling body');
     const tpl=render('handover','owner','templates');assert.ok(tpl.includes('aria-label="Checklist templates"')&&tpl.includes('New template'));
-    const dash=render('handover','owner','dashboard');assert.ok(dash.includes('Overdue items')&&dash.includes('class="small-stats fit-small-stats hov-stats"'));
+    const dash=render('handover','owner','dashboard');assert.ok(dash.includes('Overdue items')&&dash.includes('hov-stats')&&dash.includes('fit-stats-toggle'));
     const hn=render('handover','owner','handover');assert.ok(hn.includes('Write handover note')&&hn.includes('Open carry-forward')&&!hn.includes('modal-actions'),'no .modal-actions inside a page body');
     store.clear();assert.ok(!render('handover','housekeeper','templates').includes('Checklist templates'),'a role without the Templates tab falls back to My checklists');
   });

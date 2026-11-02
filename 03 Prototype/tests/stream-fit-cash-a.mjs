@@ -44,7 +44,7 @@ export function register({test,assert}){
   test('[FIT-CASH-A] page harness builds',()=>{assert.ok(F,'could not build the fit-cash-a harness: '+buildError);});
   if(!F)return;
   test('[FIT-CASH-A] folios, cashier and cashbook render one fit-page root with data-fit-page on the desktop layout',()=>{
-    const want={folios:['fill',h(F.Folios)],cashier:['fill',h(F.Cashier)],cashbook:['fill',h(F.CashBook)]};
+    const want={folios:['fill',h(F.Folios)],cashier:['steps',h(F.Cashier)],cashbook:['fill',h(F.CashBook)]};
     for(const [id,[layout,el]] of Object.entries(want)){
       store.clear();const html=page(id,el);const r=rootOf(html);
       assert.ok(r&&r.single,`${id}: one top-level element`);
@@ -79,11 +79,13 @@ export function register({test,assert}){
     assert.ok(src.includes('onClick={()=>booking(b.id)}')&&src.includes('onClick={()=>setSel(b.id)}'),'row opens the record in the pane; the arrow opens the dialog');
     assert.ok(/<FitNote text=\{NOTE\}\/>/.test(src)&&src.includes('All names and records are fictional. Tax figures use the dated GST master'),'footnote kept (FitNote)');
   });
-  test('[FIT-CASH-A] cashier: split columns — expected cash + count left, movements + banking right; header holds the cash-out buttons and Day closing',()=>{
+  test('[FIT-CASH-A] cashier (FIT-2): four sub-screens with a result rail; header holds the cash-out buttons and Day closing',()=>{
     store.clear();const html=page('cashier',h(F.Cashier));
-    assert.ok(html.includes('class="fit-cols cashier-cols"'),'two columns');
-    for(const t of ['>Expected cash</h2>','>Today’s cash movements</h2>','>Banking, transfers and drawings</h2>','SHIFT STATUS','= Expected cash in drawer'])assert.ok(html.includes(t),t);
-    assert.match(html,/>(Count the drawer|Difference approval|Shift result)<\/h2>/);
+    assert.ok(html.includes('class="fit-steps has-summary"'),'steps with a rail summary');
+    assert.match(html,/>(Count the drawer|Difference approval|Shift result)<\/h2>/,'default step = the count');
+    const one=(id,needle)=>{store.clear();assert.ok(page('cashier',h(F.Cashier),{tabKey:id}).includes(needle),id+': '+needle);};
+    one('expected-cash','>Expected cash</h2>');one('expected-cash','SHIFT STATUS');one('expected-cash','= Expected cash in drawer');
+    one('cash-movements','>Today’s cash movements</h2>');one('cash-out','>Banking, transfers and drawings</h2>');
     const head=html.slice(0,html.indexOf('</header>'));
     assert.ok(head.includes('Day closing'),'Day closing in the header');
     for(const b of ['Till transfer','Owner drawing'])assert.ok(head.includes(b),b+' in the header (Owner)');
@@ -92,7 +94,7 @@ export function register({test,assert}){
     assert.ok(!/<button[^>]*>(<svg[^>]*>.*?<\/svg>)? ?(Till transfer|Owner drawing)<\/button>/.test(body),'the cash-out buttons are not repeated in the panel');
     const mgr=page('cashier',h(F.Cashier),{uid:'manager'});
     assert.ok(mgr.slice(0,mgr.indexOf('</header>')).includes('Bank deposit'),'Manager: Bank deposit in the header');
-    assert.equal((html.match(/data-fit-scroll=""/g)||[]).length,4,'four scroll panels');
+    assert.equal((html.match(/data-fit-scroll=""/g)||[]).length,1,'one scroll panel per sub-screen (the rail is not a data-fit-scroll box)');
   });
   test('[FIT-CASH-A] cashier: a role without cash-out rights gets no cash-out buttons; the CashOutPanel phone markup has no fit- class',()=>{
     store.clear();const rec=page('cashier',h(F.Cashier),{uid:'reception'});

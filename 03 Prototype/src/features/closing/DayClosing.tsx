@@ -47,11 +47,21 @@ export function DayClosing(){
     'open-next-business-day':closed?'current':'waiting',
     'reopen-and-corrections':reopened?'blocked':corrWaiting?'current':'waiting',
   };
-  const note:Partial<Record<StepId,string>>={
-    'preflight':!closed&&generalOpen.length?`${generalOpen.reduce((n,c)=>n+c.items.length,0)} to resolve`:undefined,
-    'post-room-nights':!closed&&toPost.length?`${toPost.length} to post`:undefined,
-    'close-business-date':!closed&&blockers.length?`${blockers.length} blocking`:undefined,
-    'reopen-and-corrections':reopened?`${shortDate(reopened.date)} reopened`:corrWaiting?`${corrWaiting} waiting`:undefined,
+  // (FIT-2: the old one-word step notes moved into the richer rail summaries below.)
+  // FIT-2 (contract §12): the rail shows every step's REAL result (read-only, from the state above), so the day can be reviewed with no click.
+  const cashDiff=s.shiftClose?s.shiftClose.counted-s.shiftClose.expected:0;
+  const diffText=(d:number)=>d===0?'exact':(d>0?'over ':'short ')+money(Math.abs(d));
+  const shiftDiff=s.shift?.date===s.date&&st==='Submitted'?s.shift.counted-s.shift.expected:0;
+  const preview=rec??closingSummary(s);
+  const posted=targets.length-toPost.length;
+  const summary:Record<StepId,string>={
+    'preflight':closed?'Completed before close':generalOpen.length?`${generalOpen.reduce((n,c)=>n+c.items.length,0)} to resolve · ${generalOpen.map(c=>c.title.toLowerCase()).join(', ')}`:'All clear',
+    'post-room-nights':targets.length?`${posted} of ${targets.length} room${targets.length===1?'':'s'} posted${prog?.interrupted?' · interrupted':''}`:'No in-house stays to post',
+    'cash-shift':st==='Closed'?(s.shiftClose?`Counted ${money(s.shiftClose.counted)} · ${diffText(cashDiff)}`:'Shift closed'):st==='Submitted'?`Counted ${money(s.shift!.counted)} · ${diffText(shiftDiff)} · awaiting approval`:`Not counted · expected ${money(shiftExpected(s).expected)}`,
+    'close-business-date':closed?`${shortDate(s.date)} closed`:blockers.length?`Blocked by ${blockers.map(b=>b.title.toLowerCase()).join(', ')}`:'Ready to close',
+    'closing-summary':`Net receipts ${money(preview.receipts.net)}${rec?'':' · preview'}`,
+    'open-next-business-day':closed?`Opens ${shortDate(addDays(s.date,1))} · float ${money(s.shiftClose?.counted??0)}`:`Next day ${shortDate(addDays(s.date,1))} · after close`,
+    'reopen-and-corrections':reopened?`${shortDate(reopened.date)} reopened · close it again`:corrWaiting?`${corrWaiting} correction${corrWaiting===1?'':'s'} waiting`:'Nothing reopened',
   };
   // Default step: a reopened day first (today cannot close until it is closed again), else the first step not done.
   const first:StepId=reopened?'reopen-and-corrections':CLOSING_STEPS.find(id=>state[id]!=='done')??'closing-summary';
@@ -109,6 +119,6 @@ export function DayClosing(){
       actions={<>{closed?nextBtn:closeBtn}{reportBtn}</>}
       toolbar={<><div className="closing-banner f-fit-banner"><div><div className="eyebrow">CURRENT BUSINESS DATE</div><h2>{dateLabel(s.date)}</h2><p>Asia/Kolkata · simulated clock {s.clock.slice(11)}</p></div><Pill tone={closed?'neutral':'green'}>{closed?'Day closed':'Business day open'}</Pill></div>
         {!canClose&&<FitNote text="Read-only check. You can review the preflight, the cash shift and the closing summary, and request a closed-date correction. Posting nights, closing and opening the next day need the close permission (Manager or Owner)."/>}</>}>
-    <StepFlow value={step} onChange={id=>setStep(id as StepId)} steps={CLOSING_STEPS.map(id=>({id,label:STEP_LABEL[id],status:state[id],note:note[id]}))}>{body}</StepFlow>
+    <StepFlow value={step} onChange={id=>setStep(id as StepId)} steps={CLOSING_STEPS.map(id=>({id,label:STEP_LABEL[id],status:state[id],summary:summary[id]}))}>{body}</StepFlow>
   </FitPage>;
 }

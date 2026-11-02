@@ -2,15 +2,19 @@
 import React,{useState} from 'react';
 import {bookingRefOf} from '../../domain/bookingRef';
 import {Wallet,ArrowRight,ShieldCheck,Check,X} from 'lucide-react';
-import {money,shiftExpected,shiftMovements,shiftStatus,SHIFT_MANAGER_DIFF_LIMIT,closingUnlimitedRoles,isDayClosed,cxSlice} from '../../services/mock';
+import {money,shiftExpected,shiftMovements,shiftStatus,SHIFT_MANAGER_DIFF_LIMIT,closingUnlimitedRoles,isDayClosed,cxSlice,cxPending} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {Pill,Empty,dateLabel} from '../../components/ui';
-import {FitPage,ScrollPanel} from '../../components/fit';
+import {FitPage,ScrollPanel,StepFlow,useFitTab} from '../../components/fit';
 import {ShiftCountForm} from './ShiftCount';
 import {OpenShiftForm,CashOutPanel,CashOutActions} from './CashOut';
 
 /** Detail column of a drawer movement without a booking or outlet bill (Wave B1: banking, transfers, drawings). */
 const MOVE_KIND:Record<string,string>={'expense-reversal':'Reversal',expense:'Expense',banking:'Bank deposit','transfer-out':'Till transfer','transfer-in':'Till transfer','owner-drawing':'Owner drawing','staff-advance':'Salary advance'}; // ACC-2 integration: the parity lane's cash advance movement
+
+/** Step ids = SUB_SCREENS 'cashier' (kebab-case of the labels). */
+export const CASHIER_STEPS=['expected-cash','count-and-result','cash-movements','cash-out'] as const;
+type CashierStep=typeof CASHIER_STEPS[number];
 
 export function Cashier(){
   const {s,go,booking,permission}=useHcc();
@@ -24,11 +28,25 @@ export function Cashier(){
   const banner=<div className="closing-banner"><div><div className="eyebrow">SHIFT STATUS</div><h2>{st==='Open'?'Shift open':st==='Submitted'?'Count submitted — awaiting approval':'Shift closed'}</h2><p>{st==='Open'?'Cash receipts are accepted.':st==='Submitted'?'Cash receipts and cash expenses are paused until the difference is decided.':closed?'Business day closed.':'Cash receipts are closed for today.'}</p>
       {st==='Open'&&mine&&<p>Opened by <strong>{name(mine.by)}</strong>{mine.handover!==undefined?<> · handover count {money(mine.handover)}{mine.difference?<> · <strong>{mine.difference>0?'over':'short'} {money(Math.abs(mine.difference))}</strong>{mine.reason?` (${mine.reason})`:''}</>:' · matches the carried float'}</>:null}</p>}</div>
       <Pill tone={st==='Open'?'green':st==='Submitted'?'orange':'neutral'}>{st}</Pill></div>;
-  return <FitPage title="Cashier shift" sub={`One cash shift per business day · ${dateLabel(s.date)} · opening float carried from the last counted close`}
-      actions={<><CashOutActions/><button className="btn" onClick={()=>go('closing')}>Day closing <ArrowRight size={15}/></button></>}>
-    <div className="fit-cols cashier-cols">
-      <div>
-        <ScrollPanel title="Expected cash" label="Shift status and expected cash" actions={<Wallet size={19}/>}>
+  // FIT-2 (contract §12, owner rule 2 Nov 2026): the page is a task, so it is four sub-screens that each fit - expected cash, the count / result,
+  // today's movements, cash leaving the drawer - and a fixed rail beside them shows every step's result (read-only, from the state above).
+  const net=mv.reduce((a,m)=>a+m.amount,0),cx=cxSlice(s),pend=cxPending(s).length;
+  const outToday=cx.records.filter(r=>r.status==='Pending'||r.date===s.date||r.decidedDate===s.date).length;
+  const sh=s.shift?.date===s.date?s.shift:undefined,subDiff=st==='Submitted'&&sh?sh.counted-sh.expected:0,closeDiff=s.shiftClose?s.shiftClose.counted-s.shiftClose.expected:0;
+  const diffText=(d:number)=>d===0?'exact':(d>0?'over ':'short ')+money(Math.abs(d));
+  const needOpen=st==='Closed'&&!closed&&!s.shiftClose;
+  const first:CashierStep=st==='Closed'&&!needOpen?'expected-cash':'count-and-result';
+  const [step,setStep]=useFitTab<CashierStep>('cashier',CASHIER_STEPS,first);
+  const steps=[
+    {id:'expected-cash',label:'Expected cash',status:'done' as const,summary:`${st} · expected ${money(ex.expected)} · float ${money(ex.opening)}`},
+    {id:'count-and-result',label:'Count & result',status:st==='Open'||needOpen?'current' as const:st==='Submitted'?'blocked' as const:'done' as const,
+      summary:st==='Open'?`Not counted yet · expected ${money(ex.expected)}`:st==='Submitted'?`Counted ${money(sh?.counted??0)} · ${diffText(subDiff)} · awaiting approval`
+        :s.shiftClose?`Counted ${money(s.shiftClose.counted)} · ${diffText(closeDiff)}`:'Shift closed · no count recorded'},
+    {id:'cash-movements',label:'Cash movements',status:'done' as const,summary:`${mv.length} movement${mv.length===1?'':'s'} · net ${net<0?'−':'+'}${money(Math.abs(net))}`},
+    {id:'cash-out',label:'Cash out',status:pend?'current' as const:'done' as const,summary:pend?`${pend} awaiting a second person`:outToday?`${outToday} record${outToday===1?'':'s'} today`:'Nothing banked or drawn today'},
+  ];
+  let body:React.ReactNode;
+  if(step==='expected-cash')body=<ScrollPanel title="Expected cash" label="Shift status and expected cash" actions={<Wallet size={19}/>}>
           <div className="padded cashier-status">{banner}</div>
           <div className="summary-list padded f-formula">
             {row('Opening float',ex.opening,'')}
@@ -43,22 +61,21 @@ export function Cashier(){
             <div className="f-total"><span>= Expected cash in drawer</span><strong>{money(ex.expected)}</strong></div>
           </div>
           <p className="footnote padded">{money(ex.opening)} + {money(ex.payments)} + {money(ex.deposits)} + {money(ex.restaurant)} − {money(ex.refunds)} − {money(ex.returns)} − {money(ex.expenses)}{ex.transfers!==0?` ${ex.transfers<0?'−':'+'} ${money(Math.abs(ex.transfers))}`:''} = {money(ex.expected)}. Restaurant and room-service cash bills go into this drawer (one shared till); UPI, card, bank, vendor-credit amounts and room charges to a folio are excluded.</p>
-        </ScrollPanel>
-        <ScrollPanel title={st==='Open'?'Count the drawer':st==='Submitted'?'Difference approval':'Shift result'} label="Cash count">
+        </ScrollPanel>;
+  else if(step==='count-and-result')body=<ScrollPanel title={st==='Open'?'Count the drawer':st==='Submitted'?'Difference approval':'Shift result'} label="Cash count">
           <div className="padded cashier-shift">{st==='Open'?(closed?<Empty title="Business day closed" body="Open the next business day to start a new shift."/>:<ShiftCountForm/>):st==='Submitted'?<DifferencePanel/>:<><ClosedPanel name={name}/>{!closed&&(process.env.HCC_BUILD==='production'||!s.shiftClose)?<OpenShiftForm/>:null}</>}</div>
-        </ScrollPanel>
-      </div>
-      <div>
-        <ScrollPanel title="Today’s cash movements" label="Today’s cash movements" actions={<span className="muted">{mv.length} movement{mv.length===1?'':'s'} · cash only</span>}>
+        </ScrollPanel>;
+  else if(step==='cash-movements')body=<ScrollPanel title="Today’s cash movements" label="Today’s cash movements" actions={<span className="muted">{mv.length} movement{mv.length===1?'':'s'} · cash only</span>}>
           <div className="table-wrap"><table><thead><tr><th>Reference</th><th>Movement</th><th>Guest / detail</th><th>Recorded by</th><th className="number">Drawer effect</th></tr></thead><tbody>
             {mv.map(m=><tr key={m.id}><td><strong>{m.id}</strong><small>{m.reference}</small></td><td>{m.label}</td>
               <td>{m.booking?(permission('billing')||permission('reservations')?<button className="text-btn" onClick={()=>booking(m.booking!)}>{m.guest} · {bookingRefOf(s.bookings,m.booking)}</button>:<span>{bookingRefOf(s.bookings,m.booking)}</span>):m.order?(permission('billing')?<button className="text-btn" onClick={()=>go('pos')}>{m.guest??'Outlet bill'} · {m.order}</button>:<span>{m.order}</span>):<span className="muted">{MOVE_KIND[m.kind]??'Expense'}</span>}</td>
               <td>{name(m.actor)}</td><td className="number">{m.amount>=0?'+':'−'}{money(Math.abs(m.amount))}</td></tr>)}
           </tbody></table>{!mv.length&&<Empty title="No cash movements today" body="Cash receipts, deposits, returns, refunds, restaurant cash bills, posted cash expenses, bank deposits, till transfers and Owner drawings appear here."/>}</div>
-        </ScrollPanel>
-        <CashOutPanel fit/>
-      </div>
-    </div>
+        </ScrollPanel>;
+  else body=<CashOutPanel fit/>;
+  return <FitPage title="Cashier shift" sub={`One cash shift per business day · ${dateLabel(s.date)} · opening float carried from the last counted close`} layout="steps"
+      actions={<><CashOutActions/><button className="btn" onClick={()=>go('closing')}>Day closing <ArrowRight size={15}/></button></>}>
+    <StepFlow value={step} onChange={id=>setStep(id as CashierStep)} steps={steps}>{body}</StepFlow>
   </FitPage>;
 }
 
