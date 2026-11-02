@@ -57,7 +57,7 @@ export function AccountingPage(){
         <div className="acc-statusbar"><AccDatePicker date={date} setDate={setDate} dates={dates}/><AccStatusPill status={status}/>
           {lock?<span className="muted">Locked by {accUserName(s,lock.lockedBy)} · {shortDate(lock.lockedAt.slice(0,10))} {clockTime(lock.lockedAt)} (simulated) · {lock.count} vouchers frozen</span>
             :why?<span className="muted" id="acc-lock-why">{why}</span>:<span className="muted">Ready to lock.</span>}</div>
-        <StatStrip money items={[
+        <StatStrip money compact collapseOnTablet page="accounting" items={[
           {title:'Vouchers',value:String(vs.length),sub:`${vs.filter(v=>v.type==='Sales').length} sales · ${vs.filter(v=>v.type==='Receipt').length} receipt · ${vs.filter(v=>v.type==='Payment').length} payment · ${vs.filter(v=>v.type==='Journal').length} journal`},
           {title:'Total debits',value:money(t.debit),sub:t.debit===t.credit?'Equals total credits — balanced':'Does not equal credits'},
           {title:'Total credits',value:money(t.credit),sub:reconOk?`Reconciles with Reports (${recon.length} checks)`:`${recon.filter(c=>!c.ok).length} reconciliation check(s) differ`},
