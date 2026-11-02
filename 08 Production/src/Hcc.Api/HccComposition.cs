@@ -86,6 +86,7 @@ public static class HccComposition
         // LF-DESK
         // LF-DESK end
         // LF-ALERTS
+        services.AddRemindersModule();                   // LF B4 desk reminders (PERM-RMD-001)
         // LF-ALERTS end
         // LF-IMAGES
         // LF-IMAGES end
@@ -209,6 +210,7 @@ public static class HccComposition
         // LF-DESK
         // LF-DESK end
         // LF-ALERTS
+        api.MapRemindersEndpoints();     // LF B4 desk reminders
         // LF-ALERTS end
         // LF-IMAGES
         // LF-IMAGES end

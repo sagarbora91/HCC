@@ -32,7 +32,14 @@
     {"version": 4270, "file": "4270_acc_fixed_asset_put_to_use_disposal.sql", "reason": "ACC-3 contract §10: acc3-carry block 4270-4276 (numbered below the W1a LG 46xx block by the contract)"},
     {"version": 4271, "file": "4271_ops_vendor_payment_realloc.sql", "reason": "ACC-3 contract §10: acc3-carry block 4270-4276 (numbered below the W1a LG 46xx block by the contract)"},
     {"version": 4272, "file": "4272_acc_tds_remit_subsection_form168.sql", "reason": "ACC-3 contract §10: acc3-carry block 4270-4276 (numbered below the W1a LG 46xx block by the contract)"},
-    {"version": 4273, "file": "4273_cmp_profile_gst_on_advances_from.sql", "reason": "ACC-3 contract §10: acc3-carry block 4270-4276 (numbered below the W1a LG 46xx block by the contract)"}
+    {"version": 4273, "file": "4273_cmp_profile_gst_on_advances_from.sql", "reason": "ACC-3 contract §10: acc3-carry block 4270-4276 (numbered below the W1a LG 46xx block by the contract)"},
+    {"version": 4695, "file": "4695_desk_purpose.sql", "reason": "LF block 4695-4706 reserved by LF-CONTRACT 11 (lf-desk, lf-alerts); KEYS 4720/4721 merged first"},
+    {"version": 4696, "file": "4696_desk_vehicle.sql", "reason": "LF block 4695-4706 reserved by LF-CONTRACT 11 (lf-desk, lf-alerts); KEYS 4720/4721 merged first"},
+    {"version": 4697, "file": "4697_desk_form_c.sql", "reason": "LF block 4695-4706 reserved by LF-CONTRACT 11 (lf-desk, lf-alerts); KEYS 4720/4721 merged first"},
+    {"version": 4698, "file": "4698_desk_checkout_basis.sql", "reason": "LF block 4695-4706 reserved by LF-CONTRACT 11 (lf-desk, lf-alerts); KEYS 4720/4721 merged first"},
+    {"version": 4703, "file": "4703_alerts_wake_at.sql", "reason": "LF block 4695-4706 reserved by LF-CONTRACT 11 (lf-desk, lf-alerts); KEYS 4720/4721 merged first"},
+    {"version": 4704, "file": "4704_alerts_reminder.sql", "reason": "LF block 4695-4706 reserved by LF-CONTRACT 11; KEYS 4720/4721 merged first"},
+    {"version": 4705, "file": "4705_alerts_rbac_seed.sql", "reason": "LF block 4695-4706 reserved by LF-CONTRACT 11; KEYS 4720/4721 merged first"}
   ],
   "migrations": [
     {"version": 1, "file": "0001_platform.sql", "sha256": "2CB8FB349156F501295E1148366BDFE406EC097C136093F09C6F0817542F46CC"},
@@ -169,6 +176,13 @@
     {"version": 4273, "file": "4273_cmp_profile_gst_on_advances_from.sql", "sha256": "628C784D84D0A5FE73FCBD2A33A8443A03349604369340306583A86292F4F02D"},
     {"version": 4620, "file": "4620_guest_party_ids.sql", "sha256": "43C06D27267530BC5A65131E14AF6A9DA493C60D1F97E50BC3887C7DA9A6FB89"},
     {"version": 4720, "file": "4720_keys_schema.sql", "sha256": "2476C46142EFDD08BDCEC0610A68E582137CCDBF66C81A3245CDB4BE6D15EC64"},
-    {"version": 4721, "file": "4721_keys_rbac_seed.sql", "sha256": "F348BFD9F20DDAA9FA64278D26B7EFA51402017F2E5984920D9BC9AD2A049EF9"}
+    {"version": 4721, "file": "4721_keys_rbac_seed.sql", "sha256": "F348BFD9F20DDAA9FA64278D26B7EFA51402017F2E5984920D9BC9AD2A049EF9"},
+    {"version": 4695, "file": "4695_desk_purpose.sql", "sha256": "18D283C5E9A1D5E0E09333EE6D9F7D23F3A6AE59EACF60FFBA1A7F3C6AF2B949"},
+    {"version": 4696, "file": "4696_desk_vehicle.sql", "sha256": "78BE3B610AD2535BC1A2F278B6105FDE4F4C01994D57748419A4AE78718D8F54"},
+    {"version": 4697, "file": "4697_desk_form_c.sql", "sha256": "7BEF2BE1AD382407243F57B5A20E471531840FEDAA3BFA103DD8DBB2EF7B4E01"},
+    {"version": 4698, "file": "4698_desk_checkout_basis.sql", "sha256": "4C49C5607E6169648AAA8C967253F9DBCDDB2C9BF05D23A1B11D4A07C420DAEC"},
+    {"version": 4703, "file": "4703_alerts_wake_at.sql", "sha256": "392461A77CAF0D629CE63B17DEA3E0C4B7DF279D7336650C2BFD916D911F8AAC"},
+    {"version": 4704, "file": "4704_alerts_reminder.sql", "sha256": "91A75868DCDF51FBE6A8A1A5F2574CA22674E7A59160B5E6F7884FFE4BAB25F8"},
+    {"version": 4705, "file": "4705_alerts_rbac_seed.sql", "sha256": "BBD18B4626DDE6BB700C0638856BF80BBB6C87667E03EB9F93A4D431CFCB887D"}
   ]
 }
