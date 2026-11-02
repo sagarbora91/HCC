@@ -41,7 +41,7 @@ export function register({test,assert}){
     const k=page(F.PosPage,'pos','owner','kitchen');
     assert.match(k,/id="fit-tab-pos-kitchen"[^>]*aria-selected="true"/);assert.ok(k.includes('class="fit-board"')&&k.includes('Preparing')&&k.includes('Sold out today (86 list)'));
     const sm=page(F.PosPage,'pos','owner','summary');
-    assert.match(sm,/id="fit-tab-pos-summary"[^>]*aria-selected="true"/);assert.ok(sm.includes('Print summary')&&sm.includes('class="fit-stats"')&&sm.includes('One shared till'));
+    assert.match(sm,/id="fit-tab-pos-summary"[^>]*aria-selected="true"/);assert.ok(sm.includes('Print summary')&&sm.includes('class="fit-stats fit-stats-compact"')&&sm.includes('One shared till'));
     const rst=F.seed().users.find(u=>u.role==='Restaurant');
     if(rst){const r=page(F.PosPage,'pos',rst.id,'summary');assert.ok(!r.includes('id="fit-tab-pos-summary"'),'summary tab hidden');assert.ok(r.includes('pos-col-check'),'falls back to Orders');}
   });

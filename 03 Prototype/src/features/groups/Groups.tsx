@@ -5,7 +5,7 @@ import {money,grpSlice,grpKpis,grpLines,grpBlockTotals,grpStatus,grpCompany,grpC
 import type {GRPBlock} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {Empty,shortDate,dateLabel} from '../../components/ui';
-import {FitPage,FitTabs,FitNote,ScrollPanel,SplitView,StatStrip,useFitTab,useWideSplit} from '../../components/fit';
+import {FitPage,FitTabs,FitNote,ScrollPanel,SplitView,StatStrip,useFitTab} from '../../components/fit';
 import {usePaged,ShowMore,DESKTOP_PAGE} from '../../components/ShowMore';
 import {GrpStatusPill,GrpCreditPill,GrpCreditBar,grpCutoffText,grpUserName,grpSimNote,GrpRetiredPill} from './parts';
 
@@ -20,7 +20,7 @@ export function GroupsPage(){
   const k=grpKpis(s),x=grpSlice(s);
   const counts:Record<Tab,number>={blocks:x.blocks.length,companies:x.companies.length,'pickup-report':grpPickupReport(s).length,'master-folio':x.blocks.filter(b=>b.members.length).length,'limit-requests':k.pendingLimits};
   const showFolio=(id:string)=>{setFolio(id);setTab('master-folio');};
-  const creditNote=<FitNote text={<><b>Credit limits are enforced (DEC-076).</b> Used = what the company owes on company credit + the stays billed to it (estimated: agreed nights + GST − what the guest paid).
+  const creditNote=<FitNote lines={3} text={<><b>Credit limits are enforced (DEC-076).</b> Used = what the company owes on company credit + the stays billed to it (estimated: agreed nights + GST − what the guest paid).
       A booking, company credit at checkout or a rooming list beyond the remaining credit is refused; only the Owner sets a limit (others send a request). A payment from the company frees credit.</>}/>;
   return <FitPage title="Groups & corporate" sub={`Company accounts, group blocks and pickup · business date ${dateLabel(s.date)}`}
       actions={permission('reservations')&&<><button className="btn primary" onClick={()=>open({type:'grp-block'})}><Plus size={16}/> New group block</button><button className="btn" onClick={()=>open({type:'grp-company'})}><Building size={16}/> New company</button></>}
@@ -28,7 +28,7 @@ export function GroupsPage(){
         {title:'Open blocks',value:String(k.open),sub:`${k.dueSoon} with cut-off within 2 days`},
         {title:'Rooms picked up',value:`${k.picked} / ${k.allot}`,sub:'Open blocks · picked / held'},
         {title:'Unpicked rooms',value:String(k.remaining),sub:k.atRisk?`${k.atRisk} block${k.atRisk>1?'s':''} at risk (not enough free rooms)`:'All covered by free inventory'},
-        {title:'Credit alerts',value:String(k.creditAlerts),sub:`${k.pendingLimits} limit request${k.pendingLimits===1?'':'s'} pending`}]}/>}
+        {title:'Credit alerts',value:String(k.creditAlerts),sub:`${k.pendingLimits} limit request${k.pendingLimits===1?'':'s'} pending`}]} compact collapseOnTablet/>}
       tabs={<FitTabs page="groups" value={tab} onChange={setTab} tabs={TAB_DEFS.map(d=>({id:d.id as Tab,label:d.label,count:counts[d.id]}))}/>}>
     {tab==='blocks'&&<BlocksTab showFolio={showFolio}/>}
     {tab==='companies'&&<ScrollPanel label="Companies" footer={creditNote}><CompaniesTab bare/></ScrollPanel>}
@@ -42,11 +42,10 @@ export function GroupsPage(){
 function BlocksTab({showFolio}:{showFolio:(id:string)=>void}){
   const {s}=useHcc();const blocks=grpSlice(s).blocks.slice().sort((a,b)=>(grpStatus(s,a)==='Open'?0:1)-(grpStatus(s,b)==='Open'?0:1)||a.arrival.localeCompare(b.arrival));
   const pg=usePaged(blocks,DESKTOP_PAGE);
-  // undefined = nothing chosen yet: on a wide screen the first block is shown, on a narrow one the list (the record slides over it).
-  const [sel,setSel]=useState<string|null|undefined>(undefined);
-  const wide=useWideSplit(false); // follows rotation (review N4)
-  const id=sel===undefined?(wide?blocks[0]?.id??null:null):sel;const blk=blocks.find(b=>b.id===id);
-  const note=<FitNote text={<><b>Rooms held for groups are blocked.</b> Unpicked block rooms are assigned to specific rooms, shown as “Group hold” (Blocked) on the room board and calendar, and can only be booked through the block’s rooming list. Releasing or cancelling a block frees them.</>}/>;
+  // FIT-2: no block open = the block list takes the whole width (every block visible, scrolling in its own panel); a click opens the record beside it.
+  const [sel,setSel]=useState<string|null>(null);
+  const id=sel;const blk=blocks.find(b=>b.id===id);
+  const note=<FitNote lines={2} text={<><b>Rooms held for groups are blocked.</b> Unpicked block rooms are assigned to specific rooms, shown as “Group hold” (Blocked) on the room board and calendar, and can only be booked through the block’s rooming list. Releasing or cancelling a block frees them.</>}/>;
   if(!blocks.length)return <ScrollPanel label="Group blocks" footer={note}><Empty title="No group blocks" body="Create a block to hold rooms for a group."/></ScrollPanel>;
   const list=<ScrollPanel label="Group blocks" title="Blocks" actions={<span className="muted">{blocks.length}</span>} footer={<>{note}<ShowMore p={pg}/></>}>
     <ul className="grp-list">{pg.shown.map(b=>{const t=grpBlockTotals(s,b),c=grpCompany(s,b.company);

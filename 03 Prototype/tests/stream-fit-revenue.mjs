@@ -36,7 +36,7 @@ export function register({test,assert}){
     assert.match(html,/data-tab="rate-calendar"[^>]*aria-selected="true"/,'default tab unchanged: Rate calendar');
     assert.ok(html.includes('fit-small-stats')&&html.includes('Avg suggested BAR'),'stats are a StatStrip in the toolbar');
     assert.ok(html.includes('<table class="yld-cal">'),'the tariff grid is in the default tab');
-    assert.ok(html.includes('class="small-stats fit-small-stats yld-stats" role="list"'),'the old small-stats tiles (fonts unchanged, DEC-195) as a one-row StatStrip');
+    assert.ok(html.includes('class="small-stats fit-small-stats yld-stats fit-stats-compact" role="list"'),'the old small-stats tiles (fonts unchanged, DEC-195) as a one-row StatStrip');
     for(const [id,needle] of [['rate-plans','Rate sheet'],['rules','Guardrails'],['restrictions','Stay restrictions'],['history','Publish log']])
       assert.ok(page(F.YieldPage,'yield',id).includes(needle),id);
   });

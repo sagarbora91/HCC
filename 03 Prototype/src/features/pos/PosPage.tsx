@@ -27,7 +27,7 @@ export function PosPage(){
     ...(sales?[{id:'summary' as PosView,label:'Day summary'}]:[])];
   return <FitPage title="Restaurant & room service" sub={sub} layout="fill"
       actions={<>{view==='summary'&&<button className="btn" onClick={()=>open({type:'pos-report'})}><Printer size={15}/> Print summary</button>}<span className="pos-sim"><Info size={14}/>KOT printer & card terminal simulated</span></>}
-      toolbar={<>{view==='summary'&&<FitNote text={`Settled bills by settlement date; open checks as of ${s.clock.slice(11,16)} (simulated clock).`}/>}{isDayClosed(s)&&<FitNote text="The business day is closed — checks are read-only until the next day is opened."/>}<PosMasterLinks/></>}
+      toolbar={<>{isDayClosed(s)&&<FitNote text="The business day is closed — checks are read-only until the next day is opened."/>}<PosMasterLinks/></>}
       tabs={<FitTabs page="pos" value={view} onChange={setView} tabs={tabs}/>}>
     {view==='orders'&&<PosOrders/>}{view==='kitchen'&&<PosKitchenBoard/>}{view==='summary'&&sales&&<PosSummary/>}
   </FitPage>;
@@ -85,11 +85,11 @@ export function PosAvailability(){
 export function PosSummary(){
   const {s}=useHcc();const d=posDaySummary(s);
   return <>
-    <StatStrip money items={[{title:'Outlet sales (incl. tax)',value:money(d.gross),sub:`${d.checks} bill${d.checks===1?'':'s'} · net ${money(d.net)}`},
+    <StatStrip money compact collapseOnTablet items={[{title:'Outlet sales (incl. tax)',value:money(d.gross),sub:`${d.checks} bill${d.checks===1?'':'s'} · net ${money(d.net)}`},
       {title:'Outlet cash',value:money(d.outletCash),sub:'Counted in the front-desk drawer'},
       {title:'Posted to room folios',value:money(d.byMode['Room folio']||0),sub:'Collected at checkout'},
       {title:'Open checks',value:String(d.open.count),sub:`${money(d.open.value)} running · ${d.pendingVoids} void request${d.pendingVoids===1?'':'s'} pending`}]}/>
-    <ScrollPanel label="Day summary tables">
+    <ScrollPanel label="Day summary tables" footer={<FitNote lines={2} text={`Settled bills by settlement date; open checks as of ${s.clock.slice(11,16)} (simulated clock).`}/>}>
       <PosSummaryTables d={d}/>
       {d.top.length>0&&<><h3 className="pos-h3">Top items today</h3><ol className="pos-top">{d.top.map(t=><li key={t.name}><span>{t.name}</span><b>{t.qty}</b><span>{money(t.value)}</span></li>)}</ol></>}
       <div className="info-note pos-sum-note"><Info size={16}/>One shared till: cash bills (net of same-day voids) are counted in the front-desk drawer on the cashier shift. UPI and card are non-cash; room-service charged to a room is a folio charge, collected at checkout. Open checks block day close.</div>
