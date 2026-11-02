@@ -1,0 +1,5 @@
+# FIT-2 folios-appr
+- Folios: no code change needed. The shell's SplitView is now list-only until a row is picked, so the list takes the full width; the detail pane opens with Back. "Folio requests" stays a tab with its count and warn badge, and the four figures stay beside the tabs.
+- Approvals: the inbox is now a SplitView. The list columns are What (target and request id/reason), Kind, Requested by, Amount, Age / expiry and Status. The right pane shows the chosen request in full with a sticky Approve/Reject bar. Pending expenses and Audit log tabs are unchanged. Approve/Reject commands and blocks are the same code paths (GuardedButton, adminDecideBlock).
+- Not done / notes: an Approval has no created-at, so "age" is time left to expiry on the simulated clock. The seed has no pending approval, so the list rows are checked by the screen check only structurally.
+- Checks: npm test 2350/2350; build OK; fit-screen-check --pages folios,approvals (tab-land, lap-1366, no-modals) PASS 0 failing of 126, no font changes. No new sub-screens, so subscreens.ts is untouched.
