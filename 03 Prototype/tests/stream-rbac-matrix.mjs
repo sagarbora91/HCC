@@ -38,6 +38,7 @@ const PAGES={
   rooms:['OWN MGR REC','RES-001; Spec §1.1 Front Desk (DEC-063 G7: not SUP/MNT/CSH/ACC)'],
   calendar:['OWN MGR REC','RES-001 (DEC-063 G7)'],
   reservations:['OWN MGR REC','RES-001..004 (DEC-063 G7)'],
+  guests:['OWN MGR REC','Front-desk guest list (FIT cleanup): same roles as Reservations (RES-001); not Housekeeping / Maintenance (DEC-058/061)'],
   arrivals:['OWN MGR REC','STY-001, GST-002'],
   inhouse:['OWN MGR REC CSH','STY-002 + FOL-001 (Cashier works folios of in-house guests)'],
   customers:['OWN MGR REC CSH','GST-001 (CSH masked; DEC-063 G4: the Accountant does not need Customers)'],

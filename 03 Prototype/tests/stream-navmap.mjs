@@ -1,7 +1,7 @@
 // Step 1 tests: navigation map (categories, page → category) and the search index. Pure logic; the palette UI is checked in the browser.
 import {build} from 'esbuild';
 import {writeFile} from 'node:fs/promises';
-await writeFile('tests/.generated/navmap-entry.ts',"export {NAV_CATEGORIES,PAGE_CATEGORY,PAGE_KEYWORDS,SEARCH_ACTIONS,buildSearchEntries,searchEntries,visibleEntries,categoryOf,HOME_PAGE,PAGE_BLURB,catPage,parseCatPage,pagesOfCategory,crumbsFor} from '../../src/app/navmap';export {navItems,navGroups} from '../../src/app/nav';export {extraModals} from '../../src/app/registry';");
+await writeFile('tests/.generated/navmap-entry.ts',"export {NAV_CATEGORIES,PAGE_CATEGORY,PAGE_KEYWORDS,SEARCH_ACTIONS,buildSearchEntries,searchEntries,visibleEntries,categoryOf,HOME_PAGE,PAGE_BLURB,catPage,parseCatPage,pagesOfCategory,crumbsFor} from '../../src/app/navmap';export {navItems,navGroups} from '../../src/app/nav';export {extraModals,extraPages} from '../../src/app/registry';");
 await build({entryPoints:['tests/.generated/navmap-entry.ts'],bundle:true,platform:'node',format:'esm',outfile:'tests/.generated/navmap.mjs',logLevel:'error',jsx:'automatic',define:{'process.env.NODE_ENV':'"production"'}});
 const X=await import('./.generated/navmap.mjs');
 
@@ -22,9 +22,14 @@ export function register({test,M,assert}){
     for(const id of Object.keys(X.PAGE_KEYWORDS))assert.ok(ids.has(id),'keywords for unknown page: '+id);
   });
   test('[NAV] agreed placement: Guests profile under Customers; stay functions under Guests & Services; Dashboard has no category',()=>{
-    assert.equal(X.PAGE_CATEGORY.customers,'customers');assert.equal(X.PAGE_CATEGORY.guests,undefined);assert.ok(!X.navItems.some(n=>n.id==='guests'));
+    assert.equal(X.PAGE_CATEGORY.customers,'customers');
     for(const p of ['inhouse','guest-services','gsv-my-requests','messages','documents'])assert.equal(X.PAGE_CATEGORY[p],'guestsvc',p);
-    for(const p of ['rooms','calendar','reservations','arrivals'])assert.equal(X.PAGE_CATEGORY[p],'front',p);
+    for(const p of ['rooms','calendar','reservations','guests','arrivals'])assert.equal(X.PAGE_CATEGORY[p],'front',p);
+    // FIT: the front-desk guest list is linked in FRONT DESK with the Reservations permission - exactly the roles that see Reservations (DEC-058/061: no Housekeeping / Maintenance).
+    const g=X.navItems.find(n=>n.id==='guests'),r=X.navItems.find(n=>n.id==='reservations');
+    assert.ok(g&&r);assert.equal(g.p,r.p);assert.equal(X.navGroups.find(x=>x.items.some(i=>i.id==='guests')).label,'FRONT DESK');
+    for(const uid of ['owner','manager','reception','cashier','supervisor','housekeeper','accountant','maint','techadmin'])assert.equal(can(s,uid,g.p),can(s,uid,r.p),uid);
+    assert.ok(!can(s,'housekeeper',g.p)&&!can(s,'maint',g.p));assert.equal(typeof X.extraPages.guests,'function','App renders the guests page (extraPages) once the nav item lets the role in');
     for(const p of ['yield','groups','channels','booking-site'])assert.equal(X.PAGE_CATEGORY[p],'revenue',p);
     assert.equal(X.PAGE_CATEGORY.overview,undefined);
   });

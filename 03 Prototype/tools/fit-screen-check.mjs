@@ -41,8 +41,8 @@ const pcStart=navSrc.indexOf('export const PAGE_CATEGORY'),block=navSrc.slice(pc
 const CATS=[...navSrc.slice(navSrc.indexOf('export const NAV_CATEGORIES'),navSrc.indexOf('export const DASHBOARD')).matchAll(/\{id:'([a-z]+)'/g)].map(m=>m[1]);
 const ALL_PAGES=[...new Set(['home',...CATS.map(c=>'cat:'+c),'overview',...[...block.matchAll(/(?:^|[,{\s])'?([a-z][a-z0-9-]*)'?\s*:\s*'[a-z]+'/g)].map(m=>m[1])])];
 const CAT_LABEL=Object.fromEntries([...navSrc.matchAll(/\{id:'([a-z]+)',label:'([^']+)'/g)].map(m=>[m[1],m[2]]));
-// Pages with no nav item (no drawer entry) that are still opened by direct navigation / links: visited when the role reaches them.
-const EXTRA_PAGES=['guests'];
+// Every page has a nav item since 'guests' was linked (FIT cleanup); nothing extra to visit.
+const EXTRA_PAGES=[];
 const PAGES=opt('--pages')?opt('--pages').split(','):[...ALL_PAGES,...EXTRA_PAGES.filter(p=>!ALL_PAGES.includes(p))];
 // Sub-screens from src/app/subscreens.ts (lane fit-shell); absent or empty before the wave.
 const subPath=join(ROOT,'src','app','subscreens.ts');

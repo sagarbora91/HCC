@@ -1,7 +1,7 @@
 // Stream B · Guests & check-in — UI registration. Pages/modals registered here are merged by app/registry.ts.
 // A page or modal with an existing ID replaces the built-in one (only replace IDs your stream owns).
 import React from 'react';
-import {DoorOpen,BedDouble} from 'lucide-react';
+import {DoorOpen,BedDouble,Users} from 'lucide-react';
 import type {FeatureRegistration} from '../../app/registry';
 import type {Booking} from '../../services/mock';
 import {useHcc} from '../../app/context';
@@ -28,7 +28,8 @@ export const registration:FeatureRegistration={
   nav:[
     {group:'GUESTS & STAYS',item:{id:'arrivals',label:'Arrivals & check-in',icon:DoorOpen,p:'checkin'}},
     {group:'GUESTS & STAYS',item:{id:'inhouse',label:'In-house stays',icon:BedDouble,p:'billing'}},
-    // 'guests' page stays registered (modals/deep links) but has no nav item: profiles are the Profile tab of Customers.
+    // FIT (owner decision, review): the front-desk guest list is linked in the Front desk group with Reservations' permission (Housekeeping / Maintenance never get it, DEC-058/061).
+    {group:'FRONT DESK',item:{id:'guests',label:'Guests',icon:Users,p:'reservations'},after:'reservations'},
   ],
   modals:{'guest-profile':GuestProfileModal,'guest-regcard':RegistrationCard,'guest-checkin':CheckinModal,'guest-walkin':WalkinModal,'stay-detail':StayDetailModal,'stay-move':StayMoveModal,'front-list':FrontDeskListModal}, // front-list: printable in-house / arrivals list (DEC-081)
   wideModals:['guest-profile','guest-regcard','guest-checkin','guest-walkin','stay-detail','stay-move','front-list'],
