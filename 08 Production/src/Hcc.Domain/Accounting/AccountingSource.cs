@@ -100,6 +100,8 @@ public static class SourceRules
         var counter = "receipt:" + kind;
         if (kind == "company-credit")
             return new(sourceKey, SourceKinds.Receipt, kind, date, VoucherType.Journal, narration, [Dr(counter, amountPaise), Cr("folio:guest", amountPaise)]);
+        if (kind == "guest-credit") // LF B2: Journal Dr 1120/UD-<customer> · Cr guest ledger (the mirror of company credit; the revenue posted with the folio lines)
+            return new(sourceKey, SourceKinds.Receipt, kind, date, VoucherType.Journal, narration, [Dr(UdhaarKey, amountPaise), Cr("folio:guest", amountPaise)]);
         var t = "method:" + tender;
         var inflow = kind is "payment" or "deposit";
         return new(sourceKey, SourceKinds.Receipt, kind, date, inflow ? VoucherType.Receipt : VoucherType.Payment, narration,

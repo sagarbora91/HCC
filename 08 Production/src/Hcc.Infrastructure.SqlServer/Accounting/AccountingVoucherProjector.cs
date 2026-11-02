@@ -131,8 +131,9 @@ public sealed class AccountingVoucherProjector(SqlConnectionFactory connections,
                 var e = Parse<ReceiptRecordedPayload>(evt);
                 var company = e.Kind == "company-credit" ? await ReceiptCompanyAsync(connection, transaction, e.ReceiptId, ct).ConfigureAwait(false) : null;
                 var channel = e.Kind == "ota-credit" ? await FolioChannelAsync(connection, transaction, e.FolioId, ct).ConfigureAwait(false) : null; // ACC-2 flows (A13)
+                var udhaar = e.Kind == "guest-credit" ? await GuestCreditPartyAsync(connection, transaction, e.ReceiptId, ct).ConfigureAwait(false) : null; // LF B2
                 source = AccountingEventMapper.Receipt(e.FolioId, e.ReceiptId, e.Kind, e.Tender, e.BusinessDate, e.AmountPaise,
-                    new PartyContext(Tender: await TenderPartyAsync(connection, transaction, propertyId, e.Tender, ct).ConfigureAwait(false), Company: company, Channel: channel));
+                    new PartyContext(Tender: await TenderPartyAsync(connection, transaction, propertyId, e.Tender, ct).ConfigureAwait(false), Company: company, Channel: channel, Udhaar: udhaar));
                 break;
             }
 
@@ -528,6 +529,14 @@ public sealed class AccountingVoucherProjector(SqlConnectionFactory connections,
         cmd.Parameters.Set("@r", SqlDbType.BigInt, receivableId);
         await using var rd = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
         return await rd.ReadAsync(ct).ConfigureAwait(false) ? PartyLedgers.Udhaar(rd.GetString(0), rd.IsDBNull(1) ? null : rd.GetString(1)) : PartyLedgers.Udhaar(customer, null);
+    }
+
+    /// <summary>LF B2: the Udhaar party of a guest-credit receipt = UD-&lt;the guest's credit account key&gt; (4691 links the receivable to the receipt).</summary>
+    private static async Task<string?> GuestCreditPartyAsync(SqlConnection c, SqlTransaction t, long receiptId, CancellationToken ct)
+    {
+        await using var cmd = new SqlCommand("SELECT TOP (1) a.customer_key FROM ops.udhaar_receivable u JOIN gst.guest_credit_account a ON a.guest_id = u.guest_id WHERE u.receipt_id = @r;", c, t);
+        cmd.Parameters.Set("@r", SqlDbType.BigInt, receiptId);
+        return await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false) is string key ? "UD-" + key : null;
     }
 
     // ── end ACC-1 ──

@@ -208,6 +208,7 @@
     <File Path="database/migrations/4689_counter_rbac_seed.sql" />
     <File Path="database/migrations/4692_guest_credit_rbac_seed.sql" />
     <File Path="database/migrations/4693_receipt_kind_guest_credit.sql" />
+    <File Path="database/migrations/4691_udhaar_guest_credit_link.sql" />
     <File Path="database/migrations/4694_guest_credit_account.sql" />
     <!-- LF-COUNTER end -->
     <!-- LF-DESK 4695-4702 -->

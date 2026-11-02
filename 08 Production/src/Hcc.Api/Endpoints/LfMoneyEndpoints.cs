@@ -19,6 +19,11 @@ public static class LfMoneyEndpoints
         services.AddSingleton<StayRateCommands>();
         services.AddSingleton<Hcc.Application.Billing.ILfApprovalHandler, StayRateApprovalHandler>();
         services.AddSingleton<Hcc.Application.Billing.ILfApprovalDecisions, Hcc.Application.Billing.LfApprovalDecisions>();
+        // LF B2 guest credit at check-out
+        services.AddSingleton<IGuestCreditStore, SqlGuestCreditStore>();
+        services.AddSingleton<GuestCreditCommands>();
+        services.AddSingleton<Hcc.Application.Billing.IGuestCreditReceivables>(sp => sp.GetRequiredService<GuestCreditCommands>());
+        services.AddSingleton<Hcc.Application.Billing.ILfApprovalHandler>(sp => sp.GetRequiredService<GuestCreditCommands>());
         return services;
     }
 
@@ -36,6 +41,10 @@ public static class LfMoneyEndpoints
             http.HccReply(await c.ChangeAsync(http.HccCommand(StayRateCommands.OpChangeStayRate), body, ct)));
         g.MapPost("/stays/{id:long}/rate-change", async (HttpContext http, long id, ChangeStayRateRequest body, StayRateCommands c, CancellationToken ct) =>
             http.HccReply(await c.ChangeAsync(http.HccCommand(StayRateCommands.OpChangeStayRate), body with { StayId = id }, ct)));
+        g.MapPost("/stays/{id:long}/guest-credit", async (HttpContext http, long id, GuestCreditRequestBody body, GuestCreditCommands c, CancellationToken ct) =>
+            http.HccReply(await c.RequestAsync(http.HccCommand(GuestCreditCommands.OpRequest), body with { StayId = id }, ct)));
+        g.MapPost("/commands/" + GuestCreditCommands.OpRequest, async (HttpContext http, GuestCreditRequestBody body, GuestCreditCommands c, CancellationToken ct) =>
+            http.HccReply(await c.RequestAsync(http.HccCommand(GuestCreditCommands.OpRequest), body, ct)));
         g.MapGet("/guests/{id:long}/money", async (HttpContext http, long id, LfMoneyGuestCommands c, CancellationToken ct) =>
         {
             var (p, u) = http.HccActor();

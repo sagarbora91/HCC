@@ -228,3 +228,12 @@ public interface ILfApprovalDecisions
 {
     Task<Hcc.Contracts.Billing.ApprovalResult> DecideAsync(ICommandTransaction tx, Caller caller, ApprovalRow approval, bool approve, string reason, string expectedVersion, CancellationToken ct);
 }
+
+/// <summary>LF B2 (LF-CONTRACT §7): the guest's credit account at check-out — the limit check and the Udhaar receivable raised for the balance
+/// (linked to the guest, the folio and the 'guest-credit' receipt, migration 4691). Implemented in Stays (GuestCreditCommands).</summary>
+public interface IGuestCreditReceivables
+{
+    Task EnsureWithinLimitAsync(ICommandTransaction tx, Caller caller, FolioHeader folio, Paise amount, CancellationToken ct);
+
+    Task<long> RaiseAsync(ICommandTransaction tx, Caller caller, FolioHeader folio, Paise amount, long receiptId, CancellationToken ct);
+}

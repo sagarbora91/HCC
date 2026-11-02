@@ -46,9 +46,10 @@ public static class AccountingEventMapper
             "company-credit" => "Company credit",
             "deposit-apply" => "Deposit applied at check-out", // ACC-2 flows (A6a)
             "ota-credit" => "OTA credit",                      // ACC-2 flows (A13)
+            "guest-credit" => "Guest credit",                  // LF B2
             _ => kind,
         };
-        var narration = kind is "company-credit" or "deposit-apply" or "ota-credit" ? $"{label} · folio {N(folioId)} · receipt {N(receiptId)}" : $"{label} · {tender} · folio {N(folioId)} · receipt {N(receiptId)}";
+        var narration = kind is "company-credit" or "deposit-apply" or "ota-credit" or "guest-credit" ? $"{label} · folio {N(folioId)} · receipt {N(receiptId)}" : $"{label} · {tender} · folio {N(folioId)} · receipt {N(receiptId)}";
         return SourceRules.WithParties(SourceRules.FolioReceipt(ReceiptKey(receiptId), kind, tender, businessDate, amountPaise, narration), parties);
     }
 

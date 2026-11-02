@@ -51,7 +51,8 @@
     {"version": 4694, "file": "4694_guest_credit_account.sql", "reason": "LF wave block 4670-4719 reserved by DEC-200 before KEYS 4720/4721 landed (LF-CONTRACT §11)"},
     {"version": 4685, "file": "4685_lgc_bill_cancelled.sql", "reason": "LF wave block 4670-4719 reserved by DEC-200 (LF-CONTRACT §11)"},
     {"version": 4686, "file": "4686_charge_reversed_by.sql", "reason": "LF wave block 4670-4719 reserved by DEC-200 (LF-CONTRACT §11): rate-change re-post (coordinator ruling 2 Nov) and its request meta"},
-    {"version": 4690, "file": "4690_stay_rate_request.sql", "reason": "LF wave block 4670-4719 reserved by DEC-200 (LF-CONTRACT §11): rate-change re-post (coordinator ruling 2 Nov) and its request meta"}
+    {"version": 4690, "file": "4690_stay_rate_request.sql", "reason": "LF wave block 4670-4719 reserved by DEC-200 (LF-CONTRACT §11): rate-change re-post (coordinator ruling 2 Nov) and its request meta"},
+    {"version": 4691, "file": "4691_udhaar_guest_credit_link.sql", "reason": "LF wave block 4670-4719 reserved by DEC-200 (LF-CONTRACT §11): Udhaar receivable origin links (guest credit, counter bill)"}
   ],
   "migrations": [
     {"version": 1, "file": "0001_platform.sql", "sha256": "2CB8FB349156F501295E1148366BDFE406EC097C136093F09C6F0817542F46CC"},
@@ -207,6 +208,7 @@
     {"version": 4694, "file": "4694_guest_credit_account.sql", "sha256": "85B3FCD5E62FB999F37EC407BBB8A976654F91EA1C7E96F9E9F2F941AD644A64"},
     {"version": 4685, "file": "4685_lgc_bill_cancelled.sql", "sha256": "BC22AC7C41B398CF550CFD59421684E17E1AE4B2C453E7BBA0440F4687ED53D2"},
     {"version": 4686, "file": "4686_charge_reversed_by.sql", "sha256": "D2C91F86FCFEDEE3B075A76F948DAD4F3259F1E498881FE16109215C5B3C292F"},
-    {"version": 4690, "file": "4690_stay_rate_request.sql", "sha256": "787CFC09F30F3ECF3348EE3C2500F7C1690558922A55AEE2973631C085C156EA"}
+    {"version": 4690, "file": "4690_stay_rate_request.sql", "sha256": "787CFC09F30F3ECF3348EE3C2500F7C1690558922A55AEE2973631C085C156EA"},
+    {"version": 4691, "file": "4691_udhaar_guest_credit_link.sql", "sha256": "0362718AFD92CDA32C6A9206BBB0E44FA6036354C33AD48907D6BED6EFADA89C"}
   ]
 }
