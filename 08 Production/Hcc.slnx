@@ -237,6 +237,12 @@
     <!-- LF-IMAGES end -->
     <!-- LF-INT 4711-4718 -->
     <!-- LF-INT end -->
+    <!-- F4-T2 4370-4379 -->
+    <!-- F4-T2 end -->
+    <!-- F4-T1 4380-4389 -->
+    <!-- F4-T1 end -->
+    <!-- F4-T3 4390-4399 -->
+    <!-- F4-T3 end -->
     <File Path="database/migrations/4720_keys_schema.sql" />
     <File Path="database/migrations/4721_keys_rbac_seed.sql" />
   </Folder>

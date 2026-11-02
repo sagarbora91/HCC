@@ -44,6 +44,8 @@ export function Overview(){
           {/* LF-ALERTS · desk reminders and wake-ups due (contract §9.2) */}
           {rmdAttentionCount(s,uid)>0&&rmdCanManage(s,uid)&&<div className="attention-item"><span className="attention-icon orange"><BellRing size={19}/></span><div><strong>{rmdAttentionCount(s,uid)} reminders and wake-ups</strong><p>Inside their alert days or due now</p><button className="text-btn" onClick={()=>go('desk-alerts')}>Open reminders <ArrowRight size={14}/></button></div></div>}
           {/* LF-ALERTS end */}
+          {/* F4-T2 · Yesterday owner card */}
+          {/* F4-T2 end */}
           <div className="attention-item"><span className="attention-icon blue"><Brush size={19}/></span><div><strong>{inspection} rooms awaiting inspection</strong><p>A final check before the next guest</p><button className="text-btn" onClick={()=>go('housekeeping')}>View housekeeping <ArrowRight size={14}/></button></div></div>
           <div className="closing-note"><Sunset size={22}/><div><strong>Keep the day in balance</strong><p>Review room charges and reconcile cash before closing.</p><button className="text-btn" onClick={()=>go('closing')}>Open day closing <ArrowRight size={14}/></button></div></div>
         </div>

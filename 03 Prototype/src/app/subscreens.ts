@@ -182,6 +182,12 @@ export const SUB_SCREENS:SubScreen[]=[
   {page:'counter-bills',id:'bills',label:'Bills'},
   {page:'cashier',id:'credit-guests',label:'Credit guests',keywords:['guest credit','udhaar','outstanding']},
   // LF-UI end
+  // F4-T1
+  // F4-T1 end
+  // F4-T2
+  // F4-T2 end
+  // F4-T3
+  // F4-T3 end
 ];
 
 /** Review S3: sub-screens a role's page never shows (the page falls back to its default tab) are not listed in the search palette for that

@@ -92,6 +92,13 @@ public static class HccComposition
         // LF-ALERTS end
         // LF-IMAGES
         // LF-IMAGES end
+        // F4 lanes: ONE services.Add<Lane>Module(); line inside your own block (append only).
+        // F4-T1
+        // F4-T1 end
+        // F4-T2
+        // F4-T2 end
+        // F4-T3
+        // F4-T3 end
         return services;
     }
 

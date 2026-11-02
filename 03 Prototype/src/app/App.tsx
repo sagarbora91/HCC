@@ -288,6 +288,8 @@ function AppShell({initial,server}:{initial:Restored;/** Production only: state,
           </div>
         </FitTopbar>
         <DeskAlerts/>{/* LF-ALERTS · wake-up and reminder banner (contract §9.1) */}
+        {/* F4-T3 · LAN health banner */}
+        {/* F4-T3 end */}
         {process.env.HCC_BUILD==='production'?<SyncStatus/>:null}
         <FitContent>{pageBody}</FitContent>
       </main>

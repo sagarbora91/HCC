@@ -101,3 +101,6 @@ export const SYS_EVENT_LOG_TEXT:Record<SYSView['eventLog'],string>={
   off:'Off: the Event Log source HCC is not registered on the server PC. Run Install-HccService.ps1 -EventSourceOnly as administrator (INSTALL.md 7b).',
   unavailable:'Not available here (the server is not running on Windows, or this is the demo).',
 };
+
+// F4-T3 · printers block (F4-CONTRACT §4)
+// F4-T3 end

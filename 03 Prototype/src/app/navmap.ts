@@ -49,6 +49,13 @@ export const PAGE_CATEGORY:Record<string,CategoryId>={
   // LF-UI
   'counter-bills':'cash',
   // LF-UI end
+  // F4 lanes (F4-CONTRACT): 'tariff-card':'revenue' = F4-T1, 'owner-digest':'accounts' = F4-T2.
+  // F4-T1
+  // F4-T1 end
+  // F4-T2
+  // F4-T2 end
+  // F4-T3
+  // F4-T3 end
   access:'admin',settings:'admin',approvals:'admin',backup:'admin',roadmap:'admin',
 };
 

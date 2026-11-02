@@ -86,4 +86,12 @@ const LF:Record<string,Handler>={ // LF lanes: spread your handlers inside your 
   ...guestPhotos,
   // LF-IMAGES end
 };
-export const registry:Record<string,Handler>={...ACC1,...ACC2,...reservations,...guests,...folio,...housekeeping,...admin,...closing,...expenses,...yieldMod,...groups,...channels,...maintenance,...inventory,...handover,...services,...messaging,...pos,...staff,...accounting,...assistant,...compliance,...cashbook,...cashout,...masters,...credentials,...syshealth,...roommasters,...keys,...LF,...catalogue};
+const F4:Record<string,Handler>={ // F4 lanes: spread your handlers inside your own block
+  // F4-T1
+  // F4-T1 end
+  // F4-T2
+  // F4-T2 end
+  // F4-T3
+  // F4-T3 end
+};
+export const registry:Record<string,Handler>={...ACC1,...ACC2,...reservations,...guests,...folio,...housekeeping,...admin,...closing,...expenses,...yieldMod,...groups,...channels,...maintenance,...inventory,...handover,...services,...messaging,...pos,...staff,...accounting,...assistant,...compliance,...cashbook,...cashout,...masters,...credentials,...syshealth,...roommasters,...keys,...LF,...F4,...catalogue};

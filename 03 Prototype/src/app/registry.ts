@@ -39,6 +39,13 @@ import {registration as lfAlerts} from '../features/alerts/register';
 // LF-UI
 import {registration as lfMoney} from '../features/lfmoney/register';
 // LF-UI end
+// F4 lanes: ONE import line inside your own block; the registration name inside your block in `registrations` below.
+// F4-T1
+// F4-T1 end
+// F4-T2
+// F4-T2 end
+// F4-T3
+// F4-T3 end
 export type ModalProps={id?:string;room?:string};
 export type FeatureRegistration={
   /** Page components by page ID (shown when the nav item with this ID is selected). */
@@ -65,6 +72,12 @@ export const registrations:FeatureRegistration[]=[reservations,guests,customers,
   // LF-UI
   lfMoney,
   // LF-UI end
+  // F4-T1
+  // F4-T1 end
+  // F4-T2
+  // F4-T2 end
+  // F4-T3
+  // F4-T3 end
 ];
 export const mobilePages=Object.assign({},...registrations.map(r=>r.mobile?.pages||{})) as Record<string,React.ComponentType>;
 export const mobileModals=Object.assign({},...registrations.map(r=>r.mobile?.modals||{})) as Record<string,React.ComponentType<ModalProps>>;
