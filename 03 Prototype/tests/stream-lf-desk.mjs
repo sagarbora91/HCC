@@ -3,7 +3,7 @@ import {readFileSync,existsSync} from 'node:fs';
 import {build} from 'esbuild';
 import {writeFile} from 'node:fs/promises';
 import {execFileSync} from 'node:child_process';
-await writeFile('tests/.generated/lf-desk-entry.ts',"export {customerIndex,customerSearch} from '../../src/domain/streams/customers';");
+await writeFile('tests/.generated/lf-desk-entry.ts',"export {customerIndex,customerSearch} from '../../src/domain/streams/customers';export {deskCheckInFields} from '../../src/clients/sync/frontdesk';export {roleCode,reminders} from '../../src/clients/sync/reminders';");
 await build({entryPoints:['tests/.generated/lf-desk-entry.ts'],bundle:true,platform:'node',format:'esm',outfile:'tests/.generated/lf-desk.mjs',logLevel:'error'});
 const X=await import('./.generated/lf-desk.mjs');
 export function register({test,M,assert}){
@@ -144,6 +144,12 @@ export function register({test,M,assert}){
     const [s,id]=booked();assert.equal(deskEarlyGraceHours(s),1);
     assert.match(stayEarlyCheckinWarning(at(s,'2026-10-24T09:00'),bk(s,id)),/No charge/);assert.equal(stayEarlyCheckinWarning(at(s,'2026-10-24T13:30'),bk(s,id)),undefined);
     const [t,tid]=booked(set(seed(),'frontdesk.defaultCheckoutBasis','24h'));assert.equal(stayEarlyCheckinWarning(at(t,'2026-10-24T09:00'),bk(t,tid)),undefined,'only fixed stays warn');});
+  test('[LF-DESK] sync: CHECKIN carries the desk fields as the server CheckInRequest names them; the reminders area maps its three commands',()=>{
+    assert.deepEqual(X.deskCheckInFields({type:'CHECKIN',id:'HCC-1',desk:true,purpose:'TOURISM',vehicle:{no:'MH24 AB 1234',type:'Car'},checkoutBasis:'24h',formC:{sex:'F'}}),
+      {purposeCode:'TOURISM',vehicleNo:'MH24 AB 1234',vehicleType:'Car',checkoutBasis:'24h',formC:{sex:'F'},desk:true});
+    assert.deepEqual(X.deskCheckInFields({type:'CHECKIN',id:'HCC-1'}),{});
+    assert.deepEqual(X.reminders.commands.map(c=>c.type),['RMD_SAVE','RMD_DONE','RMD_DISMISS']);
+    assert.deepEqual(['all','Owner','Accountant','Reception'].map(X.roleCode),['all','OWN','ACC','REC']);});
   test('[LF-DESK] sources: registration card block, Form C print, foreigner register tab, In-house due-out, room tile due-out, import templates and extractor switches exist',()=>{
     const f=p=>readFileSync(p,'utf8');
     assert.match(f('src/features/guests/GuestProfile.tsx'),/Purpose of visit/);assert.match(f('src/features/guests/FormCPrint.tsx'),/Foreigner register/);

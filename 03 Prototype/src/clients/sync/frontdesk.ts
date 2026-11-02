@@ -57,6 +57,16 @@ function guestDto(d:Record<string,unknown>):Record<string,unknown>{
 const maskedContact=(d:Record<string,unknown>)=>MASKED.test(String(d.phone??''))||MASKED.test(String(d.email??''));
 const MASK_MSG='Contact details are hidden for your role — ask someone with guest-registration access to save this profile.';
 
+/** LF-DESK (A3–A6): the desk fields of a CHECKIN command on the wire (CheckInRequest PurposeCode / VehicleNo / VehicleType / CheckoutBasis / FormC / Desk). */
+export function deskCheckInFields(cmd:Record<string,unknown>):Record<string,unknown>{
+  const out:Record<string,unknown>={};
+  if(cmd.purpose)out.purposeCode=String(cmd.purpose);
+  const v=cmd.vehicle as {no?:string;type?:string}|undefined;if(v?.no){out.vehicleNo=v.no;if(v.type)out.vehicleType=v.type;}
+  if(cmd.checkoutBasis)out.checkoutBasis=String(cmd.checkoutBasis);
+  if(cmd.formC&&typeof cmd.formC==='object')out.formC=cmd.formC;
+  if(cmd.desk===true)out.desk=true;
+  return out;
+}
 const stayIdOf=(c:Pick<CommandCtx,'ids'>,bookingId:string)=>{
   const s=c.ids.server('stay',bookingId);
   if(s===undefined)throw new HccClientError('VALIDATION','This stay is not in house on the server. Refresh and try again.');
@@ -90,6 +100,14 @@ export const frontdesk:SyncArea={
   id:'frontdesk',
   loaders:[{slice:'guests',requires:['reservations','checkin','checkout','billing'],reads:['GET /guests'],load:loadGuests}],
   commands:[{
+    // LF-DESK (A5, A6): the Form C of an in-house stay, and the late check-out charge posted before the checkout
+    type:'STAY_FORM_C',reload:['bookings'],
+    async send(c){const id=String(c.cmd.id);bookingOf(c,id);await c.api.command('SaveStayFormC',{stayId:stayIdOf(c,id),formC:c.cmd.formC});},
+  },{
+    type:'STAY_LATE_CHARGE',reload:['bookings',...FOLIO_SLICES],
+    async send(c){const id=String(c.cmd.id);bookingOf(c,id);
+      await c.api.command('PostLateCheckoutCharge',{stayId:stayIdOf(c,id),expectedVersion:versionOf(c,'stay',id,'Stay'),charge:String(c.cmd.charge??''),reason:c.cmd.reason?String(c.cmd.reason):undefined});},
+  },{
     type:'REGISTER',reload:['bookings','guests'],
     precheck:cmd=>cmd.guest&&typeof cmd.guest==='object'&&maskedContact(cmd.guest as Record<string,unknown>)?MASK_MSG:undefined,
     async send(c){
@@ -106,7 +124,7 @@ export const frontdesk:SyncArea={
     type:'CHECKIN',reload:['bookings','guests'],
     async send(c){
       const id=String(c.cmd.id);bookingOf(c,id);
-      await c.api.command('CheckIn',{reservationId:serverId(id,'Booking')},{expectedVersion:versionOf(c,'booking',id,'Booking')});
+      await c.api.command('CheckIn',{reservationId:serverId(id,'Booking'),...deskCheckInFields(c.cmd)},{expectedVersion:versionOf(c,'booking',id,'Booking')});
       return {reload:['rooms','tasks']};
     },
   },{
@@ -122,7 +140,7 @@ export const frontdesk:SyncArea={
         await c.api.command('SettleFolioToOta',{folioId:f,expectedVersion:c.ids.version('folio',id)??null},{step:'ota'});}
       const given=ota?undefined:c.cmd.companyCreditApprovalId;
       const approval=ota?undefined:given?serverId(given,'Approval'):companyCreditApprovalId(c.state,id);
-      await c.api.command('CheckoutStay',{stayId:stayIdOf(c,id),...(approval?{companyCreditApprovalId:approval}:{})},{expectedVersion:versionOf(c,'stay',id,'Stay')});
+      await c.api.command('CheckoutStay',{stayId:stayIdOf(c,id),...(approval?{companyCreditApprovalId:approval}:{}),desk:true,...(c.cmd.lateCharge?{lateCharge:String(c.cmd.lateCharge),lateReason:String(c.cmd.lateReason??'')}:{})},{expectedVersion:versionOf(c,'stay',id,'Stay')});
       // W4 D1: the checkout has happened on the server. An invoice refusal (e.g. no hotel GSTIN yet) must not report the checkout as
       // failed: the slices still reload (the stay shows Departed) and the screen shows the warning; "Issue invoice" retries later.
       const reload:SliceKey[]=['rooms','tasks',...FOLIO_SLICES];
