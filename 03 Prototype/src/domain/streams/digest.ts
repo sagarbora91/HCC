@@ -4,7 +4,7 @@ import {HccError} from '../errors';
 import {money,addDays} from '../money';
 import {reportOccupancyRange,reportPct,reportRatioMoney,reportExpenses,approvalKindLabel} from './closing';
 import {rctReport} from './rpt-revcat';
-import {qwReorderAlerts,fbkOverdue,fbkSummary} from '../../features/digest/_contract-stubs-f4';
+import {qwReorderAlerts,fbkOverdue,fbkSummary} from './feedback'; // F4-int: real T3 selectors
 
 export const DGS_REASON='Delivery waits for the messaging gateway (F9) and the internet switch (F5)';
 export const dgsCanView=(s:State,uid:string)=>{const u=s.users.find(x=>x.id===uid);return !!u&&u.enabled&&u.role==='Owner';};
@@ -39,7 +39,7 @@ export function dgsCard(s:State,date:string):DGSCard{
     expenses:{posted:ex.reduce((t,e)=>t+e.amount,0),approved:ex.length,pending:s.expenses.filter(e=>e.status==='Pending'&&e.date===date).length},
     cashAtClose:cl?.cash.counted,
     pendingApprovals:[...kinds].map(([kind,count])=>({kind,count})),
-    reorder:qwReorderAlerts(s).length,overdue:fbkOverdue(s,date),feedback:fbkSummary(s,date),
+    reorder:qwReorderAlerts(s).length,overdue:(({complaints,lostFound})=>({complaints,lostFound}))(fbkOverdue(s,date)),feedback:(f=>({count:f.count,average:f.avg??0}))(fbkSummary(s,date)),
     tomorrow:{arrivals:arr.length,rooms:arr.map(b=>b.room),events:0}};
 }
 const pendingTotal=(c:DGSCard)=>c.pendingApprovals.reduce((t,x)=>t+x.count,0);
