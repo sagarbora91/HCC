@@ -93,11 +93,11 @@ export function register({test,assert}){
     assert.ok(app.includes("setTabKey(display.isMobile?'':(st.tab??''))"),'Back / Forward re-read the tab (desktop)');
     assert.ok(app.includes('<FitNavContext.Provider value={fitNav}>'),'the desktop branch passes tabKey to pages through context');
   });
-  test('[FIT-SHELL] StepFlow / FormSections / ModalFrame render the contract structure (sticky action bars use .modal-actions)',()=>{
+  test('[FIT-SHELL] StepFlow / FormSections / ModalFrame render the contract structure (sticky action bars: .modal-actions in dialogs, .fit-form-actions in forms)',()=>{
     const sf=renderToStaticMarkup(h(F.StepFlow,{steps:[{id:'a',label:'Arrivals',status:'done'},{id:'b',label:'Cash',status:'current',note:'2 left'},{id:'c',label:'Close',status:'blocked'}],value:'b',onChange(){}},'body'));
     assert.ok(sf.includes('class="fit-steps"')&&sf.includes('aria-current="step"')&&sf.includes('class="fit-step current on"')&&sf.includes('<small>2 left · current step</small>')&&sf.includes('<div class="fit-step-body">body</div>'),sf);
     const fs=renderToStaticMarkup(h(F.FormSections,{sections:[{id:'a',label:'General'},{id:'b',label:'Money',dirty:true}],value:'b',onChange(){},actions:h('button',{className:'btn primary'},'Save')},'fields'));
-    assert.ok(fs.includes('class="fit-form-body" data-fit-scroll="" tabindex="0" aria-label="Money — fields"')&&fs.includes('<div class="modal-actions fit-form-actions"><button class="btn primary">Save</button></div>')&&fs.includes('aria-label="unsaved changes"'),fs);
+    assert.ok(fs.includes('class="fit-form-body" data-fit-scroll="" tabindex="0" aria-label="Money — fields"')&&fs.includes('<div class="fit-form-actions"><button class="btn primary">Save</button></div>')&&fs.includes('aria-label="unsaved changes"'),fs);
     const mf=renderToStaticMarkup(h(F.ModalFrame,{heading:h('h2',null,'Title'),actions:h('button',{className:'btn'},'Close')},'content'));
     assert.equal(mf,'<div class="fit-modal-frame"><div class="modal-heading"><h2>Title</h2></div><div class="fit-modal-frame-body">content</div><div class="modal-actions"><button class="btn">Close</button></div></div>','M1: inside ModalHost no second scroll box or tab stop');
   });
@@ -142,8 +142,14 @@ export function register({test,assert}){
     const i=order.indexOf('z-fit.css');assert.ok(i>order.indexOf('z-touch.css')&&i<order.indexOf('zz-print.css')&&i===order.length-2,order.slice(-4).join(','));
     assert.deepEqual(F.styleOrder(['b.css','a.css']),['a.css','b.css'],'no z-fit.css: plain name order');
     assert.ok(read('tools/cssTextScale.mjs').includes("const extra=styleOrder((await readdir(dir)).filter(f=>f.endsWith('.css')));"));
-    const sizes=[...noComments(css).matchAll(/font-size:([^;}]+)/g)].map(m=>m[1]).sort();
+    // Integrator: one "DEC-195 restorations" section copies main's sizes for text moved into shell components (each checked against main by
+    // tools/fit-screen-check.mjs); outside it, the only sizes are the h1, the "inherit" and the kbd.
+    const a=css.indexOf('DEC-195 restorations'),b=css.indexOf('/* §5 spacing');assert.ok(a>0&&b>a,'restorations section');
+    const sizes=[...noComments(css.slice(0,a)+css.slice(b)).matchAll(/font-size:([^;}]+)/g)].map(m=>m[1]).sort();
     assert.deepEqual(sizes,['12px','22px','inherit']);
+    const rest=[...noComments(css.slice(a,b)).matchAll(/font-size:([^;}]+)/g)].map(m=>m[1]).sort();
+    assert.deepEqual(rest,['10px','10px','11px','11px','11px','11px','11px','12px','12px','13px']);
+    assert.ok(noComments(css).includes('@media not screen and (pointer:coarse),not screen and (min-width:600px){.app-shell :is([data-fit-page="channels"],[data-fit-page="yield"])>.fit-tabs-bar button{font-size:12px}'));
     assert.ok(css.includes('.app-shell .content .page-title h1{font-size:22px;font-weight:600;letter-spacing:-.4px;'));
     assert.doesNotMatch(noComments(css),/#[0-9a-fA-F]{3,8}\b|rgba?\(/);
   });

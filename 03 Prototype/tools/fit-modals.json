@@ -34,6 +34,6 @@
   {"page":"accounting","tab":"manual","opener":"New voucher","lane":"fit-people-b","roles":["owner"]},
   {"page":"accounting","tab":"chart","opener":"Add ledger","lane":"fit-people-b","roles":["owner"]},
   {"page":"reports","opener":"Print","lane":"fit-people-b","roles":["owner","manager","accountant"]},
-  {"page":"settings","opener":"Change…","lane":"fit-admin-a","roles":["owner","techadmin"]},
+  {"page":"settings","opener":"Change…","prep":".cfg-item","lane":"fit-admin-a","roles":["owner","techadmin"]},
   {"page":"access","opener":"Edit","lane":"fit-admin-b","roles":["owner"]}
 ]

@@ -102,25 +102,31 @@ async function drawerPages(page){
   await page.keyboard.press('Escape');await sleep(200);
   return out;
 }
-const measure=(page,touch)=>page.evaluate(({FONT_SEL,CHROME_KEYS,touch})=>{
+const measure=(page,touch)=>page.evaluate(({FONT_SEL,CHROME_KEYS,touch,wantTexts})=>{
   const de=document.documentElement,c=document.querySelector('.content');
   const vis=e=>{const r=e.getBoundingClientRect();const cs=getComputedStyle(e);return r.width>0&&r.height>0&&cs.visibility!=='hidden'&&cs.display!=='none';};
   const root=c&&c.firstElementChild;
   const panels=[...document.querySelectorAll('[data-fit-scroll]')].filter(vis).map(e=>({kind:e.getAttribute('data-fit-scroll')||'panel',sideways:e.matches('.fit-tabs-bar, [data-fit-scroll=x]'),h:Math.round(e.getBoundingClientRect().height)}));
-  const actions=[...document.querySelectorAll('.fit-page-actions *:is(button,a), .modal-actions *:is(button,a)')].filter(vis).map(e=>{const r=e.getBoundingClientRect();return {t:(e.textContent||'').trim().slice(0,24),ok:r.top>=-1&&r.left>=-1&&r.bottom<=innerHeight+1&&r.right<=innerWidth+1};});
+  const actions=[...document.querySelectorAll('.fit-page-actions *:is(button,a), .modal-actions *:is(button,a), .fit-form-actions *:is(button,a)')].filter(vis).map(e=>{const r=e.getBoundingClientRect();return {t:(e.textContent||'').trim().slice(0,24),ok:r.top>=-1&&r.left>=-1&&r.bottom<=innerHeight+1&&r.right<=innerWidth+1};});
   // Page kinds: every visible element of the kind inside .content (the Demo toolbar / popover and the top bar are outside it). Chrome kinds: the
   // first visible one anywhere (drawer, user-menu dialog).
-  const fonts={};for(const [k,s] of Object.entries(FONT_SEL)){const all=[...document.querySelectorAll(s)].filter(vis);
+  // Text key of an element (first 48 characters of its text): a moved element is matched with the same text on the base build.
+  const key=e=>{const t=(e.textContent||'').replace(/\s+/g,' ').trim().slice(0,48);return t.length>=4&&!/^[\d\s.,₹%:\/()+-]+$/.test(t)?t:'';};
+  const fonts={},byKind={};for(const [k,s] of Object.entries(FONT_SEL)){const all=[...document.querySelectorAll(s)].filter(vis);
     if(CHROME_KEYS.includes(k)){if(all[0])fonts[k]=[getComputedStyle(all[0]).fontSize];continue;}
-    const inC=[...new Set(all.filter(x=>x.closest('.content')).map(x=>getComputedStyle(x).fontSize))].sort();if(inC.length)fonts[k]=inC;}
+    const inC=all.filter(x=>x.closest('.content'));const sizes=[...new Set(inC.map(x=>getComputedStyle(x).fontSize))].sort();if(sizes.length)fonts[k]=sizes;
+    const bk={};for(const x of inC){const fs=getComputedStyle(x).fontSize;const a=(bk[fs]??=[]);if(a.length<40)a.push(key(x));}byKind[k]=bk;}
+  // Base build only (--record-baseline): the font size of every visible text in .content outside table bodies, by text key.
+  const texts={};if(wantTexts&&c)for(const e of c.querySelectorAll('*')){if(e.closest('tbody')||![...e.childNodes].some(n=>n.nodeType===3&&n.nodeValue.trim()))continue;
+    const k=key(e);if(!k||!vis(e))continue;const fs=getComputedStyle(e).fontSize;(texts[k]??=[]).includes(fs)||texts[k].push(fs);}
   const h1=[...document.querySelectorAll('.content h1')].find(vis);
   const modal=[...document.querySelectorAll('.modal')].find(vis);const mr=modal&&modal.getBoundingClientRect();
   const small=touch?[...document.querySelectorAll('.app-shell button, .app-shell input:not([type=checkbox]):not([type=radio]), .app-shell select, [role=tab]')].filter(vis)
     .map(e=>({t:(e.textContent||e.getAttribute('aria-label')||e.tagName).trim().slice(0,20),h:Math.round(e.getBoundingClientRect().height),need:e.matches('.btn.primary, .modal-actions .btn, .fit-tabs-bar [role=tab]')?48:44})).filter(x=>x.h<x.need):[];
   return {docH:de.scrollHeight,docW:de.scrollWidth,vh:innerHeight,vw:innerWidth,contentH:c?c.scrollHeight:0,contentClient:c?c.clientHeight:0,
-    fitRoot:!!(root&&root.classList.contains('fit-page')),panels,actions,fonts,h1:h1?getComputedStyle(h1).fontSize:null,
+    fitRoot:!!(root&&root.classList.contains('fit-page')),panels,actions,fonts,byKind,texts,h1:h1?getComputedStyle(h1).fontSize:null,
     contentText:c?c.innerText.slice(0,400):'',modalClipped:mr?(mr.top<-1||mr.bottom>innerHeight+1):false,small:small.slice(0,6),smallCount:small.length,title:document.title};
-},{FONT_SEL,CHROME_KEYS,touch:!!touch});
+},{FONT_SEL,CHROME_KEYS,touch:!!touch,wantTexts:RECORD});
 
 // Checks 1, 2 and 5 (run in every pass).
 const baseFails=m=>{
@@ -137,7 +143,8 @@ for(const pass of PASSES){
   for(const vp of VIEWPORTS.filter(v=>!pass.vps||pass.vps.includes(v.id))){
     const baseFile=join(HERE,'fit-baseline',`fonts-${vp.id}.json`);
     const baseline=!RECORD&&pass.full&&existsSync(baseFile)?JSON.parse(readFileSync(baseFile,'utf8')):null;
-    const recorded={pages:{},all:{}};const rec=(page,fonts)=>{for(const [k,vs] of Object.entries(fonts))for(const v of vs){((recorded.pages[page]??={})[k]??=new Set()).add(v);(recorded.all[k]??=new Set()).add(v);}};
+    const recorded={pages:{},all:{},texts:{}};const rec=(page,fonts,texts)=>{for(const [k,vs] of Object.entries(fonts))for(const v of vs){((recorded.pages[page]??={})[k]??=new Set()).add(v);(recorded.all[k]??=new Set()).add(v);}
+      for(const [t,vs] of Object.entries(texts||{}))for(const v of vs)((recorded.texts[page]??={})[t]??=new Set()).add(v);};
     for(const role of ROLES){
       const ctx=await browser.newContext({viewport:{width:vp.w,height:vp.h},deviceScaleFactor:1,hasTouch:!!vp.touch,isMobile:false});
       await ctx.addInitScript(({role,PREF,vp})=>{
@@ -162,13 +169,13 @@ for(const pass of PASSES){
           const extra=EXTRA_PAGES.includes(id)&&!allowed.has(id);
           if(extra&&!await page.evaluate(id=>!!document.querySelector(`.content [data-fit-page="${id}"]`)||(!document.querySelector('.content .fit-page')&&history.state&&history.state.page===id&&!document.querySelector('.content .tiles')),id))continue;
           if(RECORD){
-            const pf=o=>Object.fromEntries(Object.entries(o).filter(([k])=>PAGE_FONT_KEYS.includes(k)));rec(id,pf(m.fonts));
+            const pf=o=>Object.fromEntries(Object.entries(o).filter(([k])=>PAGE_FONT_KEYS.includes(k)));rec(id,pf(m.fonts),m.texts);
             // the base build has no sub-screens: click every local tab of the page in turn so the fonts of every section are recorded
-            const n=await page.evaluate(()=>[...document.querySelectorAll('.content .tabs button, .content [role=tab]')].length);
+            const n=await page.evaluate(()=>[...document.querySelectorAll('.content .tabs button, .content [role=tab], .content .cfg-item')].length);
             for(let i=0;i<Math.min(n,30);i++){
-              const ok=await page.evaluate(i=>{const b=[...document.querySelectorAll('.content .tabs button, .content [role=tab]')][i];if(!b||b.disabled)return false;b.click();return true;},i);
+              const ok=await page.evaluate(i=>{const b=[...document.querySelectorAll('.content .tabs button, .content [role=tab], .content .cfg-item')][i];if(!b||b.disabled)return false;b.click();return true;},i);
               if(!ok)continue;await sleep(220);
-              if(await page.evaluate(id=>!history.state||history.state.page===id,id))rec(id,pf((await measure(page,vp.touch)).fonts));
+              if(await page.evaluate(id=>!history.state||history.state.page===id,id)){const mm=await measure(page,vp.touch);rec(id,pf(mm.fonts),mm.texts);}
               if(await page.locator('.modal').count()){await page.keyboard.press('Escape');await sleep(150);}
             }
             continue;
@@ -180,9 +187,15 @@ for(const pass of PASSES){
           if(pass.full){
             if(!m.fitRoot)f.push('not-converted');
             const cramped=m.panels.filter(p=>p.kind!=='legacy'&&!p.sideways&&p.h<160);if(cramped.length)f.push(`cramped ${cramped.map(p=>p.h).join(',')}`);
-            if(baseline){const bp=baseline.pages?.[id]??baseline.all??{};
-              for(const k of PAGE_FONT_KEYS){const vs=(m.fonts[k]||[]).filter(v=>!(bp[k]||[]).includes(v)&&!allowedFont(id,k,v));
-                if(vs.length)f.push(`font-changed ${k} ${vs.join('/')} (main on this page: ${(bp[k]||[]).join('/')||'none'}${(baseline.all?.[k]||[]).some(x=>vs.includes(x))?'; size used on other pages':''})`);}}
+            // A size the page never had for this kind on main is explained only when every element of it shows a text that main showed at that
+            // same size (the element moved / changed tag, its font did not). Same text at another size on main = a real change.
+            if(baseline){const bp=baseline.pages?.[id]??baseline.all??{};const bt=baseline.texts?.[id]??{};
+              for(const k of PAGE_FONT_KEYS)for(const v of (m.fonts[k]||[])){
+                if((bp[k]||[]).includes(v)||allowedFont(id,k,v))continue;
+                const keys=m.byKind[k]?.[v]||[''];const changed=[],unknown=[];
+                for(const t of keys){const was=t&&bt[t];if(was&&was.includes(v))continue;if(was)changed.push(`«${t}» was ${was.join('/')}`);else unknown.push(t?`«${t}»`:'(no text)');}
+                if(changed.length)f.push(`font-changed ${k} ${v}: ${[...new Set(changed)].slice(0,3).join('; ')}`);
+                else if(unknown.length)f.push(`font-changed ${k} ${v} (new element; main on this page: ${(bp[k]||[]).join('/')||'none'}): ${[...new Set(unknown)].slice(0,3).join(' ')}`);}}
             if(m.fitRoot&&m.h1&&m.h1!=='22px')f.push(`h1 ${m.h1}`);
             if(vp.touch&&m.smallCount)f.push(`touch-size ${m.smallCount}: ${m.small.map(s=>s.t+' '+s.h).join('|')}`);
           }
@@ -210,6 +223,9 @@ for(const pass of PASSES){
         await openPage(page,md.page,md.tab);
         const name='modal:'+(md.label||md.opener||md.selector);
         const b=md.selector?page.locator(md.selector).first():page.getByRole('button',{name:md.opener}).first();
+        // the opener may sit in the header's More menu (narrow header), or in a record pane that is closed below 900 px ("prep" opens it)
+        if(!await b.count()&&await page.locator('.fit-more-btn').count()){await clickEl(page,'.fit-more-btn');await sleep(200);}
+        if(!await b.count()&&md.prep){await clickEl(page,md.prep);await sleep(350);}
         if(!await b.count()){rows.push(tag({page:md.page,tab:name,result:'FAIL',fails:['opener-missing']}));continue;}
         await b.click({timeout:4000}).catch(()=>b.evaluate(e=>e.click()).catch(()=>{}));await sleep(450);
         const m=await measure(page,vp.touch);const f=[];
@@ -226,7 +242,8 @@ for(const pass of PASSES){
     }
     if(RECORD){mkdirSync(dirname(baseFile),{recursive:true});const fix=o=>Object.fromEntries(Object.entries(o).sort().map(([k,v])=>[k,[...v].sort()]));
       writeFileSync(baseFile,JSON.stringify({recorded:{base:process.env.BASE_LABEL||BASE,roles:ROLES,at:stamp,note:'every visible element of a kind inside .content, per page, each local tab clicked; record on the base build (main)'},
-        pages:Object.fromEntries(Object.entries(recorded.pages).sort().map(([p,o])=>[p,fix(o)])),all:fix(recorded.all)},null,1));console.log('baseline',baseFile);}
+        pages:Object.fromEntries(Object.entries(recorded.pages).sort().map(([p,o])=>[p,fix(o)])),all:fix(recorded.all),
+        texts:Object.fromEntries(Object.entries(recorded.texts).sort().map(([p,o])=>[p,fix(o)]))}));console.log('baseline',baseFile);}
   }
 }
 await browser.close();

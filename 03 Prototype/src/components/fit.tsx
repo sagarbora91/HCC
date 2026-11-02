@@ -220,20 +220,20 @@ export function FormSections(p:{sections:{id:string;label:string;dirty?:boolean}
         {x.label}{x.dirty&&<span className="fit-dirty" aria-label="unsaved changes">•</span>}</button></li>)}</ul></nav>
     <div className="fit-form-main">
       <div className="fit-form-body" data-fit-scroll="" tabIndex={0} aria-label={(p.sections.find(x=>x.id===p.value)?.label??'Section')+' — fields'}>{p.children}</div>
-      <div className="modal-actions fit-form-actions">{p.actions}</div>
+      <div className="fit-form-actions">{p.actions}</div>
     </div>
   </div>;
 }
 
 /** One-line note with a "More" button that opens the full text in place (contract §11.4). Touch-reachable: never a title-only tooltip.
  *  Use it for footnotes in a ScrollPanel footer and for collapsed info notes. "lines" is the collapsed height (1 by default). */
-export function FitNote(p:{text:React.ReactNode;lines?:number}):React.JSX.Element{
+export function FitNote(p:{text:React.ReactNode;lines?:number;className?:string}):React.JSX.Element{ // className: e.g. fit-note-12 keeps a moved note's old size (DEC-195)
   const [open,setOpen]=useState(false);const [long,setLong]=useState(true);const t=useRef<HTMLParagraphElement>(null);
   // "More" only when the text is cut (measured after layout; text size and width changes re-measure).
   useEffect(()=>{const el=t.current;if(!el||open)return;const m=()=>setLong(el.scrollWidth>el.clientWidth+1||el.scrollHeight>el.clientHeight+1);m();
     if(typeof ResizeObserver==='undefined')return;const ro=new ResizeObserver(m);ro.observe(el);return ()=>ro.disconnect();},[open,p.text]);
   const lines=p.lines??1;
-  return <div className={'fit-note footnote'+(open?' open':'')}>
+  return <div className={'fit-note footnote'+(p.className?' '+p.className:'')+(open?' open':'')}>
     <p className="fit-note-text" ref={t} style={lines>1&&!open?{whiteSpace:'normal',display:'-webkit-box',WebkitLineClamp:lines,WebkitBoxOrient:'vertical'}:undefined}>{p.text}</p>
     {(long||open)&&<button type="button" className="text-btn fit-note-more" aria-expanded={open} onClick={()=>setOpen(o=>!o)}>{open?'Less':'More'}</button>}
   </div>;

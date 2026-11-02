@@ -99,6 +99,22 @@ html:has(.app-shell),html:has(.app-shell) body,html:has(.app-shell) #root{height
   .app-shell [data-fit-page="reservations"] .res-list-filters>.muted{white-space:nowrap}
 }
 
+/* ── DEC-195 restorations (integrator): text a lane moved into a shell component keeps the size it had on main (measured element by element
+   by tools/fit-screen-check.mjs against main). Each value is copied from the rule that sized it on main. ───────────────────────────────── */
+/* Tabs that were their own controls: OTA channels .chn-tabs (12 px), Tariff & yield .yld-tabs (12 px), Compliance view switch (13 px). On touch
+   tablets z-tablet.css made them 16 px (.app-shell button), so these apply only where that rule does not. */
+@media not screen and (pointer:coarse),not screen and (min-width:600px){.app-shell :is([data-fit-page="channels"],[data-fit-page="yield"])>.fit-tabs-bar button{font-size:12px}
+  .app-shell [data-fit-page="compliance"]>.fit-tabs-bar button{font-size:13px}}
+/* Notes moved into a FitNote: OTA channels "Simulated" (.chn-sim, 12 px), the rate-calendar legend (11 px) */
+.app-shell .fit-note.fit-note-12>.fit-note-text{font-size:12px}
+.app-shell .fit-note.fit-note-11>.fit-note-text{font-size:11px}
+/* Prefs: the reset note sat in a .padded card (.padded p, 11 px) */
+.app-shell [data-fit-page="prefs"] .fit-form-actions .pf-note{font-size:11px}
+/* Dashboard: the welcome line and its New reservation button (.welcome p / .welcome .btn) */
+@media (max-width:1250px){.app-shell [data-fit-page="overview"] .fit-page-sub{font-size:11px}}
+@media (max-width:1050px){.app-shell [data-fit-page="overview"] .fit-page-sub{font-size:10px}.app-shell [data-fit-page="overview"] .fit-page-actions .btn{font-size:10px}}
+@media (max-width:760px){.app-shell [data-fit-page="overview"] .fit-page-sub{font-size:11px}.app-shell [data-fit-page="overview"] .fit-page-actions .btn{font-size:11px}}
+
 /* §5 spacing on converted pages (comfortable); compact stays tighter */
 .app-shell .fit-page .section-title{padding:12px 16px}
 [data-density="compact"] .app-shell .fit-page .section-title{padding:8px 12px}
@@ -182,6 +198,8 @@ html:has(.app-shell),html:has(.app-shell) body,html:has(.app-shell) #root{height
 .fit-form-main{min-height:0;min-width:0;display:flex;flex-direction:column;background:var(--c-ffffff);border:1px solid var(--line);border-radius:9px}
 .fit-form-body{flex:1;min-height:0;overflow:auto;padding:16px;position:relative}
 .app-shell .fit-form-main>.fit-form-actions{flex:none;margin:0;padding:10px 16px}
+/* the bar is not a .modal-actions (whose narrow-screen 10 px button font would shrink the form's buttons, DEC-195): its own flex row */
+.fit-form-actions{display:flex;justify-content:flex-end;align-items:center;gap:12px;flex-wrap:wrap;border-top:1px solid var(--line)}
 @media (max-width:899.98px){.fit-form:where(:not(.fit-page)){grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr)}
   .fit-form-nav ul{flex-direction:row;overflow-x:auto}.fit-form-nav li{flex:none}}
 

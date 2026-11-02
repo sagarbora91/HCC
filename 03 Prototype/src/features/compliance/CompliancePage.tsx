@@ -66,7 +66,7 @@ function Calendar({c,phone,fit,tools}:{c:C;phone?:boolean;fit?:boolean;tools?:Re
   if(fit)return <>
     <MonthTabs c={c}/>
     <ScrollPanel label={`Compliance cards · ${p.month} ${p.calYear}`} actions={tools} footer={<FitNote text={`${CMP_ILLUSTRATIVE} Nothing is filed from here: this is your tracker. Days left count from the business date.`}/>}>
-      <div className="padded cmp-fit-body">
+      <div className="cmp-fit-body">
         <div className="cmp-mhd"><h2>{p.month} {p.calYear}</h2><span>{cmpFyLabel(p.fy)}</span></div>
         <details className="cmp-note" open><summary>⚡ Control Note</summary><p><CmpRich text={p.note}/></p></details>
         <Strip c={c}/>
@@ -123,7 +123,7 @@ export function CompliancePage(){
           {c.manage&&<button className="btn" onClick={()=>open({type:'cmp-manage'})}><Settings2 size={15}/>Manage compliance</button>}</span></div>}
       tabs={<FitTabs page="compliance" value={fitView} onChange={choose} tabs={CMP_VIEWS.map(id=>({id,label:CMP_VIEW_LABEL[id]}))}/>}>
     {fitView==='dashboard'
-      ?<ScrollPanel label="Compliance dashboard" actions={tools} footer={<FitNote text={`${CMP_ILLUSTRATIVE} Nothing is filed from here: this is your tracker. Days left count from the business date.`}/>}><div className="padded cmp-fit-body"><CmpDashboard feed={c.feed}/></div></ScrollPanel>
+      ?<ScrollPanel label="Compliance dashboard" actions={tools} footer={<FitNote text={`${CMP_ILLUSTRATIVE} Nothing is filed from here: this is your tracker. Days left count from the business date.`}/>}><div className="cmp-fit-body"><CmpDashboard feed={c.feed}/></div></ScrollPanel>
       :<Calendar c={c} fit tools={tools}/>}
   </FitPage>;
 }

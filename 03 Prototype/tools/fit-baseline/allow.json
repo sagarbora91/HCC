@@ -1,0 +1,9 @@
+[
+  {"kind":".tabs button, .fit-tabs-bar button","size":"11px","pages":["rooms","folios","customers","booking-site","plans-extras","approvals","backup"],"why":"New FitTabs bar (DEC-196 sub-screens) where main had no tab control, or had the sections as stacked card headings: the standard .tabs button size of main at fine pointer (11 px). No text got smaller: the section headings keep their size inside the panels."},
+  {"kind":".tabs button, .fit-tabs-bar button","size":"16px","pages":["rooms","folios","customers","booking-site","plans-extras","approvals","backup"],"why":"Same new FitTabs bars on touch tablets: main's touch size for every tab / button (z-tablet.css .app-shell button, 16 px)."},
+  {"kind":".stat-label","size":"11px","pages":["booking-site"],"why":"New StatStrip on the booking-site page (review N3: new figures, counts already on the page): the standard .stat-label size."},
+  {"kind":".money-stat","size":"25px","pages":["booking-site"],"why":"New StatStrip values (booking-site, review N3): the standard money-stat size at this width."},
+  {"kind":".money-stat","size":"26px","pages":["booking-site"],"why":"New StatStrip values (booking-site, review N3): the standard money-stat size at this width."},
+  {"kind":".money-stat","size":"30px","pages":["booking-site"],"why":"New StatStrip values (booking-site, review N3): the standard money-stat size at this width."},
+  {"kind":".muted","size":"10px","pages":["booking-site","groups","pos"],"why":"Count / status line in a ScrollPanel or BoardColumns header (new element; the shell's panel-head .muted, 10 px as every other panel count on main)."}
+]

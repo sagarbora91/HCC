@@ -36,7 +36,7 @@ export function ChannelsPage(){
 /** Panel footer note: the "Simulated" banner of the old page (not shown in the production build), one line + More. */
 function ChnNote({text='No data leaves this device. Channels and guests are fictional.'}:{text?:string}){
   if(process.env.HCC_BUILD==='production')return null;
-  return <FitNote text={<><b>Simulated.</b> {text}</>}/>;
+  return <FitNote className="fit-note-12" text={<><b>Simulated.</b> {text}</>}/>; // was .chn-sim, 12 px
 }
 
 export function PrecheckCell({m}:{m:CHNMessage}){
