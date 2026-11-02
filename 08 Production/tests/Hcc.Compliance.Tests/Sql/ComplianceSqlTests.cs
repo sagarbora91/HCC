@@ -253,6 +253,19 @@ public class ComplianceSqlTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task LF_images_G1_an_evidence_picture_is_held_to_153600_bytes_a_PDF_keeps_5_MB()
+    {
+        // OQ-1: pictures (image/*) are compressed on the device to about 150 KB and refused above 153,600; challans are PDFs and keep the 5 MB limit.
+        var jpegAtCap = Convert.ToBase64String(new byte[Hcc.Domain.Compliance.ComplianceRules.MaxImageBytes]);
+        var jpegOver = Convert.ToBase64String(new byte[Hcc.Domain.Compliance.ComplianceRules.MaxImageBytes + 1]);
+        var pdfBig = Convert.ToBase64String(new byte[200_000]);
+        await _w.Commands.AddEvidenceAsync(_w.Ctx(Users.Accountant, "g1a"), new AddEvidenceRequest(2026, "jn4", "scan.jpg", "image/jpeg", jpegAtCap), Ct);
+        var ex = await Assert.ThrowsAsync<Hcc.Domain.Errors.HccException>(() => _w.Commands.AddEvidenceAsync(_w.Ctx(Users.Accountant, "g1b"), new AddEvidenceRequest(2026, "jn4", "scan2.jpg", "image/jpeg", jpegOver), Ct));
+        Assert.Equal("Take the photo again, closer and in good light.", ex.Message);
+        await _w.Commands.AddEvidenceAsync(_w.Ctx(Users.Accountant, "g1c"), new AddEvidenceRequest(2026, "jn4", "challan.pdf", "application/pdf", pdfBig), Ct);
+    }
+
+    [Fact]
     public async Task Evidence_files_up_to_5_MB_complete_the_evidence_pack_and_zip_as_SCC()
     {
         Assert.Equal(["jn4", "jl11"], (await _w.Queries.GetDashboardAsync(_w.PropertyId, Users.Owner, null, "Q1", Ct)).EvidenceMissing);
