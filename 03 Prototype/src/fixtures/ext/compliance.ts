@@ -3,7 +3,6 @@
 // mapped onto SCC's cards by cmpFromLegacy — the same path an old save takes — so the demo proves nothing recorded is lost. Every other SCC card
 // of FY 2026–27 due before the business date is filed the day before (QRMP cards: not applicable for a monthly filer), except GSTR-1 for
 // September (overdue). PT for September and GSTR-9 stay open as before. Two filings carry no evidence (the completeness meter shows them).
-import {dobEvidenceRef,dobParseDataUrl} from '../../domain/streams/docobjects';
 import type {State} from '../../domain/types';
 import type {ScenarioInfo} from '../scenarios';
 import type {CMPLegacyObligation,CMPLegacyFiling,CMPState} from '../../domain/streams/compliance';
@@ -66,7 +65,7 @@ const DEMO_FILE='data:text/plain;base64,Q2hhbGxhbiAyODEg4oCUIFREUyBkZXBvc2l0LCBT
 export function extendBase(s:State):void{
   const x=cmpFixtureState(s);
   x.files=[{id:'CMPF-DEMO-1',fy:2026,itemId:'oc1',name:'challan-281-sep-2026.txt',size:80,type:'text/plain',addedBy:'accountant',addedAt:'2026-10-06T11:05'}];
-  s.complianceX=x;s.docObjectsX={...(s.docObjectsX??{}),[dobEvidenceRef('CMPF-DEMO-1')]:{ref:dobEvidenceRef('CMPF-DEMO-1'),kind:'compliance-evidence',owner:'CMPF-DEMO-1',contentType:'application/pdf',bytes:dobParseDataUrl(DEMO_FILE)?.bytes??0,dataUrl:DEMO_FILE,at:s.clock,by:'accountant'}}; // LF-docdb: content in the documents mirror
+  s.complianceX=x;s.complianceFilesX={'CMPF-DEMO-1':DEMO_FILE};
 }
 export const scenarioPatches:Record<string,(s:State)=>void>={};
 export const scenarioInfo:ScenarioInfo[]=[];

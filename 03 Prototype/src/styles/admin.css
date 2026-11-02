@@ -64,9 +64,3 @@
   .adm-lock{margin:0 14px 14px}
   .adm-filters label{min-width:120px}
 }
-
-/* LF-docdb: System health "Databases" rows — size bar of each database against the 50 GB Express limit (amber at 70 %, red at 85 %). */
-.adm-dbbar{height:8px;min-width:96px;border-radius:4px;background:var(--line);overflow:hidden}
-.adm-dbbar>span{display:block;height:100%;background:var(--success-fill)}
-.adm-dbbar-warn>span{background:var(--warn-fill)}
-.adm-dbbar-bad>span{background:var(--danger-fill)}

@@ -93,4 +93,5 @@ export * from '../../domain/streams/docobjects'; // LF-docdb: docObjectsX mirror
 // LF-ALERTS
 // LF-ALERTS end
 // LF-IMAGES
+export * from '../../domain/streams/printnotes'; // LF-images B6: which branding text prints on which document
 // LF-IMAGES end

@@ -28,7 +28,7 @@ import {EXP_VOID_REASONS,EXP_MAX_PAISE,EXP_PHOTO_MAX_BYTES,EXP_DESC_MAX,EXP_UD_D
   expMonthUnlockRefusal,type EXPState,type ExpRecTpl,type ExpEditLog} from '../../../domain/streams/expenses-scc';
 import {expUdGst,type ExpUdKind} from '../../../domain/streams/expenses-scc'; // ACC-1 (acc1-parties): Udhaar credit raised (contract §4)
 import {gstForFood,gstForRoomNight,gstForService} from '../../../domain/gst';
-import {dobPut,dobDelete} from '../../../domain/streams/docobjects'; // LF-docdb: bill photos live in s.docObjectsX (contract §1.10)
+import {dobPut,dobDelete,DOC_MAX_BYTES,DOC_CAP_MESSAGE} from '../../../domain/streams/docobjects'; // LF-docdb: bill photos live in s.docObjectsX (contract §1.10)
 // ACC-2 acc2-purchase (contract §3): purchase fields at entry (GST kind, RCM rate, ITC guard DEC-143), stamped at approval (RCM, capital, TDS),
 // the asset register row of a capital purchase, returns approved by the Owner only.
 import {expPurchaseEntry,expPurchaseStamp,expIsReturn} from '../../../domain/streams/expenses-vendor';
@@ -61,13 +61,13 @@ function monthGate(k:Kit,date:string,override:unknown):string{
 }
 /** Date gate: SCC "That day's cash statement is locked" + HCC's day-close and cash-book locks. */
 function dateGate(k:Kit,date:string,method?:string){const w=expDateCheck(k.s,date,method);if(w)k.fail(w.code,w.message);}
-/** Bill photo: a JPEG / PNG data URL of at most 4 MB (SCC readPhoto: "Photo too large (max 4MB)"). */
+/** Bill photo: a JPEG / PNG data URL of at most 153,600 bytes (LF-images G1; SCC readPhoto allowed 4 MB). */
 function billPhoto(k:Kit,v:unknown):string|undefined{
   if(v===undefined||v===null||v==='')return undefined;
   const m=/^data:image\/(jpeg|png);base64,([A-Za-z0-9+/]+={0,2})$/.exec(String(v));
   if(!m)k.fail('VALIDATION','The bill photo must be a JPEG or PNG image.');
   const b64=m![2],bytes=Math.floor(b64.length*3/4)-(b64.endsWith('==')?2:b64.endsWith('=')?1:0);
-  if(bytes>EXP_PHOTO_MAX_BYTES)k.fail('VALIDATION','Photo too large (max 4MB)');
+  if(bytes>DOC_MAX_BYTES)k.fail('VALIDATION',DOC_CAP_MESSAGE); // LF-images G1: the app compresses to about 150 KB; the server refuses above 153,600 with the same words (SCC allowed 4 MB)
   return String(v);
 }
 /** LF-docdb: the bill photo goes to the documents mirror (a replaced photo is released); the record keeps only the ref. A photo above the 150 KB cap is refused with the server's words. */

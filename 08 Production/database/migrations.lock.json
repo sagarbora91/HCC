@@ -37,7 +37,8 @@
     {"version": 4671, "file": "4671_plat_backup_run_database.sql", "reason": "LF-docdb (1 Nov 2026): block 4670-4674 reserved by LF-CONTRACT section 11 before KEYS 4720/4721 reached main; none applied anywhere yet"},
     {"version": 4672, "file": "4672_doc_rbac_seed.sql", "reason": "LF-docdb (1 Nov 2026): block 4670-4674 reserved by LF-CONTRACT section 11 before KEYS 4720/4721 reached main; none applied anywhere yet"},
     {"version": 4673, "file": "4673_plat_doc_move_log.sql", "reason": "LF-docdb (1 Nov 2026): block 4670-4674 reserved by LF-CONTRACT section 11 before KEYS 4720/4721 reached main; none applied anywhere yet"},
-    {"version": 4674, "file": "4674_doc_reserve.sql", "reason": "LF-docdb (1 Nov 2026): block 4670-4674 reserved by LF-CONTRACT section 11 before KEYS 4720/4721 reached main; none applied anywhere yet"}
+    {"version": 4674, "file": "4674_doc_reserve.sql", "reason": "LF-docdb (1 Nov 2026): block 4670-4674 reserved by LF-CONTRACT section 11 before KEYS 4720/4721 reached main; none applied anywhere yet"},
+    {"version": 4707, "file": "4707_id_capture_photo_kind.sql", "reason": "LF-docdb/images (1 Nov 2026): block 4707-4710 reserved by LF-CONTRACT section 11 before KEYS 4720/4721 reached main; none applied anywhere yet"}
   ],
   "migrations": [
     {"version": 1, "file": "0001_platform.sql", "sha256": "2CB8FB349156F501295E1148366BDFE406EC097C136093F09C6F0817542F46CC"},
@@ -179,6 +180,7 @@
     {"version": 4671, "file": "4671_plat_backup_run_database.sql", "sha256": "88011CC59F23C48419C2CE653C703E98494120C682766A1E53C73CCFDEAF44A0"},
     {"version": 4672, "file": "4672_doc_rbac_seed.sql", "sha256": "E2A627607F21105315D37F854D9EFB57A6DCA45053C4E0005F298E79B6BD8377"},
     {"version": 4673, "file": "4673_plat_doc_move_log.sql", "sha256": "9C3930263C6A7F08FBC23B0782393EB4449CBD32D5168D89A33949A7170E3064"},
-    {"version": 4674, "file": "4674_doc_reserve.sql", "sha256": "CEB58F9479E583C3573F99CC8A929EBA66E62AE5BC82AC1FFD3DB4197A3FC414"}
+    {"version": 4674, "file": "4674_doc_reserve.sql", "sha256": "CEB58F9479E583C3573F99CC8A929EBA66E62AE5BC82AC1FFD3DB4197A3FC414"},
+    {"version": 4707, "file": "4707_id_capture_photo_kind.sql", "sha256": "4F8CBE96666D1603BA5D8EDD3FFF3C54679E6092C923F646DB9D53515E5B609B"}
   ]
 }

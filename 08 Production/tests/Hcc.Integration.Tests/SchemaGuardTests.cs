@@ -87,4 +87,33 @@ public sealed class SchemaGuardTests
         Assert.Equal(HttpStatusCode.OK, (await GetAsync(serverPc, "/system/health")).Status);
         Assert.Equal(HttpStatusCode.Unauthorized, (await GetAsync(lan, "/me/capabilities")).Status);
     }
+
+    [Fact]
+    public async Task LF_docdb_documents_database_behind_the_build_answers_503_naming_the_documents_database_and_recovers()
+    {
+        await using var s = await ServerAsync();
+        using var serverPc = s.CookieClient();
+        using var lan = s.CookieClient();
+        lan.DefaultRequestHeaders.Add(LanHeader, "192.168.1.50");
+        var guard = s.Services.GetRequiredService<SchemaGuard>();
+        Assert.Equal(HttpStatusCode.OK, (await GetAsync(serverPc, "/system/health")).Status);
+
+        // The documents journal loses its newest migration (the new build started before the documents migrate step).
+        await using (var conn = await s.Platform.Documents.OpenAsync(Ct))
+        await using (var cmd = new Microsoft.Data.SqlClient.SqlCommand("DELETE dbo.schema_migration WHERE version = 2;", conn))
+            await cmd.ExecuteNonQueryAsync(Ct);
+        guard.Invalidate();
+        var behind = await GetAsync(serverPc, "/system/health");
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, behind.Status);
+        Assert.Equal("SCHEMA_BEHIND", behind.Error!.Details!["reason"].GetString());
+        Assert.Equal("documents", behind.Error.Details["database"].GetString());
+        Assert.Equal("Documents database schema is behind this build: run `Hcc.Api migrate` (applied 1 of 2).", behind.Error.Message);   // the server PC sees the counts
+        var forLan = await GetAsync(lan, "/me/capabilities");
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, forLan.Status);
+        Assert.Equal(Hcc.Api.Hosting.SchemaGuard.PublicMessage, forLan.Error!.Message);   // no counts on the LAN
+
+        await s.Platform.DocumentMigrations.MigrateAsync(Ct);
+        guard.Invalidate();
+        Assert.Equal(HttpStatusCode.OK, (await GetAsync(serverPc, "/system/health")).Status);
+    }
 }

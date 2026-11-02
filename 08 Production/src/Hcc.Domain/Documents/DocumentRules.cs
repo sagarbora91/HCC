@@ -8,7 +8,11 @@ namespace Hcc.Domain.Documents;
 /// </summary>
 public static class DocumentRules
 {
-    public const int MaxImageBytes = 4 * 1024 * 1024;
+    /// <summary>LF-images (G1, LF-CONTRACT 1.11): the app compresses every ID image to about 150 KB before upload, so the server refuses above 153,600 bytes (was 4 MB).</summary>
+    public const int MaxImageBytes = 153_600;
+
+    /// <summary>The refusal text of every photo above its cap, word for word on the server and in the prototype (DOC_CAP_MESSAGE).</summary>
+    public const string PhotoTooLarge = "Take the photo again, closer and in good light.";
     public const int MinImageBytes = 16;
 
     /// <summary>
@@ -51,10 +55,10 @@ public static class DocumentRules
         var type = (contentType ?? string.Empty).Trim().ToLowerInvariant();
         if (!ContentTypes.Contains(type)) throw HccException.Validation("The ID image must be a JPEG, PNG or WebP picture.");
         if (string.IsNullOrWhiteSpace(base64)) throw HccException.Validation("Attach the ID image.");
-        if (base64.Length > (MaxImageBytes / 3 + 1) * 4) throw HccException.Validation("The ID image is too large (4 MB at most).");
+        if (base64.Length > (MaxImageBytes / 3 + 1) * 4) throw HccException.Validation(PhotoTooLarge);
         var bytes = new byte[base64.Length / 4 * 3 + 3];
         if (!Convert.TryFromBase64String(base64, bytes, out var n)) throw HccException.Validation("The ID image is not valid base64.");
-        if (n > MaxImageBytes) throw HccException.Validation("The ID image is too large (4 MB at most).");
+        if (n > MaxImageBytes) throw HccException.Validation(PhotoTooLarge);
         if (n < MinImageBytes) throw HccException.Validation("The ID image is empty or too small to be a picture.");
         var image = bytes.AsSpan(0, n).ToArray();
         if (!MagicMatches(type, image)) throw HccException.Validation("The file content does not match its picture type.");

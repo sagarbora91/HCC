@@ -56,7 +56,7 @@ export function register({test,M,assert}){
     s=execute(s,'reception',{type:'EXP_EDIT',id:e.id,amount:100,category:'Supplies',method:'UPI',description:'Photo run',reason:'Better photo',billPhoto:img(4000)});
     const e2=s.expenses.find(x=>x.id===e.id);assert.notEqual(e2.billPhotoRef,first);assert.equal(dobGet(s,first),undefined);assert.equal(dobGet(s,e2.billPhotoRef).bytes,4000);
     assert.throws(()=>execute(seed(),'reception',{type:'EXPENSE',description:'Big',category:'Supplies',amount:100,method:'UPI',billPhoto:img(160000)}),e=>e.message===DOC_CAP_MESSAGE);
-    assert.throws(()=>execute(seed(),'reception',{type:'EXPENSE',description:'Huge',category:'Supplies',amount:100,method:'UPI',billPhoto:img(4194305)}),/Photo too large \(max 4MB\)/);});
+    assert.throws(()=>execute(seed(),'reception',{type:'EXPENSE',description:'Huge',category:'Supplies',amount:100,method:'UPI',billPhoto:img(4194305)}),e=>e.message===DOC_CAP_MESSAGE);});
 
   test('[LF-DOCDB] evidence files: an image above 150 KB is refused, a PDF up to 5 MB is kept; deleting the file releases the object',()=>{
     let s=seed();

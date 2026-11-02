@@ -147,7 +147,7 @@ export const handlers:Record<string,Handler>={
     manage(k);const x=slice(k),id=txt(k.cmd.id),ob=x.custom.find(o=>o.id===id);k.assert(ob,'Custom obligation not found.','NOT_FOUND');
     x.custom=x.custom.filter(o=>o.id!==id);
     const gone=x.files.filter(f=>f.itemId.startsWith(id+'-'));
-    if(gone.length){x.files=x.files.filter(f=>!f.itemId.startsWith(id+'-'));let docs=k.s.docObjectsX;for(const f of gone)docs=dobDelete({docObjectsX:docs},f.objectRef);k.s.docObjectsX=docs;}
+    if(gone.length){x.files=x.files.filter(f=>!f.itemId.startsWith(id+'-'));let docs=k.s.docObjectsX;for(const f of gone)docs=dobDelete({docObjectsX:docs},f.objectRef);k.s.docObjectsX=docs;if(k.s.complianceFilesX){const old={...k.s.complianceFilesX};for(const f of gone)delete old[f.id];k.s.complianceFilesX=old;}}
     return `${id} · ${ob!.name} deleted${gone.length?` · ${gone.length} evidence file(s) removed`:''}`;},
 
   // SCC evAttachHere / confirmDone files (L2294–2299, L2419–2424): files per FY and item (firm required). HCC limit: 5 MB a file.
@@ -166,7 +166,7 @@ export const handlers:Record<string,Handler>={
   // SCC evDelete (L2288–2293): removes one file.
   CMP_EVIDENCE_DELETE:k=>{
     access(k);const x=slice(k),fid=txt(k.cmd.id),f=x.files.find(e=>e.id===fid);k.assert(f,'Evidence file not found.','NOT_FOUND');
-    x.files=x.files.filter(e=>e.id!==fid);k.s.docObjectsX=dobDelete(k.s,f!.objectRef);
+    x.files=x.files.filter(e=>e.id!==fid);k.s.docObjectsX=dobDelete(k.s,f!.objectRef);if(k.s.complianceFilesX?.[fid]){const old={...k.s.complianceFilesX};delete old[fid];k.s.complianceFilesX=old;} // pre-v13 inline value
     const c=cmpFindCard(x,f!.itemId);
     return `${c?label(c,f!.fy):f!.itemId} · ${cmpFyLabel(f!.fy)} · evidence removed · ${f!.name}`;},
 

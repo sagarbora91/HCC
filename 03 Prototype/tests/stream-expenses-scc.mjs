@@ -188,12 +188,12 @@ export function register({test,M,assert}){
     assert.equal(execute(s,'cashier',{type:'EXPENSE',description:'Water cans',category:'Supplies',amount:30001,method:'Cash'}).expenses.length,s.expenses.length+1,'other amount');
     const v=execute(s,'owner',{type:'EXP_VOID',id:s.expenses.at(-1).id,reason:'Duplicate entry'});
     assert.equal(M.expenseDuplicates(v,'water cans',30000,D).length,0,'void does not count');});
-  test('[EXP-SCC] amount: up to ₹10 crore (server maximum; the prototype stopped at ₹10 lakh); bill photo over 4 MB refused',()=>{
+  test('[EXP-SCC] amount: up to ₹10 crore (server maximum; the prototype stopped at ₹10 lakh); bill photo above 150 KB refused (LF-images G1; SCC allowed 4 MB)',()=>{
     const s=execute(seed(),'reception',{type:'EXPENSE',description:'Renovation',category:'Maintenance',amount:10000000000,method:'Vendor credit'});
     assert.equal(s.expenses.at(-1).amount,10000000000);
     assert.throws(()=>execute(seed(),'reception',{type:'EXPENSE',description:'x',category:'Maintenance',amount:10000000001,method:'Vendor credit'}),/₹10,00,00,000/);
     const big='data:image/jpeg;base64,'+'A'.repeat(Math.ceil((4194304+1)/3)*4);
-    assert.throws(()=>execute(seed(),'reception',{type:'EXPENSE',description:'x',category:'Supplies',amount:100,method:'UPI',billPhoto:big}),/Photo too large \(max 4MB\)/);
+    assert.throws(()=>execute(seed(),'reception',{type:'EXPENSE',description:'x',category:'Supplies',amount:100,method:'UPI',billPhoto:big}),/Take the photo again, closer and in good light\./);
     const ok=execute(seed(),'reception',{type:'EXPENSE',description:'x',category:'Supplies',amount:100,method:'UPI',billPhoto:P.slipDataUrl(new Uint8Array(3000).fill(0xff))});
     assert.match(ok.docObjectsX[ok.expenses.at(-1).billPhotoRef].dataUrl,/^data:image\/jpeg;base64,/);assert.equal(ok.expenses.at(-1).billPhoto,undefined);// LF-docdb: the photo lives in the documents mirror
     assert.throws(()=>execute(seed(),'reception',{type:'EXPENSE',description:'x',category:'Supplies',amount:100,method:'UPI',billPhoto:'data:text/html;base64,AAAA'}),/JPEG or PNG/);});

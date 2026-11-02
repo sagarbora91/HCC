@@ -52,7 +52,7 @@ export const cmpDataUrlBytes=(dataUrl:string)=>{const i=dataUrl.indexOf(',');ret
 export async function cmpFileBytes(s:State,id:string):Promise<{bytes:Uint8Array;type:string;name:string}|null>{
   const f=cmpSlice(s).files.find(x=>x.id===id);if(!f)return null;
   if(process.env.HCC_BUILD==='production'){const r=await getSyncRuntime().api.get<SrvFile>(`/compliance/evidence/${encodeURIComponent(id)}`);return {bytes:b64Bytes(r.base64),type:r.contentType,name:r.fileName};}
-  const d=dobUrl(s,f.objectRef);return d?{bytes:cmpDataUrlBytes(d),type:f.type,name:f.name}:null; // LF-docdb: the demo's content is in s.docObjectsX
+  const d=dobUrl(s,f.objectRef,s.complianceFilesX?.[id]);return d?{bytes:cmpDataUrlBytes(d),type:f.type,name:f.name}:null; // LF-docdb: the demo's content is in s.docObjectsX (a pre-v13 file still reads its inline value in s.complianceFilesX until the save is moved)
 }
 /** SCC "View" (shell file viewer) → HCC saves or shares the file (browser download / Android share sheet). */
 export function useCmpOpenFile(){

@@ -68,6 +68,12 @@ public sealed partial class SchemaGuard(SqlConnectionFactory connections, IMigra
                 _behind = null;
                 LogCheckFailed(logger, ex.Number);
             }
+            catch (Hcc.Domain.Errors.HccException)
+            {
+                // LF-docdb: the documents database cannot be opened (not created yet, SQL Server down): a failed check never blocks, the main check above already passed.
+                _behind = null;
+                LogCheckFailed(logger, 0);
+            }
 
             Interlocked.Exchange(ref _checkedTicks, clock.GetUtcNow().UtcTicks);
             return _behind;
