@@ -61,6 +61,11 @@ import {handlers as reminders} from './reminders';
 // LF-IMAGES
 import {handlers as guestPhotos} from './guestphotos'; // B5 party photos
 // LF-IMAGES end
+// F5-A1
+import {handlers as accountingYear} from './accounting-year'; // ACC-4 year lock (contract §1)
+import {handlers as accountingBank} from './accounting-bank'; // ACC-4 bank reconciliation (contract §2)
+import {accYearLockedOn,accYearLockedMessage,accFyOfDate} from '../../../domain/streams/accounting-year';
+// F5-A1 end
 import {handlers as catalogue} from './catalogue'; // MA-2 (last: wraps folio APPROVAL)
 const ACC1:Record<string,Handler>={...accountingChart,...accountingOpening,}; // ACC-1 lanes: spread your handlers here, e.g. {...accountingChart}
 const ACC2:Record<string,Handler>={...expensesVendor,...accountingManual,...accountingTds,...accountingGst,...accountingFlows,...accountingAssets,}; // ACC-2 lanes: spread your handlers here, e.g. {...accountingManual}
@@ -86,4 +91,18 @@ const LF:Record<string,Handler>={ // LF lanes: spread your handlers inside your 
   ...guestPhotos,
   // LF-IMAGES end
 };
-export const registry:Record<string,Handler>={...ACC1,...ACC2,...reservations,...guests,...folio,...housekeeping,...admin,...closing,...expenses,...yieldMod,...groups,...channels,...maintenance,...inventory,...handover,...services,...messaging,...pos,...staff,...accounting,...assistant,...compliance,...cashbook,...cashout,...masters,...credentials,...syshealth,...roommasters,...keys,...LF,...catalogue};
+const registry0:Record<string,Handler>={...ACC1,...ACC2,...reservations,...guests,...folio,...housekeeping,...admin,...closing,...expenses,...yieldMod,...groups,...channels,...maintenance,...inventory,...handover,...services,...messaging,...pos,...staff,...accounting,...assistant,...compliance,...cashbook,...cashout,...masters,...credentials,...syshealth,...roommasters,...keys,...LF,...catalogue,...accountingYear,...accountingBank /* F5-A1 */};
+// F5-A1 — ACC-4 §1.2: after the year lock every post / edit / void dated in the year is refused ACC_YEAR_LOCKED (day reopen and month unlock
+// included); the year / bank commands and exports check for themselves. A correction is a journal in the new year: ACC_MANUAL_SAVE takes
+// `refersToFy` (G4), kept on the saved voucher.
+const YEAR_FREE=/^(ACC_YEAR_|BANK_|ACC_TALLY_EXPORT$)/;
+const yearGuard=(type:string,h:Handler):Handler=>k=>{
+  if(!YEAR_FREE.test(type)&&k.s.accYearX){const c=k.cmd;
+    for(const d of [c.date,typeof c.month==='string'?c.month+'-01':undefined])if(typeof d==='string'&&accYearLockedOn(k.s,d))k.fail('INVALID_TRANSITION',accYearLockedMessage(accFyOfDate(d.slice(0,10))));}
+  const out=h(k);
+  if(type==='ACC_MANUAL_SAVE'&&typeof k.cmd.refersToFy==='string'&&/^\d{4}-\d{2}$/.test(k.cmd.refersToFy)&&k.s.accountingX?.manual?.length){
+    const list=[...k.s.accountingX.manual],j=k.cmd.id?list.findIndex(v=>v.id===String(k.cmd.id)):-1,i=j>=0?j:list.length-1;list[i]={...list[i],refersToFy:k.cmd.refersToFy} as typeof list[number];k.s.accountingX={...k.s.accountingX,manual:list};}
+  return out;
+};
+export const registry:Record<string,Handler>=Object.fromEntries(Object.entries(registry0).map(([t,h])=>[t,yearGuard(t,h)]));
+// F5-A1 end

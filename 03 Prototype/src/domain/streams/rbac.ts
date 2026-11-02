@@ -87,3 +87,12 @@ export const rbacCanExportVouchers=(s:State,uid:string)=>can(s,uid,'reports')&&!
 // ── G4 · Day pack (printed day summary): follows the read-only Day closing view, deliberately including the Accountant ──
 export const rbacCanDayPack=(s:State,uid:string)=>can(s,uid,'close')||rbacIsAccountant(s,uid);
 export const rbacCanExportReports=(s:State,uid:string)=>can(s,uid,'reports')&&!rbacIsRole(s,uid,'Cashier');
+// F5-A1
+// ── ACC-4 (ACC4-CONTRACT §4): year end PERM-ACC-014 Owner + Accountant, lock / reopen / relock PERM-ACC-015 Owner; bank PERM-ACC-016 Owner +
+// Accountant, layout master PERM-ACC-017 Owner; the clearing view is read by the Manager too (others: nothing, DEC-061) ──
+export const rbacCanYearPrepare=(s:State,uid:string)=>rbacIsRole(s,uid,'Owner','Accountant');
+export const rbacCanYearLock=(s:State,uid:string)=>rbacIsRole(s,uid,'Owner');
+export const rbacCanBankReconcile=(s:State,uid:string)=>rbacIsRole(s,uid,'Owner','Accountant');
+export const rbacCanBankLayouts=(s:State,uid:string)=>rbacIsRole(s,uid,'Owner');
+export const rbacCanSeeClearing=(s:State,uid:string)=>rbacIsRole(s,uid,'Owner','Accountant','Manager');
+// F5-A1 end
