@@ -10,6 +10,7 @@ import {gstForFolioAdjustment} from '../../../domain/gst';
 import {hkExpireBlocks} from '../../../domain/streams/housekeeping';
 import {posOpenOrders} from '../../../domain/streams/pos';
 import {cbIsLocked,cbLockedMessage} from '../../../domain/streams/cashbook';
+import {dgsWriteDrafts} from '../../../domain/streams/digest'; // F4-T2
 import {cxPendingTransfers,cxSlice} from '../../../domain/streams/cashout';
 import {closingNightTargets,closingHasNight,closingSummary,shiftStatus,shiftDenominationTotal,SHIFT_MANAGER_DIFF_LIMIT,EXPENSE_MANAGER_LIMIT,
   closingUnlimitedRoles,closingReopened,closingReopenRefusal,closingReopenMessage,closingPendingCorrections,closingResummary,closingBlockingApprovals,
@@ -125,6 +126,7 @@ export const handlers:Record<string,Handler>={
     s.closedDates.push(s.date);
     // One immutable closing record per date; nothing writes to it after this point.
     s.closings={...(s.closings??{}),[s.date]:closingSummary(s,uid)};
+    s.digestX=dgsWriteDrafts(s,uid,s.date); // F4-T2: held digest drafts for the closed day (never sent)
     return 'Business day closed · '+s.date;
   },
   // PERM-CLS-002 close.openNextDay · opening float = counted cash at close (DEC-035). DEC-078 (Wave B1): the next day's cash shift is NOT

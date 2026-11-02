@@ -61,6 +61,7 @@ import {handlers as reminders} from './reminders';
 // LF-IMAGES
 import {handlers as guestPhotos} from './guestphotos'; // B5 party photos
 // LF-IMAGES end
+import {handlers as digest} from './digest'; // F4-T2
 import {handlers as catalogue} from './catalogue'; // MA-2 (last: wraps folio APPROVAL)
 const ACC1:Record<string,Handler>={...accountingChart,...accountingOpening,}; // ACC-1 lanes: spread your handlers here, e.g. {...accountingChart}
 const ACC2:Record<string,Handler>={...expensesVendor,...accountingManual,...accountingTds,...accountingGst,...accountingFlows,...accountingAssets,}; // ACC-2 lanes: spread your handlers here, e.g. {...accountingManual}
@@ -90,6 +91,7 @@ const F4:Record<string,Handler>={ // F4 lanes: spread your handlers inside your 
   // F4-T1
   // F4-T1 end
   // F4-T2
+  ...digest,
   // F4-T2 end
   // F4-T3
   // F4-T3 end

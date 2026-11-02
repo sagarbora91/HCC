@@ -67,6 +67,8 @@ const PAGES={
   settings:['OWN TAD','ADM-003 + DEC-057/058 (DEC-063 G9: no Manager requests)'],
   approvals:['OWN MGR ACC','ADM-004 audit.view + APR-001 (DEC-063 G10: not the Cashier; Tech admin view at M4)'],
   backup:['OWN TAD','ADM-005 (DEC-063 G9: the Manager gets the Overview backup card instead)'],
+  'owner-digest':['OWN TAD','Nav gate is the coarse admin permission; the page itself is Owner only (PERM-DGS-001, F4-T2) and refuses the Tech admin'],
+  'revenue-category':['OWN MGR CSH ACC','PERM-RPT-001 + PERM-RPT-002 (F4-T2: nav gate is the coarse reports permission; the page and the report refuse the Cashier — DEC-202 #1 Owner, Manager, Accountant only)'],
   syshealth:['OWN TAD','PERM-SYS-001 (Wave C3, A09-05: parked outbox events, retry, last backup; the Administration area like Backup & recovery)'],
   'counter-bills':['OWN MGR REC CSH','LF A7: PERM-CTR-001 counter.bill.issue = Owner, Manager, Reception, Cashier (nav gate = payments, as the Cashier shift)'], // LF-UI
   'desk-alerts':['OWN MGR REC ACC','LF B4: PERM-RMD-001 reminders.manage = Owner, Manager, Reception, Accountant (contract §11, same as the server seed 4705)'], // LF-ALERTS
@@ -92,6 +94,7 @@ function surfaces(M,s,uid){
 const C=(roles,src)=>[roles,src];
 const CMDS={
   BOOK:C('OWN MGR REC','RES-002'),CONFIRM:C('OWN MGR REC','RES-002'),CHANGE_DATES:C('OWN MGR REC','RES-003'),MOVE:C('OWN MGR REC','RES-003/STY-002'),STAY_EARLY_DEPARTURE:C('OWN MGR REC','STY-002 (EarlyDeparture)'),CANCEL:C('OWN MGR REC','RES-004'),
+  DIGEST_REDRAFT:C('OWN','PERM-DGS-001 (F4-T2)'),
   GSV_WAKE_SNOOZE:C('OWN MGR REC','LF B3 (reservations)'),RMD_SAVE:C('OWN MGR REC ACC','PERM-RMD-001'),RMD_DONE:C('OWN MGR REC ACC','PERM-RMD-001'),RMD_DISMISS:C('OWN MGR REC ACC','PERM-RMD-001'), // LF-ALERTS
   STAY_CHECKOUT_BASIS:C('OWN MGR REC','STY-001 (LF A6)'),STAY_FORM_C:C('OWN MGR REC','STY-001 (LF A5)'),STAY_LATE_CHARGE:C('OWN MGR REC','STY-003 (LF A6)'), // LF-DESK
   REGISTER:C('OWN MGR REC','GST-002'),GUEST_SAVE:C('OWN MGR REC','GST-002'),GUEST_PHOTO:C('OWN MGR REC','GST-003 / DOC-004 (LF-images B5; checkin stand-in)'),GUEST_PHOTO_REMOVE:C('OWN MGR REC','GST-003 / DOC-004 (LF-images B5)'),GUEST_ID_VIEW:C('OWN MGR REC','GST-003 (DEC-068 Show ID)'),CHECKIN:C('OWN MGR REC','STY-001'),CHECKOUT:C('OWN MGR REC','STY-003'),

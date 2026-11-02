@@ -53,6 +53,8 @@ export const PAGE_CATEGORY:Record<string,CategoryId>={
   // F4-T1
   // F4-T1 end
   // F4-T2
+  'owner-digest':'accounts',
+  'revenue-category':'accounts',
   // F4-T2 end
   // F4-T3
   // F4-T3 end
@@ -88,7 +90,7 @@ export const PAGE_BLURB:Record<string,string>={
   yield:'Tariff, seasons and rate restrictions',groups:'Group blocks, companies and credit',channels:'OTA channels and commissions','booking-site':'Direct booking website',
   inventory:'Linen, amenities and supplies',
   staff:'Staff, attendance, leave and payroll','my-hr':'Your shifts, leave and pay',
-  closing:'Close the business day',reports:'Revenue, occupancy and cash reports',accounting:'Ledger, vouchers and period locks',assistant:'Ask questions about your hotel data',compliance:'GST, TDS, PF, ESIC and PT due dates',
+  'owner-digest':'Yesterday in one page: occupancy, revenue, collections, held drafts','revenue-category':'Revenue by room type and collections by tender',closing:'Close the business day',reports:'Revenue, occupancy and cash reports',accounting:'Ledger, vouchers and period locks',assistant:'Ask questions about your hotel data',compliance:'GST, TDS, PF, ESIC and PT due dates',
   'plans-extras':'Catalogue vs free-text charges, meal plans, discount reasons',
   access:'Users, roles and permissions',settings:'All settings in one place: 12 groups, modules on/off',approvals:'Pending approvals and the audit trail',backup:'Backup and restore data',syshealth:'Stuck background work and the last backups',roadmap:'What is planned next',
   'legacy-import':'Load guests, history and opening balances from the old software',

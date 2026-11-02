@@ -104,3 +104,7 @@ export * from '../../app/shortcuts';
 // LF-IMAGES
 export * from '../../domain/streams/printnotes'; // LF-images B6: which branding text prints on which document
 // LF-IMAGES end
+// F4-T2
+export * from '../../domain/streams/rpt-revcat';
+export * from '../../domain/streams/digest';
+// F4-T2 end
