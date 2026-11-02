@@ -170,7 +170,7 @@ export async function register({test,assert,M}){
     assert.equal(refusals[3].reason,'unmapped');assert.equal(refusals[4].reason,'unmapped');assert.match(refusals[5].text,/not found/i);
     assert.equal(refusedCalls,0);
     const un=Object.keys(S.AREAS.find(a=>a.id==='services').unmapped).sort();
-    assert.deepEqual(un,['HOV_CLOCK','MSG_DOC_CONFIRM','MSG_DOC_DISCARD','MSG_DOC_EXTRACT']);
+    assert.deepEqual(un,['FBK_FOLLOWUP_DONE','FBK_FOLLOWUP_SWEEP','FBK_URL_SET','HOV_CLOCK','MSG_DOC_CONFIRM','MSG_DOC_DISCARD','MSG_DOC_EXTRACT','QW_PRINTER_SET','QW_PRINTER_TEST']); // F4-T3 added five
   });
 
   // Housekeeper: only own requests, no complaints/history/stays/settings (403 tolerated), handover for HKP only.

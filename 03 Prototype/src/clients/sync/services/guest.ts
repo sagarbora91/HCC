@@ -9,7 +9,6 @@
 //   commands  every GSV_* command the screens send → the server command of the same meaning (versions from the loaded records).
 //   gaps      gsvRecoveryStatus() reads s.approvals for a pending/approved recovery discount: that slice belongs to the money area.
 import type {GSVState,GSVRequest,GSVComplaint,GSVItem,GSVSettings,GSVLog,GSVRequestType,GSVDept,GSVRecovery} from '../../../domain/streams/services';
-import type {FBKState} from '../../../domain/types';
 import {HccClientError} from '../../errors';
 import type {SyncArea,LoaderCtx,CommandCtx,SyncApi} from '../types';
 import {utcToClock,serverId} from '../map';
@@ -116,28 +115,12 @@ const stayOf=(c:CommandCtx,booking:unknown)=>c.ids.server('stay',String(booking?
 type Cmd=CommandCtx['cmd'];
 const need=(msg:string,...vals:unknown[])=>vals.every(v=>txt(v))?undefined:msg;
 
-// ── F4-T3 feedback (server: Hcc.Api/Endpoints/FeedbackEndpoints.cs) ──
-type SrvFeedback={feedbackId:number;stayId:number;stars:number;comment:string|null;complaintId:number|null;recordedUtc:string;recordedBy:number};
-type SrvFollowUp={followUpId:number;source:string;refId:number;since:string;status:string};
-async function loadFeedback(c:LoaderCtx):Promise<FBKState>{
-  const api=c.api,may=(r:ReadRoute)=>c.mayRead(r);
-  const [fb,fu,stays]=await Promise.all([
-    soft(api.get<{items:SrvFeedback[]}>('/guest-services/feedback').then(r=>r.items),[] as SrvFeedback[]),
-    may('GET /guest-services/feedback/follow-ups')?soft(api.get<SrvFollowUp[]>('/guest-services/feedback/follow-ups',{openOnly:false}),[] as SrvFollowUp[]):[] as SrvFollowUp[],
-    may('GET /guest-services/stays')?soft(api.get<{items:SrvStay[]}>('/guest-services/stays').then(r=>r.items),[] as SrvStay[]):[] as SrvStay[],
-  ]);
-  const booking=new Map(stays.map(s=>[s.stayId,String(s.reservationId)]));
-  return {
-    entries:fb.map(f=>clean({id:String(f.feedbackId),booking:booking.get(f.stayId)??String(f.stayId),stars:f.stars as 1|2|3|4|5,comment:f.comment??undefined,
-      complaintId:f.complaintId==null?undefined:String(f.complaintId),at:utcToClock(f.recordedUtc),by:uid(f.recordedBy)})),
-    followUps:fu.map(f=>({id:String(f.followUpId),source:f.source==='lostfound'?'lostfound':'complaint',ref:String(f.refId),since:f.since,taskId:String(f.followUpId),status:f.status==='done'?'done':'open'})) as FBKState['followUps'],
-  };
-}
+// F4-T3 feedback (server: Hcc.Api/Endpoints/FeedbackEndpoints.cs). Only the write is mapped: the feedback / follow-up reads (GET /guest-services/feedback, /feedback/follow-ups)
+// must first join the D5 role matrix (tests/_role-reads.json is written by the integration tests against SQL Server), so the loader is left out.
 
 export const guestServices:SyncArea={
   id:'guest-services',
-  loaders:[{slice:'servicesX',requires:['reservations','checkin','housekeeping','inspect'],reads:['GET /guest-services/requests'],load:loadServices},
-    {slice:'feedbackX',requires:['reservations','checkin'],reads:['GET /guest-services/feedback'],load:loadFeedback}], // F4-T3
+  loaders:[{slice:'servicesX',requires:['reservations','checkin','housekeeping','inspect'],reads:['GET /guest-services/requests'],load:loadServices}],
   commands:[
     {type:'GSV_REQUEST_CREATE',reload:['servicesX'],
       precheck:(cmd:Cmd)=>need('Choose an in-house guest.',cmd.id)??need('Choose the request type.',cmd.requestType),
@@ -204,17 +187,16 @@ export const guestServices:SyncArea={
       async send(c){const v=c.ids.version('gsvSettings','1');
         await c.api.command('SaveGuestServiceSettings',{slaMinutes:c.cmd.sla,retentionDays:c.cmd.retentionDays,valuableRetentionDays:c.cmd.valuableRetentionDays},{expectedVersion:v});}},
     // F4-T3 qw-feedback
-    {type:'FBK_RECORD',reload:['feedbackX','servicesX'],
+    {type:'FBK_RECORD',reload:['servicesX'],
       precheck:(cmd:Cmd)=>Number.isInteger(cmd.stars)&&cmd.stars>=1&&cmd.stars<=5?undefined:'Choose 1 to 5 stars.',
       async send(c){
         const stayId=stayOf(c,c.cmd.booking);
         if(stayId===undefined)throw new HccClientError('VALIDATION','Feedback is recorded for a guest who is staying or has left.');
         await c.api.command('RecordGuestFeedback',{stayId,stars:c.cmd.stars,comment:optTxt(c.cmd.comment),category:optTxt(c.cmd.category)});
       }},
-    {type:'FBK_FOLLOWUP_DONE',reload:['feedbackX'],
-      async send(c){await c.api.command('ResolveFeedbackFollowUp',{followUpId:num(c.cmd.id,'Follow-up')});}},
   ],
   unmapped:{
+    FBK_FOLLOWUP_DONE:'The follow-up list is not loaded from the server yet (needs the D5 role-matrix regeneration); the server command is ResolveFeedbackFollowUp.',
     FBK_FOLLOWUP_SWEEP:'Runs on the server when the business day closes (consumer feedback-followups on BusinessDayClosed), so the screens never send it.',
     FBK_URL_SET:'The feedback address on bills is a demo setting for now; the server has no setting for it yet (Q12: blank until the owner gives it).',
     QW_PRINTER_TEST:'Printers and the test page are demo-only until the print server is wired (F5/F7).',
