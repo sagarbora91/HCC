@@ -27,7 +27,7 @@ ab22e53a F5-A1: carry-overs C1/C4 (returns allocate to their own bill first, ser
 ## Tests
 - `node tests/_one.mjs tests/stream-acc4-year.mjs` 5/5; `tests/stream-acc4-bank.mjs` 5/5. Golden: April 2026 as the FY → carry-forward = §8.5 (Dr = Cr = ₹79,27,900; 3100 ₹57,95,400 Cr; profit ₹1,40,400; drawings ₹50,000); bank statement reconciles to difference 0 (books ₹5,01,561 + cheque ₹45,000 not presented = statement ₹5,46,561), 1010 / 1020 zero.
 - `dotnet test Hcc.Accounting.Tests --filter YearLock|Bank|Acc4Carry` 16/16; `ManualVoucherSqlTests|OpeningBalanceSqlTests` 3/3 (migrations apply on the SQL test server); `TallyFileSqlTests|Ageing` 20/20; `Hcc.Expenses.Tests PurchaseSqlTests` 9/9. `dotnet build Hcc.slnx` 0 warnings, 0 errors. `node tools/migrations-lock.mjs` in step (181).
-- Full prototype run: `npx tsc --noEmit` clean; `npm test` 4 passed, 11 failed — all 11 the RBAC command matrix missing the new commands; fixed (13 rows in `tests/stream-rbac-matrix.mjs`, F5-A1 block), that suite then 62/62. Full suite not re-run after the fix.
+- Full prototype run: `npx tsc --noEmit` clean; `npm test` 11 failed (pass count not captured) — all 11 the RBAC command matrix missing the new commands; fixed (13 rows in `tests/stream-rbac-matrix.mjs`, F5-A1 block), that suite then 62/62. Full suite not re-run after the fix.
 
 ## Open items
 - **C2** (server GST tie should compare the *posted set-off journal*) and **C3** (`AgeingQueries` reads the as-of window) not done — ACC-3 C9 `StaleSetoff` already compares the stored set-off record; the journal comparison and the windowed ageing read are left for f5-int (4290–4292 unused).
