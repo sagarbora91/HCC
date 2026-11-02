@@ -67,7 +67,12 @@
     {"version": 4700, "file": "4700_desk_import_masters.sql", "reason": "F3 LF lanes: contract-assigned ranges (LF-CONTRACT), merged in wave order"},
     {"version": 4703, "file": "4703_alerts_wake_at.sql", "reason": "F3 LF lanes: contract-assigned ranges (LF-CONTRACT), merged in wave order"},
     {"version": 4704, "file": "4704_alerts_reminder.sql", "reason": "F3 LF lanes: contract-assigned ranges (LF-CONTRACT), merged in wave order"},
-    {"version": 4705, "file": "4705_alerts_rbac_seed.sql", "reason": "F3 LF lanes: contract-assigned ranges (LF-CONTRACT), merged in wave order"}
+    {"version": 4705, "file": "4705_alerts_rbac_seed.sql", "reason": "F3 LF lanes: contract-assigned ranges (LF-CONTRACT), merged in wave order"},
+    {"version": 4390, "file": "4390_audit_viewer_index.sql", "reason": "F4-T3 parallel lane 4390-4399; 4720+ already on the branch"},
+    {"version": 4393, "file": "4393_guest_feedback.sql", "reason": "F4-T3 parallel lane 4390-4399; 4720+ already on the branch"},
+    {"version": 4394, "file": "4394_feedback_followup.sql", "reason": "F4-T3 parallel lane 4390-4399; 4720+ already on the branch"},
+    {"version": 4395, "file": "4395_feedback_rbac_seed.sql", "reason": "F4-T3 parallel lane 4390-4399; 4720+ already on the branch"},
+    {"version": 4397, "file": "4397_printers.sql", "reason": "F4-T3 parallel lane 4390-4399; 4720+ already on the branch"}
   ],
   "migrations": [
     {"version": 1, "file": "0001_platform.sql", "sha256": "2CB8FB349156F501295E1148366BDFE406EC097C136093F09C6F0817542F46CC"},
@@ -239,6 +244,11 @@
     {"version": 4700, "file": "4700_desk_import_masters.sql", "sha256": "3DC7F6A4716005DDDABC54C8C8DA35F751D3715CF1FC30DB36D6BEF8F5F3A8B6"},
     {"version": 4703, "file": "4703_alerts_wake_at.sql", "sha256": "392461A77CAF0D629CE63B17DEA3E0C4B7DF279D7336650C2BFD916D911F8AAC"},
     {"version": 4704, "file": "4704_alerts_reminder.sql", "sha256": "91A75868DCDF51FBE6A8A1A5F2574CA22674E7A59160B5E6F7884FFE4BAB25F8"},
-    {"version": 4705, "file": "4705_alerts_rbac_seed.sql", "sha256": "BBD18B4626DDE6BB700C0638856BF80BBB6C87667E03EB9F93A4D431CFCB887D"}
+    {"version": 4705, "file": "4705_alerts_rbac_seed.sql", "sha256": "BBD18B4626DDE6BB700C0638856BF80BBB6C87667E03EB9F93A4D431CFCB887D"},
+    {"version": 4390, "file": "4390_audit_viewer_index.sql", "sha256": "3AEE9B56A8864F3EE1DCBF85E8DC375D91C0B741299A8A4FB4D25B0FD157D141"},
+    {"version": 4393, "file": "4393_guest_feedback.sql", "sha256": "CD10122335AAD9E0D41F26364F8157ED2D098801160486B2B421C4A363CF7C85"},
+    {"version": 4394, "file": "4394_feedback_followup.sql", "sha256": "0A0ACE159A39D638E415F975CD8C735DA3DA349390F4096C5D4F11777E774141"},
+    {"version": 4395, "file": "4395_feedback_rbac_seed.sql", "sha256": "9E28392BDCC5A5C630B324723D7466F154879C218BF9C712BA3DCAF66FFA58C6"},
+    {"version": 4397, "file": "4397_printers.sql", "sha256": "32B485CFF62E8DEF24C16EBF156F0EFDC802166D9BFF2339414963F294E2591F"}
   ]
 }

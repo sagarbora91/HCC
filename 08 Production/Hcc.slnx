@@ -242,6 +242,11 @@
     <!-- F4-T1 4380-4389 -->
     <!-- F4-T1 end -->
     <!-- F4-T3 4390-4399 -->
+    <File Path="database/migrations/4390_audit_viewer_index.sql" />
+    <File Path="database/migrations/4393_guest_feedback.sql" />
+    <File Path="database/migrations/4394_feedback_followup.sql" />
+    <File Path="database/migrations/4395_feedback_rbac_seed.sql" />
+    <File Path="database/migrations/4397_printers.sql" />
     <!-- F4-T3 end -->
     <File Path="database/migrations/4720_keys_schema.sql" />
     <File Path="database/migrations/4721_keys_rbac_seed.sql" />
