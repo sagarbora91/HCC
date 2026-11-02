@@ -27,6 +27,8 @@ function companyCreditCheck(k:Kit,x:Booking,amount:number){
 }
 import {strCanApprove,strRefusal} from '../../../domain/streams/stay-rate'; // LF-RATE
 import {strApply} from './stay-rate'; // LF-RATE
+import {blcExecute} from './bill-correction'; // LF-BILL
+import {blcCorrections} from '../../../domain/streams/bill-correction'; // LF-BILL
 import {cxCashBlocked} from '../../../domain/streams/cashout';
 import {accCashEnforce} from '../../../domain/streams/accounting-guards'; // ACC-2 flows (contract §7, B9)
 import {chnChannelOfBooking,chnOtaCreditRefusal} from '../../../domain/streams/channels'; // ACC-2 flows (contract §4, A13)
@@ -65,6 +67,18 @@ const PAYMENT:Handler=k=>{
   req('payments');const x=b();open();positive(cmd.amount);
   const kind:Receipt['kind']=cmd.kind||'payment';
   // LF-BILL · PAYMENT on a departed folio for exactly the correction balance (§4)
+  if(x.status==='Departed'){
+    const corr=blcCorrections(s,x.id).filter(c=>c.status==='Issued').at(-1),bal=totals(x).balance;
+    assert(corr&&corr.newInvoiceNo===x.invoiceNo&&bal>0,'This stay has departed. Only a balance due after a bill correction can be received on it.','INVALID_TRANSITION');
+    assert(kind==='payment','Only a payment can be received on a departed stay.','INVALID_TRANSITION');
+    assert(cmd.amount===bal,`Receive exactly the balance due after the bill correction: ${money(bal)}.`);
+    assert(!Array.isArray(cmd.tenders)||cmd.tenders.length<=1,'Receive the correction balance with a single tender.');
+    const method=validMethod(k,cmd.method,cmd.reference);
+    if(mnyIsDrawer(s,method))accCashEnforce(s,{kind:'receipt',party:'booking:'+x.id,scope:'booking:'+x.id,amount:cmd.amount});
+    x.receipts.push({id:id('RCPT'),amount:cmd.amount,method,date:s.date,kind:'payment',reference:'Bill correction '+corr!.id+(String(cmd.reference??'').trim()?' · '+String(cmd.reference).trim():''),actor:uid});
+    x.version++;
+    return `${x.id} · payment ${money(cmd.amount)} · balance after bill correction ${corr!.id} settled`;
+  }
   // LF-BILL end
   if(kind==='refund')fail('INVALID_TRANSITION','Refunds are no longer posted directly. Use “Request refund” on the original receipt; after approval, execute the refund.');
   assert(['payment','deposit','deposit-return'].includes(kind),'Invalid receipt type.');
@@ -273,6 +287,10 @@ const APPROVAL:Handler=k=>{
     }
     // LF-RATE end
     // LF-BILL · APPROVAL branch
+    if(kind==='bill-correction'){
+      assert(x,'Booking not found.','NOT_FOUND');stale();
+      extra=blcExecute(k,x!,a!);
+    }
     // LF-BILL end
     // LF-COUNTER · APPROVAL branch
     // LF-COUNTER end

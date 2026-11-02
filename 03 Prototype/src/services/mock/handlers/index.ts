@@ -47,6 +47,7 @@ import {handlers as keys} from './keys'; // KEYS room keys
 import {handlers as stayRate} from './stay-rate';
 // LF-RATE end
 // LF-BILL
+import {handlers as billCorrection} from './bill-correction';
 // LF-BILL end
 // LF-COUNTER
 // LF-COUNTER end
@@ -66,6 +67,7 @@ const LF:Record<string,Handler>={ // LF lanes: spread your handlers inside your 
   ...stayRate,
   // LF-RATE end
   // LF-BILL
+  ...billCorrection,
   // LF-BILL end
   // LF-COUNTER
   // LF-COUNTER end

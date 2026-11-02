@@ -35,7 +35,7 @@ export function rbacApprovalLimit(s:State,uid:string):number|undefined{
 // ── G3 · corrections and credit notes (FOL-005): Reception, Cashier, Accountant, Manager ask; Owner approves ──
 export const rbacCanRequestCorrection=(s:State,uid:string)=>can(s,uid,'billing')||rbacIsAccountant(s,uid);
 /** Folio request kinds only an Owner decides. */
-export const RBAC_OWNER_DECIDES=['correction','credit-note'];
+export const RBAC_OWNER_DECIDES=['correction','credit-note','bill-correction']; // LF-BILL: bill-correction (contract §0, §4)
 
 // ── G4 · Accountant back-office checks ──
 /** Folio list and folio sheet (read-only for the Accountant: FOL-001 = V). */

@@ -19,3 +19,18 @@ export async function ensureLegacy(key:string):Promise<boolean>{
   if(!fetcher||remembered.has(key))return false;
   try{rememberLegacy(key,await fetcher(key));return true;}catch{return false;}
 }
+
+// ── LF-BILL (contract §5, B7): the legacy Lodge bill series for GSTR-1 Table 13. Prototype: the bills of the fictional legacy sample (bill
+// date = departure; a cancelled stay with a bill number counts as cancelled). Production: `setLegacyBillsFetcher` (lgc.bill via the server's
+// Gstr1Summary — the production screen reads the server summary, so this stays a prototype aid). ──
+import {LEGACY_SAMPLE} from '../../fixtures/ext/legacy-sample';
+import type {Gstr1LegacyBill} from '../../domain/gstr1';
+/** Legacy bills dated from…to (inclusive). Hand it to gstr1Summary(s, from, to, getLegacyBills). */
+export function getLegacyBills(from:string,to:string):Gstr1LegacyBill[]{
+  const out:Gstr1LegacyBill[]=[];
+  for(const stays of Object.values(LEGACY_SAMPLE))for(const x of stays){
+    const date=x.departure??x.arrival;
+    if(x.billNo!==undefined&&date>=from&&date<=to)out.push({no:String(x.billNo),date,cancelled:x.status==='Cancelled'});
+  }
+  return out.sort((a,b)=>Number(a.no)-Number(b.no));
+}

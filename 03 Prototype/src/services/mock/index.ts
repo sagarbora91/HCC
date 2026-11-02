@@ -85,6 +85,8 @@ export {LEGACY_SAMPLE} from '../../fixtures/ext/legacy-sample'; // W1a LG: ficti
 export * from '../../domain/streams/stay-rate';
 // LF-RATE end
 // LF-BILL
+export * from '../../domain/streams/bill-correction';
+export {getLegacyBills} from '../../features/customers/legacy-source';
 // LF-BILL end
 // LF-COUNTER
 // LF-COUNTER end
