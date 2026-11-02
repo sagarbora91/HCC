@@ -102,12 +102,22 @@ public sealed class SqlInventoryStore(SqlConnectionFactory connections) : IInven
     public async Task<IReadOnlyList<(DateOnly EffectiveFrom, long RatePaise)>> GetTariffsAsync(int roomTypeId, ICommandTransaction? tx = null, CancellationToken ct = default)
         => await WithScopeAsync(tx, async s =>
         {
-            await using var q = s.Command("SELECT effective_from, rate_paise FROM inv.room_type_tariff WHERE room_type_id = @t ORDER BY effective_from;");
+            await using var q = s.Command("SELECT effective_from, rate_paise FROM inv.room_type_tariff WHERE room_type_id = @t AND day_set = 'A' ORDER BY effective_from;" /* F4-T1: all-night rows only; weekday / weekend card rows resolve through inv.fn_tariff_on */);
             q.Parameters.Int("@t", roomTypeId);
             var list = new List<(DateOnly, long)>();
             await using var rd = await q.ExecuteReaderAsync(ct).ConfigureAwait(false);
             while (await rd.ReadAsync(ct).ConfigureAwait(false)) list.Add((rd.GetDate(0), rd.GetInt64(1)));
             return (IReadOnlyList<(DateOnly, long)>)list;
+        }, ct).ConfigureAwait(false);
+
+    public async Task<long?> GetTariffOnAsync(int roomTypeId, DateOnly night, ICommandTransaction? tx = null, CancellationToken ct = default)
+        => await WithScopeAsync(tx, async s =>
+        {
+            await using var q = s.Command("SELECT inv.fn_tariff_on(@t, @d);"); // F4-int: day-set aware (weekday / weekend card rows)
+            q.Parameters.Int("@t", roomTypeId);
+            q.Parameters.Date("@d", night);
+            var v = await q.ExecuteScalarAsync(ct).ConfigureAwait(false);
+            return v is null or DBNull ? (long?)null : Convert.ToInt64(v, System.Globalization.CultureInfo.InvariantCulture);
         }, ct).ConfigureAwait(false);
 
     public async Task<QuoteRecord> InsertQuoteAsync(ICommandTransaction tx, QuoteDraft draft, CancellationToken ct = default)

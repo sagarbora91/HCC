@@ -57,6 +57,7 @@ public sealed class OperatorAlertsTests
             typeof(AccountingProjectorWorker).FullName!, typeof(HousekeepingProjectorWorker).FullName!, typeof(KeyDepartureWorker).FullName!, typeof(MessagingTriggerWorker).FullName!,
             typeof(OtaChannelManagerWorker).FullName!, typeof(OutboxFailureLogger).FullName!, typeof(RetentionWorker).FullName!, typeof(SchemaGuard).FullName!,
             typeof(DocumentReleaseWorker).FullName!, typeof(DocumentSweepWorker).FullName!,   // LF-docdb: document release consumer and the nightly orphan sweep
+            typeof(DigestDraftWorker).FullName!, typeof(FeedbackFollowUpWorker).FullName!,   // F4: owner digest drafts and the feedback follow-up sweep (outbox workers)
         ];
         Assert.Equal(expected.Order(StringComparer.Ordinal), HccEventLogLoggerProvider.OperatorCategories.Order(StringComparer.Ordinal));
         Assert.True(HccEventLogLoggerProvider.Forwards(typeof(OutboxFailureLogger).FullName, LogLevel.Warning));

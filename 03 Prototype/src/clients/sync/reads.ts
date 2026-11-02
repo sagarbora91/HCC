@@ -148,6 +148,8 @@ export const READS={
   'GET /guest-services/lost-items':GSV_OWN,
   'GET /guest-services/settings':one(wide('PERM-GSV-001',true),wide('PERM-GSV-003')),
   'GET /guest-services/stays':GSV,
+  'GET /guest-services/feedback':one(wide('PERM-FBK-001',true)), // F4-T3
+  'GET /guest-services/feedback/follow-ups':one(wide('PERM-FBK-002',true)),
   'GET /guest-services/histories/:kind':GSV,
   'GET /handover/checklists':HND,
   'GET /handover/templates':one(wide('PERM-HND-003')),

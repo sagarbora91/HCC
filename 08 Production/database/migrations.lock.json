@@ -78,7 +78,20 @@
     {"version": 4287, "file": "4287_acc_bank_match.sql", "reason": "F5-A1 ACC-4 block 4280-4294 reserved by the Wave Plan F5 (ACC4-CONTRACT section 5); numbered below 4720 KEYS merged earlier"},
     {"version": 4288, "file": "4288_acc_bank_settlement_source.sql", "reason": "F5-A1 ACC-4 block 4280-4294 reserved by the Wave Plan F5 (ACC4-CONTRACT section 5); numbered below 4720 KEYS merged earlier"},
     {"version": 4289, "file": "4289_acc_bank_recon_view.sql", "reason": "F5-A1 ACC-4 block 4280-4294 reserved by the Wave Plan F5 (ACC4-CONTRACT section 5); numbered below 4720 KEYS merged earlier"},
-    {"version": 4293, "file": "4293_acc_bank_rbac_seed.sql", "reason": "F5-A1 ACC-4 block 4280-4294 reserved by the Wave Plan F5 (ACC4-CONTRACT section 5); numbered below 4720 KEYS merged earlier"}
+    {"version": 4293, "file": "4293_acc_bank_rbac_seed.sql", "reason": "F5-A1 ACC-4 block 4280-4294 reserved by the Wave Plan F5 (ACC4-CONTRACT section 5); numbered below 4720 KEYS merged earlier"},
+    {"version": 4370, "file": "4370_revcat_indexes.sql", "reason": "F5 final: F4 migrations below F5 egress 4730-4734 (lanes merged in parallel)"},
+    {"version": 4375, "file": "4375_digest_draft.sql", "reason": "F5 final: F4 migrations below F5 egress 4730-4734 (lanes merged in parallel)"},
+    {"version": 4376, "file": "4376_digest_draft_table.sql", "reason": "F5 final: F4 migrations below F5 egress 4730-4734 (lanes merged in parallel)"},
+    {"version": 4377, "file": "4377_digest_rbac_seed.sql", "reason": "F5 final: F4 migrations below F5 egress 4730-4734 (lanes merged in parallel)"},
+    {"version": 4380, "file": "4380_trc_tables.sql", "reason": "F5 final: F4 migrations below F5 egress 4730-4734 (lanes merged in parallel)"},
+    {"version": 4381, "file": "4381_trc_tariff_dayset.sql", "reason": "F5 final: F4 migrations below F5 egress 4730-4734 (lanes merged in parallel)"},
+    {"version": 4382, "file": "4382_trc_publish_log.sql", "reason": "F5 final: F4 migrations below F5 egress 4730-4734 (lanes merged in parallel)"},
+    {"version": 4383, "file": "4383_trc_rbac_seed.sql", "reason": "F5 final: F4 migrations below F5 egress 4730-4734 (lanes merged in parallel)"},
+    {"version": 4390, "file": "4390_audit_viewer_index.sql", "reason": "F5 final: F4 migrations below F5 egress 4730-4734 (lanes merged in parallel)"},
+    {"version": 4393, "file": "4393_guest_feedback.sql", "reason": "F5 final: F4 migrations below F5 egress 4730-4734 (lanes merged in parallel)"},
+    {"version": 4394, "file": "4394_feedback_followup.sql", "reason": "F5 final: F4 migrations below F5 egress 4730-4734 (lanes merged in parallel)"},
+    {"version": 4395, "file": "4395_feedback_rbac_seed.sql", "reason": "F5 final: F4 migrations below F5 egress 4730-4734 (lanes merged in parallel)"},
+    {"version": 4397, "file": "4397_printers.sql", "reason": "F5 final: F4 migrations below F5 egress 4730-4734 (lanes merged in parallel)"}
   ],
   "migrations": [
     {"version": 1, "file": "0001_platform.sql", "sha256": "2CB8FB349156F501295E1148366BDFE406EC097C136093F09C6F0817542F46CC"},
@@ -266,6 +279,19 @@
     {"version": 4731, "file": "4731_egress_outbox_held.sql", "sha256": "C70607DB0E48C7E340470F2839384C34DED5F6DB9FA265A14B3A1ABF2B9CE869"},
     {"version": 4732, "file": "4732_egress_audit.sql", "sha256": "8844662DE9D1588904F24A9C7653EDD7FE451C15BA62BBF9E113411C096076CC"},
     {"version": 4733, "file": "4733_egress_rbac_seed.sql", "sha256": "6691BACCC19F112B944C2249C91CB798E8080685F1CC736148135AE0D3853EA4"},
-    {"version": 4734, "file": "4734_egress_firewall_state.sql", "sha256": "C724611A07A709FA23E677E4A91ECADB9AED0DB2758C2E213D83F34C6F11153E"}
+    {"version": 4734, "file": "4734_egress_firewall_state.sql", "sha256": "C724611A07A709FA23E677E4A91ECADB9AED0DB2758C2E213D83F34C6F11153E"},
+    {"version": 4370, "file": "4370_revcat_indexes.sql", "sha256": "771370B88F399B56D62403632C78FC1775A3837ACCBB4F32863E9DFEC1FC62BD"},
+    {"version": 4375, "file": "4375_digest_draft.sql", "sha256": "44BE8E3C2D81DEBB334790300D97F80028E6D07209320C0EFAC0E2779F7F2DE3"},
+    {"version": 4376, "file": "4376_digest_draft_table.sql", "sha256": "15F3E78EB3843976364B9B2C7B12650C12184CFC6DD3B219218E29DB4752BA82"},
+    {"version": 4377, "file": "4377_digest_rbac_seed.sql", "sha256": "AFFF7D24B4A355BCC3E78BD111DB780331EA520B61717B74EE8DC6F9232E975D"},
+    {"version": 4380, "file": "4380_trc_tables.sql", "sha256": "F7C401C9461AE15BDAF436A05B9AF6B70689FA5D3F97523B16764DF3DBA44957"},
+    {"version": 4381, "file": "4381_trc_tariff_dayset.sql", "sha256": "EF43E05A7F41840CA017A14F70A9DAF3462172A0932D180195C2E746869A4CF1"},
+    {"version": 4382, "file": "4382_trc_publish_log.sql", "sha256": "7E245DA46DE0F54585D5946FB63F3C1B6D11916D5E3CD5CB287C4262671CCE41"},
+    {"version": 4383, "file": "4383_trc_rbac_seed.sql", "sha256": "55B4D879E14A122C323594F49962447F9B48C0512FC006E87AA4A15567239FD8"},
+    {"version": 4390, "file": "4390_audit_viewer_index.sql", "sha256": "3AEE9B56A8864F3EE1DCBF85E8DC375D91C0B741299A8A4FB4D25B0FD157D141"},
+    {"version": 4393, "file": "4393_guest_feedback.sql", "sha256": "CD10122335AAD9E0D41F26364F8157ED2D098801160486B2B421C4A363CF7C85"},
+    {"version": 4394, "file": "4394_feedback_followup.sql", "sha256": "0A0ACE159A39D638E415F975CD8C735DA3DA349390F4096C5D4F11777E774141"},
+    {"version": 4395, "file": "4395_feedback_rbac_seed.sql", "sha256": "9E28392BDCC5A5C630B324723D7466F154879C218BF9C712BA3DCAF66FFA58C6"},
+    {"version": 4397, "file": "4397_printers.sql", "sha256": "32B485CFF62E8DEF24C16EBF156F0EFDC802166D9BFF2339414963F294E2591F"}
   ]
 }

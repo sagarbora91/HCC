@@ -2,6 +2,7 @@
 // Register new or replacement command handlers here. A handler with the same name as a built-in command replaces it.
 // Kept built-in: POST_NIGHTS (M1 compatibility, no UI button). SHIFT_CLOSE (exact-count close by close-permission users) is re-registered here
 // with the same rules so the counter is recorded (W05 review F1: the person who counted may not lock the cash book day).
+import {fbkSweep} from '../../../domain/streams/feedback'; // F4-T3
 import type {Handler,Kit} from '../commands';
 import type {Expense} from '../../../domain/types';
 import {money,addDays,OPENING_TIME} from '../../../domain/money';
@@ -10,6 +11,7 @@ import {gstForFolioAdjustment} from '../../../domain/gst';
 import {hkExpireBlocks} from '../../../domain/streams/housekeeping';
 import {posOpenOrders} from '../../../domain/streams/pos';
 import {cbIsLocked,cbLockedMessage} from '../../../domain/streams/cashbook';
+import {dgsWriteDrafts} from '../../../domain/streams/digest'; // F4-T2
 import {cxPendingTransfers,cxSlice} from '../../../domain/streams/cashout';
 import {closingNightTargets,closingHasNight,closingSummary,shiftStatus,shiftDenominationTotal,SHIFT_MANAGER_DIFF_LIMIT,EXPENSE_MANAGER_LIMIT,
   closingUnlimitedRoles,closingReopened,closingReopenRefusal,closingReopenMessage,closingPendingCorrections,closingResummary,closingBlockingApprovals,
@@ -123,8 +125,10 @@ export const handlers:Record<string,Handler>={
     assert(!transfers.length,`Accept or send back ${transfers.length} pending till transfer${transfers.length===1?'':'s'} first (${transfers.map(r=>r.id).join(', ')}).`,'INVALID_TRANSITION');
     assert(!s.shiftOpen,'Close and reconcile the cash shift first.','INVALID_TRANSITION');
     s.closedDates.push(s.date);
+    fbkSweep(s,k.id); // F4-T3: Owner follow-up calls for items unresolved 7+ days
     // One immutable closing record per date; nothing writes to it after this point.
     s.closings={...(s.closings??{}),[s.date]:closingSummary(s,uid)};
+    s.digestX=dgsWriteDrafts(s,uid,s.date); // F4-T2: held digest drafts for the closed day (never sent)
     return 'Business day closed · '+s.date;
   },
   // PERM-CLS-002 close.openNextDay · opening float = counted cash at close (DEC-035). DEC-078 (Wave B1): the next day's cash shift is NOT

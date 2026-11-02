@@ -253,6 +253,25 @@
     <!-- LF-IMAGES end -->
     <!-- LF-INT 4711-4718 -->
     <!-- LF-INT end -->
+    <!-- F4-T2 4370-4379 -->
+    <File Path="database/migrations/4370_revcat_indexes.sql" />
+    <File Path="database/migrations/4375_digest_draft.sql" />
+    <File Path="database/migrations/4376_digest_draft_table.sql" />
+    <File Path="database/migrations/4377_digest_rbac_seed.sql" />
+    <!-- F4-T2 end -->
+    <!-- F4-T1 4380-4389 -->
+    <File Path="database/migrations/4380_trc_tables.sql" />
+    <File Path="database/migrations/4381_trc_tariff_dayset.sql" />
+    <File Path="database/migrations/4382_trc_publish_log.sql" />
+    <File Path="database/migrations/4383_trc_rbac_seed.sql" />
+    <!-- F4-T1 end -->
+    <!-- F4-T3 4390-4399 -->
+    <File Path="database/migrations/4390_audit_viewer_index.sql" />
+    <File Path="database/migrations/4393_guest_feedback.sql" />
+    <File Path="database/migrations/4394_feedback_followup.sql" />
+    <File Path="database/migrations/4395_feedback_rbac_seed.sql" />
+    <File Path="database/migrations/4397_printers.sql" />
+    <!-- F4-T3 end -->
     <File Path="database/migrations/4720_keys_schema.sql" />
     <File Path="database/migrations/4721_keys_rbac_seed.sql" />
     <File Path="database/migrations/4730_egress_settings_seed.sql" /> <!-- F5-E1 -->

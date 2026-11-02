@@ -1,5 +1,6 @@
 // Stream E · Access & configuration (owns USER, GRANT, SETTINGS) — pure domain helpers and selectors (re-exported by services/mock/index.ts for UI and tests).
 // Fine-grained policy layer (BL-024, RBAC matrix v1, DEC-040), approvals inbox (BL-026) and configuration selectors (BL-027).
+import {trcResolveRow} from './tariffcard-resolve'; // F4-T1
 import {isProductionBuild} from '../build';
 import type {State,Role,User,Booking,Approval,Audit,Permission} from '../types';
 import {money} from '../money';
@@ -299,7 +300,9 @@ export const adminSettingHistory=(s:State,key:string)=>(s.configHistory||[]).fil
 
 /** Latest dated tariff for a room type with effectiveFrom ≤ date (undefined = none scheduled). */
 export function adminTariffOn(s:State,type:string,date:string){
-  return (s.tariffs||[]).filter(t=>t.type===type&&t.effectiveFrom<=date).sort((a,b)=>a.effectiveFrom<b.effectiveFrom?-1:1).slice(-1)[0];
+  // F4-T1 (contract §1.3): day-set aware — a weekday / weekend row written by the tariff card applies only to its nights; rows without days unchanged.
+  return trcResolveRow(s,(s.tariffs||[]).filter(t=>t.type===type),date);
+  // F4-T1 end
 }
 /** LEGACY (MA-1/MA-9): the pre-master derivation of the room-type list — read rmsRoomTypeKeys(s) (domain/streams/roommasters.ts) in new code.
  *  Kept for the settings screens and the tariff command. Room types that have rooms in service, in the room-types master order (MA-1: replaces the plain derivation; retired rooms are left

@@ -115,20 +115,30 @@ public sealed class OtaChannelManagerProjector(OutboxConsumer outbox, SqlConnect
         }
 
         var avail = await AvailabilityAsync(Cmd, e.PropertyId, e.RoomTypeId, from, to, ct).ConfigureAwait(false);
-        var tariffs = new List<(DateOnly EffectiveFrom, long RatePaise)>();
-        await using (var q = Cmd("SELECT effective_from, rate_paise FROM inv.room_type_tariff WHERE room_type_id = @t ORDER BY effective_from;"))
+        // F4-int: day-set aware (weekday / weekend card rows, TariffCardRules.Resolve = inv.fn_tariff_on)
+        var tariffs = new List<Hcc.Domain.Tariff.TrcTariffRow>();
+        var weekend = new Dictionary<long, IReadOnlyCollection<int>>();
+        await using (var q = Cmd("SELECT x.effective_from, x.rate_paise, x.day_set, x.card_version_id, v.weekend_days FROM inv.room_type_tariff x LEFT JOIN mst.tariff_card_version v ON v.version_id = x.card_version_id WHERE x.room_type_id = @t ORDER BY x.effective_from;"))
         {
             q.Parameters.Add("@t", SqlDbType.Int).Value = e.RoomTypeId;
             await using var rd = await q.ExecuteReaderAsync(ct).ConfigureAwait(false);
-            while (await rd.ReadAsync(ct).ConfigureAwait(false)) tariffs.Add((DateOnly.FromDateTime(rd.GetDateTime(0)), rd.GetInt64(1)));
+            while (await rd.ReadAsync(ct).ConfigureAwait(false))
+            {
+                long? vid = rd.IsDBNull(3) ? null : rd.GetInt64(3);
+                tariffs.Add(new Hcc.Domain.Tariff.TrcTariffRow("", DateOnly.FromDateTime(rd.GetDateTime(0)), rd.GetInt64(1), rd.GetString(2)[0], vid));
+                if (vid is { } v) weekend[v] = Hcc.Domain.Tariff.TariffCardRules.ParseWeekend(rd.IsDBNull(4) ? null : rd.GetString(4)).ToList();
+            }
         }
+
+        var defaultWeekend = Hcc.Domain.Tariff.TariffCardRules.ParseWeekend(null).ToList();
+        long RateOnNight(DateOnly n) => Hcc.Domain.Tariff.TariffCardRules.Resolve(tariffs, n, id => id is { } k && weekend.TryGetValue(k, out var w) ? w : defaultWeekend)?.RatePaise ?? facts.RackRatePaise;
 
         foreach (var ch in channels)
         {
             var rows = avail.Select(a =>
             {
                 var closed = ch.StopSell || a.Avail == 0;
-                return (a.Night, a.Avail, Rate: OtaRules.MarkedUpRate(StayPricing.RateOn(tariffs, facts.RackRatePaise, a.Night), ch.MarkupBps), Closed: closed,
+                return (a.Night, a.Avail, Rate: OtaRules.MarkedUpRate(RateOnNight(a.Night), ch.MarkupBps), Closed: closed,
                     Why: ch.StopSell ? "Stop-sell" : a.Avail == 0 ? "Sold out" : null);
             }).ToList();
 

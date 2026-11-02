@@ -1,0 +1,24 @@
+/* F4-T1 · Tariff card page, phone cards and rate sheet print (tokens only). */
+.trc-strip{display:flex;gap:8px;overflow-x:auto;padding:0 0 8px;flex:0 0 auto}
+.trc-chip{display:flex;align-items:center;gap:8px;min-height:40px;padding:4px 10px;border:1px solid var(--line);border-radius:8px;background:var(--surface,var(--bg));color:var(--ink);white-space:nowrap;cursor:pointer}
+.trc-chip.on{border-color:var(--primary);box-shadow:0 0 0 1px var(--primary)}
+.trc-chip span{color:var(--muted);font-size:.85em}
+.trc-preview{margin:0 0 6px;font-size:.9em}
+.trc-reject{gap:8px;margin:0 0 8px}
+.trc-reject input{min-width:260px}
+.trc-grid td,.trc-grid th{vertical-align:middle}
+.trc-price{width:110px;text-align:right}
+.trc-incl{gap:6px;font-weight:500}
+.trc-season-form{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end;margin:0 0 12px}
+.trc-days{display:flex;flex-wrap:wrap;gap:10px;border:1px solid var(--line);border-radius:8px;padding:6px 10px}
+.trc-m{display:flex;flex-direction:column;gap:10px;padding-bottom:88px}
+.trc-m-kpis{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.trc-m-note{margin:0}
+.trc-sheet{max-width:780px}
+.trc-sheet-head{text-align:center;border-bottom:2px solid var(--primary);padding-bottom:8px;margin-bottom:10px}
+.trc-sheet-head h2{margin:0;color:var(--primary)}
+.trc-sheet-head p{margin:2px 0}
+.trc-sheet-gst{font-weight:600}
+.trc-sheet-group h3{margin:12px 0 4px}
+.trc-sheet-foot{margin-top:12px;border-top:1px solid var(--line);padding-top:6px;font-size:.9em}
+@media print{.trc-sheet{max-width:none}.trc-sheet-table{page-break-inside:avoid}}

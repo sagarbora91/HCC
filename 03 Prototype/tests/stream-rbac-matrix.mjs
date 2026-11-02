@@ -67,6 +67,9 @@ const PAGES={
   settings:['OWN TAD','ADM-003 + DEC-057/058 (DEC-063 G9: no Manager requests)'],
   approvals:['OWN MGR ACC','ADM-004 audit.view + APR-001 (DEC-063 G10: not the Cashier; Tech admin view at M4)'],
   backup:['OWN TAD','ADM-005 (DEC-063 G9: the Manager gets the Overview backup card instead)'],
+  'tariff-card':['OWN MGR ACC REC CSH','PERM-TRF-001 (F4-T1): view card, history, print; not Restaurant / housekeeping / maintenance (DEC-061)'],
+  'owner-digest':['OWN','PERM-DGS-001 (F4-T2): Owner only; navRoleOk hides it from every other role'],
+  'revenue-category':['OWN MGR ACC','PERM-RPT-001 + PERM-RPT-002 (F4-T2; DEC-202 #1): Owner, Manager, Accountant; navRoleOk hides it from the Cashier and the rest'],
   syshealth:['OWN TAD','PERM-SYS-001 (Wave C3, A09-05: parked outbox events, retry, last backup; the Administration area like Backup & recovery)'],
   'counter-bills':['OWN MGR REC CSH','LF A7: PERM-CTR-001 counter.bill.issue = Owner, Manager, Reception, Cashier (nav gate = payments, as the Cashier shift)'], // LF-UI
   'desk-alerts':['OWN MGR REC ACC','LF B4: PERM-RMD-001 reminders.manage = Owner, Manager, Reception, Accountant (contract §11, same as the server seed 4705)'], // LF-ALERTS
@@ -92,6 +95,7 @@ function surfaces(M,s,uid){
 const C=(roles,src)=>[roles,src];
 const CMDS={
   BOOK:C('OWN MGR REC','RES-002'),CONFIRM:C('OWN MGR REC','RES-002'),CHANGE_DATES:C('OWN MGR REC','RES-003'),MOVE:C('OWN MGR REC','RES-003/STY-002'),STAY_EARLY_DEPARTURE:C('OWN MGR REC','STY-002 (EarlyDeparture)'),CANCEL:C('OWN MGR REC','RES-004'),
+  DIGEST_REDRAFT:C('OWN','PERM-DGS-001 (F4-T2)'),
   GSV_WAKE_SNOOZE:C('OWN MGR REC','LF B3 (reservations)'),RMD_SAVE:C('OWN MGR REC ACC','PERM-RMD-001'),RMD_DONE:C('OWN MGR REC ACC','PERM-RMD-001'),RMD_DISMISS:C('OWN MGR REC ACC','PERM-RMD-001'), // LF-ALERTS
   CFG_NET_SET:C('OWN','PERM-NET-001 (F5-E1)'),NET_TICK:C('OWN','PERM-NET-001 worker tick stand-in (F5-E1)'), // F5-E1
   STAY_CHECKOUT_BASIS:C('OWN MGR REC','STY-001 (LF A6)'),STAY_FORM_C:C('OWN MGR REC','STY-001 (LF A5)'),STAY_LATE_CHARGE:C('OWN MGR REC','STY-003 (LF A6)'), // LF-DESK
@@ -189,6 +193,14 @@ const CMDS={
   // MA-0 masters framework (DEC-MA-1: the `masters` permission = Owner + Tech admin by default; money lists Owner-only per spec).
   ...Object.fromEntries(['MST_MASTER_SAVE','MST_MASTER_RETIRE','MST_MASTER_REACTIVATE','MST_MASTER_REORDER','MST_MASTER_DELETE'].map(c=>[c,C('OWN TAD','MA-0 masters (DEC-MA-1)')])),
   SYS_RETRY_PARKED:C('OWN TAD','PERM-SYS-001 (Wave C3, A09-05: RetryParkedEvent)'),
+  // F4-T3 quick wins: feedback at check-out (role list in the handler), day-close sweep ('close'), Owner follow-ups / feedback address / printer test ('admin').
+  // F4-T1 tariff card: Manager drafts + proposes, Owner publishes / rejects / weekend days / import (DEC-058).
+  ...Object.fromEntries(['TRC_DRAFT_SAVE','TRC_PROPOSE','TRC_DISCARD'].map(c=>[c,C('OWN MGR','PERM-TRF-002 (F4-T1)')])),
+  ...Object.fromEntries(['TRC_PUBLISH','TRC_REJECT','TRC_WEEKEND_SET','TRC_IMPORT'].map(c=>[c,C('OWN','PERM-TRF-003 (F4-T1, DEC-058)')])),
+  FBK_RECORD:C('OWN MGR REC CSH','F4-T3 qw-feedback: Reception, Manager, Owner, Cashier at check-out'),
+  FBK_FOLLOWUP_SWEEP:C('OWN MGR','F4-T3: system sweep at day close, gated by the coarse close permission'),
+  FBK_FOLLOWUP_DONE:C('OWN TAD','F4-T3: admin (Owner follow-up calls)'),FBK_URL_SET:C('OWN TAD','F4-T3: admin'),
+  QW_PRINTER_TEST:C('OWN TAD','F4-T3 PERM-FBK-003: admin'),QW_PRINTER_SET:C('OWN TAD','F4-T3 PERM-FBK-003: admin (demo only)'),
   // MA-8 masters import (JSON import and Paste rows): the `masters` permission (Owner + Tech admin); a money list inside the file is refused per list unless the Owner imports it.
   MST_IMPORT:C('OWN TAD','MA-8 masters import (DEC-MA-1, DEC-058)'),
   // MA-1 rooms master tools (range add, renumber, out of order): the rooms master's `masters` permission (old → new: 199 → 203 commands).
