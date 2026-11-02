@@ -53,6 +53,11 @@ public class TariffCardSqlTests : IAsyncLifetime
         Assert.Equal(300_000L, Convert.ToInt64(await _w.ScalarAsync($"SELECT inv.fn_tariff_on({T}, '2026-11-05');", Ct), System.Globalization.CultureInfo.InvariantCulture));
         Assert.Equal(360_000L, Convert.ToInt64(await _w.ScalarAsync($"SELECT inv.fn_tariff_on({T}, '2026-11-06');", Ct), System.Globalization.CultureInfo.InvariantCulture));
         Assert.Equal(360_000L, Convert.ToInt64(await _w.ScalarAsync($"SELECT inv.fn_tariff_on({T}, '2026-11-08');", Ct), System.Globalization.CultureInfo.InvariantCulture));
+        // F4-int: the quote / availability / web-booking / OTA lookups read the same day-set aware rate (weekday Thu, weekend Fri).
+        var inv = new Hcc.Infrastructure.SqlServer.Inventory.SqlInventoryStore(_w.Platform.Connections);
+        var typeId = Convert.ToInt32(await _w.ScalarAsync($"SELECT {T};", Ct), System.Globalization.CultureInfo.InvariantCulture);
+        Assert.Equal(300_000L, await inv.GetTariffOnAsync(typeId, new DateOnly(2026, 11, 5), null, Ct));
+        Assert.Equal(360_000L, await inv.GetTariffOnAsync(typeId, new DateOnly(2026, 11, 6), null, Ct));
         // published = read-only (application refusal and the table trigger)
         var e = await Assert.ThrowsAsync<HccException>(() => _c.SaveDraftAsync(_w.Ctx("owner", "trc-5"), Pair() with { VersionId = draft.VersionId }, Ct));
         Assert.Equal("TRC_PUBLISHED_READONLY", e.Details!["reason"].GetString());

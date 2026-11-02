@@ -110,6 +110,16 @@ public sealed class SqlInventoryStore(SqlConnectionFactory connections) : IInven
             return (IReadOnlyList<(DateOnly, long)>)list;
         }, ct).ConfigureAwait(false);
 
+    public async Task<long?> GetTariffOnAsync(int roomTypeId, DateOnly night, ICommandTransaction? tx = null, CancellationToken ct = default)
+        => await WithScopeAsync(tx, async s =>
+        {
+            await using var q = s.Command("SELECT inv.fn_tariff_on(@t, @d);"); // F4-int: day-set aware (weekday / weekend card rows)
+            q.Parameters.Int("@t", roomTypeId);
+            q.Parameters.Date("@d", night);
+            var v = await q.ExecuteScalarAsync(ct).ConfigureAwait(false);
+            return v is null or DBNull ? (long?)null : Convert.ToInt64(v, System.Globalization.CultureInfo.InvariantCulture);
+        }, ct).ConfigureAwait(false);
+
     public async Task<QuoteRecord> InsertQuoteAsync(ICommandTransaction tx, QuoteDraft draft, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(draft);

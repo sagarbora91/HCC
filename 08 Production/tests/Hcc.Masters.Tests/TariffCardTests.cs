@@ -48,6 +48,22 @@ public class TariffCardTests
         Assert.Equal(1800, l.TaxBps);
     }
 
+    [Theory] // F4-int rounding ruling: published inclusive price authoritative; exact where possible, else nearest + shown difference (CA to confirm)
+    [InlineData(330_000, 1800, 279_661, -1)]
+    [InlineData(50_000, 1800, 42_373, 1)]
+    [InlineData(20_000, 1800, 16_949, -1)]
+    [InlineData(330_000, 500, 314_286, 0)]
+    [InlineData(50_000, 500, 47_619, -1)]
+    [InlineData(20_000, 500, 19_048, 0)]
+    public void Inclusive_card_price_is_reproduced_exactly_or_nearest(long incl, int bps, long excl, long diff)
+    {
+        var e = TariffCardRules.ExclusiveFromInclusive(incl, bps);
+        Assert.Equal(excl, e);
+        Assert.Equal(diff, TariffCardRules.Inclusive(e, bps) - incl);
+        for (var x = Math.Max(0, e - 50); x <= e + 50; x++)
+            Assert.True(Math.Abs(TariffCardRules.Inclusive(x, bps) - incl) >= Math.Abs(diff));
+    }
+
     [Fact]
     public void Inclusive_entry_on_the_slab_boundary_is_refused()
     {

@@ -18,6 +18,10 @@ export function register({test,M,assert}){
       const i=M.trcInclusive(e,bps);assert.equal(M.trcInclusive(M.trcExclusiveFromInclusive(i,bps),bps),i,`${e}@${bps}`);}
     assert.equal(M.trcExclusiveFromInclusive(210000,500),200000);
     const d=M.trcExclusiveFromInclusive(330000,1800);assert.equal(d,279661);assert.equal(M.trcInclusive(d,1800),329999,'unreachable 3,300 → ₹0.01 rounding difference');
+    // F4-int rounding ruling: the card's GST-inclusive price is authoritative — exact where an exclusive paise value reproduces it, else nearest + shown difference (CA to confirm)
+    for(const [incl,bps,excl,diff] of [[330000,1800,279661,-1],[50000,1800,42373,1],[20000,1800,16949,-1],[330000,500,314286,0],[50000,500,47619,-1],[20000,500,19048,0]]){
+      const e=M.trcExclusiveFromInclusive(incl,bps);assert.equal(e,excl,`${incl}@${bps}`);assert.equal(M.trcInclusive(e,bps)-incl,diff,`diff ${incl}@${bps}`);
+      for(let x=Math.max(0,e-50);x<=e+50;x++)assert.ok(Math.abs(M.trcInclusive(x,bps)-incl)>=Math.abs(diff),`no closer exclusive ${incl}@${bps}`);}
   });
   test('[TRC] Deluxe ₹2,000 incl at 18 % → excl ₹1,694.92, display ₹2,000.00, rounding difference 0',()=>{
     let s=gst18(seed());s=draft(s,[{kind:'room',roomType:'Deluxe',plan:'EP',daySet:'all',enteredIncl:200000}]);
