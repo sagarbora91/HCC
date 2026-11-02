@@ -41,9 +41,32 @@ export function register({test,M,assert}){
     const s=month();
     for(const [f,t] of ranges(s))for(const basis of ['business-date','stay']){
       const r=M.rctReport(s,f,t,basis);assert.equal(r.c.difference,0,f+'..'+t+' '+basis);
-      assert.equal(r.c.closingDue,r.c.openingDue+r.c.gross-r.c.netReceived-r.bTotal.advancesAdjusted);if(basis==='business-date')assert.equal(r.c.gross,r.aTotal.gross);
+      assert.equal(r.c.closingDue,r.c.openingDue+r.c.gross-r.c.netReceived-r.bTotal.advancesAdjusted-r.bTotal.companyCredit-r.bTotal.udhaar-r.bTotal.ota);if(basis==='business-date')assert.equal(r.c.gross,r.aTotal.gross);
       assert.equal(r.c.closingAdvances-r.c.openingAdvances,r.c.advanceMovement);assert.equal(r.tb.balanced,true);
     }
+  });
+  test(T+'C: Block C closes to the ACC-RULEBOOK trial balance ledger by ledger (guest ledger, advances, company / OTA / Udhaar credit)',()=>{
+    const s=month(),r=M.rctReport(s,FROM,'2026-04-30');
+    assert.equal(r.tb.rows.length,7);
+    for(const x of r.tb.rows)assert.equal(x.ok,true,`${x.account} ${x.what}: report ${x.report} vs ledger ${x.ledger}`);
+    assert.equal(r.c.difference,0);assert.equal(r.c.openingAdvances,100*10000);assert.equal(r.c.closingAdvances,315*10000);
+    assert.equal(r.c.closingDue,0);assert.equal(r.c.openingDue,0);
+  });
+  // LG contract §6: legacy range = the old bills / receipts; every §6 sum is reproduced by the report, an unmapped room stays a row.
+  const LB=(o)=>({fy:'2025-26',billNo:1,date:'2025-06-10',room:'101',roomCharge:200000,extra:10000,fb:5000,laundry:600,other:300,discount:15000,roomGst:24000,fbGst:250,laundryGst:108,otherGst:54,advance:50000,net:230000,...o});
+  test(T+'legacy FY: header, Σ components of the old bills, GST and receipts equal the inputs; unmapped room kept as unassigned',()=>{
+    const bills=[LB({}),LB({billNo:2,room:'999',roomCharge:100000,roomGst:12000,fb:0,fbGst:0}),LB({billNo:3,date:'2025-07-01'})];
+    const rec=[{fy:'2025-26',date:'2025-06-10',room:'101',kind:'advance',method:'UPI',amount:50000},{fy:'2025-26',date:'2025-06-11',room:'101',kind:'payment',method:'CASH',amount:200000},
+      {fy:'2025-26',date:'2025-06-11',room:'999',kind:'security',method:'CASH',amount:1000},{fy:'2025-26',date:'2025-06-12',room:'101',kind:'refund',method:'CASH',amount:3000}];
+    const r=M.rctLegacyReport(bills,rec,x=>x==='101'?'Deluxe':undefined,'2025-06-01','2025-06-30');
+    assert.equal(r.legacy,true);assert.ok(M.rctCsv(r).includes('Legacy data (old Lodge software)'));
+    const two=bills.slice(0,2),sum=k=>two.reduce((a,b)=>a+b[k],0);
+    assert.equal(r.aTotal.roomTariff,sum('roomCharge'));assert.equal(r.aTotal.extraPerson,sum('extra'));assert.equal(r.aTotal.otherRoomCharges,sum('fb')+sum('laundry')+sum('other'));
+    assert.equal(r.aTotal.discounts,-sum('discount'));assert.equal(r.aTotal.cgst+r.aTotal.sgst,sum('roomGst')+sum('fbGst')+sum('laundryGst')+sum('otherGst'));
+    assert.equal(r.aTotal.gross,r.aTotal.net+r.aTotal.cgst+r.aTotal.sgst);assert.equal(r.a.reduce((a,x)=>a+x.net,0),r.aTotal.net);
+    assert.ok(r.a.some(x=>x.key==='unassigned'&&x.roomTariff===100000));assert.ok(r.a.some(x=>x.key==='Deluxe'));
+    assert.equal(r.bTotal.upi,50000);assert.equal(r.bTotal.cash,200000-3000);assert.equal(r.bTotal.advancesReceived,1000);assert.equal(r.bTotal.refunds,3000);
+    assert.equal(r.bTotal.netReceived,250000-3000);assert.ok(r.b.some(x=>x.key==='unassigned'&&x.advancesReceived===1000));
   });
   test(T+'stay basis counts a stay\'s whole folio by its arrival date; business-date basis is the default',()=>{
     const s=month();

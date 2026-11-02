@@ -35,18 +35,23 @@ function addTender(row:RCTBlockBRow,method:string,amount:number){
   const t=rctTender(method);if(t)row[t]+=amount;else row.otherTenders[method]=(row.otherTenders[method]??0)+amount;
   row.netReceived+=amount;
 }
-/** Folio due at the end of date d (before the stay's receipts that were deposits): Σ lines + tax − (payments + deposit-apply − refunds). */
+/** Guest-folio due and advances held at the end of date d. Due = Σ lines + tax − (payments + deposit-apply + credits to company / OTA / Udhaar − refunds), i.e. what the
+ *  guest ledger (1100) holds; advances = deposits − returns − applies, plus an advance carried in the opening balance that is still to be applied after d. */
 function dueAt(s:State,d:string){
   let due=0,adv=0;
   for(const b of s.bookings){
     for(const l of b.lines)if(l.date<=d)due+=l.amount+gstLineSplit(l).tax;
-    for(const r of b.receipts){if(r.date>d)continue;
-      if(r.kind==='payment'||r.kind==='deposit-apply')due-=r.amount;else if(r.kind==='refund')due+=r.amount;
+    for(const r of b.receipts){
+      if(r.kind==='deposit-apply'&&r.depositSource==='opening'&&r.date>d)adv+=r.amount;
+      if(r.date>d)continue;
+      if(r.kind==='payment'||r.kind==='deposit-apply'||r.kind==='company-credit'||r.kind==='ota-credit'||r.kind==='guest-credit')due-=r.amount;else if(r.kind==='refund')due+=r.amount;
       if(r.kind==='deposit')adv+=r.amount;else if(r.kind==='deposit-return'||(r.kind==='deposit-apply'&&r.depositSource!=='opening'))adv-=r.amount;}
   }
   return {due,adv};
 }
-export function rctReport(s:State,from:string,to:string,basis:RCTBasis='business-date'):RCTReport&{tb:{balanced:boolean;receivable:number;payable:number}}{
+/** Ledger-by-ledger comparison of Block C with the trial balance (accounting stream). `ok` = the report figure equals the ledger figure. */
+export type RCTLedgerRow={account:string;name:string;what:string;report:number;ledger:number;ok:boolean};
+export function rctReport(s:State,from:string,to:string,basis:RCTBasis='business-date'):RCTReport&{tb:{balanced:boolean;receivable:number;payable:number;rows:RCTLedgerRow[]}}{
   const dates=reportDates(from,to);
   // ── Block A ──
   const rows=new Map<string,RCTBlockARow>();
@@ -74,8 +79,8 @@ export function rctReport(s:State,from:string,to:string,basis:RCTBasis='business
   const brow=new Map<string,RCTBlockBRow>();
   const rowB=(k:string,label=labelOf(k))=>{let r=brow.get(k);if(!r){r=zeroB(k,label);brow.set(k,r);}return r;};
   for(const r of s.rooms)rowB(r.type);
-  const bTotal=zeroB('total','Total');let openingAdj=0; // deposit-apply of an advance carried in the opening balance: leaves no deposit receipt on the folio
-  for(const {b,r} of reportReceipts(s,from,to)){const row=rowB(keyOf(s,b));if(r.kind==='deposit-apply'&&r.depositSource==='opening')openingAdj+=r.amount;
+  const bTotal=zeroB('total','Total');
+  for(const {b,r} of reportReceipts(s,from,to)){const row=rowB(keyOf(s,b));
     const feed=(k:RCTBlockBRow,sign:1|-1)=>{
       if(r.kind==='payment'||r.kind==='refund'){const v=r.kind==='refund'?-r.amount:r.amount;addTender(k,r.method,v);if(r.kind==='refund')k.refunds+=r.amount;}
       else if(r.kind==='deposit')k.advancesReceived+=r.amount;
@@ -95,11 +100,22 @@ export function rctReport(s:State,from:string,to:string,basis:RCTBasis='business
   const o=dueAt(s,addDays1(from,-1)),c=dueAt(s,to);
   const gross=basis==='stay'?reportLines(s,from,to).reduce((t,x)=>t+x.l.amount+gstLineSplit(x.l).tax,0):aTotal.gross, // the bridge is always on business dates (the stay basis is Block A only)
     netReceived=bTotal.netReceived,adjusted=bTotal.advancesAdjusted;
-  const movement=bTotal.advancesReceived-(adjusted-openingAdj)-bTotal.advancesRefunded;
-  const difference=Math.abs(c.due-(o.due+gross-netReceived-adjusted))+Math.abs((c.adv-o.adv)-movement);
+  const movement=bTotal.advancesReceived-adjusted-bTotal.advancesRefunded;
+  const credits=bTotal.companyCredit+bTotal.udhaar+bTotal.ota;
+  const difference=Math.abs(c.due-(o.due+gross-netReceived-adjusted-credits))+Math.abs((c.adv-o.adv)-movement);
   const bridge:RCTBridge={openingDue:o.due,gross,netReceived,advanceMovement:movement,closingDue:c.due,openingAdvances:o.adv,closingAdvances:c.adv,difference};
-  const tb=accTrialBalance6(s,from,to,false),led=(code:string)=>{const r=tb.rows.find(x=>x.account===code);return r?r.closingDebit-r.closingCredit:0;};
-  return {from,to,basis,legacy:false,a,aTotal,b:[...brooms,rb,cb,hb],bTotal,c:bridge,tb:{balanced:tb.balanced,receivable:led('1110')+led('1120'),payable:-led('2000')}};
+  const tb=accTrialBalance6(s,from,to,false);
+  const L=(code:string)=>tb.rows.find(x=>x.account===code);
+  const open=(code:string)=>{const r=L(code);return r?r.openingDebit-r.openingCredit:0;},close=(code:string)=>{const r=L(code);return r?r.closingDebit-r.closingCredit:0;},dr=(code:string)=>L(code)?.debit??0;
+  const ledgerRows:RCTLedgerRow[]=[
+    {account:'1100',name:'Guest ledger (in-house folios)',what:'Opening due',report:o.due,ledger:open('1100'),ok:o.due===open('1100')},
+    {account:'1100',name:'Guest ledger (in-house folios)',what:'Closing due',report:c.due,ledger:close('1100'),ok:c.due===close('1100')},
+    {account:'2000',name:'Advance deposits',what:'Advances held at start',report:o.adv,ledger:-open('2000'),ok:o.adv===-open('2000')},
+    {account:'2000',name:'Advance deposits',what:'Advances held at end',report:c.adv,ledger:-close('2000'),ok:c.adv===-close('2000')},
+    {account:'1110',name:'Company receivables',what:'Company credit raised',report:bTotal.companyCredit,ledger:dr('1110'),ok:bTotal.companyCredit===dr('1110')},
+    {account:'1115',name:'OTA receivables',what:'OTA credit raised',report:bTotal.ota,ledger:dr('1115'),ok:bTotal.ota===dr('1115')},
+    {account:'1120',name:'Udhaar receivables',what:'Guest (Udhaar) credit raised',report:bTotal.udhaar,ledger:dr('1120'),ok:bTotal.udhaar===dr('1120')}];
+  return {from,to,basis,legacy:false,a,aTotal,b:[...brooms,rb,cb,hb],bTotal,c:bridge,tb:{balanced:tb.balanced,receivable:close('1110')+close('1115')+close('1120'),payable:-close("2200"),rows:ledgerRows}};
 }
 function addDays1(d:string,n:number){const t=new Date(d+'T12:00:00Z');t.setUTCDate(t.getUTCDate()+n);return t.toISOString().slice(0,10);}
 
@@ -116,9 +132,35 @@ export function rctCsv(r:RCTReport):string{
   const line=(a:(string|number)[],money_=true)=>a.map((v,i)=>csvMinimal(i&&money_&&typeof v==='number'?rs(v):v)).join(',');
   const c=r.c;
   return [line(['Revenue by room category and tender'],false),line(['From',r.from,'To',r.to,'Basis',r.basis==='stay'?'Stay (arrival date)':'Business date'],false),
-    ...(r.legacy?[line(['Legacy data (old Lodge software)'],false)]:[]),'',
+    ...(r.legacy?[line([RCT_LEGACY_HEADER],false)]:[]),'',
     line(['A. Revenue by category'],false),line(RCT_A_HEAD,false),...r.a.map(x=>line(rctARow(x))),line(rctARow(r.aTotal)),'',
     line(['B. Collections by tender'],false),line(RCT_B_HEAD,false),...r.b.map(x=>line(rctBRow(x))),line(rctBRow(r.bTotal)),'',
     line(['C. Bridge'],false),line(['Opening due',rs(c.openingDue),'Gross',rs(c.gross),'Net received',rs(c.netReceived),'Advance movement',rs(c.advanceMovement),'Closing due',rs(c.closingDue),'Difference',rs(c.difference)],false)].join('\r\n');
 }
 export const rctMoney=money;
+
+// ── Legacy financial years (LG contract §6): the same two blocks over the old Lodge bills and receipts (lgc.bill / lgc.receipt, read by the server) ──
+export const RCT_LEGACY_HEADER='Legacy data (old Lodge software)';
+/** One lgc.bill row (paise). `room` = the legacy room name; the category comes from the rooms master by that name, else `unassigned`. */
+export type RCTLegacyBill={fy:string;billNo:number;date:string;room:string;roomCharge:number;extra:number;fb:number;laundry:number;other:number;discount:number;roomGst:number;fbGst:number;laundryGst:number;otherGst:number;advance:number;net:number};
+/** One lgc.receipt row: advance and payment rows are collections, `security` is a refundable deposit (an advance), `refund` goes out. */
+export type RCTLegacyReceipt={fy:string;date:string;room:string;kind:'advance'|'payment'|'refund'|'security';method:'CASH'|'UPI'|'CARD'|'BANK'|'OTHER';amount:number};
+const LEGACY_METHOD:Record<RCTLegacyReceipt['method'],string>={CASH:'Cash',UPI:'UPI',CARD:'Card',BANK:'Bank transfer',OTHER:'Other'};
+/** The report for a legacy range. `typeOf(room)` = the room type in the rooms master (undefined = unmapped, kept as a row `unassigned`, never dropped). */
+export function rctLegacyReport(bills:RCTLegacyBill[],receipts:RCTLegacyReceipt[],typeOf:(room:string)=>string|undefined,from:string,to:string):RCTReport{
+  const ra=new Map<string,RCTBlockARow>(),rb=new Map<string,RCTBlockBRow>();
+  const A=(k:string)=>{let r=ra.get(k);if(!r){r=zeroA(k,labelOf(k));ra.set(k,r);}return r;},B=(k:string)=>{let r=rb.get(k);if(!r){r=zeroB(k,labelOf(k));rb.set(k,r);}return r;};
+  const aTotal=zeroA('total','Total (legacy bills)'),bTotal=zeroB('total','Total');
+  for(const x of bills)if(x.date>=from&&x.date<=to){
+    const net=x.roomCharge+x.extra+x.fb+x.laundry+x.other-x.discount,tax=x.roomGst+x.fbGst+x.laundryGst+x.otherGst,sg=Math.trunc(tax/2),cg=tax-sg;
+    for(const r of [A(typeOf(x.room)??'unassigned'),aTotal]){r.roomTariff+=x.roomCharge;r.extraPerson+=x.extra;r.otherRoomCharges+=x.fb+x.laundry+x.other;r.discounts-=x.discount;r.net+=net;r.cgst+=cg;r.sgst+=sg;r.gross+=net+tax;}}
+  for(const x of receipts)if(x.date>=from&&x.date<=to)for(const r of [B(typeOf(x.room)??'unassigned'),bTotal]){
+    if(x.kind==='security')r.advancesReceived+=x.amount;
+    else addTender(r,LEGACY_METHOD[x.method],x.kind==='refund'?-x.amount:x.amount);
+    if(x.kind==='refund')r.refunds+=x.amount;}
+  const fin=(m:Map<string,RCTBlockARow>)=>[...m.values()].sort((p,q)=>p.key==='unassigned'?1:q.key==='unassigned'?-1:p.label<q.label?-1:1);
+  for(const r of [...ra.values(),aTotal])r.adr=0;
+  const movement=bTotal.advancesReceived;
+  return {from,to,basis:'business-date',legacy:true,a:fin(ra),aTotal,b:[...rb.values()].sort((p,q)=>p.key==='unassigned'?1:q.key==='unassigned'?-1:p.label<q.label?-1:1),bTotal,
+    c:{openingDue:0,gross:aTotal.gross,netReceived:bTotal.netReceived,advanceMovement:movement,closingDue:0,openingAdvances:0,closingAdvances:movement,difference:0}};
+}

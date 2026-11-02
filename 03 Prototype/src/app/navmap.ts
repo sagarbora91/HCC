@@ -1,6 +1,8 @@
 // Navigation map: the ten module categories, which category every page belongs to, and the search index built from it.
 // Pure data + pure functions (no React state). Modules Home, the hamburger menu, the breadcrumb and the search palette all read this,
 // so a page cannot be missing from one of them. A new page must be added to PAGE_CATEGORY (a test enforces it).
+import {dgsCanView} from '../domain/streams/digest'; // F4-T2
+import {rctCanView} from '../domain/streams/rpt-revcat'; // F4-T2
 import {Store,Receipt,Wrench,HeartHandshake,Users,TrendingUp,Package,IdCard,ChartNoAxesCombined,ShieldCheck,LayoutDashboard} from 'lucide-react';
 import type {Permission} from '../services/mock';
 import type {State} from '../domain/types';
@@ -223,6 +225,10 @@ export function navFilterModules<T extends {id:string}>(s:State,items:readonly T
  * its own shifts & pay only. */
 export function navRoleOk(s:State,uid:string,page:string):boolean{
   if(rbacIsRestaurant(s,uid))return RBAC_RESTAURANT_PAGES.includes(page);
+  // F4-T2
+  if(page==='owner-digest')return dgsCanView(s,uid);      // PERM-DGS-001: Owner only
+  if(page==='revenue-category')return rctCanView(s,uid);  // PERM-RPT-001 + 002: Owner, Manager, Accountant (DEC-202 #1)
+  // F4-T2 end
   if(page==='desk-alerts')return rmdCanManage(s,uid); // LF-ALERTS: PERM-RMD-001 = Owner, Manager, Reception, Accountant
   if(page==='compliance')return cmpHasAccess(s,uid);
   if(page==='closing')return rbacCanViewClosing(s,uid);

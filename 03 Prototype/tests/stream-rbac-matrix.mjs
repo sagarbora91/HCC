@@ -67,8 +67,8 @@ const PAGES={
   settings:['OWN TAD','ADM-003 + DEC-057/058 (DEC-063 G9: no Manager requests)'],
   approvals:['OWN MGR ACC','ADM-004 audit.view + APR-001 (DEC-063 G10: not the Cashier; Tech admin view at M4)'],
   backup:['OWN TAD','ADM-005 (DEC-063 G9: the Manager gets the Overview backup card instead)'],
-  'owner-digest':['OWN TAD','Nav gate is the coarse admin permission; the page itself is Owner only (PERM-DGS-001, F4-T2) and refuses the Tech admin'],
-  'revenue-category':['OWN MGR CSH ACC','PERM-RPT-001 + PERM-RPT-002 (F4-T2: nav gate is the coarse reports permission; the page and the report refuse the Cashier — DEC-202 #1 Owner, Manager, Accountant only)'],
+  'owner-digest':['OWN','PERM-DGS-001 (F4-T2): Owner only; navRoleOk hides it from every other role'],
+  'revenue-category':['OWN MGR ACC','PERM-RPT-001 + PERM-RPT-002 (F4-T2; DEC-202 #1): Owner, Manager, Accountant; navRoleOk hides it from the Cashier and the rest'],
   syshealth:['OWN TAD','PERM-SYS-001 (Wave C3, A09-05: parked outbox events, retry, last backup; the Administration area like Backup & recovery)'],
   'counter-bills':['OWN MGR REC CSH','LF A7: PERM-CTR-001 counter.bill.issue = Owner, Manager, Reception, Cashier (nav gate = payments, as the Cashier shift)'], // LF-UI
   'desk-alerts':['OWN MGR REC ACC','LF B4: PERM-RMD-001 reminders.manage = Owner, Manager, Reception, Accountant (contract §11, same as the server seed 4705)'], // LF-ALERTS

@@ -49,8 +49,10 @@ export function RevenueByCategory(){
           {([['Opening due',c!.openingDue],['+ Gross charges (incl. GST)',c!.gross],['− Net received',c!.netReceived],['− Advances adjusted',r.bTotal.advancesAdjusted],['= Closing due',c!.closingDue],
             ['Advances held at start',c!.openingAdvances],['Advance movement',c!.advanceMovement],['Advances held at end',c!.closingAdvances],['Difference (must be 0)',c!.difference]] as [string,number][]).map(([k,v])=><tr key={k}><td>{k}</td><td className="number">{money(v)}</td></tr>)}
         </tbody></table></div>
-        <button className="text-btn" onClick={()=>setDrill(drill?null:'src')}>{drill?'Hide':'Show'} source</button>
-        {drill&&<p className="muted">Block A reads the folio lines in Reports › Revenue & tax; Block B reads the receipts in Reports › Receipts & deposits. Trial balance {r.tb.balanced?'balances':'does not balance'}; receivable ledgers {money(r.tb.receivable)}.</p>}
+        <button className="text-btn" onClick={()=>setDrill(drill?null:'src')}>{drill?'Hide':'Show'} ledger comparison</button>
+        {drill&&<><p className="muted">Block A reads the folio lines in Reports › Revenue & tax; Block B reads the receipts in Reports › Receipts & deposits. Trial balance {r.tb.balanced?'balances':'does not balance'}.</p>
+          <div className="table-wrap"><table><thead><tr><th>Ledger</th><th>Figure</th><th className="number">Report</th><th className="number">Trial balance</th><th>Ties</th></tr></thead><tbody>
+            {r.tb.rows.map((x,i)=><tr key={i}><td>{x.account} {x.name}</td><td>{x.what}</td><td className="number">{money(x.report)}</td><td className="number">{money(x.ledger)}</td><td>{x.ok?'Yes':'No'}</td></tr>)}</tbody></table></div></>}
       </ScrollPanel></>}
   </FitPage>;
 }
