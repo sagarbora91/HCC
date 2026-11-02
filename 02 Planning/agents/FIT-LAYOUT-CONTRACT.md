@@ -252,3 +252,65 @@ Source: `05 Delivery Evidence/Fit/FIT-shell-review-20261101.md` §6. These overr
 9. **Header actions never wrap.** The header row stays one row (48 px). The page's primary action is always visible; extra actions go into a **More** menu (`FitPage` prop `actions` = primary first, the rest overflow).
 10. **Tab keyboard.** Arrow keys move focus and select (automatic activation), as built; Home / End go to the first / last tab.
 11. **Below 900 px**, `.fit-cols` stacks, but its panels keep a definite height (no `flex:1 1 0` inside an auto-height parent). A table panel never collapses below the 160 px panel minimum at `tab-port`. fit-shell fixes this in `arrivals` first; the guide shows the pattern.
+
+## 12. FIT-2: lists scroll, tasks are sub-screens with a result rail
+
+Owner rule (2 Nov 2026, after the FIT wave added clicks to review data; DEC-194 / DEC-195 / DEC-196 stay): **"A list scrolls inside its own panel; a task never scrolls — it is split into sub-screens that each fit, and a fixed status rail beside the active sub-screen shows every step's result, so reviewing needs no click and doing needs no scroll."** Wave FIT-2: the shell lane (`claude/fit2-shell`) adds the props below; page lanes then use them on their own pages. Everything here is optional — a call site that passes none of it renders exactly as before.
+
+### 12.1 Rules for page lanes
+
+1. **Lists** (rows, records, logs) stay in a `ScrollPanel` / `SplitView` list and scroll there. Never split a list into pages of tabs to avoid scrolling.
+2. **Tasks** (closing, handover run, a settings form, a wizard) never scroll as a whole: each step / section is one sub-screen that fits (`StepFlow` / `FormSections`), and the **rail shows every step's result** through `summary`, so the owner can review the whole task without opening each step. A step body may hold a `ScrollPanel` for a list inside the step (rule 1).
+3. **The primary action stays in the page header** (`FitPage actions`, first item), never inside a step body below the fold.
+4. **No record open = the list gets the whole width** (SplitView default below). Do not put content the user must see into `empty`: it is no longer shown at ≥ 900 px.
+5. **Tabs are never cut off.** `FitTabs` moves what does not fit into **More ▾**; lanes do not add their own sideways-scrolling tab bars.
+6. **Key figures** in the toolbar: a page whose toolbar is tight at tab-land passes `collapseOnTablet` (figures stay visible on one line; the user can expand, and the choice is remembered for the session).
+7. **Notes**: use `FitNote`; it shows its full text when it fits and offers **More** only when the text is cut — do not add your own "More" buttons.
+8. DEC-195 unchanged: no font size changes. A summary line uses the rail button's own font (`.fit-rail-sum` sets no size). If `tools/fit-screen-check.mjs` reports a summary text as a new element, add it to `tools/fit-baseline/allow.json` with the reason "FIT-2 rail summary" (never change a size).
+
+### 12.2 New props and signatures (`src/components/fit.tsx`)
+
+```tsx
+// StepFlow: summary per step — the step's result / current value, one line under the label (ellipsis; a string also goes in title).
+export function StepFlow(p:{steps:{id:string;label:string;status:'done'|'current'|'waiting'|'blocked';note?:string;summary?:React.ReactNode}[];
+  value:string;onChange:(id:string)=>void;children:React.ReactNode}):JSX.Element
+// root class "fit-steps has-summary" when any step has a summary → rail minmax(260px,340px) at ≥ 1280 px (200–260 px below, as before)
+
+// FormSections: summary per section — its current value(s), one line under the label.
+export function FormSections(p:{sections:{id:string;label:string;dirty?:boolean;summary?:React.ReactNode}[];value:string;
+  onChange:(id:string)=>void;actions:React.ReactNode;children:React.ReactNode}):JSX.Element
+// root "fit-form has-summary" → section list minmax(260px,340px) at ≥ 1280 px; a section with a summary renders
+// <span class="fit-form-nav-text"><span>label</span><span class="fit-rail-sum">summary</span></span>
+
+// SplitView: at ≥ 900 px with no record the list takes ALL columns (root class "list-only", the empty pane is hidden); a record opens the
+// pane beside the list with "Back to list" (class fit-split-back, now shown at every width while a record is open). Below 900 px: the
+// slide-over as before. emptyPane="show" keeps the old always-two-columns look (empty pane visible) for a page that really needs it.
+export function SplitView(p:{list:React.ReactNode;detail:React.ReactNode|null;empty:React.ReactNode;onCloseDetail:()=>void;
+  ratio?:`${number}fr ${number}fr`;label:string;emptyPane?:'hide'|'show' /* default 'hide' */}):JSX.Element
+
+// FitTabs: props unchanged. Tabs that do not fit move (from the end) into a "More ▾" button at the end of the bar
+// (.fit-tabs-more > button.fit-tabs-more-btn[aria-haspopup=menu], menu .fit-tabs-pop[role=menu] > button[role=menuitem][data-tab-more=id]).
+// The selected tab always stays in the bar; a hidden tab with a badge marks More with the worst badge. Keys: ←/→/Home/End on tabs as
+// before (they also reach hidden tabs, which then swap into the bar); ↓/↑ on More opens the menu; ↑/↓/Home/End move in it; Enter picks;
+// Esc closes and returns focus to More. Touch: More and menu items ≥ 48 px. Pure helper:
+export function splitTabs<X extends {id:string}>(tabs:X[],n:number,value:string):{visible:Set<string>;hidden:X[]}
+
+// StatStrip: new optional compact / collapsible / collapseOnTablet / page.
+export function StatStrip(p:{items:StatItem[];money?:boolean;variant?:'small';className?:string;
+  compact?:boolean;          // one line per figure (label, value, sub side by side) — class fit-stats-compact; fonts unchanged
+  collapsible?:boolean;      // adds a toggle (button.icon-btn.fit-stats-toggle) beside the strip: compact ⇄ full; wrapper div.fit-stats-wrap
+  collapseOnTablet?:boolean; // implies collapsible; with nothing remembered, starts compact at ≤ 1180 px wide (TABLET_WIDE), full above
+  page?:string;              // key for the remembered mode; default = the open page (useFitNav().page)
+}):JSX.Element
+export const fitStatsKey:(page:string)=>string   // sessionStorage 'hcc-fit-stats:<page>' = 'compact' | 'full'
+export const TABLET_WIDE='(max-width: 1180px)'
+// "Collapsed" is the compact line, never hidden: the figures stay readable without a click.
+
+// FitNote: props unchanged. Full text when it fits its box; "More" only when the text is cut (measured before paint with
+// scrollWidth/scrollHeight, re-measured by a ResizeObserver on the note and its box). Server render: no More.
+export function FitNote(p:{text:React.ReactNode;lines?:number;className?:string}):JSX.Element
+```
+
+### 12.3 Tests and checks
+
+`tests/stream-fit2-shell.mjs` covers every prop above (old markup unchanged without the props); `tests/stream-fit-shell.mjs` FitNote case updated (no More before measuring). `tools/fit-screen-check.mjs` must stay PASS (no page scroll, fonts identical to the baseline). Page lanes add their own page assertions in their `stream-fit-*` files.
