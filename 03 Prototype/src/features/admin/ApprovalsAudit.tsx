@@ -6,7 +6,7 @@ import {money,authorize,adminApprovalInbox,adminDecideBlock,adminAuditFilter,adm
 import type {AdminInboxRow} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {Pill,Empty,shortDate,clockTime} from '../../components/ui';
-import {FitPage,FitTabs,useFitTab,ScrollPanel,FitNote} from '../../components/fit';
+import {FitPage,FitTabs,useFitTab,ScrollPanel,FitNote,SplitView} from '../../components/fit';
 import {GuardedButton,StatusPill,Tabs,firstName} from './parts';
 
 const PAGE=50;
@@ -24,6 +24,8 @@ export function ApprovalsAudit(){
   const counts=Object.fromEntries(ADMIN_INBOX_TABS.map(t=>[t,rows.filter(r=>r.status===t).length]));
   const list=rows.filter(r=>r.status===status).reverse();
   const pendingExp=s.expenses.filter(e=>e.status==='Pending').length;
+  const [sel,setSel]=useState<string|null>(null);
+  const chosen=list.find(r=>r.a.id===sel)??null;
   const audit=useAuditFilters();
   const auditOk=authorize(s,uid,'PERM-ADM-004').decision==='allow';
   const toolbar=tab==='approvals'?<Tabs tabs={ADMIN_INBOX_TABS} value={status} onChange={setStatus} counts={counts}/>:undefined;
@@ -31,28 +33,42 @@ export function ApprovalsAudit(){
       toolbar={toolbar}
       tabs={<FitTabs page="approvals" value={tab} onChange={setTab}
         tabs={TABS.map(x=>({...x,count:x.id==='approvals'?counts.Pending:x.id==='expenses'?pendingExp:undefined,badge:(x.id==='approvals'&&counts.Pending)||(x.id==='expenses'&&pendingExp)?'warn' as const:undefined}))}/>}>
-    {tab==='approvals'&&<ScrollPanel title="Approvals inbox" label="Approvals inbox" footer={<FitNote text="Requests are bound to a target and version. A changed target invalidates the request; an unanswered request expires."/>}>
-      {list.length?<div className="table-wrap"><table className="adm-table"><thead><tr><th>Request</th><th>Kind · target</th><th>Amount</th><th>Requested by</th><th>Reason</th><th>Version</th><th>Expires</th><th>Status</th><th>Decision</th></tr></thead><tbody>
-        {list.map(r=><InboxRow key={r.a.id} r={r}/>)}</tbody></table></div>:<Empty title={`No ${status.toLowerCase()} requests`} body={status==='Pending'?'Discounts above the threshold and policy change requests appear here.':'Nothing in this state.'}/>}
-    </ScrollPanel>}
+    {tab==='approvals'&&<SplitView label="Approvals" ratio="3fr 2fr" onCloseDetail={()=>setSel(null)}
+      list={<ScrollPanel title="Approvals inbox" label="Approvals inbox" actions={<span className="muted">{list.length} {status.toLowerCase()}</span>} footer={<FitNote text="Requests are bound to a target and version. A changed target invalidates the request; an unanswered request expires."/>}>
+        {list.length?<div className="table-wrap"><table className="adm-table apr-list"><thead><tr><th>What</th><th>Kind</th><th>Requested by</th><th>Amount</th><th>Age / expiry</th><th>Status</th></tr></thead><tbody>
+          {list.map(r=><InboxListRow key={r.a.id} r={r} on={r.a.id===chosen?.a.id} pick={()=>setSel(r.a.id)}/>)}</tbody></table></div>:<Empty title={`No ${status.toLowerCase()} requests`} body={status==='Pending'?'Discounts above the threshold and policy change requests appear here.':'Nothing in this state.'}/>}
+      </ScrollPanel>}
+      detail={chosen?<InboxDetail key={chosen.a.id} r={chosen}/>:null}
+      empty={<Empty title="Pick a request" body="Its context and the Approve / Reject buttons open here."/>}/>}
     {tab==='expenses'&&<Expenses/>}
     {tab==='audit'&&(auditOk?<div className="fit-cols"><div><AuditLog f={audit}/></div><div><ScrollPanel title="Filters" label="Audit filters"><div className="padded"><AuditFilters f={audit}/></div></ScrollPanel></div></div>:<AuditLog f={audit}/>)}
   </FitPage>;
 }
 
-function InboxRow({r}:{r:AdminInboxRow}){
+const targetText=(s:ReturnType<typeof useHcc>['s'],r:AdminInboxRow)=>{const a=r.a;const booking=s.bookings.find(b=>b.id===a.booking);
+  return r.kind==='policy'?String(a.meta?.summary||r.target):booking?`${booking.guest} · ${bookingRef(booking)}`:r.target||'—';};
+/** Time left to expiry on the simulated clock (the request has no created-at, so this is its age-like figure). */
+const expiryText=(clock:string,exp?:string)=>{if(!exp)return 'No expiry';const m=Math.round((Date.parse(exp)-Date.parse(clock))/60000);
+  if(Number.isNaN(m))return shortDate(exp.slice(0,10))+' '+clockTime(exp);if(m<=0)return 'Expired';return m<60?`in ${m} min`:m<2880?`in ${Math.floor(m/60)} h`:`in ${Math.floor(m/1440)} d`;};
+function InboxListRow({r,on,pick}:{r:AdminInboxRow;on:boolean;pick:()=>void}){
+  const {s}=useHcc();const a=r.a;
+  return <tr className={on?'fol-row-on':undefined}><td className="adm-wrap"><button className="guest-link" aria-current={on?'true':undefined} onClick={pick}><span><strong>{targetText(s,r)}</strong><small>{a.id} · {a.reason}</small></span></button></td>
+    <td>{r.kind}</td><td>{r.requester}</td><td className="number">{a.amount?money(a.amount):'—'}</td><td>{expiryText(s.clock,a.expiresAt)}</td><td><StatusPill status={r.status}/></td></tr>;
+}
+function InboxDetail({r}:{r:AdminInboxRow}){
   const {s,uid,run,busy}=useHcc();const a=r.a;
   const block=adminDecideBlock(s,uid,r);
-  const booking=s.bookings.find(b=>b.id===a.booking);
   const decide=(approve:boolean)=>run({type:r.command,id:a.id,approve,key:'approval:'+a.id},approve?'Request approved':'Request rejected');
   const live=a.status==='Pending';
   const approveBlock=block||(r.status==='Expired'?'Expired — reject it and ask for a new request.':r.status==='Invalidated'?(r.derived||'Target changed')+' — reject it and request again.':undefined);
-  return <tr><td><strong>{a.id}</strong>{a.decidedAt&&<small>decided {shortDate(a.decidedAt.slice(0,10))} {clockTime(a.decidedAt)}{a.approver?' by '+firstName(s.users.find(u=>u.id===a.approver)?.name||a.approver):''}</small>}</td>
-    <td className="adm-wrap">{r.kind}<small>{r.kind==='policy'?String(a.meta?.summary||r.target):booking?`${booking.guest} · ${bookingRef(booking)}`:r.target||'—'}</small></td>
-    <td className="number">{a.amount?money(a.amount):'—'}</td><td>{r.requester}</td><td className="adm-wrap">{a.reason}{r.kind==='policy'&&<small>{String(a.meta?.before||'')} → {String(a.meta?.after||'')}</small>}</td>
-    <td>v{a.version}</td><td>{a.expiresAt?<>{shortDate(a.expiresAt.slice(0,10))}<small>{clockTime(a.expiresAt)} IST</small></>:<span className="muted">No expiry</span>}</td>
-    <td><StatusPill status={r.status}/>{r.derived&&<small className="adm-wrap">{r.derived}</small>}</td>
-    <td className="adm-wrap">{live?<div className="adm-decide"><GuardedButton block={approveBlock} busy={busy} onClick={()=>decide(true)}>Approve</GuardedButton>{!block?<button className="text-btn" disabled={busy} onClick={()=>decide(false)}>Reject</button>:null}</div>:<span className="muted">Closed</span>}</td></tr>;
+  return <div className="apr-detail"><div className="apr-detail-body">
+    <h2>{targetText(s,r)}</h2>
+    <dl className="apr-dl"><dt>Request</dt><dd>{a.id} · v{a.version}</dd><dt>Kind</dt><dd>{r.kind}</dd><dt>Amount</dt><dd>{a.amount?money(a.amount):'—'}</dd><dt>Requested by</dt><dd>{r.requester}</dd>
+      <dt>Reason</dt><dd className="adm-wrap">{a.reason}{r.kind==='policy'&&<small>{String(a.meta?.before||'')} → {String(a.meta?.after||'')}</small>}</dd>
+      <dt>Expires</dt><dd>{a.expiresAt?<>{shortDate(a.expiresAt.slice(0,10))} {clockTime(a.expiresAt)} IST</>:'No expiry'}</dd>
+      <dt>Status</dt><dd><StatusPill status={r.status}/>{r.derived&&<small className="adm-wrap">{r.derived}</small>}</dd>
+      {a.decidedAt&&<><dt>Decided</dt><dd>{shortDate(a.decidedAt.slice(0,10))} {clockTime(a.decidedAt)}{a.approver?' by '+firstName(s.users.find(u=>u.id===a.approver)?.name||a.approver):''}</dd></>}</dl></div>
+    <div className="apr-decide">{live?<div className="adm-decide"><GuardedButton block={approveBlock} busy={busy} onClick={()=>decide(true)}>Approve</GuardedButton>{!block?<button className="text-btn" disabled={busy} onClick={()=>decide(false)}>Reject</button>:null}</div>:<span className="muted">Closed</span>}</div></div>;
 }
 
 function Expenses(){

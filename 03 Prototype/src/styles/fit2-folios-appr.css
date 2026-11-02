@@ -1,0 +1,8 @@
+/* FIT-2 folios-appr: Approvals list + chosen request pane (layout only; no font sizes). */
+.app-shell .apr-detail{display:flex;flex-direction:column;min-height:100%}
+.app-shell .apr-detail-body{flex:1 1 auto;padding:14px 16px}
+.app-shell .apr-dl{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:8px 16px;margin:0}
+.app-shell .apr-dl dt{color:var(--muted)}
+.app-shell .apr-dl dd{margin:0;min-width:0}
+.app-shell .apr-decide{position:sticky;bottom:0;flex:none;padding:10px 16px;background:var(--c-ffffff);border-top:1px solid var(--line)}
+.app-shell .apr-list .guest-link{text-align:left}
