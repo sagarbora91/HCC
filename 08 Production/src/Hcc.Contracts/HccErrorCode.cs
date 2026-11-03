@@ -24,5 +24,14 @@ public enum HccErrorCode
 
     // F5-E1 (EGRESS-CONTRACT §1): the internet egress gate refused an outbound call (details.reason, details.integration). HTTP 503.
     NET_OFFLINE,
+
+    // F6-H1 (F6-CONTRACT §3): hall booking. Clash / not latest / expired / placeholder / capacity 409; discount limit and Owner-only template 403.
+    HCC_HALL_CLASH,
+    HCC_TNC_PLACEHOLDER,
+    HCC_QUO_NOT_LATEST,
+    HCC_QUO_EXPIRED,
+    HCC_DISCOUNT_LIMIT,
+    HCC_HALL_CAPACITY,
+    HCC_TNC_OWNER_ONLY,
 }
 #pragma warning restore CA1707

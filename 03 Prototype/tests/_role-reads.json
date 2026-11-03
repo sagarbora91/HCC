@@ -153,7 +153,10 @@
     "GET /invoices/corrections": "/invoices/corrections",
     "GET /counter-bills": "/counter-bills",
     "GET /guests/credit": "/guests/credit",
-    "GET /stays/rate-changes": "/stays/rate-changes"
+    "GET /stays/rate-changes": "/stays/rate-changes",
+    "GET /hall/snapshot": "/hall/snapshot",
+    "GET /hall/menus": "/hall/menus",
+    "GET /hall/templates": "/hall/templates"
   },
   "roles": {
     "OWN": {
@@ -548,6 +551,36 @@
         ],
         [
           "PERM-GSV-005",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-HAL-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-HAL-002",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-HAL-003",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-HAL-004",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-HAL-005",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-HAL-006",
           "A",
           "P"
         ],
@@ -1178,7 +1211,10 @@
         "GET /invoices/corrections": "200",
         "GET /counter-bills": "200",
         "GET /guests/credit": "200",
-        "GET /stays/rate-changes": "200"
+        "GET /stays/rate-changes": "200",
+        "GET /hall/snapshot": "200",
+        "GET /hall/menus": "200",
+        "GET /hall/templates": "200"
       }
     },
     "MGR": {
@@ -1209,6 +1245,11 @@
         [
           "PERM-ADM-004",
           "A",
+          "P"
+        ],
+        [
+          "PERM-ADM-005",
+          "V",
           "P"
         ],
         [
@@ -1423,6 +1464,31 @@
         ],
         [
           "PERM-GSV-005",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-HAL-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-HAL-002",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-HAL-003",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-HAL-004",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-HAL-006",
           "A",
           "P"
         ],
@@ -1968,7 +2034,10 @@
         "GET /invoices/corrections": "200",
         "GET /counter-bills": "200",
         "GET /guests/credit": "200",
-        "GET /stays/rate-changes": "200"
+        "GET /stays/rate-changes": "200",
+        "GET /hall/snapshot": "200",
+        "GET /hall/menus": "200",
+        "GET /hall/templates": "200"
       }
     },
     "REC": {
@@ -2114,6 +2183,26 @@
         [
           "PERM-GSV-004",
           "V",
+          "P"
+        ],
+        [
+          "PERM-HAL-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-HAL-002",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-HAL-003",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-HAL-004",
+          "A",
           "P"
         ],
         [
@@ -2468,7 +2557,10 @@
         "GET /invoices/corrections": "200",
         "GET /counter-bills": "200",
         "GET /guests/credit": "200",
-        "GET /stays/rate-changes": "200"
+        "GET /stays/rate-changes": "200",
+        "GET /hall/snapshot": "200",
+        "GET /hall/menus": "200",
+        "GET /hall/templates": "200"
       }
     },
     "CSH": {
@@ -2564,6 +2656,16 @@
         [
           "PERM-GST-001",
           "M",
+          "P"
+        ],
+        [
+          "PERM-HAL-003",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-HAL-004",
+          "A",
           "P"
         ],
         [
@@ -2823,7 +2925,10 @@
         "GET /invoices/corrections": "200",
         "GET /counter-bills": "200",
         "GET /guests/credit": "200",
-        "GET /stays/rate-changes": "403"
+        "GET /stays/rate-changes": "403",
+        "GET /hall/snapshot": "200",
+        "GET /hall/menus": "200",
+        "GET /hall/templates": "403"
       }
     },
     "ACC": {
@@ -2952,6 +3057,11 @@
           "P"
         ],
         [
+          "PERM-FOL-004",
+          "V",
+          "P"
+        ],
+        [
           "PERM-FOL-005",
           "R",
           "P"
@@ -2968,6 +3078,16 @@
         ],
         [
           "PERM-GRP-004",
+          "V",
+          "P"
+        ],
+        [
+          "PERM-HAL-002",
+          "V",
+          "P"
+        ],
+        [
+          "PERM-HAL-004",
           "V",
           "P"
         ],
@@ -3023,6 +3143,11 @@
         ],
         [
           "PERM-MNT-004",
+          "V",
+          "P"
+        ],
+        [
+          "PERM-MNT-005",
           "V",
           "P"
         ],
@@ -3268,7 +3393,10 @@
         "GET /invoices/corrections": "200",
         "GET /counter-bills": "403",
         "GET /guests/credit": "200",
-        "GET /stays/rate-changes": "403"
+        "GET /stays/rate-changes": "403",
+        "GET /hall/snapshot": "200",
+        "GET /hall/menus": "200",
+        "GET /hall/templates": "200"
       }
     },
     "SUP": {
@@ -3533,7 +3661,10 @@
         "GET /invoices/corrections": "403",
         "GET /counter-bills": "403",
         "GET /guests/credit": "403",
-        "GET /stays/rate-changes": "403"
+        "GET /stays/rate-changes": "403",
+        "GET /hall/snapshot": "200",
+        "GET /hall/menus": "200",
+        "GET /hall/templates": "403"
       }
     },
     "HKP": {
@@ -3763,7 +3894,10 @@
         "GET /invoices/corrections": "403",
         "GET /counter-bills": "403",
         "GET /guests/credit": "403",
-        "GET /stays/rate-changes": "403"
+        "GET /stays/rate-changes": "403",
+        "GET /hall/snapshot": "200",
+        "GET /hall/menus": "200",
+        "GET /hall/templates": "403"
       }
     },
     "MNT": {
@@ -3978,7 +4112,10 @@
         "GET /invoices/corrections": "403",
         "GET /counter-bills": "403",
         "GET /guests/credit": "403",
-        "GET /stays/rate-changes": "403"
+        "GET /stays/rate-changes": "403",
+        "GET /hall/snapshot": "200",
+        "GET /hall/menus": "200",
+        "GET /hall/templates": "403"
       }
     },
     "TAD": {
@@ -3994,6 +4131,11 @@
         [
           "PERM-ADM-002",
           "R",
+          "P"
+        ],
+        [
+          "PERM-ADM-003",
+          "V",
           "P"
         ],
         [
@@ -4228,7 +4370,10 @@
         "GET /invoices/corrections": "403",
         "GET /counter-bills": "403",
         "GET /guests/credit": "403",
-        "GET /stays/rate-changes": "403"
+        "GET /stays/rate-changes": "403",
+        "GET /hall/snapshot": "200",
+        "GET /hall/menus": "200",
+        "GET /hall/templates": "403"
       }
     },
     "RST": {
@@ -4418,7 +4563,10 @@
         "GET /invoices/corrections": "403",
         "GET /counter-bills": "403",
         "GET /guests/credit": "403",
-        "GET /stays/rate-changes": "403"
+        "GET /stays/rate-changes": "403",
+        "GET /hall/snapshot": "200",
+        "GET /hall/menus": "200",
+        "GET /hall/templates": "403"
       }
     }
   }

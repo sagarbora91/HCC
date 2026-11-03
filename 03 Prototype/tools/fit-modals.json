@@ -35,5 +35,8 @@
   {"page":"accounting","tab":"chart","opener":"Add ledger","lane":"fit-people-b","roles":["owner"]},
   {"page":"reports","opener":"Print","lane":"fit-people-b","roles":["owner","manager","accountant"]},
   {"page":"settings","opener":"Change…","prep":".cfg-item","lane":"fit-admin-a","roles":["owner","techadmin"]},
-  {"page":"access","opener":"Edit","lane":"fit-admin-b","roles":["owner"]}
+  {"page":"access","opener":"Edit","lane":"fit-admin-b","roles":["owner"]},
+  {"page":"hall-booking","opener":"New enquiry","lane":"F6-H3","roles":["owner","reception"]},
+  {"page":"hall-booking","tab":"menus","opener":"New menu","lane":"F6-H3","roles":["owner","manager"]},
+  {"page":"hall-booking","tab":"menus","opener":"New hall","lane":"F6-H3","roles":["owner"]}
 ]

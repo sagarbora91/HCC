@@ -102,6 +102,10 @@ export type Booking={id:string;guest:string;email:string;people:number;room:stri
   // ── Booking · stream A fields (add below this line) ──
   /** Production only: the server public booking number (e.g. HCC-1101) shown to people; `id` stays the internal key. See domain/bookingRef.ts. */
   publicNo?:string;
+  // F6-H1
+  /** F6 hall booking (SCHEMA 14): the hall event whose guests this room block / booking serves. */
+  hallEventId?:string;
+  // F6-H1 end
   /** Hold expiry (simulated clock value). A Held booking blocks inventory only while s.clock < holdUntil (DEC-038). */
   holdUntil?:string;
   /** Contact phone (fictional). Required in the booking form; optional in BOOK for backward compatibility. */
@@ -388,6 +392,14 @@ export type State={
   tariffCardX?:TRCState;
   digestX?:DGSState;
   feedbackX?:FBKState;
+  // ── State · F6 hall booking (SCHEMA 14, F6-CONTRACT §1; absent = the seed from fixtures/ext/hall.ts via hallSlice) ──
+  // F6-H1
+  hallX?:import('./streams/hall').HallState;
+  // F6-H1 end
+  // F6-H2
+  // F6-H2 end
+  // F6-H3
+  // F6-H3 end
 
   // ── State · stream F fields (add below this line) ──
   /** Immutable closing record per business date (REQ-CLOSE-004). */
@@ -398,7 +410,7 @@ export type State={
   shift?:import('./streams/closing').ShiftRecord;
 };
 export type Command={type:string;key?:string;[field:string]:any};
-export const SCHEMA=13; // 13 = LF legacy parity (docObjectsX image slice — v12 saves move billPhoto / complianceFilesX into it; new optional LF slices and fields). 12 = ACC-2 (manual vouchers, purchases / vendor payments, TDS, GST month end, OTA payouts; new optional fields only — v11 saves need nothing). 11 = ACC-1 (accounting chart as a master, party ledgers, opening balances; new optional fields on accountingX — v10 saves need nothing). 10 = SCC port wave (leave one record per date, SCC compliance slice, SCC expense registers; v9 saves migrate by shape). 9 = masters wave MA-1…MA-7 (new optional slices / fields; v8 saves migrate, masters seed lazily)
+export const SCHEMA=14; // 14 = F6 hall booking (optional hallX slice, Booking.hallEventId; v13 saves need nothing). 13 = LF legacy parity (docObjectsX image slice — v12 saves move billPhoto / complianceFilesX into it; new optional LF slices and fields). 12 = ACC-2 (manual vouchers, purchases / vendor payments, TDS, GST month end, OTA payouts; new optional fields only — v11 saves need nothing). 11 = ACC-1 (accounting chart as a master, party ledgers, opening balances; new optional fields on accountingX — v10 saves need nothing). 10 = SCC port wave (leave one record per date, SCC compliance slice, SCC expense registers; v9 saves migrate by shape). 9 = masters wave MA-1…MA-7 (new optional slices / fields; v8 saves migrate, masters seed lazily)
 
 // ════ LF (wave claude/lf, contract 02 Planning/agents/LF-CONTRACT.md §11) — declared by the setup commit; lanes import (or re-export) these, never redeclare ════
 /** §1.10 */

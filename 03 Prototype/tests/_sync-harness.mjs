@@ -66,7 +66,7 @@ export function fakeServer(routes={}){
     'GET /me/capabilities':()=>capabilities(),
     // Empty front-desk lists (W4-1): every runtime with the full registry reloads bookings / guests; area tests override them.
     'GET /reservations':()=>({businessDate:'2026-10-24',total:0,page:1,pageSize:500,items:[]}),'GET /guests':()=>({total:0,page:1,pageSize:500,items:[]}),
-    'GET /counter-bills':()=>[],'GET /guests/credit':()=>[],'GET /stays/rate-changes':()=>[],   // LF-finish list reads
+    'GET /counter-bills':()=>[],'GET /guests/credit':()=>[],'GET /stays/rate-changes':()=>[],'GET /hall/snapshot':()=>({seesMoney:true,venues:[],enquiries:[],quotations:[],events:[],lostReasons:[]}),   // LF-finish list reads
     // MA-1: rooms-master fields read with the rooms (empty = no master data; floor from the room number) and the room masters' lists.
     ...mstDefaults,'GET /masters/rooms':()=>({items:[]}),
     // ACC-1 (integration): the chart master / history and the opening entry are patch loaders of accountingX (empty = built-ins, no entry).

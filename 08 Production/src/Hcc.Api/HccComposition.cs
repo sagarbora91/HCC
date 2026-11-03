@@ -138,6 +138,14 @@ public static class HccComposition
         // F5-E1
         services.AddEgressModule();                      // F5-E1 internet egress gate: net.* settings, "egress" client, hold / replay, System health Egress
         // F5-E1 end
+        // F6-H1
+        services.AddHallModule();                        // F6 hall booking: accept, advances, event bill → HPE invoice, cancel, refund (H1 money)
+        // F6-H1 end
+        // F6-H2
+        services.AddHallQuoteModule();                   // F6 hall quotations + T&C (H2): create / edit / revise / send / override / approve / lost / cancel / expire, templates
+        // F6-H2 end
+        // F6-H3
+        // F6-H3 end
         // F4 lanes: ONE services.Add<Lane>Module(); line inside your own block (append only).
         // F4-T1
         services.AddTariffCardModule();                 // F4-T1 tariff card (PERM-TRF-001…003)
@@ -303,6 +311,14 @@ public static class HccComposition
         // F5-E1
         api.MapEgressEndpoints();        // F5-E1: GET /admin/system-health/egress (PERM-NET-002)
         // F5-E1 end
+        // F6-H1
+        api.MapHallEndpoints();          // F6 hall booking H1: /hall/quotations/{id}/accept, /hall/events/{id}/advance|close|cancel|refund
+        // F6-H1 end
+        // F6-H2
+        api.MapHallQuoteEndpoints();     // F6 hall booking H2: /hall/quotations[/{id}/edit|revise|send|override|approve-discount|lost|cancel], /hall/quotations/expire, /hall/templates
+        // F6-H2 end
+        // F6-H3
+        // F6-H3 end
         // F4-T1
         api.MapTariffCardEndpoints();    // F4-T1 tariff card
         // F4-T1 end
