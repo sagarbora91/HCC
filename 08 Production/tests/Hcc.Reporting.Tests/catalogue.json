@@ -1,5 +1,610 @@
 [
  {
+  "id": "rpt.acc.ageing",
+  "title": "Outstanding with ageing",
+  "area": "acc",
+  "priority": "P1",
+  "status": "ACC-3",
+  "moneyFlag": true,
+  "moneyGate": "PERM-ACC-001",
+  "viewPerms": [
+   "PERM-ACC-001"
+  ],
+  "deskPerms": [],
+  "exportPerm": "PERM-RPT-003",
+  "dateClass": "D-ASOF",
+  "params": [
+   "asOf",
+   "side"
+  ],
+  "columns": [
+   {
+    "key": "party",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "control",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "billRef",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "billDate",
+    "type": "date",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "due",
+    "type": "date",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "amount",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "paid",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "open",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "days",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "b0_30",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "b31_60",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "b61_90",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "b90",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   }
+  ],
+  "formats": [
+   "screen",
+   "xlsx",
+   "pdf",
+   "csv"
+  ],
+  "phone": "yes",
+  "layout": "table"
+ },
+ {
+  "id": "rpt.acc.balance-sheet",
+  "title": "Balance sheet",
+  "area": "acc",
+  "priority": "P3",
+  "status": "ACC-3",
+  "moneyFlag": true,
+  "moneyGate": "PERM-ACC-013",
+  "viewPerms": [
+   "PERM-ACC-013"
+  ],
+  "deskPerms": [],
+  "exportPerm": "PERM-RPT-003",
+  "dateClass": "D-ASOF",
+  "params": [
+   "asOf"
+  ],
+  "columns": [
+   {
+    "key": "block",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "line",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "amount",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   }
+  ],
+  "formats": [
+   "screen",
+   "xlsx",
+   "pdf",
+   "csv"
+  ],
+  "phone": "summary",
+  "layout": "table"
+ },
+ {
+  "id": "rpt.acc.cash-ratio",
+  "title": "Cash ratio",
+  "area": "acc",
+  "priority": "P2",
+  "status": "ACC-3",
+  "moneyFlag": true,
+  "moneyGate": "PERM-ACC-013",
+  "viewPerms": [
+   "PERM-ACC-013"
+  ],
+  "deskPerms": [],
+  "exportPerm": "PERM-RPT-003",
+  "dateClass": "D-FY",
+  "params": [
+   "fy"
+  ],
+  "columns": [
+   {
+    "key": "measure",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "cash",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "total",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "share",
+    "type": "pct",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "flagged",
+    "type": "bool",
+    "money": false,
+    "mask": null,
+    "computed": null
+   }
+  ],
+  "formats": [
+   "screen",
+   "xlsx",
+   "pdf"
+  ],
+  "phone": "summary",
+  "layout": "table"
+ },
+ {
+  "id": "rpt.acc.day-book",
+  "title": "Day book",
+  "area": "acc",
+  "priority": "P2",
+  "status": "built",
+  "moneyFlag": true,
+  "moneyGate": "PERM-ACC-001",
+  "viewPerms": [
+   "PERM-ACC-001"
+  ],
+  "deskPerms": [],
+  "exportPerm": "PERM-RPT-003",
+  "dateClass": "D-B",
+  "params": [
+   "from"
+  ],
+  "columns": [
+   {
+    "key": "date",
+    "type": "date",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "voucher",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "type",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "ledger",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "debit",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "credit",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "narration",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "source",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   }
+  ],
+  "formats": [
+   "screen",
+   "xlsx",
+   "pdf",
+   "csv"
+  ],
+  "phone": "yes",
+  "layout": "table"
+ },
+ {
+  "id": "rpt.acc.pl",
+  "title": "Profit and loss",
+  "area": "acc",
+  "priority": "P2",
+  "status": "ACC-3",
+  "moneyFlag": true,
+  "moneyGate": "PERM-ACC-013",
+  "viewPerms": [
+   "PERM-ACC-013"
+  ],
+  "deskPerms": [],
+  "exportPerm": "PERM-RPT-003",
+  "dateClass": "D-F",
+  "params": [
+   "from",
+   "tallyView"
+  ],
+  "columns": [
+   {
+    "key": "code",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "line",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "group",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "amount",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   }
+  ],
+  "formats": [
+   "screen",
+   "xlsx",
+   "pdf",
+   "csv"
+  ],
+  "phone": "summary",
+  "layout": "table"
+ },
+ {
+  "id": "rpt.acc.statement",
+  "title": "Ledger or party statement",
+  "area": "acc",
+  "priority": "P1",
+  "status": "built",
+  "moneyFlag": true,
+  "moneyGate": "PERM-ACC-001",
+  "viewPerms": [
+   "PERM-ACC-001"
+  ],
+  "deskPerms": [],
+  "exportPerm": "PERM-RPT-003",
+  "dateClass": "D-F",
+  "params": [
+   "account",
+   "from"
+  ],
+  "columns": [
+   {
+    "key": "date",
+    "type": "date",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "voucher",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "type",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "narration",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "counter",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "debit",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "credit",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "balance",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   }
+  ],
+  "formats": [
+   "screen",
+   "xlsx",
+   "pdf",
+   "csv"
+  ],
+  "phone": "yes",
+  "layout": "table"
+ },
+ {
+  "id": "rpt.acc.tally-xml",
+  "title": "Tally export (masters and vouchers)",
+  "area": "acc",
+  "priority": "P1",
+  "status": "ACC-3",
+  "moneyFlag": false,
+  "moneyGate": null,
+  "viewPerms": [
+   "PERM-ACC-006"
+  ],
+  "deskPerms": [],
+  "exportPerm": "PERM-ACC-006",
+  "dateClass": "D-FY",
+  "params": [
+   "fy",
+   "vFrom",
+   "vTo"
+  ],
+  "columns": [
+   {
+    "key": "file",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "vouchers",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "ledgers",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "notes",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   }
+  ],
+  "formats": [
+   "screen",
+   "xml"
+  ],
+  "phone": "yes",
+  "layout": "table"
+ },
+ {
+  "id": "rpt.acc.trial-balance",
+  "title": "Trial balance (six columns)",
+  "area": "acc",
+  "priority": "P1",
+  "status": "built",
+  "moneyFlag": true,
+  "moneyGate": "PERM-ACC-001",
+  "viewPerms": [
+   "PERM-ACC-001"
+  ],
+  "deskPerms": [],
+  "exportPerm": "PERM-RPT-003",
+  "dateClass": "D-F",
+  "params": [
+   "from",
+   "view"
+  ],
+  "columns": [
+   {
+    "key": "code",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "ledger",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "group",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "openDr",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "openCr",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "perDr",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "perCr",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "closeDr",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "closeCr",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   }
+  ],
+  "formats": [
+   "screen",
+   "xlsx",
+   "pdf",
+   "csv"
+  ],
+  "phone": "yes",
+  "layout": "table"
+ },
+ {
   "id": "rpt.guests.form-c-register",
   "title": "Form C register (foreign guests)",
   "area": "guests",

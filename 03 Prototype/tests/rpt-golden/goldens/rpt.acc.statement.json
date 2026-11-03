@@ -1,0 +1,62 @@
+{
+ "id": "rpt.acc.statement",
+ "cases": [
+  {
+   "uid": "accountant",
+   "scenario": "ACC-RULEBOOK",
+   "params": {
+    "account": "1000",
+    "from": "2026-04-01",
+    "to": "2026-04-30"
+   },
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["date","voucher","type","narration","counter","debit","credit","balance"],
+     "rows": [
+      ["subtotal",null,null,null,"Opening balance · Cash in hand — Dr",null,null,null,2000000],
+      ["row","2026-04-02","SAL/20260402/023","Sales","Outlet bill · restaurant · Cash · Outlet cash · POS-1343","Food & beverage revenue, Output CGST, Output SGST",630000,0,2630000],
+      ["row","2026-04-06","RCT/20260406/001","Receipt","Payment received · Cash · Demo cash · Guest F (fictional)","Guest ledger (in-house folios)",50000,0,2680000],
+      ["row","2026-04-06","SAL/20260406/015","Sales","Outlet bill · restaurant · Cash · Outlet cash · POS-1522","Food & beverage revenue, Output CGST, Output SGST",630000,0,3310000],
+      ["row","2026-04-08","PMT/20260408/001","Payment","Salary advance given · Cash · advance HR-ADV-1681 · staff HR-S07","Staff advances · Farhan Qureshi",0,500000,2810000],
+      ["row","2026-04-10","SAL/20260410/014","Sales","Outlet bill · restaurant · Cash · Outlet cash · POS-1743","Food & beverage revenue, Output CGST, Output SGST",630000,0,3440000],
+      ["row","2026-04-11","RCT/20260411/001","Receipt","Payment received · Cash · Demo cash · Guest A (fictional)","Guest ledger (in-house folios)",2100000,0,5540000],
+      ["row","2026-04-11","RCT/20260411/002","Receipt","Payment received · Cash · Demo cash · Guest B (fictional)","Guest ledger (in-house folios)",2100000,0,7640000],
+      ["row","2026-04-11","RCT/20260411/003","Receipt","Payment received · Cash · Demo cash · Guest C (fictional)","Guest ledger (in-house folios)",2100000,0,9740000],
+      ["row","2026-04-11","RCT/20260411/004","Receipt","Payment received · Cash · Demo cash · Guest D (fictional)","Guest ledger (in-house folios)",2100000,0,11840000],
+      ["row","2026-04-11","RCT/20260411/005","Receipt","Payment received · Cash · Demo cash · Guest E (fictional)","Guest ledger (in-house folios)",2100000,0,13940000],
+      ["row","2026-04-11","RCT/20260411/006","Receipt","Payment received · Cash · Demo cash · Guest G (fictional)","Guest ledger (in-house folios)",4650000,0,18590000],
+      ["row","2026-04-14","PMT/20260414/001","Payment","Sundry cash expenses (1 of 2, fictional) · Petty cash · Cash","Petty cash & sundry",0,400000,18190000],
+      ["row","2026-04-14","SAL/20260414/002","Sales","Outlet bill · restaurant · Cash · Outlet cash · POS-1888","Food & beverage revenue, Output CGST, Output SGST",630000,0,18820000],
+      ["row","2026-04-18","PMT/20260418/001","Payment","Sundry cash expenses (2 of 2, fictional) · Petty cash · Cash","Petty cash & sundry",0,400000,18420000],
+      ["row","2026-04-18","SAL/20260418/001","Sales","Outlet bill · restaurant · Cash · Outlet cash · POS-1999","Food & beverage revenue, Output CGST, Output SGST",630000,0,19050000],
+      ["row","2026-04-25","JRN/20260425/001","Journal","Cash deposited in bank · HDFC · slip SLIP-20260425 · deposit BNK-2151","Bank accounts · HDFC",0,15000000,4050000],
+      ["row","2026-04-26","JRN/20260426/001","Journal","Cash short accepted at shift close · 2026-04-26","Cash short",0,20000,4030000],
+      ["total",null,null,null,"Closing balance — Dr",null,18350000,16320000,4030000]
+     ]
+    }
+   ]
+  },
+  {
+   "uid": "accountant",
+   "scenario": "ACC-RULEBOOK",
+   "params": {
+    "account": "1120",
+    "from": "2026-04-01",
+    "to": "2026-04-30"
+   },
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["date","voucher","type","narration","counter","debit","credit","balance"],
+     "rows": [
+      ["subtotal",null,null,null,"Opening balance · Udhaar receivables (customer credit)",null,null,null,0],
+      ["total",null,null,null,"Closing balance",null,0,0,0]
+     ]
+    }
+   ]
+  }
+ ]
+}

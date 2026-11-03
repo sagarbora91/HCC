@@ -1,0 +1,23 @@
+{
+ "id": "rpt.acc.cash-ratio",
+ "cases": [
+  {
+   "uid": "accountant",
+   "scenario": "ACC-RULEBOOK",
+   "params": {
+    "fy": "2026-27"
+   },
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["measure","cash","total","share","flagged"],
+     "rows": [
+      ["row","Receipts",15200000,59786000,25.4,1],
+      ["row","Payments",1300000,43709000,3,0]
+     ]
+    }
+   ]
+  }
+ ]
+}

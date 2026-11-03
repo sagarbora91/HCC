@@ -25,6 +25,14 @@ import './tax/bill-corrections';
 import './tax/gst-summary';
 // F7-R5 end
 // F7-R6
+import './acc/trial-balance';
+import './acc/statement';
+import './acc/day-book';
+import './acc/pl';
+import './acc/balance-sheet';
+import './acc/cash-ratio';
+import './acc/ageing';
+import './acc/tally-xml';
 // F7-R6 end
 // F7-R7
 // F7-R7 end
