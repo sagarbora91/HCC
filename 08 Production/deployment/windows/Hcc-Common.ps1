@@ -609,7 +609,7 @@ $script:HccImportOrder = @('room-types', 'rooms', 'tariffs', 'seasons', 'staff',
     'departments', 'companies', 'suppliers', 'stock-items',
     'floors', 'amenities', 'occupancy-charges', 'meal-plans', 'extras', 'discount-reasons', 'bank-accounts', 'payment-methods', 'expense-categories',
     'expense-vendors', 'menu-categories', 'pos-tables', 'booking-sources', 'policies', 'id-types', 'number-series', 'designations', 'shift-patterns',
-    'leave-types', 'holidays', 'hk-task-types', 'hk-zones', 'complaint-categories', 'lost-found-categories')
+    'leave-types', 'holidays', 'hk-task-types', 'hk-zones', 'complaint-categories', 'lost-found-categories', 'purposes', 'vehicle-types')
 $script:HccImportNeeds = @{ 'rooms' = 'room-types'; 'tariffs' = 'room-types'; 'seasons' = 'room-types'; 'companies' = 'room-types'; 'opening-balances' = 'ledgers'; 'pos-menu' = 'pos-outlets'; 'occupancy-charges' = 'room-types'; 'meal-plans' = 'room-types'; 'payment-methods' = 'bank-accounts'; 'pos-tables' = 'pos-outlets'; 'policies' = 'booking-sources'; 'designations' = 'departments'; 'hk-zones' = 'floors' }
 
 function Get-HccImportOrder { return , @($script:HccImportOrder) }
