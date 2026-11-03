@@ -52,9 +52,9 @@ export function ExportBar({def,result,raw,phone}:{def:RptDefinition;result:RptRe
   const code=(s.settings.hotel||'HCC').replace(/[^A-Za-z]/g,'').slice(0,4).toUpperCase()||'HCC';
   const log=(format:'print'|'xlsx'|'csv')=>{if(result)void run({type:'RPT_LOG',reportId:def.id,params:raw,format,rows:result.rows.length,provisional:result.about.provisional});};
   const xl=()=>{if(!result)return;const name=exportFileName(code,def.id,raw,'xlsx');
-    void saveAndReport(saveBinaryFile(name,buildXlsx(toXlsx(result)),XLSX_MIME),toast,'Excel workbook saved · '+def.title,'the Excel workbook');log('xlsx');};
+    void saveAndReport(saveBinaryFile(name,buildXlsx(toXlsx(result,s)),XLSX_MIME),toast,'Excel workbook saved · '+def.title,'the Excel workbook');log('xlsx');};
   const csv=()=>{if(!result)return;void saveCsv(exportFileName(code,def.id,raw,'csv'),toCsv(result));toast('CSV saved · '+def.title);log('csv');};
-  const print=()=>{if(!result)return;void printPage(def.title,printHtml(toPrintModel(result)));log('print');};
+  const print=()=>{if(!result)return;void printPage(def.title,printHtml(toPrintModel(result,s)));log('print');};
   const dis=!result;
   return <div className={'rpt-export'+(phone?' rpt-export-m':'')}>
     {canExport&&has('xlsx')&&<button className="btn" disabled={dis} onClick={xl}><FileSpreadsheet size={16}/> Export Excel</button>}
