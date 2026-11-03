@@ -293,6 +293,9 @@
     <File Path="database/migrations/4332_hall_quote_snapshot.sql" />
     <File Path="database/migrations/4333_hall_menu_packages.sql" />
     <File Path="database/migrations/4334_hall_lost_reasons.sql" />
+    <File Path="database/migrations/4345_hall_rbac_seed.sql" />
+    <File Path="database/migrations/4346_hall_indexes.sql" />
+    <File Path="database/migrations/4348_hall_print_log.sql" />
     <File Path="database/migrations/4349_hall_seed.sql" />
     <!-- F6-H2 end -->
     <!-- F6-H3 4345-4348 -->
