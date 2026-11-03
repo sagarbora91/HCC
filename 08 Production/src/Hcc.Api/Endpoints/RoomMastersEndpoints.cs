@@ -25,7 +25,7 @@ public static class RoomMastersEndpoints
     }
 
     private static void Post<TReq, TRes>(RouteGroupBuilder g, string op, Func<RoomMastersCommands, CommandContext, TReq, CancellationToken, Task<CommandResult<TRes>>> run) =>
-        mst.MapPost("/commands/" + op, async (HttpContext http, TReq body, RoomMastersCommands c, CancellationToken ct) => http.HccReply(await run(c, http.HccCommand(op), body, ct)));
+        g.MapPost("/commands/" + op, async (HttpContext http, TReq body, RoomMastersCommands c, CancellationToken ct) => http.HccReply(await run(c, http.HccCommand(op), body, ct)));
 
     public static RouteGroupBuilder MapRoomMastersEndpoints(this RouteGroupBuilder api)
     {

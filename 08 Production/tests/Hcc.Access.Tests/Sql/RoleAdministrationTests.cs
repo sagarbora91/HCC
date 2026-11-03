@@ -1,4 +1,5 @@
 using Hcc.Access.Tests.Harness;
+using Hcc.Application.Access;
 using Hcc.Contracts;
 using Hcc.Contracts.Access;
 using Hcc.Domain.Access;
@@ -158,7 +159,9 @@ public class RoleAdministrationTests(AccessDatabase db) : IClassFixture<AccessDa
         // A Tech admin (PERM-ADM-001 only) and a Manager cannot edit roles.
         var tad = await db.SeedUserAsync("adm2.guard.tad", ["TAD"], password: Pw);
         var tadSession = await AccessDatabase.SignInPasswordAsync(m, "adm2.guard.tad", Pw);
-        Assert.Equal(HccErrorCode.FORBIDDEN, (await Assert.ThrowsAsync<HccException>(() => m.Roles.CreateRoleAsync(tadSession, Key(), new CreateRoleRequest(Unique("Tad role"), RoleCodes.Housekeeper)))).Code);
+        // TAD holds PERM-ADM-002 in Request mode (0101 seed), so the policy answers APPROVAL_REQUIRED; either way nothing is created.
+        Assert.Contains((await Assert.ThrowsAsync<HccException>(() => m.Roles.CreateRoleAsync(tadSession, Key(), new CreateRoleRequest(Unique("Tad role"), RoleCodes.Housekeeper)))).Code,
+            new[] { HccErrorCode.FORBIDDEN, HccErrorCode.APPROVAL_REQUIRED });
         Assert.True(tad > 0);
     }
 
@@ -183,15 +186,18 @@ public class RoleAdministrationTests(AccessDatabase db) : IClassFixture<AccessDa
         Assert.Equal(1, await db.CountAsync("SELECT COUNT(*) FROM plat.audit_event WHERE action = 'ROLE_RETIRE' AND target = @t;", ("@t", "role:" + r.RoleCode)));
     }
 
+    // Every switchable Accounting sub-function (F5 added year end and bank reconciliation after ADM-2 was written).
+    private static string[] AccountingSwitchable => FeatureCatalog.Modules.Single(x => x.Id == "accounting").Features.Where(f => !f.Core).Select(f => f.Id).ToArray();
+
     [Fact]
     public async Task Day_and_night_shift_managers_get_their_feature_levels_and_keep_the_base_code_in_the_snapshot()
     {
         var (m, owner, _) = await OwnerAsync("adm2.shift.own");
         var day = await CreateAsync(m, owner, Unique("Day shift manager"), RoleCodes.Manager);
-        foreach (var f in new[] { FeatureIds.Vouchers, FeatureIds.Gst, FeatureIds.Tds, FeatureIds.Tally })
+        foreach (var f in AccountingSwitchable)
             await FeatureAsync(m, owner, day.RoleCode, f, "off");
         var night = await CreateAsync(m, owner, Unique("Night shift manager"), RoleCodes.Manager);
-        foreach (var f in new[] { FeatureIds.Vouchers, FeatureIds.Gst, FeatureIds.Tds, FeatureIds.Tally })
+        foreach (var f in AccountingSwitchable)
             await FeatureAsync(m, owner, night.RoleCode, f, "view");
 
         var dayUser = await db.SeedUserAsync("adm2.shift.day", [day.RoleCode], pin: "482913");

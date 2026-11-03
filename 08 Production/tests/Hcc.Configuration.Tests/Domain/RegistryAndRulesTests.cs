@@ -62,7 +62,7 @@ public class RegistryAndRulesTests
         // Group order: settings are listed in the 12-group order.
         var order = ConfigCatalog.Groups.Select(g => g.Id).ToList();
         Assert.Equal(Registry.All.Select(s => order.IndexOf(s.Group.Id)).Order(), Registry.All.Select(s => order.IndexOf(s.Group.Id)));
-        Assert.Equal(10, Registry.InGroup("modules").Count());
+        Assert.Equal(10 + FeatureCatalog.Switchable.Count(), Registry.InGroup("modules").Count()); // ten DEC-057 switches + ADM-1 sub-function switches
         Assert.False(S("currency").Editable);
         Assert.Equal(EffectiveMode.Date, S("discountLimit").Mode);
         Assert.True(S("discountLimit").Dated);

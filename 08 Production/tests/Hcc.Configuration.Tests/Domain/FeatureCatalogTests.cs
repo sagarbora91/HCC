@@ -118,7 +118,7 @@ public class FeatureCatalogTests
     public void Feature_refusal_carries_the_prototype_sentence_MODULE_OFF_and_the_feature_id()
     {
         var e = ModuleGate.FeatureRefusal(FeatureIds.Reservations);
-        Assert.Equal(Hcc.Domain.Errors.HccErrorCode.FORBIDDEN, e.Code);
+        Assert.Equal(Hcc.Contracts.HccErrorCode.FORBIDDEN, e.Code);
         Assert.Equal("Reservations (Front desk) is switched off in Master configuration › Modules & features. Its data is kept; the Owner or Tech admin can switch it back on.", e.Message);
         Assert.Equal(ConfigCatalog.ModuleOffReason, e.Details!["reason"].GetString());
         Assert.Equal(FeatureIds.Reservations, e.Details["featureId"].GetString());

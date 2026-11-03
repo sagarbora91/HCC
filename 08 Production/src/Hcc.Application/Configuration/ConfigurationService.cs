@@ -303,7 +303,7 @@ public sealed class ConfigurationService(ICommandRunner runner, IAccessPolicy po
                 var depRows = await store.ChangesAsync(tx, ctx.PropertyId, ds.Key, c).ConfigureAwait(false);
                 var depNow = SettingRules.ValueOn(depRows.Where(r => !r.Withdrawn).Select(r => r.AsDated()), effectiveFrom, ds.Default);
                 if (depNow is { Kind: ConfigValueKind.Boolean, Flag: false }) continue;
-                await ApplyAsync(tx, ctx, ds, value, effectiveFrom, bd, $"Needs {s.Label} (switched off)", "dependant", changedBy, approvedBy, requestId, null, c).ConfigureAwait(false);
+                await ApplyAsync(tx, ctx, ds, value, effectiveFrom, bd, $"Needs {s.Label} (switched off)", "cascade", changedBy, approvedBy, requestId, null, c).ConfigureAwait(false);
             }
         }
         return new SetSettingResult(applied ? "applied" : "scheduled", s.Key, id, null, when, beforeText, afterText, VersionToken.ToWire(version), msg);
