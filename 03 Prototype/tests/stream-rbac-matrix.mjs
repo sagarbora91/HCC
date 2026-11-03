@@ -69,6 +69,7 @@ const PAGES={
   backup:['OWN TAD','ADM-005 (DEC-063 G9: the Manager gets the Overview backup card instead)'],
   'tariff-card':['OWN MGR ACC REC CSH','PERM-TRF-001 (F4-T1): view card, history, print; not Restaurant / housekeeping / maintenance (DEC-061)'],
   'owner-digest':['OWN','PERM-DGS-001 (F4-T2): Owner only; navRoleOk hides it from every other role'],
+  'report-hub':['OWN MGR ACC REC CSH','F7-R2: Report library = any of reports, billing, reservations, checkin; the engine filters each report by its own view right and removes money reports for housekeeping / maintenance (DEC-061)'],
   'revenue-category':['OWN MGR ACC','PERM-RPT-001 + PERM-RPT-002 (F4-T2; DEC-202 #1): Owner, Manager, Accountant; navRoleOk hides it from the Cashier and the rest'],
   syshealth:['OWN TAD','PERM-SYS-001 (Wave C3, A09-05: parked outbox events, retry, last backup; the Administration area like Backup & recovery)'],
   'counter-bills':['OWN MGR REC CSH','LF A7: PERM-CTR-001 counter.bill.issue = Owner, Manager, Reception, Cashier (nav gate = payments, as the Cashier shift)'], // LF-UI
