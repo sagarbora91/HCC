@@ -251,6 +251,14 @@ public sealed class SqlHallBillingStore : IHallBillingStore
         await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
     }
 
+    public async Task<(long BlockId, byte[] Version)?> OpenEventBlockAsync(ICommandTransaction tx, long eventId, CancellationToken ct)
+    {
+        await using var cmd = Cmd(tx, "SELECT g.group_block_id, g.row_ver FROM hall.event e JOIN inv.group_block g WITH (UPDLOCK) ON g.group_block_id = e.block_id WHERE e.event_id = @e AND g.status = 'Open';");
+        P(cmd, "@e", SqlDbType.BigInt, eventId);
+        await using var rd = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+        return await rd.ReadAsync(ct).ConfigureAwait(false) ? (rd.GetInt64(0), (byte[])rd[1]) : null;
+    }
+
     public async Task SetEventBlockAsync(ICommandTransaction tx, long eventId, long blockId, CancellationToken ct)
     {
         await using var cmd = Cmd(tx, "UPDATE hall.event SET block_id = @b WHERE event_id = @e;");

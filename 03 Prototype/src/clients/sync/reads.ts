@@ -84,7 +84,7 @@ export const READS={
   'GET /hall/snapshot':always,
   // F6-int: menu packages for every staff role (prices stripped without PERM-HAL-002 view); T&C templates for the holders of PERM-HAL-002 (view)
   'GET /hall/menus':always,
-  'GET /hall/templates':one(anyScope('PERM-HAL-002',true),wide('PERM-ACC-001',true)), // the Accountant's HAL-002 view is not in /me/capabilities (F6-DONE gap)
+  'GET /hall/templates':one(anyScope('PERM-HAL-002',true)),
   // LF-ALERTS B4: PERM-RMD-001 reminders (an action permission).
   'GET /reminders':one(wide('PERM-RMD-001')),
   // LF-BILL A2: the bill-correction register = InvoicePermissions.View (PERM-INV-001), as the invoice reads.

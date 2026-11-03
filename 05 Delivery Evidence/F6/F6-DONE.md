@@ -27,9 +27,13 @@ Enquiry → quotation QT/2627/… v1 → revised v2, total ₹1,37,322.50 → se
 - Fit check `hall-booking` for owner and reception at tab-land and lap-1366: 260 checks, 0 failing. Phone check at 360 px for owner, reception and housekeeper: 12 checks, 0 failing.
 - **Server suite** (41 projects, one at a time): **3978 / 3984 passed**, against 3946 in 40 projects on main. The new project `Hcc.Hall.Tests` passes 31/31. The 6 failures are the known Linux-only ones (GstIds DPAPI key ring 1, Legacy absolute folder 1, Operations HostingTests 3, Stays RoomBoardQuerySqlTests page ceiling 1). Masters (35/35) was re-run after the slnx fix. Build: 0 warnings.
 
+## Follow-up fix (coordinator, 3 Nov)
+- **Cancel releases the room block on the server:** `CancelAsync` releases the event's group block while it is still Open, in the same transaction (store `OpenEventBlockAsync` → `IInventoryStore.ReleaseGroupBlockAsync`, `GroupBlockReleased` published, noted in the audit line). Cancel is the only way an accepted event ends without a booking. Lost or declined happen on a quotation before accept, when there is no block yet. A billed event keeps its block for the in-house guests. The SQL test `Accept_blocks_rooms_…` now cancels the event and checks that the block is no longer Open.
+- **The Accountant's hall view is now in `/me/capabilities`** (spec §16: the Accountant views quotations and bills). `SqlCapabilitiesQuery` now reports an ACTION permission held only for viewing as mode `V`. Regenerating `_role-reads.json` added six `V` cells, all reads the server already allowed: Accountant PERM-HAL-002 and PERM-HAL-004, plus PERM-ADM-003, PERM-ADM-005, PERM-FOL-004 and PERM-MNT-005 for other roles. The PERM-ACC-001 stand-in in READS is removed.
+- Re-run: `Hcc.Hall.Tests` 31/31, `Hcc.Access.Tests` 97/97, RoleReadMatrix 1/1, dotnet build 0 warnings; prototype: every `sync-*` suite 385/385, plus RBAC and hall suites 133/133; tsc clean.
+
 ## Gaps (open)
-- Releasing a room block when an event is cancelled is not done on the server (the prototype does it); release it from Groups. On the server, rooms can be blocked only at accept time, not later.
-- `/me/capabilities` does not show the Accountant's view grants for HAL-002 and HAL-004 (the server answers 200). READS stands in with PERM-ACC-001.
+- On the server, rooms can be blocked only at accept time, not later (a later block comes from Groups).
 - Cash is not recorded if `ICashDrawerPort` is missing. It is registered in production, so this only affects test setups.
 - The menu master on the server has a read only, no write command, so HALL_MENU_UPSERT stays prototype-only.
 - Spec §11, maintenance downtime on a hall, is not modelled.

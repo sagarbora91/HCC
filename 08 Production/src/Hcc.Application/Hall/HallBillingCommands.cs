@@ -93,6 +93,9 @@ public interface IHallBillingStore
     /// <summary>F6-int: the group block holding rooms for the event's guests.</summary>
     Task SetEventBlockAsync(ICommandTransaction tx, long eventId, long blockId, CancellationToken ct);
 
+    /// <summary>F6-int: the event's group block while it is still Open (id + row version), else null.</summary>
+    Task<(long BlockId, byte[] Version)?> OpenEventBlockAsync(ICommandTransaction tx, long eventId, CancellationToken ct);
+
     Task<HallEventRow?> LockEventAsync(ICommandTransaction tx, int propertyId, long eventId, CancellationToken ct);
 
     Task<long> InsertReceiptAsync(ICommandTransaction tx, HallReceiptIn r, CancellationToken ct);
@@ -369,6 +372,13 @@ public sealed class HallBillingCommands(ICommandRunner runner, IHallBillingStore
             var master = new GstMaster(await gstStore.ActiveVersionsAsync(tx, ctx.PropertyId, c).ConfigureAwait(false));
             var q = HallBilling.Cancel(master, e.Lines, e.EventDate, bd, new Paise(e.PaidPaise));
             await store.CancelAsync(tx, e.EventId, new HallCancellationIn(bd, q, ctx.PrincipalId, reason), c).ConfigureAwait(false);
+            string released = "";
+            if (inventory is not null && await store.OpenEventBlockAsync(tx, e.EventId, c).ConfigureAwait(false) is { } blk) // F6-int: no booking, no held rooms
+            {
+                var r = await inventory.ReleaseGroupBlockAsync(tx, ctx.PropertyId, blk.BlockId, blk.Version, c).ConfigureAwait(false);
+                await tx.PublishAsync("GroupBlockReleased", r.GroupBlockId, new { r.GroupBlockId, r.Code }, c).ConfigureAwait(false);
+                released = $" · room block {r.Code} released";
+            }
             if (q.Kept.Value > 0)
                 await tx.PublishAsync(AccountingEvents.HallPosted, e.EventId, new HallPostedEvent("hall:cancel:" + N(e.EventId), "hall-cancel", bd, "Journal",
                     $"Hall cancellation charge · {e.CustomerName} · {q.DaysBefore} days before · kept {q.KeptBps / 100m:0.##} % · event {N(e.EventId)}",
@@ -380,7 +390,7 @@ public sealed class HallBillingCommands(ICommandRunner runner, IHallBillingStore
                         _ => new HallPostedEntry("folio:sgst", 0, -x.Amount.Value),
                     }).ToList()), c).ConfigureAwait(false);
             await tx.AuditAsync("HALL_EVENT_CANCEL", "hall-event-" + N(e.EventId),
-                $"cancelled {q.DaysBefore} days before · kept {Rs(q.Kept.Value)} ({q.KeptBps / 100m:0.##} % slab) · refund {Rs(q.Refund.Value)}{(q.Refund.Value > 0 ? " awaiting approval" : "")} · {reason}", c).ConfigureAwait(false);
+                $"cancelled {q.DaysBefore} days before · kept {Rs(q.Kept.Value)} ({q.KeptBps / 100m:0.##} % slab) · refund {Rs(q.Refund.Value)}{(q.Refund.Value > 0 ? " awaiting approval" : "")} · {reason}{released}", c).ConfigureAwait(false);
             return new HallEventResult(e.EventId, "CANCELLED", KeptPaise: q.Kept.Value, RefundPaise: q.Refund.Value);
         }, ct).ConfigureAwait(false);
     }

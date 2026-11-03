@@ -41,6 +41,10 @@ public sealed class HallIntegrationSqlTests
         Assert.Equal($"HEV-{ev.EventId}", (string)(await h.ScalarAsync($"SELECT code FROM inv.group_block WHERE group_block_id = {block}", Ct))!);
         Assert.Equal("2027-03-11", ((DateTime)(await h.ScalarAsync($"SELECT departure FROM inv.group_block WHERE group_block_id = {block}", Ct))!).ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture));
         _ = lawn;
+
+        // cancel releases the block (no booking, no held rooms)
+        await c.CancelAsync(h.Ctx(h.Reception, HallBillingCommands.OpCancel), new CancelHallEventRequest(ev.EventId, "Date changed"), Ct);
+        Assert.NotEqual("Open", (string)(await h.ScalarAsync($"SELECT status FROM inv.group_block WHERE group_block_id = {block}", Ct))!);
     }
 
     [Fact]
