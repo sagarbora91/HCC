@@ -37,5 +37,10 @@ import './acc/tally-xml';
 // F7-R7
 // F7-R7 end
 // F7-R8
+import './built/pack';
+import './built/money';
+import './built/rest';
+import './built/stock';
+import './built/admin';
 // F7-R8 end
 export {};

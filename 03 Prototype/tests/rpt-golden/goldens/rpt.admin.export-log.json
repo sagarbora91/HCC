@@ -1,0 +1,18 @@
+{
+ "id": "rpt.admin.export-log",
+ "cases": [
+  {
+   "uid": "owner",
+   "scenario": "BASE",
+   "params": {},
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["at","user","report","params","format","rows"],
+     "rows": []
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,22 @@
+{
+ "id": "rpt.stock.reorder",
+ "cases": [
+  {
+   "uid": "owner",
+   "scenario": "BASE",
+   "params": {},
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["item","kind","clean","min","suggest","cost"],
+     "rows": [
+      ["row","Shampoo 30 ml","Amenities",106,120,300,1200],
+      ["row","Bath towel","Linen",45,55,65,45000],
+      ["row","Garbage bags (roll of 30)","Cleaning supplies",6,10,20,6000]
+     ]
+    }
+   ]
+  }
+ ]
+}

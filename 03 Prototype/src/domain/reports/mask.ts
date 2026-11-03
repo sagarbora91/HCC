@@ -16,6 +16,13 @@ export const RPT_V2_GRANTS:Record<string,string[]>={'PERM-INV-001':['Owner','Man
 /** PERM-ACC-006 accounting.tally.export (simulated): Owner + Accountant (G13). Same grants as the server seed 1001. */
 RPT_V2_GRANTS['PERM-ACC-006']=['Owner','Accountant'];
 // F7-R6 end
+// F7-R8
+/** Server grants (migrations 3700 / 3921 / 0901 seeds) of the module codes the moved built reports use; the prototype's v1 matrix has no row for them.
+ *  Wide grants (scope P, or A that is not own-only) and the own-shift scoped ones (POS-004 Cashier S) are separate: a scoped grant passes only for `ownShift` reports. */
+export const RPT_V2_R8:Record<string,string[]>={'PERM-STK-001':['Owner','Manager','Accountant','Supervisor','Housekeeper'],'PERM-STK-004':['Owner','Manager','Accountant'],
+  'PERM-POS-004':['Owner','Manager','Accountant'],'PERM-CFG-001':['Owner','Tech admin']};
+export const RPT_V2_R8_SCOPED:Record<string,string[]>={'PERM-POS-004':['Cashier']};
+// F7-R8 end
 /** One permission: PERM-* codes through the access matrix (scoped cells such as the Cashier's own-shift V·S pass only for `ownShift` reports),
  *  anything else is a page permission through can(). */
 export function rptHolds(s:State,uid:string,perm:string,ownShift=false):boolean{
@@ -23,6 +30,10 @@ export function rptHolds(s:State,uid:string,perm:string,ownShift=false):boolean{
   // F7-R5: server permissions of matrix v2 that the prototype's v1 matrix has no row for (same grants as the server seed: 2401 / 3700).
   const v2=RPT_V2_GRANTS[perm];if(v2)return u.enabled&&!(u.expiresOn&&s.date>u.expiresOn)&&v2.includes(u.role);
   // F7-R5 end
+  // F7-R8
+  const live=u.enabled&&!(u.expiresOn&&s.date>u.expiresOn);
+  if(RPT_V2_R8[perm]||RPT_V2_R8_SCOPED[perm])return live&&(RPT_V2_R8[perm]?.includes(u.role)||(ownShift&&!!RPT_V2_R8_SCOPED[perm]?.includes(u.role)));
+  // F7-R8 end
   if(perm.startsWith('PERM-')){
     if(RPT_NO_MONEY_ROLES.includes(u.role)&&/^PERM-RPT-00[23]$/.test(perm))return false;
     const d=authorize(s,uid,perm,ownShift?{}:{shiftUser:'',assignee:'',ownerId:''});return d.decision==='allow';
