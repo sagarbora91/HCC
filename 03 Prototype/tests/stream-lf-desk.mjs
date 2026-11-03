@@ -1,5 +1,6 @@
 // LF-DESK · lane lf-desk (LF contract §8): A3 purpose of visit, A4 vehicle, A5 Form C, A6 check-out basis / due-out / late check-out. Names prefixed [LF-DESK].
 import {readFileSync,existsSync} from 'node:fs';
+import {tmpdir} from 'node:os';
 import {build} from 'esbuild';
 import {writeFile} from 'node:fs/promises';
 import {execFileSync} from 'node:child_process';
@@ -159,9 +160,9 @@ export function register({test,M,assert}){
   test('[LF-DESK] extractor: --purposes / --vehicle-types write the import-template layout from names only (fictional fixture, no guest data)',()=>{
     let py;for(const c of ['python3','python']){try{execFileSync(c,['--version']);py=c;break;}catch{/* next */}}
     if(!py)return; // no Python on this machine: the hotel PC has it; the sources test above still covers the switches
-    const out=execFileSync(py,['-I','../tools/legacy/extract.py','--purposes','--vehicle-types','--raw-dir','../tools/legacy/selftest-lf','--out',process.env.TMPDIR?process.env.TMPDIR+'/lf-extract-out':'/tmp/lf-extract-out'],{encoding:'utf8'});
+    const out=execFileSync(py,['-I','../tools/legacy/extract.py','--purposes','--vehicle-types','--raw-dir','../tools/legacy/selftest-lf','--out',tmpdir()+'/lf-extract-out'],{encoding:'utf8'});
     assert.match(out,/purposes\.csv: 4 rows/);assert.match(out,/vehicle-types\.csv: 5 rows/);
-    const dir=process.env.TMPDIR?process.env.TMPDIR+'/lf-extract-out':'/tmp/lf-extract-out';
+    const dir=tmpdir()+'/lf-extract-out';
     assert.equal(readFileSync(dir+'/purposes.csv','utf8').split('\n')[0],'code,name,sortOrder,active');
     assert.match(readFileSync(dir+'/vehicle-types.csv','utf8'),/TEMPO-TRAVELLER,Tempo traveller,50,yes/);});
 }
