@@ -7,6 +7,7 @@
     <Project Path="src/Hcc.Infrastructure.SqlServer/Hcc.Infrastructure.SqlServer.csproj" />
     <Project Path="src/Hcc.Operations/Hcc.Operations.csproj" />
     <Project Path="src/Hcc.Api/Hcc.Api.csproj" />
+    <!-- F7-R1 range: Hcc.Reporting -->
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Hcc.Billing.Tests/Hcc.Billing.Tests.csproj" />
@@ -49,6 +50,7 @@
     <Project Path="tests/Hcc.Legacy.Tests/Hcc.Legacy.Tests.csproj" />
     <Project Path="tests/Hcc.Egress.Tests/Hcc.Egress.Tests.csproj" /> <!-- F5-E1 -->
     <Project Path="tests/Hcc.Architecture.Tests/Hcc.Architecture.Tests.csproj" /> <!-- F5-E1 -->
+    <!-- F7-R1 range: Hcc.Reporting.Tests -->
   </Folder>
   <Folder Name="/database/">
     <File Path="database/migrations.lock.json" />

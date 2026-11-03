@@ -106,6 +106,8 @@ export * from '../../app/shortcuts';
 // LF-IMAGES
 export * from '../../domain/streams/printnotes'; // LF-images B6: which branding text prints on which document
 // LF-IMAGES end
+// F7-R1
+// F7-R1 end
 // F5-E1
 export * from '../../domain/streams/egress'; // F5-E1 internet egress gate mirror
 // F5-E1 end

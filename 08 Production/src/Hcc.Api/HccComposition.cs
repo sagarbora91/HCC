@@ -95,6 +95,10 @@ public static class HccComposition
         // LF-ALERTS end
         // LF-IMAGES
         // LF-IMAGES end
+        // F7-R1
+        // F7-R1 end
+        // F7-RPT (report lanes: one services.AddReport<...>() line each)
+        // F7-RPT end
         // F5-E1
         services.AddEgressModule();                      // F5-E1 internet egress gate: net.* settings, "egress" client, hold / replay, System health Egress
         // F5-E1 end

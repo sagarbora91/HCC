@@ -380,6 +380,10 @@ export type State={
   /** F5-E1 egress gate mirror (EGRESS-CONTRACT §6): last net.* change + the mock outbound outbox (held / pending / sent). Values live in configX.values['net.*']. */
   egressX?:import('./streams/egress').NETState;
   // F5-E1 end
+  // F7
+  /** F7 report module (F7-CONTRACT §1): favourites, schedules, runs, print / export log. Optional, no SCHEMA bump. */
+  rptX?:import('./reports/types').RptState;
+  // F7 end
   // ── State · F4 slices (optional, SCHEMA stays 13 — F4-CONTRACT.md header) ──
   tariffCardX?:TRCState;
   digestX?:DGSState;

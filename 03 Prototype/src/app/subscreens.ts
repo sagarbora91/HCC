@@ -186,6 +186,8 @@ export const SUB_SCREENS:SubScreen[]=[
   {page:'counter-bills',id:'bills',label:'Bills'},
   {page:'cashier',id:'credit-guests',label:'Credit guests',keywords:['guest credit','udhaar','outstanding']},
   // LF-UI end
+  // F7-R2
+  // F7-R2 end
   // F4-T1
   {page:'tariff-card',id:'rooms',label:'Rooms',keywords:['room prices','weekday','weekend','extra person']},
   {page:'tariff-card',id:'meals',label:'Meal plans & extras',keywords:['breakfast','cp','map','add-on']},
