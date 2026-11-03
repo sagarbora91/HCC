@@ -20,7 +20,7 @@ const qr=(s:State,no:string,date:string,total:number)=>`HCC|${s.settings.hotel}|
 export function folioDocument(s:State,uid:string,bookingId:string,kind:'folio'|'invoice'='folio'):DocModel{
   docRequire(s,uid,canAny(s,uid,[...FOLIO_PERMS]),kind==='invoice'?'tax invoice':'folio');
   const b=find(s,bookingId),t=totals(b),sp=gstSplitLines(b.lines),inv=!!b.invoiceNo&&kind==='invoice';
-  const lines=b.lines.map(l=>{const g=gstLineSplit(l);return R({desc:l.label,date:l.date,net:l.amount,rate:l.taxBps,cgst:g.cgst,sgst:g.sgst,total:l.amount+g.tax});});
+  const lines=b.lines.map(l=>{const g=gstLineSplit(l);return R({desc:l.label,date:l.date,net:l.amount,rate:l.taxBps/100,cgst:g.cgst,sgst:g.sgst,total:l.amount+g.tax});});
   lines.push(R({desc:'Total',date:null,net:t.net,rate:null,cgst:sp.cgst,sgst:sp.sgst,total:t.total},'total'));
   const credit=b.receipts.filter(r=>r.kind==='company-credit').reduce((a,r)=>a+r.amount,0);
   const sum=[R({item:'Net charges',amount:t.net}),R({item:'CGST',amount:sp.cgst}),R({item:'SGST',amount:sp.sgst}),R({item:'Total including GST',amount:t.total},'total'),R({item:'Payments received (net)',amount:t.paid}),
@@ -44,7 +44,7 @@ export function creditNoteDocument(s:State,uid:string,bookingId:string,creditNot
   return {id:'doc.credit-note',title:'Credit note',number:c.no,property:s.settings.hotel,money:true,
     pairs:[['Credit note no',c.no],['Date',c.date],['Against invoice',b.invoiceNo??''],['Guest',b.guest],['Bill to',b.company?.name??b.guest],['Buyer GSTIN',b.company?.gstin??''],['Reason',c.reason]],
     tables:[{key:'lines',title:'Credited',columns:[T('desc','Description'),T('net','Before GST','money'),T('rate','GST rate','pct'),T('cgst','CGST','money'),T('sgst','SGST','money'),T('total','Credit total','money')],
-      rows:[R({desc:l?.label??c.reason,net:c.amount,rate:l?.taxBps??0,cgst:g.cgst,sgst:g.sgst,total:c.amount+g.tax},'total')]}],
+      rows:[R({desc:l?.label??c.reason,net:c.amount,rate:(l?.taxBps??0)/100,cgst:g.cgst,sgst:g.sgst,total:c.amount+g.tax},'total')]}],
     notes:[prod()?'Issued against the tax invoice shown; GST reversed at the rate of the original line.':'Demonstration credit note. GST reversed at the rate of the original line; illustrative, CA to confirm.'],
     sign:['Authorised signatory'],basis:'Credit note date.',qrText:qr(s,c.no,c.date,c.amount+g.tax)};
 }
