@@ -30,7 +30,13 @@ public sealed class EngineTests
     };
 
     /// <summary>Every report registered on the server: what AddReportingModule + the F7-RPT lines register.</summary>
-    public static IReadOnlyList<ReportDefinition> ServerCatalogue() => new ReportCatalogue([new RevenueByCategoryTenderReport(null!)]).All;
+    public static IReadOnlyList<ReportDefinition> ServerCatalogue() => new ReportCatalogue([new RevenueByCategoryTenderReport(null!), .. F7R3Reports()]).All;
+
+    // F7-R3
+    private static IEnumerable<IReportSelector> F7R3Reports() =>
+        [new Hcc.Reporting.Reports.Guests.MovementRegisterReport(null!), new Hcc.Reporting.Reports.Guests.GuestRegisterReport(null!), new Hcc.Reporting.Reports.Guests.FormCRegisterReport(null!),
+         new Hcc.Reporting.Reports.Guests.RateChangesReport(null!), new Hcc.Reporting.Reports.Rooms.RoomStatusReport(null!, null!)];
+    // F7-R3 end
 
     [Fact]
     public void Catalogue_json_from_the_prototype_equals_the_server_registry()

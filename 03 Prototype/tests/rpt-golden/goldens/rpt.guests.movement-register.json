@@ -1,0 +1,126 @@
+{
+ "id": "rpt.guests.movement-register",
+ "cases": [
+  {
+   "uid": "owner",
+   "scenario": "BASE",
+   "params": {
+    "from": "2026-10-24",
+    "to": "2026-10-27"
+   },
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["date","booking","guest","room","roomType","pax","nights","source","status","checkInTime","checkOutTime","basis","lateCharge","purpose","vehicle","balanceDue"],
+     "rows": [
+      ["row","2026-10-24","HCC-1049","Ishaan Bose","103","Deluxe",1,2,"Direct","Booked","","","Fixed time",0,"","",-100000],
+      ["row","2026-10-24","HCC-1050","Aditi Nair","207","Deluxe",2,2,"Phone","Booked","","","Fixed time",0,"","",-100000],
+      ["subtotal","2026-10-24","Day total · 2 rooms",null,null,null,3,null,null,null,null,null,null,0,null,null,-200000],
+      ["row","2026-10-26","HCC-1041","Ananya Rao","101","Classic",1,3,"Direct","Checked in","2026-10-23 14:00","","Fixed time",0,"","",10000],
+      ["row","2026-10-26","HCC-1042","Vikram Shah","102","Classic",2,3,"Phone","Checked in","2026-10-23 14:00","","Fixed time",0,"","",10000],
+      ["row","2026-10-26","HCC-1049","Ishaan Bose","103","Deluxe",1,2,"Direct","Booked","","","Fixed time",0,"","",-100000],
+      ["row","2026-10-26","HCC-1043","Riya Mehta","104","Deluxe",1,3,"OTA · manual","Checked in","2026-10-23 14:00","","Fixed time",0,"","",15000],
+      ["row","2026-10-26","HCC-1044","Arjun Kapoor","201","Classic",2,3,"Corporate","Checked in","2026-10-23 14:00","","Fixed time",0,"","",10000],
+      ["row","2026-10-26","HCC-1045","Nisha Desai","202","Classic",1,3,"Direct","Checked in","2026-10-23 14:00","","Fixed time",0,"","",10000],
+      ["row","2026-10-26","HCC-1046","Kabir Sen","206","Suite",2,3,"Phone","Checked in","2026-10-23 14:00","","Fixed time",0,"","",22500],
+      ["row","2026-10-26","HCC-1050","Aditi Nair","207","Deluxe",2,2,"Phone","Booked","","","Fixed time",0,"","",-100000],
+      ["row","2026-10-26","HCC-1047","Tara Iyer","301","Classic",1,3,"OTA · manual","Checked in","2026-10-23 14:00","","Fixed time",0,"","",10000],
+      ["row","2026-10-26","HCC-1048","Dev Malhotra","302","Classic",2,3,"Corporate","Checked in","2026-10-23 14:00","","Fixed time",0,"","",10000],
+      ["subtotal","2026-10-26","Day total · 10 rooms",null,null,null,15,null,null,null,null,null,null,0,null,null,-102500],
+      ["total",null,"Total · 12 rooms",null,null,null,18,null,null,null,null,null,null,0,null,null,-302500]
+     ]
+    }
+   ]
+  },
+  {
+   "uid": "manager",
+   "scenario": "FY26",
+   "params": {
+    "from": "2026-10-20",
+    "to": "2026-10-30",
+    "type": "departures"
+   },
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["date","booking","guest","room","roomType","pax","nights","source","status","checkInTime","checkOutTime","basis","lateCharge","purpose","vehicle","balanceDue"],
+     "rows": [
+      ["row","2026-10-20","HCC-H1235","Jay Salunke","104","Deluxe",1,3,"Phone","Checked out","2026-10-17 14:00","2026-10-20 11:00","Fixed time",0,"","",0],
+      ["row","2026-10-20","HCC-H1252","Kavita Sharma","201","Classic",2,1,"OTA","Checked out","2026-10-19 14:00","2026-10-20 11:00","Fixed time",0,"","",0],
+      ["row","2026-10-20","HCC-H1237","Aarav Kale","204","Deluxe",2,2,"Walk-in","Checked out","2026-10-18 14:00","2026-10-20 11:00","Fixed time",0,"","",0],
+      ["row","2026-10-20","HCC-H1239","Vandana Sharma","206","Suite",1,2,"OTA","Checked out","2026-10-18 14:00","2026-10-20 11:00","Fixed time",0,"","",0],
+      ["row","2026-10-20","HCC-H1227","Sana Wagh","207","Deluxe",2,3,"OTA","Checked out","2026-10-17 14:00","2026-10-20 11:00","Fixed time",0,"","",0],
+      ["row","2026-10-20","HCC-H1245","Farhan Ghate","307","Deluxe",2,1,"OTA","Checked out","2026-10-19 14:00","2026-10-20 11:00","Fixed time",0,"","",0],
+      ["subtotal","2026-10-20","Day total · 6 rooms",null,null,null,10,null,null,null,null,null,null,0,null,null,0],
+      ["row","2026-10-21","HCC-H1212","Sachin Kulkarni","103","Deluxe",2,6,"Walk-in","Checked out","2026-10-15 14:00","2026-10-21 11:00","Fixed time",0,"","",0],
+      ["row","2026-10-21","HCC-H1247","Farhan Mehta","106","Suite",3,2,"OTA","Checked out","2026-10-19 14:00","2026-10-21 11:00","Fixed time",0,"","",0],
+      ["row","2026-10-21","HCC-H1259","Arjun Yadav","201","Classic",2,1,"Website","Checked out","2026-10-20 14:00","2026-10-21 11:00","Fixed time",0,"","",0],
+      ["row","2026-10-21","HCC-H1250","Vijay Deshmukh","208","Classic",1,2,"Corporate","Checked out","2026-10-19 14:00","2026-10-21 11:00","Fixed time",0,"","",0],
+      ["row","2026-10-21","HCC-H1243","Akash Chavan","303","Deluxe",1,2,"Direct","Checked out","2026-10-19 14:00","2026-10-21 11:00","Fixed time",0,"","",0],
+      ["row","2026-10-21","HCC-H1251","Vijay Thakur","304","Deluxe",2,2,"Corporate","Checked out","2026-10-19 14:00","2026-10-21 11:00","Fixed time",0,"","",0],
+      ["row","2026-10-21","HCC-H1244","Tanvi Nair","306","Suite",1,2,"Walk-in","Checked out","2026-10-19 14:00","2026-10-21 11:00","Fixed time",0,"","",0],
+      ["subtotal","2026-10-21","Day total · 7 rooms",null,null,null,12,null,null,null,null,null,null,0,null,null,0],
+      ["row","2026-10-22","HCC-H1253","Zoya Kamble","102","Classic",1,3,"OTA","Checked out","2026-10-19 14:00","2026-10-22 11:00","Fixed time",0,"","",0],
+      ["row","2026-10-22","HCC-H1255","Jay Agarwal","204","Deluxe",3,2,"Corporate","Checked out","2026-10-20 14:00","2026-10-22 11:00","Fixed time",0,"","",0],
+      ["row","2026-10-22","HCC-H1258","Divya Kamble","207","Deluxe",1,2,"OTA","Checked out","2026-10-20 14:00","2026-10-22 11:00","Fixed time",0,"","",0],
+      ["row","2026-10-22","HCC-H1260","Rohan Gaikwad","303","Deluxe",5,1,"OTA","Checked out","2026-10-21 14:00","2026-10-22 11:00","Fixed time",0,"","",0],
+      ["subtotal","2026-10-22","Day total · 4 rooms",null,null,null,10,null,null,null,null,null,null,0,null,null,0],
+      ["row","2026-10-23","HCC-H1221","Meena Naik","101","Classic",1,7,"Walk-in","Checked out","2026-10-16 14:00","2026-10-23 11:00","Fixed time",0,"","",0],
+      ["row","2026-10-23","HCC-H1268","Rohan Kulkarni","102","Classic",2,1,"Corporate","Checked out","2026-10-22 14:00","2026-10-23 11:00","Fixed time",0,"","",0],
+      ["row","2026-10-23","HCC-H1256","Isha Gaikwad","104","Deluxe",3,3,"Walk-in","Checked out","2026-10-20 14:00","2026-10-23 11:00","Fixed time",0,"","",0],
+      ["row","2026-10-23","HCC-H1269","Anjali Patil","105","Classic",1,1,"Direct","Checked out","2026-10-22 14:00","2026-10-23 11:00","Fixed time",0,"","",0],
+      ["row","2026-10-23","HCC-H1242","Sachin Chavan","107","Deluxe",4,5,"Direct","Checked out","2026-10-18 14:00","2026-10-23 11:00","Fixed time",0,"","",0],
+      ["row","2026-10-23","HCC-H1262","Zoya Bhosale","108","Classic",1,2,"Corporate","Checked out","2026-10-21 14:00","2026-10-23 11:00","Fixed time",0,"","",0],
+      ["row","2026-10-23","HCC-H1267","Omkar Joshi","202","Classic",1,1,"Direct","Checked out","2026-10-22 14:00","2026-10-23 11:00","Fixed time",0,"","",0],
+      ["row","2026-10-23","HCC-H1241","Zoya Jadhav","203","Deluxe",2,5,"Phone","Checked out","2026-10-18 14:00","2026-10-23 11:00","Fixed time",0,"","",0],
+      ["row","2026-10-23","HCC-H1263","Rohan Wagh","205","Classic",3,2,"Corporate","Checked out","2026-10-21 14:00","2026-10-23 11:00","Fixed time",0,"","",0],
+      ["row","2026-10-23","HCC-H1266","Isha Shah","206","Suite",2,1,"Direct","Checked out","2026-10-22 14:00","2026-10-23 11:00","Fixed time",0,"","",0],
+      ["row","2026-10-23","HCC-H1264","Isha Rao","208","Classic",2,2,"Corporate","Checked out","2026-10-21 14:00","2026-10-23 11:00","Fixed time",0,"","",0],
+      ["row","2026-10-23","HCC-H1248","Arjun Wagh","301","Classic",5,4,"OTA","Checked out","2026-10-19 14:00","2026-10-23 11:00","Fixed time",0,"","",0],
+      ["row","2026-10-23","HCC-H1261","Harsh Bhosale","302","Classic",3,2,"OTA","Checked out","2026-10-21 14:00","2026-10-23 11:00","Fixed time",0,"","",0],
+      ["row","2026-10-23","HCC-H1265","Sana Gaikwad","305","Classic",1,2,"OTA","Checked out","2026-10-21 14:00","2026-10-23 11:00","Fixed time",0,"","",0],
+      ["row","2026-10-23","HCC-H1254","Anjali Naik","307","Deluxe",4,3,"Direct","Checked out","2026-10-20 14:00","2026-10-23 11:00","Fixed time",0,"","",0],
+      ["subtotal","2026-10-23","Day total · 15 rooms",null,null,null,35,null,null,null,null,null,null,0,null,null,0],
+      ["row","2026-10-26","HCC-1041","Ananya Rao","101","Classic",1,3,"Direct","Checked in","2026-10-23 14:00","","Fixed time",0,"","",10000],
+      ["row","2026-10-26","HCC-1042","Vikram Shah","102","Classic",2,3,"Phone","Checked in","2026-10-23 14:00","","Fixed time",0,"","",10000],
+      ["row","2026-10-26","HCC-1049","Ishaan Bose","103","Deluxe",1,2,"Direct","Booked","","","Fixed time",0,"","",-100000],
+      ["row","2026-10-26","HCC-1043","Riya Mehta","104","Deluxe",1,3,"OTA · manual","Checked in","2026-10-23 14:00","","Fixed time",0,"","",15000],
+      ["row","2026-10-26","HCC-1044","Arjun Kapoor","201","Classic",2,3,"Corporate","Checked in","2026-10-23 14:00","","Fixed time",0,"","",10000],
+      ["row","2026-10-26","HCC-1045","Nisha Desai","202","Classic",1,3,"Direct","Checked in","2026-10-23 14:00","","Fixed time",0,"","",10000],
+      ["row","2026-10-26","HCC-1046","Kabir Sen","206","Suite",2,3,"Phone","Checked in","2026-10-23 14:00","","Fixed time",0,"","",22500],
+      ["row","2026-10-26","HCC-1050","Aditi Nair","207","Deluxe",2,2,"Phone","Booked","","","Fixed time",0,"","",-100000],
+      ["row","2026-10-26","HCC-1047","Tara Iyer","301","Classic",1,3,"OTA · manual","Checked in","2026-10-23 14:00","","Fixed time",0,"","",10000],
+      ["row","2026-10-26","HCC-1048","Dev Malhotra","302","Classic",2,3,"Corporate","Checked in","2026-10-23 14:00","","Fixed time",0,"","",10000],
+      ["subtotal","2026-10-26","Day total · 10 rooms",null,null,null,15,null,null,null,null,null,null,0,null,null,-102500],
+      ["total",null,"Total · 42 rooms",null,null,null,82,null,null,null,null,null,null,0,null,null,-102500]
+     ]
+    }
+   ]
+  },
+  {
+   "uid": "accountant",
+   "scenario": "FY26",
+   "params": {
+    "from": "2026-10-24",
+    "to": "2026-10-24",
+    "type": "arrivals",
+    "status": "booked"
+   },
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["date","booking","guest","room","roomType","pax","nights","source","status","checkInTime","checkOutTime","basis","lateCharge","purpose","vehicle","balanceDue"],
+     "rows": [
+      ["row","2026-10-24","HCC-1049","I••• B•••","103","Deluxe",1,2,"Direct","Booked","","","Fixed time",0,"","",-100000],
+      ["row","2026-10-24","HCC-1050","A••• N•••","207","Deluxe",2,2,"Phone","Booked","","","Fixed time",0,"","",-100000],
+      ["subtotal","2026-10-24","Day total · 2 rooms",null,null,null,3,null,null,null,null,null,null,0,null,null,-200000],
+      ["total",null,"Total · 2 rooms",null,null,null,3,null,null,null,null,null,null,0,null,null,-200000]
+     ]
+    }
+   ]
+  }
+ ]
+}

@@ -9,3 +9,4 @@ export {FitNavContext} from '../src/components/fit';
 export {SUB_SCREENS} from '../src/app/subscreens';
 export {PAGE_CATEGORY,navFilterModules} from '../src/app/navmap';
 export {seed,can} from '../src/services/mock';
+export {reportCatalogue} from '../src/features/reports/hub-engine';

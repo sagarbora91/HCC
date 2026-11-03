@@ -68,19 +68,34 @@ export function register({test,assert}){
     assert.ok(H.registration.pages['report-hub']&&H.registration.mobile.pages['report-hub']);assert.equal(H.registration.nav[0].item.id,'report-hub');
     assert.match(src('src/app/navmap.ts'),/'report-hub':'Every report/);
   });
-  test('[F7R2] the hub renders with the FitPage root, tabs, and an honest empty state while the catalogue is empty (owner and reception)',()=>{
+  test('[F7R2] the hub renders on the real catalogue with the FitPage root and tabs (owner and reception), and lists their reports',()=>{
     for(const u of ['owner','reception']){
       const html=render(ctxFor(false,u),h(H.ReportsHub));
-      assert.match(html,/class="fit-page fit-split"/,u);assert.ok(html.includes('role="tablist"'),u);assert.ok(html.includes('Scheduled runs')&&html.includes('Export log'),u);assert.ok(html.includes('No reports available'),u);
+      assert.match(html,/class="fit-page fit-split"/,u);assert.ok(html.includes('role="tablist"'),u);assert.ok(html.includes('Scheduled runs')&&html.includes('Export log'),u);
+      assert.ok(!html.includes('No reports available'),u+' has reports on the real engine catalogue');
+    }
+    assert.ok(render(ctxFor(false,'owner'),h(H.ReportsHub)).includes('Revenue by room category and tender'));
+    assert.ok(render(ctxFor(false,'reception'),h(H.ReportsHub)).includes('Room status today'));
+  });
+  test('[F7R2] a role that may open no report gets the honest empty state (cashier, tech admin), not a blank pane',()=>{
+    for(const u of ['cashier','techadmin']){
+      assert.equal(H.reportCatalogue(s0,u).length,0,u+' sees no report in the engine catalogue');
+      const html=render(ctxFor(false,u),h(H.ReportsHub));
+      assert.match(html,/class="fit-page fit-split"/,u);assert.ok(html.includes('No reports available'),u);
     }
   });
   test('[F7R2] the phone hub renders cards and chips, no table, no fit- class',()=>{
     const html=render(ctxFor(true,'owner'),h(H.ReportsHubMobile));
     assert.ok(html.includes('Search reports')&&html.includes('rpt-m'));assert.ok(!html.includes('<table')&&!/fit-/.test(html));
   });
-  test('[F7R2] the viewer shows the engine error instead of figures when the report cannot run',()=>{
-    const html=render(ctxFor(false,'owner'),h(H.ReportView,{def:DEFS[1]}));
-    assert.ok(html.includes('Cannot show this report')&&html.includes('Export Excel')===false);assert.ok(html.includes('Print'));
+  test('[F7R2] the viewer shows the engine error instead of figures when the report cannot run (unknown report id)',()=>{
+    const html=render(ctxFor(false,'owner'),h(H.ReportView,{def:def('rpt.rooms.not-a-report',{title:'Not a report',area:'rooms'})}));
+    assert.ok(html.includes('Cannot show this report')&&html.includes('No report rpt.rooms.not-a-report'),'the engine NOT_FOUND message is shown');
+    assert.ok(!html.includes('<table')&&!html.includes('rpt-cards'),'no figures');assert.ok(!/Export Excel<\/button>/.test(html.replace(/<button[^>]*disabled=""[^>]*>.*?<\/button>/g,'')),'every export button is disabled');assert.ok(html.includes('Print'));
+  });
+  test('[F7R2] the viewer runs a real engine report for the owner (no error pane)',()=>{
+    const html=render(ctxFor(false,'owner'),h(H.ReportView,{def:H.reportCatalogue(s0,'owner').find(d=>d.id==='rpt.rooms.room-status')}));
+    assert.ok(!html.includes('Cannot show this report'));
   });
   test('[F7R2] stylesheet: tokens only (no hex colour), phone card rules, 48 px export buttons',()=>{
     const css=src('src/styles/rpt-hub.css');assert.ok(!/#[0-9a-fA-F]{3,8}\b/.test(css.replace(/\/\*[^]*?\*\//g,'')),'no hex colour');

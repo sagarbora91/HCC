@@ -100,6 +100,11 @@ public static class HccComposition
         services.AddHostedService<Hcc.Api.Endpoints.ReportScheduleWorker>();
         // F7-R1 end
         // F7-RPT (report lanes: one services.AddReport<...>() line each)
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.Guests.MovementRegisterReport>(services); // F7-R3
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.Guests.GuestRegisterReport>(services); // F7-R3
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.Guests.FormCRegisterReport>(services); // F7-R3
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.Guests.RateChangesReport>(services); // F7-R3
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.Rooms.RoomStatusReport>(services); // F7-R3
         // F7-RPT end
         // F5-E1
         services.AddEgressModule();                      // F5-E1 internet egress gate: net.* settings, "egress" client, hold / replay, System health Egress

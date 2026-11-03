@@ -45,6 +45,8 @@ public sealed class RendererTests
     {
         null or "" => null,
         string s => s,
+        DateOnly d => (decimal)(d.DayNumber - new DateOnly(1899, 12, 30).DayNumber), // F7-R3: date cells are Excel serial days
+        bool b => b ? "Yes" : "No", // F7-R3
         _ when c.Type == ReportColumnType.Money => Convert.ToDecimal(v, CultureInfo.InvariantCulture) / 100m,
         _ when c.Type == ReportColumnType.Percent => Convert.ToDecimal(v, CultureInfo.InvariantCulture) / 100m,
         _ => Convert.ToDecimal(v, CultureInfo.InvariantCulture),
