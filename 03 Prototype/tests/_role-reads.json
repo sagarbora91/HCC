@@ -154,7 +154,9 @@
     "GET /counter-bills": "/counter-bills",
     "GET /guests/credit": "/guests/credit",
     "GET /stays/rate-changes": "/stays/rate-changes",
-    "GET /hall/snapshot": "/hall/snapshot"
+    "GET /hall/snapshot": "/hall/snapshot",
+    "GET /hall/menus": "/hall/menus",
+    "GET /hall/templates": "/hall/templates"
   },
   "roles": {
     "OWN": {
@@ -1205,7 +1207,9 @@
         "GET /counter-bills": "200",
         "GET /guests/credit": "200",
         "GET /stays/rate-changes": "200",
-        "GET /hall/snapshot": "200"
+        "GET /hall/snapshot": "200",
+        "GET /hall/menus": "200",
+        "GET /hall/templates": "200"
       }
     },
     "MGR": {
@@ -2016,7 +2020,9 @@
         "GET /counter-bills": "200",
         "GET /guests/credit": "200",
         "GET /stays/rate-changes": "200",
-        "GET /hall/snapshot": "200"
+        "GET /hall/snapshot": "200",
+        "GET /hall/menus": "200",
+        "GET /hall/templates": "200"
       }
     },
     "REC": {
@@ -2537,7 +2543,9 @@
         "GET /counter-bills": "200",
         "GET /guests/credit": "200",
         "GET /stays/rate-changes": "200",
-        "GET /hall/snapshot": "200"
+        "GET /hall/snapshot": "200",
+        "GET /hall/menus": "200",
+        "GET /hall/templates": "200"
       }
     },
     "CSH": {
@@ -2903,7 +2911,9 @@
         "GET /counter-bills": "200",
         "GET /guests/credit": "200",
         "GET /stays/rate-changes": "403",
-        "GET /hall/snapshot": "200"
+        "GET /hall/snapshot": "200",
+        "GET /hall/menus": "200",
+        "GET /hall/templates": "403"
       }
     },
     "ACC": {
@@ -3344,7 +3354,9 @@
         "GET /counter-bills": "403",
         "GET /guests/credit": "200",
         "GET /stays/rate-changes": "403",
-        "GET /hall/snapshot": "200"
+        "GET /hall/snapshot": "200",
+        "GET /hall/menus": "200",
+        "GET /hall/templates": "200"
       }
     },
     "SUP": {
@@ -3610,7 +3622,9 @@
         "GET /counter-bills": "403",
         "GET /guests/credit": "403",
         "GET /stays/rate-changes": "403",
-        "GET /hall/snapshot": "200"
+        "GET /hall/snapshot": "200",
+        "GET /hall/menus": "200",
+        "GET /hall/templates": "403"
       }
     },
     "HKP": {
@@ -3841,7 +3855,9 @@
         "GET /counter-bills": "403",
         "GET /guests/credit": "403",
         "GET /stays/rate-changes": "403",
-        "GET /hall/snapshot": "200"
+        "GET /hall/snapshot": "200",
+        "GET /hall/menus": "200",
+        "GET /hall/templates": "403"
       }
     },
     "MNT": {
@@ -4057,7 +4073,9 @@
         "GET /counter-bills": "403",
         "GET /guests/credit": "403",
         "GET /stays/rate-changes": "403",
-        "GET /hall/snapshot": "200"
+        "GET /hall/snapshot": "200",
+        "GET /hall/menus": "200",
+        "GET /hall/templates": "403"
       }
     },
     "TAD": {
@@ -4308,7 +4326,9 @@
         "GET /counter-bills": "403",
         "GET /guests/credit": "403",
         "GET /stays/rate-changes": "403",
-        "GET /hall/snapshot": "200"
+        "GET /hall/snapshot": "200",
+        "GET /hall/menus": "200",
+        "GET /hall/templates": "403"
       }
     },
     "RST": {
@@ -4499,7 +4519,9 @@
         "GET /counter-bills": "403",
         "GET /guests/credit": "403",
         "GET /stays/rate-changes": "403",
-        "GET /hall/snapshot": "200"
+        "GET /hall/snapshot": "200",
+        "GET /hall/menus": "200",
+        "GET /hall/templates": "403"
       }
     }
   }
