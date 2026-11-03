@@ -74,6 +74,7 @@ import {accYearLockedOn,accYearLockedMessage,accFyOfDate} from '../../../domain/
 import {handlers as hall} from './hall'; // F6 hall booking: masters, enquiries, accept, advances, bill, cancel, refund
 // F6-H1 end
 // F6-H2
+import {handlers as hallQuote} from './hall-quote'; // F6 quotations + T&C: QUO_* (not QUO_ACCEPT), HALL_TNC_TEMPLATE_SAVE
 // F6-H2 end
 // F6-H3
 // F6-H3 end
@@ -122,6 +123,7 @@ const F6:Record<string,Handler>={ // F6 lanes: spread your handlers inside your 
   ...hall,
   // F6-H1 end
   // F6-H2
+  ...hallQuote,
   // F6-H2 end
   // F6-H3
   // F6-H3 end
