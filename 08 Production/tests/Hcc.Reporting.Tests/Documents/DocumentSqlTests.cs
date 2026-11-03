@@ -2,6 +2,8 @@
 // number), and screen = Excel = PDF = print on every document built from them.
 using Hcc.Application.Billing;
 using Hcc.Application.Reporting.Rpt;
+using Hcc.Application.Tax;
+using Hcc.Domain.Tax;
 using Hcc.Contracts;
 using Hcc.Domain.Errors;
 using Hcc.Reporting.Documents;
@@ -68,12 +70,39 @@ public sealed class DocumentSqlTests(ReportDatabase db) : IClassFixture<ReportDa
             """);
     }
 
+    /// <summary>The dated master with the statutory seed rows (no property overrides) behind the resolver interface.</summary>
+    private sealed class SeedResolver : IGstRateResolver
+    {
+        private static readonly GstMaster Master = GstMaster.Seed();
+        public Task<GstRate> RoomNightAsync(Hcc.Application.Commands.ICommandTransaction? tx, int propertyId, DateOnly night, Hcc.Domain.Money.Paise p, CancellationToken ct = default) => Task.FromResult(Master.RoomNight(night, p));
+        public Task<IReadOnlyList<(DateOnly Night, GstRate Rate)>> RoomNightsAsync(Hcc.Application.Commands.ICommandTransaction? tx, int propertyId, DateOnly from, DateOnly to, Hcc.Domain.Money.Paise n, CancellationToken ct = default)
+        {
+            var l = new List<(DateOnly, GstRate)>();
+            for (var d = from; d < to; d = d.AddDays(1)) l.Add((d, Master.RoomNight(d, n)));
+            return Task.FromResult<IReadOnlyList<(DateOnly, GstRate)>>(l);
+        }
+
+        public Task<GstRate> ChargeAsync(Hcc.Application.Commands.ICommandTransaction? tx, int propertyId, DateOnly date, GstCategory category, CancellationToken ct = default) => throw new NotSupportedException();
+    }
+
+    private static readonly IGstRateResolver Gst = new SeedResolver();
+
+    [Fact]
+    public void Quotation_tax_follows_the_dated_master_old_rate_before_22_Sep_2025()
+    {
+        var master = GstMaster.Seed();
+        var old = Enumerable.Range(0, 2).Select(i => (new DateOnly(2025, 9, 21).AddDays(i), master.RoomNight(new DateOnly(2025, 9, 21).AddDays(i), new Hcc.Domain.Money.Paise(200000)))).ToList();
+        Assert.Equal(new[] { 1200, 500 }, old.Select(n => n.Item2.Bps));
+        Assert.Equal(24000 + 10000, DocumentSql.StayTax(old, 200000));
+        Assert.Equal(2 * 10000, DocumentSql.StayTax([(new DateOnly(2026, 10, 23), master.RoomNight(new DateOnly(2026, 10, 23), new Hcc.Domain.Money.Paise(200000)))], 200000) * 2);
+    }
+
     private Caller C(int principal) => new(db.PropertyId, principal);
 
     [Fact]
     public async Task Folio_header_and_quotation_come_from_the_reservation()
     {
-        var sql = new DocumentSql(db.Platform, _policy);
+        var sql = new DocumentSql(db.Platform, _policy, Gst);
         var h = await sql.FolioHeaderAsync(C(db.Users["OWN"]), _folio, Ct);
         Assert.Equal(("Ananya Rao", "101", "HCC-2001"), (h.Guest, h.Room, h.Booking));
         Assert.Equal(new DateOnly(2026, 10, 23), h.Arrival);
@@ -90,7 +119,7 @@ public sealed class DocumentSqlTests(ReportDatabase db) : IClassFixture<ReportDa
     [Fact]
     public async Task Quotation_is_role_checked_and_needs_an_agreed_rate()
     {
-        var sql = new DocumentSql(db.Platform, _policy);
+        var sql = new DocumentSql(db.Platform, _policy, Gst);
         var denied = await Assert.ThrowsAsync<HccException>(() => sql.QuotationAsync(C(db.Users["HKP"]), "HCC-2001", Ct));
         Assert.Equal(HccErrorCode.FORBIDDEN, denied.Code);
         await Assert.ThrowsAsync<HccException>(() => sql.QuotationAsync(C(db.Users["OWN"]), "HCC-2002", Ct));

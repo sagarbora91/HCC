@@ -3,14 +3,17 @@
 using System.Data;
 using Hcc.Application.Access;
 using Hcc.Application.Billing;
+using Hcc.Application.Tax;
 using Hcc.Contracts;
 using Hcc.Domain.Errors;
+using Hcc.Domain.Money;
+using Hcc.Domain.Tax;
 using Hcc.Infrastructure.SqlServer;
 using Microsoft.Data.SqlClient;
 
 namespace Hcc.Reporting.Documents;
 
-public sealed class DocumentSql(SqlPlatform platform, IAccessPolicy policy)
+public sealed class DocumentSql(SqlPlatform platform, IAccessPolicy policy, IGstRateResolver gst)
 {
     private const string HeaderSql = """
         SELECT r.public_no, r.guest_name, COALESCE(rm.room_no, ''), r.arrival, r.departure
@@ -41,8 +44,9 @@ public sealed class DocumentSql(SqlPlatform platform, IAccessPolicy policy)
          WHERE r.property_id = @p AND r.public_no = @no;
         """;
 
-    /// <summary>Room GST per night on the agreed rate: 5 % up to 7,500 a night, 18 % above (the dated GST master's current slabs), half away from zero.</summary>
-    public static long NightTax(long ratePaise) => (ratePaise * (ratePaise <= 750000 ? 500 : 1800) + 5000) / 10000;
+    /// <summary>Room GST of the stay from the dated GST master (DEC-069): each night at the slab in force on that night, CGST + SGST on the night, half away from zero.</summary>
+    public static long StayTax(IEnumerable<(DateOnly Night, GstRate Rate)> nights, long ratePaise) =>
+        nights.Sum(n => { var tax = (ratePaise * n.Rate.Bps + 5000) / 10000; var sgst = tax / 2; return (tax - sgst) + sgst; });
 
     public async Task<QuotationInput> QuotationAsync(Caller c, string bookingNo, CancellationToken ct = default)
     {
@@ -58,8 +62,8 @@ public sealed class DocumentSql(SqlPlatform platform, IAccessPolicy policy)
         var rate = rd.GetInt64(7);
         var arrival = DateOnly.FromDateTime(rd.GetDateTime(3));
         var departure = DateOnly.FromDateTime(rd.GetDateTime(4));
-        var nights = Math.Max(1, departure.DayNumber - arrival.DayNumber);
+        var nights = await gst.RoomNightsAsync(null, c.PropertyId, arrival, departure, new Paise(rate), ct).ConfigureAwait(false);
         return new QuotationInput(rd.GetString(0), rd.GetString(1), null, rd.GetString(2), arrival, departure, Convert.ToInt32(rd.GetValue(5), System.Globalization.CultureInfo.InvariantCulture),
-            rd.GetString(6), "Per house rules", "Per house rules", rate, NightTax(rate) * nights, rd.GetInt64(8), null);
+            rd.GetString(6), "Per house rules", "Per house rules", rate, StayTax(nights, rate), rd.GetInt64(8), null);
     }
 }
