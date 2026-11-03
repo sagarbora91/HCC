@@ -5,6 +5,11 @@ import './money/revenue-by-category-tender'; // engine demo report (F7-CONTRACT 
 // F7-R3
 // F7-R3 end
 // F7-R4
+import './money/shift-report';
+import './money/collection-detail';
+import './money/credit-bills';
+import './money/expense-register';
+import './money/expenses-by-head';
 // F7-R4 end
 // F7-R5
 // F7-R5 end

@@ -1,0 +1,135 @@
+{
+ "id": "rpt.money.expense-register",
+ "cases": [
+  {
+   "uid": "owner",
+   "scenario": "BASE",
+   "params": {},
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["date","description","category","funding","amount","gst","gstRate","itc","status","vendor","by"],
+     "rows": [
+      ["row","2026-10-24","Fresh Linen Services","Laundry","Cash",180000,0,null,"","Posted","Fresh Linen Services","Meera"],
+      ["subtotal",null,"Total Laundry","Laundry",null,180000,0,null,null,null,null,null],
+      ["row","2026-10-24","Morning Supplies","Supplies","UPI",85000,0,null,"","Pending","Morning Supplies","Aarav"],
+      ["subtotal",null,"Total Supplies","Supplies",null,0,0,null,null,null,null,null],
+      ["total",null,"Grand total",null,null,180000,0,null,null,null,null,null]
+     ]
+    }
+   ]
+  },
+  {
+   "uid": "owner",
+   "scenario": "ACC-RULEBOOK",
+   "params": {
+    "from": "2026-04-01",
+    "to": "2026-04-30"
+   },
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["date","description","category","funding","amount","gst","gstRate","itc","status","vendor","by"],
+     "rows": [
+      ["row","2026-04-12","Linen, invoice KT/118 (fictional)","Laundry","Vendor credit",4200000,200000,5,"disallowed","Posted","Kaveri Textiles","Meera"],
+      ["subtotal",null,"Total Laundry","Laundry",null,4200000,200000,null,null,null,null,null],
+      ["row","2026-04-14","Sundry cash expenses (1 of 2, fictional)","Petty cash","Cash",400000,0,null,"","Posted","","Meera"],
+      ["row","2026-04-18","Sundry cash expenses (2 of 2, fictional)","Petty cash","Cash",400000,0,null,"","Posted","","Meera"],
+      ["subtotal",null,"Total Petty cash","Petty cash",null,800000,0,null,null,null,null,null],
+      ["row","2026-04-05","Consumables, invoice MS/26-27/118 (fictional)","Supplies","Vendor credit",5900000,900000,18,"disallowed","Posted","Morning Supplies","Meera"],
+      ["subtotal",null,"Total Supplies","Supplies",null,5900000,900000,null,null,null,null,null],
+      ["row","2026-04-15","Electricity, March bill (exempt supply)","Utilities","Bank transfer",4500000,0,null,"","Posted","State Electricity Board (fictional)","Meera"],
+      ["subtotal",null,"Total Utilities","Utilities",null,4500000,0,null,null,null,null,null],
+      ["total",null,"Grand total",null,null,15400000,1100000,null,null,null,null,null]
+     ]
+    }
+   ]
+  },
+  {
+   "uid": "owner",
+   "scenario": "FY26",
+   "params": {
+    "from": "2026-10-01",
+    "to": "2026-10-24"
+   },
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["date","description","category","funding","amount","gst","gstRate","itc","status","vendor","by"],
+     "rows": [
+      ["row","2026-10-05","Fresh Linen Services","Laundry","UPI",395000,0,null,"","Posted","Fresh Linen Services","Meera"],
+      ["row","2026-10-12","Fresh Linen Services","Laundry","UPI",710000,0,null,"","Posted","Fresh Linen Services","Meera"],
+      ["row","2026-10-19","Fresh Linen Services","Laundry","UPI",560000,0,null,"","Posted","Fresh Linen Services","Meera"],
+      ["row","2026-10-24","Fresh Linen Services","Laundry","Cash",180000,0,null,"","Posted","Fresh Linen Services","Meera"],
+      ["subtotal",null,"Total Laundry","Laundry",null,1845000,0,null,null,null,null,null],
+      ["row","2026-10-04","Hardware Corner","Maintenance","Cash",38000,0,null,"","Posted","Hardware Corner","Aarav"],
+      ["row","2026-10-05","Hardware Corner","Maintenance","UPI",82000,0,null,"","Posted","Hardware Corner","Aarav"],
+      ["row","2026-10-06","Shree Electricals","Maintenance","UPI",1235000,0,null,"","Posted","Shree Electricals","Meera"],
+      ["row","2026-10-08","Hardware Corner","Maintenance","UPI",91500,0,null,"","Posted","Hardware Corner","Aarav"],
+      ["row","2026-10-09","Om Plumbing Works","Maintenance","Cash",660000,0,null,"","Posted","Om Plumbing Works","Meera"],
+      ["row","2026-10-13","Hardware Corner","Maintenance","UPI",39500,0,null,"","Posted","Hardware Corner","Aarav"],
+      ["row","2026-10-13","Joseph Repairs","Maintenance","Cash",310000,0,null,"","Posted","Joseph Repairs","Meera"],
+      ["row","2026-10-15","Lift & Genset AMC (fictional)","Maintenance","Bank transfer",1200000,0,null,"","Posted","Lift & Genset AMC (fictional)","Farhan"],
+      ["row","2026-10-17","Hardware Corner","Maintenance","UPI",20000,0,null,"","Posted","Hardware Corner","Aarav"],
+      ["row","2026-10-17","Joseph Repairs","Maintenance","Cash",355000,0,null,"","Posted","Joseph Repairs","Meera"],
+      ["row","2026-10-18","Hardware Corner","Maintenance","Cash",70500,0,null,"","Posted","Hardware Corner","Aarav"],
+      ["row","2026-10-19","Joseph Repairs","Maintenance","UPI",360000,0,null,"","Posted","Joseph Repairs","Meera"],
+      ["row","2026-10-23","Hardware Corner","Maintenance","UPI",60500,0,null,"","Posted","Hardware Corner","Priya"],
+      ["subtotal",null,"Total Maintenance","Maintenance",null,4522000,0,null,null,null,null,null],
+      ["row","2026-10-01","Tea & Snacks Counter","Petty cash","Cash",24000,0,null,"","Posted","Tea & Snacks Counter","Priya"],
+      ["row","2026-10-01","Tea & Snacks Counter","Petty cash","Cash",17500,0,null,"","Posted","Tea & Snacks Counter","Priya"],
+      ["row","2026-10-05","Local Vegetable Market","Petty cash","UPI",55000,0,null,"","Posted","Local Vegetable Market","Aarav"],
+      ["row","2026-10-05","Tea & Snacks Counter","Petty cash","Cash",10000,0,null,"","Posted","Tea & Snacks Counter","Priya"],
+      ["row","2026-10-07","Tea & Snacks Counter","Petty cash","Cash",12000,0,null,"","Posted","Tea & Snacks Counter","Priya"],
+      ["row","2026-10-11","Local Vegetable Market","Petty cash","Cash",176000,0,null,"","Posted","Local Vegetable Market","Priya"],
+      ["row","2026-10-11","Local Vegetable Market","Petty cash","Cash",192500,0,null,"","Posted","Local Vegetable Market","Priya"],
+      ["row","2026-10-12","Tea & Snacks Counter","Petty cash","UPI",12500,0,null,"","Posted","Tea & Snacks Counter","Aarav"],
+      ["row","2026-10-14","Local Vegetable Market","Petty cash","Cash",126500,0,null,"","Posted","Local Vegetable Market","Priya"],
+      ["row","2026-10-14","Tea & Snacks Counter","Petty cash","UPI",33500,0,null,"","Posted","Tea & Snacks Counter","Aarav"],
+      ["row","2026-10-15","Local Vegetable Market","Petty cash","Cash",212000,0,null,"","Posted","Local Vegetable Market","Priya"],
+      ["row","2026-10-15","Local Vegetable Market","Petty cash","Cash",248500,0,null,"","Posted","Local Vegetable Market","Priya"],
+      ["row","2026-10-16","Local Vegetable Market","Petty cash","Cash",80000,0,null,"","Posted","Local Vegetable Market","Priya"],
+      ["row","2026-10-18","Tea & Snacks Counter","Petty cash","Cash",37000,0,null,"","Posted","Tea & Snacks Counter","Priya"],
+      ["row","2026-10-19","Local Vegetable Market","Petty cash","Cash",122500,0,null,"","Posted","Local Vegetable Market","Aarav"],
+      ["row","2026-10-21","Tea & Snacks Counter","Petty cash","Cash",32500,0,null,"","Posted","Tea & Snacks Counter","Priya"],
+      ["row","2026-10-23","Local Vegetable Market","Petty cash","UPI",147000,0,null,"","Posted","Local Vegetable Market","Aarav"],
+      ["subtotal",null,"Total Petty cash","Petty cash",null,1539000,0,null,null,null,null,null],
+      ["row","2026-10-01","Sai Provisions","Supplies","Cash",68500,0,null,"","Posted","Sai Provisions","Priya"],
+      ["row","2026-10-02","Stationers & Co","Supplies","Cash",19000,0,null,"","Posted","Stationers & Co","Aarav"],
+      ["row","2026-10-02","Morning Supplies","Supplies","Cash",107000,0,null,"","Posted","Morning Supplies","Aarav"],
+      ["row","2026-10-02","Stationers & Co","Supplies","Cash",22500,0,null,"","Posted","Stationers & Co","Priya"],
+      ["row","2026-10-03","Morning Supplies","Supplies","Cash",127000,0,null,"","Posted","Morning Supplies","Aarav"],
+      ["row","2026-10-03","Sai Provisions","Supplies","UPI",64500,0,null,"","Posted","Sai Provisions","Aarav"],
+      ["row","2026-10-04","Stationers & Co","Supplies","Cash",59500,0,null,"","Posted","Stationers & Co","Aarav"],
+      ["row","2026-10-05","Unknown Traders","Supplies","Cash",260000,0,null,"","Rejected","Unknown Traders","Aarav"],
+      ["row","2026-10-06","Stationers & Co","Supplies","Cash",14500,0,null,"","Posted","Stationers & Co","Aarav"],
+      ["row","2026-10-07","Stationers & Co","Supplies","UPI",55000,0,null,"","Posted","Stationers & Co","Aarav"],
+      ["row","2026-10-09","Morning Supplies","Supplies","Cash",27000,0,null,"","Posted","Morning Supplies","Priya"],
+      ["row","2026-10-10","Sai Provisions","Supplies","UPI",59500,0,null,"","Posted","Sai Provisions","Aarav"],
+      ["row","2026-10-11","Morning Supplies","Supplies","Cash",110500,0,null,"","Posted","Morning Supplies","Aarav"],
+      ["row","2026-10-13","Stationers & Co","Supplies","Cash",38000,0,null,"","Posted","Stationers & Co","Aarav"],
+      ["row","2026-10-15","Stationers & Co","Supplies","UPI",55500,0,null,"","Posted","Stationers & Co","Aarav"],
+      ["row","2026-10-16","Stationers & Co","Supplies","Cash",53000,0,null,"","Posted","Stationers & Co","Aarav"],
+      ["row","2026-10-16","Sai Provisions","Supplies","Cash",128500,0,null,"","Posted","Sai Provisions","Aarav"],
+      ["row","2026-10-17","Morning Supplies","Supplies","Cash",46000,0,null,"","Posted","Morning Supplies","Aarav"],
+      ["row","2026-10-18","Stationers & Co","Supplies","UPI",14500,0,null,"","Posted","Stationers & Co","Aarav"],
+      ["row","2026-10-19","Morning Supplies","Supplies","Cash",104500,0,null,"","Posted","Morning Supplies","Aarav"],
+      ["row","2026-10-20","Morning Supplies","Supplies","Cash",60000,0,null,"","Posted","Morning Supplies","Aarav"],
+      ["row","2026-10-20","Stationers & Co","Supplies","Cash",13500,0,null,"","Posted","Stationers & Co","Priya"],
+      ["row","2026-10-22","Stationers & Co","Supplies","Cash",13000,0,null,"","Posted","Stationers & Co","Priya"],
+      ["row","2026-10-24","Morning Supplies","Supplies","UPI",85000,0,null,"","Pending","Morning Supplies","Aarav"],
+      ["subtotal",null,"Total Supplies","Supplies",null,1261000,0,null,null,null,null,null],
+      ["row","2026-10-05","Marathwada Power Supply (fictional)","Utilities","Bank transfer",5150000,0,null,"","Posted","Marathwada Power Supply (fictional)","Farhan"],
+      ["row","2026-10-07","Municipal Water Board (fictional)","Utilities","Bank transfer",490000,0,null,"","Posted","Municipal Water Board (fictional)","Farhan"],
+      ["row","2026-10-10","Latur Broadband (fictional)","Utilities","Bank transfer",320000,0,null,"","Posted","Latur Broadband (fictional)","Farhan"],
+      ["subtotal",null,"Total Utilities","Utilities",null,5960000,0,null,null,null,null,null],
+      ["total",null,"Grand total",null,null,15127000,0,null,null,null,null,null]
+     ]
+    }
+   ]
+  }
+ ]
+}
