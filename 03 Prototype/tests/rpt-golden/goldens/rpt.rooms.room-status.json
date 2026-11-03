@@ -1,0 +1,107 @@
+{
+ "id": "rpt.rooms.room-status",
+ "cases": [
+  {
+   "uid": "owner",
+   "scenario": "BASE",
+   "params": {},
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["room","type","floor","status","hk","guest","pax","checkIn","checkOut","nextArrival","notes"],
+     "rows": [
+      ["row","101","Classic","Floor 1","Occupied","Ready","Ananya Rao",1,"2026-10-23","2026-10-26",null,""],
+      ["row","102","Classic","Floor 1","Occupied","Ready","Vikram Shah",2,"2026-10-23","2026-10-26",null,""],
+      ["row","103","Deluxe","Floor 1","Vacant","Ready","",null,null,null,"2026-10-24",""],
+      ["row","104","Deluxe","Floor 1","Occupied","Ready","Riya Mehta",1,"2026-10-23","2026-10-26",null,""],
+      ["row","105","Classic","Floor 1","Vacant","Ready","",null,null,null,null,""],
+      ["row","106","Suite","Floor 1","Vacant","Ready","",null,null,null,null,""],
+      ["row","107","Deluxe","Floor 1","Vacant","Ready","",null,null,null,null,""],
+      ["row","108","Classic","Floor 1","Vacant","Dirty","",null,null,null,null,""],
+      ["row","201","Classic","Floor 2","Occupied","Ready","Arjun Kapoor",2,"2026-10-23","2026-10-26",null,""],
+      ["row","202","Classic","Floor 2","Occupied","Ready","Nisha Desai",1,"2026-10-23","2026-10-26",null,""],
+      ["row","203","Deluxe","Floor 2","Vacant","Ready","",null,null,null,null,""],
+      ["row","204","Deluxe","Floor 2","Vacant","Dirty","",null,null,null,null,""],
+      ["row","205","Classic","Floor 2","Vacant","Ready","",null,null,null,null,""],
+      ["row","206","Suite","Floor 2","Occupied","Ready","Kabir Sen",2,"2026-10-23","2026-10-26",null,""],
+      ["row","207","Deluxe","Floor 2","Vacant","Ready","",null,null,null,"2026-10-24",""],
+      ["row","208","Classic","Floor 2","Vacant","Dirty","",null,null,null,null,""],
+      ["row","301","Classic","Floor 3","Occupied","Ready","Tara Iyer",1,"2026-10-23","2026-10-26",null,""],
+      ["row","302","Classic","Floor 3","Occupied","Ready","Dev Malhotra",2,"2026-10-23","2026-10-26",null,""],
+      ["row","303","Deluxe","Floor 3","Vacant","Inspection","",null,null,null,null,""],
+      ["row","304","Deluxe","Floor 3","Vacant","Ready","",null,null,null,null,""],
+      ["row","305","Classic","Floor 3","Vacant","Cleaning","",null,null,null,null,""],
+      ["row","306","Suite","Floor 3","Vacant","Ready","",null,null,null,null,""],
+      ["row","307","Deluxe","Floor 3","Vacant","Ready","",null,null,null,null,""],
+      ["row","308","Classic","Floor 3","Out of order","Ready","",null,null,null,null,"Bathroom leak — plumber booked (fictional)"],
+      ["total","24 rooms",null,null,"Occupied 8 · Vacant 15 · Out of order 1",null,null,null,null,null,null,"Check-ins today 2 · Check-outs today 0"]
+     ]
+    }
+   ]
+  },
+  {
+   "uid": "reception",
+   "scenario": "BASE",
+   "params": {
+    "filter": "occupied"
+   },
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["room","type","floor","status","hk","guest","pax","checkIn","checkOut","nextArrival","notes"],
+     "rows": [
+      ["row","101","Classic","Floor 1","Occupied","Ready","Ananya Rao",1,"2026-10-23","2026-10-26",null,""],
+      ["row","102","Classic","Floor 1","Occupied","Ready","Vikram Shah",2,"2026-10-23","2026-10-26",null,""],
+      ["row","104","Deluxe","Floor 1","Occupied","Ready","Riya Mehta",1,"2026-10-23","2026-10-26",null,""],
+      ["row","201","Classic","Floor 2","Occupied","Ready","Arjun Kapoor",2,"2026-10-23","2026-10-26",null,""],
+      ["row","202","Classic","Floor 2","Occupied","Ready","Nisha Desai",1,"2026-10-23","2026-10-26",null,""],
+      ["row","206","Suite","Floor 2","Occupied","Ready","Kabir Sen",2,"2026-10-23","2026-10-26",null,""],
+      ["row","301","Classic","Floor 3","Occupied","Ready","Tara Iyer",1,"2026-10-23","2026-10-26",null,""],
+      ["row","302","Classic","Floor 3","Occupied","Ready","Dev Malhotra",2,"2026-10-23","2026-10-26",null,""],
+      ["total","8 rooms",null,null,"Occupied 8 · Vacant 0 · Out of order 0",null,null,null,null,null,null,"Check-ins today 2 · Check-outs today 0"]
+     ]
+    }
+   ]
+  },
+  {
+   "uid": "housekeeper",
+   "scenario": "BASE",
+   "params": {
+    "filter": "dirty"
+   },
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["room","type","floor","status","hk","guest","pax","checkIn","checkOut","nextArrival","notes"],
+     "rows": [
+      ["row","108","Classic","Floor 1","Vacant","Dirty","",null,null,null,null,""],
+      ["row","204","Deluxe","Floor 2","Vacant","Dirty","",null,null,null,null,""],
+      ["row","208","Classic","Floor 2","Vacant","Dirty","",null,null,null,null,""],
+      ["total","3 rooms",null,null,"Occupied 0 · Vacant 3 · Out of order 0",null,null,null,null,null,null,"Check-ins today 2 · Check-outs today 0"]
+     ]
+    }
+   ]
+  },
+  {
+   "uid": "accountant",
+   "scenario": "BASE",
+   "params": {
+    "filter": "out of order"
+   },
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["room","type","floor","status","hk","guest","pax","checkIn","checkOut","nextArrival","notes"],
+     "rows": [
+      ["row","308","Classic","Floor 3","Out of order","Ready","",null,null,null,null,"Bathroom leak — plumber booked (fictional)"],
+      ["total","1 room",null,null,"Occupied 0 · Vacant 0 · Out of order 1",null,null,null,null,null,null,"Check-ins today 2 · Check-outs today 0"]
+     ]
+    }
+   ]
+  }
+ ]
+}

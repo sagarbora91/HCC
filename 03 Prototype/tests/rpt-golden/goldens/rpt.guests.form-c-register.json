@@ -1,0 +1,44 @@
+{
+ "id": "rpt.guests.form-c-register",
+ "cases": [
+  {
+   "uid": "owner",
+   "scenario": "FY26",
+   "params": {
+    "from": "2026-10-01",
+    "to": "2026-10-24"
+   },
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["checkIn","guest","nationality","passportNo","passportIssue","visa","visaExpiry","arrivedOn","arrivedFrom","nextDestination","purpose","room","checkOut","submitted","submittedOn"],
+     "rows": [
+      ["subtotal",null,null,"To submit: 0",null,null,null,null,null,null,null,null,null,null,null,null],
+      ["total",null,null,"0 foreign stays",null,null,null,null,null,null,null,null,null,null,null,null]
+     ]
+    }
+   ]
+  },
+  {
+   "uid": "reception",
+   "scenario": "BASE",
+   "params": {
+    "from": "2026-10-01",
+    "to": "2026-10-24",
+    "submitted": "no"
+   },
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["checkIn","guest","nationality","passportNo","passportIssue","visa","visaExpiry","arrivedOn","arrivedFrom","nextDestination","purpose","room","checkOut","submitted","submittedOn"],
+     "rows": [
+      ["subtotal",null,null,"To submit: 0",null,null,null,null,null,null,null,null,null,null,null,null],
+      ["total",null,null,"0 foreign stays",null,null,null,null,null,null,null,null,null,null,null,null]
+     ]
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,78 @@
+{
+ "id": "rpt.guests.guest-register",
+ "cases": [
+  {
+   "uid": "owner",
+   "scenario": "FY26",
+   "params": {
+    "from": "2026-10-01",
+    "to": "2026-10-04"
+   },
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["regNo","checkIn","guest","nationality","city","phone","idType","idNumber","room","adults","children","purpose","vehicle","comingFrom","goingTo","checkOut","billNo"],
+     "rows": [
+      ["row","HCC-H1075","2026-10-01 14:00","Nikhil Agarwal","Indian","Solapur","+91 99488 14931","Passport (demo)","XXXX-XXXX-4138","203",1,0,"","","","","2026-10-02 11:00","DEMO/2026-27/0981"],
+      ["row","HCC-H1077","2026-10-01 14:00","Amit Pawar","Indian","Hyderabad","+91 99123 74088","Aadhaar (demo)","XXXX-XXXX-4065","303",1,0,"","","","","2026-10-04 11:00","DEMO/2026-27/0994"],
+      ["row","HCC-H1078","2026-10-01 14:00","Kavita Joshi","Indian","Kolhapur","+91 91383 81484","Aadhaar (demo)","XXXX-XXXX-8937","202",1,0,"","","","","2026-10-02 11:00","DEMO/2026-27/0982"],
+      ["row","HCC-H1079","2026-10-01 14:00","Divya More","Indian","Bengaluru","+91 94345 87021","Passport (demo)","XXXX-XXXX-9700","305",3,0,"","","","","2026-10-02 11:00","DEMO/2026-27/0983"],
+      ["row","HCC-H1080","2026-10-01 14:00","Arjun Gaikwad","Indian","Bengaluru","+91 91761 68039","Passport (demo)","XXXX-XXXX-8226","307",1,0,"","","","","2026-10-03 11:00","DEMO/2026-27/0986"],
+      ["row","HCC-H1081","2026-10-01 14:00","Nikhil Pawar","Indian","Nagpur","+91 97767 97039","Passport (demo)","XXXX-XXXX-7301","106",2,0,"","","","","2026-10-03 11:00","DEMO/2026-27/0987"],
+      ["row","HCC-H1082","2026-10-02 14:00","Anil Gaikwad","Indian","Bengaluru","+91 92932 14923","Voter ID (demo)","XXXX-XXXX-0624","104",2,0,"","","","","2026-10-04 11:00","DEMO/2026-27/0995"],
+      ["row","HCC-H1083","2026-10-02 14:00","Prakash Nair","Indian","Solapur","+91 92056 83151","Aadhaar (demo)","XXXX-XXXX-0171","107",2,0,"","","","","2026-10-03 11:00","DEMO/2026-27/0988"],
+      ["row","HCC-H1084","2026-10-02 14:00","Rahul Agarwal","Indian","Aurangabad","+91 93556 40645","Passport (demo)","XXXX-XXXX-2928","208",1,0,"","","","","2026-10-03 11:00","DEMO/2026-27/0989"],
+      ["row","HCC-H1085","2026-10-02 14:00","Lata Joshi","Indian","Aurangabad","+91 93100 64680","Aadhaar (demo)","XXXX-XXXX-9996","207",2,0,"","","","","2026-10-03 11:00","DEMO/2026-27/0990"],
+      ["row","HCC-H1086","2026-10-02 14:00","Rahul Agarwal","Indian","Pune","+91 96704 39739","Driving licence (demo)","XXXX-XXXX-0037","202",1,0,"","","","","2026-10-03 11:00","DEMO/2026-27/0991"],
+      ["row","HCC-H1088","2026-10-02 14:00","Anil Kulkarni","Indian","Aurangabad","+91 96349 70228","Driving licence (demo)","XXXX-XXXX-9498","205",2,0,"","","","","2026-10-05 11:00","DEMO/2026-27/1004"],
+      ["row","HCC-H1089","2026-10-02 14:00","Amit Kale","Indian","Bengaluru","+91 98452 98625","Voter ID (demo)","XXXX-XXXX-0490","305",1,0,"","","","","2026-10-04 11:00","DEMO/2026-27/0996"],
+      ["row","HCC-H1090","2026-10-03 14:00","Neha Patil","Indian","Nanded","+91 99006 76496","Aadhaar (demo)","XXXX-XXXX-3842","105",2,0,"","","","","2026-10-04 11:00","DEMO/2026-27/0997"],
+      ["row","HCC-H1092","2026-10-03 14:00","Nikhil Mehta","Indian","Ahmedabad","+91 92519 66721","Driving licence (demo)","XXXX-XXXX-1897","107",2,0,"","","","","2026-10-04 11:00","DEMO/2026-27/0998"],
+      ["row","HCC-H1093","2026-10-03 14:00","Meena Pawar","Indian","Kolhapur","+91 96920 23798","Aadhaar (demo)","XXXX-XXXX-3713","307",2,0,"","","","","2026-10-04 11:00","DEMO/2026-27/0999"],
+      ["row","HCC-H1094","2026-10-03 14:00","Kavita Joshi","Indian","Latur","+91 91965 55760","Driving licence (demo)","XXXX-XXXX-3387","201",2,0,"","","","","2026-10-04 11:00","DEMO/2026-27/1000"],
+      ["row","HCC-H1095","2026-10-03 14:00","Alka Naik","Indian","52 Demo Street","+91 94645 68897","Driving licence (demo)","XXXX-XXXX-5581","208",2,0,"","","","","2026-10-06 11:00","DEMO/2026-27/1009"],
+      ["row","HCC-H1096","2026-10-03 14:00","Alka Pawar","Indian","Aurangabad","+91 92784 80142","Voter ID (demo)","XXXX-XXXX-0841","202",2,0,"","","","","2026-10-04 11:00","DEMO/2026-27/1001"],
+      ["row","HCC-H1097","2026-10-03 14:00","Prakash Yadav","Indian","Bengaluru","+91 99636 97578","Driving licence (demo)","XXXX-XXXX-2707","103",2,0,"","","","","2026-10-05 11:00","DEMO/2026-27/1005"],
+      ["row","HCC-H1098","2026-10-03 14:00","Amit More","Indian","Solapur","+91 95358 13493","Aadhaar (demo)","XXXX-XXXX-3797","301",3,1,"","","","","2026-10-04 11:00","DEMO/2026-27/1002"],
+      ["row","HCC-H1099","2026-10-04 14:00","Ananya Yadav","Indian","Hyderabad","+91 91384 79479","Aadhaar (demo)","XXXX-XXXX-9794","105",1,0,"","","","","2026-10-05 11:00","DEMO/2026-27/1006"],
+      ["row","HCC-H1101","2026-10-04 14:00","Kiran Agarwal","Indian","Nagpur","+91 94586 89304","Aadhaar (demo)","XXXX-XXXX-4123","305",2,0,"","","","","2026-10-06 11:00","DEMO/2026-27/1010"],
+      ["row","HCC-H1102","2026-10-04 14:00","Gauri Yadav","Indian","Nanded","+91 99346 20199","Driving licence (demo)","XXXX-XXXX-3674","307",2,0,"","","","","2026-10-07 11:00","DEMO/2026-27/1017"],
+      ["row","HCC-H1103","2026-10-04 14:00","Asha Kamble","Indian","45 Demo Street","+91 92062 26989","Aadhaar (demo)","XXXX-XXXX-9229","303",2,0,"","","","","2026-10-06 11:00","DEMO/2026-27/1011"],
+      ["row","HCC-H1104","2026-10-04 14:00","Zoya Kale","Indian","Latur","+91 97309 91080","Aadhaar (demo)","XXXX-XXXX-5153","201",3,0,"","","","","2026-10-05 11:00","DEMO/2026-27/1007"],
+      ["row","HCC-H1105","2026-10-04 14:00","Harsh Wagh","Indian","Latur","+91 96329 33465","Aadhaar (demo)","XXXX-XXXX-1023","101",2,0,"","","","","2026-10-06 11:00","DEMO/2026-27/1012"],
+      ["row","HCC-H1106","2026-10-04 14:00","Kavita Zende","Indian","Kolhapur","+91 92345 84848","Aadhaar (demo)","XXXX-XXXX-1543","302",2,0,"","","","","2026-10-05 11:00","DEMO/2026-27/1008"],
+      ["total","28 stays",null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null]
+     ]
+    }
+   ]
+  },
+  {
+   "uid": "reception",
+   "scenario": "FY26",
+   "params": {
+    "from": "2026-10-20",
+    "to": "2026-10-24",
+    "status": "in house"
+   },
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["regNo","checkIn","guest","nationality","city","phone","idType","idNumber","room","adults","children","purpose","vehicle","comingFrom","goingTo","checkOut","billNo"],
+     "rows": [
+      ["row","HCC-1041","2026-10-23 14:00","Ananya Rao","Indian","Bengaluru","+91 98200 01041","Aadhaar (demo)","XXXX-XXXX-4101","101",1,0,"","","","","",""],
+      ["row","HCC-1042","2026-10-23 14:00","Vikram Shah","Indian","Ahmedabad","+91 98200 01042","Passport (demo)","XXXX-XXXX-9465","102",2,0,"","","","","",""],
+      ["row","HCC-1043","2026-10-23 14:00","Riya Mehta","Indian","Pune","+91 98200 07777","Driving licence (demo)","XXXX-XXXX-3768","104",1,0,"","","","","",""],
+      ["row","HCC-1044","2026-10-23 14:00","Arjun Kapoor","Indian","13 Demo Street","+91 98200 01044","Aadhaar (demo)","XXXX-XXXX-4404","201",2,0,"","","","","",""],
+      ["row","HCC-1045","2026-10-23 14:00","Nisha Desai","Indian","Surat","+91 98200 01045","Voter ID (demo)","XXXX-XXXX-3648","202",1,0,"","","","","",""],
+      ["row","HCC-1046","2026-10-23 14:00","Kabir Sen","Indian","Pune","098200 07777","Aadhaar (demo)","XXXX-XXXX-4606","206",2,0,"","","","","",""],
+      ["row","HCC-1047","2026-10-23 14:00","Tara Iyer","Indian","Chennai","+91 98200 01047","Passport (demo)","XXXX-XXXX-3110","301",1,0,"","","","","",""],
+      ["row","HCC-1048","2026-10-23 14:00","Dev Malhotra","Indian","17 Demo Street","+91 98200 01048","Aadhaar (demo)","XXXX-XXXX-4808","302",2,0,"","","","","",""],
+      ["total","8 stays",null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null]
+     ]
+    }
+   ]
+  }
+ ]
+}
