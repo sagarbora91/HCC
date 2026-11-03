@@ -1,0 +1,45 @@
+{
+ "id": "rpt.rest.closed-bills",
+ "cases": [
+  {
+   "uid": "owner",
+   "scenario": "FY26",
+   "params": {
+    "from": "2026-10-22"
+   },
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["check","outlet","table","closedAt","items","total","tender","server"],
+     "rows": [
+      ["row","POS/2610/1148","Restaurant","Table T6","2026-10-22T13:36",5,144900,"UPI","Aarav"],
+      ["row","POS/2610/1149","Restaurant","Table T6","2026-10-22T14:59",5,96600,"Cash","Priya"],
+      ["row","POS/2610/1150","Restaurant","Table T7","2026-10-22T20:15",5,157500,"UPI","Aarav"],
+      ["row","POS/2610/1151","Restaurant","Table T3","2026-10-22T21:36",8,147000,"Cash","Aarav"],
+      ["row","POS/2610/1152","Restaurant","Table T4","2026-10-22T22:16",7,165900,"Cash","Aarav"],
+      ["total","Total",null,null,null,30,711900,null,null]
+     ]
+    }
+   ]
+  },
+  {
+   "uid": "cashier",
+   "scenario": "FY26",
+   "params": {
+    "from": "2026-10-22"
+   },
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["check","outlet","table","closedAt","items","total","tender","server"],
+     "rows": [
+      ["row","POS/2610/1149","Restaurant","Table T6","2026-10-22T14:59",5,96600,"Cash","Priya"],
+      ["total","Total",null,null,null,5,96600,null,null]
+     ]
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,36 @@
+{
+ "id": "rpt.admin.report-dictionary",
+ "cases": [
+  {
+   "uid": "owner",
+   "scenario": "BASE",
+   "params": {},
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["metric","definition","zero"],
+     "rows": [
+      ["row","Sellable rooms","Rooms not blocked on the business date (sellable room-nights over a range)","—"],
+      [
+       "row",
+       "Occupied rooms",
+       "Stays in house (or since departed) whose stay interval [arrival, departure) covers the date",
+       "—"
+      ],
+      ["row","Occupancy %","Occupied ÷ sellable × 100, rounded half-up to 1 dp","sellable = 0 → \"—\""],
+      ["row","Room revenue","Σ room-night lines with service date in range (discounts are reported separately)","—"],
+      ["row","ADR","Room revenue ÷ occupied room-nights","0 nights → \"—\""],
+      ["row","RevPAR","Room revenue ÷ sellable room-nights","0 sellable → \"—\""],
+      ["row","Receipts","Σ payment receipts − refunds by receipt date; deposits shown separately","—"],
+      ["row","Deposits held","Σ deposits − deposit returns across all folios, at the current moment","—"],
+      ["row","Outstanding","Σ positive folio balances of open stays","—"],
+      ["row","Expenses","Σ posted expenses by business date, split by funding source; a reversal is a negative record on its own date","—"],
+      ["row","Drawer cash flows","Cash in = guest payments + deposits + POS cash sales; cash out = negative refunds + deposit returns + POS cash voids. Filtered by receipt date; cash expenses are separate.","Opening float + cash in + signed cash out − net cash expenses = expected cash for that day, before banking"],
+      ["row","GST (CGST + SGST)","Per-line GST at the line’s snapshot rate from the dated GST master, rounded half away from zero to the paisa; CGST + SGST halves split per line (illustrative — CA to confirm)","—"]
+     ]
+    }
+   ]
+  }
+ ]
+}

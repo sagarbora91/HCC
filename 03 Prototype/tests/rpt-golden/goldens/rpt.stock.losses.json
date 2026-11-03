@@ -1,0 +1,35 @@
+{
+ "id": "rpt.stock.losses",
+ "cases": [
+  {
+   "uid": "owner",
+   "scenario": "FY26",
+   "params": {
+    "from": "2026-10-01",
+    "to": "2026-10-24"
+   },
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["date","item","location","qty","reason","value","by"],
+     "rows": [
+      ["row","2026-10-02","Duvet cover","At laundry",1,"Missing from laundry batch (vendor claim)",140000,"Neha"],
+      ["row","2026-10-02","Bathrobe","At laundry",1,"Missing from laundry batch (vendor claim)",160000,"Neha"],
+      ["row","2026-10-02","Hand towel","In rooms",1,"Taken by guest",18000,"Ravi"],
+      ["row","2026-10-06","Bathrobe","At laundry",1,"Missing from laundry batch (vendor claim)",160000,"Neha"],
+      ["row","2026-10-13","Duvet cover","At laundry",1,"Damaged at laundry",140000,"Neha"],
+      ["row","2026-10-16","Bed sheet (king)","At laundry",1,"Damaged at laundry",65000,"Neha"],
+      ["row","2026-10-16","Bed sheet (king)","At laundry",2,"Missing from laundry batch (vendor claim)",130000,"Neha"],
+      ["row","2026-10-20","Bath towel","At laundry",2,"Missing from laundry batch (vendor claim)",90000,"Neha"],
+      ["row","2026-10-20","Pillow cover","Main store",2,"Count shortage",24000,"Neha"],
+      ["row","2026-10-22","Bed sheet (king)","At laundry",1,"Damaged at laundry",65000,"Neha"],
+      ["row","2026-10-22","Pillow cover","At laundry",1,"Missing from laundry batch (vendor claim)",12000,"Neha"],
+      ["row","2026-10-23","Bath towel","In rooms",2,"Stained beyond use",90000,"Ravi"],
+      ["total","Total",null,null,16,null,1094000,null]
+     ]
+    }
+   ]
+  }
+ ]
+}

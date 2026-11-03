@@ -1,0 +1,21 @@
+{
+ "id": "rpt.admin.config-history",
+ "cases": [
+  {
+   "uid": "owner",
+   "scenario": "FY26",
+   "params": {
+    "from": "2026-04-01",
+    "to": "2026-10-24"
+   },
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["at","actor","key","before","after","effective","reason"],
+     "rows": []
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,48 @@
+{
+ "id": "rpt.money.expense-month",
+ "cases": [
+  {
+   "uid": "owner",
+   "scenario": "ACC-RULEBOOK",
+   "params": {
+    "month": "2026-04"
+   },
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["head","amount","entries","gstPaid","itcAllowed","itcDisallowed"],
+     "rows": [
+      ["row","Laundry",4200000,1,null,null,null],
+      ["row","Petty cash",800000,2,null,null,null],
+      ["row","Supplies",5900000,1,null,null,null],
+      ["row","Utilities",4500000,1,null,null,null],
+      ["total","Total",15400000,5,1100000,0,1100000]
+     ]
+    }
+   ]
+  },
+  {
+   "uid": "owner",
+   "scenario": "FY26",
+   "params": {
+    "month": "2026-10"
+   },
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["head","amount","entries","gstPaid","itcAllowed","itcDisallowed"],
+     "rows": [
+      ["row","Laundry",1845000,4,null,null,null],
+      ["row","Maintenance",4522000,13,null,null,null],
+      ["row","Petty cash",1539000,17,null,null,null],
+      ["row","Supplies",1261000,22,null,null,null],
+      ["row","Utilities",5960000,3,null,null,null],
+      ["total","Total",15127000,59,0,0,0]
+     ]
+    }
+   ]
+  }
+ ]
+}

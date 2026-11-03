@@ -1,0 +1,40 @@
+{
+ "id": "rpt.stock.consumption",
+ "cases": [
+  {
+   "uid": "owner",
+   "scenario": "FY26",
+   "params": {
+    "from": "2026-10-01",
+    "to": "2026-10-24"
+   },
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["item","kind","used","perRN","std","variance","flag"],
+     "rows": [
+      ["row","Bed sheet (king)","Linen",550,"1.48","1.50",-1,null],
+      ["row","Pillow cover","Linen",1113,"2.99","3",0,null],
+      ["row","Duvet cover","Linen",148,"0.40","0.40",-1,null],
+      ["row","Bath towel","Linen",642,"1.73","1.80",-4,null],
+      ["row","Hand towel","Linen",627,"1.69","1.70",-1,null],
+      ["row","Bath mat","Linen",287,"0.77","0.80",-4,null],
+      ["row","Bathrobe","Linen",70,"0.19","0.20",-6,null],
+      ["row","Soap bar 30 g","Amenities",737,"1.98","2",-1,null],
+      ["row","Shampoo 30 ml","Amenities",900,"2.42","2",21,"Outside ±15%"],
+      ["row","Dental kit","Amenities",472,"1.27","1.30",-2,null],
+      ["row","Water bottle 500 ml","Amenities",729,"1.96","2",-2,null],
+      ["row","Tea & coffee kit","Amenities",725,"1.95","2",-3,null],
+      ["row","Slippers (pair)","Amenities",182,"0.49","0.50",-2,null],
+      ["row","Floor cleaner 5 L","Cleaning supplies",22,"0.06","0.05",18,"Outside ±15%"],
+      ["row","Glass cleaner 500 ml","Cleaning supplies",25,"0.07","0.08",-16,"Outside ±15%"],
+      ["row","Toilet cleaner 1 L","Cleaning supplies",52,"0.14","0.15",-7,null],
+      ["row","Garbage bags (roll of 30)","Cleaning supplies",39,"0.10","0.10",5,null],
+      ["total","Occupied room-nights 372",null,null,null,null,null,null]
+     ]
+    }
+   ]
+  }
+ ]
+}
