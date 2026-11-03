@@ -40,3 +40,8 @@ Permission plumbing: `mask.ts` `// F7-R8` block adds the server grants (migratio
 - Cashier is not included on cash-book (catalogue lists it): narrower on purpose, the range is property-wide.
 - Day-summary: Cashier own-shift not included (whole-outlet figures).
 - Occupancy/daily-ops money-free variants (PERM-RPT-001) not built; reports are finance-gated.
+
+## Test status at the end
+- `npm test` (prototype): all pass except the two items fixed afterwards (catalogue.json regenerated, R3 Housekeeper role test adjusted for the stock reports); `npx tsc --noEmit` clean.
+- `dotnet test Hcc.Reporting.Tests`: 70/71. The one failure, `EngineTests.Catalogue_json_from_the_prototype_equals_the_server_registry`, is expected: `catalogue.json` now lists the 22 prototype-only reports that have no server mirror. Either f7-int builds the server selectors, or the cross-check skips ids marked prototype-only. Not changed here (server tests are another lane's area).
+- Full dotnet build not re-run (no server code changed).
