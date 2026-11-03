@@ -1,4 +1,5 @@
 // Wave C3 · System health — phone (cards, 48 px targets). Same data and Retry as the desktop page (features/admin/SystemHealth.tsx).
+import {EgressBlock} from '../../features/admin/InternetPanel';
 import React from 'react';
 import {RotateCcw,Info} from 'lucide-react';
 import {sysHealthView,sysHoursSince,sysKindLabel,sysRunResult,sysBytes,SYS_CONSUMER_EFFECT,SYS_EVENT_LOG_TEXT,SYS_PARK_AFTER,type SYSBackupRun} from '../../services/mock';
@@ -34,5 +35,6 @@ export function MaSystemHealth(){
       ['Last good backup',v.lastOkBackupAt?`${sysWhen(v.lastOkBackupAt)}${hours!==undefined?` · ${hours} h ago`:''}`:'None recorded yet'],
       ['Last restore drill',runText(v.lastDrill)],
       ['Windows Event Log',SYS_EVENT_LOG_TEXT[v.eventLog]]]}/></article>
+    <EgressBlock phone/>
   </div>;
 }

@@ -1,4 +1,5 @@
 // Module 21 · OTA channel management — desktop page (inbox, channels & mapping, rate/availability push, commission report). All SIMULATED.
+import {netBannerText} from '../admin/InternetPanel';
 import React,{useState} from 'react';
 import {RefreshCw,Send,Printer,PlugZap,Pause,Unplug,Settings2,Check,X,Plus} from 'lucide-react';
 import {money,chnSlice,chnPending,chnAcceptCheck,chnPushPreview,chnCommissionReport,chnRoomTypes,chnChannelName,chnPct,chnRate,chnCommissionHidden,CHN_PUSH_DAYS,
@@ -26,7 +27,7 @@ export function ChannelsPage(){
   const st=chnSlice(s),pend=chnPending(s),rep=chnCommissionReport(s);
   const stats=[{title:'Pending messages',value:String(pend.length)},{title:'Connected channels',value:`${st.channels.filter(c=>c.status==='Connected').length}/${st.channels.length}`},{title:'OTA bookings (active)',value:String(rep.total.bookings)},
     ...(!hidden?[{title:'Commission due',value:money(rep.total.commission)}]:[])];
-  return <FitPage title="OTA channels" sub="Module 21 · channel manager preview — connections, room mapping, rate & availability push, inbound reservations and commission. Simulated."
+  return <FitPage title="OTA channels" sub={netBannerText(s,'ota')+'Module 21 · channel manager preview — connections, room mapping, rate & availability push, inbound reservations and commission. Simulated.'}
     actions={<button className="btn primary" disabled={busy} onClick={()=>run({type:'CHN_PULL'},'Checked channels (simulated)')}><RefreshCw size={15}/> Check for new messages</button>}
     toolbar={<StatStrip items={stats} variant="small" compact collapseOnTablet/>}
     tabs={<FitTabs page="channels" value={t} onChange={setTab} tabs={chnTabsFor(hidden,po).map(x=>({id:x.id,label:x.label,count:x.id==='inbox'&&pend.length>0?pend.length:undefined,badge:x.id==='inbox'&&pend.length>0?'warn' as const:undefined}))}/>}>

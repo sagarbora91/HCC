@@ -19,6 +19,9 @@ import {accChartIndex,accLedger,accLedgerLegacyGroup,accLedgerTallyName} from '.
 import {expPurchaseLines,expVendorPayments,expVendorName,expIsReturn,EXP_KEY_RCM,EXP_KEY_TDS,EXP_KEY_VENDOR} from './expenses-vendor'; // ACC-2 acc2-purchase (contract §3)
 import {accManualVouchersOn,accManualDates} from './accounting-manual'; // ACC-2 manual vouchers (contract §2)
 import {accGstLiveVouchers} from './accounting-gst'; // ACC-2 gst lane (contract §4 advance GST, §6 set-off)
+// F5-A1
+import {accYearCloseVouchers} from './accounting-year'; // ACC-4 year close (contract §1): approved carry-forward → fy+1 opening
+// F5-A1 end
 import {accPayrollSources,accPayrollDates,accPayrollKeyUses,ACC_PAYROLL_MAP} from './accounting-payroll'; // ACC-2 parity (contract §8)
 
 // ── Mapping (source classification → ledger) ──
@@ -460,7 +463,7 @@ export function accDates(s:State):string[]{
   return [...d].filter(x=>/^\d{4}-\d{2}-\d{2}$/.test(x)&&x<=s.date).sort().reverse();
 }
 /** Vouchers for every date up to and including `date` (cumulative trial balance). */
-export function accVouchersUpTo(s:State,date:string):ACCVoucher[]{const sv=accSlice(s).server;return [...(sv?sv.opening.filter(v=>v.date<date||(v.source.sub==='opening-import'&&v.date<=date)):[]),...accOpeningPosted(s).filter(v=>v.date<=date),...accDates(s).filter(d=>d<=date).sort().flatMap(d=>accVouchers(s,d))];}
+export function accVouchersUpTo(s:State,date:string):ACCVoucher[]{const sv=accSlice(s).server;return [...(sv?sv.opening.filter(v=>v.date<date||(v.source.sub==='opening-import'&&v.date<=date)):[]),...accOpeningPosted(s).filter(v=>v.date<=date),...(sv?[]:accYearCloseVouchers(s).filter(v=>v.date<=date)) /* F5-A1 */,...accDates(s).filter(d=>d<=date).sort().flatMap(d=>accVouchers(s,d))];}
 
 // ── Status & exceptions ──
 export type ACCDayStatus='Open'|'Closed'|'Locked';

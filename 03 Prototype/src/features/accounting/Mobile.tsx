@@ -16,12 +16,14 @@ import {TdsView,AssetsView} from './tds';
 import {accManualList} from './acc2-views';
 import {PlView,BalanceSheetView,OutstandingView,GstSummaryView,CashRatioView,ExportsView} from './reports3';
 import {TallyExport} from './Accounting';
+import {YearEndView,BankView,ClearingView,ProvisionalBanner} from './acc4-ui';
+import {acc4Gates,acc4Provisional} from './acc4-views';
 import {AccStatusPill,AccSeverity,AccLockButton,AccExportButton,accUserName,useAccPerms,accVoucherDebit} from './parts';
 
-type View='ledger'|'manual'|'gst'|'tds'|'assets'|'tb'|'statements'|'daybook'|'chart'|'parties'|'opening'|'tally'|'pl'|'bs'|'ageing'|'gstsum'|'cashratio'|'exports';
+type View='year'|'bank'|'clearing'|'ledger'|'manual'|'gst'|'tds'|'assets'|'tb'|'statements'|'daybook'|'chart'|'parties'|'opening'|'tally'|'pl'|'bs'|'ageing'|'gstsum'|'cashratio'|'exports';
 type Filter='all'|'Sales'|'Receipt'|'Payment'|'Journal';
 export function AccountingMobile(){
-  const {s,uid,open,go,permission}=useHcc();const {canLock,canMap}=useAccPerms();
+  const {s,uid,user,open,go,permission}=useHcc();const {canLock,canMap}=useAccPerms();
   const dates=useMemo(()=>accDates(s).slice(0,7),[s]);
   const [sel,setDate]=useState(s.date);const date=dates.includes(sel)?sel:dates[0];
   const [f,setF]=useState<Filter>('all');const [showAll,setShowAll]=useState(false);
@@ -32,13 +34,17 @@ export function AccountingMobile(){
   const shown=vs.filter(v=>f==='all'||v.type===f),list=showAll?shown:shown.slice(0,20);
   const bad=recon.filter(c=>!c.ok),unmapped=accMapRows(s).filter(r=>!r.mapped&&r.uses>0);
   const lockable=canLock&&!lock&&!why;
+  const g4=acc4Gates(user.role);
   const tally=rbacCanTally(s,uid); // DEC-063 G13: Owner + Accountant only
   const [view,setView]=useState<View>('ledger'); // W05-3: Tally export (Simulated) reachable on the phone; ACC-1: books, chart, parties, opening balances
   const [range,setRange]=useAccRange(s.date);const [stmtAcc,setStmtAcc]=useState('');const [asOf,setAsOf]=useState(s.date);
   const goStatement=(a:string)=>{setStmtAcc(a);setView('statements');};
   const head=<><div className="page-title"><div><h1>Accounting</h1><p>Vouchers derived from folios, receipts, expenses and closing · fictional data</p></div></div>
-    <ChipFilter<View> label="Accounting view" value={view} onChange={setView} options={[{id:'ledger',label:'Day'},{id:'manual',label:accManualList(s).some(v=>v.status==='pending')?'Manual (pending)':'Manual vouchers'},{id:'gst',label:'GST month'},{id:'tds',label:'TDS'},{id:'assets',label:'Assets'},{id:'tb',label:'Trial balance'},{id:'statements',label:'Statements'},{id:'pl',label:'P&L'},{id:'bs',label:'Balance sheet'},{id:'ageing',label:'Outstanding'},{id:'gstsum',label:'GST summary'},{id:'cashratio',label:'Cash ratio'},{id:'exports',label:'Exports'},{id:'daybook',label:'Day book'},{id:'chart',label:'Chart'},{id:'parties',label:'Parties'},{id:'opening',label:accOpeningPending(s)?'Opening (pending)':'Opening'},...(tally?[{id:'tally' as View,label:'Tally export (Simulated)'}]:[])]}/></>;
+    <ChipFilter<View> label="Accounting view" value={view} onChange={setView} options={[{id:'ledger',label:'Day'},{id:'manual',label:accManualList(s).some(v=>v.status==='pending')?'Manual (pending)':'Manual vouchers'},{id:'gst',label:'GST month'},{id:'tds',label:'TDS'},{id:'assets',label:'Assets'},{id:'tb',label:'Trial balance'},{id:'statements',label:'Statements'},{id:'pl',label:'P&L'},{id:'bs',label:'Balance sheet'},{id:'ageing',label:'Outstanding'},{id:'gstsum',label:'GST summary'},{id:'cashratio',label:'Cash ratio'},{id:'exports',label:'Exports'},...(g4.year?[{id:'year' as View,label:'Year end'}]:[]),...(g4.bank?[{id:'bank' as View,label:'Bank'}]:[]),...(g4.clearing?[{id:'clearing' as View,label:'Clearing'}]:[]),{id:'daybook',label:'Day book'},{id:'chart',label:'Chart'},{id:'parties',label:'Parties'},{id:'opening',label:accOpeningPending(s)?'Opening (pending)':'Opening'},...(tally?[{id:'tally' as View,label:'Tally export (Simulated)'}]:[])]}/></>;
   if(!rbacSeesBooks(s,uid)||!permission('reports'))return <div className="acc-m"><Empty title="Not available for your role" body="The books are for the Owner, Manager and Accountant."/></div>;
+  if(view==='year'&&g4.year)return <div className="acc-m">{head}<ProvisionalBanner years={acc4Provisional(s)}/><YearEndView phone/></div>;
+  if(view==='bank'&&g4.bank)return <div className="acc-m">{head}<ProvisionalBanner years={acc4Provisional(s)}/><BankView phone/></div>;
+  if(view==='clearing'&&g4.clearing)return <div className="acc-m">{head}<ClearingView phone/></div>;
   if(view==='manual')return <div className="acc-m">{head}<ManualView phone/></div>;
   if(view==='gst')return <div className="acc-m">{head}<GstMonthView phone/></div>;
   if(view==='tds')return <div className="acc-m">{head}<TdsView phone/></div>;

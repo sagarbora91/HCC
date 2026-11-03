@@ -244,4 +244,18 @@ public class PurchaseSqlTests(ExpensesDb db) : IClassFixture<ExpensesDb>
         Assert.Equal("Posted", own.Status);
         Assert.Equal(1, await db.CountAsync("SELECT COUNT(*) FROM plat.outbox WHERE event_type = 'ExpenseReturned' AND aggregate_id = @i", ("@i", SqlDbType.BigInt, own.ExpenseId)));
     }
+
+    // F5-A1 (ACC4-CONTRACT §3 C1 / C4): a posted return allocates explicitly to its own bill (ageing and Tally bill-wise), oldest-first only for the rest.
+    [Fact]
+    public async Task C1_C4_a_posted_return_allocates_to_its_own_bill_first()
+    {
+        var cat = await CategoryAsync();
+        var (_, v) = await VendorAsync();
+        var older = await BillAsync(v, cat, 50_000);
+        var b = await BillAsync(v, cat, 118_000, gst: 18_000, itc: "allowed");
+        var own = (await db.Vendor.ReturnAsync(db.Ctx(Who.Owner), new RecordExpenseReturnRequest(b.ExpenseId, 10_000, 0, "Short supply"), Ct)).Value.Expense;
+        var map = await new Hcc.Infrastructure.SqlServer.Accounting.SqlAgeingAllocationSource(db.Platform.Connections).GetAsync(db.PropertyId, Ct);
+        Assert.Equal(new[] { ("expense:" + b.ExpenseId, 10_000L) }, map["expense:" + own.ExpenseId]);
+        Assert.DoesNotContain(map.Values.SelectMany(x => x), a => a.Ref == "expense:" + older.ExpenseId);
+    }
 }

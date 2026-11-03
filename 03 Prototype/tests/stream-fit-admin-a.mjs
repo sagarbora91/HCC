@@ -36,7 +36,7 @@ export function register({test,assert}){
     const src=read('src/features/admin/HotelSettings.tsx');
     const ids=[...src.match(/const GROUP_IDS=\[([^\]]*)\]/)[1].matchAll(/'([^']+)'/g)].map(m=>m[1]);
     const reg=F.SUB_SCREENS.filter(x=>x.page==='settings').map(x=>x.id);
-    assert.deepEqual(reg,ids,'12 groups registered in order');assert.equal(ids.length,12);
+    assert.deepEqual(reg,ids,'13 groups registered in order');assert.equal(ids.length,13);
   });
   test('[FIT-ADMIN-A] approvals renders a fit-page root with three tabs (default Approvals); expenses and audit tabs open by id; ids match SUB_SCREENS',()=>{
     const html=page(F.ApprovalsAudit,'approvals');

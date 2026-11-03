@@ -343,6 +343,11 @@ export type State={
   posX?:import('./streams/pos').POSState;
   staffX?:import('./streams/staff').HRState;
   accountingX?:import('./streams/accounting').ACCState;
+  // F5-A1
+  /** ACC-4 (contract §1, §2): year lock / carry-forward and bank reconciliation slices (optional; SCHEMA stays 13). */
+  accYearX?:import('./streams/accounting-year').AccYearSlice;
+  accBankX?:import('./streams/accounting-bank').AccBankSlice;
+  // F5-A1 end
   assistantX?:import('./streams/assistant').AIState;
   complianceX?:import('./streams/compliance').CMPState;
   /** SCC tax port (DEC-116): compliance evidence file contents (data URLs) by file id — its own slice so the calendar never re-saves them. */
@@ -371,6 +376,10 @@ export type State={
   remindersX?:RMDState;
   /** LF §1.10: every image / file of the demo keyed by ref (its own IndexedDB record). */
   docObjectsX?:DOBState;
+  // F5-E1
+  /** F5-E1 egress gate mirror (EGRESS-CONTRACT §6): last net.* change + the mock outbound outbox (held / pending / sent). Values live in configX.values['net.*']. */
+  egressX?:import('./streams/egress').NETState;
+  // F5-E1 end
   // ── State · F4 slices (optional, SCHEMA stays 13 — F4-CONTRACT.md header) ──
   tariffCardX?:TRCState;
   digestX?:DGSState;

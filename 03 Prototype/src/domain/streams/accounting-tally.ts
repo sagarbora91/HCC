@@ -9,6 +9,7 @@ import {accPartyLedgers} from './accounting-parties';
 import {accOpeningPending} from './accounting-opening';
 import {accRptIsOpening} from './accounting-reports';
 import {accAgeingPayableTargets} from './accounting-ageing';
+import {accYearProvisional,ACC_PROVISIONAL_TEXT} from './accounting-year'; // F5-U1: a reopened year marks the export
 
 // ── Neutral inputs (what the server's TallyBook / TallyVouchersXml take) ──
 export type TallyGroupIn={id:string;name:string;parent?:string;nature:'Dr'|'Cr';side:'BS'|'PL';custom?:boolean};
@@ -218,10 +219,11 @@ export function accTallyMasters(s:State,fy:string,companyName?:string):TallyMast
   if(!f)return {...empty,error:'Choose a financial year such as 2026 or 2026-27.'};
   const {chart,book}=bookFor(s,f.start,[]);void chart;
   const pending=accOpeningPending(s);
-  const notes=pending?['PROVISIONAL · no approved opening entry yet, so the opening balances in this file may be incomplete; export the masters again once the opening entry is approved.']:[];
+  const yearOpen=accYearProvisional(s,f.start)||accYearProvisional(s,f.end);
+  const notes=[...(pending?['PROVISIONAL · no approved opening entry yet, so the opening balances in this file may be incomplete; export the masters again once the opening entry is approved.']:[]),...(yearOpen?[ACC_PROVISIONAL_TEXT]:[])];
   const xml=tallyMastersXml(book,company(s,companyName),f.start,notes);
   return {xml,fileName:`HCC-tally-masters-SIMULATED-FY${f.label}.xml`,bytes:bytes(xml),fy:f.label,from:f.start,to:f.end,groups:book.groups.length,ledgers:book.ledgers.length,
-    partyLedgers:book.ledgers.filter(l=>l.party).length,provisional:pending,notes};
+    partyLedgers:book.ledgers.filter(l=>l.party).length,provisional:pending||yearOpen,notes};
 }
 /** Vouchers file of a range (≤ 31 days, dates with activity only; the opening journal never). */
 export function accTallyVouchers(s:State,from:string,to:string,companyName?:string,identity?:string):TallyVouchersResult{
@@ -233,7 +235,8 @@ export function accTallyVouchers(s:State,from:string,to:string,companyName?:stri
   const stream=accVouchersUpTo(s,to).filter(v=>!accRptIsOpening(v)&&v.date>=start).sort(cmp),period=stream.filter(v=>v.date>=from&&v.date<=to);
   const {chart,book}=bookFor(s,start,stream);
   const tag=identity??'DEMO';
-  const xml=tallyVouchersXml(stream.map(v=>toIn(v,s)),new Set(period.map(v=>v.source.id)),book,chart,company(s,companyName),tag);
+  const yearNotes=accYearProvisional(s,from)||accYearProvisional(s,to)?[ACC_PROVISIONAL_TEXT]:[];
+  const xml=tallyVouchersXml(stream.map(v=>toIn(v,s)),new Set(period.map(v=>v.source.id)),book,chart,company(s,companyName),tag,yearNotes);
   const debit=period.reduce((a,v)=>a+v.entries.reduce((x,e)=>x+e.debit,0),0),credit=period.reduce((a,v)=>a+v.entries.reduce((x,e)=>x+e.credit,0),0);
   void accDates;void accTallyPendingReason;
   return {xml,fileName:`HCC-tally-vouchers-SIMULATED-${from}_${to}.xml`,bytes:bytes(xml),from,to,count:period.length,debit,credit,dates:new Set(period.map(v=>v.date)).size,provisional:[],reexport:[]};

@@ -6,6 +6,7 @@ import {money,accVouchers,accVoucherTotals,accLedgerName,accSourceOf,accLockBloc
   ACC_CHART,ACC_SUSPENSE,ACC_LOCK_ROLES,type ACCVoucher,type ACCDayStatus,type ACCException} from '../../services/mock';
 import {Empty,dateLabel,shortDate,clockTime} from '../../components/ui';
 import {downloadCsv} from '../reports/Reports';
+import {acc4StampCsv} from './acc4-views'; // F5-int
 import {accChart,accGroups,accGroupLegacy,accOpening} from '../../services/mock';
 import type {AccLedgerUpsert,AccLedgerRetire,AccGroupUpsert,AccOpeningSave} from './commands';
 import {LedgerPicker,ledgerOptions,toPaise,fromPaise,fyStart} from './shared';
@@ -36,7 +37,7 @@ export function useAccPerms(){
 export function accExport(s:ReturnType<typeof useHcc>['s'],date:string,toast:(t:string)=>void,uid:string){
   if(!rbacCanExportVouchers(s,uid)){toast('Your role cannot export vouchers.');return;} // DEC-063 G13
   const vs=accVouchers(s,date);
-  downloadCsv(`HCC-Demo-vouchers-${date}_${date}.csv`,accCsv(vs));
+  downloadCsv(`HCC-Demo-vouchers-${date}_${date}.csv`,acc4StampCsv(s,[date],accCsv(vs))); // F5-int: PROVISIONAL stamp
   toast(`Generic voucher CSV downloaded · ${vs.length} voucher${vs.length===1?'':'s'} · Tally/other mapping later`);
 }
 /** Lock / unlock action button for the selected date (desktop header and phone footer). */

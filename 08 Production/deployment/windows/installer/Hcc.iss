@@ -59,6 +59,8 @@ Name: "{app}\Server\web"
 [Run]
 ; A09-05: register the Windows Event Log source HCC for the server's and the backups' alerts (needs admin, which the installer has).
 Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -NonInteractive -ExecutionPolicy Bypass -File ""{app}\Operations\Install-HccService.ps1"" -EventSourceOnly"; Flags: runhidden; StatusMsg: "Registering the Windows Event Log source HCC..."
+; F5-E1 (EGRESS-CONTRACT 4): firewall rule "HCC Egress Block" ENABLED (internet blocked) + task \HCC\ToggleEgress (SYSTEM, on demand, disabled). Not executed in the cloud lane.
+Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -NonInteractive -ExecutionPolicy Bypass -File ""{app}\Operations\Set-HccEgress.ps1"" -State Install -ServiceExe ""{app}\Server\Hcc.Api.exe"""; Flags: runhidden; StatusMsg: "Blocking internet for HCC (firewall rule HCC Egress Block)..."
 ; Upgrade path: if the service already exists it was stopped in PrepareToInstall; start it again.
 Filename: "{sys}\sc.exe"; Parameters: "start HccServer"; Flags: runhidden; Check: ServiceExists
 ; Fresh install: the owner follows INSTALL.md (database, service account, certificate, first Owner, backups).

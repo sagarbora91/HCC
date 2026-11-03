@@ -5,7 +5,9 @@ import {useHcc} from '../../app/context';
 import {Pill,Empty,clockTime,shortDate} from '../../components/ui';
 import {FitPage,ScrollPanel,SplitView} from '../../components/fit';
 import {ListCard} from '../../app/mobile/components';
-import {msgDocs,msgLowFields,MSG_DOC_KIND_LABEL,MSGDoc} from '../../services/mock';
+import {msgDocs,msgLowFields,MSG_DOC_KIND_LABEL,MSGDoc,netOn} from '../../services/mock';
+/** F5-int (EGRESS-CONTRACT §6): with net.ocr off the scan is disabled — the ID is entered by hand. */
+export const OCR_OFF_TEXT='Internet off — enter the ID by hand';
 import {msgSampleDocs} from '../../fixtures/ext/messaging';
 import {MsgDocArt,MsgDocReview,MsgSimulated,MsgSimulatedNote,MsgKindLabel} from './shared';
 
@@ -38,7 +40,7 @@ export function MsgDocumentsPage(){
     <div className="msg-samples">{msgSampleDocs.map(d=><article key={d.id} className="msg-sample">
         <MsgDocArt sample={d.id}/>
         <div className="msg-sample-foot"><div><MsgKindLabel kind={d.kind}/><small>{d.hint} · {msgLowFields(d.fields).length} low-confidence</small></div>
-          {permission('checkin')&&<button className="btn" disabled={busy} onClick={()=>extract(d.id)}><ScanLine size={16}/> Extract</button>}</div>
+          {permission('checkin')&&<button className="btn" disabled={busy||!netOn(s,'ocr')} title={netOn(s,'ocr')?undefined:OCR_OFF_TEXT} onClick={()=>extract(d.id)}><ScanLine size={16}/> Extract</button>}</div>
       </article>)}</div>
     <div className="section-title"><h2>Capture history</h2><span className="muted">Metadata only</span></div>
     <History docs={docs} onOpen={choose}/>
@@ -58,12 +60,13 @@ export function MsgDocumentsMobile(){
   async function extract(sample:string){const id=nextDocId(s);if(await run({type:'MSG_DOC_EXTRACT',sample},'Fields extracted (simulated)'))open({type:'msg-doc',id});}
   return <div className="msg-m">
     <MsgSimulated>No camera or real OCR in this prototype. Pick a fictional sample.</MsgSimulated>
+    {!netOn(s,'ocr')&&<p className="info-note" role="status">{OCR_OFF_TEXT}.</p>}
     <button type="button" className="msg-camera" onClick={()=>toast('Camera capture is simulated — pick a sample document below')}>
       <Camera size={28} aria-hidden/><span><strong>Take photo</strong><small>Placeholder · camera not used in the prototype</small></span></button>
     {!!waiting.length&&<><h2 className="msg-m-h">Waiting for review</h2>{waiting.map(d=><ListCard key={d.id} title={d.title} sub={`${d.id} · ${MSG_DOC_KIND_LABEL[d.kind]}`} right={<Pill tone="blue">Review</Pill>} onClick={()=>open({type:'msg-doc',id:d.id})}/>)}</>}
     <h2 className="msg-m-h">Sample documents</h2>
     {msgSampleDocs.map(d=><ListCard key={d.id} title={d.title} sub={d.hint} meta={`${MSG_DOC_KIND_LABEL[d.kind]} · ${msgLowFields(d.fields).length} field(s) to check`}
-      onClick={permission('checkin')&&!busy?()=>extract(d.id):undefined} right={<span className="msg-m-extract"><ScanLine size={18} aria-hidden/>Extract</span>}/>)}
+      onClick={permission('checkin')&&!busy&&netOn(s,'ocr')?()=>extract(d.id):undefined} right={<span className="msg-m-extract"><ScanLine size={18} aria-hidden/>{netOn(s,'ocr')?'Extract':OCR_OFF_TEXT}</span>}/>)}
     <h2 className="msg-m-h">History</h2>
     {!docs.length?<Empty title="No captures yet"/>:docs.filter(d=>d.status!=='Extracted').map(d=><ListCard key={d.id} title={d.title} sub={`${d.id} · ${d.appliedTo?'→ '+d.appliedTo:d.status}`} right={<Pill tone={tone(d.status)}>{d.status}</Pill>}/>)}
   </div>;

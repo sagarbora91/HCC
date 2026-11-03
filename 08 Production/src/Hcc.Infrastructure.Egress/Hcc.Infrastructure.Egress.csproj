@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- F5-E1 (EGRESS-CONTRACT §1): the ONLY place in HCC that may open an outbound connection. One named HttpClient "egress" whose outermost
+       handler (EgressGateHandler) asks IEgressPolicy before any socket or DNS lookup. Fail closed: master switch OFF by default. -->
+  <PropertyGroup>
+    <RootNamespace>Hcc.Infrastructure.Egress</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Hcc.Domain\Hcc.Domain.csproj" />
+  </ItemGroup>
+</Project>

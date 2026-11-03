@@ -105,6 +105,7 @@ export const READS={
   'GET /accounting/chart/master':ACCOUNTING,
   'GET /accounting/chart/history':ACCOUNTING,
   'GET /accounting/opening':ACCOUNTING,
+  'GET /accounting/year':ACCOUNTING, // F5-A1
   // ACC-2 (integration): manual vouchers + loans, GST month / month locks, ledger statement and day book — PERM-ACC-001 view; the TDS state
   // (rates, deductions, remittances) — PERM-ACC-013 accounting.tax (Owner, Accountant); vendor payments, ageing and the asset register —
   // PERM-EXP-004 or the accounting view (VendorPaymentQueries).

@@ -18,7 +18,7 @@ public sealed class SqlPlatform
         Connections = new SqlConnectionFactory(options);
         BackupGate = new SqlBackupGate(options);
         Migrations = new MigrationRunner(Connections, new EmbeddedMigrationSource(), BackupGate);
-        Commands = new SqlCommandRunner(Connections);
+        Commands = new Hcc.Application.Accounting.YearLockedCommandRunner(new SqlCommandRunner(Connections), new Accounting.SqlYearLockGuard()); // F5-int: ACC-4 year lock on every command
         Outbox = new OutboxConsumer(Connections);
         // LF-docdb (DEC-200, contract §1.2): the separate documents database, its own migration stream and its object store.
         Documents = new SqlDocumentConnectionFactory(options);

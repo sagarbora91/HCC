@@ -345,6 +345,22 @@ public sealed class GstMonthService(ICommandRunner runner, IAccountingStore acco
         => posted is null || posted.Figures == live ? null
             : $"The GST figures for {month} changed after the set-off of {D(posted.PostedOn)} (challan now {Rs(live.Challan)}, was {Rs(posted.Figures.Challan)}) — post the set-off again; it replaces the earlier one.";
 
+    // F5-A1 (ACC4-CONTRACT §3 C2): the tie compares the POSTED set-off journal (the voucher with the set-off's source key, as it stands in the
+    // books on its posting date) with the set-off computed now; a missing or different journal blocks like a stale set-off.
+    public static string? JournalTie(string month, StoredGstSetoff? posted, IEnumerable<Voucher> postedDay, GstSetOffResult live)
+    {
+        ArgumentNullException.ThrowIfNull(postedDay);
+        ArgumentNullException.ThrowIfNull(live);
+        if (posted is null) return null;
+        var j = postedDay.Where(v => v.SourceKey == posted.SourceKey).ToList();
+        var want = GstSetOff.Entries(live);
+        long wd = want.Sum(e => e.DebitPaise), wc = want.Sum(e => e.CreditPaise), jd = j.Sum(v => v.Debit), jc = j.Sum(v => v.Entries.Sum(e => e.CreditPaise));
+        if (j.Count == 0 && wd == 0 && wc == 0) return null;
+        return j.Count > 0 && jd == wd && jc == wc ? null
+            : $"The posted GST set-off journal for {month} ({posted.SourceKey}, {Rs(jd)}) does not match the set-off computed now ({Rs(wd)}) — post the set-off again; it replaces the earlier one.";
+    }
+    // F5-A1 end
+
     internal static string LockedMessage(string month) => $"Month {month} is locked (GST set-off posted, books closed) — the Owner unlocks the month first (DEC-131).";
 
     // ── Query ──
@@ -367,6 +383,8 @@ public sealed class GstMonthService(ICommandRunner runner, IAccountingStore acco
             // ACC-3 C9 (contract §7): the figures above are live until the month lock (as the prototype); a set-off posted on figures that have
             // changed since is shown as such, and the pay-run blocker (ruling 6) is shown here as LockMonthAsync enforces it.
             blocker ??= StaleSetoff(m, p, f.Setoff);
+            if (blocker is null && p is not null) // F5-A1 C2
+                blocker = JournalTie(m, p, (await AccountingDays.RangeAsync(accounting, caller.PropertyId, p.PostedOn, p.PostedOn, ct).ConfigureAwait(false)).SelectMany(d => d.Vouchers), f.Setoff);
             if (blocker is null && payRuns is not null) blocker = await payRuns.ViewBlockerAsync(caller.PropertyId, m, ct).ConfigureAwait(false);
         }
 
@@ -558,6 +576,8 @@ public sealed class GstMonthService(ICommandRunner runner, IAccountingStore acco
         if (setoff is null) return ($"Post the GST set-off for {month} first (rulebook E1).", [], null);
         var live = await FiguresAsync(tx, propertyId, month, await store.SetoffsAsync(tx, propertyId, ct).ConfigureAwait(false), ct).ConfigureAwait(false);
         if (StaleSetoff(month, setoff, live.Setoff) is { } stale) return (stale, [], null); // ACC-3 C9
+        var postedDay = (await AccountingDays.RangeAsync(accounting, propertyId, setoff.PostedOn, setoff.PostedOn, ct).ConfigureAwait(false)).SelectMany(d => d.Vouchers); // F5-A1 C2
+        if (JournalTie(month, setoff, postedDay, live.Setoff) is { } tie) return (tie, [], null);
         var pending = await manualVouchers.PendingAsync(tx, propertyId, from, to, ct).ConfigureAwait(false);
         if (pending > 0) return ($"{pending} manual voucher{(pending == 1 ? " is" : "s are")} pending approval in {month} — the Owner decides {(pending == 1 ? "it" : "them")} first.", [], null);
         if (payRuns is not null && await payRuns.BlockerAsync(tx, propertyId, month, ct).ConfigureAwait(false) is { } payWhy) return (payWhy, [], null); // ruling 6

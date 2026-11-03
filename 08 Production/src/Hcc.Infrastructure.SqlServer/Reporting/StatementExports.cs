@@ -61,6 +61,13 @@ public static class StatementExports
 
     public static byte[] Xlsx(IEnumerable<Table> tables) => OpenXmlExporter.Build([.. tables.Select(t => t.Sheet)]);
 
+    /// <summary>F5-int (ACC4-CONTRACT §1.2): a table of a reopened year (or the year after) carries "PROVISIONAL — year reopened" as its first row.</summary>
+    public static Table Stamp(Table t)
+    {
+        ArgumentNullException.ThrowIfNull(t);
+        return t with { Rows = [new object?[] { new XlsxBold(Hcc.Application.Accounting.YearLockRules.ProvisionalText) }, .. t.Rows], Freeze = t.Freeze > 0 ? t.Freeze + 1 : 0 };
+    }
+
     /// <summary>CSV of one table: text cells formula-guarded, money with two decimals, dates ISO.</summary>
     public static string Csv(Table t) => string.Join("\r\n", t.Rows.Select(r => string.Join(',', r.Select(c => VoucherExport.CsvCell(CellText(c))))));
 
@@ -76,7 +83,7 @@ public static class StatementExports
     };
 
     /// <summary>One file per party statement (CSV or xlsx), parties with neither an opening balance nor a movement left out, a zip.</summary>
-    public static (byte[] Bytes, IReadOnlyList<string> Files) StatementsZip(string prop, IEnumerable<StatementView> statements, string format)
+    public static (byte[] Bytes, IReadOnlyList<string> Files) StatementsZip(string prop, IEnumerable<StatementView> statements, string format, bool provisional = false)
     {
         var xlsx = string.Equals(format, "xlsx", StringComparison.OrdinalIgnoreCase);
         var files = new List<string>();
@@ -96,6 +103,7 @@ public static class StatementExports
                 entry.LastWriteTime = new DateTimeOffset(1980, 1, 1, 0, 0, 0, TimeSpan.Zero);
                 using var s = entry.Open();
                 var t = StatementTable(prop, st);
+                if (provisional) t = Stamp(t); // F5-int: ACC-4 §1.2 reopened year
                 var bytes = xlsx ? Xlsx([t]) : new UTF8Encoding(true).GetPreamble().Concat(Encoding.UTF8.GetBytes(Csv(t))).ToArray();
                 s.Write(bytes);
             }

@@ -29,7 +29,8 @@ export type CfgListRow={id:CfgGroupId;label:string;section:string;summary:string
 export function cfgListRows(s:State,uid:string,q:string):CfgListRow[]{
   const hits=q.trim()?cfgSearch(s,q):undefined;
   const lists=q.trim()?mstSearch(q):[]; // MA-0: the search also finds masters by label (e.g. "floors")
-  return CFG_GROUPS.filter(g=>!hits||hits.some(h=>h.group.id===g.id)||lists.some(x=>x.group===g.id)).map(g=>{
+  const role=s.users.find(u=>u.id===uid)?.role;
+  return CFG_GROUPS.filter(g=>g.id!=='internet'||role==='Owner'||role==='Manager').filter(g=>!hits||hits.some(h=>h.group.id===g.id)||lists.some(x=>x.group===g.id)).map(g=>{
     const a=cfgGroupAccess(s,uid,g.id);const h=hits?.find(x=>x.group.id===g.id);const lh=lists.filter(x=>x.group===g.id).length;
     const nl=mstSpecsOfGroup(g.id).length;
     return {id:g.id,label:g.label,section:g.section,summary:cfgMoneyMask(s,uid,cfgGroupSummary(s,g.id))+(nl?` · ${nl} list${nl>1?'s':''}`:''),readOnly:a.readOnly,reason:a.reason,
@@ -38,7 +39,7 @@ export function cfgListRows(s:State,uid:string,q:string):CfgListRow[]{
 }
 /** Settings shown in a group's details (search narrows to the matching ones unless the group itself matched). */
 export function cfgDetailDefs(s:State,g:CfgGroupId,q:string):CfgSettingDef[]{
-  const all=cfgDefs(s).filter(d=>d.group===g&&!d.panel);
+  const all=cfgDefs(s).filter(d=>d.group===g&&!d.panel&&g!=='internet'); // the Internet group is the panel (F5-U1)
   if(!q.trim())return all;
   const h=cfgSearch(s,q).find(x=>x.group.id===g);
   if(!h)return [];

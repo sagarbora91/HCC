@@ -43,6 +43,7 @@
     "GET /accounting/chart/master": "/accounting/chart/master",
     "GET /accounting/chart/history": "/accounting/chart/history",
     "GET /accounting/opening": "/accounting/opening",
+    "GET /accounting/year": "/accounting/year",
     "GET /accounting/manual": "/accounting/manual",
     "GET /accounting/gst/month": "/accounting/gst/month?month=2026-09",
     "GET /accounting/gst/locks": "/accounting/gst/locks",
@@ -222,6 +223,26 @@
         ],
         [
           "PERM-ACC-013",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-ACC-014",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-ACC-015",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-ACC-016",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-ACC-017",
           "A",
           "P"
         ],
@@ -731,6 +752,16 @@
           "P"
         ],
         [
+          "PERM-NET-001",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-NET-002",
+          "A",
+          "P"
+        ],
+        [
           "PERM-OTA-001",
           "A",
           "P"
@@ -1032,6 +1063,7 @@
         "GET /accounting/chart/master": "200",
         "GET /accounting/chart/history": "200",
         "GET /accounting/opening": "200",
+        "GET /accounting/year": "200",
         "GET /accounting/manual": "200",
         "GET /accounting/gst/month": "200",
         "GET /accounting/gst/locks": "200",
@@ -1530,6 +1562,11 @@
           "P"
         ],
         [
+          "PERM-NET-002",
+          "A",
+          "P"
+        ],
+        [
           "PERM-OTA-001",
           "A",
           "P"
@@ -1811,6 +1848,7 @@
         "GET /accounting/chart/master": "200",
         "GET /accounting/chart/history": "200",
         "GET /accounting/opening": "200",
+        "GET /accounting/year": "200",
         "GET /accounting/manual": "200",
         "GET /accounting/gst/month": "200",
         "GET /accounting/gst/locks": "200",
@@ -2310,6 +2348,7 @@
         "GET /accounting/chart/master": "403",
         "GET /accounting/chart/history": "403",
         "GET /accounting/opening": "403",
+        "GET /accounting/year": "403",
         "GET /accounting/manual": "403",
         "GET /accounting/gst/month": "403",
         "GET /accounting/gst/locks": "403",
@@ -2664,6 +2703,7 @@
         "GET /accounting/chart/master": "403",
         "GET /accounting/chart/history": "403",
         "GET /accounting/opening": "403",
+        "GET /accounting/year": "403",
         "GET /accounting/manual": "403",
         "GET /accounting/gst/month": "403",
         "GET /accounting/gst/locks": "403",
@@ -2818,6 +2858,16 @@
         ],
         [
           "PERM-ACC-013",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-ACC-014",
+          "A",
+          "P"
+        ],
+        [
+          "PERM-ACC-016",
           "A",
           "P"
         ],
@@ -3093,6 +3143,7 @@
         "GET /accounting/chart/master": "200",
         "GET /accounting/chart/history": "200",
         "GET /accounting/opening": "200",
+        "GET /accounting/year": "200",
         "GET /accounting/manual": "200",
         "GET /accounting/gst/month": "200",
         "GET /accounting/gst/locks": "200",
@@ -3357,6 +3408,7 @@
         "GET /accounting/chart/master": "403",
         "GET /accounting/chart/history": "403",
         "GET /accounting/opening": "403",
+        "GET /accounting/year": "403",
         "GET /accounting/manual": "403",
         "GET /accounting/gst/month": "403",
         "GET /accounting/gst/locks": "403",
@@ -3586,6 +3638,7 @@
         "GET /accounting/chart/master": "403",
         "GET /accounting/chart/history": "403",
         "GET /accounting/opening": "403",
+        "GET /accounting/year": "403",
         "GET /accounting/manual": "403",
         "GET /accounting/gst/month": "403",
         "GET /accounting/gst/locks": "403",
@@ -3800,6 +3853,7 @@
         "GET /accounting/chart/master": "403",
         "GET /accounting/chart/history": "403",
         "GET /accounting/opening": "403",
+        "GET /accounting/year": "403",
         "GET /accounting/manual": "403",
         "GET /accounting/gst/month": "403",
         "GET /accounting/gst/locks": "403",
@@ -4049,6 +4103,7 @@
         "GET /accounting/chart/master": "403",
         "GET /accounting/chart/history": "403",
         "GET /accounting/opening": "403",
+        "GET /accounting/year": "403",
         "GET /accounting/manual": "403",
         "GET /accounting/gst/month": "403",
         "GET /accounting/gst/locks": "403",
@@ -4238,6 +4293,7 @@
         "GET /accounting/chart/master": "403",
         "GET /accounting/chart/history": "403",
         "GET /accounting/opening": "403",
+        "GET /accounting/year": "403",
         "GET /accounting/manual": "403",
         "GET /accounting/gst/month": "403",
         "GET /accounting/gst/locks": "403",

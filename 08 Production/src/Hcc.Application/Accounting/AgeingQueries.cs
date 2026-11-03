@@ -194,10 +194,13 @@ public sealed class AgeingQueries(IAccountingStore store, IAccessPolicy policy, 
         await policy.RequireAsync(caller.PropertyId, caller.PrincipalId, AccountingPermissions.View, ct: ct).ConfigureAwait(false);
         var sd = (side ?? AgeingRules.Receivable).Trim().ToLowerInvariant();
         if (sd is not (AgeingRules.Receivable or AgeingRules.Payable)) throw HccException.Validation("Choose a side: receivable or payable.");
-        var days = await AccountingDays.RangeAsync(store, caller.PropertyId, DateOnly.MinValue, asOf, ct).ConfigureAwait(false);
-        var all = days.SelectMany(d => d.Vouchers).ToList();
         var extra = new Dictionary<string, (string Name, string Group)>(StringComparer.Ordinal);
         var entry = openingEntry is null ? null : await openingEntry.GetAsync(caller.PropertyId, ct).ConfigureAwait(false);
+        // F5-A1 (ACC4-CONTRACT §3 C3): read the as-of window — from the opening entry's date (it carries every earlier balance), not every day
+        // from the first source.
+        var start = entry?.Voucher is { } ow && ow.Date <= asOf ? ow.Date : DateOnly.MinValue;
+        var days = await AccountingDays.RangeAsync(store, caller.PropertyId, start, asOf, ct).ConfigureAwait(false);
+        var all = days.SelectMany(d => d.Vouchers).ToList();
         if (entry?.Voucher is { } ov) all.Add(ov);
         else if (imported is not null && AccountingReports.ImportedVoucher(await imported.GetAsync(caller.PropertyId, ct).ConfigureAwait(false), extra) is { } iv) all.Add(iv);
         var parties = partyNames is null ? null : await partyNames.GetAsync(caller.PropertyId, ct).ConfigureAwait(false);

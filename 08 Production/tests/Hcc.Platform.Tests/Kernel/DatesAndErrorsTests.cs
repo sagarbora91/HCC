@@ -78,6 +78,7 @@ public class DatesAndErrorsTests
             [HccErrorCode.STALE_VERSION] = 409, [HccErrorCode.DAY_CLOSED] = 409, [HccErrorCode.APPROVAL_REQUIRED] = 403,
             [HccErrorCode.IDEMPOTENCY_MISMATCH] = 409, [HccErrorCode.UNAVAILABLE] = 503,
             [HccErrorCode.UNAUTHENTICATED] = 401,
+            [HccErrorCode.NET_OFFLINE] = 503, // F5-E1
         };
         Assert.Equal(expected.Count, names.Length);
         foreach (var (code, status) in expected)

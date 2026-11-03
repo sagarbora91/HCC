@@ -1,0 +1,2 @@
+id,name,bankLedger,delimiter,headerRows,dateFormat,date,narration,ref,debit,credit,amount,drCrFlag,balance,refPattern,settlementPattern,active
+generic,Generic,1030,comma,1,DD/MM/YYYY,date,narration,ref,debit,credit,,,balance,,(UPI|CARD|POS|MERCHANT)[^A-Z]*(SETTL|STL),yes

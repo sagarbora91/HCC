@@ -3,6 +3,7 @@
     <Project Path="src/Hcc.Contracts/Hcc.Contracts.csproj" />
     <Project Path="src/Hcc.Domain/Hcc.Domain.csproj" />
     <Project Path="src/Hcc.Application/Hcc.Application.csproj" />
+    <Project Path="src/Hcc.Infrastructure.Egress/Hcc.Infrastructure.Egress.csproj" /> <!-- F5-E1 -->
     <Project Path="src/Hcc.Infrastructure.SqlServer/Hcc.Infrastructure.SqlServer.csproj" />
     <Project Path="src/Hcc.Operations/Hcc.Operations.csproj" />
     <Project Path="src/Hcc.Api/Hcc.Api.csproj" />
@@ -46,6 +47,8 @@
     <Project Path="tests/Hcc.PeopleLists.Tests/Hcc.PeopleLists.Tests.csproj" />
     <Project Path="tests/Hcc.OpsMasters.Tests/Hcc.OpsMasters.Tests.csproj" />
     <Project Path="tests/Hcc.Legacy.Tests/Hcc.Legacy.Tests.csproj" />
+    <Project Path="tests/Hcc.Egress.Tests/Hcc.Egress.Tests.csproj" /> <!-- F5-E1 -->
+    <Project Path="tests/Hcc.Architecture.Tests/Hcc.Architecture.Tests.csproj" /> <!-- F5-E1 -->
   </Folder>
   <Folder Name="/database/">
     <File Path="database/migrations.lock.json" />
@@ -175,6 +178,19 @@
     <File Path="database/migrations/4258_bill_charge_kind_food.sql" />
     <File Path="database/migrations/4259_acc_ledger_1210_control.sql" />
     <File Path="database/migrations/4266_acc_tally_file_log.sql" />
+    <!-- F5-A1 -->
+    <File Path="database/migrations/4280_acc_fiscal_year.sql" />
+    <File Path="database/migrations/4281_acc_carry_forward.sql" />
+    <File Path="database/migrations/4282_acc_refers_to_fy.sql" />
+    <File Path="database/migrations/4283_acc_year_lock_guard.sql" />
+    <File Path="database/migrations/4284_acc_year_rbac_seed.sql" />
+    <File Path="database/migrations/4285_mst_bank_statement_layout.sql" />
+    <File Path="database/migrations/4286_acc_bank_statement.sql" />
+    <File Path="database/migrations/4287_acc_bank_match.sql" />
+    <File Path="database/migrations/4288_acc_bank_settlement_source.sql" />
+    <File Path="database/migrations/4289_acc_bank_recon_view.sql" />
+    <File Path="database/migrations/4293_acc_bank_rbac_seed.sql" />
+    <!-- F5-A1 end -->
     <File Path="database/migrations/4270_acc_fixed_asset_put_to_use_disposal.sql" />
     <File Path="database/migrations/4271_ops_vendor_payment_realloc.sql" />
     <File Path="database/migrations/4272_acc_tds_remit_subsection_form168.sql" />
@@ -258,5 +274,10 @@
     <!-- F4-T3 end -->
     <File Path="database/migrations/4720_keys_schema.sql" />
     <File Path="database/migrations/4721_keys_rbac_seed.sql" />
+    <File Path="database/migrations/4730_egress_settings_seed.sql" /> <!-- F5-E1 -->
+    <File Path="database/migrations/4731_egress_outbox_held.sql" /> <!-- F5-E1 -->
+    <File Path="database/migrations/4732_egress_audit.sql" /> <!-- F5-E1 -->
+    <File Path="database/migrations/4733_egress_rbac_seed.sql" /> <!-- F5-E1 -->
+    <File Path="database/migrations/4734_egress_firewall_state.sql" /> <!-- F5-E1 -->
   </Folder>
 </Solution>

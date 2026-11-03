@@ -50,6 +50,9 @@ public partial class RbacV2MatrixTests(AccessDatabase db) : IClassFixture<Access
         ["PERM-KEY-002"] = ["A", "A", "—", "A", "—", "—", "—", "—", "—", "—"],
         ["PERM-KEY-003"] = ["A", "A", "—", "A", "—", "—", "—", "—", "—", "—"],
         ["PERM-KEY-004"] = ["A", "A", "—", "—", "—", "—", "—", "—", "—", "—"],
+        // F5-E1 (migration 4733, EGRESS-CONTRACT §1.1): internet switches change = Owner; egress read = Owner, Manager.
+        ["PERM-NET-001"] = ["A", "—", "—", "—", "—", "—", "—", "—", "—", "—"],
+        ["PERM-NET-002"] = ["A", "A", "—", "—", "—", "—", "—", "—", "—", "—"],
     };
 
     /// <summary>L cells: the Manager's limit in paise (DEC-063 G1 Rs 1,000; GRP-003 Rs 10,000 as seeded by 2201).</summary>
