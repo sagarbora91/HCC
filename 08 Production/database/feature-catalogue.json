@@ -682,6 +682,73 @@
             "PERM-WEB-"
           ],
           "note": "Booking-engine requests (follows the Direct booking site module switch)"
+        },
+        {
+          "id": "revenue.tariffcard",
+          "label": "Tariff card",
+          "core": false,
+          "pages": [
+            "tariff-card"
+          ],
+          "prefixes": [
+            "TRC_"
+          ],
+          "except": [],
+          "requires": [],
+          "permPrefixes": [
+            "PERM-TRF-"
+          ],
+          "note": "Published room tariff card: draft, propose, publish (F4-T1)"
+        },
+        {
+          "id": "revenue.feedback",
+          "label": "Guest feedback & QR",
+          "core": false,
+          "pages": [],
+          "prefixes": [
+            "FBK_",
+            "QW_"
+          ],
+          "except": [],
+          "requires": [],
+          "permPrefixes": [
+            "PERM-FBK-"
+          ],
+          "note": "Feedback capture, follow-ups, QR printer (F4-T3)"
+        },
+        {
+          "id": "revenue.hall",
+          "label": "Hall booking",
+          "core": false,
+          "pages": [
+            "hall-booking"
+          ],
+          "prefixes": [
+            "HALL_"
+          ],
+          "except": [],
+          "requires": [],
+          "permPrefixes": [
+            "PERM-HAL-"
+          ],
+          "note": "Venues, menus, enquiries, events, advances (F6)"
+        },
+        {
+          "id": "revenue.quotations",
+          "label": "Hall quotations",
+          "core": false,
+          "pages": [],
+          "prefixes": [
+            "QUO_"
+          ],
+          "except": [],
+          "requires": [
+            "revenue.hall"
+          ],
+          "permPrefixes": [
+            "PERM-HAL-"
+          ],
+          "note": "Quotations, revisions, discounts (F6-H2)"
         }
       ]
     },
@@ -944,6 +1011,36 @@
             "PERM-ACC-"
           ],
           "note": "Tally masters and vouchers (DEC-140)"
+        },
+        {
+          "id": "accounting.yearend",
+          "label": "Year end & year lock",
+          "core": false,
+          "pages": [],
+          "prefixes": [
+            "ACC_YEAR_"
+          ],
+          "except": [],
+          "requires": [],
+          "permPrefixes": [
+            "PERM-ACC-"
+          ],
+          "note": "Carry forward, year lock and reopen (F5 ACC-4)"
+        },
+        {
+          "id": "accounting.bank",
+          "label": "Bank reconciliation",
+          "core": false,
+          "pages": [],
+          "prefixes": [
+            "BANK_"
+          ],
+          "except": [],
+          "requires": [],
+          "permPrefixes": [
+            "PERM-ACC-"
+          ],
+          "note": "Statement import, matching, settlements (F5 ACC-4)"
         }
       ]
     },
@@ -968,6 +1065,39 @@
             "PERM-RPT-"
           ],
           "note": "Operations and finance reports"
+        },
+        {
+          "id": "reports.hub",
+          "label": "Reports hub",
+          "core": false,
+          "pages": [
+            "report-hub"
+          ],
+          "prefixes": [],
+          "except": [],
+          "requires": [],
+          "permPrefixes": [
+            "PERM-RPT-"
+          ],
+          "note": "Report catalogue on the reporting engine (F7)"
+        },
+        {
+          "id": "reports.digest",
+          "label": "Revenue & owner digest",
+          "core": false,
+          "pages": [
+            "owner-digest",
+            "revenue-category"
+          ],
+          "prefixes": [
+            "DIGEST_"
+          ],
+          "except": [],
+          "requires": [],
+          "permPrefixes": [
+            "PERM-DGS-"
+          ],
+          "note": "Revenue by category and the owner digest (F4-T2)"
         },
         {
           "id": "reports.plans",
@@ -1177,6 +1307,21 @@
             "PERM-IMP-"
           ],
           "note": "Old Lodge software import (LG)"
+        },
+        {
+          "id": "admin.internet",
+          "label": "Internet access",
+          "core": false,
+          "pages": [],
+          "prefixes": [
+            "NET_"
+          ],
+          "except": [],
+          "requires": [],
+          "permPrefixes": [
+            "PERM-NET-"
+          ],
+          "note": "Guest internet / egress control (F5)"
         },
         {
           "id": "admin.roadmap",

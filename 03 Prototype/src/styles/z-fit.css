@@ -300,3 +300,5 @@ html:has(.fit-signin),html:has(.fit-signin) body,html:has(.fit-signin) #root{hei
 /* F1-int: Room keys (KEYS from main) in the fit page — the ScrollPanel scrolls, so the module's own max-height boxes are released. */
 .fit-page .key-log-table,.fit-page .key-locks-table{max-height:none;min-height:0;overflow-x:auto}
 .fit-page .key-log-card{margin-bottom:12px;flex:none}
+/* V19-1: a compact strip never hides its last card under the toggle or past the edge — the cards wrap to a second line instead of scrolling sideways */
+.app-shell .fit-stats.fit-stats-compact,.app-shell .fit-small-stats.fit-stats-compact{flex-wrap:wrap;overflow-x:visible;row-gap:6px}

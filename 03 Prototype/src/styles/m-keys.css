@@ -30,3 +30,7 @@
 .key-enc{display:grid;gap:10px}
 @media (max-width:820px){.key-grid{grid-template-columns:1fr}.key-fields{grid-template-columns:1fr}.key-log-table,.key-locks-table{max-height:none}}
 @media print{.key-filters,.key-tabs-card{display:none}.key-log-table{max-height:none;overflow:visible}}
+/* V19-3: phone key-log filters — two per row, every control 48 px tall and full width (an empty date field no longer collapses to nothing) */
+.m-shell .key-filters,.mobile-shell .key-filters{display:grid;grid-template-columns:1fr 1fr;gap:10px 12px}
+.m-shell .key-filters label,.mobile-shell .key-filters label{font-size:16px;min-width:0}
+.m-shell .key-filters :is(input,select),.mobile-shell .key-filters :is(input,select){min-height:48px;width:100%;min-width:0;font-size:16px;box-sizing:border-box}

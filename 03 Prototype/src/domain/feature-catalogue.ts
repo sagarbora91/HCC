@@ -91,6 +91,10 @@ export const FEATURE_MODULES:FeatureModule[]=[
     {id:'ota',label:'OTA channels',pages:['channels'],prefixes:['CHN_'],except:['CHN_WEB_','CHN_PAYOUT'],permPrefixes:['PERM-OTA-'],note:'OTA inbound bookings and rate push (follows the OTA module switch)'},
     {id:'payouts',label:'OTA payouts',pages:[],prefixes:['CHN_PAYOUT'],requires:['revenue.ota'],permPrefixes:['PERM-OTA-'],note:'OTA payout receipts and commission'},
     {id:'website',label:'Direct booking site',pages:['booking-site'],prefixes:['CHN_WEB_'],permPrefixes:['PERM-WEB-'],note:'Booking-engine requests (follows the Direct booking site module switch)'},
+    {id:'tariffcard',label:'Tariff card',pages:['tariff-card'],prefixes:['TRC_'],permPrefixes:['PERM-TRF-'],note:'Published room tariff card: draft, propose, publish (F4-T1)'},
+    {id:'feedback',label:'Guest feedback & QR',pages:[],prefixes:['FBK_','QW_'],permPrefixes:['PERM-FBK-'],note:'Feedback capture, follow-ups, QR printer (F4-T3)'},
+    {id:'hall',label:'Hall booking',pages:['hall-booking'],prefixes:['HALL_'],permPrefixes:['PERM-HAL-'],note:'Venues, menus, enquiries, events, advances (F6)'},
+    {id:'quotations',label:'Hall quotations',pages:[],prefixes:['QUO_'],requires:['revenue.hall'],permPrefixes:['PERM-HAL-'],note:'Quotations, revisions, discounts (F6-H2)'},
   ]},
   {id:'stock',label:'Stock & purchasing',coarse:['housekeeping'],features:[
     {id:'linen',label:'Linen & stock',pages:['inventory'],prefixes:['INV_'],permPrefixes:['PERM-STK-'],note:'Linen, amenities, laundry and counts (follows the Linen & stock module switch)'},
@@ -112,9 +116,13 @@ export const FEATURE_MODULES:FeatureModule[]=[
     {id:'gst',label:'GST set-off & month lock',pages:[],prefixes:['ACC_GST_','ACC_MONTH_','ACC_STAT_'],permPrefixes:['PERM-ACC-'],note:'GST set-off, payment, month lock'},
     {id:'tds',label:'TDS',pages:[],prefixes:['ACC_TDS_'],permPrefixes:['PERM-ACC-'],note:'TDS by payee type, remittance'},
     {id:'tally',label:'Tally export',pages:[],prefixes:['ACC_TALLY_'],permPrefixes:['PERM-ACC-'],note:'Tally masters and vouchers (DEC-140)'},
+    {id:'yearend',label:'Year end & year lock',pages:[],prefixes:['ACC_YEAR_'],permPrefixes:['PERM-ACC-'],note:'Carry forward, year lock and reopen (F5 ACC-4)'},
+    {id:'bank',label:'Bank reconciliation',pages:[],prefixes:['BANK_'],permPrefixes:['PERM-ACC-'],note:'Statement import, matching, settlements (F5 ACC-4)'},
   ]},
   {id:'reports',label:'Reports',coarse:['reports'],features:[
     {id:'reports',label:'Reports',core:true,pages:['reports'],prefixes:[],permPrefixes:['PERM-RPT-'],note:'Operations and finance reports'},
+    {id:'hub',label:'Reports hub',pages:['report-hub'],prefixes:[],permPrefixes:['PERM-RPT-'],note:'Report catalogue on the reporting engine (F7)'},
+    {id:'digest',label:'Revenue & owner digest',pages:['owner-digest','revenue-category'],prefixes:['DIGEST_'],permPrefixes:['PERM-DGS-'],note:'Revenue by category and the owner digest (F4-T2)'},
     {id:'plans',label:'Meal plans & extras',pages:['plans-extras'],prefixes:['CAT_PLAN_'],permPrefixes:['PERM-MST-'],note:'Plan and extras catalogue (MA-2)'},
   ]},
   {id:'compliance',label:'Compliance',coarse:['reports'],features:[
@@ -132,6 +140,7 @@ export const FEATURE_MODULES:FeatureModule[]=[
     {id:'health',label:'System health',core:true,pages:['syshealth'],prefixes:['SYS_'],permPrefixes:['PERM-SYS-'],note:'Parked events, retry, last backup'},
     {id:'prefs',label:'Appearance & display',core:true,pages:['prefs'],prefixes:[],permPrefixes:[],note:'Per-device preferences'},
     {id:'legacy',label:'Legacy import',pages:['legacy-import'],prefixes:[],permPrefixes:['PERM-LGC-', 'PERM-IMP-'],note:'Old Lodge software import (LG)'},
+    {id:'internet',label:'Internet access',pages:[],prefixes:['NET_'],permPrefixes:['PERM-NET-'],note:'Guest internet / egress control (F5)'},
     {id:'roadmap',label:'Roadmap',pages:['roadmap'],prefixes:[],permPrefixes:[],note:'What is built and what is next'},
   ]},
 ];
