@@ -43,8 +43,10 @@ export type HallCancellation={at:string;date:string;keptPaise:number;refundPaise
 export type HallEvent={id:string;quotationId:string;version:number;venueIds:string[];date:string;/** further dates of a multi-day booking (held too) */extraDates?:string[];
   slot:HallSlot;status:'CONFIRMED'|'BILLED'|'CANCELLED';lines:QuoteLine[];actualPax?:number;guaranteedPax?:number;extras:QuoteLine[];blockId?:string;invoiceId?:string;
   cancellation?:HallCancellation;
+  /** F6-H3: credit note on the printed invoice (full invoice, CRN series). */creditNote?:HallCreditNote;
   // H1 billing additions (contract §5): the accepted advance plan, the receipts, the invoice, the customer for prints.
   advance?:AdvanceRow[];receipts?:HallReceipt[];invoice?:HallInvoice;customer?:{name:string;phone:string;company?:string};eventType?:HallEventType;createdAt?:string;by?:string};
+export type HallCreditNote={no:string;date:string;invoiceNo:string;reason:string;taxablePaise:number;cgstPaise:number;sgstPaise:number;totalPaise:number;by:string;at:string};
 export type HallLostReason={id:string;label:string;needsNote:boolean};
 export type HallCancelSlab={minDays:number;keptBps:number};
 export type HallSettings={validityDays:number;expiryReminderDays:number;advanceDefault:[number,number,'BALANCE'];secondDueDays:number;

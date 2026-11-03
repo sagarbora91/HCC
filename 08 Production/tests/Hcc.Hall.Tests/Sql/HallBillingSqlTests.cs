@@ -21,7 +21,7 @@ public sealed class HallBillingSqlTests
     private const string HotelGstin = "27AAAAA0000A1Z2"; // fictional, valid checksum
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
-    private static async Task<(int Sagar, int Lawn, int Combined)> VenuesAsync(Hotel h)
+    internal static async Task<(int Sagar, int Lawn, int Combined)> VenuesAsync(Hotel h)
     {
         await h.ScalarAsync($"""
             UPDATE inv.property SET gstin = '{HotelGstin}', address = N'12 Station Road, Latur (fictional)' WHERE property_id = {h.PropertyId};
@@ -36,7 +36,7 @@ public sealed class HallBillingSqlTests
     private static int _n;
 
     /// <summary>A SENT quotation (as lane H2's QUO_SEND leaves it) with the golden v2 lines; returns the quotation id.</summary>
-    private static async Task<long> QuoteAsync(Hotel h, int venueId, string date, string slot = "EVENING", int pax = 150)
+    internal static async Task<long> QuoteAsync(Hotel h, int venueId, string date, string slot = "EVENING", int pax = 150)
     {
         var n = Interlocked.Increment(ref _n);
         return await h.LongAsync($"""
@@ -58,7 +58,7 @@ public sealed class HallBillingSqlTests
             """, Ct);
     }
 
-    private static AccountingVoucherProjector Projector(Hotel h) => new(h.Platform.Connections, h.Platform.Outbox, new StoredChargeGstReader(), h.Get<TimeProvider>());
+    internal static AccountingVoucherProjector Projector(Hotel h) => new(h.Platform.Connections, h.Platform.Outbox, new StoredChargeGstReader(), h.Get<TimeProvider>());
 
     [Fact]
     public async Task HbGolden_accept_advance_bill_invoice_and_books_balance()

@@ -140,6 +140,11 @@ export function hallAccSources(s:State,date:string,x:HallState|undefined=s.hallX
       if(inv.advanceAppliedPaise)out.push({type:'Journal',narration:`Hall advance applied · invoice ${inv.no} · ${who}`,source:{kind:'hall',id:`hall:advance-apply:${e.id}`,sub:'hall-advance-apply'},
         lines:[D(HALL_KEYS.advance,inv.advanceAppliedPaise),C('folio:guest',inv.advanceAppliedPaise)]});
     }
+    const cn=e.creditNote;
+    if(cn&&cn.date===date&&inv){ // F6-H3: credit note = the invoice reversed (Dr revenue + GST, Cr receivable)
+      const rev=new Map<string,number>();for(const l of inv.lines)rev.set(lineKey(l,food),(rev.get(lineKey(l,food))??0)+l.taxablePaise);
+      out.push({type:'Journal',narration:`Hall credit note ${cn.no} · invoice ${cn.invoiceNo} · ${who} · ${cn.reason}`,source:{kind:'hall',id:`hall:credit-note:${e.id}`,sub:'hall-credit-note'},
+        lines:[...[...rev].map(([k,v])=>D(k,v)),D('folio:cgst',cn.cgstPaise),D('folio:sgst',cn.sgstPaise),C('folio:guest',cn.totalPaise)]});}
     const c=e.cancellation;
     if(c&&c.date===date&&c.keptPaise){const g=hallInclusiveSplit(c.keptPaise,c.taxBps);
       out.push({type:'Journal',narration:`Hall cancellation charge · ${who} · ${c.daysBefore} days before · kept ${c.keptBps/100} % · event ${e.id}`,source:{kind:'hall',id:`hall:cancel:${e.id}`,sub:'hall-cancel'},

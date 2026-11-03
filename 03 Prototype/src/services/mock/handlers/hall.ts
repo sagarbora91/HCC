@@ -13,6 +13,8 @@ import {grpSlice} from '../../../domain/streams/groups';
 import {fdmAllocate} from '../../../domain/streams/frontdesk-master';
 import {addDays} from '../../../domain/money';
 import {mnyMethodFor} from '../../../domain/streams/money-master';
+import {handlers as groupsH} from './groups'; // F6-H3: room blocks for an event reuse the group block rules
+import {grpEnsure} from '../../../domain/streams/groups';
 
 const DATE=/^\d{4}-\d{2}-\d{2}$/;
 const rs=(p:number)=>'₹'+(p/100).toFixed(2);
@@ -198,9 +200,12 @@ export const handlers:Record<string,Handler>={
     const reason=txt(k.cmd.reason);k.assert(reason.length>=3,'Give the reason for the cancellation.');
     const c=hallCancelQuote(k.s,e,k.s.date);
     e.status='CANCELLED';
+    let blockNote='';const blk=e.blockId?grpEnsure(k.s).blocks.find(b=>b.id===e.blockId):undefined; // F6-H3: the rooms held for the event go back
+    if(blk&&blk.status==='Open'){try{groupsH.GRP_BLOCK_CANCEL({...k,cmd:{type:'GRP_BLOCK_CANCEL',id:blk.id,reason:`Hall event ${e.id} cancelled`}});blockNote=` · room block ${blk.id} released`;}
+      catch{blockNote=` · room block ${blk.id} has live bookings: release it from the room board`;}}
     e.cancellation={at:k.s.clock,date:k.s.date,keptPaise:c.keptPaise,refundPaise:c.refundPaise,by:k.uid,daysBefore:c.daysBefore,keptBps:c.keptBps,taxBps:c.taxBps,
       refund:c.refundPaise>0?'PENDING':'NONE',reason};
-    return `Event ${e.id} cancelled ${c.daysBefore} days before · kept ${rs(c.keptPaise)} (${c.keptBps/100} % slab, 4300 with GST) · refund ${rs(c.refundPaise)}${c.refundPaise?' awaiting approval':''} · hall released`;
+    return `Event ${e.id} cancelled ${c.daysBefore} days before · kept ${rs(c.keptPaise)} (${c.keptBps/100} % slab, 4300 with GST) · refund ${rs(c.refundPaise)}${c.refundPaise?' awaiting approval':''} · hall released${blockNote}`;
   },
   HALL_REFUND:k=>{
     role(k,HALL_ROLES.refund,'a hall refund is approved by the Manager (up to ₹50,000) or the Owner');k.open();
@@ -216,5 +221,30 @@ export const handlers:Record<string,Handler>={
   // F6-H2
   // F6-H2 end
   // F6-H3
+  HALL_ROOM_BLOCK:k=>{
+    // Spec §10.3: optionally block rooms for the event's guests — a group block on the room board (same rules as group bookings, registerRoomHold).
+    role(k,HALL_ROLES.accept,'blocking rooms for an event (PERM-HAL-003)');k.open();
+    const e=event(k),c=k.cmd;k.assert(e.status==='CONFIRMED','Rooms are blocked for a confirmed event only.','INVALID_TRANSITION');
+    if(c.release){const blk=e.blockId?grpEnsure(k.s).blocks.find(b=>b.id===e.blockId):undefined;k.assert(blk,'No room block on this event.','NOT_FOUND');
+      if(blk!.status==='Open')groupsH.GRP_BLOCK_CANCEL({...k,cmd:{type:'GRP_BLOCK_CANCEL',id:blk!.id,reason:txt(c.reason)||`Hall event ${e.id} released`}});
+      delete e.blockId;return `Room block released · event ${e.id}`;}
+    k.assert(!e.blockId,'This event already has a room block. Release it first to change it.','INVALID_TRANSITION');
+    const dates=[e.date,...(e.extraDates??[])].sort(),arrival=txt(c.arrival)||dates[0],departure=txt(c.departure)||addDays(dates[dates.length-1],1);
+    const cutoff=txt(c.cutoff)||(addDays(arrival,-2)<k.s.date?(arrival<k.s.date?k.s.date:arrival):addDays(arrival,-2));
+    const who=(e.customer?.name??e.id).slice(0,40);
+    groupsH.GRP_BLOCK_CREATE({...k,cmd:{type:'GRP_BLOCK_CREATE',name:`Hall event ${e.id} · ${who}`,arrival,departure,cutoff,billTo:'guest',allot:c.allot,contact:e.customer?.phone,notes:`Hall event ${e.id}`}});
+    const blk=grpEnsure(k.s).blocks.at(-1)!;e.blockId=blk.id;
+    return `Room block ${blk.id} for event ${e.id} · ${Object.entries(blk.allot).map(([t,n])=>n+' '+t).join(', ')} · ${arrival}→${departure} · cut-off ${cutoff}`;
+  },
+  HALL_CREDIT_NOTE:k=>{
+    // Spec §13: a printed hall invoice is never edited; the correction is a credit note (DEC-063: the Owner decides), full invoice, number from the CRN series.
+    role(k,['Owner'],'a credit note on a hall invoice is issued by the Owner (DEC-063)');k.open();
+    const e=event(k),inv=e.invoice;k.assert(e.status==='BILLED'&&inv,'Only a billed event has an invoice to credit.','INVALID_TRANSITION');
+    k.assert(!e.creditNote,'This invoice already has a credit note.','INVALID_TRANSITION');
+    const reason=txt(k.cmd.reason);k.assert(reason.length>=3,'Give the reason for the credit note.');
+    const no=fdmAllocate(k.s,'CRN');
+    e.creditNote={no,date:k.s.date,invoiceNo:inv!.no,reason,taxablePaise:inv!.taxablePaise,cgstPaise:inv!.cgstPaise,sgstPaise:inv!.sgstPaise,totalPaise:inv!.totalPaise,by:k.uid,at:k.s.clock};
+    return `Credit note ${no} · invoice ${inv!.no} · event ${e.id} · ${rs(inv!.totalPaise)} (Dr revenue + GST, Cr receivable)`;
+  },
   // F6-H3 end
 };
