@@ -91,7 +91,9 @@
     {"version": 4393, "file": "4393_guest_feedback.sql", "reason": "F5 final: F4 migrations below F5 egress 4730-4734 (lanes merged in parallel)"},
     {"version": 4394, "file": "4394_feedback_followup.sql", "reason": "F5 final: F4 migrations below F5 egress 4730-4734 (lanes merged in parallel)"},
     {"version": 4395, "file": "4395_feedback_rbac_seed.sql", "reason": "F5 final: F4 migrations below F5 egress 4730-4734 (lanes merged in parallel)"},
-    {"version": 4397, "file": "4397_printers.sql", "reason": "F5 final: F4 migrations below F5 egress 4730-4734 (lanes merged in parallel)"}
+    {"version": 4397, "file": "4397_printers.sql", "reason": "F5 final: F4 migrations below F5 egress 4730-4734 (lanes merged in parallel)"},
+    {"version": 4300, "file": "4300_hall_schema.sql", "reason": "F6 hall booking (claude/f6): contract range 4300-4349 below the locked 4734; 4740 widens the source-kind constraints above 4687"},
+    {"version": 4320, "file": "4320_hall_billing.sql", "reason": "F6 hall booking (claude/f6): contract range 4300-4349 below the locked 4734; 4740 widens the source-kind constraints above 4687"}
   ],
   "migrations": [
     {"version": 1, "file": "0001_platform.sql", "sha256": "2CB8FB349156F501295E1148366BDFE406EC097C136093F09C6F0817542F46CC"},
@@ -292,6 +294,9 @@
     {"version": 4393, "file": "4393_guest_feedback.sql", "sha256": "CD10122335AAD9E0D41F26364F8157ED2D098801160486B2B421C4A363CF7C85"},
     {"version": 4394, "file": "4394_feedback_followup.sql", "sha256": "0A0ACE159A39D638E415F975CD8C735DA3DA349390F4096C5D4F11777E774141"},
     {"version": 4395, "file": "4395_feedback_rbac_seed.sql", "sha256": "9E28392BDCC5A5C630B324723D7466F154879C218BF9C712BA3DCAF66FFA58C6"},
-    {"version": 4397, "file": "4397_printers.sql", "sha256": "32B485CFF62E8DEF24C16EBF156F0EFDC802166D9BFF2339414963F294E2591F"}
+    {"version": 4397, "file": "4397_printers.sql", "sha256": "32B485CFF62E8DEF24C16EBF156F0EFDC802166D9BFF2339414963F294E2591F"},
+    {"version": 4300, "file": "4300_hall_schema.sql", "sha256": "C713D239D3EE60F970B80ECD75DC1C59F7D1666E67C5940A78DC9920E90051EE"},
+    {"version": 4320, "file": "4320_hall_billing.sql", "sha256": "72D7A0F7A6EE251DD36B7335DFEB234FDC524D90DA9CEF17CCD643F46007DD4E"},
+    {"version": 4740, "file": "4740_hall_source_kinds.sql", "sha256": "CB384D488EFDB122607E7BE4805D94133627180C84801EA1D7317736FCBE2CFF"}
   ]
 }

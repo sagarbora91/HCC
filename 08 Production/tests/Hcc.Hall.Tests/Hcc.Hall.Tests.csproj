@@ -16,6 +16,7 @@
     <ProjectReference Include="..\..\src\Hcc.Infrastructure.SqlServer\Hcc.Infrastructure.SqlServer.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="..\Hcc.Closing.Tests\Harness\Hotel.cs" Link="Linked\Hotel.cs" />
     <None Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
     <Using Include="Xunit" />
   </ItemGroup>
