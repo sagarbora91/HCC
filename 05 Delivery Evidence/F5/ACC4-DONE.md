@@ -50,7 +50,16 @@ Branch `claude/f5`. It contains `main` with F1–F4, the lanes E1 (egress), A1 (
 - The server books used in the golden carry-forward are the golden April data, not a live SQL ledger.
 
 ## DEC proposals (owner to approve)
-- **DEC-223:** a year lock refuses every posting dated in the locked year on both sides. Reopening is Owner-only and stamps exports PROVISIONAL until relocked. Carry-forward is a draft that the Owner approves.
-- **DEC-224:** bank reconciliation starts with the generic CSV layout. The owner's bank layout becomes a mapping-master row when a sample arrives (A23). UPI / card settle to the bank net of MDR.
-- **DEC-225:** internet egress is OFF by default (fail-closed) at go-live. It is switched per integration by the Owner, with a reason and an audit record. Messages queue while it is off. No code may reach the internet except through the egress gate, enforced by the architecture test.
-- **DEC-226:** APK `allowNavigation` is limited to `localhost`, because the HCC server address is entered on the device.
+- **DEC-249:** a year lock refuses every posting dated in the locked year on both sides. Reopening is Owner-only and stamps exports PROVISIONAL until relocked. Carry-forward is a draft that the Owner approves.
+- **DEC-250:** bank reconciliation starts with the generic CSV layout. The owner's bank layout becomes a mapping-master row when a sample arrives (A23). UPI / card settle to the bank net of MDR.
+- **DEC-251:** internet egress is OFF by default (fail-closed) at go-live. It is switched per integration by the Owner, with a reason and an audit record. Messages queue while it is off. No code may reach the internet except through the egress gate, enforced by the architecture test.
+- **DEC-252:** APK `allowNavigation` is limited to `localhost`, because the HCC server address is entered on the device.
+
+**Decision renumbering (ADM-int, 3 Nov 2026):** the approved Administration panel plan (APR-028) owns DEC-214…221, so this wave's proposals were renumbered.
+
+| Old proposed | New |
+|---|---|
+| DEC-223 | DEC-249 |
+| DEC-224 | DEC-250 |
+| DEC-225 | DEC-251 |
+| DEC-226 | DEC-252 |

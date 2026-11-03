@@ -31,8 +31,17 @@ Card publishing writes only to the masters: `s.tariffs` / `inv.room_type_tariff`
 - The revenue report prints only the sub-screen that is open. CSV and Excel carry all three blocks.
 
 ## DEC proposals
-- **DEC-219** Tariff card rules: Fri / Sat / Sun weekend (Owner-edited), Manager proposes and Owner publishes, child price left blank publishes nothing, published versions append-only, no second price list (DEC-MA-102).
-- **DEC-220** Revenue by category and tender = block A (room-type revenue, incl. and excl. GST, with outlet rows), block B (collections by tender, advances received and adjusted), block C (bridge that must tie out to 0); business-date or stay basis; Owner / Manager / Accountant.
-- **DEC-221** The owner digest draft is held until F9 (sending by e-mail / WhatsApp). E-mail carries money; WhatsApp carries counts only.
-- **DEC-222** Rounding (as above): the inclusive card price counts, exact where possible, otherwise nearest with the difference shown. CA to confirm.
+- **DEC-245** Tariff card rules: Fri / Sat / Sun weekend (Owner-edited), Manager proposes and Owner publishes, child price left blank publishes nothing, published versions append-only, no second price list (DEC-MA-102).
+- **DEC-246** Revenue by category and tender = block A (room-type revenue, incl. and excl. GST, with outlet rows), block B (collections by tender, advances received and adjusted), block C (bridge that must tie out to 0); business-date or stay basis; Owner / Manager / Accountant.
+- **DEC-247** The owner digest draft is held until F9 (sending by e-mail / WhatsApp). E-mail carries money; WhatsApp carries counts only.
+- **DEC-248** Rounding (as above): the inclusive card price counts, exact where possible, otherwise nearest with the difference shown. CA to confirm.
   - 3 Nov 2026: GST "CA to confirm" closed by **DEC-239** (CA: room GST 5 %, banquet incl. catering 18 %) — `Accounting/GST-CA-2026-11-03.md`.
+
+**Decision renumbering (ADM-int, 3 Nov 2026):** the approved Administration panel plan (APR-028) owns DEC-214…221, so this wave's proposals were renumbered.
+
+| Old proposed | New |
+|---|---|
+| DEC-219 | DEC-245 |
+| DEC-220 | DEC-246 |
+| DEC-221 | DEC-247 |
+| DEC-222 | DEC-248 |

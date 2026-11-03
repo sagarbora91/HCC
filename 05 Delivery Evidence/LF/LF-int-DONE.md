@@ -37,8 +37,18 @@ Lock: 170 main migrations + 2 documents migrations, both in step.
 - A1 re-post ignores a bundled meal plan in the slab.
 
 ## DEC proposals
-- DEC-214: LF migrations below KEYS (4660–4707) accepted out of order into the lock (contract-assigned ranges).
-- DEC-215: a counter-bill line naming a catalogue / menu item defaults to the master price on the business date; a typed price overrides (no approval).
-- DEC-216: counter-bill cash is guarded per bill (party "bill", like POS), not per customer.
-- DEC-217: phone-less guest credit — Udhaar party key = `UD-<customer key>` on both sides (owner to confirm; LF-money open point 3).
-- DEC-218: in-place re-seal of HccDocuments objects during key re-keying is accepted (non-transactional across databases).
+- DEC-240: LF migrations below KEYS (4660–4707) accepted out of order into the lock (contract-assigned ranges).
+- DEC-241: a counter-bill line naming a catalogue / menu item defaults to the master price on the business date; a typed price overrides (no approval).
+- DEC-242: counter-bill cash is guarded per bill (party "bill", like POS), not per customer.
+- DEC-243: phone-less guest credit — Udhaar party key = `UD-<customer key>` on both sides (owner to confirm; LF-money open point 3).
+- DEC-244: in-place re-seal of HccDocuments objects during key re-keying is accepted (non-transactional across databases).
+
+**Decision renumbering (ADM-int, 3 Nov 2026):** the approved Administration panel plan (APR-028) owns DEC-214…221, so this wave's proposals were renumbered.
+
+| Old proposed | New |
+|---|---|
+| DEC-214 | DEC-240 |
+| DEC-215 | DEC-241 |
+| DEC-216 | DEC-242 |
+| DEC-217 | DEC-243 |
+| DEC-218 | DEC-244 |
