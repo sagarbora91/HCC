@@ -1,0 +1,162 @@
+{
+ "id": "rpt.money.revenue-by-category-tender",
+ "cases": [
+  {
+   "uid": "owner",
+   "scenario": "BASE",
+   "params": {},
+   "tables": [
+    {
+     "key": "a",
+     "title": "A Revenue",
+     "columns": ["category","rooms","nightsSold","occPct","roomTariff","extraPerson","mealPlans","otherRoomCharges","discounts","corrections","net","cgst","sgst","gross","adr"],
+     "rows": [
+      ["row","Classic",11,6,54.5,0,0,0,0,0,0,0,0,0,0,0],
+      ["row","Deluxe",9,1,11.1,0,0,0,0,0,0,0,0,0,0,0],
+      ["row","Suite",3,1,33.3,0,0,0,0,0,0,0,0,0,0,0],
+      ["row","Restaurant (POS)",0,0,0,0,0,0,118000,0,0,118000,2950,2950,123900,0],
+      ["row","Counter bills",0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+      ["row","Hall",0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+      ["total","Total (folios)",23,8,34.8,0,0,0,0,0,0,0,0,0,0,0]
+     ]
+    },
+    {
+     "key": "b",
+     "title": "B Collections",
+     "columns": ["category","cash","upi","card","bank","companyCredit","udhaar","ota","otherTenders","advancesReceived","advancesAdjusted","advancesRefunded","refunds","netReceived"],
+     "rows": [
+      ["row","Classic",600000,600000,0,0,0,0,0,0,0,0,0,0,1200000],
+      ["row","Deluxe",100000,400000,0,0,0,0,0,0,0,0,0,0,500000],
+      ["row","Suite",0,450000,0,0,0,0,0,0,0,0,0,0,450000],
+      ["row","Restaurant (POS)",52500,71400,0,0,0,0,0,0,0,0,0,0,123900],
+      ["row","Counter bills",0,0,0,0,0,0,0,0,0,0,0,0,0],
+      ["row","Hall",0,0,0,0,0,0,0,0,0,0,0,0,0],
+      ["total","Total",700000,1450000,0,0,0,0,0,0,0,0,0,0,2150000]
+     ]
+    },
+    {
+     "key": "c",
+     "title": "C Bridge",
+     "columns": ["item","amount"],
+     "rows": [
+      ["row","Opening due",2047500],
+      ["row","Gross charges",0],
+      ["row","Net received",2150000],
+      ["row","Advance movement",0],
+      ["row","Closing due",-102500],
+      ["row","Opening advances held",0],
+      ["row","Closing advances held",0],
+      ["total","Difference (must be 0)",0]
+     ]
+    }
+   ]
+  },
+  {
+   "uid": "accountant",
+   "scenario": "BASE",
+   "params": {
+    "from": "2026-10-20",
+    "to": "2026-10-24"
+   },
+   "tables": [
+    {
+     "key": "a",
+     "title": "A Revenue",
+     "columns": ["category","rooms","nightsSold","occPct","roomTariff","extraPerson","mealPlans","otherRoomCharges","discounts","corrections","net","cgst","sgst","gross","adr"],
+     "rows": [
+      ["row","Classic",55,12,21.8,1200000,0,0,0,0,0,1200000,30000,30000,1260000,100000],
+      ["row","Deluxe",45,2,4.4,300000,0,0,0,0,0,300000,7500,7500,315000,150000],
+      ["row","Suite",15,2,13.3,450000,0,0,0,0,0,450000,11250,11250,472500,225000],
+      ["row","Restaurant (POS)",0,0,0,0,0,0,118000,0,0,118000,2950,2950,123900,0],
+      ["row","Counter bills",0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+      ["row","Hall",0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+      ["total","Total (folios)",115,16,13.9,1950000,0,0,0,0,0,1950000,48750,48750,2047500,121875]
+     ]
+    },
+    {
+     "key": "b",
+     "title": "B Collections",
+     "columns": ["category","cash","upi","card","bank","companyCredit","udhaar","ota","otherTenders","advancesReceived","advancesAdjusted","advancesRefunded","refunds","netReceived"],
+     "rows": [
+      ["row","Classic",600000,600000,0,0,0,0,0,0,0,0,0,0,1200000],
+      ["row","Deluxe",100000,400000,0,0,0,0,0,0,0,0,0,0,500000],
+      ["row","Suite",0,450000,0,0,0,0,0,0,0,0,0,0,450000],
+      ["row","Restaurant (POS)",52500,71400,0,0,0,0,0,0,0,0,0,0,123900],
+      ["row","Counter bills",0,0,0,0,0,0,0,0,0,0,0,0,0],
+      ["row","Hall",0,0,0,0,0,0,0,0,0,0,0,0,0],
+      ["total","Total",700000,1450000,0,0,0,0,0,0,0,0,0,0,2150000]
+     ]
+    },
+    {
+     "key": "c",
+     "title": "C Bridge",
+     "columns": ["item","amount"],
+     "rows": [
+      ["row","Opening due",0],
+      ["row","Gross charges",2047500],
+      ["row","Net received",2150000],
+      ["row","Advance movement",0],
+      ["row","Closing due",-102500],
+      ["row","Opening advances held",0],
+      ["row","Closing advances held",0],
+      ["total","Difference (must be 0)",0]
+     ]
+    }
+   ]
+  },
+  {
+   "uid": "manager",
+   "scenario": "BASE",
+   "params": {
+    "from": "2026-10-20",
+    "to": "2026-10-24",
+    "basis": "stay"
+   },
+   "tables": [
+    {
+     "key": "a",
+     "title": "A Revenue",
+     "columns": ["category","rooms","nightsSold","occPct","roomTariff","extraPerson","mealPlans","otherRoomCharges","discounts","corrections","net","cgst","sgst","gross","adr"],
+     "rows": [
+      ["row","Classic",55,12,21.8,1200000,0,0,0,0,0,1200000,30000,30000,1260000,100000],
+      ["row","Deluxe",45,2,4.4,300000,0,0,0,0,0,300000,7500,7500,315000,150000],
+      ["row","Suite",15,2,13.3,450000,0,0,0,0,0,450000,11250,11250,472500,225000],
+      ["row","Restaurant (POS)",0,0,0,0,0,0,118000,0,0,118000,2950,2950,123900,0],
+      ["row","Counter bills",0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+      ["row","Hall",0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+      ["total","Total (folios)",115,16,13.9,1950000,0,0,0,0,0,1950000,48750,48750,2047500,121875]
+     ]
+    },
+    {
+     "key": "b",
+     "title": "B Collections",
+     "columns": ["category","cash","upi","card","bank","companyCredit","udhaar","ota","otherTenders","advancesReceived","advancesAdjusted","advancesRefunded","refunds","netReceived"],
+     "rows": [
+      ["row","Classic",600000,600000,0,0,0,0,0,0,0,0,0,0,1200000],
+      ["row","Deluxe",100000,400000,0,0,0,0,0,0,0,0,0,0,500000],
+      ["row","Suite",0,450000,0,0,0,0,0,0,0,0,0,0,450000],
+      ["row","Restaurant (POS)",52500,71400,0,0,0,0,0,0,0,0,0,0,123900],
+      ["row","Counter bills",0,0,0,0,0,0,0,0,0,0,0,0,0],
+      ["row","Hall",0,0,0,0,0,0,0,0,0,0,0,0,0],
+      ["total","Total",700000,1450000,0,0,0,0,0,0,0,0,0,0,2150000]
+     ]
+    },
+    {
+     "key": "c",
+     "title": "C Bridge",
+     "columns": ["item","amount"],
+     "rows": [
+      ["row","Opening due",0],
+      ["row","Gross charges",2047500],
+      ["row","Net received",2150000],
+      ["row","Advance movement",0],
+      ["row","Closing due",-102500],
+      ["row","Opening advances held",0],
+      ["row","Closing advances held",0],
+      ["total","Difference (must be 0)",0]
+     ]
+    }
+   ]
+  }
+ ]
+}

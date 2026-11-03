@@ -22,12 +22,14 @@ export type RptRow={kind:'row'|'subtotal'|'total';cells:Record<string,RptCell>;g
 export type RptAbout={runAt:string;user:string;dateBasis:string;provisional:boolean;legacy:boolean;from?:string;to?:string};
 export type RptBoundParams=Record<string,string|boolean|undefined>&{from?:string;to?:string};
 export type RptResult={id:string;title:string;params:RptBoundParams;columns:RptColumn[];rows:RptRow[];about:RptAbout;
-  /** Columns removed by rule M for this caller (keys). */ removed?:string[];page?:{index:number;size:number;total:number}};
+  /** Columns removed by rule M for this caller (keys). */ removed?:string[];page?:{index:number;size:number;total:number};
+  /** F7-R1: several blocks (each its own columns); when present, columns / rows = sections[0]. */ sections?:{key:string;title?:string;columns:RptColumn[];rows:RptRow[]}[]};
 export type RptDefinition<P extends RptBoundParams=RptBoundParams>={id:string;title:string;area:RptArea;priority:RptPriority;status:RptStatus;
   moneyFlag:boolean;moneyGate?:string;viewPerms:string[];deskPerms?:string[];exportPerm?:string;dateClass?:RptDateClass;
   params:RptParam[];columns:RptColumn[];dateBasis:string;formats:RptFormat[];phone:RptPhone;layout?:'table'|'document';legacyIds?:string[];
+  /** F7-R1: scoped grants (Cashier V·S own shift) count for this report. */ ownShift?:boolean;
   select:(s:State,uid:string,p:P)=>Omit<RptResult,'about'|'title'|'id'>&{about?:Partial<RptAbout>}};
-export type RptPrintTable={columns:RptColumn[];rows:RptRow[]};
+export type RptPrintTable={columns:RptColumn[];rows:RptRow[];title?:string};
 export type RptPrintModel={orientation:'portrait'|'landscape';header:{property:string;title:string;params:[string,string][];runAt:string;user:string};
   pages:{tables:RptPrintTable[]}[];footer:{basis:string;provisional:boolean}};
 export type RptSchedule={id:string;reportId:string;params:Record<string,string>;format:Exclude<RptFormat,'screen'>;

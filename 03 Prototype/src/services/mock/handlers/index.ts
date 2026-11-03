@@ -63,6 +63,7 @@ import {handlers as reminders} from './reminders';
 import {handlers as guestPhotos} from './guestphotos'; // B5 party photos
 // LF-IMAGES end
 // F7-R1
+// RPT_* commands (./reports) are added to `registry` by services/mock/index.ts F7-R1; the integrator may spread them into registry0 instead.
 // F7-R1 end
 // F5-E1
 import {handlers as egress} from './egress'; // F5-E1 CFG_NET_SET, NET_TICK
