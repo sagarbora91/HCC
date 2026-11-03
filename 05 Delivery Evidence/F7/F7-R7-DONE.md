@@ -42,8 +42,7 @@ Server: `DocumentService` (render html / pdf + `rpt.export_log` row), `Hcc.Api/E
 ## Integration needed (f7-int)
 - `HccComposition.cs`: `api.MapDocumentEndpoints()` and `services.AddSingleton<DocumentService>()` are already added in `// F7-R7` blocks.
 - Catalogue: documents are not table entries; `rpt.people.payslip` stays `built` (now with a Lodge-look document). Nothing to regenerate.
-- Folio / receipt / quotation / rate card / hand-over pack **endpoints** are not added on the server (the builders exist and are tested): they need the reservation header (guest, room, dates) joined to the folio, or the handover / tariff query services; add routes the same way as the five above.
-- Server registration card / day end: `LodgeLayouts.RegistrationCardAsync` exists; an endpoint wrapping `DocumentBuilders.FromLodge` is the missing line.
+- Added after the first report: `GET /documents/folio/{folioId}`, `/receipt/{folioId}/{receiptId}` (PERM-FOL-001 via the folio read), `/quotation/{bookingNo}` (PERM-RES-001), `/rate-card?version=` (PERM-TRF-001), `/handover-pack?date=` (the handover read's own desk/role filter; cash column only with PERM-HND-004), `/registration-card/{bookingNo}` (PERM-STY-001 or PERM-RPT-001; ID number masked). Loaders in `DocumentSql.cs` (registered scoped in `HccComposition` F7-R7 block); 3 SQL tests in `Documents/DocumentSqlTests.cs`. Day-end has no endpoint (it is a closing view). Quotation GST uses the current room slabs (5 % up to Rs 7,500 a night, 18 % above) - CA to confirm / wire to the dated GST master.
 - Windows PC only: print preview on the Tab, one paper print of the invoice and registration card, fit-check.
 
 ## Open questions

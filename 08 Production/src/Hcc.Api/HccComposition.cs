@@ -122,6 +122,7 @@ public static class HccComposition
         Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.Tax.BillCorrectionsReport>(services); // F7-R5
         Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.Tax.GstSummaryReport>(services); // F7-R5
         services.AddSingleton<Hcc.Reporting.Documents.DocumentService>(); // F7-R7 document layouts
+        services.AddScoped<Hcc.Reporting.Documents.DocumentSql>(); // F7-R7
         // F7-RPT end
         // F5-E1
         services.AddEgressModule();                      // F5-E1 internet egress gate: net.* settings, "egress" client, hold / replay, System health Egress
