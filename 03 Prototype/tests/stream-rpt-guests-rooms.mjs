@@ -137,7 +137,7 @@ export function register({test,assert}){
     for(const u of ['accountant','supervisor','housekeeper','maint'])assert.ok(rows(run(s,u,RS,{filter:'occupied'})).every(x=>x.cells.guest===''),u);
     for(const u of ['cashier','techadmin'])assert.equal(code(()=>run(s,u,RS)),'FORBIDDEN',u);
     assert.ok(M.reportCatalogue(s,'housekeeper').map(d=>d.id).join()===RS,'Housekeeping sees only the room board report');
-    assert.ok(M.reportCatalogue(s,'cashier').length===0);
+    assert.ok(M.reportCatalogue(s,'cashier').filter(d=>d.area!=='tax').length===0); // F7-R5: the Cashier holds PERM-INV-001, so the tax reports are in the catalogue
   });
 
   test(T+'layouts: registration card (Lodge look, HCC letterhead, ID masked) and day-end sheet (money only with the finance right)',()=>{
