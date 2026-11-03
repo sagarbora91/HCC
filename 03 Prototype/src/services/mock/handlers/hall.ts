@@ -12,14 +12,15 @@ import {POS_FIXTURE_MENU} from '../../../fixtures/ext/pos';
 import {grpSlice} from '../../../domain/streams/groups';
 import {fdmAllocate} from '../../../domain/streams/frontdesk-master';
 import {addDays} from '../../../domain/money';
+import {mnyMethodFor} from '../../../domain/streams/money-master';
 
 const DATE=/^\d{4}-\d{2}-\d{2}$/;
-const TENDERS=['Cash','UPI','Card','Bank transfer'];
 const rs=(p:number)=>'₹'+(p/100).toFixed(2);
 const role=(k:Kit,list:Role[],what:string)=>{if(!list.includes(k.user.role))k.fail('FORBIDDEN',`Access denied: ${what}.`);};
 const txt=(v:unknown)=>String(v??'').trim();
 const paise=(k:Kit,v:unknown,what:string,allowZero=false)=>{const n=Number(v);k.assert(Number.isSafeInteger(n)&&(allowZero?n>=0:n>0)&&n<=10_000_000_000,`${what}: enter whole paise ${allowZero?'(0 or more)':'greater than zero'}.`);return n;};
-const tender=(k:Kit,m:unknown,ref:unknown)=>{const method=txt(m);k.assert(TENDERS.includes(method),'Choose a tender: Cash, UPI, Card or Bank transfer.');
+// The tender list comes from the money masters (payment methods usable at the front desk), never a hard-coded list (MA-3).
+const tender=(k:Kit,m:unknown,ref:unknown)=>{const method=txt(m);k.assert(mnyMethodFor(k.s,method,'frontdesk'),'Choose an active payment method (Cash, UPI, Card, Bank transfer …).');
   if(method!=='Cash')k.assert(txt(ref).length>=3,'Enter the payment reference (UPI / card / bank).');return method;};
 const event=(k:Kit)=>{const e=hallEnsure(k.s).events.find(e=>e.id===txt(k.cmd.eventId??k.cmd.id));k.assert(e,'Hall event not found.','NOT_FOUND');return e!;};
 const receipt=(k:Kit,e:HallEvent,kind:HallReceipt['kind'],amountPaise:number,extra:Partial<HallReceipt>):HallReceipt=>{
