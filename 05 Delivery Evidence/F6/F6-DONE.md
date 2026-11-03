@@ -42,6 +42,7 @@ Enquiry → quotation QT/2627/… v1 → revised v2, total ₹1,37,322.50 → se
 
 ## DEC proposals (for the register)
 - **DEC-227** Hall booking spec approved (OP-17) with the A26 defaults: itemised GST per line from the dated master (CA to confirm the banquet catering slab), "OWNER TO REPLACE" T&C placeholders guarded at send time, with a one-time Owner override per quotation and a reason.
+  - 3 Nov 2026: GST "CA to confirm" closed by **DEC-239** (CA: room GST 5 %, banquet incl. catering 18 %) — `Accounting/GST-CA-2026-11-03.md`.
 - **DEC-228** Quotation numbering `QT/<FY>/<nnnn>` (doc type QUO), with no gaps and a restart on 1 April. Versions keep the number, a cancelled number is never reused, and only the latest version can be sent or accepted.
 - **DEC-229** Advance pattern 25 % on acceptance, 50 % 30 days before the event, balance on the event day. Advances are not income (Dr tender · Cr 2000, no GST, DEC-142). Manager and Owner may edit the plan; Reception quotes the default.
 - **DEC-230** Discount limits: Reception 0 %, Manager 10 % before GST, Owner any. Above the limit the Owner approves, never the author. The same limits apply on the event-day bill.

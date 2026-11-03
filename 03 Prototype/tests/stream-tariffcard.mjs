@@ -1,5 +1,5 @@
 // F4-T1 · Tariff card — domain / command tests (F4-CONTRACT.md §1, §5). Names prefixed [TRC].
-// Fixture: tests/fixtures/f4/rate-card/*.csv = a fictional copy of the DEC-198 rate-card files (owner's public card ÷ 1.18; rooms made up).
+// Fixture: tests/fixtures/f4/rate-card/*.csv = a fictional copy of the DEC-198 rate-card files (owner's public card ÷ 1.05 — room GST 5 % per the CA, DEC-239; rooms made up).
 import {readFileSync} from 'node:fs';
 export function register({test,M,assert}){
   const {seed,execute}=M;
@@ -23,16 +23,17 @@ export function register({test,M,assert}){
       const e=M.trcExclusiveFromInclusive(incl,bps);assert.equal(e,excl,`${incl}@${bps}`);assert.equal(M.trcInclusive(e,bps)-incl,diff,`diff ${incl}@${bps}`);
       for(let x=Math.max(0,e-50);x<=e+50;x++)assert.ok(Math.abs(M.trcInclusive(x,bps)-incl)>=Math.abs(diff),`no closer exclusive ${incl}@${bps}`);}
   });
-  test('[TRC] Deluxe ₹2,000 incl at 18 % → excl ₹1,694.92, display ₹2,000.00, rounding difference 0',()=>{
-    let s=gst18(seed());s=draft(s,[{kind:'room',roomType:'Deluxe',plan:'EP',daySet:'all',enteredIncl:200000}]);
-    const l=last(s).lines[0];assert.equal(l.rateExcl,169492);assert.equal(l.taxBps,1800);assert.equal(l.displayIncl,200000);assert.equal(M.trcRoundingDiff(l),0);
+  test('[TRC] Deluxe ₹2,000 incl at 5 % (CA, DEC-239) → excl ₹1,904.76, display ₹2,000.00, rounding difference 0',()=>{
+    let s=seed();s=draft(s,[{kind:'room',roomType:'Deluxe',plan:'EP',daySet:'all',enteredIncl:200000}]);
+    const l=last(s).lines[0];assert.equal(l.rateExcl,190476);assert.equal(l.taxBps,500);assert.equal(l.displayIncl,200000);assert.equal(M.trcRoundingDiff(l),0);
   });
   test('[TRC] taxBps comes from the dated GST master at effectiveFrom (12 % → 5 % on 22 Sep 2025)',()=>{
     const s=seed();
     assert.equal(M.trcPriceLine(s,{kind:'room',roomType:'Deluxe',rateExcl:200000},'2025-09-21','L1').taxBps,1200);
     assert.equal(M.trcPriceLine(s,{kind:'room',roomType:'Deluxe',rateExcl:200000},'2025-09-22','L1').taxBps,500);
     assert.equal(M.trcPriceLine(s,{kind:'room',roomType:'Suite',rateExcl:800000},'2026-11-01','L1').taxBps,1800,'above ₹7,500 = 18 %');
-    assert.equal(M.trcPriceLine(gst18(s),{kind:'room',roomType:'Deluxe',rateExcl:200000},'2026-11-01','L1').taxBps,1800,'owner setup 18 % (DEC-198)');
+    assert.equal(M.trcPriceLine(gst18(s),{kind:'room',roomType:'Deluxe',rateExcl:200000},'2026-11-01','L1').taxBps,1800,'an Owner master change to 18 % is still honoured (dated master)');
+    assert.equal(M.trcPriceLine(s,{kind:'room',roomType:'Deluxe',enteredIncl:200000},'2026-11-01','L1').taxBps,500,'room GST 5 % by default (CA, DEC-239)');
   });
   test('[TRC] inclusive entry on the slab boundary is refused TRC_SLAB_AMBIGUOUS',()=>{
     // ₹7,875 incl at 5 % = ₹7,500 excl (low slab) and ₹7,875 incl at 18 % = ₹6,673.73 (low slab too, not 18 %): only one self-consistent → ok
@@ -113,19 +114,19 @@ export function register({test,M,assert}){
     assert.equal(s.tariffs.filter(t=>t.type==='Suite'&&t.effectiveFrom==='2026-11-01').length,1);assert.equal(M.rateFor(s,room(s,'Suite'),'2026-11-01'),490000);
     assert.equal(M.trcVersion(s,b).publishLog[0].before,470000);
   });
-  test('[TRC] DEC-198 CSV import reproduces the card (display within ₹0.01; CP / 3rd guest / breakfast)',()=>{
-    let s=gst18(seed());s=execute(s,'owner',{type:'TRC_IMPORT',files:files(),effectiveFrom:'2026-11-01'});
+  test('[TRC] DEC-198 CSV import reproduces the card at room GST 5 % (DEC-239; display within ₹0.01; CP / 3rd guest / breakfast)',()=>{
+    let s=seed();s=execute(s,'owner',{type:'TRC_IMPORT',files:files(),effectiveFrom:'2026-11-01'});
     const v=last(s);assert.equal(v.status,'draft');assert.equal(v.effectiveFrom,'2026-11-01');assert.ok(v.lines.every(l=>l.daySet==='all'));
     const card={LUX:[3300,3500],PRM:[2800,3000],DLX:[2000,2200],TWN:[2200,2400],NAC:[1500,1700]};
     for(const [t,[ep,cp]] of Object.entries(card)){
       const e=v.lines.find(l=>l.kind==='room'&&l.roomType===t&&l.plan==='EP'),c=v.lines.find(l=>l.kind==='room'&&l.roomType===t&&l.plan==='CP');
       assert.ok(Math.abs(e.displayIncl-ep*100)<=1,`${t} EP ${e.displayIncl}`);assert.ok(Math.abs(c.displayIncl-cp*100)<=1,`${t} CP ${c.displayIncl}`);
-      assert.equal(e.taxBps,1800);}
-    assert.equal(v.lines.find(l=>l.roomType==='DLX'&&l.plan==='EP').displayIncl,200000,'Deluxe exact');
+      assert.equal(e.taxBps,500);assert.equal(c.taxBps,500);assert.equal(e.displayIncl,ep*100,`${t} EP exact`);assert.equal(c.displayIncl,cp*100,`${t} CP exact`);}
+    assert.equal(v.lines.find(l=>l.roomType==='DLX'&&l.plan==='EP').rateExcl,190476,'Deluxe ₹2,000 incl at 5 % → ₹1,904.76 (DEC-239)');
     const adult=t=>v.lines.find(l=>l.kind==='occupancy'&&l.roomType===t&&l.occKind==='adult');
     assert.ok(Math.abs(adult('LUX').displayIncl-50000)<=1);assert.ok(Math.abs(adult('TWN').displayIncl-40000)<=1);assert.ok(Math.abs(adult('NAC').displayIncl-40000)<=1);
     const child=v.lines.filter(l=>l.kind==='occupancy'&&l.occKind==='child');assert.equal(child.length,5);assert.ok(child.every(l=>l.rateExcl===null&&l.displayIncl===null));
-    const bf=v.lines.find(l=>l.kind==='meal'&&l.mealPlan==='CP');assert.equal(bf.rateExcl,8475);assert.ok(Math.abs(2*bf.displayIncl-20000)<=2,'breakfast ₹200 a room');
+    const bf=v.lines.find(l=>l.kind==='meal'&&l.mealPlan==='CP');assert.equal(bf.rateExcl,9524);assert.equal(bf.taxBps,500);assert.ok(Math.abs(2*bf.displayIncl-20000)<=2,'breakfast ₹200 a room');
     assert.throws(()=>execute(s,'manager',{type:'TRC_IMPORT',files:files()}),e=>e.code==='FORBIDDEN');
   });
   test('[TRC] nothing reads the card for a price: deleting the slice leaves rates unchanged',()=>{

@@ -6,6 +6,8 @@
 //       year (any accommodation unit above ₹7,500 per night in the previous FY, or the hotel opted in by declaration) → 18 % with ITC
 //       (from 1 Apr 2025).
 //   · Other hotel services (laundry, banquet / hall, other): one configurable dated rate each (seed 18 %).
+// CA ruling 3 Nov 2026 (DEC-239): room GST 5 % for this hotel (the ≤ ₹7,500 slab; DEC-198's owner 18 % is superseded — never set) and
+//   banquet / hall incl. banquet catering 18 %. The > ₹7,500 slab (18 %) stays as the law's rule; no room on the card is above it.
 // Intra-state supplies only: each line's tax is split into CGST + SGST halves (IGST is out of scope for the prototype).
 // Rounding: tax per line in paise, half away from zero; CGST takes the odd paisa so CGST + SGST = line tax exactly.
 //
@@ -44,7 +46,7 @@ export const GST_SEED:SeedDef[]=[
     help:'Owner declaration that the hotel is specified premises. Without it, the status is derived from last financial year’s tariffs (any unit above the room threshold). Declarations normally run for a whole financial year from 1 April — CA to confirm the timing.',
     versions:[{from:'2017-07-01',value:false}]},
   {key:'gst.svc.laundryBps',label:'GST · laundry and dry cleaning',type:'percent',unit:'% of the charge',help:'Seed 18 % — CA to confirm.',versions:[{from:'2017-07-01',value:1800}]},
-  {key:'gst.svc.banquetBps',label:'GST · banquet, hall and conference',type:'percent',unit:'% of the charge',help:'Seed 18 % — CA to confirm.',versions:[{from:'2017-07-01',value:1800}]},
+  {key:'gst.svc.banquetBps',label:'GST · banquet, hall and conference',type:'percent',unit:'% of the charge',help:'18 % incl. banquet catering (CA, 3 Nov 2026, DEC-239).',versions:[{from:'2017-07-01',value:1800}]},
   {key:'gst.svc.otherBps',label:'GST · other hotel services',type:'percent',unit:'% of the charge',help:'Seed 18 % — CA to confirm. Used for any charge that is not room, food, laundry or banquet.',versions:[{from:'2017-07-01',value:1800}]},
 ];
 export const GST_KEYS=GST_SEED.map(d=>d.key);

@@ -19,7 +19,8 @@ export const hallLineTaxable=(l:Pick<QuoteLine,'qty'|'ratePaise'|'discountPaise'
 export const hallLineList=(l:Pick<QuoteLine,'qty'|'listRatePaise'>)=>l.qty*l.listRatePaise;
 
 /** GST rate (bps) of a hall line class on a date from the dated GST master: hall rent and banquet food → banquet rate; ROOM → room-night rule
- *  at the line rate (DEC-198); everything else → other services. Illustrative — CA to confirm. */
+ *  at the line rate (5 % ≤ ₹7,500, 18 % above); everything else → other services. Banquet food is 18 % (banquet), never the restaurant 5 %
+ *  — CA ruling 3 Nov 2026, DEC-239. */
 export function hallTaxBps(s:State,gstClass:string,date:string,ratePaise=0):number{
   if(gstClass==='ROOM')return gstForRoomNight(s,date,ratePaise).bps;
   if(gstClass==='HALL_RENT'||gstClass==='BANQUET_FOOD')return gstForService(s,date,'banquet').bps;

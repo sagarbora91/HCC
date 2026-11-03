@@ -2,7 +2,7 @@
 // Never a second price list: nothing reads s.tariffCardX for a price — publishing writes the existing masters (tariff schedule
 // s.tariffs, occupancy charges, meal plans, extras) dated effectiveFrom, and bookings / folios / yield / OTA keep reading those.
 // Money = integer paise; GST from the dated GST master at effectiveFrom (DEC-069); the card's inclusive figure splits CGST / SGST per
-// half, each half rounded half away from zero (§1.4; golden: Deluxe ₹2,000 incl at 18 % → excl ₹1,694.92, display ₹2,000.00).
+// half, each half rounded half away from zero (§1.4; golden: Deluxe ₹2,000 incl at 5 % → excl ₹1,904.76, display ₹2,000.00; room GST 5 % per the CA, DEC-239).
 import type {State,TRCDaySet,TRCLine,TRCLineKind,TRCState,TRCVersion,TRCPublishWrite,Role} from '../types';
 import {HccError,type ErrorCode} from '../errors';
 import {gstForRoomNight,gstForFood,gstForService,gstForCharge,gstPct} from '../gst';

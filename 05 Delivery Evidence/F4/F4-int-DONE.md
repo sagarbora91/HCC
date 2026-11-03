@@ -35,3 +35,4 @@ Card publishing writes only to the masters: `s.tariffs` / `inv.room_type_tariff`
 - **DEC-220** Revenue by category and tender = block A (room-type revenue, incl. and excl. GST, with outlet rows), block B (collections by tender, advances received and adjusted), block C (bridge that must tie out to 0); business-date or stay basis; Owner / Manager / Accountant.
 - **DEC-221** The owner digest draft is held until F9 (sending by e-mail / WhatsApp). E-mail carries money; WhatsApp carries counts only.
 - **DEC-222** Rounding (as above): the inclusive card price counts, exact where possible, otherwise nearest with the difference shown. CA to confirm.
+  - 3 Nov 2026: GST "CA to confirm" closed by **DEC-239** (CA: room GST 5 %, banquet incl. catering 18 %) — `Accounting/GST-CA-2026-11-03.md`.

@@ -11,6 +11,8 @@ namespace Hcc.Domain.Tax;
 //   · Restaurant / room service supplied by the hotel: 5 % without ITC, unless the hotel is "specified premises" for the financial
 //       year (any accommodation unit above ₹7,500 per night in the previous FY, or the Owner opted in by declaration) → 18 % with ITC.
 //   · Other hotel services (laundry, banquet / hall, other): one dated rate each (seed 18 %).
+// CA ruling 3 Nov 2026 (DEC-239): room GST 5 % for this hotel (≤ ₹7,500 slab; DEC-198's owner 18 % superseded, never set; the
+//   > ₹7,500 slab stays 18 % by law) and banquet / hall incl. banquet catering 18 % (GstCategory.Banquet, never the restaurant rate).
 // Intra-state only: each line's tax is split CGST + SGST (IGST out of scope). Rounding: tax per line in paise, half away from zero;
 // SGST = half rounded toward zero, CGST = the rest (takes the odd paisa) so CGST + SGST = line tax exactly.
 
