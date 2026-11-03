@@ -124,7 +124,7 @@ export const FEATURE_MODULES:FeatureModule[]=[
     {id:'assistant',label:'Assistant',pages:['assistant'],prefixes:['AI_'],permPrefixes:[],note:'Questions about hotel data, anomaly alerts'},
   ]},
   {id:'admin',label:'Admin & setup',coarse:['admin'],features:[
-    {id:'access',label:'Access control',core:true,pages:['access'],prefixes:['USER','GRANT','POLICY_'],permPrefixes:['PERM-ADM-'],note:'Users, roles, exceptions'},
+    {id:'access',label:'Administration',core:true,pages:['access'],prefixes:['USER','GRANT','POLICY_'],permPrefixes:['PERM-ADM-'],note:'Users, roles, modules & features, audit (ADM)'},
     {id:'config',label:'Master configuration',core:true,pages:['settings'],prefixes:['SETTING','CFG_','TAX_SCHEDULE'],permPrefixes:['PERM-CFG-'],note:'Settings hub and module switches'},
     {id:'masters',label:'Masters',pages:[],prefixes:['MST_','RMS_'],permPrefixes:['PERM-MST-'],note:'Rooms, floors, lists and catalogues (MA waves)'},
     {id:'approvals',label:'Approvals & audit',core:true,pages:['approvals'],prefixes:[],permPrefixes:['PERM-APR-'],note:'Pending requests and audit trail'},

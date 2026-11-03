@@ -251,7 +251,7 @@ public static class FeatureCatalog
         ]),
         new("admin", "Admin & setup", null, Coarse["admin"],
         [
-            F("admin.access", "Access control", true, ["access"], ["USER", "GRANT", "POLICY_"], "Users, roles, exceptions"),
+            F("admin.access", "Administration", true, ["access"], ["USER", "GRANT", "POLICY_"], "Users, roles, modules & features, audit (ADM)"),
             F("admin.config", "Master configuration", true, ["settings"], ["SETTING", "CFG_", "TAX_SCHEDULE"], "Settings hub and module switches"),
             F("admin.masters", "Masters", false, [], ["MST_", "RMS_"], "Rooms, floors, lists and catalogues (MA waves)"),
             F("admin.approvals", "Approvals & audit", true, ["approvals"], [], "Pending requests and audit trail"),

@@ -1048,7 +1048,7 @@
       "features": [
         {
           "id": "admin.access",
-          "label": "Access control",
+          "label": "Administration",
           "core": true,
           "pages": [
             "access"
@@ -1063,7 +1063,7 @@
           "permPrefixes": [
             "PERM-ADM-"
           ],
-          "note": "Users, roles, exceptions"
+          "note": "Users, roles, modules & features, audit (ADM)"
         },
         {
           "id": "admin.config",
