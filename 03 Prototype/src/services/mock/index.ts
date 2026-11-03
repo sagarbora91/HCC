@@ -114,6 +114,15 @@ export * from '../../domain/streams/accounting-year'; // ACC-4 year lock / carry
 export * from '../../domain/streams/accounting-bank'; // ACC-4 bank reconciliation / clearing (contract §2)
 export {ACC_BANK_LAYOUT_SEED} from '../../fixtures/ext/bank-layouts';
 // F5-A1 end
+// F6-H1
+export * from '../../domain/streams/hall'; // F6 hall booking types + rules
+export * from '../../domain/streams/hall-billing'; // F6 hall money (one truth table with Hcc.Domain/Hall/HallBilling.cs)
+export {hallSeed} from '../../fixtures/ext/hall';
+// F6-H1 end
+// F6-H2
+// F6-H2 end
+// F6-H3
+// F6-H3 end
 // F4-T1
 export * from '../../domain/streams/tariffcard';
 // F4-T1 end
