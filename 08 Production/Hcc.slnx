@@ -288,6 +288,12 @@
     <File Path="database/migrations/4740_hall_source_kinds.sql" />
     <!-- F6-H1 end -->
     <!-- F6-H2 4330-4344, 4349 -->
+    <File Path="database/migrations/4330_hall_quote_series.sql" />
+    <File Path="database/migrations/4331_hall_tnc_templates.sql" />
+    <File Path="database/migrations/4332_hall_quote_snapshot.sql" />
+    <File Path="database/migrations/4333_hall_menu_packages.sql" />
+    <File Path="database/migrations/4334_hall_lost_reasons.sql" />
+    <File Path="database/migrations/4349_hall_seed.sql" />
     <!-- F6-H2 end -->
     <!-- F6-H3 4345-4348 -->
     <!-- F6-H3 end -->

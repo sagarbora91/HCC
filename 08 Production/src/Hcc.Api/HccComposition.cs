@@ -102,6 +102,7 @@ public static class HccComposition
         services.AddHallModule();                        // F6 hall booking: accept, advances, event bill → HPE invoice, cancel, refund (H1 money)
         // F6-H1 end
         // F6-H2
+        services.AddHallQuoteModule();                   // F6 hall quotations + T&C (H2): create / edit / revise / send / override / approve / lost / cancel / expire, templates
         // F6-H2 end
         // F6-H3
         // F6-H3 end
@@ -268,6 +269,7 @@ public static class HccComposition
         api.MapHallEndpoints();          // F6 hall booking H1: /hall/quotations/{id}/accept, /hall/events/{id}/advance|close|cancel|refund
         // F6-H1 end
         // F6-H2
+        api.MapHallQuoteEndpoints();     // F6 hall booking H2: /hall/quotations[/{id}/edit|revise|send|override|approve-discount|lost|cancel], /hall/quotations/expire, /hall/templates
         // F6-H2 end
         // F6-H3
         // F6-H3 end
