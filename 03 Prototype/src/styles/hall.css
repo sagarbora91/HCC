@@ -31,7 +31,7 @@
 .hall-month{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
 .hall-month-h{color:var(--muted);text-align:center;padding:2px}
 .hall-day{display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-height:48px;padding:4px 6px;border:1px solid var(--line);border-radius:6px;background:var(--surface,var(--bg));color:var(--ink);cursor:pointer;text-align:left}
-.hall-day.out{opacity:.55} .hall-day.today{border-color:var(--primary)} .hall-day.on{background:var(--primary);color:var(--on-primary)}
+.hall-day.out{opacity:.55} .hall-day.today{border-color:var(--primary)} .hall-day.on{background:var(--primary-fill);color:var(--on-primary)}
 .hall-day small{color:inherit;opacity:.85}
 .hall-grid th[scope=row]{text-align:left}
 .hall-cell{display:block;text-align:left;margin-top:4px}
@@ -47,6 +47,10 @@
 .hall-m-hall h3{margin:0 0 6px}
 .hall-m-slot{display:flex;align-items:center;flex-wrap:wrap;gap:8px;min-height:48px}
 .hall-m-slot>span{min-width:84px}
+/* phone sheets: every control 48 px */
+.m-sheet .hall-box .btn,.m-sheet .hall-add .btn,.m-sheet .inline .btn,.m-sheet .hall-versions button,.m-sheet .hall-cal .btn{min-height:48px}
+.m-sheet .hall-field input,.m-sheet .hall-field select,.m-sheet .inline input,.m-sheet .inline select,.m-sheet .hall-field textarea{min-height:48px}
+.m-sheet .hall-qbody .icon-btn{min-width:48px;min-height:48px}
 /* prints */
 .hall-doc{background:var(--c-ffffff);color:var(--ink);padding:18px 20px;max-width:820px;margin:0 auto}
 .hall-doc-head{display:flex;justify-content:space-between;gap:12px;border-bottom:2px solid var(--primary);padding-bottom:8px;margin-bottom:12px}

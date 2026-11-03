@@ -65,7 +65,7 @@ public sealed record HallEventView(long EventId, long QuotationId, int Version, 
     int GuaranteedPax, int? ActualPax, string CustomerName, string CustomerPhone, long? CompanyId, long? BlockId, string? InvoiceNo, string? InvoiceDate, long? TotalPaise,
     long? TaxablePaise, long? CgstPaise, long? SgstPaise, long? AdvanceAppliedPaise, long? BalancePaise, string? SettleMode, string? CancelDate, long? CancelKeptPaise,
     long? CancelRefundPaise, string? RefundState, string? CancelReason, int? BilledPax, IReadOnlyList<HallLineView> Lines, IReadOnlyList<HallAdvanceView> Advance,
-    IReadOnlyList<HallReceiptView> Receipts, string CreatedUtc);
+    IReadOnlyList<HallReceiptView> Receipts, string CreatedUtc, long? InvoiceId = null);
 
 public sealed record HallSnapshotView(bool SeesMoney, IReadOnlyList<HallVenueView> Venues, IReadOnlyList<HallEnquiryView> Enquiries, IReadOnlyList<HallQuotationView> Quotations,
     IReadOnlyList<HallEventView> Events, IReadOnlyList<HallLostReasonView> LostReasons);

@@ -45,7 +45,7 @@ function VenueForm({v}:{v?:Venue}){
   const singles=x.venues.filter(o=>!o.combinedOf&&o.id!==v?.id);
   const save=()=>run({type:'HALL_VENUE_UPSERT',version:v?.version,venue:{id:v?.id,name:f.name,kind:f.kind,active:f.active,combinedOf:f.combined.length?f.combined:undefined,minPlates:Number(f.minPlates)||undefined,
     capacity:Object.fromEntries(Object.entries(cap).filter(([,n])=>Number(n)>0).map(([k,n])=>[k,Number(n)])),
-    slots:slots.filter(o=>o.on).map(o=>({slot:o.slot,from:o.from,to:o.to,ratePaise:o.rate}))}},v?'Hall updated':'Hall added');
+    slots:slots.filter(o=>o.on).map(o=>({slot:o.slot,from:o.from,to:o.to,ratePaise:o.rate}))}},v?'Hall updated':'Hall added',{close:true});
   return <ModalFrame heading={<><h2>{v?`Hall: ${v.name}`:'New hall'}</h2><p>Rates here are the list rates a quotation starts from.</p></>}
     actions={<><button type="button" className="btn" onClick={closeModal}>Close</button><button type="submit" form="hall-venue-form" className="btn primary" disabled={busy||f.name.trim().length<2}>Save</button></>}>
     <form id="hall-venue-form" className="form hall-form" onSubmit={e=>{e.preventDefault();void save();}}>
@@ -75,7 +75,7 @@ function MenuForm({m}:{m?:MenuPackage}){
   const [f,setF]=useState({name:m?.name??'',price:m?.perPlatePaise??0,veg:m?.veg??true,active:m?.active??true,items:m?.posItemIds??[] as string[]});
   return <ModalFrame heading={<><h2>{m?`Menu: ${m.name}`:'New menu package'}</h2><p>One price per plate; the items are the kitchen’s list (from the POS menu).</p></>}
     actions={<><button type="button" className="btn" onClick={closeModal}>Close</button><button type="submit" form="hall-menu-form" className="btn primary" disabled={busy||f.name.trim().length<2||f.price<=0||!f.items.length}>Save</button></>}>
-    <form id="hall-menu-form" className="form hall-form" onSubmit={e=>{e.preventDefault();void run({type:'HALL_MENU_UPSERT',menu:{id:m?.id,name:f.name,perPlatePaise:f.price,veg:f.veg,active:f.active,posItemIds:f.items}},m?'Menu updated':'Menu added');}}>
+    <form id="hall-menu-form" className="form hall-form" onSubmit={e=>{e.preventDefault();void run({type:'HALL_MENU_UPSERT',menu:{id:m?.id,name:f.name,perPlatePaise:f.price,veg:f.veg,active:f.active,posItemIds:f.items}},m?'Menu updated':'Menu added',{close:true});}}>
       <div className="hall-fields"><Field label="Name"><input value={f.name} maxLength={60} onChange={e=>setF(o=>({...o,name:e.target.value}))}/></Field>
         <Field label="Price per plate (₹)"><RupeeInput label="Price per plate" value={f.price} onChange={p=>setF(o=>({...o,price:p}))}/></Field>
         <Field label="Veg only"><select value={f.veg?'1':'0'} onChange={e=>setF(o=>({...o,veg:e.target.value==='1'}))}><option value="1">Veg</option><option value="0">Veg and non-veg</option></select></Field>

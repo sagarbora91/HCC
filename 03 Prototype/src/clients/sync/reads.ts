@@ -80,6 +80,8 @@ export const READS={
   'GET /admin/audit':one(wide('PERM-ADM-004',true)),
   // Wave C3 (A09-05) System health: PERM-SYS-001 (Owner, Tech admin), an action permission held in A.
   'GET /admin/system-health':one(wide('PERM-SYS-001')),
+  // F6-H3: the hall snapshot is for every staff role (the calendar and the function sheet carry no prices); the server returns enquiries / quotations / money only to the holders of PERM-HAL-001 / 002 (DEC-061).
+  'GET /hall/snapshot':always,
   // LF-ALERTS B4: PERM-RMD-001 reminders (an action permission).
   'GET /reminders':one(wide('PERM-RMD-001')),
   // LF-BILL A2: the bill-correction register = InvoicePermissions.View (PERM-INV-001), as the invoice reads.

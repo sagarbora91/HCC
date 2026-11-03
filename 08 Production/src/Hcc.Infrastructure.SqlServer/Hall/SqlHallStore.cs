@@ -412,7 +412,7 @@ public sealed class SqlHallStore(SqlConnectionFactory connections) : IHallStore
         await using var q = Q(conn, """
             SELECT event_id, quotation_id, version, venue_id, event_date, dates, slot, event_type, status, guaranteed_pax, actual_pax, customer_name, customer_phone, company_id, block_id,
                    invoice_no, invoice_date, total_paise, taxable_paise, cgst_paise, sgst_paise, advance_applied_paise, balance_paise, settle_mode, cancel_date, cancel_kept_paise, cancel_refund_paise,
-                   refund_state, cancel_reason, billed_pax, created_utc
+                   refund_state, cancel_reason, billed_pax, created_utc, invoice_id
             FROM hall.event WHERE property_id = @p AND (@s IS NULL OR status = @s) AND (@e IS NULL OR event_id = @e) ORDER BY event_id;
             """, propertyId);
         P(q, "@s", SqlDbType.VarChar, status);
@@ -425,7 +425,7 @@ public sealed class SqlHallStore(SqlConnectionFactory connections) : IHallStore
             list.Add(new HallEventView(id, rd.GetInt64(1), rd.GetInt32(2), rd.GetInt32(3), Wire(Day(rd, 4)), Split(rd.GetString(5)), rd.GetString(6), rd.GetString(7), rd.GetString(8), rd.GetInt32(9), I(rd, 10),
                 rd.GetString(11), rd.GetString(12), L(rd, 13), L(rd, 14), seesMoney ? S(rd, 15) : null, rd.IsDBNull(16) ? null : Wire(Day(rd, 16)), M(17), M(18), M(19), M(20), M(21), M(22), S(rd, 23),
                 rd.IsDBNull(24) ? null : Wire(Day(rd, 24)), M(25), M(26), S(rd, 27), seesMoney ? S(rd, 28) : null, I(rd, 29), lines.GetValueOrDefault(id) ?? [], adv.GetValueOrDefault(id) ?? [],
-                receipts.GetValueOrDefault(id) ?? [], Utc(rd.GetDateTime(30))));
+                receipts.GetValueOrDefault(id) ?? [], Utc(rd.GetDateTime(30)), M(31)));
         }
 
         return list;

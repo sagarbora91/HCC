@@ -27,14 +27,14 @@ function Form({q}:{q?:Enquiry}){
   const dates=[f.date,f.date2].filter(Boolean),venue=f.venueId||hold.venueId;
   const av=venue&&dates.length?hallAvailability(s,venue,dates,f.slot,Number(f.pax)||undefined):undefined;
   const payload={name:f.name,phone:f.phone,eventType:f.eventType,dates,slot:f.slot,pax:Number(f.pax),venueId:f.venueId||undefined,source:f.source,followUp:f.followUp,note:f.note};
-  const save=()=>q?run({type:'HALL_ENQUIRY_UPDATE',id:q.id,followUp:f.followUp,note:f.note,pax:Number(f.pax),venueId:f.venueId,dates,slot:f.slot},`Enquiry ${q.id} saved`)
-    :run({type:'HALL_ENQUIRY_ADD',...payload},'Enquiry added');
+  const save=()=>q?run({type:'HALL_ENQUIRY_UPDATE',id:q.id,followUp:f.followUp,note:f.note,pax:Number(f.pax),venueId:f.venueId,dates,slot:f.slot},`Enquiry ${q.id} saved`,{close:true})
+    :run({type:'HALL_ENQUIRY_ADD',...payload},'Enquiry added',{close:true});
   const reason=x.lostReasons.find(r=>r.id===lost.reasonId);
   return <ModalFrame heading={<><h2>{q?`Enquiry ${q.id}`:'New hall enquiry'}</h2>{q&&<p>{q.name} · <Pill tone={ENQ_TONE[q.status]}>{q.status}</Pill>{q.softHold&&<> · <Pill tone="orange">Hold until {q.softHold.until.slice(0,10)}</Pill></>}</p>}</>}
     actions={<>
       <button type="button" className="btn" onClick={closeModal}>Close</button>
       {q&&!closed&&ui.quote&&<button type="button" className="btn" disabled={busy} onClick={()=>{const has=x.quotations.find(o=>o.enquiryId===q.id);open({type:'hall-quote',id:has?has.id:'new:'+q.id});}}>{x.quotations.some(o=>o.enquiryId===q.id)?'Open quotation':'Create quotation'}</button>}
-      {q&&q.status==='LOST'&&<button type="button" className="btn" disabled={busy} onClick={()=>run({type:'HALL_ENQUIRY_UPDATE',id:q.id,status:'OPEN'},'Enquiry reopened')}>Reopen</button>}
+      {q&&q.status==='LOST'&&<button type="button" className="btn" disabled={busy} onClick={()=>run({type:'HALL_ENQUIRY_UPDATE',id:q.id,status:'OPEN'},'Enquiry reopened',{close:true})}>Reopen</button>}
       {!closed&&<button type="submit" form="hall-enq-form" className="btn primary" disabled={busy||!f.name.trim()||!f.phone.trim()}>{q?'Save':'Add enquiry'}</button>}</>}>
     <form id="hall-enq-form" className="form hall-form" onSubmit={e=>{e.preventDefault();void save();}}>
       <div className="hall-fields">
@@ -64,7 +64,7 @@ function Form({q}:{q?:Enquiry}){
       {!lost.on?<button type="button" className="btn" onClick={()=>setLost(o=>({...o,on:true}))}>Customer is not going ahead</button>
         :<div className="inline"><Field label="Reason"><select value={lost.reasonId} onChange={e=>setLost(o=>({...o,reasonId:e.target.value}))}>{x.lostReasons.map(r=><option key={r.id} value={r.id}>{r.label}</option>)}</select></Field>
           <Field label={reason?.needsNote?'Note (needed)':'Note'}><input value={lost.note} maxLength={300} onChange={e=>setLost(o=>({...o,note:e.target.value}))}/></Field>
-          <button type="button" className="btn" disabled={busy||(reason?.needsNote&&lost.note.trim().length<3)} onClick={()=>run({type:'HALL_ENQUIRY_LOST',id:q.id,reasonId:lost.reasonId,note:lost.note},'Enquiry marked lost')}>Mark lost</button></div>}</section>}
+          <button type="button" className="btn" disabled={busy||(reason?.needsNote&&lost.note.trim().length<3)} onClick={()=>run({type:'HALL_ENQUIRY_LOST',id:q.id,reasonId:lost.reasonId,note:lost.note},'Enquiry marked lost',{close:true})}>Mark lost</button></div>}</section>}
     {q&&closed&&<p className="muted">{q.status==='LOST'?`Lost: ${x.lostReasons.find(r=>r.id===q.lostReasonId)?.label??''}${q.lostNote?' · '+q.lostNote:''}`:'Won: the quotation was accepted.'}</p>}
   </ModalFrame>;
 

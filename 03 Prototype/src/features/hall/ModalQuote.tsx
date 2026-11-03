@@ -114,10 +114,10 @@ function Editor({q,enqId}:{q?:Quotation;enqId:string}){
         {boss&&<Field label="Manager reason (above capacity)"><input value={acc.capReason} onChange={e=>setAcc(o=>({...o,capReason:e.target.value}))}/></Field>}</div>
         <button type="button" className="btn primary" disabled={busy||(!!acc.amount&&!toPaise(acc.amount))} onClick={()=>{const a=toPaise(acc.amount);
           void run({type:'QUO_ACCEPT',id:q.id,version:q.currentVersion,reason:acc.reason||undefined,capacityReason:acc.capReason||undefined,
-            ...(a?{advance:{amountPaise:a,method:acc.method,reference:acc.ref||undefined}}:{})},'Quotation accepted: the event is on the Events tab');}}><CheckCircle2 size={15}/> Accept and create event</button></section>}
+            ...(a?{advance:{amountPaise:a,method:acc.method,reference:acc.ref||undefined}}:{})},'Quotation accepted: the event is on the Events tab',{close:true});}}><CheckCircle2 size={15}/> Accept and create event</button></section>}
       {panel==='lost'&&q&&<section className="hall-box"><h3>Mark lost</h3><div className="inline"><Field label="Reason"><select value={lost.reasonId} onChange={e=>setLost(o=>({...o,reasonId:e.target.value}))}>{x.lostReasons.map(r=><option key={r.id} value={r.id}>{r.label}</option>)}</select></Field>
         <Field label="Note"><input value={lost.note} onChange={e=>setLost(o=>({...o,note:e.target.value}))} maxLength={300}/></Field>
-        <button type="button" className="btn" disabled={busy} onClick={()=>run({type:'QUO_LOST',id:q.id,reasonId:lost.reasonId,note:lost.note},'Quotation marked lost')}>Mark lost</button></div></section>}
+        <button type="button" className="btn" disabled={busy} onClick={()=>run({type:'QUO_LOST',id:q.id,reasonId:lost.reasonId,note:lost.note},'Quotation marked lost',{close:true})}>Mark lost</button></div></section>}
     </div>
   </ModalFrame>;
 }
