@@ -12,7 +12,7 @@ export const balanceSheet=registerReport({
   moneyFlag:true,moneyGate:ACC_OWNER_ACCOUNTANT,viewPerms:[ACC_OWNER_ACCOUNTANT],dateClass:'D-ASOF',
   params:[{key:'asOf',label:'As on',type:'date',dateClass:'D-ASOF'}],
   columns:BS_COLS,
-  dateBasis:'Every voucher up to and including the date (opening entry and locked snapshots included). Owner\'s funds = capital + profit of the year to date − drawings. An HCC view, not the statutory statement.',
+  dateBasis:'Every voucher up to and including the date (opening entry and locked snapshots included). Owner\'s funds = capital + profit of the year to date - drawings. An HCC view, not the statutory statement.',
   formats:['screen','xlsx','pdf','csv'],phone:'summary',
   select:(s,_uid,p)=>{
     const b=accBalanceSheet(s,p.asOf as string);
@@ -21,7 +21,7 @@ export const balanceSheet=registerReport({
       ...block(b.liabilities.ownersFunds),...block(b.liabilities.nonCurrent),...block(b.liabilities.current),row({block:'Liabilities',line:'Total liabilities',amount:b.liabilities.total},'subtotal'),
       ...block(b.assets.nonCurrent),...block(b.assets.current),row({block:'Assets',line:'Total assets',amount:b.assets.total},'subtotal'),
       row({block:'Check',line:'Suspense (9999)',amount:b.suspense}),row({block:'Check',line:'Opening-balance difference (1400)',amount:b.openingDifference}),
-      row({block:b.balanced?'Balanced':'Not balanced',line:'Difference (assets − liabilities)',amount:b.assets.total-b.liabilities.total},'total')];
+      row({block:b.balanced?'Balanced':'Not balanced',line:'Difference (assets - liabilities)',amount:b.assets.total-b.liabilities.total},'total')];
     return {params:p,columns:BS_COLS,rows,about:{provisional:b.provisional||stamp.length>0}};
   },
 });

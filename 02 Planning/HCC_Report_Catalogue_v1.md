@@ -4343,3 +4343,6 @@ Only business choices. Each has a recommendation.
 <!-- F4-T2 -->
 - rpt.money.revenue-by-category-tender - Revenue by room category and tender | Money and cash | built (F4-T2) | P1 | roles Owner, Accountant, Manager (PERM-RPT-001 + PERM-RPT-002) | money y | Blocks A (revenue by room type, ties to rpt.money.revenue-tax), B (tender columns, ties to daily-collections) and C (bridge); stay-basis toggle; CSV and Excel equal the screen.
 <!-- F4-T2 end -->
+<!-- F7-R6 --> rpt.acc.trial-balance, rpt.acc.statement, rpt.acc.day-book: built on the engine (prototype + server), PERM-ACC-001 (Owner, Manager, Accountant).
+<!-- F7-R6 --> rpt.acc.ageing: ACC-3, wired on the engine, PERM-ACC-001. rpt.acc.pl, rpt.acc.balance-sheet, rpt.acc.cash-ratio: ACC-3, wired on the engine, PERM-ACC-013 (Owner, Accountant).
+<!-- F7-R6 --> rpt.acc.tally-xml: ACC-3, summary report on the engine (formats screen + xml), PERM-ACC-006; the XML download stays the ACC-3 endpoints.

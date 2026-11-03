@@ -42,7 +42,7 @@
       ["subtotal","Assets","Total assets",792790000],
       ["row","Check","Suspense (9999)",0],
       ["row","Check","Opening-balance difference (1400)",0],
-      ["total","Balanced","Difference (assets − liabilities)",0]
+      ["total","Balanced","Difference (assets - liabilities)",0]
      ]
     }
    ]

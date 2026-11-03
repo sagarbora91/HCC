@@ -17,7 +17,7 @@ export const tallyXml=registerReport({
   dateBasis:'Masters: the chart and every party ledger with the opening balance at the FY start. Vouchers: the range (at most 31 days). A simulated export — nothing is sent to Tally.',
   formats:['screen','xml'],phone:'yes',
   select:(s,_uid,p)=>{
-    const vTo=(p.vTo as string|undefined)??s.date,vFrom=(p.vFrom as string|undefined)??addDays(vTo,-6);
+    const vTo=(p.vTo as string|undefined)??p.to!,vFrom=(p.vFrom as string|undefined)??addDays(vTo,-6);
     const m=accTallyMasters(s,p.fy as string);if(m.error)throw new HccError('VALIDATION',m.error);
     const v=accTallyVouchers(s,vFrom,vTo);if(v.error)throw new HccError('VALIDATION',v.error);
     const yr=accYearProvisional(s,vFrom)||accYearProvisional(s,vTo)||accYearProvisional(s,m.from);

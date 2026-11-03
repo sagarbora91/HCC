@@ -35,6 +35,7 @@ public sealed class EngineTests
         new RevenueByCategoryTenderReport(null!),
         .. F7R3Reports(),
         .. F7R5Reports(),
+        .. F7R6Reports(), // F7-R6
         // F7-R4
         new ShiftReport(null!, null!), new CollectionDetailReport(null!, null!), new CreditBillsReport(null!), new ExpenseRegisterReport(null!), new ExpensesByHeadReport(null!),
         // F7-R4 end
@@ -51,6 +52,11 @@ public sealed class EngineTests
         [new Hcc.Reporting.Reports.Tax.SacSummaryReport(null!, null!), new Hcc.Reporting.Reports.Tax.DocumentsIssuedReport(null!), new Hcc.Reporting.Reports.Tax.GstByBillReport(null!, null!),
          new Hcc.Reporting.Reports.Tax.InvoiceRegisterReport(null!, null!), new Hcc.Reporting.Reports.Tax.BillCorrectionsReport(null!), new Hcc.Reporting.Reports.Tax.GstSummaryReport(null!)];
     // F7-R5 end
+
+    // F7-R6
+    private static IEnumerable<IReportSelector> F7R6Reports() =>
+        [new Hcc.Reporting.Reports.Acc.TrialBalanceReport(null!), new Hcc.Reporting.Reports.Acc.StatementReport(null!), new Hcc.Reporting.Reports.Acc.DayBookReport(null!), new Hcc.Reporting.Reports.Acc.PlReport(null!), new Hcc.Reporting.Reports.Acc.BalanceSheetReport(null!), new Hcc.Reporting.Reports.Acc.CashRatioReport(null!), new Hcc.Reporting.Reports.Acc.AgeingReport(null!), new Hcc.Reporting.Reports.Acc.TallyXmlReport(null!)];
+    // F7-R6 end
 
     [Fact]
     public void Catalogue_json_from_the_prototype_equals_the_server_registry()
