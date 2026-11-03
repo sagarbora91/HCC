@@ -19,3 +19,8 @@
 - Scheduling is offered only for reports the user may export (no `report.schedule` code in the prototype `can()` yet).
 - Phone schedules are read-only (editing on desktop).
 - `RPT_TOO_LARGE` is not yet in `ErrorCode` (R1).
+
+## Browser checks (run in the cloud container, 3 Nov, Playwright chromium, `PW_CHANNEL=chromium`)
+- `tools/fit-screen-check.mjs --pages report-hub --roles owner,reception --viewports tab-land,lap-1366 --no-scale-pass --no-modals`: PASS, 0 failing of 20 (empty-state hub; re-run once reports are registered).
+- Phone at 360 px (`check-phone-lf.mjs` with page `report-hub`, owner + reception): one fix (search field 40 → 48 px), then 0 failing. Not yet checked with real report rows (cards).
+- Full `npm test`: 2583/2583.
