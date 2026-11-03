@@ -66,7 +66,7 @@ public sealed class SqlUserAdministration(SqlConnectionFactory connections, ICom
             var t = (SqlCommandTransaction)itx;
             var now = Now();
             var actorRoles = await ActiveRolesAsync(t, actor.UserId, now, c).ConfigureAwait(false);
-            foreach (var r in request.Roles) await EnsureMayAssignAsync(t, actorRoles, r.RoleCode, c).ConfigureAwait(false);
+            foreach (var r in request.Roles) await EnsureMayAssignAsync(t, actorRoles, r.RoleCode, true, c).ConfigureAwait(false);
 
             await using (var exists = t.Command("SELECT COUNT(*) FROM plat.app_user WITH (UPDLOCK, HOLDLOCK) WHERE login_name = @l;"))
             {
@@ -138,7 +138,7 @@ public sealed class SqlUserAdministration(SqlConnectionFactory connections, ICom
             await LockOwnersAsync(t, c).ConfigureAwait(false);
             var target = await LoadTargetAsync(t, actor, request.UserId, now, c).ConfigureAwait(false);
             var actorRoles = await ActiveRolesAsync(t, actor.UserId, now, c).ConfigureAwait(false);
-            await EnsureMayAssignAsync(t, actorRoles, request.RoleCode, c).ConfigureAwait(false);
+            await EnsureMayAssignAsync(t, actorRoles, request.RoleCode, true, c).ConfigureAwait(false);
             await EnsureOwnerForOwnerAccountAsync(t, actor, target, now, c).ConfigureAwait(false);
             var from = request.ValidFromUtc ?? now;
             var stillActive = new RoleAssignment(request.RoleCode, from, request.ValidUntilUtc).IsActive(now);
@@ -168,7 +168,7 @@ public sealed class SqlUserAdministration(SqlConnectionFactory connections, ICom
             var target = await LoadTargetAsync(t, actor, request.UserId, now, c).ConfigureAwait(false);
             if (!target.AssignedRoles.Contains(request.RoleCode)) throw new HccException(HccErrorCode.NOT_FOUND, "The user does not have this role.");
             var actorRoles = await ActiveRolesAsync(t, actor.UserId, now, c).ConfigureAwait(false);
-            await EnsureMayAssignAsync(t, actorRoles, request.RoleCode, c).ConfigureAwait(false);
+            await EnsureMayAssignAsync(t, actorRoles, request.RoleCode, false, c).ConfigureAwait(false);
             await EnsureOwnerForOwnerAccountAsync(t, actor, target, now, c).ConfigureAwait(false);
             if (request.RoleCode == RoleCodes.Owner && target.IsActiveOwner) await EnsureAnotherActiveOwnerAsync(t, target.UserId, now, c).ConfigureAwait(false);
 
@@ -414,7 +414,8 @@ public sealed class SqlUserAdministration(SqlConnectionFactory connections, ICom
             SELECT u.user_id, u.login_name, u.display_name, u.enabled, u.row_ver,
                    CASE WHEN EXISTS (SELECT 1 FROM plat.credential c WHERE c.user_id = u.user_id AND c.locked_until_utc > @now) THEN 1 ELSE 0 END
               FROM plat.app_user u WHERE u.property_id = @p ORDER BY u.display_name, u.user_id OFFSET @skip ROWS FETCH NEXT @take ROWS ONLY;
-            SELECT r.user_id, r.role_code, r.valid_from_utc, r.valid_until_utc FROM plat.user_role r JOIN plat.app_user u ON u.user_id = r.user_id WHERE u.property_id = @p;
+            SELECT r.user_id, r.role_code, r.valid_from_utc, r.valid_until_utc, COALESCE(ro.base_role, r.role_code)
+              FROM plat.user_role r JOIN plat.app_user u ON u.user_id = r.user_id JOIN plat.role ro ON ro.role_code = r.role_code WHERE u.property_id = @p;
             """, conn);
         q.Parameters.Add("@p", SqlDbType.Int).Value = actor.PropertyId;
         q.Parameters.Add("@now", SqlDbType.DateTime2).Value = now;
@@ -426,13 +427,14 @@ public sealed class SqlUserAdministration(SqlConnectionFactory connections, ICom
         var rows = new List<(int Id, string Login, string Name, bool Enabled, byte[] Ver, bool Locked)>();
         await rd.NextResultAsync(ct).ConfigureAwait(false);
         while (await rd.ReadAsync(ct).ConfigureAwait(false)) rows.Add((rd.GetInt32(0), rd.GetString(1), rd.GetString(2), rd.GetBoolean(3), (byte[])rd[4], rd.GetInt32(5) == 1));
-        var roles = new List<(int UserId, UserRoleView Role)>();
+        var roles = new List<(int UserId, UserRoleView Role, string CredentialRole)>();
         await rd.NextResultAsync(ct).ConfigureAwait(false);
-        while (await rd.ReadAsync(ct).ConfigureAwait(false)) roles.Add((rd.GetInt32(0), new UserRoleView(rd.GetString(1), rd.GetDateTime(2), rd.IsDBNull(3) ? null : rd.GetDateTime(3))));
+        while (await rd.ReadAsync(ct).ConfigureAwait(false))
+            roles.Add((rd.GetInt32(0), new UserRoleView(rd.GetString(1), rd.GetDateTime(2), rd.IsDBNull(3) ? null : rd.GetDateTime(3)), rd.GetString(4)));
         var items = rows.Select(r =>
         {
             var mine = roles.Where(x => x.UserId == r.Id).Select(x => x.Role).ToList();
-            var kind = CredentialPolicy.RequiredKind(mine.Select(m => m.RoleCode));
+            var kind = CredentialPolicy.RequiredKind(roles.Where(x => x.UserId == r.Id).Select(x => x.CredentialRole));
             return new UserSummary(r.Id, r.Login, r.Name, r.Enabled, kind is null ? "NONE" : CredentialPolicy.ToWire(kind.Value), r.Locked, mine, SqlValues.RowVersionToWire(r.Ver));
         }).ToList();
         return new PagedResult<UserSummary>(items, page, pageSize, total);
@@ -533,7 +535,8 @@ public sealed class SqlUserAdministration(SqlConnectionFactory connections, ICom
 
     // ---------- helpers ----------
 
-    private sealed record Target(int UserId, string Login, bool Enabled, IReadOnlyList<string> AssignedRoles, bool IsActiveOwner);
+    /// <param name="CredentialRoles">ADM-2: assigned codes with each custom role replaced by its base (DEC-062 credential kind follows the base).</param>
+    private sealed record Target(int UserId, string Login, bool Enabled, IReadOnlyList<string> AssignedRoles, bool IsActiveOwner, IReadOnlyList<string> CredentialRoles);
 
     private DateTime Now() => SqlSessionService.Truncate(clock.GetUtcNow().UtcDateTime);
 
@@ -589,25 +592,40 @@ public sealed class SqlUserAdministration(SqlConnectionFactory connections, ICom
         }
 
         var assigned = new List<string>();
-        await using (var q = t.Command("SELECT role_code FROM plat.user_role WHERE user_id = @u;"))
+        var credentialRoles = new List<string>();
+        await using (var q = t.Command("SELECT ur.role_code, COALESCE(r.base_role, ur.role_code) FROM plat.user_role ur JOIN plat.role r ON r.role_code = ur.role_code WHERE ur.user_id = @u;"))
         {
             q.Parameters.Add("@u", SqlDbType.Int).Value = userId;
             await using var rd = await q.ExecuteReaderAsync(ct).ConfigureAwait(false);
-            while (await rd.ReadAsync(ct).ConfigureAwait(false)) assigned.Add(rd.GetString(0));
+            while (await rd.ReadAsync(ct).ConfigureAwait(false))
+            {
+                assigned.Add(rd.GetString(0));
+                credentialRoles.Add(rd.GetString(1));
+            }
         }
 
         var active = await ActiveRolesAsync(t, userId, now, ct).ConfigureAwait(false);
-        return new Target(userId, login, enabled, assigned, active.Contains(RoleCodes.Owner));
+        return new Target(userId, login, enabled, assigned, active.Contains(RoleCodes.Owner), credentialRoles);
     }
 
-    /// <summary>DEC-058: roles flagged owner_only_assign (money or admin permissions) are assigned/revoked only by an active Owner.</summary>
-    private static async Task EnsureMayAssignAsync(SqlCommandTransaction t, IReadOnlySet<string> actorRoles, string roleCode, CancellationToken ct)
+    /// <summary>
+    /// DEC-058: roles flagged owner_only_assign (money or admin permissions) are assigned/revoked only by an active Owner. ADM-2: custom codes
+    /// (C01…) are accepted; their flag was copied from the base at creation; a retired custom role is never assigned (revoking it stays possible).
+    /// </summary>
+    private static async Task EnsureMayAssignAsync(SqlCommandTransaction t, IReadOnlySet<string> actorRoles, string roleCode, bool assigning, CancellationToken ct)
     {
-        await using var q = t.Command("SELECT owner_only_assign FROM plat.role WHERE role_code = @r;");
-        q.Parameters.Add("@r", SqlDbType.VarChar, 3).Value = roleCode ?? string.Empty;
-        var flag = await q.ExecuteScalarAsync(ct).ConfigureAwait(false);
-        if (flag is null) throw HccException.Validation($"Unknown role '{roleCode}'.");
-        if ((bool)flag && !actorRoles.Contains(RoleCodes.Owner))
+        bool ownerOnly, retired;
+        await using (var q = t.Command("SELECT owner_only_assign, CASE WHEN retired_utc IS NULL THEN 0 ELSE 1 END FROM plat.role WHERE role_code = @r;"))
+        {
+            q.Parameters.Add("@r", SqlDbType.VarChar, 3).Value = roleCode ?? string.Empty;
+            await using var rd = await q.ExecuteReaderAsync(ct).ConfigureAwait(false);
+            if (!await rd.ReadAsync(ct).ConfigureAwait(false)) throw HccException.Validation($"Unknown role '{roleCode}'.");
+            ownerOnly = rd.GetBoolean(0);
+            retired = rd.GetInt32(1) == 1;
+        }
+
+        if (assigning && retired) throw HccException.Validation($"The role {roleCode} is retired and cannot be assigned.");
+        if (ownerOnly && !actorRoles.Contains(RoleCodes.Owner))
             throw new HccException(HccErrorCode.FORBIDDEN, $"Only an Owner can assign or remove the {roleCode} role (DEC-058).");
     }
 
@@ -674,7 +692,14 @@ public sealed class SqlUserAdministration(SqlConnectionFactory connections, ICom
             await q.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
         }
 
-        if (RoleCodes.PasswordRoles.Contains(roleCode))
+        string credentialRole;
+        await using (var b = t.Command("SELECT COALESCE(base_role, role_code) FROM plat.role WHERE role_code = @r;"))
+        {
+            b.Parameters.Add("@r", SqlDbType.VarChar, 3).Value = roleCode;
+            credentialRole = (await b.ExecuteScalarAsync(ct).ConfigureAwait(false)) as string ?? roleCode;
+        }
+
+        if (RoleCodes.PasswordRoles.Contains(credentialRole))   // ADM-2: a custom role signs in like its base
         {
             // DEC-062: a user holding a password role can never sign in by PIN — drop any PIN credential now.
             await using var d = t.Command("DELETE plat.credential WHERE user_id = @u AND kind = 'PIN';");
@@ -704,7 +729,7 @@ public sealed class SqlUserAdministration(SqlConnectionFactory connections, ICom
     /// </summary>
     private async Task StoreCredentialAsync(SqlCommandTransaction t, Target target, CredentialKind kind, string secret, DateTime now, bool mustChange, CancellationToken ct)
     {
-        var required = CredentialPolicy.RequiredKind(target.AssignedRoles);
+        var required = CredentialPolicy.RequiredKind(target.CredentialRoles);
         if (required is not null && required != kind)
             throw HccException.Validation(required == CredentialKind.Password
                 ? "Owner, Accountant and Tech admin accounts sign in with a password, never a PIN (DEC-062)."

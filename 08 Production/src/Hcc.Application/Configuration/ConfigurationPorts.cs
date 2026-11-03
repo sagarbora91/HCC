@@ -180,6 +180,14 @@ public interface IModuleGate
     Task<bool> IsOnAsync(int propertyId, string moduleId, CancellationToken ct = default);
 
     Task EnsureOnAsync(int propertyId, string moduleId, CancellationToken ct = default);
+
+    /// <summary>
+    /// ADM-1 sub-function switch (DEC-214 / DEC-215): on when the feature is core, or when its module switch (if any) is on, its own
+    /// <c>feature.&lt;id&gt;</c> setting is not false and every feature it requires is on. Unknown ids throw.
+    /// </summary>
+    Task<bool> IsFeatureOnAsync(int propertyId, string featureId, CancellationToken ct = default);
+
+    Task EnsureFeatureOnAsync(int propertyId, string featureId, CancellationToken ct = default);
 }
 
 public sealed class SettingsReader(SettingsRegistry registry, IConfigurationStore store, IConfigurationReadStore reads) : ISettingsReader
@@ -214,6 +222,38 @@ public sealed class ModuleGate(ISettingsReader reader) : IModuleGate
     {
         if (await IsOnAsync(propertyId, moduleId, ct).ConfigureAwait(false)) return;
         throw Refusal(moduleId);
+    }
+
+    public async Task<bool> IsFeatureOnAsync(int propertyId, string featureId, CancellationToken ct = default)
+    {
+        var f = FeatureCatalog.Feature(featureId) ?? throw new InvalidOperationException($"'{featureId}' is not a catalogue feature.");
+        if (f.Core) return true;
+        var m = FeatureCatalog.ModuleOf(featureId)!;
+        if (m.Switch is { } sw && !await IsOnAsync(propertyId, sw, ct).ConfigureAwait(false)) return false;
+        var v = await reader.GetAsync(propertyId, FeatureIds.SettingKey(featureId), null, ct).ConfigureAwait(false);
+        if (v.Kind == ConfigValueKind.Boolean && !v.Flag) return false;
+        foreach (var q in f.Requires)
+            if (!await IsFeatureOnAsync(propertyId, q, ct).ConfigureAwait(false)) return false;
+        return true;
+    }
+
+    public async Task EnsureFeatureOnAsync(int propertyId, string featureId, CancellationToken ct = default)
+    {
+        if (await IsFeatureOnAsync(propertyId, featureId, ct).ConfigureAwait(false)) return;
+        throw FeatureRefusal(featureId);
+    }
+
+    /// <summary>The refusal of a switched-off sub-function's command: FORBIDDEN, the prototype's text, reason MODULE_OFF, the feature id and its module id.</summary>
+    public static HccException FeatureRefusal(string featureId)
+    {
+        var f = FeatureCatalog.Feature(featureId) ?? throw new InvalidOperationException($"'{featureId}' is not a catalogue feature.");
+        var m = FeatureCatalog.ModuleOf(featureId)!;
+        return new HccException(HccErrorCode.FORBIDDEN, FeatureCatalog.FeatureOffMessage(f), new Dictionary<string, System.Text.Json.JsonElement>
+        {
+            ["reason"] = System.Text.Json.JsonSerializer.SerializeToElement(ConfigCatalog.ModuleOffReason),
+            ["moduleId"] = System.Text.Json.JsonSerializer.SerializeToElement(m.Switch ?? m.Id),
+            ["featureId"] = System.Text.Json.JsonSerializer.SerializeToElement(f.Id),
+        });
     }
 
     /// <summary>The refusal of a switched-off module's command: FORBIDDEN, the prototype's text, reason MODULE_OFF and the module id.</summary>

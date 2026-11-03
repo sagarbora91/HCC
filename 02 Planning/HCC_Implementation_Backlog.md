@@ -97,7 +97,7 @@ Work starts only after APR-003 (owner approval of this M0 package).
 | F4 | S3 | Cash book range totals do not add up when a cash difference occurred | same | Fix in progress |
 | F5 | S3 | Annual rule due Jan-Mar is due before the financial year ends | same | Fix in progress |
 | F6 | S3 | Full-FY26 Excel export may run out of memory on the phone (plausible) | same | Fix in progress |
-| F7-F15 | S4 | Lower-severity findings (lock without closing record, xlsx writer edge cases, text ratios, Tally dates, false "Saved" toasts, menu visibility, lock blocks nothing, reopen erases filing, hygiene) | same | Backlog - fix when convenient |
+| F7-F15 | S4 | Lower-severity findings (lock without closing record, xlsx writer edge cases, text ratios, Tally dates, false "Saved" toasts, menu visibility, lock blocks nothing, reopen erases filing, hygiene) | same | **Closed 3 Nov 2026** (re-triage table at the end of `W05_DEC_Code_Review_2026-10-25.md`: F7–F11 tests on main, F12 navRoleOk, F13 DEC-065 enforced, F14 reopened log, F15 payroll CSV twin folded into `domain/csv.ts`) |
 
 ## Not in prototype backlog (recorded, phase-tagged)
 

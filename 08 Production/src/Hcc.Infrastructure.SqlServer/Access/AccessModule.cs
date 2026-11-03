@@ -6,7 +6,7 @@ using Hcc.Infrastructure.SqlServer.Connection;
 namespace Hcc.Infrastructure.SqlServer.Access;
 
 /// <summary>GET /me/capabilities: every permission the principal holds (best mode/scope/limit) plus field masks (RBAC §9, DEC-061).</summary>
-public sealed class SqlCapabilitiesQuery(SqlConnectionFactory connections, AccessOptions options, TimeProvider clock) : ICapabilitiesQuery
+public sealed class SqlCapabilitiesQuery(SqlConnectionFactory connections, AccessOptions options, TimeProvider clock, IFeatureAccess? features = null) : ICapabilitiesQuery
 {
     public async Task<CapabilitiesResult> GetAsync(AuthenticatedSession session, CancellationToken ct = default)
     {
@@ -33,9 +33,15 @@ public sealed class SqlCapabilitiesQuery(SqlConnectionFactory connections, Acces
             grants.Add(new CapabilityGrant(permissionId, ((char)(decision.Mode ?? GrantMode.Allow)).ToString(), ((char)(decision.Scope ?? GrantScope.Property)).ToString(), decision.Limit, decision.LimitUnit));
         }
 
+        // ADM-2: roles = held built-ins plus the base of each held custom role (snapshot), then the custom codes themselves (C01…).
+        var roleList = RoleCodes.All.Where(roles.Contains).Concat(roles.Where(RoleRules.IsCustomCode).Order(StringComparer.Ordinal)).ToList();
+        IReadOnlyDictionary<string, string>? levels = null;
+        if (features is not null)
+            levels = (await features.LevelsAsync(session.PropertyId, session.UserId, ct).ConfigureAwait(false))
+                .ToDictionary(kv => kv.Key, kv => RoleRules.ToWire(kv.Value), StringComparer.Ordinal);
         return new CapabilitiesResult(session.UserId, session.PropertyId, session.DisplayName, CredentialPolicy.ToWire(session.Kind),
-            RoleCodes.All.Where(roles.Contains).ToList(), grants, FieldMasks.For(roles), session.ToWire((int)options.IdleTimeout.TotalSeconds),
-            session.MustChangeCredential);
+            roleList, grants, FieldMasks.For(roles), session.ToWire((int)options.IdleTimeout.TotalSeconds),
+            session.MustChangeCredential, levels);
     }
 }
 
@@ -50,7 +56,9 @@ public sealed class AccessModule
         Policy = new SqlAccessPolicy(platform.Connections, clock, resolvers ?? []);
         Sessions = new SqlSessionService(platform.Connections, Hasher, options, clock);
         Users = new SqlUserAdministration(platform.Connections, platform.Commands, Policy, Hasher, options, clock);
-        Capabilities = new SqlCapabilitiesQuery(platform.Connections, options, clock);
+        FeatureAccess = new SqlFeatureAccess(platform.Connections, clock);
+        Roles = new SqlRoleAdministration(platform.Connections, platform.Commands, Policy, clock);
+        Capabilities = new SqlCapabilitiesQuery(platform.Connections, options, clock, FeatureAccess);
         AdminQueries = new SqlAccessAdminQueries(platform.Connections, Policy);
     }
 
@@ -63,6 +71,12 @@ public sealed class AccessModule
     public ISessionService Sessions { get; }
 
     public IUserAdministration Users { get; }
+
+    /// <summary>ADM-2 custom roles (Owner only).</summary>
+    public IRoleAdministration Roles { get; }
+
+    /// <summary>ADM-2 per-role feature levels (RequireHccFeature, /me/capabilities).</summary>
+    public IFeatureAccess FeatureAccess { get; }
 
     public ICapabilitiesQuery Capabilities { get; }
 

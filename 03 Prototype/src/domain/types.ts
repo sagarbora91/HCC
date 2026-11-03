@@ -8,6 +8,8 @@ export const roles:Role[]=['Owner','Manager','Reception','Cashier','Supervisor',
 /** Roles that may only act on tasks assigned to them (scope "A" in the RBAC matrix). */
 export const assignedScopeRoles:Role[]=['Housekeeper','Maintenance'];
 export type User={id:string;name:string;role:Role;enabled:boolean;
+  /** ADM-2 (SCHEMA 14): the custom role held (`CustomRole.id` in `s.rolesX`); `role` stays its base. Absent = the built-in role. */
+  customRole?:string;
   // ── User · stream A fields (add below this line) ──
 
   // ── User · stream B fields (add below this line) ──
@@ -361,6 +363,8 @@ export type State={
   cashOutX?:import('./streams/cashout').CXState;
   /** W05-A Master configuration: modules on/off, hub-stored and future-dated values, raw change log (revert). */
   configX?:import('./streams/config').CFGState;
+  /** ADM-2 custom roles (DEC-216…221): copies of built-in roles adjusted on the role × feature grid, + their change history. */
+  rolesX?:import('./streams/roles').ROLState;
   /** MA-0 masters framework: stored master rows per list + change history (absent = fixture seed). */
   mastersX?:import('./streams/masters').MSTState;
   /** Wave C3 System health (A09-05): the server's parked outbox events and backup results, or the demo's remaining parked events (absent = demo seed). */
@@ -410,7 +414,7 @@ export type State={
   shift?:import('./streams/closing').ShiftRecord;
 };
 export type Command={type:string;key?:string;[field:string]:any};
-export const SCHEMA=14; // 14 = F6 hall booking (optional hallX slice, Booking.hallEventId; v13 saves need nothing). 13 = LF legacy parity (docObjectsX image slice — v12 saves move billPhoto / complianceFilesX into it; new optional LF slices and fields). 12 = ACC-2 (manual vouchers, purchases / vendor payments, TDS, GST month end, OTA payouts; new optional fields only — v11 saves need nothing). 11 = ACC-1 (accounting chart as a master, party ledgers, opening balances; new optional fields on accountingX — v10 saves need nothing). 10 = SCC port wave (leave one record per date, SCC compliance slice, SCC expense registers; v9 saves migrate by shape). 9 = masters wave MA-1…MA-7 (new optional slices / fields; v8 saves migrate, masters seed lazily)
+export const SCHEMA=15; // 15 = ADM-2 custom roles (new optional rolesX slice and User.customRole — v14 saves need nothing). 14 = F6 hall booking (optional hallX slice, Booking.hallEventId; v13 saves need nothing). 13 = LF legacy parity (docObjectsX image slice — v12 saves move billPhoto / complianceFilesX into it; new optional LF slices and fields). 12 = ACC-2 (manual vouchers, purchases / vendor payments, TDS, GST month end, OTA payouts; new optional fields only — v11 saves need nothing). 11 = ACC-1 (accounting chart as a master, party ledgers, opening balances; new optional fields on accountingX — v10 saves need nothing). 10 = SCC port wave (leave one record per date, SCC compliance slice, SCC expense registers; v9 saves migrate by shape). 9 = masters wave MA-1…MA-7 (new optional slices / fields; v8 saves migrate, masters seed lazily)
 
 // ════ LF (wave claude/lf, contract 02 Planning/agents/LF-CONTRACT.md §11) — declared by the setup commit; lanes import (or re-export) these, never redeclare ════
 /** §1.10 */

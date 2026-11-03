@@ -41,12 +41,25 @@ Enquiry → quotation QT/2627/… v1 → revised v2, total ₹1,37,322.50 → se
 - QUO is not in the prototype's number-series master (H2 note).
 
 ## DEC proposals (for the register)
-- **DEC-227** Hall booking spec approved (OP-17) with the A26 defaults: itemised GST per line from the dated master (CA to confirm the banquet catering slab), "OWNER TO REPLACE" T&C placeholders guarded at send time, with a one-time Owner override per quotation and a reason.
+- **DEC-253** Hall booking spec approved (OP-17) with the A26 defaults: itemised GST per line from the dated master (CA to confirm the banquet catering slab), "OWNER TO REPLACE" T&C placeholders guarded at send time, with a one-time Owner override per quotation and a reason.
   - 3 Nov 2026: GST "CA to confirm" closed by **DEC-239** (CA: room GST 5 %, banquet incl. catering 18 %) — `Accounting/GST-CA-2026-11-03.md`.
-- **DEC-228** Quotation numbering `QT/<FY>/<nnnn>` (doc type QUO), with no gaps and a restart on 1 April. Versions keep the number, a cancelled number is never reused, and only the latest version can be sent or accepted.
-- **DEC-229** Advance pattern 25 % on acceptance, 50 % 30 days before the event, balance on the event day. Advances are not income (Dr tender · Cr 2000, no GST, DEC-142). Manager and Owner may edit the plan; Reception quotes the default.
-- **DEC-230** Discount limits: Reception 0 %, Manager 10 % before GST, Owner any. Above the limit the Owner approves, never the author. The same limits apply on the event-day bill.
-- **DEC-231** Plate billing: bill the higher of guaranteed and actual plates. Guaranteed plates may be reduced by up to 10 % after acceptance without charge.
-- **DEC-232** Ledgers: 4400 Banquet & events revenue (hall, decor, services); food to 4200 (switch `foodLedger` = 4200 | 4400); kept cancellation money to 4300 with GST; advances to 2000; hall invoices in the hotel series `HPE/…`.
-- **DEC-233** Migration 4740 (`hall` source kind) sits outside the F6 range 4300–4349 because 4687 (LF) re-creates those constraints. Any later migration that re-creates them must keep `hall`. The F6 range migrations are locked as accepted out-of-order history.
-- **DEC-234** Hall cash goes into the open shift's drawer (shared till, DEC-052) and is subject to the B9 cash-receipt limit per event. The room block at accept time is a group block in the same transaction, following the DEC-080 switch.
+- **DEC-254** Quotation numbering `QT/<FY>/<nnnn>` (doc type QUO), with no gaps and a restart on 1 April. Versions keep the number, a cancelled number is never reused, and only the latest version can be sent or accepted.
+- **DEC-255** Advance pattern 25 % on acceptance, 50 % 30 days before the event, balance on the event day. Advances are not income (Dr tender · Cr 2000, no GST, DEC-142). Manager and Owner may edit the plan; Reception quotes the default.
+- **DEC-256** Discount limits: Reception 0 %, Manager 10 % before GST, Owner any. Above the limit the Owner approves, never the author. The same limits apply on the event-day bill.
+- **DEC-257** Plate billing: bill the higher of guaranteed and actual plates. Guaranteed plates may be reduced by up to 10 % after acceptance without charge.
+- **DEC-258** Ledgers: 4400 Banquet & events revenue (hall, decor, services); food to 4200 (switch `foodLedger` = 4200 | 4400); kept cancellation money to 4300 with GST; advances to 2000; hall invoices in the hotel series `HPE/…`.
+- **DEC-259** Migration 4740 (`hall` source kind) sits outside the F6 range 4300–4349 because 4687 (LF) re-creates those constraints. Any later migration that re-creates them must keep `hall`. The F6 range migrations are locked as accepted out-of-order history.
+- **DEC-260** Hall cash goes into the open shift's drawer (shared till, DEC-052) and is subject to the B9 cash-receipt limit per event. The room block at accept time is a group block in the same transaction, following the DEC-080 switch.
+
+**Decision renumbering (ADM-int, 3 Nov 2026):** the approved Administration panel plan (APR-028) owns DEC-214…221, so this wave's proposals were renumbered.
+
+| Old proposed | New |
+|---|---|
+| DEC-227 | DEC-253 |
+| DEC-228 | DEC-254 |
+| DEC-229 | DEC-255 |
+| DEC-230 | DEC-256 |
+| DEC-231 | DEC-257 |
+| DEC-232 | DEC-258 |
+| DEC-233 | DEC-259 |
+| DEC-234 | DEC-260 |

@@ -31,6 +31,7 @@ public static class MaintenanceEndpoints
         ArgumentNullException.ThrowIfNull(api);
         var g = api.MapHccSecured();
         var cmd = g.MapGroup(string.Empty).RequireHccModule(ConfigModuleIds.Maintenance); // DEC-057 / A11-01: refused while Maintenance is off; reads stay
+        var assets = cmd.MapGroup(string.Empty).RequireHccFeature(FeatureIds.MaintenanceAssets); // ADM follow-up (DEC-214): module gate, then feature gate
         cmd.MapPost("/commands/" + MaintenanceCommands.OpCreate, async (HttpContext http, CreateWorkOrderRequest body, MaintenanceCommands c, CancellationToken ct) =>
             http.HccReply(await c.CreateAsync(http.HccCommand(MaintenanceCommands.OpCreate), body, ct)));
         cmd.MapPost("/commands/" + MaintenanceCommands.OpConvertRepair, async (HttpContext http, ConvertRepairRequest body, MaintenanceCommands c, CancellationToken ct) =>
@@ -51,15 +52,15 @@ public static class MaintenanceEndpoints
             http.HccReply(await c.CancelAsync(http.HccCommand(MaintenanceCommands.OpCancel), body, ct)));
         cmd.MapPost("/commands/" + MaintenanceCommands.OpBlockRoom, async (HttpContext http, BlockWorkOrderRoomRequest body, MaintenanceCommands c, CancellationToken ct) =>
             http.HccReply(await c.BlockRoomAsync(http.HccCommand(MaintenanceCommands.OpBlockRoom), body, ct)));
-        cmd.MapPost("/commands/" + MaintenanceCommands.OpGeneratePm, async (HttpContext http, GeneratePmWorkOrdersRequest body, MaintenanceCommands c, CancellationToken ct) =>
+        assets.MapPost("/commands/" + MaintenanceCommands.OpGeneratePm, async (HttpContext http, GeneratePmWorkOrdersRequest body, MaintenanceCommands c, CancellationToken ct) =>
             http.HccReply(await c.GeneratePmAsync(http.HccCommand(MaintenanceCommands.OpGeneratePm), body, ct)));
-        cmd.MapPost("/commands/" + MaintenanceCommands.OpSavePlan, async (HttpContext http, SavePmPlanRequest body, MaintenanceCommands c, CancellationToken ct) =>
+        assets.MapPost("/commands/" + MaintenanceCommands.OpSavePlan, async (HttpContext http, SavePmPlanRequest body, MaintenanceCommands c, CancellationToken ct) =>
             http.HccReply(await c.SavePlanAsync(http.HccCommand(MaintenanceCommands.OpSavePlan), body, ct)));
-        cmd.MapPost("/commands/" + MaintenanceCommands.OpSaveAsset, async (HttpContext http, SaveAssetRequest body, MaintenanceCommands c, CancellationToken ct) =>
+        assets.MapPost("/commands/" + MaintenanceCommands.OpSaveAsset, async (HttpContext http, SaveAssetRequest body, MaintenanceCommands c, CancellationToken ct) =>
             http.HccReply(await c.SaveAssetAsync(http.HccCommand(MaintenanceCommands.OpSaveAsset), body, ct)));
         cmd.MapPost("/commands/" + MaintenanceCommands.OpSaveVendor, async (HttpContext http, SaveVendorRequest body, MaintenanceCommands c, CancellationToken ct) =>
             http.HccReply(await c.SaveVendorAsync(http.HccCommand(MaintenanceCommands.OpSaveVendor), body, ct)));
-        cmd.MapPost("/commands/" + MaintenanceCommands.OpSaveAmc, async (HttpContext http, SaveAmcRequest body, MaintenanceCommands c, CancellationToken ct) =>
+        assets.MapPost("/commands/" + MaintenanceCommands.OpSaveAmc, async (HttpContext http, SaveAmcRequest body, MaintenanceCommands c, CancellationToken ct) =>
             http.HccReply(await c.SaveAmcAsync(http.HccCommand(MaintenanceCommands.OpSaveAmc), body, ct)));
         cmd.MapPost("/commands/" + MaintenanceCommands.OpReceiveSpare, async (HttpContext http, ReceiveSpareRequest body, MaintenanceCommands c, CancellationToken ct) =>
             http.HccReply(await c.ReceiveSpareAsync(http.HccCommand(MaintenanceCommands.OpReceiveSpare), body, ct)));

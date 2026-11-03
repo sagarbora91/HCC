@@ -6,7 +6,7 @@ import {rctCanView} from '../domain/streams/rpt-revcat'; // F4-T2
 import {Store,Receipt,Wrench,HeartHandshake,Users,TrendingUp,Package,IdCard,ChartNoAxesCombined,ShieldCheck,LayoutDashboard} from 'lucide-react';
 import type {Permission} from '../services/mock';
 import type {State} from '../domain/types';
-import {cfgPageOn} from '../domain/streams/config';
+import {cfgPageOn,cfgPageOnFor} from '../domain/streams/config';
 import {cmpHasAccess} from '../domain/streams/compliance';
 import {rmdCanManage} from '../domain/streams/reminders'; // LF-ALERTS
 import {trcCan} from '../domain/streams/tariffcard'; // F4-T1
@@ -152,7 +152,7 @@ export const PAGE_KEYWORDS:Record<string,string[]>={
   'plans-extras':['meal plan','meal plans','ep','cp','map','ap','breakfast','extras','extra bed','catalogue','free text','discount reason','laundry','package'],
   assistant:['assistant','ask','question','ai','management assistant','insight'],
   compliance:['compliance','gst','gstr','tds','pf','epf','esic','pt','professional tax','due date','due dates','filing','return','ca pack','calendar'],
-  access:['access','users','roles','permissions','rbac','login','disable user'],
+  access:['administration','admin','access','access control','users','roles','role','custom role','permissions','rbac','login','disable user','modules','features','audit'],
   settings:['settings','configuration','config','master configuration','masters','admin','setup','hotel configuration','tax','tariff','hotel','policy','display','device','modules on off','branding'],
   approvals:['approval','approvals','audit','audit log','pending','discount approval','history','who did'],
   backup:['backup','restore','recovery','export data'],
@@ -237,7 +237,7 @@ export function visibleEntries(entries:SearchEntry[],allowedPages:Set<string>,ca
 
 /** W05-A · DEC-057 Modules on/off: the one filter every navigation surface applies (Modules Home and category tiles, hamburger menu,
  * search palette, phone tabs via App's allowed pages). Pages of a switched-off module disappear; core pages always stay. */
-export function navFilterModules<T extends {id:string}>(s:State,items:readonly T[],uid?:string):T[]{return items.filter(i=>cfgPageOn(s,i.id)&&(uid===undefined||navRoleOk(s,uid,i.id)));}
+export function navFilterModules<T extends {id:string}>(s:State,items:readonly T[],uid?:string):T[]{return items.filter(i=>uid===undefined?cfgPageOn(s,i.id):cfgPageOnFor(s,uid,i.id)&&navRoleOk(s,uid,i.id));}
 /** Pages that permissions alone cannot express. W05-1 · DEC-055: Compliance calendar = Owner + Accountant only (Manager/Cashier also hold
  * 'reports'). DEC-063: Day closing = close holders + the Accountant read-only, not the Cashier (G4/G8); Approvals & audit = Owner,
  * Manager, Accountant, not the Cashier (G10). DEC-079: Accounting (the books) not for the Cashier; D1: the Restaurant role sees the POS and

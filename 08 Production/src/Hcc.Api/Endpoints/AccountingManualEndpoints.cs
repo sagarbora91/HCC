@@ -3,6 +3,8 @@ using Hcc.Contracts.Accounting;
 using Hcc.Infrastructure.SqlServer;
 using Hcc.Infrastructure.SqlServer.Accounting;
 
+using Hcc.Domain.Configuration;
+
 namespace Hcc.Api.Endpoints;
 
 /// <summary>
@@ -46,10 +48,11 @@ public static class AccountingManualEndpoints
     {
         ArgumentNullException.ThrowIfNull(api);
         var g = api.MapHccSecured();
-        BillingEndpoints.Command<SaveManualVoucherRequest, ManualVoucherResult>(g, ManualVoucherService.OpSave, (sp, c, k, r, ct) => Service(sp).SaveAsync(c, k, r, ct));
-        BillingEndpoints.Command<DecideManualVoucherRequest, ManualVoucherResult>(g, ManualVoucherService.OpDecide, (sp, c, k, r, ct) => Service(sp).DecideAsync(c, k, r, ct));
-        BillingEndpoints.Command<VoidManualVoucherRequest, ManualVoucherResult>(g, ManualVoucherService.OpVoid, (sp, c, k, r, ct) => Service(sp).VoidAsync(c, k, r, ct));
-        BillingEndpoints.Command<AddLoanRequest, LoanResult>(g, ManualVoucherService.OpAddLoan, (sp, c, k, r, ct) => Service(sp).AddLoanAsync(c, k, r, ct));
+        var cmd = g.MapGroup(string.Empty).RequireHccFeature(FeatureIds.Vouchers); // ADM-1 (DEC-214): refused while the sub-function is off; reads stay on g
+        BillingEndpoints.Command<SaveManualVoucherRequest, ManualVoucherResult>(cmd, ManualVoucherService.OpSave, (sp, c, k, r, ct) => Service(sp).SaveAsync(c, k, r, ct));
+        BillingEndpoints.Command<DecideManualVoucherRequest, ManualVoucherResult>(cmd, ManualVoucherService.OpDecide, (sp, c, k, r, ct) => Service(sp).DecideAsync(c, k, r, ct));
+        BillingEndpoints.Command<VoidManualVoucherRequest, ManualVoucherResult>(cmd, ManualVoucherService.OpVoid, (sp, c, k, r, ct) => Service(sp).VoidAsync(c, k, r, ct));
+        BillingEndpoints.Command<AddLoanRequest, LoanResult>(cmd, ManualVoucherService.OpAddLoan, (sp, c, k, r, ct) => Service(sp).AddLoanAsync(c, k, r, ct));
         g.MapGet("/accounting/manual", async (HttpContext http, CancellationToken ct)
             => Results.Ok(await Queries(http.RequestServices).GetAsync(http.HccCaller(), ct).ConfigureAwait(false)));
         return api;

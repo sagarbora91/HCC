@@ -141,7 +141,7 @@ public sealed class SqlSessionService(SqlConnectionFactory connections, ISecretH
         var mustChange = false;
         if (userId is not null)
         {
-            await using (var q = connections.Command("SELECT role_code FROM plat.user_role WHERE user_id = @u;", conn, tx))
+            await using (var q = connections.Command("SELECT role_code FROM plat.v_user_role_effective WHERE user_id = @u;", conn, tx))
             {
                 q.Parameters.Add("@u", SqlDbType.Int).Value = userId.Value;
                 await using var rd = await q.ExecuteReaderAsync(ct).ConfigureAwait(false);

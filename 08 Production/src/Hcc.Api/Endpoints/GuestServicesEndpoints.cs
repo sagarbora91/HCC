@@ -2,6 +2,7 @@ using Hcc.Application.Billing;
 using Hcc.Application.Commands;
 using Hcc.Application.GuestServices;
 using Hcc.Contracts.GuestServices;
+using Hcc.Domain.Configuration;
 using Hcc.Infrastructure.SqlServer.GuestServices;
 
 namespace Hcc.Api.Endpoints;
@@ -34,22 +35,26 @@ public static class GuestServicesEndpoints
     {
         ArgumentNullException.ThrowIfNull(api);
         var g = api.MapHccSecured();
-        Cmd<LogServiceRequestRequest, ServiceRequestResult>(g, GuestServicesCommands.OpLogRequest, (c, x, r, ct) => c.LogRequestAsync(x, r, ct));
-        Cmd<AssignServiceRequestRequest, ServiceRequestResult>(g, GuestServicesCommands.OpAssignRequest, (c, x, r, ct) => c.AssignRequestAsync(x, r, ct));
-        Cmd<StartServiceRequestRequest, ServiceRequestResult>(g, GuestServicesCommands.OpStartRequest, (c, x, r, ct) => c.StartRequestAsync(x, r, ct));
-        Cmd<CompleteServiceRequestRequest, ServiceRequestResult>(g, GuestServicesCommands.OpCompleteRequest, (c, x, r, ct) => c.CompleteRequestAsync(x, r, ct));
-        Cmd<CancelServiceRequestRequest, ServiceRequestResult>(g, GuestServicesCommands.OpCancelRequest, (c, x, r, ct) => c.CancelRequestAsync(x, r, ct));
-        Cmd<SnoozeWakeUpRequest, ServiceRequestResult>(g, GuestServicesCommands.OpSnoozeWake, (c, x, r, ct) => c.SnoozeWakeAsync(x, r, ct));
-        Cmd<LogComplaintRequest, ComplaintResult>(g, GuestServicesCommands.OpLogComplaint, (c, x, r, ct) => c.LogComplaintAsync(x, r, ct));
-        Cmd<UpdateComplaintRequest, ComplaintResult>(g, GuestServicesCommands.OpUpdateComplaint, (c, x, r, ct) => c.UpdateComplaintAsync(x, r, ct));
-        Cmd<ResolveComplaintRequest, ComplaintResult>(g, GuestServicesCommands.OpResolveComplaint, (c, x, r, ct) => c.ResolveComplaintAsync(x, r, ct));
-        Cmd<RecordComplaintFollowUpRequest, ComplaintResult>(g, GuestServicesCommands.OpFollowUp, (c, x, r, ct) => c.RecordFollowUpAsync(x, r, ct));
-        Cmd<OfferRecoveryDiscountRequest, RecoveryResult>(g, GuestServicesCommands.OpOfferRecovery, (c, x, r, ct) => c.OfferRecoveryDiscountAsync(x, r, ct));
-        Cmd<LogLostItemRequest, LostItemResult>(g, GuestServicesCommands.OpLogItem, (c, x, r, ct) => c.LogItemAsync(x, r, ct));
-        Cmd<ClaimLostItemRequest, LostItemResult>(g, GuestServicesCommands.OpClaimItem, (c, x, r, ct) => c.ClaimItemAsync(x, r, ct));
-        Cmd<HandOverLostItemRequest, LostItemResult>(g, GuestServicesCommands.OpHandOverItem, (c, x, r, ct) => c.HandOverItemAsync(x, r, ct));
-        Cmd<DisposeLostItemRequest, LostItemResult>(g, GuestServicesCommands.OpDisposeItem, (c, x, r, ct) => c.DisposeItemAsync(x, r, ct));
-        Cmd<SaveGuestServiceSettingsRequest, GuestServiceSettingsView>(g, GuestServicesCommands.OpSaveSettings, (c, x, r, ct) => c.SaveSettingsAsync(x, r, ct));
+        var requests = g.MapGroup(string.Empty).RequireHccFeature(FeatureIds.GuestRequests); // ADM follow-up (DEC-214)
+        var complaints = g.MapGroup(string.Empty).RequireHccFeature(FeatureIds.Complaints);
+        var lostFound = g.MapGroup(string.Empty).RequireHccFeature(FeatureIds.LostFound);
+        var alerts = g.MapGroup(string.Empty).RequireHccFeature(FeatureIds.Alerts);
+        Cmd<LogServiceRequestRequest, ServiceRequestResult>(requests, GuestServicesCommands.OpLogRequest, (c, x, r, ct) => c.LogRequestAsync(x, r, ct));
+        Cmd<AssignServiceRequestRequest, ServiceRequestResult>(requests, GuestServicesCommands.OpAssignRequest, (c, x, r, ct) => c.AssignRequestAsync(x, r, ct));
+        Cmd<StartServiceRequestRequest, ServiceRequestResult>(requests, GuestServicesCommands.OpStartRequest, (c, x, r, ct) => c.StartRequestAsync(x, r, ct));
+        Cmd<CompleteServiceRequestRequest, ServiceRequestResult>(requests, GuestServicesCommands.OpCompleteRequest, (c, x, r, ct) => c.CompleteRequestAsync(x, r, ct));
+        Cmd<CancelServiceRequestRequest, ServiceRequestResult>(requests, GuestServicesCommands.OpCancelRequest, (c, x, r, ct) => c.CancelRequestAsync(x, r, ct));
+        Cmd<SnoozeWakeUpRequest, ServiceRequestResult>(alerts, GuestServicesCommands.OpSnoozeWake, (c, x, r, ct) => c.SnoozeWakeAsync(x, r, ct));
+        Cmd<LogComplaintRequest, ComplaintResult>(complaints, GuestServicesCommands.OpLogComplaint, (c, x, r, ct) => c.LogComplaintAsync(x, r, ct));
+        Cmd<UpdateComplaintRequest, ComplaintResult>(complaints, GuestServicesCommands.OpUpdateComplaint, (c, x, r, ct) => c.UpdateComplaintAsync(x, r, ct));
+        Cmd<ResolveComplaintRequest, ComplaintResult>(complaints, GuestServicesCommands.OpResolveComplaint, (c, x, r, ct) => c.ResolveComplaintAsync(x, r, ct));
+        Cmd<RecordComplaintFollowUpRequest, ComplaintResult>(complaints, GuestServicesCommands.OpFollowUp, (c, x, r, ct) => c.RecordFollowUpAsync(x, r, ct));
+        Cmd<OfferRecoveryDiscountRequest, RecoveryResult>(complaints, GuestServicesCommands.OpOfferRecovery, (c, x, r, ct) => c.OfferRecoveryDiscountAsync(x, r, ct));
+        Cmd<LogLostItemRequest, LostItemResult>(lostFound, GuestServicesCommands.OpLogItem, (c, x, r, ct) => c.LogItemAsync(x, r, ct));
+        Cmd<ClaimLostItemRequest, LostItemResult>(lostFound, GuestServicesCommands.OpClaimItem, (c, x, r, ct) => c.ClaimItemAsync(x, r, ct));
+        Cmd<HandOverLostItemRequest, LostItemResult>(lostFound, GuestServicesCommands.OpHandOverItem, (c, x, r, ct) => c.HandOverItemAsync(x, r, ct));
+        Cmd<DisposeLostItemRequest, LostItemResult>(lostFound, GuestServicesCommands.OpDisposeItem, (c, x, r, ct) => c.DisposeItemAsync(x, r, ct));
+        Cmd<SaveGuestServiceSettingsRequest, GuestServiceSettingsView>(requests, GuestServicesCommands.OpSaveSettings, (c, x, r, ct) => c.SaveSettingsAsync(x, r, ct));
 
         var q = g.MapGroup("/guest-services");
         q.MapGet("/requests", async (HttpContext http, GuestServicesQueries qs, CancellationToken ct, int page = 1, int pageSize = 50, bool openOnly = false) =>

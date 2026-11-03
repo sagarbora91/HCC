@@ -293,6 +293,19 @@ public sealed class ConfigurationService(ICommandRunner runner, IAccessPolicy po
         var msg = $"Setting {s.Key} · {beforeText} → {afterText} · {(applied ? "effective" : "scheduled from")} {when}{(revertOf is { } rv ? " · reverts " + rv.ToString(CultureInfo.InvariantCulture) : "")}";
         await tx.AuditAsync("SETTING_SET", Target("cfg-change", id), msg, c).ConfigureAwait(false);
         await tx.PublishAsync(SettingChangedEvent, id, new { key = s.Key, effectiveFrom = when, changeId = id }, c).ConfigureAwait(false);
+        // ADM-1 (DEC-214 §2.2): switching a sub-function off switches every feature that requires it off as well, on the same date, with the
+        // same actor and approval; switching it on brings none of them back (each is switched on deliberately). Same rule as the prototype.
+        if (s.Key.StartsWith("feature.", StringComparison.Ordinal) && value is { Kind: ConfigValueKind.Boolean, Flag: false })
+        {
+            foreach (var dep in FeatureCatalog.Closure(s.Key["feature.".Length..]).Skip(1))
+            {
+                var ds = registry.Get(FeatureIds.SettingKey(dep));
+                var depRows = await store.ChangesAsync(tx, ctx.PropertyId, ds.Key, c).ConfigureAwait(false);
+                var depNow = SettingRules.ValueOn(depRows.Where(r => !r.Withdrawn).Select(r => r.AsDated()), effectiveFrom, ds.Default);
+                if (depNow is { Kind: ConfigValueKind.Boolean, Flag: false }) continue;
+                await ApplyAsync(tx, ctx, ds, value, effectiveFrom, bd, $"Needs {s.Label} (switched off)", "cascade", changedBy, approvedBy, requestId, null, c).ConfigureAwait(false);
+            }
+        }
         return new SetSettingResult(applied ? "applied" : "scheduled", s.Key, id, null, when, beforeText, afterText, VersionToken.ToWire(version), msg);
     }
 

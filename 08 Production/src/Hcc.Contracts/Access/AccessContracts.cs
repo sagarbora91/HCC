@@ -30,6 +30,8 @@ public sealed record StaffNameView(int UserId, string DisplayName, bool Enabled,
 /// <summary>GET /api/v1/me/directory: names, ids and current role codes of the property's users, for any signed-in user.</summary>
 public sealed record StaffDirectoryResult(IReadOnlyList<StaffNameView> Items);
 
+/// <summary>ADM-2: <see cref="Features"/> lists the sub-functions that are not full for this user's roles (feature id → "off" / "view"); null or
+/// empty = everything the permissions allow. Menus only: the server re-checks every command.</summary>
 public sealed record CapabilitiesResult(
     int UserId,
     int PropertyId,
@@ -39,7 +41,8 @@ public sealed record CapabilitiesResult(
     IReadOnlyList<CapabilityGrant> Permissions,
     IReadOnlyDictionary<string, string> FieldMasks,
     SessionInfo Session,
-    bool MustChangeCredential = false);
+    bool MustChangeCredential = false,
+    IReadOnlyDictionary<string, string>? Features = null);
 
 /// <summary>Role assignment with validity (UTC instants; null from = now, null until = open-ended).</summary>
 public sealed record RoleAssignmentInput(string RoleCode, DateTime? ValidFromUtc = null, DateTime? ValidUntilUtc = null);
@@ -97,7 +100,10 @@ public sealed record BootstrapOwnerRequest(int PropertyId, string LoginName, str
 public sealed record RoleDenyView(string PermissionId, string Reason);
 
 /// <summary>One role template: its grants (mode A/L/R/V/M, scope P/S/A/O, limit) and explicit denies.</summary>
-public sealed record RoleTemplateView(string RoleCode, string Name, string CredentialKind, bool OwnerOnlyAssign, IReadOnlyList<CapabilityGrant> Grants, IReadOnlyList<RoleDenyView> Denies);
+/// <summary>ADM-2: <see cref="IsCustom"/> roles (codes C01…C99) carry their <see cref="BaseRole"/>, the <see cref="Money"/> flag, the non-full
+/// <see cref="Features"/> levels (feature id → off / view) and a <see cref="Version"/> for UpdateRole; built-ins are unchanged (not custom, no base).</summary>
+public sealed record RoleTemplateView(string RoleCode, string Name, string CredentialKind, bool OwnerOnlyAssign, IReadOnlyList<CapabilityGrant> Grants, IReadOnlyList<RoleDenyView> Denies,
+    bool IsCustom = false, string? BaseRole = null, bool Money = true, IReadOnlyDictionary<string, string>? Features = null, int Version = 0, bool Retired = false);
 
 public sealed record PermissionView(string PermissionId, string ResourceAction, string Kind, bool IsMoney);
 
@@ -116,3 +122,33 @@ public sealed record AuditEventView(long AuditId, DateTime AtUtc, int PrincipalI
 
 /// <summary>GET /api/v1/admin/audit?page&amp;pageSize&amp;action&amp;principalId&amp;from&amp;to (PERM-ADM-004), newest first.</summary>
 public sealed record AuditPage(int Page, int PageSize, int Total, IReadOnlyList<AuditEventView> Items);
+
+// ---------- ADM-2 roles as data (02 Planning/agents/ADM_Briefs.md §2.2) ----------
+
+/// <summary>POST /api/v1/commands/CreateRole (Owner only): a copy of one built-in base role (never OWN). <see cref="Money"/> null = the base's (true;
+/// forced false for HKP / SUP / MNT / RST bases).</summary>
+public sealed record CreateRoleRequest(string Name, string BaseRole, bool? Money = null);
+
+/// <summary>POST /api/v1/commands/UpdateRole: rename and / or switch money access of a custom role; <see cref="ExpectedVersion"/> from GET /admin/roles.</summary>
+public sealed record UpdateRoleRequest(string RoleCode, string? Name, bool? Money, int ExpectedVersion);
+
+/// <summary>POST /api/v1/commands/SetRoleFeature: <see cref="Access"/> off / view / full on a non-core sub-function of a custom role.</summary>
+public sealed record SetRoleFeatureRequest(string RoleCode, string FeatureId, string Access, int? ExpectedVersion = null);
+
+/// <summary>POST /api/v1/commands/SetRoleGrant (Advanced): one permission cell of a custom role. <see cref="Mode"/> null = remove the permission;
+/// otherwise A/L/R/V/M with <see cref="Scope"/> P/S/A/O (default P) and, for L, a limit in PAISE or BPS.</summary>
+public sealed record SetRoleGrantRequest(string RoleCode, string PermissionId, string? Mode = null, string? Scope = null, long? Limit = null, string? LimitUnit = null,
+    int? ExpectedVersion = null);
+
+/// <summary>POST /api/v1/commands/RetireRole: refused while any enabled user holds the role.</summary>
+public sealed record RetireRoleRequest(string RoleCode, int? ExpectedVersion = null);
+
+/// <summary>Result of every role command: the role's new version, the property's policy version and, for an Advanced grant, a DEC-217 warning.</summary>
+public sealed record RoleChangeResult(string RoleCode, int Version, int PolicyVersion, string? Warning = null);
+
+/// <summary>One versioned policy change (plat.policy_version): who / when / summary / before / after (JSON text).</summary>
+public sealed record PolicyChangeView(int Version, string? RoleCode, string Action, int ChangedBy, string ChangedByName, DateTime ChangedUtc, string Summary,
+    string? Before, string? After);
+
+/// <summary>GET /api/v1/admin/policy-history (PERM-ADM-001/002/004 at any mode), newest first.</summary>
+public sealed record PolicyHistoryResult(IReadOnlyList<PolicyChangeView> Items);

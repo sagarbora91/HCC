@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Hcc.Application.Access;
 using Hcc.Application.Configuration;
 using Hcc.Contracts.Configuration;
 using Hcc.Infrastructure.SqlServer;
@@ -44,6 +45,37 @@ public static class ConfigurationEndpoints
             var http = ctx.HttpContext;
             var (property, _) = http.HccActor();
             await http.RequestServices.GetRequiredService<IModuleGate>().EnsureOnAsync(property, moduleId, http.RequestAborted).ConfigureAwait(false);
+            return await next(ctx).ConfigureAwait(false);
+        });
+        return builder;
+    }
+
+    /// <summary>
+    /// ADM-1 (DEC-214): refuses the endpoint (FORBIDDEN, prototype message, <c>details.reason</c> MODULE_OFF, <c>details.featureId</c>) while the
+    /// sub-function is switched off. Put it on the command routes of a switchable feature, after the session filter; reads stay open. Core
+    /// features throw at start-up (they cannot be switched off, DEC-215). The route carries <see cref="HccFeatureGateMetadata"/> for tests.
+    /// ADM-2 (brief §2.3): also refuses (FORBIDDEN, reason MODULE_OFF, featureId, roleCode) when every role the actor holds has the feature
+    /// off or view only (<see cref="IFeatureAccess"/>; two roles = the union). The property switch is checked first.
+    /// </summary>
+    public static TBuilder RequireHccFeature<TBuilder>(this TBuilder builder, string featureId) where TBuilder : IEndpointConventionBuilder
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        var f = Hcc.Domain.Configuration.FeatureCatalog.Feature(featureId)
+            ?? throw new ArgumentException($"'{featureId}' is not a catalogue feature.", nameof(featureId));
+        if (f.Core) throw new ArgumentException($"'{featureId}' is a core sub-function and is always on (DEC-215).", nameof(featureId));
+        builder.WithMetadata(new HccFeatureGateMetadata(featureId));
+        builder.AddEndpointFilter(async (ctx, next) =>
+        {
+            var http = ctx.HttpContext;
+            var (property, _) = http.HccActor();
+            // ADM-int: a module test host that composes only its own module has neither service; the real composition (HccComposition) has both.
+            if (http.RequestServices.GetService<IModuleGate>() is { } gate)
+                await gate.EnsureFeatureOnAsync(property, featureId, http.RequestAborted).ConfigureAwait(false);
+            if (http.RequestServices.GetService<IFeatureAccess>() is { } access)
+            {
+                var session = http.GetHccSession();
+                await access.EnsureFullAsync(session.PropertyId, session.UserId, featureId, http.RequestAborted).ConfigureAwait(false);
+            }
             return await next(ctx).ConfigureAwait(false);
         });
         return builder;
@@ -115,3 +147,6 @@ public static class ConfigurationEndpoints
 
 /// <summary>Endpoint metadata of a route gated by <see cref="ConfigurationEndpoints.RequireHccModule{TBuilder}"/> (DEC-057, A11-01).</summary>
 public sealed record HccModuleGateMetadata(string ModuleId);
+
+/// <summary>Route metadata set by <see cref="ConfigurationEndpoints.RequireHccFeature{TBuilder}"/> (ADM-1).</summary>
+public sealed record HccFeatureGateMetadata(string FeatureId);

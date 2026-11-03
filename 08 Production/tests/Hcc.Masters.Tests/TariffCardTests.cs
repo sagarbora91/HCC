@@ -132,7 +132,7 @@ public class TariffCardTests
     [Fact]
     public void Dec239_card_figures_at_room_gst_5_percent_reproduce_exactly()
     {
-        // CA ruling 3 Nov 2026 (DEC-239): room GST 5 %; the GST-inclusive card stays (DEC-222), the exclusive rates recompute.
+        // CA ruling 3 Nov 2026 (DEC-239): room GST 5 %; the GST-inclusive card stays (DEC-248), the exclusive rates recompute.
         var card = new (long Excl, long Incl)[] { (314_286, 330_000), (333_334, 350_000), (266_666, 280_000), (285_714, 300_000), (190_476, 200_000), (209_524, 220_000),
             (228_572, 240_000), (142_858, 150_000), (161_904, 170_000), (9_524, 10_000) };
         foreach (var (excl, incl) in card)

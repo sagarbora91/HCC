@@ -209,7 +209,7 @@ public sealed class SqlCatalogueStore : ICatalogueStore
 
     public async Task<IReadOnlyList<string>> RoleCodesAsync(ICommandTransaction tx, int principalId, DateTime utc, CancellationToken ct = default)
     {
-        await using var cmd = CatSql.Sql(tx).Command("SELECT role_code FROM plat.user_role WHERE user_id = @u AND valid_from_utc <= @t AND (valid_until_utc IS NULL OR valid_until_utc > @t);");
+        await using var cmd = CatSql.Sql(tx).Command("SELECT DISTINCT role_code FROM plat.v_user_role_effective WHERE user_id = @u AND valid_from_utc <= @t AND (valid_until_utc IS NULL OR valid_until_utc > @t);");
         cmd.P("@u", SqlDbType.Int, principalId);
         cmd.P("@t", SqlDbType.DateTime2, utc);
         var list = new List<string>();

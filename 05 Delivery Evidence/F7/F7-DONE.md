@@ -59,7 +59,16 @@ Branch `claude/f7` (worktree `/home/user/wt-f7`). It started from main e14c0ead 
 - **Windows PC still to do:** the gate `-Wave f7`; fit-check `reports` at every viewport; a print preview on the Tab.
 
 ## DEC proposals
-- **DEC-235 report engine architecture.** One definition, one selector and one result, drawn by the screen, Excel, PDF / print and CSV renderers, so the figures are identical by construction. Each side has one catalogue, kept in step by `catalogue.json` and its cross-check. The OP-13 computed-column hook is fixed code until the calculation engine lands. Schedules run through the outbox and are held while egress is OFF.
-- **DEC-236 catalogue roles win over permission codes.** When a permission code grants more roles than the catalogue entry names, the report uses a code whose seeded grants match the entry. Where no such code exists, the selector checks the roles itself.
-- **DEC-237 tax reports are Owner + Accountant only** (PERM-ACC-013): SAC summary, documents issued, GST by bill, invoice register and GST summary. Bill corrections stays on PERM-RPT-002.
-- **DEC-238 PDF writer limits.** The in-repo PDF writer prints English only, with "Rs." in place of ₹, in standard fonts. Devanagari, the ₹ glyph and embedded fonts wait for the ETP / PDFsharp swap.
+- **DEC-261 report engine architecture.** One definition, one selector and one result, drawn by the screen, Excel, PDF / print and CSV renderers, so the figures are identical by construction. Each side has one catalogue, kept in step by `catalogue.json` and its cross-check. The OP-13 computed-column hook is fixed code until the calculation engine lands. Schedules run through the outbox and are held while egress is OFF.
+- **DEC-262 catalogue roles win over permission codes.** When a permission code grants more roles than the catalogue entry names, the report uses a code whose seeded grants match the entry. Where no such code exists, the selector checks the roles itself.
+- **DEC-263 tax reports are Owner + Accountant only** (PERM-ACC-013): SAC summary, documents issued, GST by bill, invoice register and GST summary. Bill corrections stays on PERM-RPT-002.
+- **DEC-264 PDF writer limits.** The in-repo PDF writer prints English only, with "Rs." in place of ₹, in standard fonts. Devanagari, the ₹ glyph and embedded fonts wait for the ETP / PDFsharp swap.
+
+**Decision renumbering (ADM-int, 3 Nov 2026):** the approved Administration panel plan (APR-028) owns DEC-214…221, so this wave's proposals were renumbered.
+
+| Old proposed | New |
+|---|---|
+| DEC-235 | DEC-261 |
+| DEC-236 | DEC-262 |
+| DEC-237 | DEC-263 |
+| DEC-238 | DEC-264 |

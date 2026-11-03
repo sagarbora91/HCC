@@ -15,6 +15,9 @@ export * from '../../domain/streams/folio';
 export * from '../../domain/streams/housekeeping';
 export * from '../../domain/streams/admin';
 export * from '../../domain/streams/config';
+export * from '../../domain/feature-catalogue'; // ADM-1
+export * from '../../domain/streams/roles'; // ADM-2 custom roles
+export {rolSeedDemo} from '../../fixtures/ext/roles'; // ADM-2 demo custom roles
 export * from '../../domain/streams/closing';
 export * from '../../domain/streams/expenses-scc'; // DEC-120 SCC expense features
 export * from '../../domain/streams/udhaar-desk'; // DEC-130 Udhaar payments as desk receipts

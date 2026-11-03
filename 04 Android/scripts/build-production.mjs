@@ -291,7 +291,10 @@ if(main){
   const task=release?'assembleProductionRelease':'assembleProductionDebug';
   if(args.includes('--assemble')){
     const win=process.platform==='win32';
-    const r=spawnSync(win?'gradlew.bat':'./gradlew',[task],{cwd:join(root,'android'),stdio:'inherit',shell:win});
+    // V19-4: run Gradle in android/ by its absolute path (cmd.exe does not always search the working folder, and the
+    // folder name "04 Android" has a space, so the path is quoted for the shell).
+    const androidDir=join(root,'android'),gw=join(androidDir,win?'gradlew.bat':'gradlew');
+    const r=spawnSync(win?`"${gw}"`:gw,[task],{cwd:androidDir,stdio:'inherit',shell:win});
     if(r.status!==0)fail(`gradle ${task} failed.`);
     if(release){verifyAndReport(join(root,'android','app','build','outputs','apk','productionRelease','app-productionRelease.apk'),{expectCaSha256:ca.sha256,...signerExpect()});
       console.log('APK: 04 Android/android/app/build/outputs/apk/productionRelease/app-productionRelease.apk');}

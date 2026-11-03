@@ -41,6 +41,7 @@ import {handlers as syshealth} from './syshealth';
 import {handlers as feedbackQw} from './feedback'; // F4-T3
 import {handlers as roommasters} from './roommasters';
 import {handlers as keys} from './keys'; // KEYS room keys
+import {handlers as roles} from './roles'; // ADM-2 custom roles (wraps USER_CREATE / USER_UPDATE: after admin)
 // LF lanes: ONE import line inside your own block (append only); spread it in the LF object below.
 // LF-DOCDB
 // LF-DOCDB end
@@ -131,7 +132,7 @@ const F6:Record<string,Handler>={ // F6 lanes: spread your handlers inside your 
   // F6-H3
   // F6-H3 end
 };
-const registry0:Record<string,Handler>={...ACC1,...ACC2,...reservations,...guests,...folio,...housekeeping,...admin,...closing,...expenses,...yieldMod,...groups,...channels,...maintenance,...inventory,...handover,...services,...messaging,...pos,...staff,...accounting,...assistant,...compliance,...cashbook,...cashout,...masters,...credentials,...syshealth,...roommasters,...keys,...LF,...F4,...egress /* F5-E1 */,...catalogue,...accountingYear,...accountingBank /* F5-A1 */,...F6};
+const registry0:Record<string,Handler>={...ACC1,...ACC2,...reservations,...guests,...folio,...housekeeping,...admin,...closing,...expenses,...yieldMod,...groups,...channels,...maintenance,...inventory,...handover,...services,...messaging,...pos,...staff,...accounting,...assistant,...compliance,...cashbook,...cashout,...masters,...credentials,...syshealth,...roommasters,...keys,...roles,...LF,...F4,...egress /* F5-E1 */,...catalogue,...accountingYear,...accountingBank /* F5-A1 */,...F6};
 // F5-A1 — ACC-4 §1.2: after the year lock every post / edit / void dated in the year is refused ACC_YEAR_LOCKED (day reopen and month unlock
 // included); the year / bank commands and exports check for themselves. A correction is a journal in the new year: ACC_MANUAL_SAVE takes
 // `refersToFy` (G4), kept on the saved voucher.

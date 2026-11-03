@@ -26,7 +26,7 @@ export function MobileShell({allowedIds,children,canGoBack,onBack,tabKey,onTab}:
     <header className="m-appbar">
       {showBack?<button className="m-icon" aria-label="Back" onClick={onBack}><ArrowLeft size={22}/></button>:<span className="m-brand" aria-hidden><Hotel size={20}/></span>}
       <div className="m-titles"><div className="m-title">{title}</div>
-        <span className={'m-date '+(closed?'closed':'open')} title="Simulated business date" style={{minWidth:0}}><CalendarDays size={12} style={{flexShrink:0}}/><span style={{minWidth:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>Business date {dateLabel(s.date).replace(/ \d{4}$/,'')} ·</span><b style={{flexShrink:0}}>{closed?'Closed':'Open'}</b></span></div>
+        <span className={'m-date '+(closed?'closed':'open')} title="Simulated business date" style={{minWidth:0}}><CalendarDays size={12} style={{flexShrink:0}}/><span style={{minWidth:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}><span className="sr-only">Business date </span>{dateLabel(s.date).replace(/ \d{4}$/,'')} ·</span><b style={{flexShrink:0}}>{closed?'Closed':'Open'}</b></span></div>
       <button className="m-search" aria-label="Search pages and actions" onClick={openSearch}><Search size={22}/></button>
       {process.env.HCC_BUILD==='production'?null:<button className="m-demo-pill" onClick={()=>open({type:'demo'})} aria-label="Open demo controls"><FlaskConical size={14}/><span className="m-demo-text">DEMO</span></button>}
       <button className="m-avatar" aria-label={`User menu: ${user.name}`} onClick={()=>open({type:'user-menu'})}>{user.name[0]}</button>

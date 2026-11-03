@@ -22,6 +22,7 @@
 // Statutory values are DATED settings (effective-from) and marked "Illustrative — CA to confirm for a hotel". Fictional staff only.
 import type {State,Role} from '../types';
 import {addDays} from '../money';
+import {csvMinimal} from '../csv';
 import {can} from '../selectors';
 import {hrShiftPattern,hrWeeklyOffAuto,hrHolidayPaid,hrHolidayOn,hrHolidays,hrLeavePaid,hrLeaveQuota,HR_SHIFT_SEED} from './people-masters';
 import {mstStored} from './masters';
@@ -687,7 +688,7 @@ export function hrVisiblePayslips(s:State,uid:string):{run:HRRun;line:HRLine}[]{
 const rupees=(p:number)=>(Number.isFinite(p)?p/100:0).toFixed(2);
 /** CSV cell; F-17: text starting with = + - @ (or tab / CR) is prefixed with ' so spreadsheets never run it as a formula (plain numbers stay numbers). */
 // A06-08: a CR inside a cell is quoted too — unquoted, Excel starts a new row there and would read the text after it as a cell of its own.
-const csvCell=(v:string|number)=>{let t=String(v);if(typeof v==='string'&&/^[=+\-@\t\r]/.test(t)&&!/^-?\d+(\.\d+)?$/.test(t))t="'"+t;return /[",\r\n]/.test(t)?'"'+t.split('"').join('""')+'"':t;};
+const csvCell=csvMinimal; // W05 review F15 (re-triage 3 Nov 2026): the shared formula-guarded helper replaces the payroll twin
 const csv=(rows:(string|number)[][])=>rows.map(r=>r.map(csvCell).join(',')).join('\n')+'\n';
 /** Payroll register CSV (rupees with 2 decimals). */
 export function hrRegisterCsv(s:State,run:HRRun):string{

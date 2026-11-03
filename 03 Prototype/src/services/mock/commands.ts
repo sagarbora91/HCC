@@ -8,6 +8,7 @@ import {money,addDays,nights,addMinutes,OPENING_TIME} from '../../domain/money';
 import {can,available,occupant,totals,drawer,rateFor} from '../../domain/selectors';
 import {gstForRoomNight,gstForCharge,gstCategoryOfLabel,gstForFolioAdjustment} from '../../domain/gst';
 import {cfgBeforeCommand} from '../../domain/streams/config';
+import {rolCommandBlock} from '../../domain/streams/roles'; // ADM-2
 import {keyAfterCheckout} from '../../domain/streams/keys'; // KEYS: check-out hook (never blocks)
 import {mnyMethodFor,mnyIsDrawer} from '../../domain/streams/money-master';
 import {catPlanNight} from '../../domain/streams/catalogue';
@@ -33,6 +34,8 @@ export function execute(input:State,uid:string,cmd:Command):State{
   const addNight=(x:Booking,date:string)=>{const lid=`night:${x.id}:${date}`;if(!x.lines.some(l=>l.id===lid||l.kind==='room'&&l.date===date)){x.lines.push({id:lid,label:'Room night · '+date,amount:x.rate,date,kind:'room',taxBps:gstForRoomNight(s,date,x.rate).bps});catPlanNight(s,x,date);}}; // MA-2: meal plan line with the night
   // W05-A Master configuration: apply due dated values; refuse commands of a switched-off module (DEC-057).
   {const off=cfgBeforeCommand(s,cmd);if(off)fail('FORBIDDEN',off);}
+  // ADM-2: the actor's custom role has this command's feature off or view only.
+  {const r=rolCommandBlock(s,uid,cmd);if(r)fail('FORBIDDEN',r);}
   let detail='';
   // Stream handlers (services/mock/handlers/*) take precedence: they add new commands or replace an owned one.
   const handler=registry[cmd.type];

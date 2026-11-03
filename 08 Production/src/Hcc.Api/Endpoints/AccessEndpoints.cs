@@ -46,6 +46,8 @@ public static class AccessEndpoints
         services.AddSingleton<IAccessEvaluator>(sp => sp.GetRequiredService<AccessModule>().Policy);
         services.AddSingleton(sp => sp.GetRequiredService<AccessModule>().Sessions);
         services.AddSingleton(sp => sp.GetRequiredService<AccessModule>().Users);
+        services.AddSingleton(sp => sp.GetRequiredService<AccessModule>().Roles);           // ADM-2 roles as data
+        services.AddSingleton(sp => sp.GetRequiredService<AccessModule>().FeatureAccess);   // ADM-2 per-role feature levels
         services.AddSingleton(sp => sp.GetRequiredService<AccessModule>().Capabilities);
         services.AddSingleton(sp => sp.GetRequiredService<AccessModule>().AdminQueries);
         return services;
@@ -207,6 +209,9 @@ public static class AccessEndpoints
         // W4-5: read-only role templates, user exceptions and the audit log for the Access control / Approvals & audit screens.
         admin.MapGet("/roles", async (HttpContext http, IAccessAdminQueries q, CancellationToken ct) =>
             Results.Ok(await q.RolesAsync(http.GetHccSession(), ct).ConfigureAwait(false)));
+        // ADM-2: versioned policy changes (custom roles) for the Administration page's audit tab, newest first.
+        admin.MapGet("/policy-history", async (HttpContext http, IRoleAdministration roles, int? take, CancellationToken ct) =>
+            Results.Ok(await roles.HistoryAsync(http.GetHccSession(), take ?? 50, ct).ConfigureAwait(false)));
         admin.MapGet("/exceptions", async (HttpContext http, IAccessAdminQueries q, bool? includeRevoked, CancellationToken ct) =>
             Results.Ok(await q.ExceptionsAsync(http.GetHccSession(), includeRevoked ?? false, ct).ConfigureAwait(false)));
         admin.MapGet("/audit", async (HttpContext http, IAccessAdminQueries q, int? page, int? pageSize, string? action, int? principalId, DateOnly? from, DateOnly? to, string? entity, string? entityId, CancellationToken ct) =>
@@ -223,8 +228,22 @@ public static class AccessEndpoints
         Command<RevokeExceptionRequest, ExceptionResult>(commands, "RevokeException", (u, s, k, b, ct) => u.RevokeExceptionAsync(s, k, b, ct));
         Command<RegisterDeviceRequest, RegisterDeviceResult>(commands, "RegisterDevice", (u, s, k, b, ct) => u.RegisterDeviceAsync(s, k, b, ct));
         Command<RevokeDeviceRequest, DeviceRevokedResult>(commands, "RevokeDevice", (u, s, k, b, ct) => u.RevokeDeviceAsync(s, k, b, ct));
+        // ADM-2 roles as data (Owner only; 02 Planning/agents/ADM_Briefs.md §2.2).
+        RoleCommand<CreateRoleRequest>(commands, "CreateRole", (r, s, k, b, ct) => r.CreateRoleAsync(s, k, b, ct));
+        RoleCommand<UpdateRoleRequest>(commands, "UpdateRole", (r, s, k, b, ct) => r.UpdateRoleAsync(s, k, b, ct));
+        RoleCommand<SetRoleFeatureRequest>(commands, "SetRoleFeature", (r, s, k, b, ct) => r.SetRoleFeatureAsync(s, k, b, ct));
+        RoleCommand<SetRoleGrantRequest>(commands, "SetRoleGrant", (r, s, k, b, ct) => r.SetRoleGrantAsync(s, k, b, ct));
+        RoleCommand<RetireRoleRequest>(commands, "RetireRole", (r, s, k, b, ct) => r.RetireRoleAsync(s, k, b, ct));
         return api;
     }
+
+    private static RouteHandlerBuilder RoleCommand<TBody>(RouteGroupBuilder group, string name,
+        Func<IRoleAdministration, AuthenticatedSession, string, TBody, CancellationToken, Task<CommandResult<RoleChangeResult>>> run) =>
+        group.MapPost("/" + name, async (TBody body, HttpContext http, IRoleAdministration roles, CancellationToken ct) =>
+        {
+            var result = await run(roles, http.GetHccSession(), http.Request.IdempotencyKey(), body, ct).ConfigureAwait(false);
+            return http.HccReply(result);
+        });
 
     private static RouteHandlerBuilder Command<TBody, TResult>(RouteGroupBuilder group, string name,
         Func<IUserAdministration, AuthenticatedSession, string, TBody, CancellationToken, Task<CommandResult<TResult>>> run) =>

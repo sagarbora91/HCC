@@ -188,3 +188,19 @@ Not done (need an owner/lead decision or are outside the allowed files):
 - **F14 (rest)** seeding obligations for saves without `complianceX`: depends on the SCHEMA bump at merge.
 - **F15 (rest)** `staff.ts` still has its own `csvCell` and `.at(` / `structuredClone` uses in staff files (payroll files, not touched). Deterministic cash-book lock keys left as they are (they work; changing them is cosmetic). `DayPack.tsx` preview branch left (harmless).
 - Merge note: `SHIFT_CLOSE` now has a handler in `handlers/closing.ts`; if W05-A changed the built-in `SHIFT_CLOSE` in `commands.ts`, port that change into the handler at merge.
+
+## Re-triage against today's code (3 Nov 2026, branch `claude/adm`)
+
+| Finding | Status today | Evidence |
+|---|---|---|
+| F7 lock without a closing record | Closed | `[CB] F7` in `tests/stream-cashbook.mjs` |
+| F8 xlsx odd input | Closed | `[XLSX] F8` in `tests/stream-exports.mjs` |
+| F9 ratios as text | Closed | `[XLSX] F9` |
+| F10 Tally impossible dates | Closed | `[TALLY] F10` |
+| F11 false "Saved" toasts | Closed | `[XLSX] F11` |
+| F12 Compliance visible to Cashier / Manager | Closed | `navRoleOk` in `src/app/navmap.ts` filters `compliance` with `cmpHasAccess` (also W05-1) |
+| F13 cash book lock blocks nothing | Closed by decision DEC-065 (APR-012) and enforced | `cbIsLocked` refused in `handlers/closing.ts` (corrections, difference decisions), `cashout.ts`, `accounting-flows.ts` |
+| F14 reopen erases the filing; saves without a calendar | Closed | SCC port keeps a `reopened` log (`CMPReopened` in `streams/compliance.ts`); the slice is created lazily and legacy shapes are mapped (`cmpSlice`); `tests/stream-schema8.mjs` |
+| F15 hygiene | Closed 3 Nov 2026 | Shared `src/domain/csv.ts` (`csvSafe` / `csvQuoted` / `csvMinimal`) used by cash book, closing, accounting and, from today, payroll (`streams/staff.ts` twin folded in); `cbPrev`, `CBRangeRow`, `cmpDueLines` gone; deterministic cash-book lock keys kept on purpose (history only grows) |
+
+Backlog row F7–F15 closed.

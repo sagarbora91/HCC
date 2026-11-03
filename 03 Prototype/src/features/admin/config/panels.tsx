@@ -2,7 +2,8 @@
 // device display, invariants, reset), users link. Classes cfg- (styles/m-config.css). Phone = same markup, stacked cards.
 import React from 'react';
 import {Power,Download,Upload,ShieldCheck,RotateCcw,ExternalLink,Lock} from 'lucide-react';
-import {CFG_MODULES,CFG_CORE_MODULES,cfgModuleOn,cfgDef,cfgCanChange,cfgExport,cfgPendingRequests,cfgPageOn,cfgGroup,type CfgGroupId} from '../../../services/mock';
+import {CFG_MODULES,CFG_CORE_MODULES,CFG_CORE_REASON,cfgModuleOn,cfgFeatureOn,cfgFeatureOffReason,cfgFeaturesOff,featureAll,featureKey,featureClosure,featureById,
+  cfgDef,cfgCanChange,cfgExport,cfgPendingRequests,cfgPageOn,cfgGroup,type CfgGroupId} from '../../../services/mock';
 import {useHcc} from '../../../app/context';
 import {DisplaySection} from '../../../app/display';
 import {saveTextFile,nativeFileName} from '../../../app/native';
@@ -24,7 +25,41 @@ export function CfgModulesPanel(){
           {block&&<small className="adm-why">{block}</small>}</span>
       </li>;})}</ul>
     <div className="cfg-core"><Lock size={15}/><span><strong>Core modules — always on:</strong> {CFG_CORE_MODULES.join(', ')}.</span></div>
+    <CfgFeaturesTree/>
   </div>;
+}
+
+/** ADM-1 (DEC-214 / DEC-215): sub-functions per module. Core rows are greyed with the reason; a switch-off lists the dependants it takes down. */
+export function CfgFeaturesTree(){
+  const {s,uid,run,busy}=useHcc();
+  const mods=[...new Map(featureAll().map(r=>[r.module.id,r.module])).values()];
+  const off=cfgFeaturesOff(s);
+  return <section className="cfg-features" aria-label="Sub-functions">
+    <h3>Sub-functions</h3>
+    <p className="muted">Switch a part of a module off without losing the rest: for example Front desk stays on while Reservations is off (walk-ins still check in). Core sub-functions cannot be switched off (DEC-215).</p>
+    {mods.map(m=>{const rows=featureAll().filter(r=>r.module.id===m.id);const modOn=!m.switch||cfgModuleOn(s,m.switch);
+      return <div key={m.id} className={'cfg-fmod'+(modOn?'':' off')}>
+        <h4>{m.label}{!modOn&&<small> · module switched off</small>}</h4>
+        <ul className="cfg-mods">{rows.map(r=>{
+          const on=cfgFeatureOn(s,r.id);const explicitOff=off.includes(r.id);
+          const def=r.feature.core?undefined:cfgDef(s,featureKey(r.id));
+          const d=def?cfgCanChange(s,uid,def):undefined;
+          const pend=def?cfgPendingRequests(s,def.key).length>0:false;
+          const why=r.feature.core?CFG_CORE_REASON:!modOn?'Switch the module on first':d?.mode==='deny'?d.reason:pend?'Change waiting for approval':(!on&&!explicitOff)?cfgFeatureOffReason(s,r.id):undefined;
+          const deps=featureClosure(r.id).slice(1).map(id=>featureById(id)?.feature.label).filter(Boolean);
+          const canAct=!!def&&!why;
+          return <li key={r.id} className={'cfg-mod cfg-feature'+(on?' on':'')+(r.feature.core?' core':'')}>
+            <div><strong>{r.feature.label}</strong><small>{r.feature.note}</small>{!on&&deps.length>0&&explicitOff&&<small>Off with it: {deps.join(', ')}</small>}</div>
+            <Pill tone={on?'green':'neutral'}>{r.feature.core?'Always on':on?'On':'Off'}</Pill>
+            <span className="cfg-mod-act">
+              {canAct&&<button type="button" className="btn small-btn" disabled={busy} aria-label={`${explicitOff?'Switch on':'Switch off'} ${r.feature.label}`}
+                onClick={()=>{if(!explicitOff&&deps.length&&!window.confirm(`Switching off ${r.feature.label} also switches off: ${deps.join(', ')}. Continue?`))return;
+                  run({type:'SETTING_SET',setting:def!.key,value:explicitOff,key:`cfg-feat:${r.id}:${s.sequence}`},explicitOff?`${r.feature.label} switched on`:`${r.feature.label} switched off · data kept`);}}>
+                <Power size={15}/> {explicitOff?'Switch on':'Switch off'}</button>}
+              {why&&<small className="adm-why">{why}</small>}</span>
+          </li>;})}</ul>
+      </div>;})}
+  </section>;
 }
 
 export function CfgDataPanel(){

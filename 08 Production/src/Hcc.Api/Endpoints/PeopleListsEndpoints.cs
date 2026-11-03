@@ -2,6 +2,7 @@ using Hcc.Application.Masters;
 using Hcc.Application.PeopleLists;
 using Hcc.Contracts.PeopleLists;
 using Hcc.Domain.PeopleLists;
+using Hcc.Domain.Configuration;
 using Hcc.Infrastructure.SqlServer;
 using Hcc.Infrastructure.SqlServer.PeopleLists;
 
@@ -28,31 +29,32 @@ public static class PeopleListsEndpoints
     {
         ArgumentNullException.ThrowIfNull(api);
         var g = api.MapHccSecured();
+        var mst = g.MapGroup(string.Empty).RequireHccFeature(FeatureIds.Masters); // ADM follow-up (DEC-214): master-list commands only; reads stay on g
         const string c = "/commands/";
 
-        g.MapPost(c + "SaveDesignation", async (HttpContext http, SaveDesignationRequest b, PeopleListsCommands x, CancellationToken ct) => http.HccReply(await x.SaveDesignationAsync(http.HccCommand("SaveDesignation"), b, ct)));
-        g.MapPost(c + "RetireDesignation", async (HttpContext http, RetireDesignationRequest b, PeopleListsCommands x, CancellationToken ct) => http.HccReply(await x.RetireDesignationAsync(http.HccCommand("RetireDesignation"), b, ct)));
-        g.MapPost(c + "ReactivateDesignation", async (HttpContext http, ReactivateDesignationRequest b, PeopleListsCommands x, CancellationToken ct) => http.HccReply(await x.ReactivateDesignationAsync(http.HccCommand("ReactivateDesignation"), b, ct)));
-        g.MapPost(c + "DeleteDesignation", async (HttpContext http, DeleteDesignationRequest b, PeopleListsCommands x, CancellationToken ct) => http.HccReply(await x.DeleteDesignationAsync(http.HccCommand("DeleteDesignation"), b, ct)));
-        g.MapPost(c + "ReorderDesignations", async (HttpContext http, ReorderDesignationsRequest b, PeopleListsCommands x, CancellationToken ct) => http.HccReply(await x.ReorderDesignationsAsync(http.HccCommand("ReorderDesignations"), b, ct)));
+        mst.MapPost(c + "SaveDesignation", async (HttpContext http, SaveDesignationRequest b, PeopleListsCommands x, CancellationToken ct) => http.HccReply(await x.SaveDesignationAsync(http.HccCommand("SaveDesignation"), b, ct)));
+        mst.MapPost(c + "RetireDesignation", async (HttpContext http, RetireDesignationRequest b, PeopleListsCommands x, CancellationToken ct) => http.HccReply(await x.RetireDesignationAsync(http.HccCommand("RetireDesignation"), b, ct)));
+        mst.MapPost(c + "ReactivateDesignation", async (HttpContext http, ReactivateDesignationRequest b, PeopleListsCommands x, CancellationToken ct) => http.HccReply(await x.ReactivateDesignationAsync(http.HccCommand("ReactivateDesignation"), b, ct)));
+        mst.MapPost(c + "DeleteDesignation", async (HttpContext http, DeleteDesignationRequest b, PeopleListsCommands x, CancellationToken ct) => http.HccReply(await x.DeleteDesignationAsync(http.HccCommand("DeleteDesignation"), b, ct)));
+        mst.MapPost(c + "ReorderDesignations", async (HttpContext http, ReorderDesignationsRequest b, PeopleListsCommands x, CancellationToken ct) => http.HccReply(await x.ReorderDesignationsAsync(http.HccCommand("ReorderDesignations"), b, ct)));
 
-        g.MapPost(c + "SaveShiftPattern", async (HttpContext http, SaveShiftPatternRequest b, PeopleListsCommands x, CancellationToken ct) => http.HccReply(await x.SaveShiftPatternAsync(http.HccCommand("SaveShiftPattern"), b, ct)));
-        g.MapPost(c + "RetireShiftPattern", async (HttpContext http, RetireShiftPatternRequest b, PeopleListsCommands x, CancellationToken ct) => http.HccReply(await x.RetireShiftPatternAsync(http.HccCommand("RetireShiftPattern"), b, ct)));
-        g.MapPost(c + "ReactivateShiftPattern", async (HttpContext http, ReactivateShiftPatternRequest b, PeopleListsCommands x, CancellationToken ct) => http.HccReply(await x.ReactivateShiftPatternAsync(http.HccCommand("ReactivateShiftPattern"), b, ct)));
-        g.MapPost(c + "DeleteShiftPattern", async (HttpContext http, DeleteShiftPatternRequest b, PeopleListsCommands x, CancellationToken ct) => http.HccReply(await x.DeleteShiftPatternAsync(http.HccCommand("DeleteShiftPattern"), b, ct)));
-        g.MapPost(c + "ReorderShiftPatterns", async (HttpContext http, ReorderShiftPatternsRequest b, PeopleListsCommands x, CancellationToken ct) => http.HccReply(await x.ReorderShiftPatternsAsync(http.HccCommand("ReorderShiftPatterns"), b, ct)));
+        mst.MapPost(c + "SaveShiftPattern", async (HttpContext http, SaveShiftPatternRequest b, PeopleListsCommands x, CancellationToken ct) => http.HccReply(await x.SaveShiftPatternAsync(http.HccCommand("SaveShiftPattern"), b, ct)));
+        mst.MapPost(c + "RetireShiftPattern", async (HttpContext http, RetireShiftPatternRequest b, PeopleListsCommands x, CancellationToken ct) => http.HccReply(await x.RetireShiftPatternAsync(http.HccCommand("RetireShiftPattern"), b, ct)));
+        mst.MapPost(c + "ReactivateShiftPattern", async (HttpContext http, ReactivateShiftPatternRequest b, PeopleListsCommands x, CancellationToken ct) => http.HccReply(await x.ReactivateShiftPatternAsync(http.HccCommand("ReactivateShiftPattern"), b, ct)));
+        mst.MapPost(c + "DeleteShiftPattern", async (HttpContext http, DeleteShiftPatternRequest b, PeopleListsCommands x, CancellationToken ct) => http.HccReply(await x.DeleteShiftPatternAsync(http.HccCommand("DeleteShiftPattern"), b, ct)));
+        mst.MapPost(c + "ReorderShiftPatterns", async (HttpContext http, ReorderShiftPatternsRequest b, PeopleListsCommands x, CancellationToken ct) => http.HccReply(await x.ReorderShiftPatternsAsync(http.HccCommand("ReorderShiftPatterns"), b, ct)));
 
-        g.MapPost(c + "SaveLeaveType", async (HttpContext http, SaveLeaveTypeRequest b, PeopleListsCommands x, CancellationToken ct) => http.HccReply(await x.SaveLeaveTypeAsync(http.HccCommand("SaveLeaveType"), b, ct)));
-        g.MapPost(c + "RetireLeaveType", async (HttpContext http, RetireLeaveTypeRequest b, PeopleListsCommands x, CancellationToken ct) => http.HccReply(await x.RetireLeaveTypeAsync(http.HccCommand("RetireLeaveType"), b, ct)));
-        g.MapPost(c + "ReactivateLeaveType", async (HttpContext http, ReactivateLeaveTypeRequest b, PeopleListsCommands x, CancellationToken ct) => http.HccReply(await x.ReactivateLeaveTypeAsync(http.HccCommand("ReactivateLeaveType"), b, ct)));
-        g.MapPost(c + "DeleteLeaveType", async (HttpContext http, DeleteLeaveTypeRequest b, PeopleListsCommands x, CancellationToken ct) => http.HccReply(await x.DeleteLeaveTypeAsync(http.HccCommand("DeleteLeaveType"), b, ct)));
-        g.MapPost(c + "ReorderLeaveTypes", async (HttpContext http, ReorderLeaveTypesRequest b, PeopleListsCommands x, CancellationToken ct) => http.HccReply(await x.ReorderLeaveTypesAsync(http.HccCommand("ReorderLeaveTypes"), b, ct)));
+        mst.MapPost(c + "SaveLeaveType", async (HttpContext http, SaveLeaveTypeRequest b, PeopleListsCommands x, CancellationToken ct) => http.HccReply(await x.SaveLeaveTypeAsync(http.HccCommand("SaveLeaveType"), b, ct)));
+        mst.MapPost(c + "RetireLeaveType", async (HttpContext http, RetireLeaveTypeRequest b, PeopleListsCommands x, CancellationToken ct) => http.HccReply(await x.RetireLeaveTypeAsync(http.HccCommand("RetireLeaveType"), b, ct)));
+        mst.MapPost(c + "ReactivateLeaveType", async (HttpContext http, ReactivateLeaveTypeRequest b, PeopleListsCommands x, CancellationToken ct) => http.HccReply(await x.ReactivateLeaveTypeAsync(http.HccCommand("ReactivateLeaveType"), b, ct)));
+        mst.MapPost(c + "DeleteLeaveType", async (HttpContext http, DeleteLeaveTypeRequest b, PeopleListsCommands x, CancellationToken ct) => http.HccReply(await x.DeleteLeaveTypeAsync(http.HccCommand("DeleteLeaveType"), b, ct)));
+        mst.MapPost(c + "ReorderLeaveTypes", async (HttpContext http, ReorderLeaveTypesRequest b, PeopleListsCommands x, CancellationToken ct) => http.HccReply(await x.ReorderLeaveTypesAsync(http.HccCommand("ReorderLeaveTypes"), b, ct)));
 
-        g.MapPost(c + "SaveHoliday", async (HttpContext http, SaveHolidayRequest b, PeopleListsCommands x, CancellationToken ct) => http.HccReply(await x.SaveHolidayAsync(http.HccCommand("SaveHoliday"), b, ct)));
-        g.MapPost(c + "RetireHoliday", async (HttpContext http, RetireHolidayRequest b, PeopleListsCommands x, CancellationToken ct) => http.HccReply(await x.RetireHolidayAsync(http.HccCommand("RetireHoliday"), b, ct)));
-        g.MapPost(c + "ReactivateHoliday", async (HttpContext http, ReactivateHolidayRequest b, PeopleListsCommands x, CancellationToken ct) => http.HccReply(await x.ReactivateHolidayAsync(http.HccCommand("ReactivateHoliday"), b, ct)));
-        g.MapPost(c + "DeleteHoliday", async (HttpContext http, DeleteHolidayRequest b, PeopleListsCommands x, CancellationToken ct) => http.HccReply(await x.DeleteHolidayAsync(http.HccCommand("DeleteHoliday"), b, ct)));
-        g.MapPost(c + "ReorderHolidays", async (HttpContext http, ReorderHolidaysRequest b, PeopleListsCommands x, CancellationToken ct) => http.HccReply(await x.ReorderHolidaysAsync(http.HccCommand("ReorderHolidays"), b, ct)));
+        mst.MapPost(c + "SaveHoliday", async (HttpContext http, SaveHolidayRequest b, PeopleListsCommands x, CancellationToken ct) => http.HccReply(await x.SaveHolidayAsync(http.HccCommand("SaveHoliday"), b, ct)));
+        mst.MapPost(c + "RetireHoliday", async (HttpContext http, RetireHolidayRequest b, PeopleListsCommands x, CancellationToken ct) => http.HccReply(await x.RetireHolidayAsync(http.HccCommand("RetireHoliday"), b, ct)));
+        mst.MapPost(c + "ReactivateHoliday", async (HttpContext http, ReactivateHolidayRequest b, PeopleListsCommands x, CancellationToken ct) => http.HccReply(await x.ReactivateHolidayAsync(http.HccCommand("ReactivateHoliday"), b, ct)));
+        mst.MapPost(c + "DeleteHoliday", async (HttpContext http, DeleteHolidayRequest b, PeopleListsCommands x, CancellationToken ct) => http.HccReply(await x.DeleteHolidayAsync(http.HccCommand("DeleteHoliday"), b, ct)));
+        mst.MapPost(c + "ReorderHolidays", async (HttpContext http, ReorderHolidaysRequest b, PeopleListsCommands x, CancellationToken ct) => http.HccReply(await x.ReorderHolidaysAsync(http.HccCommand("ReorderHolidays"), b, ct)));
 
         g.MapGet("/hr/designations", async (HttpContext http, PeopleListsQueries q, CancellationToken ct, int? page = null, int? pageSize = null, string? status = null) =>
         {

@@ -4,6 +4,8 @@ using Hcc.Contracts.Expenses;
 using Hcc.Infrastructure.SqlServer;
 using Hcc.Infrastructure.SqlServer.Expenses;
 
+using Hcc.Domain.Configuration;
+
 namespace Hcc.Api.Endpoints;
 
 /// <summary>
@@ -31,16 +33,18 @@ public static class ExpenseVendorEndpoints
     {
         ArgumentNullException.ThrowIfNull(api);
         var g = api.MapHccSecured();
-        g.MapPost("/commands/" + VendorPaymentCommands.OpPay, async (HttpContext http, RecordVendorPaymentRequest body, VendorPaymentCommands c, CancellationToken ct) =>
+        var purchases = g.MapGroup(string.Empty).RequireHccFeature(FeatureIds.Purchases); // ADM-1 (DEC-214)
+        var assets = g.MapGroup(string.Empty).RequireHccFeature(FeatureIds.AssetRegister);
+        purchases.MapPost("/commands/" + VendorPaymentCommands.OpPay, async (HttpContext http, RecordVendorPaymentRequest body, VendorPaymentCommands c, CancellationToken ct) =>
             http.HccReply(await c.PayAsync(http.HccCommand(VendorPaymentCommands.OpPay), body, ct)));
-        g.MapPost("/commands/" + VendorPaymentCommands.OpVoid, async (HttpContext http, VoidVendorPaymentRequest body, VendorPaymentCommands c, CancellationToken ct) =>
+        purchases.MapPost("/commands/" + VendorPaymentCommands.OpVoid, async (HttpContext http, VoidVendorPaymentRequest body, VendorPaymentCommands c, CancellationToken ct) =>
             http.HccReply(await c.VoidAsync(http.HccCommand(VendorPaymentCommands.OpVoid), body, ct)));
-        g.MapPost("/commands/" + VendorPaymentCommands.OpReturn, async (HttpContext http, RecordExpenseReturnRequest body, VendorPaymentCommands c, CancellationToken ct) =>
+        purchases.MapPost("/commands/" + VendorPaymentCommands.OpReturn, async (HttpContext http, RecordExpenseReturnRequest body, VendorPaymentCommands c, CancellationToken ct) =>
             http.HccReply(await c.ReturnAsync(http.HccCommand(VendorPaymentCommands.OpReturn), body, ct)));
-        g.MapPost("/commands/" + VendorPaymentCommands.OpReallocate, async (HttpContext http, ReallocateVendorPaymentRequest body, VendorPaymentCommands c, CancellationToken ct) =>
+        purchases.MapPost("/commands/" + VendorPaymentCommands.OpReallocate, async (HttpContext http, ReallocateVendorPaymentRequest body, VendorPaymentCommands c, CancellationToken ct) =>
             http.HccReply(await c.ReallocateAsync(http.HccCommand(VendorPaymentCommands.OpReallocate), body, ct))); // ACC-3 C3
-        BillingEndpoints.Command<SetAssetPutToUseRequest, FixedAssetResult>(g, AssetService.OpPutToUse, (sp, c, k, r, ct) => Assets(sp).PutToUseAsync(c, k, r, ct)); // ACC-3 C1
-        BillingEndpoints.Command<DisposeFixedAssetRequest, FixedAssetResult>(g, AssetService.OpDispose, (sp, c, k, r, ct) => Assets(sp).DisposeAsync(c, k, r, ct)); // ACC-3 C1
+        BillingEndpoints.Command<SetAssetPutToUseRequest, FixedAssetResult>(assets, AssetService.OpPutToUse, (sp, c, k, r, ct) => Assets(sp).PutToUseAsync(c, k, r, ct)); // ACC-3 C1
+        BillingEndpoints.Command<DisposeFixedAssetRequest, FixedAssetResult>(assets, AssetService.OpDispose, (sp, c, k, r, ct) => Assets(sp).DisposeAsync(c, k, r, ct)); // ACC-3 C1
         g.MapGet("/expenses/vendor-payments", async (HttpContext http, VendorPaymentQueries q, CancellationToken ct) =>
         {
             var (property, principal) = http.HccActor();

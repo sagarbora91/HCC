@@ -9,6 +9,8 @@ using Hcc.Domain.Errors;
 using Hcc.Infrastructure.SqlServer;
 using Hcc.Infrastructure.SqlServer.Legacy;
 
+using Hcc.Domain.Configuration;
+
 namespace Hcc.Api.Endpoints;
 
 /// <summary>
@@ -36,7 +38,8 @@ public static class LegacyEndpoints
     {
         ArgumentNullException.ThrowIfNull(api);
         var g = api.MapHccSecured();
-        g.MapPost("/commands/" + LegacyImportService.OpImport, async (HttpContext http, LegacyImportRequest body, CancellationToken ct) =>
+        var cmd = g.MapGroup(string.Empty).RequireHccFeature(FeatureIds.LegacyImport); // ADM-1 (DEC-214): refused while the sub-function is off; reads stay on g
+        cmd.MapPost("/commands/" + LegacyImportService.OpImport, async (HttpContext http, LegacyImportRequest body, CancellationToken ct) =>
             http.HccReply(await Service(http).ImportAsync(http.HccCommand(LegacyImportService.OpImport, keyRequired: false), body, ct)));
         g.MapGet("/legacy/runs", async (HttpContext http, CancellationToken ct, int limit = 50) =>
         {

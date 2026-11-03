@@ -4,6 +4,8 @@ using Hcc.Contracts.Keys;
 using Hcc.Infrastructure.SqlServer;
 using Hcc.Infrastructure.SqlServer.Keys;
 
+using Hcc.Domain.Configuration;
+
 namespace Hcc.Api.Endpoints;
 
 /// <summary>
@@ -34,12 +36,13 @@ public static class KeysEndpoints
     {
         ArgumentNullException.ThrowIfNull(api);
         var g = api.MapHccSecured();
-        g.MapPost("/commands/" + KeyCommands.OpRequestKey, async (HttpContext http, RequestKeyRequest body, KeyCommands c, CancellationToken ct) => http.HccReply(await c.RequestKeyAsync(http.HccCommand(KeyCommands.OpRequestKey), body, ct)));
-        g.MapPost("/commands/" + KeyCommands.OpCancelKey, async (HttpContext http, CancelKeyRequest body, KeyCommands c, CancellationToken ct) => http.HccReply(await c.CancelKeyAsync(http.HccCommand(KeyCommands.OpCancelKey), body, ct)));
-        g.MapPost("/commands/" + KeyCommands.OpReadKey, async (HttpContext http, ReadKeyRequest body, KeyCommands c, CancellationToken ct) => http.HccReply(await c.ReadKeyAsync(http.HccCommand(KeyCommands.OpReadKey), body, ct)));
-        g.MapPost("/commands/" + KeyCommands.OpManualKey, async (HttpContext http, RecordManualKeyRequest body, KeyCommands c, CancellationToken ct) => http.HccReply(await c.RecordManualKeyAsync(http.HccCommand(KeyCommands.OpManualKey), body, ct)));
-        g.MapPost("/commands/" + KeyCommands.OpSaveLock, async (HttpContext http, SaveKeyLockRequest body, KeyCommands c, CancellationToken ct) => http.HccReply(await c.SaveLockAsync(http.HccCommand(KeyCommands.OpSaveLock), body, ct)));
-        g.MapPost("/commands/" + KeyCommands.OpRegisterEncoder, async (HttpContext http, RegisterKeyEncoderRequest body, KeyCommands c, CancellationToken ct) => http.HccReply(await c.RegisterEncoderAsync(http.HccCommand(KeyCommands.OpRegisterEncoder), body, ct)));
+        var cmd = g.MapGroup(string.Empty).RequireHccFeature(FeatureIds.Keys); // ADM-1 (DEC-214): refused while the sub-function is off; reads stay on g
+        cmd.MapPost("/commands/" + KeyCommands.OpRequestKey, async (HttpContext http, RequestKeyRequest body, KeyCommands c, CancellationToken ct) => http.HccReply(await c.RequestKeyAsync(http.HccCommand(KeyCommands.OpRequestKey), body, ct)));
+        cmd.MapPost("/commands/" + KeyCommands.OpCancelKey, async (HttpContext http, CancelKeyRequest body, KeyCommands c, CancellationToken ct) => http.HccReply(await c.CancelKeyAsync(http.HccCommand(KeyCommands.OpCancelKey), body, ct)));
+        cmd.MapPost("/commands/" + KeyCommands.OpReadKey, async (HttpContext http, ReadKeyRequest body, KeyCommands c, CancellationToken ct) => http.HccReply(await c.ReadKeyAsync(http.HccCommand(KeyCommands.OpReadKey), body, ct)));
+        cmd.MapPost("/commands/" + KeyCommands.OpManualKey, async (HttpContext http, RecordManualKeyRequest body, KeyCommands c, CancellationToken ct) => http.HccReply(await c.RecordManualKeyAsync(http.HccCommand(KeyCommands.OpManualKey), body, ct)));
+        cmd.MapPost("/commands/" + KeyCommands.OpSaveLock, async (HttpContext http, SaveKeyLockRequest body, KeyCommands c, CancellationToken ct) => http.HccReply(await c.SaveLockAsync(http.HccCommand(KeyCommands.OpSaveLock), body, ct)));
+        cmd.MapPost("/commands/" + KeyCommands.OpRegisterEncoder, async (HttpContext http, RegisterKeyEncoderRequest body, KeyCommands c, CancellationToken ct) => http.HccReply(await c.RegisterEncoderAsync(http.HccCommand(KeyCommands.OpRegisterEncoder), body, ct)));
 
         g.MapGet("/keys/panel/{reservationId:long}", async (HttpContext http, long reservationId, KeyQueries q, CancellationToken ct) =>
         {

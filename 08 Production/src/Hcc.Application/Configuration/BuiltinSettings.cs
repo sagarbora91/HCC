@@ -131,7 +131,13 @@ public static partial class BuiltinSettings
             {
                 Unit = "on / off", Help = m.Note, Default = B(true),
                 Affects = "Menus, tiles, search, reminders and phone tabs; commands are refused while off. Data is kept.",
-            }).ToList()),
+            })
+            // ADM-1 sub-function switches (DEC-214): one boolean per non-core catalogue feature; Tech admin may change (non-money, DEC-218).
+            .Concat(FeatureCatalog.Switchable.Select(f => new SettingDefinition(FeatureIds.SettingKey(f.Id), $"{FeatureCatalog.ModuleOf(f.Id)!.Label} › {f.Label}", SettingType.Boolean)
+            {
+                Unit = "on / off", Help = f.Note, Default = B(true),
+                Affects = "Its pages are hidden and its commands refused while off. Data is kept.",
+            })).ToList()),
         new SettingsProvider("users", ConfigGroupIds.Users,
         [
             Pointer("users.access", "Users and roles", "Create, disable and assign roles in Access control", "Users and roles are changed in Access control"),

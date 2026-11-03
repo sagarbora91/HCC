@@ -5,6 +5,7 @@ import {isProductionBuild} from '../build';
 import type {State,Role,User,Booking,Approval,Audit,Permission} from '../types';
 import {money} from '../money';
 import {gstForRoomNight,gstForFood,gstPct} from '../gst';
+import {rolEffectiveTemplate,rolEffectiveGrants,rolCustom,rolCustomLimit} from './roles'; // ADM-2 custom roles
 
 // ───────────────────────────── Policy model ─────────────────────────────
 export type PolicyEffect='allow'|'deny'|'limit'|'request';
@@ -154,7 +155,10 @@ export function authorize(s:State,uid:string,permId:string,ctx:AuthContext={}):A
   if(!u.enabled)return {decision:'deny',reason:`Denied: ${name}'s account is disabled.`,rule:'PERM-SOD-005 · user disabled'};
   if(adminUserExpired(s,u))return {decision:'deny',reason:`Denied: ${name}'s access expired on ${u.expiresOn}.`,rule:'User assignment expired'};
   const pol=adminPolicy(s);
-  const cell=pol.templates[u.role]?.[permId];
+  // ADM-2: a custom role is evaluated on its own copy (cells + limits); messages name it.
+  const cr=u.customRole?rolCustom(s,u.customRole):undefined;
+  const role=cr?cr.name:u.role;
+  const cell=rolEffectiveTemplate(s,u)[permId];
   const exc=pol.exceptions.filter(e=>e.user===uid&&e.perm===permId&&adminExceptionActive(s,e));
   const excDeny=exc.find(e=>e.effect==='deny'),excAllow=exc.find(e=>e.effect==='allow');
   // 2. Scope of the applicable grant (an allow exception is property-wide).
@@ -163,33 +167,33 @@ export function authorize(s:State,uid:string,permId:string,ctx:AuthContext={}):A
     const other=grant.scope==='S'?ctx.shiftUser:grant.scope==='A'?ctx.assignee:ctx.ownerId;
     if(other!==undefined&&other!==uid){
       const what=grant.scope==='S'?'Outside your own cash shift':grant.scope==='A'?'Outside your assigned rooms and tasks':'Only your own submissions';
-      return {decision:'deny',reason:`Denied: ${what} — role ${u.role} has ${p.action} for ${scopeText[grant.scope]}.`,rule:`Scope ${grant.scope} · role ${u.role}`};
+      return {decision:'deny',reason:`Denied: ${what} — role ${role} has ${p.action} for ${scopeText[grant.scope]}.`,rule:`Scope ${grant.scope} · role ${role}`};
     }
   }
   // 3. Explicit deny wins.
   if(excDeny)return {decision:'deny',reason:`Denied: user exception “${excDeny.reason}” (until ${excDeny.expires}) denies ${p.action}. Deny overrides any allow.`,rule:`Exception ${excDeny.id} · deny`};
-  if(cell?.effect==='deny')return {decision:'deny',reason:`Denied: role ${u.role} explicitly denies ${p.action}${u.role==='Tech admin'&&p.financial?' (technical and financial power are kept separate)':''}.`,rule:`Role ${u.role} · explicit deny`};
+  if(cell?.effect==='deny')return {decision:'deny',reason:`Denied: role ${role} explicitly denies ${p.action}${u.role==='Tech admin'&&p.financial?' (technical and financial power are kept separate)':''}.`,rule:`Role ${role} · explicit deny`};
   // An allow exception grants property-wide allow (no limit).
   if(excAllow)return {decision:'allow',reason:`Allowed: user exception “${excAllow.reason}” (until ${excAllow.expires}) grants ${p.action}.`,rule:`Exception ${excAllow.id} · allow`};
   // 4. Default deny.
-  if(!cell)return {decision:'deny',reason:`Denied: role ${u.role} has no grant for ${p.action}.`,rule:'Default deny · no grant'};
+  if(!cell)return {decision:'deny',reason:`Denied: role ${role} has no grant for ${p.action}.`,rule:'Default deny · no grant'};
   const scoped=cell.scope==='P'?'':` (${scopeText[cell.scope]})`;
-  if(cell.effect==='request')return {decision:'approval',reason:`Approval required: role ${u.role} may only request ${p.action}; another authorised user must approve.`,rule:`Role ${u.role} · request only`};
+  if(cell.effect==='request')return {decision:'approval',reason:`Approval required: role ${role} may only request ${p.action}; another authorised user must approve.`,rule:`Role ${role} · request only`};
   // 5. Limits.
   if(cell.effect==='limit'){
-    const lim=adminLimitFor(s,u.role,permId);
-    if(lim===undefined)return {decision:'approval',reason:`Approval required: no limit is configured for role ${u.role}, so every ${p.action} routes for approval.`,rule:`Role ${u.role} · limit not set`};
-    if(ctx.amount!==undefined&&ctx.amount>lim)return {decision:'approval',reason:`Approval required: ${fmtLimit(permId,ctx.amount)} is above the ${u.role} limit of ${fmtLimit(permId,lim)}.`,rule:`Limit · ${u.role} ${permId} ≤ ${fmtLimit(permId,lim)}`};
-    return {decision:'allow',reason:ctx.amount!==undefined?`Allowed: ${fmtLimit(permId,ctx.amount)} is within the ${u.role} limit of ${fmtLimit(permId,lim)}.`:`Allowed up to ${fmtLimit(permId,lim)} for role ${u.role}; above that, approval is required.`,rule:`Limit · ${u.role} ${permId} ≤ ${fmtLimit(permId,lim)}`};
+    const lim=cr?rolCustomLimit(s,cr,permId):adminLimitFor(s,u.role,permId);
+    if(lim===undefined)return {decision:'approval',reason:`Approval required: no limit is configured for role ${role}, so every ${p.action} routes for approval.`,rule:`Role ${role} · limit not set`};
+    if(ctx.amount!==undefined&&ctx.amount>lim)return {decision:'approval',reason:`Approval required: ${fmtLimit(permId,ctx.amount)} is above the ${role} limit of ${fmtLimit(permId,lim)}.`,rule:`Limit · ${role} ${permId} ≤ ${fmtLimit(permId,lim)}`};
+    return {decision:'allow',reason:ctx.amount!==undefined?`Allowed: ${fmtLimit(permId,ctx.amount)} is within the ${role} limit of ${fmtLimit(permId,lim)}.`:`Allowed up to ${fmtLimit(permId,lim)} for role ${role}; above that, approval is required.`,rule:`Limit · ${role} ${permId} ≤ ${fmtLimit(permId,lim)}`};
   }
-  if(ctx.act&&cell.mode==='view')return {decision:'deny',reason:`Denied: role ${u.role} has view-only access to ${p.action}.`,rule:`Role ${u.role} · view only`};
+  if(ctx.act&&cell.mode==='view')return {decision:'deny',reason:`Denied: role ${role} has view-only access to ${p.action}.`,rule:`Role ${role} · view only`};
   const mode=cell.mode==='view'?' — view only':cell.mode==='masked'?' — with masked fields':'';
-  return {decision:'allow',reason:`Allowed: role ${u.role} grants ${p.action}${scoped}${mode}.`,rule:`Role ${u.role} · allow${cell.scope==='P'?'':' · scope '+cell.scope}`};
+  return {decision:'allow',reason:`Allowed: role ${role} grants ${p.action}${scoped}${mode}.`,rule:`Role ${role} · allow${cell.scope==='P'?'':' · scope '+cell.scope}`};
 }
 /** Effective access for one user: every PERM with its decision and deciding rule (SCR-16 tab 3, AC-035). */
 export function adminEffectiveAccess(s:State,uid:string,ctx:AuthContext={}){
   const u=s.users.find(x=>x.id===uid);
-  return ADMIN_PERMS.map(p=>({perm:p,...authorize(s,uid,p.id,p.limit?ctx:{}),module:p.module,moduleOn:!!u&&!!p.module&&(s.grants[u.role]||[]).includes(p.module)}));
+  return ADMIN_PERMS.map(p=>({perm:p,...authorize(s,uid,p.id,p.limit?ctx:{}),module:p.module,moduleOn:!!u&&!!p.module&&rolEffectiveGrants(s,u).includes(p.module)}));
 }
 /** Short matrix code for a cell, for the role-template grid. */
 export function adminCellCode(c:PolicyCell|undefined){

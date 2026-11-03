@@ -9,6 +9,8 @@ using Hcc.Infrastructure.SqlServer.Closing;
 using Hcc.Infrastructure.SqlServer.Reporting;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
+using Hcc.Domain.Configuration;
+
 namespace Hcc.Api.Endpoints;
 
 /// <summary>
@@ -46,10 +48,11 @@ public static class ClosingEndpoints
     {
         ArgumentNullException.ThrowIfNull(api);
         var g = api.MapHccSecured();
+        var cashBook = g.MapGroup(string.Empty).RequireHccFeature(FeatureIds.CashBook); // ADM-1 (DEC-214)
         BillingEndpoints.Command<RunBusinessDayCloseRequest, CloseRunResult>(g, ClosingService.OpRun, (sp, c, k, r, ct) => sp.GetRequiredService<ClosingService>().RunBusinessDayCloseAsync(c, k, r, ct));
         BillingEndpoints.Command<PostRoomNightsRequest, PostRoomNightsResult>(g, ClosingService.OpPostNights, (sp, c, k, r, ct) => sp.GetRequiredService<ClosingService>().PostRoomNightsAsync(c, k, r, ct));
-        BillingEndpoints.Command<LockCashBookDayRequest, CashBookDayResult>(g, ClosingService.OpLockCashBook, (sp, c, k, r, ct) => sp.GetRequiredService<ClosingService>().LockCashBookDayAsync(c, k, r, ct));
-        BillingEndpoints.Command<ReopenCashBookDayRequest, CashBookDayResult>(g, ClosingService.OpReopenCashBook, (sp, c, k, r, ct) => sp.GetRequiredService<ClosingService>().ReopenCashBookDayAsync(c, k, r, ct));
+        BillingEndpoints.Command<LockCashBookDayRequest, CashBookDayResult>(cashBook, ClosingService.OpLockCashBook, (sp, c, k, r, ct) => sp.GetRequiredService<ClosingService>().LockCashBookDayAsync(c, k, r, ct));
+        BillingEndpoints.Command<ReopenCashBookDayRequest, CashBookDayResult>(cashBook, ClosingService.OpReopenCashBook, (sp, c, k, r, ct) => sp.GetRequiredService<ClosingService>().ReopenCashBookDayAsync(c, k, r, ct));
         BillingEndpoints.Command<ReopenBusinessDayRequest, ReopenBusinessDayResult>(g, ClosingService.OpReopenDay, (sp, c, k, r, ct) => sp.GetRequiredService<ClosingService>().ReopenBusinessDayAsync(c, k, r, ct));
         g.MapGet("/closing/preflight", async (HttpContext http, ClosingService s, DateOnly? date, CancellationToken ct) =>
             Results.Ok(await s.GetPreflightAsync(http.HccCaller(), date, ct).ConfigureAwait(false)));

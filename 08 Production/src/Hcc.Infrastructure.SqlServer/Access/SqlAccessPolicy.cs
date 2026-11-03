@@ -9,7 +9,11 @@ using Microsoft.Data.SqlClient;
 
 namespace Hcc.Infrastructure.SqlServer.Access;
 
-/// <summary>Loads a <see cref="PrincipalSnapshot"/> from the plat access tables (one round trip, several result sets).</summary>
+/// <summary>
+/// Loads a <see cref="PrincipalSnapshot"/> from the plat access tables (one round trip, several result sets). ADM-2: <c>Roles</c> = the held
+/// codes plus the base code of each held custom role (plat.v_user_role_effective), so role-code checks keep working for a Manager-based role;
+/// grants and denies are loaded for the held codes only (a custom role has its own copies, so the base's grants never leak in).
+/// </summary>
 public static class AccessSnapshotLoader
 {
     /// <param name="permissionId">Base permission id to load grants for, or null for all (capabilities).</param>
@@ -18,7 +22,7 @@ public static class AccessSnapshotLoader
         ArgumentNullException.ThrowIfNull(factory);
         await using var cmd = factory.Command("""
             SELECT property_id, enabled, valid_from_utc, valid_until_utc FROM plat.app_user WHERE user_id = @u;
-            SELECT role_code, valid_from_utc, valid_until_utc FROM plat.user_role WHERE user_id = @u;
+            SELECT role_code, valid_from_utc, valid_until_utc FROM plat.v_user_role_effective WHERE user_id = @u;
             SELECT g.role_code, g.permission_id, g.mode, g.scope, g.limit_value, g.limit_unit
               FROM plat.role_grant g JOIN plat.user_role r ON r.role_code = g.role_code AND r.user_id = @u
              WHERE @perm IS NULL OR g.permission_id = @perm;
