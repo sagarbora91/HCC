@@ -93,7 +93,10 @@
     {"version": 4395, "file": "4395_feedback_rbac_seed.sql", "reason": "F5 final: F4 migrations below F5 egress 4730-4734 (lanes merged in parallel)"},
     {"version": 4397, "file": "4397_printers.sql", "reason": "F5 final: F4 migrations below F5 egress 4730-4734 (lanes merged in parallel)"},
     {"version": 4300, "file": "4300_hall_schema.sql", "reason": "F6 hall booking (claude/f6): contract range 4300-4349 below the locked 4734; 4740 widens the source-kind constraints above 4687"},
-    {"version": 4320, "file": "4320_hall_billing.sql", "reason": "F6 hall booking (claude/f6): contract range 4300-4349 below the locked 4734; 4740 widens the source-kind constraints above 4687"}
+    {"version": 4320, "file": "4320_hall_billing.sql", "reason": "F6 hall booking (claude/f6): contract range 4300-4349 below the locked 4734; 4740 widens the source-kind constraints above 4687"},
+    {"version": 4345, "file": "4345_hall_rbac_seed.sql", "reason": "F6 hall booking (claude/f6) lane H3: contract range 4300-4349 below the locked 4740; RBAC seed, indexes and print log have no dependency above 4687"},
+    {"version": 4346, "file": "4346_hall_indexes.sql", "reason": "F6 hall booking (claude/f6) lane H3: contract range 4300-4349 below the locked 4740; RBAC seed, indexes and print log have no dependency above 4687"},
+    {"version": 4348, "file": "4348_hall_print_log.sql", "reason": "F6 hall booking (claude/f6) lane H3: contract range 4300-4349 below the locked 4740; RBAC seed, indexes and print log have no dependency above 4687"}
   ],
   "migrations": [
     {"version": 1, "file": "0001_platform.sql", "sha256": "2CB8FB349156F501295E1148366BDFE406EC097C136093F09C6F0817542F46CC"},
@@ -297,6 +300,9 @@
     {"version": 4397, "file": "4397_printers.sql", "sha256": "32B485CFF62E8DEF24C16EBF156F0EFDC802166D9BFF2339414963F294E2591F"},
     {"version": 4300, "file": "4300_hall_schema.sql", "sha256": "C713D239D3EE60F970B80ECD75DC1C59F7D1666E67C5940A78DC9920E90051EE"},
     {"version": 4320, "file": "4320_hall_billing.sql", "sha256": "72D7A0F7A6EE251DD36B7335DFEB234FDC524D90DA9CEF17CCD643F46007DD4E"},
-    {"version": 4740, "file": "4740_hall_source_kinds.sql", "sha256": "CB384D488EFDB122607E7BE4805D94133627180C84801EA1D7317736FCBE2CFF"}
+    {"version": 4740, "file": "4740_hall_source_kinds.sql", "sha256": "CB384D488EFDB122607E7BE4805D94133627180C84801EA1D7317736FCBE2CFF"},
+    {"version": 4345, "file": "4345_hall_rbac_seed.sql", "sha256": "307EA0F1254F618336ABD5060F55C90DB1E2131091A0573EC95BC375EEE96D95"},
+    {"version": 4346, "file": "4346_hall_indexes.sql", "sha256": "186EBA9EA50693F4860B6679BC7707A29ADE1D031F0B07A2EF8115D7A87ACDE3"},
+    {"version": 4348, "file": "4348_hall_print_log.sql", "sha256": "AFE85C56E5660C822725533E98DAC4E1347D30E03918DA600A6980645B96C347"}
   ]
 }

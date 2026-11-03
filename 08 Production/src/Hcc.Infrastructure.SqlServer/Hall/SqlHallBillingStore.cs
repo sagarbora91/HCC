@@ -75,6 +75,18 @@ public sealed class SqlHallBillingStore : IHallBillingStore
             x.Cap)).ToList();
     }
 
+    public async Task<int?> SingleOpenTillAsync(ICommandTransaction tx, int propertyId, CancellationToken ct)
+    {
+        await using var cmd = Cmd(tx, """
+            SELECT t.till_id FROM pay.till t JOIN pay.shift s ON s.till_id = t.till_id AND s.status IN ('Open','Submitted') WHERE t.property_id = @p;
+            """);
+        P(cmd, "@p", SqlDbType.Int, propertyId);
+        var ids = new List<int>();
+        await using var r = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+        while (await r.ReadAsync(ct).ConfigureAwait(false)) ids.Add(r.GetInt32(0));
+        return ids.Count == 1 ? ids[0] : null;
+    }
+
     private static async Task<List<HallLine>> LinesAsync(ICommandTransaction tx, string table, string key, long id, string extraFilter, CancellationToken ct)
     {
         await using var cmd = Cmd(tx, $"SELECT seq, kind, descr, qty, unit, rate_paise, list_rate_paise, discount_paise, gst_class{(table == "hall.event_line" ? ", tax_bps" : ", CAST(NULL AS INT)")} FROM {table} WHERE {key} = @id{extraFilter} ORDER BY seq;");

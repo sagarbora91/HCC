@@ -1,4 +1,6 @@
 using System.Globalization;
+using Hcc.Application.Access;
+using Hcc.Application.Billing;
 using Hcc.Application.Commands;
 using Hcc.Application.Invoices;
 using Hcc.Application.Tax;
@@ -15,15 +17,16 @@ namespace Hcc.Application.Hall;
 
 // ── requests / results (F6-CONTRACT §3, §6: POST /api/hall/quotations/{id}/accept, /events/{id}/advance|close|cancel|refund) ──
 
-public sealed record HallTenderIn(long AmountPaise, string Method, string? Reference = null);
+/// <summary><see cref="TillId"/>: the till whose open shift takes a cash tender; omitted = the property's only open shift (shared till, DEC-052).</summary>
+public sealed record HallTenderIn(long AmountPaise, string Method, string? Reference = null, int? TillId = null);
 
 public sealed record AcceptQuotationRequest(long QuotationId, int? Version = null, string? Reason = null, string? CapacityReason = null, HallTenderIn? Advance = null);
 
-public sealed record HallAdvanceRequest(long EventId, long AmountPaise, string Method, string? Reference = null);
+public sealed record HallAdvanceRequest(long EventId, long AmountPaise, string Method, string? Reference = null, int? TillId = null);
 
 public sealed record HallExtraIn(string Desc, int Qty, long RatePaise, long? ListRatePaise = null, string? Kind = null, string? Unit = null, string? GstClass = null);
 
-public sealed record HallSettleIn(string Mode, string? Method = null, string? Reference = null, long? CompanyId = null);
+public sealed record HallSettleIn(string Mode, string? Method = null, string? Reference = null, long? CompanyId = null, int? TillId = null);
 
 /// <summary><see cref="BuyerAddress"/> is needed on an invoice of ₹50,000 or more to an unregistered customer (InvoiceRules); a GSTIN makes it B2B.</summary>
 public sealed record CloseHallEventRequest(long EventId, int ActualPax, IReadOnlyList<HallExtraIn>? Extras = null, HallSettleIn? Settle = null, string? BuyerAddress = null,
@@ -31,7 +34,7 @@ public sealed record CloseHallEventRequest(long EventId, int ActualPax, IReadOnl
 
 public sealed record CancelHallEventRequest(long EventId, string Reason);
 
-public sealed record HallRefundRequest(long EventId, string Method, string? Reference = null);
+public sealed record HallRefundRequest(long EventId, string Method, string? Reference = null, int? TillId = null);
 
 public sealed record HallEventResult(long EventId, string Status, long? ReceiptId = null, string? InvoiceNo = null, long TotalPaise = 0, long AdvanceAppliedPaise = 0,
     long BalancePaise = 0, long KeptPaise = 0, long RefundPaise = 0, int BilledPax = 0);
@@ -65,6 +68,9 @@ public interface IHallBillingStore
     Task<IReadOnlySet<string>> RolesAsync(ICommandTransaction tx, int principalId, CancellationToken ct);
 
     Task<IReadOnlyList<HallVenueRow>> VenuesAsync(ICommandTransaction tx, int propertyId, CancellationToken ct);
+
+    /// <summary>F6-H3: the till of the property's only open cash shift (shared till, DEC-052); null when none or more than one is open.</summary>
+    Task<int?> SingleOpenTillAsync(ICommandTransaction tx, int propertyId, CancellationToken ct);
 
     /// <summary>The quotation (UPDLOCK) with its latest version, lines and advance rows; null when not on the property.</summary>
     Task<HallQuoteRow?> LockQuotationAsync(ICommandTransaction tx, int propertyId, long quotationId, CancellationToken ct);
@@ -108,7 +114,7 @@ public interface IHallBillingStore
 /// never the canceller). Every money movement publishes <see cref="AccountingEvents.HallPosted"/>. Roles: HallRules (PERM-HAL-003 / 004; the
 /// RBAC seed 4345 is lane H3's).
 /// </summary>
-public sealed class HallBillingCommands(ICommandRunner runner, IHallBillingStore store, IGstMasterStore gstStore, InvoiceService invoices, TimeProvider clock)
+public sealed class HallBillingCommands(ICommandRunner runner, IHallBillingStore store, IGstMasterStore gstStore, InvoiceService invoices, TimeProvider clock, IAccessPolicy policy, ICashDrawerPort? drawer = null)
 {
     public const string OpAccept = "AcceptQuotation", OpAdvance = "ReceiveHallAdvance", OpClose = "CloseHallEvent", OpCancel = "CancelHallEvent", OpRefund = "ApproveHallRefund";
 
@@ -134,12 +140,23 @@ public sealed class HallBillingCommands(ICommandRunner runner, IHallBillingStore
         return roles.FirstOrDefault(allowed) ?? throw new HccException(HccErrorCode.FORBIDDEN, "Access denied: " + what + ".");
     }
 
+    /// <summary>F6-H3: a cash tender moves the drawer of the open shift (hall advance / balance = a desk receipt in, a cash refund = out); other tenders and a host without the till port do nothing.</summary>
+    private async Task CashAsync(ICommandTransaction tx, CommandContext ctx, string? method, int? tillId, bool inward, long receiptId, Paise amount, string label, string? reference, CancellationToken c)
+    {
+        if (method != "Cash" || drawer is null) return;
+        var till = tillId ?? await store.SingleOpenTillAsync(tx, ctx.PropertyId, c).ConfigureAwait(false)
+            ?? throw HccException.Validation("Cash goes into the open cash shift: choose the till (no single open shift was found).");
+        await drawer.RecordMovementAsync(tx, till, inward ? Hcc.Domain.Payments.CashMovementKind.Payment : Hcc.Domain.Payments.CashMovementKind.Refund,
+            inward ? Payments.CashierService.HallSource : Payments.CashierService.HallRefundSource, receiptId, inward ? amount : new Paise(-amount.Value), label, reference ?? label, c).ConfigureAwait(false);
+    }
+
     private static IEnumerable<string> Parts(string slot) => slot == "FULL_DAY" ? ["MORNING", "AFTERNOON", "EVENING"] : [slot];
 
     public async Task<CommandResult<HallEventResult>> AcceptAsync(CommandContext ctx, AcceptQuotationRequest req, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(ctx);
         ArgumentNullException.ThrowIfNull(req);
+        await policy.RequireAsync(ctx.PropertyId, ctx.PrincipalId, HallPermissions.Accept, null, null, ct).ConfigureAwait(false);
         return await runner.RunAsync(ctx with { Operation = OpAccept }, req, async (tx, c) =>
         {
             var role = await RoleAsync(tx, ctx.PrincipalId, HallRules.MayAccept, "accepting a quotation (PERM-HAL-003)", c).ConfigureAwait(false);
@@ -173,7 +190,7 @@ public sealed class HallBillingCommands(ICommandRunner runner, IHallBillingStore
             if (req.Advance is { AmountPaise: > 0 } a)
             {
                 var m = Tender(a.Method, a.Reference);
-                receiptId = await AdvanceAsync(tx, ctx, eventId, q.CustomerName, plan, bd, new Paise(a.AmountPaise), m, a.Reference, now, c).ConfigureAwait(false);
+                receiptId = await AdvanceAsync(tx, ctx, eventId, q.CustomerName, plan, bd, new Paise(a.AmountPaise), m, a.Reference, a.TillId, now, c).ConfigureAwait(false);
             }
 
             await tx.AuditAsync("HALL_QUO_ACCEPT", "hall-event-" + N(eventId),
@@ -199,9 +216,10 @@ public sealed class HallBillingCommands(ICommandRunner runner, IHallBillingStore
     }
 
     private async Task<long> AdvanceAsync(ICommandTransaction tx, CommandContext ctx, long eventId, string who, IReadOnlyList<HallAdvanceRow> plan, DateOnly bd, Paise amount,
-        string method, string? reference, DateTime now, CancellationToken c)
+        string method, string? reference, int? tillId, DateTime now, CancellationToken c)
     {
         var rid = await store.InsertReceiptAsync(tx, new HallReceiptIn(eventId, bd, "ADVANCE", method, null, false, Trim(reference), amount, ctx.PrincipalId, now), c).ConfigureAwait(false);
+        await CashAsync(tx, ctx, method, tillId, true, rid, amount, $"Hall advance · {who}", Trim(reference), c).ConfigureAwait(false);
         await store.SetAdvancePaidAsync(tx, eventId, HallBilling.Allocate(plan, amount), c).ConfigureAwait(false);
         await tx.PublishAsync(AccountingEvents.HallPosted, eventId, new HallPostedEvent("hall:advance:" + N(rid), "hall-advance", bd, "Receipt",
             $"Hall advance · {who} · {method}{(Trim(reference) is { } r ? " · " + r : "")} · event {N(eventId)}",
@@ -217,13 +235,14 @@ public sealed class HallBillingCommands(ICommandRunner runner, IHallBillingStore
         ArgumentNullException.ThrowIfNull(req);
         if (req.AmountPaise <= 0) throw HccException.Validation("Advance: enter whole paise greater than zero.");
         var method = Tender(req.Method, req.Reference);
+        await policy.RequireAsync(ctx.PropertyId, ctx.PrincipalId, HallPermissions.Accept, null, null, ct).ConfigureAwait(false);
         return await runner.RunAsync(ctx with { Operation = OpAdvance }, req, async (tx, c) =>
         {
             await RoleAsync(tx, ctx.PrincipalId, HallRules.MayTakeAdvance, "taking a hall advance (PERM-HAL-003)", c).ConfigureAwait(false);
             var bd = await store.BusinessDateAsync(tx, ctx.PropertyId, c).ConfigureAwait(false);
             var e = await store.LockEventAsync(tx, ctx.PropertyId, req.EventId, c).ConfigureAwait(false) ?? throw new HccException(HccErrorCode.NOT_FOUND, "Hall event not found.");
             if (e.Status != "CONFIRMED") throw new HccException(HccErrorCode.INVALID_TRANSITION, "Advances are taken on a confirmed event only.");
-            var rid = await AdvanceAsync(tx, ctx, e.EventId, e.CustomerName, e.Advance, bd, new Paise(req.AmountPaise), method, req.Reference, Now, c).ConfigureAwait(false);
+            var rid = await AdvanceAsync(tx, ctx, e.EventId, e.CustomerName, e.Advance, bd, new Paise(req.AmountPaise), method, req.Reference, req.TillId, Now, c).ConfigureAwait(false);
             await tx.AuditAsync("HALL_ADVANCE", "hall-event-" + N(e.EventId), $"advance {Rs(req.AmountPaise)} · {method} · receipt {N(rid)} (no GST, DEC-142)", c).ConfigureAwait(false);
             return new HallEventResult(e.EventId, e.Status, rid);
         }, ct).ConfigureAwait(false);
@@ -246,6 +265,7 @@ public sealed class HallBillingCommands(ICommandRunner runner, IHallBillingStore
         var settle = req.Settle ?? new HallSettleIn("DUE");
         var mode = (settle.Mode ?? "DUE").Trim().ToUpperInvariant();
         if (mode is not ("TENDER" or "COMPANY" or "UDHAAR" or "DUE")) throw HccException.Validation("Settle by tender, company credit, Udhaar, or leave the balance due.");
+        await policy.RequireAsync(ctx.PropertyId, ctx.PrincipalId, HallPermissions.Bill, null, null, ct).ConfigureAwait(false);
         return await runner.RunAsync(ctx with { Operation = OpClose }, req, async (tx, c) =>
         {
             var role = await RoleAsync(tx, ctx.PrincipalId, HallRules.MayBill, "the event-day bill (PERM-HAL-004)", c).ConfigureAwait(false);
@@ -284,6 +304,7 @@ public sealed class HallBillingCommands(ICommandRunner runner, IHallBillingStore
             {
                 receiptId = await store.InsertReceiptAsync(tx, new HallReceiptIn(e.EventId, bd, "BALANCE", method, mode == "COMPANY" ? settle.CompanyId : null, mode == "UDHAAR",
                     Trim(settle.Reference), balance, ctx.PrincipalId, now), c).ConfigureAwait(false);
+                await CashAsync(tx, ctx, method, settle.TillId, true, receiptId.Value, balance, $"Hall balance · {who}", Trim(settle.Reference), c).ConfigureAwait(false);
                 var dr = mode switch
                 {
                     "COMPANY" => new HallPostedEntry("receipt:company-credit", balance.Value, 0, CompanyId: settle.CompanyId),
@@ -307,6 +328,7 @@ public sealed class HallBillingCommands(ICommandRunner runner, IHallBillingStore
         ArgumentNullException.ThrowIfNull(req);
         var reason = (req.Reason ?? "").Trim();
         if (reason.Length < 3) throw HccException.Validation("Give the reason for the cancellation.");
+        await policy.RequireAsync(ctx.PropertyId, ctx.PrincipalId, HallPermissions.Bill, null, null, ct).ConfigureAwait(false);
         return await runner.RunAsync(ctx with { Operation = OpCancel }, req, async (tx, c) =>
         {
             await RoleAsync(tx, ctx.PrincipalId, HallRules.MayCancel, "cancelling a hall event (PERM-HAL-004)", c).ConfigureAwait(false);
@@ -337,6 +359,7 @@ public sealed class HallBillingCommands(ICommandRunner runner, IHallBillingStore
         ArgumentNullException.ThrowIfNull(ctx);
         ArgumentNullException.ThrowIfNull(req);
         var method = Tender(req.Method, req.Reference);
+        await policy.RequireAsync(ctx.PropertyId, ctx.PrincipalId, HallPermissions.Bill, null, null, ct).ConfigureAwait(false);
         return await runner.RunAsync(ctx with { Operation = OpRefund }, req, async (tx, c) =>
         {
             var role = await RoleAsync(tx, ctx.PrincipalId, r => r is "Owner" or "Manager", "a hall refund is approved by the Manager (up to ₹50,000) or the Owner", c).ConfigureAwait(false);
@@ -349,6 +372,7 @@ public sealed class HallBillingCommands(ICommandRunner runner, IHallBillingStore
                 throw new HccException(HccErrorCode.FORBIDDEN, $"A refund above {Rs(HallBilling.RefundManagerLimitPaise)} needs the Owner.");
             _ = role;
             var rid = await store.InsertReceiptAsync(tx, new HallReceiptIn(e.EventId, bd, "REFUND", method, null, false, Trim(req.Reference), new Paise(refund), ctx.PrincipalId, Now), c).ConfigureAwait(false);
+            await CashAsync(tx, ctx, method, req.TillId, false, rid, new Paise(refund), $"Hall refund · {e.CustomerName}", Trim(req.Reference), c).ConfigureAwait(false);
             await store.MarkRefundedAsync(tx, e.EventId, ctx.PrincipalId, c).ConfigureAwait(false);
             await tx.PublishAsync(AccountingEvents.HallPosted, e.EventId, new HallPostedEvent("hall:refund:" + N(rid), "hall-refund", bd, "Payment",
                 $"Hall refund · {e.CustomerName} · {method} · event {N(e.EventId)}",
@@ -367,9 +391,7 @@ public sealed class HallInvoiceSource(IHallBillingStore store) : IInvoiceSource
 
     public string Kind => SourceKind;
 
-    public bool CreditNoteRequests => false;
-
-    public string CreditNoteRefusal => "A hall invoice credit note is not available in this wave (F6 H1); correct it with the Owner through a manual voucher.";
+    public bool CreditNoteRequests => true; // F6-H3: a printed hall invoice is corrected by credit note (spec §13), requested and decided like a room invoice's (PERM-INV-005, Owner decides)
 
     public async Task LockAsync(ICommandTransaction tx, int propertyId, long sourceId, CancellationToken ct) =>
         _ = await store.LockEventAsync(tx, propertyId, sourceId, ct).ConfigureAwait(false) ?? throw new HccException(HccErrorCode.NOT_FOUND, "Hall event not found.");
@@ -390,7 +412,30 @@ public sealed class HallInvoiceSource(IHallBillingStore store) : IInvoiceSource
         _ => GstCategory.Other,
     };
 
-    public Task<IReadOnlyList<long?>> PostCreditAsync(ICommandTransaction tx, int propertyId, long sourceId, string creditNoteNo, string reason, DateOnly date,
-        IReadOnlyList<CreditPosting> lines, CancellationToken ct) =>
-        throw new HccException(HccErrorCode.INVALID_TRANSITION, CreditNoteRefusal);
+    public async Task<IReadOnlyList<long?>> PostCreditAsync(ICommandTransaction tx, int propertyId, long sourceId, string creditNoteNo, string reason, DateOnly date,
+        IReadOnlyList<CreditPosting> lines, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(tx);
+        ArgumentNullException.ThrowIfNull(lines);
+        var (e, priced, _) = await store.InvoiceLinesAsync(tx, propertyId, sourceId, ct).ConfigureAwait(false)
+            ?? throw new HccException(HccErrorCode.INVALID_TRANSITION, "The hall event is not billed; there is no invoice to credit.");
+        // The credit reverses the invoice entry: Dr revenue (taxable per ledger) + CGST + SGST, Cr the event receivable (1100).
+        var revenue = new Dictionary<string, long>(StringComparer.Ordinal);
+        long cgst = 0, sgst = 0;
+        foreach (var l in lines)
+        {
+            var src = priced[(int)(l.SourceLineId ?? l.CreditLineNo) - 1].Line;
+            var key = src.Kind == "MENU" ? "line:food" : src.Kind == "ROOM" ? "line:room" : "ledger:4400";
+            revenue[key] = revenue.GetValueOrDefault(key) + l.Taxable.Value;
+            cgst += l.Cgst.Value;
+            sgst += l.Sgst.Value;
+        }
+
+        var total = revenue.Values.Sum() + cgst + sgst;
+        List<HallPostedEntry> entries = [.. revenue.Select(x => new HallPostedEntry(x.Key, x.Value, 0)), new HallPostedEntry("folio:cgst", cgst, 0), new HallPostedEntry("folio:sgst", sgst, 0),
+            new HallPostedEntry("folio:guest", 0, total)];
+        await tx.PublishAsync(AccountingEvents.HallPosted, e.EventId, new HallPostedEvent("hall:credit-note:" + creditNoteNo, "hall-credit-note", date, "Journal",
+            $"Hall credit note {creditNoteNo} · {e.CustomerName} · {reason}", entries.Where(x => x.DebitPaise + x.CreditPaise != 0).ToList()), ct).ConfigureAwait(false);
+        return lines.Select(_ => (long?)null).ToList();
+    }
 }
