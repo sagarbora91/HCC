@@ -16,9 +16,9 @@
   Windows Firewall cannot express "everything except these ranges" in one block rule, so the block rule's RemoteAddress is the complement of
   10/8, 172.16/12, 192.168/16, 127/8 (IPv4) and ::1, fe80::/10 (IPv6).
 #>
-[CmdletBinding()]
+[CmdletBinding(SupportsShouldProcess)]
 param(
-    [Parameter(Mandatory)][ValidateSet('On', 'Off', 'Install', 'Status', 'Apply')][string]$State,
+    [ValidateSet('On', 'Off', 'Install', 'Status', 'Apply')][string]$State,
     [string]$ServiceExe = (Join-Path $env:ProgramFiles 'HCC\Server\Hcc.Api.exe'),
     [string]$ConfigPath,
     [string]$Instance,
@@ -28,6 +28,11 @@ param(
 Set-StrictMode -Version 2.0
 $ErrorActionPreference = 'Stop'
 . "$PSScriptRoot\Hcc-Common.ps1"
+
+# -WhatIf without -State previews the Install (the only action that creates anything); a real run still needs -State.
+if (-not $State) {
+    if ($WhatIfPreference) { $State = 'Install' } else { throw 'Parameter -State is required (On, Off, Install, Status or Apply).' }
+}
 
 $RuleName = 'HCC Egress Block'
 $TaskPath = '\HCC\'
@@ -52,6 +57,10 @@ function Invoke-EgressSql([string]$Sql, [switch]$Scalar) {
 }
 
 function Install-Rule {
+    if ($WhatIfPreference) {
+        Write-Host "What if: would create or refresh outbound block rule '$RuleName' for $ServiceExe and register disabled scheduled task $TaskPath$TaskName (SYSTEM, on demand)"
+        return
+    }
     $rule = Get-NetFirewallRule -DisplayName $RuleName -ErrorAction SilentlyContinue
     if (-not $rule) {
         New-NetFirewallRule -DisplayName $RuleName -Direction Outbound -Action Block -Program $ServiceExe -RemoteAddress $BlockedRemote `
@@ -93,7 +102,7 @@ switch ($State) {
             if ($wanted -notin @('On', 'Off')) { throw "Unexpected wanted_state '$wanted'" }
             Set-Rule $wanted
             $detail = 'applied by \HCC\ToggleEgress'
-            Invoke-EgressSql ("UPDATE ops.egress_firewall_state SET applied_state = " + (ConvertTo-HccSqlLiteral $wanted) + ", applied_utc = SYSUTCDATETIME(), detail = " + (ConvertTo-HccSqlLiteral $detail) + " WHERE id = 1;") | Out-Null
+            if ($PSCmdlet.ShouldProcess('ops.egress_firewall_state', "record applied_state = $wanted")) { Invoke-EgressSql ("UPDATE ops.egress_firewall_state SET applied_state = " + (ConvertTo-HccSqlLiteral $wanted) + ", applied_utc = SYSUTCDATETIME(), detail = " + (ConvertTo-HccSqlLiteral $detail) + " WHERE id = 1;") | Out-Null }
         } catch {
             $msg = $_.Exception.GetType().Name
             try { Invoke-EgressSql ("UPDATE ops.egress_firewall_state SET detail = " + (ConvertTo-HccSqlLiteral ("not applied: " + $msg)) + " WHERE id = 1;") | Out-Null } catch { }
