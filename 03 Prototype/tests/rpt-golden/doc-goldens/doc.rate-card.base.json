@@ -1,0 +1,30 @@
+{
+ "id": "doc.rate-card",
+ "tag": "base",
+ "tables": [
+  {
+   "key": "details",
+   "columns": ["item","value"],
+   "rows": [
+    ["row","Card","TRC-0001"],
+    ["row","Valid from","2026-10-24"],
+    ["row","GST","Prices include GST @ 5 %"],
+    ["row","Weekend nights","Fri, Sat, Sun"]
+   ]
+  },
+  {
+   "key": "Rooms",
+   "columns": ["item","nights","excl","gst","incl"],
+   "rows": [
+    ["row","Classic · EP","All nights",250000,"5%",262500]
+   ]
+  },
+  {
+   "key": "notes",
+   "columns": ["note"],
+   "rows": [
+    ["row","Prices per room per night unless stated; meal plans per guest per night."]
+   ]
+  }
+ ]
+}

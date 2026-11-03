@@ -81,6 +81,11 @@ export const READS={
   'GET /admin/audit':one(wide('PERM-ADM-004',true)),
   // Wave C3 (A09-05) System health: PERM-SYS-001 (Owner, Tech admin), an action permission held in A.
   'GET /admin/system-health':one(wide('PERM-SYS-001')),
+  // F6-H3: the hall snapshot is for every staff role (the calendar and the function sheet carry no prices); the server returns enquiries / quotations / money only to the holders of PERM-HAL-001 / 002 (DEC-061).
+  'GET /hall/snapshot':always,
+  // F6-int: menu packages for every staff role (prices stripped without PERM-HAL-002 view); T&C templates for the holders of PERM-HAL-002 (view)
+  'GET /hall/menus':always,
+  'GET /hall/templates':one(anyScope('PERM-HAL-002',true)),
   // LF-ALERTS B4: PERM-RMD-001 reminders (an action permission).
   'GET /reminders':one(wide('PERM-RMD-001')),
   // LF-BILL A2: the bill-correction register = InvoicePermissions.View (PERM-INV-001), as the invoice reads.
@@ -106,6 +111,7 @@ export const READS={
   'GET /accounting/chart/master':ACCOUNTING,
   'GET /accounting/chart/history':ACCOUNTING,
   'GET /accounting/opening':ACCOUNTING,
+  'GET /accounting/year':ACCOUNTING, // F5-A1
   // ACC-2 (integration): manual vouchers + loans, GST month / month locks, ledger statement and day book — PERM-ACC-001 view; the TDS state
   // (rates, deductions, remittances) — PERM-ACC-013 accounting.tax (Owner, Accountant); vendor payments, ageing and the asset register —
   // PERM-EXP-004 or the accounting view (VendorPaymentQueries).
@@ -148,6 +154,8 @@ export const READS={
   'GET /guest-services/lost-items':GSV_OWN,
   'GET /guest-services/settings':one(wide('PERM-GSV-001',true),wide('PERM-GSV-003')),
   'GET /guest-services/stays':GSV,
+  'GET /guest-services/feedback':one(wide('PERM-FBK-001',true)), // F4-T3
+  'GET /guest-services/feedback/follow-ups':one(wide('PERM-FBK-002',true)),
   'GET /guest-services/histories/:kind':GSV,
   'GET /handover/checklists':HND,
   'GET /handover/templates':one(wide('PERM-HND-003')),

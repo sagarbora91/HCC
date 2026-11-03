@@ -41,6 +41,7 @@ export async function register({test,assert,M}){
     'GET /guest-services/lost-items':()=>page([item(31),item(32,{status:'Handed over',handedOverTo:'Owner Ring',claim:{name:'A',phone:'9000011111',idType:'Passport (fictional)',idNote:'last4 1234',matchNote:'ring',atUtc:utc(3,0),by:1}})]),
     'GET /guest-services/settings':()=>({slaMinutes:{'Extra towels':20,Taxi:30},retentionDays:90,valuableRetentionDays:180,version:ver(400)}),
     'GET /guest-services/stays':()=>({items:stays}),
+    'GET /guest-services/feedback':()=>({count:0,average:null,items:[]}),'GET /guest-services/feedback/follow-ups':()=>[], // F4-T3
     'GET /guest-services/histories/request':()=>hist,
     'GET /guest-services/histories/complaint':()=>[{recordId:21,entries:[{atUtc:utc(3,0),by:1,what:'Logged'}]}],
     'GET /guest-services/histories/item':()=>[{recordId:32,entries:[{atUtc:utc(3,0),by:1,what:'Logged'},{atUtc:utc(5,0),by:1,what:'Handed over to Owner Ring'}]}],
@@ -170,7 +171,7 @@ export async function register({test,assert,M}){
     assert.equal(refusals[3].reason,'unmapped');assert.equal(refusals[4].reason,'unmapped');assert.match(refusals[5].text,/not found/i);
     assert.equal(refusedCalls,0);
     const un=Object.keys(S.AREAS.find(a=>a.id==='services').unmapped).sort();
-    assert.deepEqual(un,['HOV_CLOCK','MSG_DOC_CONFIRM','MSG_DOC_DISCARD','MSG_DOC_EXTRACT']);
+    assert.deepEqual(un,['FBK_FOLLOWUP_SWEEP','FBK_URL_SET','HOV_CLOCK','MSG_DOC_CONFIRM','MSG_DOC_DISCARD','MSG_DOC_EXTRACT','QW_PRINTER_SET','QW_PRINTER_TEST']); // F4-T3 adds FBK / QW demo-only commands
   });
 
   // Housekeeper: only own requests, no complaints/history/stays/settings (403 tolerated), handover for HKP only.

@@ -37,6 +37,9 @@ public static class HccComposition
         services.AddExpensesModule();                   // W2-4 expenses and petty cash
         services.AddAccountingModule();                  // W2-3 accounting & Tally (outbox consumer)
         services.AddAccountingOpeningModule();           // ACC-1 opening balances (IOpeningEntryStore: lock guard, cumulative TB, report opening)
+        // F5-A1
+        services.AddAccountingYearBankModule();          // ACC-4 year lock / carry-forward and bank reconciliation stores
+        // F5-A1 end
         // ACC-2 integration: the lanes' services (endpoint lines in the ACC-2 block below).
         services.AddAccountingManualModule();            // acc2-manual: manual vouchers + the IGstManualVouchers / ITdsRemittancePoster ports over them
         services.AddAccountingTdsModule();               // acc2-tds: TdsService (TDS held back at expense approval, remittance → TDS compliance card)
@@ -92,6 +95,67 @@ public static class HccComposition
         // LF-ALERTS end
         // LF-IMAGES
         // LF-IMAGES end
+        // F7-R1
+        Hcc.Reporting.ReportingModule.AddReportingModule(services); // F7-R1 report engine: catalogue, runner, renderers, schedules / runs / export log
+        services.AddHostedService<Hcc.Api.Endpoints.ReportScheduleWorker>();
+        // F7-R1 end
+        // F7-RPT (report lanes: one services.AddReport<...>() line each)
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.Guests.MovementRegisterReport>(services); // F7-R3
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.Guests.GuestRegisterReport>(services); // F7-R3
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.Guests.FormCRegisterReport>(services); // F7-R3
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.Guests.RateChangesReport>(services); // F7-R3
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.Rooms.RoomStatusReport>(services); // F7-R3
+        // F7-R4 money-a reports (batch 1)
+        services.AddSingleton<Hcc.Reporting.Sql.IMoneyReportSource>(sp => new Hcc.Reporting.Sql.SqlMoneyReportSource(sp.GetRequiredService<SqlPlatform>().Connections));
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.Money.ShiftReport>(services);
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.Money.CollectionDetailReport>(services);
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.Money.CreditBillsReport>(services);
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.Money.ExpenseRegisterReport>(services);
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.Money.ExpensesByHeadReport>(services);
+        // F7-R4 end
+        // F7-R5 tax reports (GST summary reads the ACC-3 queries, which the accounting endpoints otherwise build per request)
+        services.AddSingleton(sp => Hcc.Api.Endpoints.AccountingAgeingEndpoints.GstQueriesOf(sp)); // F7-R5
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.Tax.SacSummaryReport>(services); // F7-R5
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.Tax.DocumentsIssuedReport>(services); // F7-R5
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.Tax.GstByBillReport>(services); // F7-R5
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.Tax.InvoiceRegisterReport>(services); // F7-R5
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.Tax.BillCorrectionsReport>(services); // F7-R5
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.Tax.GstSummaryReport>(services); // F7-R5
+        services.AddSingleton<Hcc.Reporting.Documents.DocumentService>(); // F7-R7 document layouts
+        services.AddScoped<Hcc.Reporting.Documents.DocumentSql>(); // F7-R7
+        // F7-R6 accounting reports (batch 2): they read the ACC-1 / ACC-3 queries, built per call by AccQueries
+        services.AddSingleton<Hcc.Reporting.Reports.Acc.AccQueries>(); // F7-R6
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.Acc.TrialBalanceReport>(services); // F7-R6
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.Acc.StatementReport>(services); // F7-R6
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.Acc.DayBookReport>(services); // F7-R6
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.Acc.PlReport>(services); // F7-R6
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.Acc.BalanceSheetReport>(services); // F7-R6
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.Acc.CashRatioReport>(services); // F7-R6
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.Acc.AgeingReport>(services); // F7-R6
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.Acc.TallyXmlReport>(services); // F7-R6
+        // F7-R6 end
+        // F7-RPT end
+        // F5-E1
+        services.AddEgressModule();                      // F5-E1 internet egress gate: net.* settings, "egress" client, hold / replay, System health Egress
+        // F5-E1 end
+        // F6-H1
+        services.AddHallModule();                        // F6 hall booking: accept, advances, event bill → HPE invoice, cancel, refund (H1 money)
+        // F6-H1 end
+        // F6-H2
+        services.AddHallQuoteModule();                   // F6 hall quotations + T&C (H2): create / edit / revise / send / override / approve / lost / cancel / expire, templates
+        // F6-H2 end
+        // F6-H3
+        // F6-H3 end
+        // F4 lanes: ONE services.Add<Lane>Module(); line inside your own block (append only).
+        // F4-T1
+        services.AddTariffCardModule();                 // F4-T1 tariff card (PERM-TRF-001…003)
+        // F4-T1 end
+        // F4-T2
+        services.AddRevenueDigestModule();               // F4-T2 revenue by category and tender, owner digest drafts
+        // F4-T2 end
+        // F4-T3
+        services.AddFeedbackModule();
+        // F4-T3 end
         return services;
     }
 
@@ -168,6 +232,9 @@ public static class HccComposition
         // ACC-1 lanes: add ONE api.MapAccounting<Lane>Endpoints(); line below (append only).
         api.MapAccountingChartEndpoints(); // ACC-1 chart lane
         api.MapAccountingOpeningEndpoints(); // ACC-1 opening balances (contract §5)
+        // F5-A1
+        api.MapAccountingYearBankEndpoints(); // ACC-4 (contract §1, §2)
+        // F5-A1 end
         api.MapAccountingReportEndpoints(); // ACC-1 acc1-statements
         // ACC-1 end
         // ACC-2 lanes: add ONE api.MapAccounting<Lane>Endpoints(); (or services.Add…Module()) line below (append only).
@@ -193,6 +260,7 @@ public static class HccComposition
         api.MapKeysEndpoints();          // KEYS room keys
         api.MapYieldEndpoints();         // W2-12
         api.MapGuestServicesEndpoints(); // W2-9
+        api.MapFeedbackEndpoints();      // F4-T3
         api.MapPayrollEndpoints();       // W2-2
         api.MapSetupEndpoints();         // W3-b first-time setup
         api.MapDocumentsEndpoints();     // W3-3 ID document capture
@@ -213,6 +281,15 @@ public static class HccComposition
         // LG
         api.MapLegacyEndpoints();        // W1a LG legacy importer + runs
         // LG end
+        // F4-T2
+        api.MapRevenueDigestEndpoints(); // F4-T2 GET /reports/revenue-by-category-tender, GET /digest/drafts
+        // F4-T2 end
+        // F7-R1
+        api.MapReportEndpoints();        // F7-R1 /reports/catalogue, /reports/{id}, export, print-log, schedules, runs, favourites
+        // F7-R1 end
+        // F7-R7
+        api.MapDocumentEndpoints();      // F7-R7 /documents/invoice, credit-note, payslip, bill, kot (Lodge look, html or pdf)
+        // F7-R7 end
         // LF lanes: ONE api.Map<Lane>Endpoints(); line inside your own block (append only).
         // LF-DOCDB
         api.MapDocumentObjectEndpoints(); // LF-docdb: POST /admin/documents/sweep (PERM-DOC-006)
@@ -231,6 +308,20 @@ public static class HccComposition
         // LF-ALERTS end
         // LF-IMAGES
         // LF-IMAGES end
+        // F5-E1
+        api.MapEgressEndpoints();        // F5-E1: GET /admin/system-health/egress (PERM-NET-002)
+        // F5-E1 end
+        // F6-H1
+        api.MapHallEndpoints();          // F6 hall booking H1: /hall/quotations/{id}/accept, /hall/events/{id}/advance|close|cancel|refund
+        // F6-H1 end
+        // F6-H2
+        api.MapHallQuoteEndpoints();     // F6 hall booking H2: /hall/quotations[/{id}/edit|revise|send|override|approve-discount|lost|cancel], /hall/quotations/expire, /hall/templates
+        // F6-H2 end
+        // F6-H3
+        // F6-H3 end
+        // F4-T1
+        api.MapTariffCardEndpoints();    // F4-T1 tariff card
+        // F4-T1 end
         app.MapHccWebApp(app.Configuration); // W4 F3 (H1): the production web build (index.html) on the same origin
         return api;
     }

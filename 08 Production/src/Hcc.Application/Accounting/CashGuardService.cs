@@ -21,6 +21,8 @@ public sealed record CashParty(string Kind, long Id, string? Text = null)
     public const string Vendor = "vendor";
     public const string Bill = "bill";
     public const string Ledger = "ledger";
+    /// <summary>F6-int: a hall event (Id = event id; Text = the receipt being checked, left out of the totals).</summary>
+    public const string Hall = "hall";
 }
 
 /// <summary>Cash already recorded for a party (paise, signed; the record being checked is not in it). SQL adapter: SqlFlowsStore.</summary>

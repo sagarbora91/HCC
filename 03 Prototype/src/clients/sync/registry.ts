@@ -29,6 +29,9 @@ import {accounting} from './accounting';
 // ACC-1 lanes: add ONE import line for your sync file below (append only).
 import {accountingChart} from './accounting-chart'; // ACC-1 chart lane
 import {accountingOpening} from './accounting-opening';
+// F5-A1
+import {accountingYear} from './accounting-year'; // ACC-4 year end + bank reconciliation
+// F5-A1 end
 // ACC-1 end
 // ACC-2 lanes: ONE line below (append only).
 import {expensesVendor} from './expenses-vendor'; // acc2-purchase
@@ -86,6 +89,9 @@ import {moneyMasters} from './money-master';
 // MA-2 meal plans, extras catalogue, discount reasons (after money: patches the folio lines it loaded):
 import {catalogue} from './catalogue';
 
+// F6-H3
+import {hall} from './hall'; // F6 hall booking: enquiries, halls master, accept, advances, event bill, cancel, refund, credit note
+// F6-H3 end
 export const AREAS:SyncArea[]=[
   core,
   reservations,
@@ -106,6 +112,9 @@ export const AREAS:SyncArea[]=[
   // ACC-1 lanes: add your sync module name on ONE line below (append only).
   accountingChart, // ACC-1 chart lane
   accountingOpening, // ACC-1 opening balances
+  // F5-A1
+  accountingYear, // ACC-4
+  // F5-A1 end
   // ACC-1 end
 // ACC-2 lanes: ONE line below (append only).
   expensesVendor, // acc2-purchase (vendor payments, returns)
@@ -151,4 +160,7 @@ export const AREAS:SyncArea[]=[
   // LF-IMAGES
   guestphoto,
   // LF-IMAGES end
+  // F6-H3
+  hall,
+  // F6-H3 end
 ];

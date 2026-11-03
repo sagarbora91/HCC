@@ -104,6 +104,10 @@ export type Booking={id:string;guest:string;email:string;people:number;room:stri
   // ── Booking · stream A fields (add below this line) ──
   /** Production only: the server public booking number (e.g. HCC-1101) shown to people; `id` stays the internal key. See domain/bookingRef.ts. */
   publicNo?:string;
+  // F6-H1
+  /** F6 hall booking (SCHEMA 14): the hall event whose guests this room block / booking serves. */
+  hallEventId?:string;
+  // F6-H1 end
   /** Hold expiry (simulated clock value). A Held booking blocks inventory only while s.clock < holdUntil (DEC-038). */
   holdUntil?:string;
   /** Contact phone (fictional). Required in the booking form; optional in BOOK for backward compatibility. */
@@ -321,7 +325,9 @@ export type State={
   /** Fine-grained access policy (RBAC matrix v1): role templates, limits, user exceptions, history. s.grants stays the module gate. */
   policy?:import('./streams/admin').HccPolicy;
   /** Effective-dated tariffs per room type. rateFor() uses the latest with effectiveFrom ≤ date, else room.rate. */
-  tariffs?:{type:string;rate:number;effectiveFrom:string}[];
+  tariffs?:{type:string;rate:number;effectiveFrom:string;
+    /** F4 §1.3 (no SCHEMA bump): night set of the row; absent = 'all'. */ days?:TRCDaySet;
+    /** F4 §1.3: tariff-card version that wrote the row (absent = hand-entered). */ cardVersion?:string}[];
   /** Legacy synthetic tax schedule (before DEC-069); no longer read — GST rates are dated values in the GST master. */
   taxSchedule?:{bps:number;effectiveFrom:string}[];
   /** Configuration change history (SCR-18): one entry per changed key. */
@@ -343,6 +349,11 @@ export type State={
   posX?:import('./streams/pos').POSState;
   staffX?:import('./streams/staff').HRState;
   accountingX?:import('./streams/accounting').ACCState;
+  // F5-A1
+  /** ACC-4 (contract §1, §2): year lock / carry-forward and bank reconciliation slices (optional; SCHEMA stays 13). */
+  accYearX?:import('./streams/accounting-year').AccYearSlice;
+  accBankX?:import('./streams/accounting-bank').AccBankSlice;
+  // F5-A1 end
   assistantX?:import('./streams/assistant').AIState;
   complianceX?:import('./streams/compliance').CMPState;
   /** SCC tax port (DEC-116): compliance evidence file contents (data URLs) by file id — its own slice so the calendar never re-saves them. */
@@ -373,6 +384,26 @@ export type State={
   remindersX?:RMDState;
   /** LF §1.10: every image / file of the demo keyed by ref (its own IndexedDB record). */
   docObjectsX?:DOBState;
+  // F5-E1
+  /** F5-E1 egress gate mirror (EGRESS-CONTRACT §6): last net.* change + the mock outbound outbox (held / pending / sent). Values live in configX.values['net.*']. */
+  egressX?:import('./streams/egress').NETState;
+  // F5-E1 end
+  // F7
+  /** F7 report module (F7-CONTRACT §1): favourites, schedules, runs, print / export log. Optional, no SCHEMA bump. */
+  rptX?:import('./reports/types').RptState;
+  // F7 end
+  // ── State · F4 slices (optional, SCHEMA stays 13 — F4-CONTRACT.md header) ──
+  tariffCardX?:TRCState;
+  digestX?:DGSState;
+  feedbackX?:FBKState;
+  // ── State · F6 hall booking (SCHEMA 14, F6-CONTRACT §1; absent = the seed from fixtures/ext/hall.ts via hallSlice) ──
+  // F6-H1
+  hallX?:import('./streams/hall').HallState;
+  // F6-H1 end
+  // F6-H2
+  // F6-H2 end
+  // F6-H3
+  // F6-H3 end
 
   // ── State · stream F fields (add below this line) ──
   /** Immutable closing record per business date (REQ-CLOSE-004). */
@@ -383,7 +414,7 @@ export type State={
   shift?:import('./streams/closing').ShiftRecord;
 };
 export type Command={type:string;key?:string;[field:string]:any};
-export const SCHEMA=14; // 14 = ADM-2 custom roles (new optional rolesX slice and User.customRole — v13 saves need nothing). 13 = LF legacy parity (docObjectsX image slice — v12 saves move billPhoto / complianceFilesX into it; new optional LF slices and fields). 12 = ACC-2 (manual vouchers, purchases / vendor payments, TDS, GST month end, OTA payouts; new optional fields only — v11 saves need nothing). 11 = ACC-1 (accounting chart as a master, party ledgers, opening balances; new optional fields on accountingX — v10 saves need nothing). 10 = SCC port wave (leave one record per date, SCC compliance slice, SCC expense registers; v9 saves migrate by shape). 9 = masters wave MA-1…MA-7 (new optional slices / fields; v8 saves migrate, masters seed lazily)
+export const SCHEMA=15; // 15 = ADM-2 custom roles (new optional rolesX slice and User.customRole — v14 saves need nothing). 14 = F6 hall booking (optional hallX slice, Booking.hallEventId; v13 saves need nothing). 13 = LF legacy parity (docObjectsX image slice — v12 saves move billPhoto / complianceFilesX into it; new optional LF slices and fields). 12 = ACC-2 (manual vouchers, purchases / vendor payments, TDS, GST month end, OTA payouts; new optional fields only — v11 saves need nothing). 11 = ACC-1 (accounting chart as a master, party ledgers, opening balances; new optional fields on accountingX — v10 saves need nothing). 10 = SCC port wave (leave one record per date, SCC compliance slice, SCC expense registers; v9 saves migrate by shape). 9 = masters wave MA-1…MA-7 (new optional slices / fields; v8 saves migrate, masters seed lazily)
 
 // ════ LF (wave claude/lf, contract 02 Planning/agents/LF-CONTRACT.md §11) — declared by the setup commit; lanes import (or re-export) these, never redeclare ════
 /** §1.10 */
@@ -430,3 +461,31 @@ export type RMDState={reminders:RMDReminder[];leadDaysDefault:number};   // s.re
 /** §1.9 System health databases block (SYSState.databases). */
 export type SYSDatabase={name:string;kind:'main'|'documents';schemaVersion:string;reachable:boolean;dataBytes:number;logBytes:number;limitBytes:number;pct:number;
   objectCount?:number;contentBytes?:number;danglingRefs?:number;orphanObjects?:number;lastBackup?:string;lastDrill?:string};
+
+// ════ F4 (wave claude/f4, contract 02 Planning/agents/F4-CONTRACT.md) — declared by the setup commit; lanes import, never redeclare ════
+/** §1.1 tariff card (T1) */
+export type TRCLineKind='room'|'occupancy'|'meal'|'extra'|'hall'|'day-use';
+export type TRCDaySet='all'|'weekday'|'weekend';
+export type TRCLine={id:string;kind:TRCLineKind;roomType?:string;plan?:string;occKind?:'adult'|'child'|'bed';mealPlan?:string;extraId?:string;hallId?:string;
+  daySet:TRCDaySet;rateExcl:number|null;taxBps:number;displayIncl:number|null;enteredIncl?:number;minGuests?:number;maxGuests?:number;ageFrom?:number;ageTo?:number;note?:string};
+export type TRCStatus='draft'|'proposed'|'published'|'superseded'|'rejected';
+export type TRCPublishWrite={master:'tariffs'|'occupancyCharges'|'mealPlans'|'extras';ref:string;before?:number;after:number};
+export type TRCVersion={id:string;label:string;effectiveFrom:string;status:TRCStatus;weekendDays:number[];lines:TRCLine[];by:string;at:string;
+  approvalId?:string;proposedBy?:string;publishedBy?:string;publishedAt?:string;supersededBy?:string;notes?:string;publishLog?:TRCPublishWrite[]};
+export type TRCState={versions:TRCVersion[];weekendDaysDefault:number[]};   // s.tariffCardX
+/** §2.1 revenue by category and tender (T2) — report shape, not persisted */
+export type RCTBasis='business-date'|'stay';
+export type RCTBlockARow={key:string;label:string;rooms:number;nightsSold:number;occPct:number;roomTariff:number;extraPerson:number;mealPlans:number;
+  otherRoomCharges:number;discounts:number;corrections:number;net:number;cgst:number;sgst:number;gross:number;adr:number};
+export type RCTBlockBRow={key:string;label:string;cash:number;upi:number;card:number;bank:number;companyCredit:number;udhaar:number;ota:number;
+  otherTenders:Record<string,number>;advancesReceived:number;advancesAdjusted:number;advancesRefunded:number;refunds:number;netReceived:number};
+export type RCTBridge={openingDue:number;gross:number;netReceived:number;advanceMovement:number;closingDue:number;openingAdvances:number;closingAdvances:number;difference:number};
+export type RCTReport={from:string;to:string;basis:RCTBasis;legacy:boolean;a:RCTBlockARow[];aTotal:RCTBlockARow;b:RCTBlockBRow[];bTotal:RCTBlockBRow;c:RCTBridge};
+/** §3 owner digest (T2) */
+export type DGSChannel='Email'|'WhatsApp';
+export type DGSDraft={id:string;date:string;channel:DGSChannel;countsOnly:boolean;status:'held';reason:string;body:string;createdAt:string;by:string};
+export type DGSState={drafts:DGSDraft[]};   // s.digestX
+/** §4 feedback (T3) */
+export type FBKEntry={id:string;booking:string;stars:1|2|3|4|5;comment?:string;complaintId?:string;at:string;by:string};
+export type FBKFollowUp={id:string;source:'complaint'|'lostfound';ref:string;since:string;taskId?:string;status:'open'|'done'};
+export type FBKState={entries:FBKEntry[];followUps:FBKFollowUp[];/** F4-T3: feedback address printed on bills (blank = line hidden, Q12). */url?:string};   // s.feedbackX

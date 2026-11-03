@@ -22,13 +22,16 @@ export const GSTR1_SAC:Record<string,string>={room:'996311',food:POS_RST_SAC,lau
 /** Table-13 label of each series code. */
 export const GSTR1_SERIES_LABEL:Record<string,string>={LGC:'Legacy Lodge bills (plain numbers, before cut-over)',INV:'Tax invoices · rooms and stays',RST:'Tax invoices · restaurant (RST)',BOS:'Bills of supply',CRN:'Credit notes'};
 
-type DocLine={sac:string;bps:number;taxable:number;cgst:number;sgst:number};
-type Doc={no:string;series:'INV'|'RST';supply:'B2C'|'B2B';lines:DocLine[];cancelled?:boolean};
-type Note={no:string;supply:'B2C'|'B2B';lines:DocLine[]};
+// F7-R5: label / qty and the document header (Gstr1Meta) are read by the tax reports only; gstr1Summary ignores them.
+type DocLine={sac:string;bps:number;taxable:number;cgst:number;sgst:number;label?:string;qty?:number};
+export type Gstr1Meta={date:string;party:string;gstin:string;room:string;booking?:string;source:'folio'|'restaurant'|'counter'};
+export type Gstr1Document={no:string;series:'INV'|'RST';supply:'B2C'|'B2B';lines:DocLine[];cancelled?:boolean;meta:Gstr1Meta};
+export type Gstr1Note={no:string;supply:'B2C'|'B2B';lines:DocLine[];meta:Gstr1Meta;against:string};
+type Doc=Gstr1Document;type Note=Gstr1Note;
 
 /** SAC of a folio line: room nights, discounts and adjustments are the room supply; service lines by their category (as the server). */
 const sacOfLine=(l:Line)=>l.kind==='service'||l.kind==='food'?GSTR1_SAC[gstCategoryOfLabel(l.label)]!:GSTR1_SAC.room!; // ACC-2: a food line is a service line here (same SAC rule as the server)
-const docLine=(l:Line):DocLine=>{const tax=gstLineTax(l.amount,l.taxBps),x=gstSplit(tax);return {sac:sacOfLine(l),bps:l.taxBps,taxable:l.amount,cgst:x.cgst,sgst:x.sgst};};
+const docLine=(l:Line):DocLine=>{const tax=gstLineTax(l.amount,l.taxBps),x=gstSplit(tax);return {sac:sacOfLine(l),bps:l.taxBps,taxable:l.amount,cgst:x.cgst,sgst:x.sgst,label:l.label};};
 /** Credit-note lines are posted on the folio as negative lines; the note credits their positive value. */
 const creditLine=(l:Line):DocLine=>{const d=docLine(l);return {...d,taxable:-d.taxable,cgst:-d.cgst,sgst:-d.sgst};};
 const isCreditLine=(b:Booking,l:Line)=>!!l.approvalId&&!!b.creditNotes?.some(c=>c.approvalId===l.approvalId);
@@ -38,8 +41,14 @@ const isCreditLine=(b:Booking,l:Line)=>!!l.approvalId&&!!b.creditNotes?.some(c=>
 export type Gstr1LegacyBill={no:string;date:string;cancelled:boolean};
 export type Gstr1LegacyBills=(from:string,to:string)=>Gstr1LegacyBill[];
 export function gstr1Summary(s:State,from:string,to:string,legacyBills?:Gstr1LegacyBills):Gstr1Summary{
+  const {docs,notes}=gstr1Documents(s,from,to);
+  return gstr1Build(from,to,docs,notes,legacyBills);
+}
+/** F7-R5: the issued documents and credit notes of the period (the collection step of gstr1Summary, unchanged, plus the header facts the tax reports list). */
+export function gstr1Documents(s:State,from:string,to:string):{docs:Gstr1Document[];notes:Gstr1Note[]}{
   const within=(d?:string)=>!!d&&d>=from&&d<=to;
   const docs:Doc[]=[],notes:Note[]=[];
+  const roomOf=(b:Booking)=>{const g=(b.segments??[]);return g.length?[...new Set(g.map(x=>x.room))].join(', '):b.room;};
   for(const b of s.bookings){
     if(!b.invoiceNo)continue;
     const supply=b.company?.gstin?'B2B':'B2C';
@@ -50,25 +59,32 @@ export function gstr1Summary(s:State,from:string,to:string,legacyBills?:Gstr1Leg
     if(!byNo.size)byNo.set(b.invoiceNo,[]);
     for(const [no,ls] of byNo){
       const c=blcState(s).corrections.find(c=>c.status==='Issued'&&c.newInvoiceNo===no);
-      if(within(c?.decidedAt?.slice(0,10)??b.departure))docs.push({no,series:'INV',supply,lines:ls.map(docLine)});
+      const date=c?.decidedAt?.slice(0,10)??b.departure;
+      if(within(date))docs.push({no,series:'INV',supply,lines:ls.map(docLine),meta:{date,party:b.company?.name||b.guest,gstin:b.company?.gstin??'',room:roomOf(b),booking:b.id,source:'folio'}});
     }
-    for(const c of b.creditNotes??[])if(within(c.date))notes.push({no:c.no,supply,lines:b.lines.filter(l=>l.approvalId===c.approvalId).map(creditLine)});
+    for(const c of b.creditNotes??[])if(within(c.date))notes.push({no:c.no,supply,lines:b.lines.filter(l=>l.approvalId===c.approvalId).map(creditLine),against:b.invoiceNo,meta:{date:c.date,party:b.company?.name||b.guest,gstin:b.company?.gstin??'',room:roomOf(b),booking:b.id,source:'folio'}});
   }
   for(const o of posSlice(s).orders){
     const st=o.settlement;if(!st?.invoiceNo)continue;
-    const x=posBillSplit(st),line:DocLine={sac:st.sac??POS_RST_SAC,bps:st.taxBps,taxable:st.net,cgst:x.cgst,sgst:x.sgst},supply=st.supply??'B2C';
-    if(within(st.date))docs.push({no:st.invoiceNo,series:'RST',supply,lines:[line],cancelled:!!st.creditNoteNo});
-    if(st.creditNoteNo&&within(st.creditNoteDate??st.date))notes.push({no:st.creditNoteNo,supply,lines:[line]});
+    const x=posBillSplit(st),line:DocLine={sac:st.sac??POS_RST_SAC,bps:st.taxBps,taxable:st.net,cgst:x.cgst,sgst:x.sgst,label:'Restaurant bill '+st.billNo},supply=st.supply??'B2C';
+    const meta:Gstr1Meta={date:st.date,party:st.buyer?.name||o.guest||'Walk-in',gstin:st.buyer?.gstin??'',room:'',source:'restaurant'};
+    if(within(st.date))docs.push({no:st.invoiceNo,series:'RST',supply,lines:[line],cancelled:!!st.creditNoteNo,meta});
+    if(st.creditNoteNo&&within(st.creditNoteDate??st.date))notes.push({no:st.creditNoteNo,supply,lines:[line],against:st.invoiceNo,meta:{...meta,date:st.creditNoteDate??st.date}});
   }
   // LF-COUNTER (§6, A7): counter bills are tax invoices of the INV series; their credit notes (void) are CRN.
   for(const cb of s.counterX?.bills??[]){
     const supply=cb.party.gstin?'B2B':'B2C';
-    const ls:DocLine[]=[...cb.lines.map(l=>({amount:l.amount,taxBps:l.taxBps,sac:l.sac})),...(cb.discount?.amount?[{amount:-cb.discount.amount,taxBps:cb.lines[0]?.taxBps??0,sac:cb.lines[0]?.sac??GSTR1_SAC.other!}]:[])]
-      .map(l=>{const x=gstSplit(gstLineTax(l.amount,l.taxBps));return {sac:l.sac,bps:l.taxBps,taxable:l.amount,cgst:x.cgst,sgst:x.sgst};});
-    if(within(cb.date))docs.push({no:cb.no,series:'INV',supply,lines:ls});
-    if(cb.status==='Credited'&&cb.creditNoteNo){const d=s.approvals.find(a=>a.id===cb.voidApprovalId)?.decidedAt?.slice(0,10)??cb.date;if(within(d))notes.push({no:cb.creditNoteNo,supply,lines:ls});}
+    const ls:DocLine[]=[...cb.lines.map(l=>({amount:l.amount,taxBps:l.taxBps,sac:l.sac,label:l.label,qty:l.qty})),...(cb.discount?.amount?[{amount:-cb.discount.amount,taxBps:cb.lines[0]?.taxBps??0,sac:cb.lines[0]?.sac??GSTR1_SAC.other!,label:'Discount',qty:1}]:[])]
+      .map(l=>{const x=gstSplit(gstLineTax(l.amount,l.taxBps));return {sac:l.sac,bps:l.taxBps,taxable:l.amount,cgst:x.cgst,sgst:x.sgst,label:l.label,qty:l.qty};});
+    const meta:Gstr1Meta={date:cb.date,party:cb.party.name,gstin:cb.party.gstin??'',room:'',source:'counter'};
+    if(within(cb.date))docs.push({no:cb.no,series:'INV',supply,lines:ls,meta});
+    if(cb.status==='Credited'&&cb.creditNoteNo){const d=s.approvals.find(a=>a.id===cb.voidApprovalId)?.decidedAt?.slice(0,10)??cb.date;if(within(d))notes.push({no:cb.creditNoteNo,supply,lines:ls,against:cb.no,meta:{...meta,date:d}});}
   }
   // LF-COUNTER end
+  return {docs,notes};
+}
+/** The rate / SAC / documents tables from collected documents (second half of gstr1Summary, unchanged). */
+function gstr1Build(from:string,to:string,docs:Doc[],notes:Note[],legacyBills?:Gstr1LegacyBills):Gstr1Summary{
   const rates=new Map<string,Gstr1Rate&{docs:Set<string>}>(),sac=new Map<string,Gstr1Sac>();
   const add=(section:Gstr1Section,l:DocLine,sign:number,no:string)=>{
     const k=section+'|'+l.bps,r=rates.get(k)??{section,bps:l.bps,taxable:0,cgst:0,sgst:0,igst:0,documents:0,docs:new Set<string>()};

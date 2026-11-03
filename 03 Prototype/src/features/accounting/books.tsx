@@ -9,6 +9,7 @@ import {ListCard,KpiCard} from '../../app/mobile/components';
 import {Empty,Stat,shortDate} from '../../components/ui';
 import {usePaged,ShowMore,DESKTOP_PAGE,PHONE_PAGE} from '../../components/ShowMore';
 import {downloadCsv} from '../reports/Reports';
+import {acc4StampCsv} from './acc4-views'; // F5-int
 import {RangeBar,LedgerPicker,ledgerOptions,drcr,accAmt,type AccRange} from './shared';
 // ACC-2 integration (parity item 4): in the production build the three reports read the server over any range (no 62-day device derivation).
 import {useAccTrialBalance6,useAccStatement,useAccDayBook} from '../../clients/sync/accounting-reports-hooks';
@@ -19,9 +20,9 @@ function SrvNote({f}:{f?:Fetched<unknown>}){
   return <p className="muted acc-srv-note" role="status">{f.status==='loading'?'Loading from the server…':f.data?'Server not reachable — showing the last figures read.':'Server not reachable — showing the figures on this device.'}</p>;
 }
 
-function CsvButton({name,csv,disabled}:{name:string;csv:()=>string;disabled?:boolean}){
+function CsvButton({name,csv,disabled,dates=[]}:{name:string;csv:()=>string;disabled?:boolean;dates?:string[]}){
   const {s,uid,toast}=useHcc();if(!rbacCanExportVouchers(s,uid))return null;
-  return <button type="button" className="btn" disabled={disabled} onClick={()=>{downloadCsv(name,csv());toast('CSV downloaded');}}><Download size={16}/> Export CSV</button>;
+  return <button type="button" className="btn" disabled={disabled} onClick={()=>{downloadCsv(name,acc4StampCsv(s,dates,csv()));toast('CSV downloaded');}}><Download size={16}/> Export CSV</button>;
 }
 
 // ── Trial balance (six columns) ──
@@ -36,7 +37,7 @@ export function TrialBalanceView({range,setRange,phone,onStatement}:{range:AccRa
       <button type="button" className={!detail?'active':''} aria-pressed={!detail} onClick={()=>setDetail(false)}>Control ledgers</button>
       <button type="button" className={detail?'active':''} aria-pressed={detail} onClick={()=>setDetail(true)}>With parties</button></div>
     {tb.balanced?<span className="pill green"><CheckCircle2 size={12}/>Debits = credits in every column</span>:<span className="pill acc-sev-error"><AlertTriangle size={12}/>Out of balance</span>}
-    {!phone&&<CsvButton name={`HCC-Demo-trial-balance-${range.from}_${range.to}.csv`} csv={()=>accTrialBalance6Csv(tb)} disabled={!tb.rows.length}/>}<SrvNote f={srv}/></div>;
+    {!phone&&<CsvButton dates={[range.from,range.to]} name={`HCC-Demo-trial-balance-${range.from}_${range.to}.csv`} csv={()=>accTrialBalance6Csv(tb)} disabled={!tb.rows.length}/>}<SrvNote f={srv}/></div>;
   const pending=tb.openingPending&&<div className="info-note acc-note" role="status"><Info size={16}/>Opening balances pending: no approved opening entry yet, or the 1400 difference is not zero. Opening columns are incomplete until it is approved.</div>;
   if(phone)return <>
     <RangeBar s={s} range={range} setRange={setRange} phone/>{bar}{pending}
@@ -46,7 +47,7 @@ export function TrialBalanceView({range,setRange,phone,onStatement}:{range:AccRa
       meta={gname.get(r.group)??r.group} right={<strong className="number">{drcr(r.closingDebit-r.closingCredit)}</strong>} onClick={()=>onStatement(r.account)}/>)
       :<Empty title="No ledger movement" body="No vouchers or balances in this range."/>}
     <ShowMore p={pg}/>
-    <CsvButton name={`HCC-Demo-trial-balance-${range.from}_${range.to}.csv`} csv={()=>accTrialBalance6Csv(tb)} disabled={!tb.rows.length}/></>;
+    <CsvButton dates={[range.from,range.to]} name={`HCC-Demo-trial-balance-${range.from}_${range.to}.csv`} csv={()=>accTrialBalance6Csv(tb)} disabled={!tb.rows.length}/></>;
   return <>
     <RangeBar s={s} range={range} setRange={setRange}/>{bar}{pending}
     {tb.rows.length?<><div className="table-wrap"><table className="acc-table acc-tb6"><thead><tr><th rowSpan={2}>Code</th><th rowSpan={2}>Ledger</th><th rowSpan={2}>Group</th><th colSpan={2} className="acc-num acc-colgroup">Opening</th><th colSpan={2} className="acc-num acc-colgroup">Period</th><th colSpan={2} className="acc-num acc-colgroup">Closing</th></tr>
@@ -74,11 +75,11 @@ export function StatementView({range,setRange,account,setAccount,phone}:{range:A
     {!st?<Empty title="Choose a ledger or party" body="A statement shows the opening balance, every entry with a running balance, and the closing balance. Choose a control ledger to see all its parties together."/>:<>
       {phone?<div className="acc-m-kpis"><KpiCard label="Opening" value={drcr(st.opening)}/><KpiCard label="Closing" value={drcr(st.closing)}/><KpiCard label="Debits" value={accAmt(st.debit)}/><KpiCard label="Credits" value={accAmt(st.credit)}/></div>
         :<div className="stats acc-stats"><Stat title="Opening balance" value={drcr(st.opening)} sub={`Before ${shortDate(range.from)}`}/><Stat title="Debits" value={accAmt(st.debit)} sub={`${st.rows.length} entries`}/><Stat title="Credits" value={accAmt(st.credit)} sub={st.name}/><Stat title="Closing balance" value={drcr(st.closing)} sub={`At ${shortDate(range.to)}`}/></div>}
-      {!phone&&<div className="acc-subbar"><strong>{st.account} · {st.name}</strong><CsvButton name={`HCC-Demo-statement-${st.account.replace('/','_')}-${range.from}_${range.to}.csv`} csv={()=>accStatementCsv(st)}/></div>}
+      {!phone&&<div className="acc-subbar"><strong>{st.account} · {st.name}</strong><CsvButton dates={[range.from,range.to]} name={`HCC-Demo-statement-${st.account.replace('/','_')}-${range.from}_${range.to}.csv`} csv={()=>accStatementCsv(st)}/></div>}
       {phone?<>{pg.shown.length?pg.shown.map((r,i)=><ListCard key={r.no+i} title={`${r.no} · ${shortDate(r.date)}`} sub={r.narration} meta={`${r.type} · ${r.counter||'—'}`}
           right={<><strong className="number">{r.debit?'Dr '+money(r.debit):'Cr '+money(r.credit)}</strong><br/><small className="number">{drcr(r.running)}</small></>} onClick={()=>voucher(r.date,r.no)}/>)
           :<Empty title="No entries in this range" body="Only the opening and closing balances apply."/>}<ShowMore p={pg}/>
-        <CsvButton name={`HCC-Demo-statement-${st.account.replace('/','_')}-${range.from}_${range.to}.csv`} csv={()=>accStatementCsv(st)}/></>
+        <CsvButton dates={[range.from,range.to]} name={`HCC-Demo-statement-${st.account.replace('/','_')}-${range.from}_${range.to}.csv`} csv={()=>accStatementCsv(st)}/></>
       :<><div className="table-wrap"><table className="acc-table"><thead><tr><th>Date</th><th>Voucher</th><th>Type</th><th>Narration</th><th>Counter ledger</th><th className="acc-num">Debit</th><th className="acc-num">Credit</th><th className="acc-num">Balance</th></tr></thead>
           <tbody><tr className="acc-total"><td colSpan={7}><strong>Opening balance</strong></td><td className="acc-num number"><strong>{drcr(st.opening)}</strong></td></tr>
             {pg.shown.map((r,i)=><tr key={r.no+i}><td>{shortDate(r.date)}</td><td><button type="button" className="text-btn acc-link number" onClick={()=>voucher(r.date,r.no)}>{r.no}</button></td><td>{r.type}</td><td className="acc-wrap">{r.narration}</td><td>{r.counter}</td>
@@ -97,7 +98,7 @@ export function DayBookView({range,setRange,phone}:{range:AccRange;setRange:(r:A
   const pg=usePaged(vs,phone?PHONE_PAGE:DESKTOP_PAGE);
   const tot={debit:db.debit,credit:db.credit};
   const voucher=(v:DbVoucher)=>open({type:'acc-voucher',id:v.date+'|'+v.no});
-  const csv=<CsvButton name={`HCC-Demo-day-book-${range.from}_${range.to}.csv`} csv={()=>accDayBookCsv(db)} disabled={!rows.length}/>;
+  const csv=<CsvButton dates={[range.from,range.to]} name={`HCC-Demo-day-book-${range.from}_${range.to}.csv`} csv={()=>accDayBookCsv(db)} disabled={!rows.length}/>;
   return <>
     <RangeBar s={s} range={range} setRange={setRange} phone={phone}/>
     <div className="acc-subbar"><span className="muted">{vs.length} voucher{vs.length===1?'':'s'} · debits {money(tot.debit)} · credits {money(tot.credit)}</span>{!phone&&csv}<SrvNote f={srv}/></div>

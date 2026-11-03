@@ -1,0 +1,107 @@
+{
+ "id": "rpt.admin.audit-log",
+ "cases": [
+  {
+   "uid": "owner",
+   "scenario": "FY26",
+   "params": {
+    "from": "2026-10-01",
+    "to": "2026-10-24"
+   },
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["at","actor","action","detail","id"],
+     "rows": [
+      ["row","2026-10-24 08:00","System","Scenario loaded","FY26 · FY 2026-27 history (Apr–Oct)","a0"],
+      ["row","2026-10-23 23:30","manager","Day closed","2026-10-23 · occupancy 34.8% · net revenue ₹19,500 · receipts ₹89,700 · cash counted exactly","h-a-00001"],
+      ["row","2026-10-22 23:30","manager","Day closed","2026-10-22 · occupancy 65.2% · net revenue ₹35,850 · receipts ₹17,978.50 · cash difference -₹30","h-a-00002"],
+      ["row","2026-10-22 21:30","manager","Cash difference approved","APR-HC017 · -₹30 (short) · Count error found next morning","h-a-00003"],
+      ["row","2026-10-21 23:30","manager","Day closed","2026-10-21 · occupancy 65.2% · net revenue ₹37,120 · receipts ₹56,354 · cash counted exactly","h-a-00004"],
+      ["row","2026-10-20 23:30","manager","Day closed","2026-10-20 · occupancy 69.6% · net revenue ₹48,400 · receipts ₹48,094.75 · cash counted exactly","h-a-00005"],
+      ["row","2026-10-19 23:30","manager","Day closed","2026-10-19 · occupancy 73.9% · net revenue ₹57,090 · receipts ₹56,106.15 · cash counted exactly","h-a-00006"],
+      ["row","2026-10-18 23:30","manager","Day closed","2026-10-18 · occupancy 69.6% · net revenue ₹52,525 · receipts ₹36,386.90 · cash counted exactly","h-a-00007"],
+      ["row","2026-10-17 23:30","manager","Day closed","2026-10-17 · occupancy 82.6% · net revenue ₹60,520 · receipts ₹46,871 · cash counted exactly","h-a-00008"],
+      ["row","2026-10-17 09:00","manager","Discount approved","APR-H029 · HCC-H1211 · ₹400 · Service recovery","h-a-00010"],
+      ["row","2026-10-17 09:00","manager","Discount approved","APR-H030 · HCC-H1213 · ₹550 · Late check-in goodwill","h-a-00009"],
+      ["row","2026-10-16 23:30","manager","Day closed","2026-10-16 · occupancy 82.6% · net revenue ₹53,420 · receipts ₹39,518.50 · cash counted exactly","h-a-00011"],
+      ["row","2026-10-15 23:30","manager","Day closed","2026-10-15 · occupancy 78.3% · net revenue ₹50,610 · receipts ₹59,807.25 · cash counted exactly","h-a-00012"],
+      ["row","2026-10-14 23:30","manager","Day closed","2026-10-14 · occupancy 78.3% · net revenue ₹56,885 · receipts ₹46,867.75 · cash counted exactly","h-a-00013"],
+      ["row","2026-10-14 10:30","reception","Company credit applied","APR-H027 · HCC-H1167 · ₹5,827.50 · Siddhi Packaging (fictional)","h-a-00014"],
+      ["row","2026-10-13 23:30","manager","Day closed","2026-10-13 · occupancy 69.6% · net revenue ₹49,470 · receipts ₹56,701.75 · cash counted exactly","h-a-00015"],
+      ["row","2026-10-13 10:30","reception","Company credit applied","APR-H028 · HCC-H1174 · ₹1,772.50 · Latur Drip Systems (fictional)","h-a-00016"],
+      ["row","2026-10-12 23:30","manager","Day closed","2026-10-12 · occupancy 73.9% · net revenue ₹52,755 · receipts ₹47,671.50 · cash counted exactly","h-a-00017"],
+      ["row","2026-10-12 10:30","reception","Company credit applied","APR-H026 · HCC-H1155 · ₹6,813.25 · Sahyadri Agro Tools (fictional)","h-a-00018"],
+      ["row","2026-10-11 23:30","manager","Day closed","2026-10-11 · occupancy 65.2% · net revenue ₹45,400 · receipts ₹87,696.40 · cash counted exactly","h-a-00019"],
+      ["row","2026-10-10 23:30","manager","Day closed","2026-10-10 · occupancy 73.9% · net revenue ₹52,880 · receipts ₹29,996.20 · cash counted exactly","h-a-00020"],
+      ["row","2026-10-09 23:30","manager","Day closed","2026-10-09 · occupancy 65.2% · net revenue ₹41,355 · receipts ₹34,250 · cash counted exactly","h-a-00021"],
+      ["row","2026-10-09 10:30","reception","Company credit applied","APR-H025 · HCC-H1137 · ₹1,837.50 · Marathwada Seeds Co (fictional)","h-a-00022"],
+      ["row","2026-10-08 23:30","manager","Day closed","2026-10-08 · occupancy 69.6% · net revenue ₹41,905 · receipts ₹72,308.70 · cash counted exactly","h-a-00023"],
+      ["row","2026-10-07 23:30","manager","Day closed","2026-10-07 · occupancy 65.2% · net revenue ₹44,305 · receipts ₹45,874 · cash counted exactly","h-a-00024"],
+      ["row","2026-10-07 10:30","reception","Company credit applied","APR-H024 · HCC-H1121 · ₹1,837.50 · Nirmal Foods (fictional)","h-a-00025"],
+      ["row","2026-10-06 23:30","manager","Day closed","2026-10-06 · occupancy 60.9% · net revenue ₹47,030 · receipts ₹36,941 · cash counted exactly","h-a-00026"],
+      ["row","2026-10-06 09:00","manager","Discount approved","APR-H023 · HCC-H1103 · ₹500 · Service recovery","h-a-00027"],
+      ["row","2026-10-05 23:30","manager","Day closed","2026-10-05 · occupancy 65.2% · net revenue ₹40,350 · receipts ₹36,418.30 · cash counted exactly","h-a-00028"],
+      ["row","2026-10-05 17:30","manager","Expense rejected","EXP-H0449 · Unknown Traders · ₹2,600 · Duplicate of an earlier bill","h-a-00029"],
+      ["row","2026-10-04 23:30","manager","Day closed","2026-10-04 · occupancy 56.5% · net revenue ₹30,560 · receipts ₹41,986.75 · cash counted exactly","h-a-00030"],
+      ["row","2026-10-03 23:30","manager","Day closed","2026-10-03 · occupancy 73.9% · net revenue ₹43,705 · receipts ₹49,135.50 · cash counted exactly","h-a-00031"],
+      ["row","2026-10-02 23:30","manager","Day closed","2026-10-02 · occupancy 73.9% · net revenue ₹44,175 · receipts ₹32,137.60 · cash counted exactly","h-a-00032"],
+      ["row","2026-10-01 23:30","manager","Day closed","2026-10-01 · occupancy 69.6% · net revenue ₹37,950 · receipts ₹24,467.80 · cash counted exactly","h-a-00033"]
+     ]
+    }
+   ]
+  },
+  {
+   "uid": "accountant",
+   "scenario": "FY26",
+   "params": {
+    "from": "2026-10-01",
+    "to": "2026-10-24"
+   },
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["at","actor","action","detail","id"],
+     "rows": [
+      ["row","2026-10-24 08:00","System","Scenario loaded","FY26 · FY 2026-27 history (Apr–Oct)","a0"],
+      ["row","2026-10-23 23:30","manager","Day closed","2026-10-23 · occupancy 34.8% · net revenue ₹19,500 · receipts ₹89,700 · cash counted exactly","h-a-00001"],
+      ["row","2026-10-22 23:30","manager","Day closed","2026-10-22 · occupancy 65.2% · net revenue ₹35,850 · receipts ₹17,978.50 · cash difference -₹30","h-a-00002"],
+      ["row","2026-10-22 21:30","manager","Cash difference approved","APR-HC017 · -₹30 (short) · Count error found next morning","h-a-00003"],
+      ["row","2026-10-21 23:30","manager","Day closed","2026-10-21 · occupancy 65.2% · net revenue ₹37,120 · receipts ₹56,354 · cash counted exactly","h-a-00004"],
+      ["row","2026-10-20 23:30","manager","Day closed","2026-10-20 · occupancy 69.6% · net revenue ₹48,400 · receipts ₹48,094.75 · cash counted exactly","h-a-00005"],
+      ["row","2026-10-19 23:30","manager","Day closed","2026-10-19 · occupancy 73.9% · net revenue ₹57,090 · receipts ₹56,106.15 · cash counted exactly","h-a-00006"],
+      ["row","2026-10-18 23:30","manager","Day closed","2026-10-18 · occupancy 69.6% · net revenue ₹52,525 · receipts ₹36,386.90 · cash counted exactly","h-a-00007"],
+      ["row","2026-10-17 23:30","manager","Day closed","2026-10-17 · occupancy 82.6% · net revenue ₹60,520 · receipts ₹46,871 · cash counted exactly","h-a-00008"],
+      ["row","2026-10-17 09:00","manager","Discount approved","APR-H029 · HCC-H1211 · ₹400 · Service recovery","h-a-00010"],
+      ["row","2026-10-17 09:00","manager","Discount approved","APR-H030 · HCC-H1213 · ₹550 · Late check-in goodwill","h-a-00009"],
+      ["row","2026-10-16 23:30","manager","Day closed","2026-10-16 · occupancy 82.6% · net revenue ₹53,420 · receipts ₹39,518.50 · cash counted exactly","h-a-00011"],
+      ["row","2026-10-15 23:30","manager","Day closed","2026-10-15 · occupancy 78.3% · net revenue ₹50,610 · receipts ₹59,807.25 · cash counted exactly","h-a-00012"],
+      ["row","2026-10-14 23:30","manager","Day closed","2026-10-14 · occupancy 78.3% · net revenue ₹56,885 · receipts ₹46,867.75 · cash counted exactly","h-a-00013"],
+      ["row","2026-10-14 10:30","reception","Company credit applied","APR-H027 · HCC-H1167 · ₹5,827.50 · Siddhi Packaging (fictional)","h-a-00014"],
+      ["row","2026-10-13 23:30","manager","Day closed","2026-10-13 · occupancy 69.6% · net revenue ₹49,470 · receipts ₹56,701.75 · cash counted exactly","h-a-00015"],
+      ["row","2026-10-13 10:30","reception","Company credit applied","APR-H028 · HCC-H1174 · ₹1,772.50 · Latur Drip Systems (fictional)","h-a-00016"],
+      ["row","2026-10-12 23:30","manager","Day closed","2026-10-12 · occupancy 73.9% · net revenue ₹52,755 · receipts ₹47,671.50 · cash counted exactly","h-a-00017"],
+      ["row","2026-10-12 10:30","reception","Company credit applied","APR-H026 · HCC-H1155 · ₹6,813.25 · Sahyadri Agro Tools (fictional)","h-a-00018"],
+      ["row","2026-10-11 23:30","manager","Day closed","2026-10-11 · occupancy 65.2% · net revenue ₹45,400 · receipts ₹87,696.40 · cash counted exactly","h-a-00019"],
+      ["row","2026-10-10 23:30","manager","Day closed","2026-10-10 · occupancy 73.9% · net revenue ₹52,880 · receipts ₹29,996.20 · cash counted exactly","h-a-00020"],
+      ["row","2026-10-09 23:30","manager","Day closed","2026-10-09 · occupancy 65.2% · net revenue ₹41,355 · receipts ₹34,250 · cash counted exactly","h-a-00021"],
+      ["row","2026-10-09 10:30","reception","Company credit applied","APR-H025 · HCC-H1137 · ₹1,837.50 · Marathwada Seeds Co (fictional)","h-a-00022"],
+      ["row","2026-10-08 23:30","manager","Day closed","2026-10-08 · occupancy 69.6% · net revenue ₹41,905 · receipts ₹72,308.70 · cash counted exactly","h-a-00023"],
+      ["row","2026-10-07 23:30","manager","Day closed","2026-10-07 · occupancy 65.2% · net revenue ₹44,305 · receipts ₹45,874 · cash counted exactly","h-a-00024"],
+      ["row","2026-10-07 10:30","reception","Company credit applied","APR-H024 · HCC-H1121 · ₹1,837.50 · Nirmal Foods (fictional)","h-a-00025"],
+      ["row","2026-10-06 23:30","manager","Day closed","2026-10-06 · occupancy 60.9% · net revenue ₹47,030 · receipts ₹36,941 · cash counted exactly","h-a-00026"],
+      ["row","2026-10-06 09:00","manager","Discount approved","APR-H023 · HCC-H1103 · ₹500 · Service recovery","h-a-00027"],
+      ["row","2026-10-05 23:30","manager","Day closed","2026-10-05 · occupancy 65.2% · net revenue ₹40,350 · receipts ₹36,418.30 · cash counted exactly","h-a-00028"],
+      ["row","2026-10-05 17:30","manager","Expense rejected","EXP-H0449 · Unknown Traders · ₹2,600 · Duplicate of an earlier bill","h-a-00029"],
+      ["row","2026-10-04 23:30","manager","Day closed","2026-10-04 · occupancy 56.5% · net revenue ₹30,560 · receipts ₹41,986.75 · cash counted exactly","h-a-00030"],
+      ["row","2026-10-03 23:30","manager","Day closed","2026-10-03 · occupancy 73.9% · net revenue ₹43,705 · receipts ₹49,135.50 · cash counted exactly","h-a-00031"],
+      ["row","2026-10-02 23:30","manager","Day closed","2026-10-02 · occupancy 73.9% · net revenue ₹44,175 · receipts ₹32,137.60 · cash counted exactly","h-a-00032"],
+      ["row","2026-10-01 23:30","manager","Day closed","2026-10-01 · occupancy 69.6% · net revenue ₹37,950 · receipts ₹24,467.80 · cash counted exactly","h-a-00033"]
+     ]
+    }
+   ]
+  }
+ ]
+}

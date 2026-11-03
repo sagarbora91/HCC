@@ -1,0 +1,69 @@
+{
+ "id": "rpt.money.expenses-by-head",
+ "cases": [
+  {
+   "uid": "owner",
+   "scenario": "BASE",
+   "params": {},
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["group","head","entries","amount","share"],
+     "rows": [
+      ["row","Operating expenses","Laundry",1,180000,100],
+      ["subtotal","Operating expenses","Total Operating expenses",1,180000,100],
+      ["total","Grand total",null,1,180000,100]
+     ]
+    }
+   ]
+  },
+  {
+   "uid": "owner",
+   "scenario": "ACC-RULEBOOK",
+   "params": {
+    "from": "2026-04-01",
+    "to": "2026-04-30"
+   },
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["group","head","entries","amount","share"],
+     "rows": [
+      ["row","Operating expenses","Laundry",1,4200000,27.3],
+      ["row","Operating expenses","Petty cash",2,800000,5.2],
+      ["row","Operating expenses","Supplies",1,5900000,38.3],
+      ["row","Operating expenses","Utilities",1,4500000,29.2],
+      ["subtotal","Operating expenses","Total Operating expenses",5,15400000,100],
+      ["total","Grand total",null,5,15400000,100]
+     ]
+    }
+   ]
+  },
+  {
+   "uid": "owner",
+   "scenario": "FY26",
+   "params": {
+    "from": "2026-10-01",
+    "to": "2026-10-24"
+   },
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["group","head","entries","amount","share"],
+     "rows": [
+      ["row","Operating expenses","Laundry",4,1845000,12.2],
+      ["row","Operating expenses","Maintenance",13,4522000,29.9],
+      ["row","Operating expenses","Petty cash",17,1539000,10.2],
+      ["row","Operating expenses","Supplies",22,1261000,8.3],
+      ["row","Operating expenses","Utilities",3,5960000,39.4],
+      ["subtotal","Operating expenses","Total Operating expenses",59,15127000,100],
+      ["total","Grand total",null,59,15127000,100]
+     ]
+    }
+   ]
+  }
+ ]
+}

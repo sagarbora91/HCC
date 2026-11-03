@@ -69,6 +69,8 @@ export * from '../../domain/streams/history';
 export * from '../../domain/streams/masters';
 export * from '../../domain/credentials';
 export * from '../../domain/streams/syshealth';
+export * from '../../domain/streams/audit-viewer'; // F4-T3 qw-audit
+export * from '../../domain/streams/feedback'; // F4-T3 qw-feedback + qw-alerts
 export * from '../../domain/streams/mastersio'; export {mstImportPreview} from './mastersio'; // MA-8 masters import / export
 export * from '../../domain/streams/roommasters';
 export * from '../../domain/streams/money-master'; export * from '../../domain/streams/money-master-specs'; // MA-3 money masters
@@ -107,3 +109,38 @@ export * from '../../app/shortcuts';
 // LF-IMAGES
 export * from '../../domain/streams/printnotes'; // LF-images B6: which branding text prints on which document
 // LF-IMAGES end
+// F7-R1
+export * from '../../domain/reports/engine'; // report engine: catalogue, params, run, renderers (F7-CONTRACT §2)
+export * from '../../domain/reports/money/revenue-by-category-tender';
+export {buildXlsx} from '../../app/xlsx'; // golden harness: unzip the workbook the Excel renderer builds
+export {rptSlice,rptScheduleDue,rptResolveTokens,RPT_MONEY_RECIPIENT_ROLES} from './handlers/reports';
+import {registry as rptRegistry} from './handlers';
+import {handlers as rptHandlers} from './handlers/reports';
+for(const [t,h] of Object.entries(rptHandlers))if(!(t in rptRegistry))rptRegistry[t]=h; // integration: move into registry0 (handlers/index.ts) at merge
+// F7-R1 end
+// F5-E1
+export * from '../../domain/streams/egress'; // F5-E1 internet egress gate mirror
+// F5-E1 end
+// F5-A1
+export * from '../../domain/streams/accounting-year'; // ACC-4 year lock / carry-forward (contract §1)
+export * from '../../domain/streams/accounting-bank'; // ACC-4 bank reconciliation / clearing (contract §2)
+export {ACC_BANK_LAYOUT_SEED} from '../../fixtures/ext/bank-layouts';
+// F5-A1 end
+// F6-H1
+export * from '../../domain/streams/hall'; // F6 hall booking types + rules
+export * from '../../domain/streams/hall-billing'; // F6 hall money (one truth table with Hcc.Domain/Hall/HallBilling.cs)
+export {hallSeed} from '../../fixtures/ext/hall';
+// F6-H1 end
+// F6-H2
+export * from '../../domain/streams/hall-quote'; // F6 quotations + T&C (numbering, snapshot, guard, print model, CSV)
+export {hallTncSeed,HALL_TNC_HEADINGS} from '../../fixtures/ext/hall-seed';
+// F6-H2 end
+// F6-H3
+// F6-H3 end
+// F4-T1
+export * from '../../domain/streams/tariffcard';
+// F4-T1 end
+// F4-T2
+export * from '../../domain/streams/rpt-revcat';
+export * from '../../domain/streams/digest';
+// F4-T2 end

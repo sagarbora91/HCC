@@ -1,0 +1,56 @@
+{
+ "id": "rpt.rest.day-summary",
+ "cases": [
+  {
+   "uid": "owner",
+   "scenario": "FY26",
+   "params": {
+    "from": "2026-10-22"
+   },
+   "tables": [
+    {
+     "key": "outlets",
+     "title": "By outlet",
+     "columns": ["outlet","bills","net","tax","total","open"],
+     "rows": [
+      ["row","Restaurant",5,678000,33900,711900,1],
+      ["row","Room service",0,0,0,0,1],
+      ["total","All outlets",5,678000,33900,711900,2]
+     ]
+    },
+    {
+     "key": "settlement",
+     "title": "By settlement",
+     "columns": ["settlement","amount"],
+     "rows": [
+      ["row","Cash",409500],
+      ["row","UPI",302400],
+      ["row","Card",0],
+      ["row","Posted to room folios",0]
+     ]
+    },
+    {
+     "key": "top",
+     "title": "Top items",
+     "columns": ["item","qty","value"],
+     "rows": [
+      ["row","Dal tadka",7,196000],
+      ["row","Masala chai",6,36000],
+      ["row","Maharashtrian veg thali",5,210000],
+      ["row","Veg dum biryani",3,102000],
+      ["row","Tomato dhaniya shorba",3,54000]
+     ]
+    },
+    {
+     "key": "open",
+     "title": "Open checks",
+     "columns": ["open","count","value"],
+     "rows": [
+      ["row","Open checks now",2,214200],
+      ["row","Voided lines today",0,0]
+     ]
+    }
+   ]
+  }
+ ]
+}

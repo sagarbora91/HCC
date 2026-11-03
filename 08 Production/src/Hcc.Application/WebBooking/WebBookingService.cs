@@ -295,7 +295,7 @@ public sealed class WebBookingService(IWebBookingStore store, IInventoryStore in
             string? reason = party > t.MaxOccupancy ? $"Sleeps at most {t.MaxOccupancy} guests including children"
                 : violations.Count > 0 ? string.Join(" ", violations.Select(v => v.Message).Select(m => m.TrimEnd('.')))
                 : left == 0 ? "Sold out for these dates" : null;
-            var rate = StayPricing.RateOn(await inventory.GetTariffsAsync(t.RoomTypeId, tx, ct).ConfigureAwait(false), t.RackRatePaise, a);
+            var rate = await inventory.GetTariffOnAsync(t.RoomTypeId, a, tx, ct).ConfigureAwait(false) ?? t.RackRatePaise /* F4-int: day-set aware */;
             var bps = new Dictionary<DateOnly, int>();
             foreach (var (n, g) in await gst.RoomNightsAsync(tx, propertyId, a, d, new Paise(rate), ct).ConfigureAwait(false)) bps[n] = g.Bps;
             var nights = StayPricing.Nights(a, d, rate, n => bps[n]);

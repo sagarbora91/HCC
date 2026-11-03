@@ -38,6 +38,7 @@ import {handlers as cashout} from './cashout';
 import {handlers as masters} from './masters';
 import {handlers as credentials} from './credentials'; // A02b-05 self-service password / PIN change
 import {handlers as syshealth} from './syshealth';
+import {handlers as feedbackQw} from './feedback'; // F4-T3
 import {handlers as roommasters} from './roommasters';
 import {handlers as keys} from './keys'; // KEYS room keys
 import {handlers as roles} from './roles'; // ADM-2 custom roles (wraps USER_CREATE / USER_UPDATE: after admin)
@@ -62,6 +63,29 @@ import {handlers as reminders} from './reminders';
 // LF-IMAGES
 import {handlers as guestPhotos} from './guestphotos'; // B5 party photos
 // LF-IMAGES end
+// F7-R1
+// RPT_* commands (./reports) are added to `registry` by services/mock/index.ts F7-R1; the integrator may spread them into registry0 instead.
+// F7-R1 end
+// F5-E1
+import {handlers as egress} from './egress'; // F5-E1 CFG_NET_SET, NET_TICK
+// F5-E1 end
+// F5-A1
+import {handlers as accountingYear} from './accounting-year'; // ACC-4 year lock (contract §1)
+import {handlers as accountingBank} from './accounting-bank'; // ACC-4 bank reconciliation (contract §2)
+import {accYearLockedOn,accYearLockedMessage,accFyOfDate} from '../../../domain/streams/accounting-year';
+// F5-A1 end
+// F6-H1
+import {handlers as hall} from './hall'; // F6 hall booking: masters, enquiries, accept, advances, bill, cancel, refund
+// F6-H1 end
+// F6-H2
+import {handlers as hallQuote} from './hall-quote'; // F6 quotations + T&C: QUO_* (not QUO_ACCEPT), HALL_TNC_TEMPLATE_SAVE
+// F6-H2 end
+// F6-H3
+// F6-H3 end
+// F4-T1
+import {handlers as tariffCard} from './tariffcard';
+// F4-T1 end
+import {handlers as digest} from './digest'; // F4-T2
 import {handlers as catalogue} from './catalogue'; // MA-2 (last: wraps folio APPROVAL)
 const ACC1:Record<string,Handler>={...accountingChart,...accountingOpening,}; // ACC-1 lanes: spread your handlers here, e.g. {...accountingChart}
 const ACC2:Record<string,Handler>={...expensesVendor,...accountingManual,...accountingTds,...accountingGst,...accountingFlows,...accountingAssets,}; // ACC-2 lanes: spread your handlers here, e.g. {...accountingManual}
@@ -87,4 +111,39 @@ const LF:Record<string,Handler>={ // LF lanes: spread your handlers inside your 
   ...guestPhotos,
   // LF-IMAGES end
 };
-export const registry:Record<string,Handler>={...ACC1,...ACC2,...reservations,...guests,...folio,...housekeeping,...admin,...closing,...expenses,...yieldMod,...groups,...channels,...maintenance,...inventory,...handover,...services,...messaging,...pos,...staff,...accounting,...assistant,...compliance,...cashbook,...cashout,...masters,...credentials,...syshealth,...roommasters,...keys,...roles,...LF,...catalogue};
+const F4:Record<string,Handler>={ // F4 lanes: spread your handlers inside your own block
+  // F4-T1
+  ...tariffCard,
+  // F4-T1 end
+  // F4-T2
+  ...digest,
+  // F4-T2 end
+  // F4-T3
+  ...feedbackQw,
+  // F4-T3 end
+};
+const F6:Record<string,Handler>={ // F6 lanes: spread your handlers inside your own block
+  // F6-H1
+  ...hall,
+  // F6-H1 end
+  // F6-H2
+  ...hallQuote,
+  // F6-H2 end
+  // F6-H3
+  // F6-H3 end
+};
+const registry0:Record<string,Handler>={...ACC1,...ACC2,...reservations,...guests,...folio,...housekeeping,...admin,...closing,...expenses,...yieldMod,...groups,...channels,...maintenance,...inventory,...handover,...services,...messaging,...pos,...staff,...accounting,...assistant,...compliance,...cashbook,...cashout,...masters,...credentials,...syshealth,...roommasters,...keys,...roles,...LF,...F4,...egress /* F5-E1 */,...catalogue,...accountingYear,...accountingBank /* F5-A1 */,...F6};
+// F5-A1 — ACC-4 §1.2: after the year lock every post / edit / void dated in the year is refused ACC_YEAR_LOCKED (day reopen and month unlock
+// included); the year / bank commands and exports check for themselves. A correction is a journal in the new year: ACC_MANUAL_SAVE takes
+// `refersToFy` (G4), kept on the saved voucher.
+const YEAR_FREE=/^(ACC_YEAR_|BANK_|ACC_TALLY_EXPORT$)/;
+const yearGuard=(type:string,h:Handler):Handler=>k=>{
+  if(!YEAR_FREE.test(type)&&k.s.accYearX){const c=k.cmd;
+    for(const d of [c.date,typeof c.month==='string'?c.month+'-01':undefined])if(typeof d==='string'&&accYearLockedOn(k.s,d))k.fail('INVALID_TRANSITION',accYearLockedMessage(accFyOfDate(d.slice(0,10))));}
+  const out=h(k);
+  if(type==='ACC_MANUAL_SAVE'&&typeof k.cmd.refersToFy==='string'&&/^\d{4}-\d{2}$/.test(k.cmd.refersToFy)&&k.s.accountingX?.manual?.length){
+    const list=[...k.s.accountingX.manual],j=k.cmd.id?list.findIndex(v=>v.id===String(k.cmd.id)):-1,i=j>=0?j:list.length-1;list[i]={...list[i],refersToFy:k.cmd.refersToFy} as typeof list[number];k.s.accountingX={...k.s.accountingX,manual:list};}
+  return out;
+};
+export const registry:Record<string,Handler>=Object.fromEntries(Object.entries(registry0).map(([t,h])=>[t,yearGuard(t,h)]));
+// F5-A1 end

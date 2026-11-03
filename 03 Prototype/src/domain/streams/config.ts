@@ -34,12 +34,13 @@ import {rmdSettingDefs} from './reminders'; // LF-ALERTS
 import {posSlice} from './pos';
 import {hrRatesFor,hrRatesDefaultFrom,hrMonthLabel,hrSettingDefs,hrSettingValue,hrLeavePolicy,type HRRates,type HRSettingDef} from './staff';
 import {cmpSettingDefs,type CMPSettingDef} from './compliance';
+import {NET_SETTING_DEFS,netState} from './egress'; // F5-U1: the Internet group's switches (changed only by CFG_NET_SET, Owner, with a reason)
 import {GST_SEED,gstSeedDef,gstSeedOn,gstSpecifiedPremises,gstPct,GST_ILLUSTRATIVE,type GstKey} from '../gst';
 import {rolPageLevel} from './roles'; // ADM-2
 import {featureAll,featureById,featureOfPage,featureOfCommand,featureClosure,featureExempt,featureKey,type FeatureRef} from '../feature-catalogue'; // ADM-1
 
 // ───────────────────────────── Groups (fixed names — a test pins them) ─────────────────────────────
-export type CfgGroupId='property'|'rooms'|'frontdesk'|'money'|'pos'|'hkm'|'people'|'compliance'|'modules'|'users'|'messages'|'data';
+export type CfgGroupId='property'|'rooms'|'frontdesk'|'money'|'pos'|'hkm'|'people'|'compliance'|'modules'|'users'|'messages'|'internet'|'data';
 export const CFG_SECTIONS=['Business setup','Operations and people','Software and security'] as const;
 export type CfgSection=typeof CFG_SECTIONS[number];
 export type CfgGroup={id:CfgGroupId;label:string;section:CfgSection;money:boolean;blurb:string;link?:{page:string;label:string}};
@@ -55,6 +56,7 @@ export const CFG_GROUPS:CfgGroup[]=[
   {id:'modules',label:'Modules on/off',section:'Software and security',money:false,blurb:'Switch optional modules off; their data is kept'},
   {id:'users',label:'Users, roles and PINs',section:'Software and security',money:false,blurb:'Users and roles live in Administration; PIN lock options',link:{page:'access',label:'Open Administration'}},
   {id:'messages',label:'Messages and documents',section:'Software and security',money:false,blurb:'Sender name, consent, gateway key',link:{page:'messages',label:'Open Messages'}},
+  {id:'internet',label:'Internet access',section:'Software and security',money:false,blurb:'Master switch, one switch per service (messages, OTA, ID scan, payment links, e-mail, updates) and an allowed time window; Owner changes, Manager reads'},
   {id:'data',label:'Data and system',section:'Software and security',money:false,blurb:'Backup schedule, restore drill, ID image retention, storage, diagnostics, about'},
 ];
 export const cfgGroup=(id:string)=>CFG_GROUPS.find(g=>g.id===id);
@@ -338,6 +340,7 @@ export function cfgCanChange(s:State,uid:string,def:CfgSettingDef):CfgDecision{
 export function cfgGroupAccess(s:State,uid:string,g:CfgGroupId):{readOnly:boolean;reason?:string}{
   const defs=cfgGroupDefs(s,g).filter(d=>d.editable);
   const u=s.users.find(x=>x.id===uid);
+  if(g==='internet')return u?.role==='Owner'?{readOnly:false}:{readOnly:true,reason:u?.role==='Manager'?'Only the Owner changes the internet switches (PERM-NET-001); you can read them (PERM-NET-002).':'Not available for your role.'};
   const groupMoney=cfgGroup(g)!.money;
   if(groupMoney&&u?.role!=='Owner'&&can(s,uid,'admin'))return {readOnly:true,reason:CFG_OWNER_ONLY};
   if(!defs.length)return {readOnly:true,reason:g==='users'?'Users and roles are changed in Access control.':'Nothing in this group is configurable here.'};
@@ -558,6 +561,9 @@ function builtins(){
     {key:'msg.marketing',label:'Marketing messages',type:'choice',options:['Only with guest consent','Never'],default:'Only with guest consent',unit:'choice',help:'Service messages are not affected.'},
     {key:'msg.gatewayKey',label:'Messaging gateway key (simulated)',type:'text',maxLength:64,allowEmpty:true,default:'',secret:true,approver:'Owner',unit:'secret',help:'Never shown in full and never exported.',affects:'Simulated sends only.'},
   ]});
+  // F5-U1 · Internet access: shown (read-only rows for search and export); every change goes through the Internet panel -> CFG_NET_SET {setting, value, reason}.
+  registerSettingsGroup({id:'internet',group:'internet',defs:NET_SETTING_DEFS.map(d=>({key:d.key,label:d.label,type:'fixed' as const,help:d.help,fixedReason:'Changed in the Internet panel by the Owner, with a reason (CFG_NET_SET)',
+    read:(s:State)=>{const v=s.configX?.values?.[d.key];return d.type==='boolean'?(v===true?'On':'Off'):v?JSON.stringify(v):'No window';},affects:'Whether HCC may make this internet call at all. Held work is sent in order when it goes on.'}))});
   registerSettingsGroup({id:'data',group:'data',defs:[
     {key:'data.backupTime',label:'Daily backup time (simulated)',type:'time',default:'02:00',unit:'HH:mm (IST)',help:'Local backup schedule.'},
     {key:'data.backupKeep',label:'Backups kept',type:'integer',min:1,max:90,default:14,suffix:'days',unit:'days'},

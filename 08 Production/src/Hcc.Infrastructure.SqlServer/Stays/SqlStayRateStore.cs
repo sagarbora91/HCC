@@ -37,7 +37,7 @@ public sealed class SqlStayRateStore : IStayRateStore
     public async Task<long> TariffAsync(ICommandTransaction tx, int roomTypeId, DateOnly date, CancellationToken ct)
     {
         await using var cmd = P3Sql.Sql(tx).Command("""
-            SELECT COALESCE((SELECT TOP (1) rate_paise FROM inv.room_type_tariff WHERE room_type_id = @t AND effective_from <= @d ORDER BY effective_from DESC),
+            SELECT COALESCE(inv.fn_tariff_on(@t, @d), -- F4-T1: day-set aware resolver (migration 4381)
                             (SELECT rack_rate_paise FROM inv.room_type WHERE room_type_id = @t), 0);
             """);
         cmd.Add("@t", SqlDbType.Int, roomTypeId);

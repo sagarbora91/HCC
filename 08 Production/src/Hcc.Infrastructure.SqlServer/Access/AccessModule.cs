@@ -21,7 +21,14 @@ public sealed class SqlCapabilitiesQuery(SqlConnectionFactory connections, Acces
         foreach (var permissionId in snapshot.PermissionKinds.Keys.Order(StringComparer.Ordinal))
         {
             var decision = AccessEvaluator.Evaluate(snapshot, now, permissionId, ScopeMatch.Any);
-            if (!decision.Holds) continue;
+            if (!decision.Holds)
+            {
+                // F6-int: an ACTION permission held for viewing only (mode V, e.g. the Accountant's hall quotations) is reported as "V".
+                if (permissionId.EndsWith(AccessEvaluator.ViewSuffix, StringComparison.Ordinal)
+                    || !AccessEvaluator.Evaluate(snapshot, now, AccessEvaluator.View(permissionId), ScopeMatch.Any).Holds) continue;
+                grants.Add(new CapabilityGrant(permissionId, "V", "P", null, null));
+                continue;
+            }
             // Report the strongest cell: for limited grants the highest limit, for request-only "R".
             grants.Add(new CapabilityGrant(permissionId, ((char)(decision.Mode ?? GrantMode.Allow)).ToString(), ((char)(decision.Scope ?? GrantScope.Property)).ToString(), decision.Limit, decision.LimitUnit));
         }

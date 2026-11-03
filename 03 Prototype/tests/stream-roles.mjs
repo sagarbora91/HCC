@@ -16,7 +16,7 @@ export function register({test,M,assert}){
   const ACC=['ACC_MANUAL_SAVE','ACC_LEDGER_UPSERT','ACC_GROUP_UPSERT','ACC_LOCK','ACC_GST_SETOFF','ACC_TDS_REMIT','ACC_TALLY_EXPORT','ACC_LOAN_ADD','ACC_OPENING_SAVE','ACC_MONTH_LOCK'];
 
   test('[ADM2] SCHEMA 14; demo seed adds C01 / C02 (Manager base) and one user each; BASE keeps its ten users',()=>{
-    assert.equal(SCHEMA,14);assert.equal(seed().users.length,10);assert.equal(seed().rolesX,undefined);
+    assert.equal(SCHEMA,15);assert.equal(seed().users.length,10);assert.equal(seed().rolesX,undefined);
     const s=demo();assert.deepEqual(s.rolesX.roles.map(r=>[r.id,r.name,r.base,r.money]),[['C01','Day shift manager','Manager',true],['C02','Night shift manager','Manager',true]]);
     assert.deepEqual(s.users.filter(u=>u.customRole).map(u=>[u.id,u.role,u.customRole]),[['daymgr','Manager','C01'],['nightmgr','Manager','C02']]);
   });
@@ -128,7 +128,7 @@ export function register({test,M,assert}){
   test('[ADM2] preview + history; old saves without rolesX load; a v13 save keeps users without customRole',()=>{
     const s=demo();const p=rolPreview(s,'C01');assert.ok(p.hiddenPages.includes('accounting'));assert.deepEqual(p.users,['daymgr']);
     assert.equal(p.features.find(f=>f.id==='accounting.vouchers').level,'off');
-    const old=seed();delete old.rolesX;old.schema=13;const back=restoreState(JSON.stringify(old)).state;assert.equal(back.schema,14);
+    const old=seed();delete old.rolesX;old.schema=14;const back=restoreState(JSON.stringify(old)).state;assert.equal(back.schema,15);
     assert.equal(back.rolesX,undefined);assert.equal(can(back,'manager','reports'),true);assert.equal(rolFeatureLevel(back,'manager','accounting.vouchers'),'full');
     assert.equal(err(()=>execute(back,'manager',{type:'NIGHT_POST'})).code,'OK');
   });

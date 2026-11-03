@@ -624,6 +624,7 @@
         "dependencies": {
           "Hcc.Infrastructure.SqlServer": "[0.1.0, )",
           "Hcc.Operations": "[0.1.0, )",
+          "Hcc.Reporting": "[0.1.0, )",
           "Microsoft.Extensions.Hosting.WindowsServices": "[10.0.0, )"
         }
       },
@@ -642,16 +643,30 @@
           "Hcc.Contracts": "[0.1.0, )"
         }
       },
+      "hcc.infrastructure.egress": {
+        "type": "Project",
+        "dependencies": {
+          "Hcc.Domain": "[0.1.0, )"
+        }
+      },
       "hcc.infrastructure.sqlserver": {
         "type": "Project",
         "dependencies": {
           "Hcc.Application": "[0.1.0, )",
+          "Hcc.Infrastructure.Egress": "[0.1.0, )",
           "Microsoft.Data.SqlClient": "[6.1.7, )"
         }
       },
       "hcc.operations": {
         "type": "Project",
         "dependencies": {
+          "Hcc.Infrastructure.SqlServer": "[0.1.0, )"
+        }
+      },
+      "hcc.reporting": {
+        "type": "Project",
+        "dependencies": {
+          "Hcc.Application": "[0.1.0, )",
           "Hcc.Infrastructure.SqlServer": "[0.1.0, )"
         }
       },

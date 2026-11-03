@@ -1,0 +1,310 @@
+%PDF-1.4
+%‚„œ”
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Count 2 /Kids [6 0 R 8 0 R] >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>
+endobj
+5 0 obj
+<< /Title (Engine test) /Producer (HCC MinimalPdfWriter) /CreationDate (D:20261024063000Z) >>
+endobj
+6 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 7 0 R >>
+endobj
+7 0 obj
+<< /Length 7084 >>
+stream
+BT /F2 10 Tf 36 805.89 Td (Test Hotel) Tj ET
+BT /F2 13 Tf 36 789.89 Td (Engine test) Tj ET
+BT /F1 8 Tf 36 775.89 Td (From: 2026-10-20 \267 To: 2026-10-24 \267 tag: a) Tj ET
+BT /F1 8 Tf 36 764.89 Td (Run 2026-10-24 12:00 IST by Tester \267 PROVISIONAL \(day not closed\)) Tj ET
+BT /F2 7 Tf 36 748.89 Td (Guest) Tj ET
+BT /F2 7 Tf 123.21 748.89 Td (ID) Tj ET
+BT /F2 7 Tf 274.64 748.89 Td (Nights) Tj ET
+BT /F2 7 Tf 361.85 748.89 Td (Amount) Tj ET
+BT /F2 7 Tf 440.12 748.89 Td (Per night) Tj ET
+BT /F2 7 Tf 472.07 748.89 Td (Note) Tj ET
+0.5 w 36 745.89 m 559.28 745.89 l S
+BT /F1 7 Tf 36 735.89 Td (G0) Tj ET
+BT /F1 7 Tf 291.75 735.89 Td (1) Tj ET
+BT /F1 7 Tf 368.46 735.89 Td (Rs.0) Tj ET
+BT /F1 7 Tf 455.67 735.89 Td (Rs.0) Tj ET
+BT /F1 7 Tf 36 724.89 Td (G1) Tj ET
+BT /F1 7 Tf 291.75 724.89 Td (1) Tj ET
+BT /F1 7 Tf 357.18 724.89 Td (Rs.0.01) Tj ET
+BT /F1 7 Tf 444.39 724.89 Td (Rs.0.01) Tj ET
+BT /F1 7 Tf 36 713.89 Td (G2) Tj ET
+BT /F1 7 Tf 291.75 713.89 Td (1) Tj ET
+BT /F1 7 Tf 357.18 713.89 Td (Rs.0.02) Tj ET
+BT /F1 7 Tf 444.39 713.89 Td (Rs.0.02) Tj ET
+BT /F1 7 Tf 36 702.89 Td (G3) Tj ET
+BT /F1 7 Tf 291.75 702.89 Td (1) Tj ET
+BT /F1 7 Tf 357.18 702.89 Td (Rs.0.03) Tj ET
+BT /F1 7 Tf 444.39 702.89 Td (Rs.0.03) Tj ET
+BT /F1 7 Tf 36 691.89 Td (G4) Tj ET
+BT /F1 7 Tf 291.75 691.89 Td (1) Tj ET
+BT /F1 7 Tf 357.18 691.89 Td (Rs.0.04) Tj ET
+BT /F1 7 Tf 444.39 691.89 Td (Rs.0.04) Tj ET
+BT /F1 7 Tf 36 680.89 Td (G5) Tj ET
+BT /F1 7 Tf 291.75 680.89 Td (1) Tj ET
+BT /F1 7 Tf 357.18 680.89 Td (Rs.0.05) Tj ET
+BT /F1 7 Tf 444.39 680.89 Td (Rs.0.05) Tj ET
+BT /F1 7 Tf 36 669.89 Td (G6) Tj ET
+BT /F1 7 Tf 291.75 669.89 Td (1) Tj ET
+BT /F1 7 Tf 357.18 669.89 Td (Rs.0.06) Tj ET
+BT /F1 7 Tf 444.39 669.89 Td (Rs.0.06) Tj ET
+BT /F1 7 Tf 36 658.89 Td (G7) Tj ET
+BT /F1 7 Tf 291.75 658.89 Td (1) Tj ET
+BT /F1 7 Tf 357.18 658.89 Td (Rs.0.07) Tj ET
+BT /F1 7 Tf 444.39 658.89 Td (Rs.0.07) Tj ET
+BT /F1 7 Tf 36 647.89 Td (G8) Tj ET
+BT /F1 7 Tf 291.75 647.89 Td (1) Tj ET
+BT /F1 7 Tf 357.18 647.89 Td (Rs.0.08) Tj ET
+BT /F1 7 Tf 444.39 647.89 Td (Rs.0.08) Tj ET
+BT /F1 7 Tf 36 636.89 Td (G9) Tj ET
+BT /F1 7 Tf 291.75 636.89 Td (1) Tj ET
+BT /F1 7 Tf 357.18 636.89 Td (Rs.0.09) Tj ET
+BT /F1 7 Tf 444.39 636.89 Td (Rs.0.09) Tj ET
+BT /F1 7 Tf 36 625.89 Td (G10) Tj ET
+BT /F1 7 Tf 291.75 625.89 Td (1) Tj ET
+BT /F1 7 Tf 357.18 625.89 Td (Rs.0.10) Tj ET
+BT /F1 7 Tf 444.39 625.89 Td (Rs.0.10) Tj ET
+BT /F1 7 Tf 36 614.89 Td (G11) Tj ET
+BT /F1 7 Tf 291.75 614.89 Td (1) Tj ET
+BT /F1 7 Tf 357.18 614.89 Td (Rs.0.11) Tj ET
+BT /F1 7 Tf 444.39 614.89 Td (Rs.0.11) Tj ET
+BT /F1 7 Tf 36 603.89 Td (G12) Tj ET
+BT /F1 7 Tf 291.75 603.89 Td (1) Tj ET
+BT /F1 7 Tf 357.18 603.89 Td (Rs.0.12) Tj ET
+BT /F1 7 Tf 444.39 603.89 Td (Rs.0.12) Tj ET
+BT /F1 7 Tf 36 592.89 Td (G13) Tj ET
+BT /F1 7 Tf 291.75 592.89 Td (1) Tj ET
+BT /F1 7 Tf 357.18 592.89 Td (Rs.0.13) Tj ET
+BT /F1 7 Tf 444.39 592.89 Td (Rs.0.13) Tj ET
+BT /F1 7 Tf 36 581.89 Td (G14) Tj ET
+BT /F1 7 Tf 291.75 581.89 Td (1) Tj ET
+BT /F1 7 Tf 357.18 581.89 Td (Rs.0.14) Tj ET
+BT /F1 7 Tf 444.39 581.89 Td (Rs.0.14) Tj ET
+BT /F1 7 Tf 36 570.89 Td (G15) Tj ET
+BT /F1 7 Tf 291.75 570.89 Td (1) Tj ET
+BT /F1 7 Tf 357.18 570.89 Td (Rs.0.15) Tj ET
+BT /F1 7 Tf 444.39 570.89 Td (Rs.0.15) Tj ET
+BT /F1 7 Tf 36 559.89 Td (G16) Tj ET
+BT /F1 7 Tf 291.75 559.89 Td (1) Tj ET
+BT /F1 7 Tf 357.18 559.89 Td (Rs.0.16) Tj ET
+BT /F1 7 Tf 444.39 559.89 Td (Rs.0.16) Tj ET
+BT /F1 7 Tf 36 548.89 Td (G17) Tj ET
+BT /F1 7 Tf 291.75 548.89 Td (1) Tj ET
+BT /F1 7 Tf 357.18 548.89 Td (Rs.0.17) Tj ET
+BT /F1 7 Tf 444.39 548.89 Td (Rs.0.17) Tj ET
+BT /F1 7 Tf 36 537.89 Td (G18) Tj ET
+BT /F1 7 Tf 291.75 537.89 Td (1) Tj ET
+BT /F1 7 Tf 357.18 537.89 Td (Rs.0.18) Tj ET
+BT /F1 7 Tf 444.39 537.89 Td (Rs.0.18) Tj ET
+BT /F1 7 Tf 36 526.89 Td (G19) Tj ET
+BT /F1 7 Tf 291.75 526.89 Td (1) Tj ET
+BT /F1 7 Tf 357.18 526.89 Td (Rs.0.19) Tj ET
+BT /F1 7 Tf 444.39 526.89 Td (Rs.0.19) Tj ET
+BT /F1 7 Tf 36 515.89 Td (G20) Tj ET
+BT /F1 7 Tf 291.75 515.89 Td (1) Tj ET
+BT /F1 7 Tf 357.18 515.89 Td (Rs.0.20) Tj ET
+BT /F1 7 Tf 444.39 515.89 Td (Rs.0.20) Tj ET
+BT /F1 7 Tf 36 504.89 Td (G21) Tj ET
+BT /F1 7 Tf 291.75 504.89 Td (1) Tj ET
+BT /F1 7 Tf 357.18 504.89 Td (Rs.0.21) Tj ET
+BT /F1 7 Tf 444.39 504.89 Td (Rs.0.21) Tj ET
+BT /F1 7 Tf 36 493.89 Td (G22) Tj ET
+BT /F1 7 Tf 291.75 493.89 Td (1) Tj ET
+BT /F1 7 Tf 357.18 493.89 Td (Rs.0.22) Tj ET
+BT /F1 7 Tf 444.39 493.89 Td (Rs.0.22) Tj ET
+BT /F1 7 Tf 36 482.89 Td (G23) Tj ET
+BT /F1 7 Tf 291.75 482.89 Td (1) Tj ET
+BT /F1 7 Tf 357.18 482.89 Td (Rs.0.23) Tj ET
+BT /F1 7 Tf 444.39 482.89 Td (Rs.0.23) Tj ET
+BT /F1 7 Tf 36 471.89 Td (G24) Tj ET
+BT /F1 7 Tf 291.75 471.89 Td (1) Tj ET
+BT /F1 7 Tf 357.18 471.89 Td (Rs.0.24) Tj ET
+BT /F1 7 Tf 444.39 471.89 Td (Rs.0.24) Tj ET
+BT /F1 7 Tf 36 460.89 Td (G25) Tj ET
+BT /F1 7 Tf 291.75 460.89 Td (1) Tj ET
+BT /F1 7 Tf 357.18 460.89 Td (Rs.0.25) Tj ET
+BT /F1 7 Tf 444.39 460.89 Td (Rs.0.25) Tj ET
+BT /F1 7 Tf 36 449.89 Td (G26) Tj ET
+BT /F1 7 Tf 291.75 449.89 Td (1) Tj ET
+BT /F1 7 Tf 357.18 449.89 Td (Rs.0.26) Tj ET
+BT /F1 7 Tf 444.39 449.89 Td (Rs.0.26) Tj ET
+BT /F1 7 Tf 36 438.89 Td (G27) Tj ET
+BT /F1 7 Tf 291.75 438.89 Td (1) Tj ET
+BT /F1 7 Tf 357.18 438.89 Td (Rs.0.27) Tj ET
+BT /F1 7 Tf 444.39 438.89 Td (Rs.0.27) Tj ET
+BT /F1 7 Tf 36 427.89 Td (G28) Tj ET
+BT /F1 7 Tf 291.75 427.89 Td (1) Tj ET
+BT /F1 7 Tf 357.18 427.89 Td (Rs.0.28) Tj ET
+BT /F1 7 Tf 444.39 427.89 Td (Rs.0.28) Tj ET
+BT /F1 7 Tf 36 416.89 Td (G29) Tj ET
+BT /F1 7 Tf 291.75 416.89 Td (1) Tj ET
+BT /F1 7 Tf 357.18 416.89 Td (Rs.0.29) Tj ET
+BT /F1 7 Tf 444.39 416.89 Td (Rs.0.29) Tj ET
+BT /F1 7 Tf 36 405.89 Td (G30) Tj ET
+BT /F1 7 Tf 291.75 405.89 Td (1) Tj ET
+BT /F1 7 Tf 357.18 405.89 Td (Rs.0.30) Tj ET
+BT /F1 7 Tf 444.39 405.89 Td (Rs.0.30) Tj ET
+BT /F1 7 Tf 36 394.89 Td (G31) Tj ET
+BT /F1 7 Tf 291.75 394.89 Td (1) Tj ET
+BT /F1 7 Tf 357.18 394.89 Td (Rs.0.31) Tj ET
+BT /F1 7 Tf 444.39 394.89 Td (Rs.0.31) Tj ET
+BT /F1 7 Tf 36 383.89 Td (G32) Tj ET
+BT /F1 7 Tf 291.75 383.89 Td (1) Tj ET
+BT /F1 7 Tf 357.18 383.89 Td (Rs.0.32) Tj ET
+BT /F1 7 Tf 444.39 383.89 Td (Rs.0.32) Tj ET
+BT /F1 7 Tf 36 372.89 Td (G33) Tj ET
+BT /F1 7 Tf 291.75 372.89 Td (1) Tj ET
+BT /F1 7 Tf 357.18 372.89 Td (Rs.0.33) Tj ET
+BT /F1 7 Tf 444.39 372.89 Td (Rs.0.33) Tj ET
+BT /F1 7 Tf 36 361.89 Td (G34) Tj ET
+BT /F1 7 Tf 291.75 361.89 Td (1) Tj ET
+BT /F1 7 Tf 357.18 361.89 Td (Rs.0.34) Tj ET
+BT /F1 7 Tf 444.39 361.89 Td (Rs.0.34) Tj ET
+BT /F1 7 Tf 36 350.89 Td (G35) Tj ET
+BT /F1 7 Tf 291.75 350.89 Td (1) Tj ET
+BT /F1 7 Tf 357.18 350.89 Td (Rs.0.35) Tj ET
+BT /F1 7 Tf 444.39 350.89 Td (Rs.0.35) Tj ET
+BT /F1 7 Tf 36 339.89 Td (G36) Tj ET
+BT /F1 7 Tf 291.75 339.89 Td (1) Tj ET
+BT /F1 7 Tf 357.18 339.89 Td (Rs.0.36) Tj ET
+BT /F1 7 Tf 444.39 339.89 Td (Rs.0.36) Tj ET
+BT /F1 7 Tf 36 328.89 Td (G37) Tj ET
+BT /F1 7 Tf 291.75 328.89 Td (1) Tj ET
+BT /F1 7 Tf 357.18 328.89 Td (Rs.0.37) Tj ET
+BT /F1 7 Tf 444.39 328.89 Td (Rs.0.37) Tj ET
+BT /F1 7 Tf 36 317.89 Td (G38) Tj ET
+BT /F1 7 Tf 291.75 317.89 Td (1) Tj ET
+BT /F1 7 Tf 357.18 317.89 Td (Rs.0.38) Tj ET
+BT /F1 7 Tf 444.39 317.89 Td (Rs.0.38) Tj ET
+BT /F1 7 Tf 36 24 Td (Test basis \267 Page 1 of 2) Tj ET
+endstream
+endobj
+8 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 9 0 R >>
+endobj
+9 0 obj
+<< /Length 3835 >>
+stream
+BT /F2 7 Tf 36 805.89 Td (Guest) Tj ET
+BT /F2 7 Tf 123.21 805.89 Td (ID) Tj ET
+BT /F2 7 Tf 274.64 805.89 Td (Nights) Tj ET
+BT /F2 7 Tf 361.85 805.89 Td (Amount) Tj ET
+BT /F2 7 Tf 440.12 805.89 Td (Per night) Tj ET
+BT /F2 7 Tf 472.07 805.89 Td (Note) Tj ET
+0.5 w 36 802.89 m 559.28 802.89 l S
+BT /F1 7 Tf 36 792.89 Td (G39) Tj ET
+BT /F1 7 Tf 291.75 792.89 Td (1) Tj ET
+BT /F1 7 Tf 357.18 792.89 Td (Rs.0.39) Tj ET
+BT /F1 7 Tf 444.39 792.89 Td (Rs.0.39) Tj ET
+BT /F1 7 Tf 36 781.89 Td (G40) Tj ET
+BT /F1 7 Tf 291.75 781.89 Td (1) Tj ET
+BT /F1 7 Tf 357.18 781.89 Td (Rs.0.40) Tj ET
+BT /F1 7 Tf 444.39 781.89 Td (Rs.0.40) Tj ET
+BT /F1 7 Tf 36 770.89 Td (G41) Tj ET
+BT /F1 7 Tf 291.75 770.89 Td (1) Tj ET
+BT /F1 7 Tf 357.18 770.89 Td (Rs.0.41) Tj ET
+BT /F1 7 Tf 444.39 770.89 Td (Rs.0.41) Tj ET
+BT /F1 7 Tf 36 759.89 Td (G42) Tj ET
+BT /F1 7 Tf 291.75 759.89 Td (1) Tj ET
+BT /F1 7 Tf 357.18 759.89 Td (Rs.0.42) Tj ET
+BT /F1 7 Tf 444.39 759.89 Td (Rs.0.42) Tj ET
+BT /F1 7 Tf 36 748.89 Td (G43) Tj ET
+BT /F1 7 Tf 291.75 748.89 Td (1) Tj ET
+BT /F1 7 Tf 357.18 748.89 Td (Rs.0.43) Tj ET
+BT /F1 7 Tf 444.39 748.89 Td (Rs.0.43) Tj ET
+BT /F1 7 Tf 36 737.89 Td (G44) Tj ET
+BT /F1 7 Tf 291.75 737.89 Td (1) Tj ET
+BT /F1 7 Tf 357.18 737.89 Td (Rs.0.44) Tj ET
+BT /F1 7 Tf 444.39 737.89 Td (Rs.0.44) Tj ET
+BT /F1 7 Tf 36 726.89 Td (G45) Tj ET
+BT /F1 7 Tf 291.75 726.89 Td (1) Tj ET
+BT /F1 7 Tf 357.18 726.89 Td (Rs.0.45) Tj ET
+BT /F1 7 Tf 444.39 726.89 Td (Rs.0.45) Tj ET
+BT /F1 7 Tf 36 715.89 Td (G46) Tj ET
+BT /F1 7 Tf 291.75 715.89 Td (1) Tj ET
+BT /F1 7 Tf 357.18 715.89 Td (Rs.0.46) Tj ET
+BT /F1 7 Tf 444.39 715.89 Td (Rs.0.46) Tj ET
+BT /F1 7 Tf 36 704.89 Td (G47) Tj ET
+BT /F1 7 Tf 291.75 704.89 Td (1) Tj ET
+BT /F1 7 Tf 357.18 704.89 Td (Rs.0.47) Tj ET
+BT /F1 7 Tf 444.39 704.89 Td (Rs.0.47) Tj ET
+BT /F1 7 Tf 36 693.89 Td (G48) Tj ET
+BT /F1 7 Tf 291.75 693.89 Td (1) Tj ET
+BT /F1 7 Tf 357.18 693.89 Td (Rs.0.48) Tj ET
+BT /F1 7 Tf 444.39 693.89 Td (Rs.0.48) Tj ET
+BT /F1 7 Tf 36 682.89 Td (G49) Tj ET
+BT /F1 7 Tf 291.75 682.89 Td (1) Tj ET
+BT /F1 7 Tf 357.18 682.89 Td (Rs.0.49) Tj ET
+BT /F1 7 Tf 444.39 682.89 Td (Rs.0.49) Tj ET
+BT /F1 7 Tf 36 671.89 Td (G50) Tj ET
+BT /F1 7 Tf 291.75 671.89 Td (1) Tj ET
+BT /F1 7 Tf 357.18 671.89 Td (Rs.0.50) Tj ET
+BT /F1 7 Tf 444.39 671.89 Td (Rs.0.50) Tj ET
+BT /F1 7 Tf 36 660.89 Td (G51) Tj ET
+BT /F1 7 Tf 291.75 660.89 Td (1) Tj ET
+BT /F1 7 Tf 357.18 660.89 Td (Rs.0.51) Tj ET
+BT /F1 7 Tf 444.39 660.89 Td (Rs.0.51) Tj ET
+BT /F1 7 Tf 36 649.89 Td (G52) Tj ET
+BT /F1 7 Tf 291.75 649.89 Td (1) Tj ET
+BT /F1 7 Tf 357.18 649.89 Td (Rs.0.52) Tj ET
+BT /F1 7 Tf 444.39 649.89 Td (Rs.0.52) Tj ET
+BT /F1 7 Tf 36 638.89 Td (G53) Tj ET
+BT /F1 7 Tf 291.75 638.89 Td (1) Tj ET
+BT /F1 7 Tf 357.18 638.89 Td (Rs.0.53) Tj ET
+BT /F1 7 Tf 444.39 638.89 Td (Rs.0.53) Tj ET
+BT /F1 7 Tf 36 627.89 Td (G54) Tj ET
+BT /F1 7 Tf 291.75 627.89 Td (1) Tj ET
+BT /F1 7 Tf 357.18 627.89 Td (Rs.0.54) Tj ET
+BT /F1 7 Tf 444.39 627.89 Td (Rs.0.54) Tj ET
+BT /F1 7 Tf 36 616.89 Td (G55) Tj ET
+BT /F1 7 Tf 291.75 616.89 Td (1) Tj ET
+BT /F1 7 Tf 357.18 616.89 Td (Rs.0.55) Tj ET
+BT /F1 7 Tf 444.39 616.89 Td (Rs.0.55) Tj ET
+BT /F1 7 Tf 36 605.89 Td (G56) Tj ET
+BT /F1 7 Tf 291.75 605.89 Td (1) Tj ET
+BT /F1 7 Tf 357.18 605.89 Td (Rs.0.56) Tj ET
+BT /F1 7 Tf 444.39 605.89 Td (Rs.0.56) Tj ET
+BT /F1 7 Tf 36 594.89 Td (G57) Tj ET
+BT /F1 7 Tf 291.75 594.89 Td (1) Tj ET
+BT /F1 7 Tf 357.18 594.89 Td (Rs.0.57) Tj ET
+BT /F1 7 Tf 444.39 594.89 Td (Rs.0.57) Tj ET
+BT /F1 7 Tf 36 583.89 Td (G58) Tj ET
+BT /F1 7 Tf 291.75 583.89 Td (1) Tj ET
+BT /F1 7 Tf 357.18 583.89 Td (Rs.0.58) Tj ET
+BT /F1 7 Tf 444.39 583.89 Td (Rs.0.58) Tj ET
+BT /F1 7 Tf 36 572.89 Td (G59) Tj ET
+BT /F1 7 Tf 291.75 572.89 Td (1) Tj ET
+BT /F1 7 Tf 357.18 572.89 Td (Rs.0.59) Tj ET
+BT /F1 7 Tf 444.39 572.89 Td (Rs.0.59) Tj ET
+BT /F1 7 Tf 36 24 Td (Test basis \267 Page 2 of 2) Tj ET
+endstream
+endobj
+xref
+0 10
+0000000000 65535 f 
+0000000015 00000 n 
+0000000064 00000 n 
+0000000127 00000 n 
+0000000224 00000 n 
+0000000326 00000 n 
+0000000435 00000 n 
+0000000577 00000 n 
+0000007712 00000 n 
+0000007854 00000 n 
+trailer
+<< /Size 10 /Root 1 0 R /Info 5 0 R >>
+startxref
+11740
+%%EOF

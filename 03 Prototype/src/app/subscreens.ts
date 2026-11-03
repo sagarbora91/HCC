@@ -10,6 +10,7 @@ import {hovIsManager} from '../domain/streams/handover';
 import {yldProposals} from '../domain/streams/yield';
 import {keyCanConfigure} from '../domain/streams/keys';
 import {guestAccess} from '../domain/streams/guests'; // LF-DESK
+import {hallTabOpen} from '../features/hall/access'; // F6-H3
 export type SubScreen={page:string;id:string;label:string;keywords?:string[]};
 export const SUB_SCREENS:SubScreen[]=[
   // FIT-FRONT
@@ -127,6 +128,9 @@ export const SUB_SCREENS:SubScreen[]=[
   {page:'accounting',id:'gstsum',label:'GST summary'},
   {page:'accounting',id:'cashratio',label:'Cash ratio'},
   {page:'accounting',id:'exports',label:'Exports',keywords:['report export']},
+  {page:'accounting',id:'year',label:'Year end',keywords:['financial year','carry forward','year lock','reopen year']},
+  {page:'accounting',id:'bank',label:'Bank reconciliation',keywords:['bank statement','match','reconcile bank','utr']},
+  {page:'accounting',id:'clearing',label:'Clearing',keywords:['upi clearing','card clearing','settlement','1010','1020']},
   {page:'accounting',id:'daybook',label:'Day book'},
   {page:'accounting',id:'chart',label:'Chart of accounts',keywords:['ledgers','groups']},
   {page:'accounting',id:'parties',label:'Parties',keywords:['party ledgers','debtors','creditors']},
@@ -150,6 +154,7 @@ export const SUB_SCREENS:SubScreen[]=[
   {page:'settings',id:'modules',label:'Modules on/off'},
   {page:'settings',id:'users',label:'Users, roles and PINs'},
   {page:'settings',id:'messages',label:'Messages and documents'},
+  {page:'settings',id:'internet',label:'Internet access',keywords:['internet','egress','online','offline','ota sync','whatsapp','master switch']},
   {page:'settings',id:'data',label:'Data and system'},
   {page:'approvals',id:'approvals',label:'Approvals'},
   {page:'approvals',id:'expenses',label:'Pending expenses'},
@@ -180,6 +185,34 @@ export const SUB_SCREENS:SubScreen[]=[
   {page:'counter-bills',id:'bills',label:'Bills'},
   {page:'cashier',id:'credit-guests',label:'Credit guests',keywords:['guest credit','udhaar','outstanding']},
   // LF-UI end
+  // F7-R2
+  {page:'report-hub',id:'reports',label:'Reports',keywords:['report library','catalogue','search reports','favourites']},
+  {page:'report-hub',id:'scheduled',label:'Scheduled runs',keywords:['subscriptions','schedule','email report']},
+  {page:'report-hub',id:'log',label:'Export log',keywords:['print log','who exported']},
+  // F7-R2 end
+  // F4-T1
+  {page:'tariff-card',id:'rooms',label:'Rooms',keywords:['room prices','weekday','weekend','extra person']},
+  {page:'tariff-card',id:'meals',label:'Meal plans & extras',keywords:['breakfast','cp','map','add-on']},
+  {page:'tariff-card',id:'seasons',label:'Seasons & weekends',keywords:['valid from','season','weekend nights']},
+  {page:'tariff-card',id:'halls',label:'Halls',keywords:['hall','banquet']},
+  {page:'tariff-card',id:'history',label:'History',keywords:['versions','publish log']},
+  {page:'tariff-card',id:'print',label:'Print',keywords:['rate sheet','print','csv']},
+  // F4-T1 end
+  // F4-T2
+  {page:'revenue-category',id:'a',label:'A. Revenue by category',keywords:['room type revenue','occupancy']},
+  {page:'revenue-category',id:'b',label:'B. Collections by tender',keywords:['cash','upi','card','tender']},
+  {page:'revenue-category',id:'c',label:'C. Bridge',keywords:['tie out','advances']},
+  // F4-T2 end
+  // F4-T3
+  // F4-T3 end
+  // F6-H3
+  {page:'hall-booking',id:'enquiries',label:'Enquiries',keywords:['follow up','lead','wedding enquiry']},
+  {page:'hall-booking',id:'quotations',label:'Quotations',keywords:['quote','estimate','revise','send']},
+  {page:'hall-booking',id:'calendar',label:'Calendar',keywords:['availability','clash','hold','date']},
+  {page:'hall-booking',id:'events',label:'Events',keywords:['function sheet','beo','event day','plates','bill','advance','invoice']},
+  {page:'hall-booking',id:'menus',label:'Menus',keywords:['per plate','package','halls master','hall rates']},
+  {page:'hall-booking',id:'templates',label:'Templates',keywords:['terms','t&c','conditions','clauses']},
+  // F6-H3 end
 ];
 
 /** Review S3: sub-screens a role's page never shows (the page falls back to its default tab) are not listed in the search palette for that
@@ -194,6 +227,8 @@ export const SUB_SCREEN_GATES:Record<string,(s:State,uid:string)=>boolean>={
   'staff:people':hrDesk,'staff:roster':hrDesk,'staff:attendance':hrDesk,'staff:leave':hrDesk,
   'staff:payroll':hrPay,'staff:advances':hrPay,'staff:fnf':hrPay,'staff:settings':hrPay,
   'accounting:tally':rbacCanTally,
+  'accounting:year':(s,uid)=>['Owner','Accountant'].includes(s.users.find(x=>x.id===uid)?.role??''),'accounting:bank':(s,uid)=>['Owner','Accountant'].includes(s.users.find(x=>x.id===uid)?.role??''), // F5-U1 PERM-ACC-014 / 016
+  'accounting:clearing':books,'settings:internet':(s,uid)=>['Owner','Manager'].includes(s.users.find(x=>x.id===uid)?.role??''), // F5-U1 (EGRESS-CONTRACT §6)
   'expenses:vendors':books,
   'channels:commission':s=>!chnCommissionHidden(s),'channels:payouts':books,
   'pos:summary':rbacPosSeesDaySales,
@@ -201,6 +236,10 @@ export const SUB_SCREEN_GATES:Record<string,(s:State,uid:string)=>boolean>={
   'handover:dashboard':hovIsManager,'handover:templates':hovIsManager,
   'customers:foreigner-register':(s,uid)=>guestAccess(s,uid).idDetails, // LF-DESK
   'keys:locks':(s,uid)=>keyCanConfigure(s,uid),'keys:encoder':(s,uid)=>keyCanConfigure(s,uid),
+  // F6-H3
+  'hall-booking:enquiries':(s,uid)=>hallTabOpen(s,uid,'enquiries'),'hall-booking:quotations':(s,uid)=>hallTabOpen(s,uid,'quotations'),
+  'hall-booking:menus':(s,uid)=>hallTabOpen(s,uid,'menus'),'hall-booking:templates':(s,uid)=>hallTabOpen(s,uid,'templates'),
+  // F6-H3 end
   'yield:publish-requests':s=>yldProposals(s).length>0,
   'access:sign-in-devices':()=>process.env.HCC_BUILD==='production',
 };

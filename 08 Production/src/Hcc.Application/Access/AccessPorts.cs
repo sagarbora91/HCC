@@ -256,5 +256,5 @@ public interface IAccessAdminQueries
     Task<ExceptionsResult> ExceptionsAsync(AuthenticatedSession actor, bool includeRevoked, CancellationToken ct = default);
 
     /// <summary>Audit events, newest first. PERM-ADM-004.</summary>
-    Task<AuditPage> AuditAsync(AuthenticatedSession actor, int page, int pageSize, string? action, int? principalId, DateOnly? from, DateOnly? to, CancellationToken ct = default);
+    Task<AuditPage> AuditAsync(AuthenticatedSession actor, int page, int pageSize, string? action, int? principalId, DateOnly? from, DateOnly? to, CancellationToken ct = default, string? entity = null, string? entityId = null);
 }

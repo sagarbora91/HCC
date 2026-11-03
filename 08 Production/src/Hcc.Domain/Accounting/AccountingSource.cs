@@ -52,8 +52,10 @@ public static class SourceKinds
     public const string Ota = "ota";
     // LF A7 (4687): counter bills and their credit notes.
     public const string Counter = "counter";
+    // F6-H1 (4740): hall booking — advances, event invoices, advances applied, balances, cancellation charges, refunds.
+    public const string Hall = "hall";
 
-    public static readonly IReadOnlyList<string> All = [Line, Receipt, Pos, Expense, Closing, Payroll, Manual, Purchase, Vendor, Tax, Ota, Counter];
+    public static readonly IReadOnlyList<string> All = [Line, Receipt, Pos, Expense, Closing, Payroll, Manual, Purchase, Vendor, Tax, Ota, Counter, Hall];
 }
 
 /// <summary>Intra-state GST split (prototype <c>gstSplit</c>): SGST = half rounded toward zero, CGST = the rest (takes the odd paisa).</summary>

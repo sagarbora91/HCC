@@ -67,6 +67,11 @@ const PAGES={
   settings:['OWN TAD','ADM-003 + DEC-057/058 (DEC-063 G9: no Manager requests)'],
   approvals:['OWN MGR ACC','ADM-004 audit.view + APR-001 (DEC-063 G10: not the Cashier; Tech admin view at M4)'],
   backup:['OWN TAD','ADM-005 (DEC-063 G9: the Manager gets the Overview backup card instead)'],
+  'hall-booking':['OWN MGR REC CSH SUP HKP ACC MNT','PERM-HAL-001…006 (F6-H3): every staff role but the Tech admin and the Restaurant role; housekeeping / maintenance / supervisor see the calendar and the function sheet without prices (DEC-061)'],
+  'tariff-card':['OWN MGR ACC REC CSH','PERM-TRF-001 (F4-T1): view card, history, print; not Restaurant / housekeeping / maintenance (DEC-061)'],
+  'owner-digest':['OWN','PERM-DGS-001 (F4-T2): Owner only; navRoleOk hides it from every other role'],
+  'report-hub':['OWN MGR ACC REC CSH','F7-R2: Report library = any of reports, billing, reservations, checkin; the engine filters each report by its own view right and removes money reports for housekeeping / maintenance (DEC-061)'],
+  'revenue-category':['OWN MGR ACC','PERM-RPT-001 + PERM-RPT-002 (F4-T2; DEC-202 #1): Owner, Manager, Accountant; navRoleOk hides it from the Cashier and the rest'],
   syshealth:['OWN TAD','PERM-SYS-001 (Wave C3, A09-05: parked outbox events, retry, last backup; the Administration area like Backup & recovery)'],
   'counter-bills':['OWN MGR REC CSH','LF A7: PERM-CTR-001 counter.bill.issue = Owner, Manager, Reception, Cashier (nav gate = payments, as the Cashier shift)'], // LF-UI
   'desk-alerts':['OWN MGR REC ACC','LF B4: PERM-RMD-001 reminders.manage = Owner, Manager, Reception, Accountant (contract §11, same as the server seed 4705)'], // LF-ALERTS
@@ -92,7 +97,23 @@ function surfaces(M,s,uid){
 const C=(roles,src)=>[roles,src];
 const CMDS={
   BOOK:C('OWN MGR REC','RES-002'),CONFIRM:C('OWN MGR REC','RES-002'),CHANGE_DATES:C('OWN MGR REC','RES-003'),MOVE:C('OWN MGR REC','RES-003/STY-002'),STAY_EARLY_DEPARTURE:C('OWN MGR REC','STY-002 (EarlyDeparture)'),CANCEL:C('OWN MGR REC','RES-004'),
+  DIGEST_REDRAFT:C('OWN','PERM-DGS-001 (F4-T2)'),
+  // F6-H1 hall booking (F6-CONTRACT §4)
+  HALL_VENUE_UPSERT:C('OWN','PERM-HAL-006'),HALL_MENU_UPSERT:C('OWN MGR','PERM-HAL-006'),HALL_ENQUIRY_ADD:C('OWN MGR REC','PERM-HAL-001'),HALL_ENQUIRY_UPDATE:C('OWN MGR REC','PERM-HAL-001'),
+  HALL_ENQUIRY_LOST:C('OWN MGR REC','PERM-HAL-001'),HALL_ENQUIRY_SOFT_HOLD:C('OWN MGR','PERM-HAL-001 (Manager+)'),HALL_NIGHT_RUN:C('OWN MGR','hall night run'),
+  QUO_ACCEPT:C('OWN MGR REC','PERM-HAL-003'),HALL_ADVANCE_RECEIVE:C('OWN MGR REC CSH','PERM-HAL-003'),HALL_EVENT_CLOSE:C('OWN MGR REC CSH','PERM-HAL-004'),
+  HALL_EVENT_CANCEL:C('OWN MGR REC','PERM-HAL-004'),HALL_REFUND:C('OWN MGR','PERM-HAL-004 approve'),
+  QUO_CREATE:C('OWN MGR REC','PERM-HAL-002'),QUO_EDIT:C('OWN MGR REC','PERM-HAL-002'),QUO_REVISE:C('OWN MGR REC','PERM-HAL-002'),QUO_SEND:C('OWN MGR REC','PERM-HAL-002'),
+  QUO_LOST:C('OWN MGR REC','PERM-HAL-002'),QUO_CANCEL:C('OWN MGR REC','PERM-HAL-002'),QUO_PLACEHOLDER_OVERRIDE:C('OWN','PERM-HAL-005 (Owner override, spec §8)'),
+  QUO_DISCOUNT_APPROVE:C('OWN','spec §6.3: discount above the limit, Owner (never the author)'),QUO_EXPIRE:C('OWN MGR','quotation expiry run'),HALL_TNC_TEMPLATE_SAVE:C('OWN','PERM-HAL-005'),
+  HALL_ROOM_BLOCK:C('OWN MGR REC','PERM-HAL-003 (F6-H3: rooms for the guests, a group block)'),HALL_CREDIT_NOTE:C('OWN','F6-H3: credit note on a printed hall invoice, Owner (DEC-063 G3)'),
+  // F6-H1 end
   GSV_WAKE_SNOOZE:C('OWN MGR REC','LF B3 (reservations)'),RMD_SAVE:C('OWN MGR REC ACC','PERM-RMD-001'),RMD_DONE:C('OWN MGR REC ACC','PERM-RMD-001'),RMD_DISMISS:C('OWN MGR REC ACC','PERM-RMD-001'), // LF-ALERTS
+  CFG_NET_SET:C('OWN','PERM-NET-001 (F5-E1)'),NET_TICK:C('OWN','PERM-NET-001 worker tick stand-in (F5-E1)'), // F5-E1
+  // F7-R1 report engine commands (F7-CONTRACT §2): view / export of the report (rule V); schedules by their owner or the Owner
+  RPT_FAV_TOGGLE:C('OWN MGR ACC','report view (rule V)'),RPT_SCHEDULE_SAVE:C('OWN MGR ACC','view + PERM-RPT-003 (a schedule sends a file)'),
+  RPT_SCHEDULE_DELETE:C('OWN MGR ACC','schedule owner or the Owner'),RPT_RUN_DUE:C('OWN MGR ACC','report outbox tick stand-in'),RPT_LOG:C('OWN MGR ACC','print = view; file = view + export (rule V.4)'),
+  // F7-R1 end
   STAY_CHECKOUT_BASIS:C('OWN MGR REC','STY-001 (LF A6)'),STAY_FORM_C:C('OWN MGR REC','STY-001 (LF A5)'),STAY_LATE_CHARGE:C('OWN MGR REC','STY-003 (LF A6)'), // LF-DESK
   REGISTER:C('OWN MGR REC','GST-002'),GUEST_SAVE:C('OWN MGR REC','GST-002'),GUEST_PHOTO:C('OWN MGR REC','GST-003 / DOC-004 (LF-images B5; checkin stand-in)'),GUEST_PHOTO_REMOVE:C('OWN MGR REC','GST-003 / DOC-004 (LF-images B5)'),GUEST_ID_VIEW:C('OWN MGR REC','GST-003 (DEC-068 Show ID)'),CHECKIN:C('OWN MGR REC','STY-001'),CHECKOUT:C('OWN MGR REC','STY-003'),
   COMPANY_CREDIT_REQUEST:C('OWN MGR REC','PAY-005 + §7 (raised by REC)'),
@@ -129,6 +150,11 @@ const CMDS={
   EXP_VENDOR_PAY:C('OWN MGR ACC','ACC-2 contract §9 PERM-EXP-004'),EXP_VENDOR_PAY_VOID:C('OWN','ACC-2 contract §3.2 (Owner voids)'),EXP_VENDOR_RETURN:C('OWN MGR ACC','ACC-2 contract §3.5 + §9 PERM-EXP-004 (Owner approves)'),
   EXP_VENDOR_PAY_REALLOCATE:C('OWN MGR ACC','ACC-3 contract §7 C3 / §9 PERM-EXP-004'),ACC_ASSET_PUT_TO_USE:C('OWN ACC','ACC-3 contract §7 C1 (Owner / Accountant)'),ACC_ASSET_DISPOSE:C('OWN ACC','ACC-3 contract §7 C1 (Owner / Accountant)'),ACC_TDS_FORM168:C('OWN ACC','ACC-3 contract §7 C7 PERM-ACC-013'),
   ACC_MANUAL_SAVE:C('OWN ACC','ACC-2 contract §9 PERM-ACC-010 (Accountant pending, Owner approved at once)'),ACC_MANUAL_DECIDE:C('OWN','ACC-2 contract §9 PERM-ACC-011'),ACC_MANUAL_VOID:C('OWN','ACC-2 contract §9 PERM-ACC-011 (approve and void)'),ACC_LOAN_ADD:C('OWN','ACC-2 contract §2 Add loan = chart edit (PERM-ACC-007)'),
+  // F5-A1 (ACC4-CONTRACT §4)
+  ACC_YEAR_PREVIEW:C('OWN ACC','ACC-4 PERM-ACC-014'),ACC_YEAR_CARRY_FORWARD:C('OWN ACC','ACC-4 PERM-ACC-014'),ACC_YEAR_LOCK:C('OWN','ACC-4 PERM-ACC-015'),ACC_YEAR_REOPEN:C('OWN','ACC-4 PERM-ACC-015'),ACC_YEAR_RELOCK:C('OWN','ACC-4 PERM-ACC-015'),
+  BANK_IMPORT:C('OWN ACC','ACC-4 PERM-ACC-016'),BANK_AUTO_MATCH:C('OWN ACC','ACC-4 PERM-ACC-016'),BANK_MATCH:C('OWN ACC','ACC-4 PERM-ACC-016'),BANK_UNMATCH:C('OWN ACC','ACC-4 PERM-ACC-016'),BANK_IGNORE:C('OWN ACC','ACC-4 PERM-ACC-016'),
+  BANK_CREATE_VOUCHER:C('OWN ACC','ACC-4 PERM-ACC-016'),BANK_SETTLEMENT_POST:C('OWN ACC','ACC-4 PERM-ACC-016'),BANK_LAYOUT_UPSERT:C('OWN','ACC-4 PERM-ACC-017'),
+  // F5-A1 end
   ACC_OPENING_SAVE:C('OWN MGR ACC','ACC-1 contract §7 PERM-ACC-008'),ACC_OPENING_APPROVE:C('OWN','ACC-1 contract §7 PERM-ACC-009'),ACC_OPENING_REOPEN:C('OWN','ACC-1 contract §5 (Owner reopens)'),
   ACC_TDS_SETTINGS:C('OWN','ACC-2 contract §4 firm-profile TDS switches (Owner-only money setting, DEC-058)'),ACC_TDS_REMIT:C('OWN ACC','ACC-2 contract §5 / §9 PERM-ACC-013 TDS remittance (E5)'),
   // ACC-2 gst lane (contract §6, §9): tax entries = Owner / Accountant (PERM-ACC-013); month lock / unlock = Owner (PERM-ACC-012), the Accountant requests; GST on advances = Owner money setting (DEC-058, DEC-142).
@@ -184,6 +210,14 @@ const CMDS={
   // MA-0 masters framework (DEC-MA-1: the `masters` permission = Owner + Tech admin by default; money lists Owner-only per spec).
   ...Object.fromEntries(['MST_MASTER_SAVE','MST_MASTER_RETIRE','MST_MASTER_REACTIVATE','MST_MASTER_REORDER','MST_MASTER_DELETE'].map(c=>[c,C('OWN TAD','MA-0 masters (DEC-MA-1)')])),
   SYS_RETRY_PARKED:C('OWN TAD','PERM-SYS-001 (Wave C3, A09-05: RetryParkedEvent)'),
+  // F4-T3 quick wins: feedback at check-out (role list in the handler), day-close sweep ('close'), Owner follow-ups / feedback address / printer test ('admin').
+  // F4-T1 tariff card: Manager drafts + proposes, Owner publishes / rejects / weekend days / import (DEC-058).
+  ...Object.fromEntries(['TRC_DRAFT_SAVE','TRC_PROPOSE','TRC_DISCARD'].map(c=>[c,C('OWN MGR','PERM-TRF-002 (F4-T1)')])),
+  ...Object.fromEntries(['TRC_PUBLISH','TRC_REJECT','TRC_WEEKEND_SET','TRC_IMPORT'].map(c=>[c,C('OWN','PERM-TRF-003 (F4-T1, DEC-058)')])),
+  FBK_RECORD:C('OWN MGR REC CSH','F4-T3 qw-feedback: Reception, Manager, Owner, Cashier at check-out'),
+  FBK_FOLLOWUP_SWEEP:C('OWN MGR','F4-T3: system sweep at day close, gated by the coarse close permission'),
+  FBK_FOLLOWUP_DONE:C('OWN TAD','F4-T3: admin (Owner follow-up calls)'),FBK_URL_SET:C('OWN TAD','F4-T3: admin'),
+  QW_PRINTER_TEST:C('OWN TAD','F4-T3 PERM-FBK-003: admin'),QW_PRINTER_SET:C('OWN TAD','F4-T3 PERM-FBK-003: admin (demo only)'),
   // MA-8 masters import (JSON import and Paste rows): the `masters` permission (Owner + Tech admin); a money list inside the file is refused per list unless the Owner imports it.
   MST_IMPORT:C('OWN TAD','MA-8 masters import (DEC-MA-1, DEC-058)'),
   // MA-1 rooms master tools (range add, renumber, out of order): the rooms master's `masters` permission (old → new: 199 → 203 commands).
@@ -197,6 +231,13 @@ const K=k=>'cmd:'+k;
  * or the check depends on the record). roles = who passes the guard for this record per the documents. */
 const OTHER=u=>u==='owner'?'manager':'owner';
 const PAYLOADS={
+  // F7-R1: the engine's demo report (Owner, Manager, Accountant); a Manager-owned schedule may be deleted by the Manager or the Owner only.
+  RPT_FAV_TOGGLE:{roles:'OWN MGR ACC',run:(M,u)=>M.execute(M.seed(),u,{type:'RPT_FAV_TOGGLE',reportId:'rpt.money.revenue-by-category-tender'})},
+  RPT_SCHEDULE_SAVE:{roles:'OWN MGR ACC',run:(M,u)=>M.execute(M.seed(),u,{type:'RPT_SCHEDULE_SAVE',reportId:'rpt.money.revenue-by-category-tender',params:{},format:'xlsx',cadence:{kind:'daily',time:'07:00'},recipients:['owner']})},
+  RPT_SCHEDULE_DELETE:{roles:'OWN MGR',run:(M,u)=>{const s=M.execute(M.seed(),'manager',{type:'RPT_SCHEDULE_SAVE',reportId:'rpt.money.revenue-by-category-tender',params:{},format:'xlsx',cadence:{kind:'daily',time:'07:00'},recipients:['owner']});
+    return M.execute(s,u,{type:'RPT_SCHEDULE_DELETE',id:s.rptX.schedules[0].id});}},
+  RPT_LOG:{roles:'OWN MGR ACC',run:(M,u)=>M.execute(M.seed(),u,{type:'RPT_LOG',reportId:'rpt.money.revenue-by-category-tender',params:{},format:'print',rows:0})},
+  // F7-R1 end
   // DEC-120: EXP-102 is Reception's pending expense in the seed.
   EXP_EDIT:{roles:'OWN MGR REC ACC',run:(M,u)=>M.execute(M.seed(),u,{type:'EXP_EDIT',id:'EXP-102',amount:85000,category:'Supplies',method:'UPI',description:'Morning supplies',reason:'Add the description'})},
   EXP_VOID:{roles:'OWN MGR ACC',run:(M,u)=>M.execute(M.seed(),u,{type:'EXP_VOID',id:'EXP-102',reason:'Duplicate entry'})},
@@ -263,7 +304,7 @@ export function register({test,M,assert}){
       assert.equal(app,set(PAGES[n.id][0]).has(role),`${role} · ${n.id}: documents say ${set(PAGES[n.id][0]).has(role)?'visible':'hidden'} (${PAGES[n.id][1]})`);}
     for(const e of v.entries.filter(e=>e.kind==='action'))assert.ok(M.can(s,u,e.needs)&&v.allowed.has(e.page),e.id);});
   test('[RBAC] nav · housekeeping and maintenance reach only the no-money pages',()=>{
-    for(const u of NO_MONEY_USERS)assert.deepEqual([...surfaces(M,s,u).allowed].sort(),['gsv-my-requests','handover','housekeeping','inventory','maintenance','my-hr','prefs'],u);});
+    for(const u of NO_MONEY_USERS)assert.deepEqual([...surfaces(M,s,u).allowed].sort(),['gsv-my-requests','hall-booking','handover','housekeeping','inventory','maintenance','my-hr','prefs'],u);});
   test('[RBAC] nav · compliance content is Owner + Accountant only: Due-this-week card, assistant answers, commands (DEC-055)',()=>{
     for(const u of USERS){const ok=['owner','accountant'].includes(u);assert.equal(M.cmpHasAccess(s,u),ok,u);assert.equal(M.aiAccess(s,u).compliance,ok,u);}});
   test('[RBAC] nav · Compliance calendar is not listed for Manager or Cashier: drawer, Modules Home, search (W05-1, DEC-055)',()=>{

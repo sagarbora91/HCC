@@ -1,0 +1,3 @@
+code,name,meals,addOn,gst,roomTypes,sortOrder,active
+EP,Room only (EP),,0.00,separate,,10,yes
+CP,Breakfast included (CP),B,95.24,bundled,,20,yes

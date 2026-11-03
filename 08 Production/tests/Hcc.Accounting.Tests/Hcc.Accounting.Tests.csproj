@@ -18,6 +18,7 @@
   <ItemGroup>
     <None Include="Golden\*.json" CopyToOutputDirectory="PreserveNewest" />
     <None Include="Golden\*.xml" CopyToOutputDirectory="PreserveNewest" /> <!-- ACC-3 acc3-tally: Tally golden files -->
+    <None Include="..\..\..\03 Prototype\tests\fixtures\bank-april-2026.csv" Link="Bank\bank-april-2026.csv" CopyToOutputDirectory="PreserveNewest" /> <!-- F5-A1: one fictional statement for both sides -->
     <None Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
     <Using Include="Xunit" />
   </ItemGroup>

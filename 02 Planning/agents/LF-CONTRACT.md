@@ -11,7 +11,7 @@ The shared rules every LF lane builds against. **Copy, never reinterpret.** A la
 | Term | Meaning here |
 |---|---|
 | paise | every amount an integer number of paise (`number` in TypeScript, `BIGINT` in SQL); never a float, never rupees in code |
-| rate | a room rate is **per night before GST** as HCC's tariffs are stored today (DEC-198: card ÷ 1.18); screens show the GST-inclusive figure beside it, computed with `gstForCharge` on the night's date |
+| rate | a room rate is **per night before GST** as HCC's tariffs are stored today (DEC-198 card ÷ 1.05 at room GST 5 %, DEC-239); screens show the GST-inclusive figure beside it, computed with `gstForCharge` on the night's date |
 | business date / clock | `s.date` / `s.clock` (prototype), `inv.property.business_date` + `TimeProvider` (server); never the real clock |
 | approval | an `Approval` row (`s.approvals`, server `plat.approval` flow as used by folio corrections): kind, amount, reason, target, 24 simulated-hour expiry, nobody approves their own request, stale when the folio version moved |
 | Owner-decides kinds | `RBAC_OWNER_DECIDES` in `rbac.ts`: corrections and credit notes are approved by an Owner (DEC-063 G3); LF adds `bill-correction` to that list |

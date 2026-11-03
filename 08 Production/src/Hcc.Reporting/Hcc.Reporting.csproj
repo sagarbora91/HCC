@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- F7-R1 report engine (RPT-ARCHITECTURE §1–§10, F7-CONTRACT §2): catalogue, parameter binding, rule V / M, masks, OP-13 computed columns,
+       renderers (Excel on OpenXmlExporter, PDF on the in-repo MinimalPdfWriter, CSV, print HTML), schedules / runs / export log. No NuGet. -->
+  <PropertyGroup>
+    <RootNamespace>Hcc.Reporting</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Hcc.Application\Hcc.Application.csproj" />
+    <ProjectReference Include="..\Hcc.Infrastructure.SqlServer\Hcc.Infrastructure.SqlServer.csproj" />
+  </ItemGroup>
+</Project>

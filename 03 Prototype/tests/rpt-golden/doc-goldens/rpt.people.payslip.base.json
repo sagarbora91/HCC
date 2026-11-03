@@ -1,0 +1,56 @@
+{
+ "id": "rpt.people.payslip",
+ "tag": "base",
+ "tables": [
+  {
+   "key": "details",
+   "columns": ["item","value"],
+   "rows": [
+    ["row","Employee","Meera Kulkarni"],
+    ["row","Staff ID","HR-S01"],
+    ["row","Designation","Hotel manager"],
+    ["row","Department","Management"],
+    ["row","Month","August 2026"],
+    ["row","Run","HR-PAY-1"],
+    ["row","Pay basis","45000.00 / month"],
+    ["row","Payable days","29.5"],
+    ["row","Attendance","Present 25 · Half 1 · Absent 4 · Late 2"],
+    ["row","Status","Final"]
+   ]
+  },
+  {
+   "key": "pay",
+   "columns": ["item","earn","ded"],
+   "rows": [
+    ["row","Basic",2212500,null],
+    ["row","HRA",1770000,null],
+    ["row","Washing allowance",221250,null],
+    ["row","Special allowance",221250,null],
+    ["row","OT days (0)",0,null],
+    ["subtotal","Gross",4425000,null],
+    ["row","Provident Fund (12%)",null,180000],
+    ["row","ESIC (0.75%)",null,0],
+    ["row","Professional tax",null,20000],
+    ["row","Advance recovery",null,0],
+    ["subtotal","Total deductions",null,200000],
+    ["total","Net pay",4225000,null]
+   ]
+  },
+  {
+   "key": "er",
+   "columns": ["item","amount"],
+   "rows": [
+    ["row","PF employer",195000],
+    ["row","ESIC employer",0]
+   ]
+  },
+  {
+   "key": "notes",
+   "columns": ["note"],
+   "rows": [
+    ["row","Rupees Forty Two Thousand Two Hundred Fifty Only"],
+    ["row","Prepared by Farhan · locked by Sagar. Statutory rates are illustrative - CA to confirm for a hotel."]
+   ]
+  }
+ ]
+}

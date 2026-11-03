@@ -1,5 +1,6 @@
 // Module 23 · POS dialogs: open check, settle, void, KOT / bill print, day report, phone cart sheet.
 import {PrintTitle,PrintNotes} from '../exports/PrintNotes';
+import {DocPrintButton} from '../reports/documents/DocButton'; // F7-R7
 import {printDocument} from '../../app/native';
 import {bookingRef} from '../../domain/bookingRef';
 import React,{useState} from 'react';
@@ -97,7 +98,7 @@ export function PosPrintModal({id,room}:ModalProps){
   const {s,closeModal,run,busy,permission}=useHcc();const o=posOrder(s,id);
   if(!o)return <Empty title="This record is unavailable"/>;
   const out=posOutlet(s,o.outlet),k=o.kots.find(k=>k.id===room);
-  const actions=<div className="modal-actions no-print"><button className="btn" onClick={closeModal}>Close</button><button className="btn primary" onClick={()=>{void printDocument();}}><Printer size={16}/> Print / share</button></div>;
+  const actions=<div className="modal-actions no-print"><button className="btn" onClick={closeModal}>Close</button><DocPrintButton doc={k?'doc.kot':'doc.outlet-bill'} params={k?{order:o.id,kot:k.id}:{order:o.id}} label={k?'Ticket (Lodge look)':'Bill (Lodge look)'}/>{/* F7-R7 */}<button className="btn primary" onClick={()=>{void printDocument();}}><Printer size={16}/> Print / share</button></div>;
   if(k){const lines=o.lines.filter(l=>l.kot===k.id);
     return <><div className="pos-doc pos-kot-doc invoice"><h2>KITCHEN ORDER TICKET</h2><p className="pos-doc-big">{posKotLabel(s,o,k)}</p>
       <div className="pos-doc-meta"><span>{out?.name}</span><span>{posSpot(o)}</span><span>{dateLabel(s.date)} {clockTime(k.at)}</span><span>By {posUserName(s,k.by)}</span><span>Covers {o.covers}</span></div>

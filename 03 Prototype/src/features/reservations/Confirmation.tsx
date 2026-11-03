@@ -1,5 +1,6 @@
 // Stream A · printable booking confirmation (REQ-BOOK-008) and booking-dialog actions for holds.
 import {printDocument} from '../../app/native';
+import {DocPrintButton} from '../reports/documents/DocButton'; // F7-R7
 import {bookingRef} from '../../domain/bookingRef';
 import React from 'react';
 import {Hotel,Printer,Hourglass,Info} from 'lucide-react';
@@ -26,7 +27,7 @@ export function BookingConfirmation({id}:{id?:string}){
     {b.notes&&<p className="footnote">Notes: {b.notes}</p>}
     <FdmPolicyLine b={b}/>
     <p className="footnote">Demonstration document. All names, numbers and references are fictional. GST applies per the dated GST master (illustrative — CA to confirm).</p></div>
-    <div className="modal-actions no-print"><button className="btn" onClick={()=>booking(b.id)}>Back to booking</button><button className="btn primary" onClick={()=>{void printDocument();}}><Printer size={16}/> Print / save PDF</button></div></>;
+    <div className="modal-actions no-print"><button className="btn" onClick={()=>booking(b.id)}>Back to booking</button><DocPrintButton doc="doc.quotation" params={{booking:b.id}} label="Print quotation"/>{/* F7-R7 */}<button className="btn primary" onClick={()=>{void printDocument();}}><Printer size={16}/> Print / save PDF</button></div></>;
 }
 
 /** Buttons added to the booking dialog (registered as bookingActions). */

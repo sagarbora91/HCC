@@ -72,6 +72,10 @@ public interface IInventoryStore
 
     Task<IReadOnlyList<(DateOnly EffectiveFrom, long RatePaise)>> GetTariffsAsync(int roomTypeId, ICommandTransaction? tx = null, CancellationToken ct = default);
 
+    /// <summary>F4-int: the room type's tariff for one night through <c>inv.fn_tariff_on</c> (weekday / weekend card rows honoured, as the
+    /// prototype's adminTariffOn); null when no row is effective (callers fall back to the rack rate).</summary>
+    Task<long?> GetTariffOnAsync(int roomTypeId, DateOnly night, ICommandTransaction? tx = null, CancellationToken ct = default);
+
     Task<QuoteRecord> InsertQuoteAsync(ICommandTransaction tx, QuoteDraft draft, CancellationToken ct = default);
 
     Task<QuoteRecord?> GetQuoteForUpdateAsync(ICommandTransaction tx, int propertyId, long quoteId, CancellationToken ct = default);

@@ -40,6 +40,17 @@ public static class AccountingExportEndpoints
 
     private const string CsvGap = "\r\n\r\n";
 
+    /// <summary>F5-int (ACC4-CONTRACT §1.2): true when the export range touches a reopened year (or the year after it) — the file is stamped
+    /// "PROVISIONAL — year reopened" (<see cref="YearLockRules.Provisional"/>).</summary>
+    public static async Task<bool> YearProvisionalAsync(IServiceProvider sp, int propertyId, DateOnly from, DateOnly to, CancellationToken ct)
+    {
+        var store = sp.GetService<IYearLockStore>();
+        if (store is null) return false;
+        var years = await store.YearsAsync(propertyId, ct).ConfigureAwait(false);
+        for (var d = from; d <= to; d = d.AddYears(1)) if (YearLockRules.Provisional(years, d)) return true;
+        return YearLockRules.Provisional(years, to);
+    }
+
     public static RouteGroupBuilder MapAccountingExportEndpoints(this RouteGroupBuilder api)
     {
         ArgumentNullException.ThrowIfNull(api);
@@ -58,7 +69,7 @@ public static class AccountingExportEndpoints
             var statements = new List<StatementView>();
             foreach (var id in ids) statements.Add(await queries.StatementAsync(caller, id, from, to, ct).ConfigureAwait(false));
             var prop = StatementExports.PropertyCode(await sp.GetRequiredService<IAccountingStore>().PropertyNameAsync(caller.PropertyId, ct).ConfigureAwait(false));
-            var (bytes, _) = StatementExports.StatementsZip(prop, statements, fmt);
+            var (bytes, _) = StatementExports.StatementsZip(prop, statements, fmt, await YearProvisionalAsync(sp, caller.PropertyId, from, to, ct).ConfigureAwait(false));
             return Results.File(bytes, "application/zip", StatementExports.FileName(prop, "statements-" + (parties ?? "all").Trim().ToLowerInvariant(), from, to, "zip"));
         });
         // ACC-3 integration: the §2–§3 report views through OpenXmlExporter / CSV — PERM-ACC-005 (export) plus the report's own PERM-ACC-001 (view).
@@ -100,6 +111,7 @@ public static class AccountingExportEndpoints
                     throw HccException.Validation("kind must be pl, balance-sheet, cash-ratio, ageing-receivable, ageing-payable or gst-summary.");
             }
 
+            if (await YearProvisionalAsync(sp, caller.PropertyId, a, b, ct).ConfigureAwait(false)) tables = [.. tables.Select(StatementExports.Stamp)]; // F5-int
             var name = StatementExports.FileName(prop, report, a, b, fmt);
             return fmt == "xlsx"
                 ? Results.File(StatementExports.Xlsx(tables), OpenXmlExporter.Mime, name)

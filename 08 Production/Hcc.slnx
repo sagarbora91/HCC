@@ -3,9 +3,11 @@
     <Project Path="src/Hcc.Contracts/Hcc.Contracts.csproj" />
     <Project Path="src/Hcc.Domain/Hcc.Domain.csproj" />
     <Project Path="src/Hcc.Application/Hcc.Application.csproj" />
+    <Project Path="src/Hcc.Infrastructure.Egress/Hcc.Infrastructure.Egress.csproj" /> <!-- F5-E1 -->
     <Project Path="src/Hcc.Infrastructure.SqlServer/Hcc.Infrastructure.SqlServer.csproj" />
     <Project Path="src/Hcc.Operations/Hcc.Operations.csproj" />
     <Project Path="src/Hcc.Api/Hcc.Api.csproj" />
+    <Project Path="src/Hcc.Reporting/Hcc.Reporting.csproj" /> <!-- F7-R1 -->
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Hcc.Billing.Tests/Hcc.Billing.Tests.csproj" />
@@ -46,6 +48,12 @@
     <Project Path="tests/Hcc.PeopleLists.Tests/Hcc.PeopleLists.Tests.csproj" />
     <Project Path="tests/Hcc.OpsMasters.Tests/Hcc.OpsMasters.Tests.csproj" />
     <Project Path="tests/Hcc.Legacy.Tests/Hcc.Legacy.Tests.csproj" />
+    <Project Path="tests/Hcc.Egress.Tests/Hcc.Egress.Tests.csproj" /> <!-- F5-E1 -->
+    <Project Path="tests/Hcc.Architecture.Tests/Hcc.Architecture.Tests.csproj" /> <!-- F5-E1 -->
+    <Project Path="tests/Hcc.Reporting.Tests/Hcc.Reporting.Tests.csproj" /> <!-- F7-R1 -->
+    <!-- F6-H1 -->
+    <Project Path="tests/Hcc.Hall.Tests/Hcc.Hall.Tests.csproj" />
+    <!-- F6-H1 end -->
   </Folder>
   <Folder Name="/database/">
     <File Path="database/migrations.lock.json" />
@@ -175,6 +183,19 @@
     <File Path="database/migrations/4258_bill_charge_kind_food.sql" />
     <File Path="database/migrations/4259_acc_ledger_1210_control.sql" />
     <File Path="database/migrations/4266_acc_tally_file_log.sql" />
+    <!-- F5-A1 -->
+    <File Path="database/migrations/4280_acc_fiscal_year.sql" />
+    <File Path="database/migrations/4281_acc_carry_forward.sql" />
+    <File Path="database/migrations/4282_acc_refers_to_fy.sql" />
+    <File Path="database/migrations/4283_acc_year_lock_guard.sql" />
+    <File Path="database/migrations/4284_acc_year_rbac_seed.sql" />
+    <File Path="database/migrations/4285_mst_bank_statement_layout.sql" />
+    <File Path="database/migrations/4286_acc_bank_statement.sql" />
+    <File Path="database/migrations/4287_acc_bank_match.sql" />
+    <File Path="database/migrations/4288_acc_bank_settlement_source.sql" />
+    <File Path="database/migrations/4289_acc_bank_recon_view.sql" />
+    <File Path="database/migrations/4293_acc_bank_rbac_seed.sql" />
+    <!-- F5-A1 end -->
     <File Path="database/migrations/4270_acc_fixed_asset_put_to_use_disposal.sql" />
     <File Path="database/migrations/4271_ops_vendor_payment_realloc.sql" />
     <File Path="database/migrations/4272_acc_tds_remit_subsection_form168.sql" />
@@ -237,7 +258,55 @@
     <!-- LF-IMAGES end -->
     <!-- LF-INT 4711-4718 -->
     <!-- LF-INT end -->
+    <!-- F4-T2 4370-4379 -->
+    <File Path="database/migrations/4370_revcat_indexes.sql" />
+    <File Path="database/migrations/4375_digest_draft.sql" />
+    <File Path="database/migrations/4376_digest_draft_table.sql" />
+    <File Path="database/migrations/4377_digest_rbac_seed.sql" />
+    <!-- F4-T2 end -->
+    <!-- F4-T1 4380-4389 -->
+    <File Path="database/migrations/4380_trc_tables.sql" />
+    <File Path="database/migrations/4381_trc_tariff_dayset.sql" />
+    <File Path="database/migrations/4382_trc_publish_log.sql" />
+    <File Path="database/migrations/4383_trc_rbac_seed.sql" />
+    <!-- F4-T1 end -->
+    <!-- F4-T3 4390-4399 -->
+    <File Path="database/migrations/4390_audit_viewer_index.sql" />
+    <File Path="database/migrations/4393_guest_feedback.sql" />
+    <File Path="database/migrations/4394_feedback_followup.sql" />
+    <File Path="database/migrations/4395_feedback_rbac_seed.sql" />
+    <File Path="database/migrations/4397_printers.sql" />
+    <!-- F4-T3 end -->
     <File Path="database/migrations/4720_keys_schema.sql" />
     <File Path="database/migrations/4721_keys_rbac_seed.sql" />
+    <File Path="database/migrations/4730_egress_settings_seed.sql" /> <!-- F5-E1 -->
+    <File Path="database/migrations/4731_egress_outbox_held.sql" /> <!-- F5-E1 -->
+    <File Path="database/migrations/4732_egress_audit.sql" /> <!-- F5-E1 -->
+    <File Path="database/migrations/4733_egress_rbac_seed.sql" /> <!-- F5-E1 -->
+    <File Path="database/migrations/4734_egress_firewall_state.sql" /> <!-- F5-E1 -->
+    <File Path="database/migrations/4400_rpt_schema.sql" /> <!-- F7-R1 -->
+    <File Path="database/migrations/4401_rpt_favourite.sql" /> <!-- F7-R1 -->
+    <File Path="database/migrations/4402_rpt_schedule.sql" /> <!-- F7-R1 -->
+    <File Path="database/migrations/4403_rpt_run.sql" /> <!-- F7-R1 -->
+    <File Path="database/migrations/4404_rpt_export_log.sql" /> <!-- F7-R1 -->
+    <File Path="database/migrations/4405_rpt_rbac_seed.sql" /> <!-- F7-R1 -->
+    <!-- F6-H1 4300-4329 (+ 4740: source kinds, above 4687 which re-creates both constraints) -->
+    <File Path="database/migrations/4300_hall_schema.sql" />
+    <File Path="database/migrations/4320_hall_billing.sql" />
+    <File Path="database/migrations/4740_hall_source_kinds.sql" />
+    <!-- F6-H1 end -->
+    <!-- F6-H2 4330-4344, 4349 -->
+    <File Path="database/migrations/4330_hall_quote_series.sql" />
+    <File Path="database/migrations/4331_hall_tnc_templates.sql" />
+    <File Path="database/migrations/4332_hall_quote_snapshot.sql" />
+    <File Path="database/migrations/4333_hall_menu_packages.sql" />
+    <File Path="database/migrations/4334_hall_lost_reasons.sql" />
+    <File Path="database/migrations/4345_hall_rbac_seed.sql" />
+    <File Path="database/migrations/4346_hall_indexes.sql" />
+    <File Path="database/migrations/4348_hall_print_log.sql" />
+    <File Path="database/migrations/4349_hall_seed.sql" />
+    <!-- F6-H2 end -->
+    <!-- F6-H3 4345-4348 -->
+    <!-- F6-H3 end -->
   </Folder>
 </Solution>

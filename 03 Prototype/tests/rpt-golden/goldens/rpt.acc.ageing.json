@@ -1,0 +1,44 @@
+{
+ "id": "rpt.acc.ageing",
+ "cases": [
+  {
+   "uid": "accountant",
+   "scenario": "ACC-RULEBOOK",
+   "params": {
+    "asOf": "2026-04-30"
+   },
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["party","control","billRef","billDate","due","amount","paid","open","days","b0_30","b31_60","b61_90","b90"],
+     "rows": [
+      ["total","Total",null,null,null,null,null,null,0,null,0,0,0,0]
+     ]
+    }
+   ]
+  },
+  {
+   "uid": "accountant",
+   "scenario": "ACC-RULEBOOK",
+   "params": {
+    "asOf": "2026-04-30",
+    "side": "payable"
+   },
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["party","control","billRef","billDate","due","amount","paid","open","days","b0_30","b31_60","b61_90","b90"],
+     "rows": [
+      ["subtotal","Kaveri Textiles","2200",null,null,null,4200000,0,4200000,null,4200000,0,0,0],
+      ["row","Kaveri Textiles","2200","EXP-1847","2026-04-12","2026-04-12",4200000,0,4200000,18,4200000,0,0,0],
+      ["subtotal","Morning Supplies","2200",null,null,null,5900000,3500000,2400000,null,2400000,0,0,0],
+      ["row","Morning Supplies","2200","EXP-1476","2026-04-05","2026-04-05",5900000,3500000,2400000,25,2400000,0,0,0],
+      ["total","Total",null,null,null,null,null,null,6600000,null,6600000,0,0,0]
+     ]
+    }
+   ]
+  }
+ ]
+}

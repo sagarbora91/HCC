@@ -238,6 +238,12 @@
           "Hcc.Contracts": "[0.1.0, )"
         }
       },
+      "hcc.infrastructure.egress": {
+        "type": "Project",
+        "dependencies": {
+          "Hcc.Domain": "[0.1.0, )"
+        }
+      },
       "System.Security.Cryptography.Pkcs": {
         "type": "CentralTransitive",
         "requested": "[10.0.13, )",
@@ -246,4 +252,4 @@
       }
     }
   }
-}
+}

@@ -1,4 +1,5 @@
 // Module 24 · WhatsApp / notifications (simulated). Desktop page + phone page.
+import {NetBanner,netBannerText,netHeldOf} from '../admin/InternetPanel';
 import React,{useState} from 'react';
 import {bookingRef,bookingRefOf} from '../../domain/bookingRef';
 import {Send,FastForward,Zap,Pencil,ShieldOff,ShieldCheck} from 'lucide-react';
@@ -45,12 +46,12 @@ export function MsgMessagesPage(){
   const [tab,setTab]=useFitTab<DeskTab>('messages',shown,templatesOnly?'templates':'outbox');
   const a=useMsgActions();const c=msgCounts(s);const list=msgOutbox(s);
   const count=(t:DeskTab)=>t==='outbox'?list.length:t==='triggers'?a.pending.length:t==='templates'?msgTemplates(s).length:consentRows(s).length;
-  return <FitPage title="Messages" sub="Guest notifications — templates, consent, outbox and trigger rules. Simulated: nothing is ever sent."
+  return <FitPage title="Messages" sub={netBannerText(s,'messaging')+'Guest notifications — templates, consent, outbox and trigger rules. Simulated: nothing is ever sent.'}
       actions={<>{a.canAct&&<button className="btn primary" disabled={busy} onClick={()=>open({type:'msg-compose'})}><Send size={16}/> Compose</button>}
         {a.canAct&&<button className="btn" disabled={busy||!a.unfinished} onClick={a.simulateAll}><FastForward size={16}/> Simulate delivery</button>}</>}
       toolbar={<StatStrip items={[{title:'Queued / sent',value:String(c.Queued+c.Sent)},{title:'Delivered / read',value:String(c.Delivered+c.Read)},{title:'Failed',value:String(c.Failed)},
         {title:'Not sent (consent)',value:String(c['Not sent'])},{title:'Pending triggers',value:String(a.pending.length)}]} variant="small" className="msg-stats" compact collapseOnTablet/>}
-      tabs={<FitTabs<DeskTab> page="messages" value={tab} onChange={setTab} tabs={shown.map(id=>({id,label:DESK_TAB_LABEL[id],count:count(id)}))}/>}>
+      tabs={<FitTabs<DeskTab> page="messages" value={tab} onChange={setTab} tabs={shown.map(id=>({id,label:DESK_TAB_LABEL[id],count:count(id),badge:id==='outbox'&&netHeldOf(s,'messaging')>0?'warn' as const:undefined}))}/>}>
     {/* S2: the "Simulated" (demo) / "Messaging is off" (production) note on every tab, for every role (the Tech admin sees only Triggers / Templates) */}
     {/* FIT-2 integrator: on the Outbox the note shares the panel footer line with "Show more" (one more list row at tab-land) */}
     {tab!=='outbox'&&<MsgSimulatedNote/>}
@@ -135,6 +136,7 @@ export function MsgMessagesMobile(){
   const sample=s.bookings.find(b=>b.status==='In house')||s.bookings[0];
   return <div className="msg-m">
     <MsgSimulated/>
+    <NetBanner kind="messaging"/>
     <div className="msg-m-kpis"><KpiCard label="Delivered / read" value={c.Delivered+c.Read}/><KpiCard label="Failed" value={c.Failed}/><KpiCard label="Pending triggers" value={a.pending.length} onClick={()=>setTab('triggers')}/></div>
     <ChipFilter label="Messages section" value={tab} onChange={setTab} options={shown.map(t=>({id:t.id,label:t.label,count:t.id==='outbox'?msgOutbox(s).length:t.id==='triggers'?a.pending.length:t.id==='templates'?msgTemplates(s).length:rows.length}))}/>
     {tab==='outbox'&&<>

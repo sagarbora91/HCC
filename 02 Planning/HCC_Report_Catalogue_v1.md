@@ -227,7 +227,7 @@ Columns of new entries are what HCC should show, from HCC's real data. The HTML 
 | rpt.rest.sales-by-item | Sales by item | Restaurant | planned | P2 | - | y |
 | rpt.rest.sales-by-outlet-hour | Sales by outlet and hour | Restaurant | planned | P3 | - | y |
 | rpt.rest.voids | POS voids | Restaurant | planned | P2 | - | y |
-| rpt.admin.audit-log | Audit log | Admin and audit | built | P1 | - | n |
+| rpt.admin.audit-log | Audit log (filters: actor, entity type, entity id, date; before/after view; CSV; money masked for roles without money, DEC-061) - F4-T3 | Admin and audit | built | P1 | - | n |
 | rpt.admin.export-log | Export and print log | Admin and audit | planned | P2 | - | n |
 | rpt.admin.scheduled-runs | Scheduled runs | Admin and audit | planned | P2 | - | n |
 | rpt.admin.system-health | System health | Admin and audit | built | P2 | - | n |
@@ -4054,6 +4054,7 @@ Columns of new entries are what HCC should show, from HCC's real data. The HTML 
 - **Legacy equivalents:** C7.RoomTariffCard
 - **Depends on:** nothing outside W7
 - **Notes:** Printed tariff card = the PDF of the rate sheet. No export today.
+- **F4-T1 (2 Nov 2026, F4-CONTRACT §1.7):** extended with the tariff card — A4 letterhead print of a card version (page `tariff-card` › Print; `features/reports/rate-sheet.tsx`), "Prices include GST @ <rate> %" from the published room lines, "Valid from" line, T&C footer from settings (blank-safe), English only; CSV of the card and of the version history; print = screen (same selector `trcRateSheet`); permission PERM-TRF-001 (Owner, Manager, Accountant, Reception, Cashier); PDF hook `renderPdf?.('rate-sheet', model)` for F7. Server data: `GET /api/v1/tariff-card`.
 
 #### rpt.admin.report-dictionary - Report dictionary
 - **Purpose:** Definitions of every metric and how zero is handled.
@@ -4338,3 +4339,10 @@ Only business choices. Each has a recommendation.
 
 **HCC inventory items that are not entries** (the inventory has 82 headings plus a planned list): `ac-exports` is a capability of the renderer (section 1.5); `fd-live-roomboard`, `fd-live-calendar`, `fd-live-reservations` and `fd-live-inhouse` are live screens, wrapped by `rpt.rooms.room-status`, `rpt.rooms.rooms-left`, `rpt.guests.reservations-register` and `rpt.guests.inhouse-list`; `ad-approvals-inbox` is a work queue; `ad-overview` is a dashboard; `ad-assistant` is a question tool; `rs-kot` and `rs-86` are documents (ETP spot 30); `ac-tally-simulated` and the ACC-3 `ac-tally-xml` are one entry (`rpt.acc.tally-xml`); `mn-pos-day-summary` and `tx-rep-gst-lines` are pointer headings.
 
+
+<!-- F4-T2 -->
+- rpt.money.revenue-by-category-tender - Revenue by room category and tender | Money and cash | built (F4-T2) | P1 | roles Owner, Accountant, Manager (PERM-RPT-001 + PERM-RPT-002) | money y | Blocks A (revenue by room type, ties to rpt.money.revenue-tax), B (tender columns, ties to daily-collections) and C (bridge); stay-basis toggle; CSV and Excel equal the screen.
+<!-- F4-T2 end -->
+<!-- F7-R6 --> rpt.acc.trial-balance, rpt.acc.statement, rpt.acc.day-book: built on the engine (prototype + server), PERM-ACC-001 (Owner, Manager, Accountant).
+<!-- F7-R6 --> rpt.acc.ageing: ACC-3, wired on the engine, PERM-ACC-001. rpt.acc.pl, rpt.acc.balance-sheet, rpt.acc.cash-ratio: ACC-3, wired on the engine, PERM-ACC-013 (Owner, Accountant).
+<!-- F7-R6 --> rpt.acc.tally-xml: ACC-3, summary report on the engine (formats screen + xml), PERM-ACC-006; the XML download stays the ACC-3 endpoints.
