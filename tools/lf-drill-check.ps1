@@ -16,6 +16,8 @@ param(
   [string]$SqlInstance = '.\SQLEXPRESS',
   [string]$Database = 'Hcc',
   [string]$DocumentsDatabase = 'HccDocuments',
+  [string]$ServiceAccount = 'NT SERVICE\HccServer',
+  [string]$BackupDirectory = 'D:\HccBackups',   # plan-only steps never create it; with -Live use the real backup folder
   [switch]$Live
 )
 $ErrorActionPreference = 'Stop'
@@ -31,12 +33,12 @@ function Step([string]$name, [scriptblock]$body) {
   $results.Add([pscustomobject]@{ Step = $name; Passed = $ok })
 }
 
-Step 'Initialize-HccDatabase -WhatIf (both databases)' { & (Join-Path $win 'Initialize-HccDatabase.ps1') -SqlInstance $SqlInstance -Database $Database -DocumentsDatabase $DocumentsDatabase -WhatIf }
-Step 'Backup-HccDatabase -WhatIf (both databases)'     { & (Join-Path $win 'Backup-HccDatabase.ps1') -SqlInstance $SqlInstance -Database @($Database, $DocumentsDatabase) -WhatIf }
-Step 'Restore-HccDrill -WhatIf (both databases)'       { & (Join-Path $win 'Restore-HccDrill.ps1') -SqlInstance $SqlInstance -Database $Database -DocumentsDatabase $DocumentsDatabase -WhatIf }
+Step 'Initialize-HccDatabase -WhatIf (both databases)' { & (Join-Path $win 'Initialize-HccDatabase.ps1') -SqlInstance $SqlInstance -Database $Database -DocumentsDatabase $DocumentsDatabase -ServiceAccount $ServiceAccount -BackupDirectory $BackupDirectory -WhatIf }
+Step 'Backup-HccDatabase -WhatIf (both databases)'     { & (Join-Path $win 'Backup-HccDatabase.ps1') -Type Full -SqlInstance $SqlInstance -BackupDirectory $BackupDirectory -WhatIf }   # no -Database = both databases
+Step 'Restore-HccDrill -WhatIf (both databases)'       { & (Join-Path $win 'Restore-HccDrill.ps1') -SqlInstance $SqlInstance -Database $Database -DocumentsDatabase $DocumentsDatabase -BackupDirectory $BackupDirectory -WhatIf }
 Step 'Test-HccDeployment'                              { & (Join-Path $win 'tests\Test-HccDeployment.ps1') }
 if ($Live) {
-  Step 'Restore-HccDrill (live: scratch restore of both databases)' { & (Join-Path $win 'Restore-HccDrill.ps1') -SqlInstance $SqlInstance -Database $Database -DocumentsDatabase $DocumentsDatabase }
+  Step 'Restore-HccDrill (live: scratch restore of both databases)' { & (Join-Path $win 'Restore-HccDrill.ps1') -SqlInstance $SqlInstance -Database $Database -DocumentsDatabase $DocumentsDatabase -BackupDirectory $BackupDirectory }
   # The drill script writes one plat.backup_run row per database and exits 1 on a CHECKDB / row-count / reference-check failure, so its exit code is the verdict;
   # read the rows on System health (databases block) or in plat.backup_run for the details.
 }
