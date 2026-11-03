@@ -77,8 +77,8 @@ export function register({test,assert}){
     assert.ok(render(ctxFor(false,'owner'),h(H.ReportsHub)).includes('Revenue by room category and tender'));
     assert.ok(render(ctxFor(false,'reception'),h(H.ReportsHub)).includes('Room status today'));
   });
-  test('[F7R2] a role that may open no report gets the honest empty state (cashier, tech admin), not a blank pane',()=>{
-    for(const u of ['cashier','techadmin']){
+  test('[F7R2] a role that may open no report gets the honest empty state (tech admin; the Cashier has own-shift money reports since R4), not a blank pane',()=>{
+    for(const u of ['techadmin']){
       assert.equal(H.reportCatalogue(s0,u).length,0,u+' sees no report in the engine catalogue');
       const html=render(ctxFor(false,u),h(H.ReportsHub));
       assert.match(html,/class="fit-page fit-split"/,u);assert.ok(html.includes('No reports available'),u);

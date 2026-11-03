@@ -105,6 +105,14 @@ public static class HccComposition
         Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.Guests.FormCRegisterReport>(services); // F7-R3
         Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.Guests.RateChangesReport>(services); // F7-R3
         Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.Rooms.RoomStatusReport>(services); // F7-R3
+        // F7-R4 money-a reports (batch 1)
+        services.AddSingleton<Hcc.Reporting.Sql.IMoneyReportSource>(sp => new Hcc.Reporting.Sql.SqlMoneyReportSource(sp.GetRequiredService<SqlPlatform>().Connections));
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.Money.ShiftReport>(services);
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.Money.CollectionDetailReport>(services);
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.Money.CreditBillsReport>(services);
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.Money.ExpenseRegisterReport>(services);
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.Money.ExpensesByHeadReport>(services);
+        // F7-R4 end
         // F7-RPT end
         // F5-E1
         services.AddEgressModule();                      // F5-E1 internet egress gate: net.* settings, "egress" client, hold / replay, System health Egress

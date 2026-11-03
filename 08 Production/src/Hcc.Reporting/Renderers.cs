@@ -33,7 +33,7 @@ public sealed class XlsxRenderer : IReportRenderer
         DateOnly d => d,
         bool b => b ? "Yes" : "No",
         _ when c.Type == ReportColumnType.Money => new XlsxMoney(Convert.ToInt64(v, CultureInfo.InvariantCulture)),
-        _ when c.Type == ReportColumnType.Percent => new XlsxPercent(Convert.ToDouble(v, CultureInfo.InvariantCulture) / 100.0),
+        _ when c.Type == ReportColumnType.Percent => new XlsxPercent((double)(Convert.ToDecimal(v, CultureInfo.InvariantCulture) / 100m)), // F7-R4: decimal division, so 57.1 writes 0.571 (not 0.5710000000000001)
         _ => v,
     };
 
