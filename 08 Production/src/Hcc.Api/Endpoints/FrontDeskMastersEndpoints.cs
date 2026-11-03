@@ -1,5 +1,6 @@
 using Hcc.Application.FrontDeskMasters;
 using Hcc.Contracts.FrontDeskMasters;
+using Hcc.Domain.Configuration;
 using Hcc.Infrastructure.SqlServer;
 using Hcc.Infrastructure.SqlServer.FrontDeskMasters;
 
@@ -34,15 +35,16 @@ public static class FrontDeskMastersEndpoints
     {
         ArgumentNullException.ThrowIfNull(api);
         var g = api.MapHccSecured();
+        var mst = g.MapGroup(string.Empty).RequireHccFeature(FeatureIds.Masters); // ADM follow-up (DEC-214): master-list commands only; reads stay on g
         static string Op(string master, string action) => FrontDeskMastersCommands.Op(master, action);
 
-        g.MapPost("/commands/" + Op(FrontDeskMasterIds.BookingSources, "save"), async (HttpContext http, SaveBookingSourceRequest body, FrontDeskMastersCommands c, CancellationToken ct) =>
+        mst.MapPost("/commands/" + Op(FrontDeskMasterIds.BookingSources, "save"), async (HttpContext http, SaveBookingSourceRequest body, FrontDeskMastersCommands c, CancellationToken ct) =>
             http.HccReply(await c.SaveBookingSourceAsync(http.HccCommand(Op(FrontDeskMasterIds.BookingSources, "save")), body, ct)));
-        g.MapPost("/commands/" + Op(FrontDeskMasterIds.IdTypes, "save"), async (HttpContext http, SaveIdTypeRequest body, FrontDeskMastersCommands c, CancellationToken ct) =>
+        mst.MapPost("/commands/" + Op(FrontDeskMasterIds.IdTypes, "save"), async (HttpContext http, SaveIdTypeRequest body, FrontDeskMastersCommands c, CancellationToken ct) =>
             http.HccReply(await c.SaveIdTypeAsync(http.HccCommand(Op(FrontDeskMasterIds.IdTypes, "save")), body, ct)));
-        g.MapPost("/commands/" + Op(FrontDeskMasterIds.Purposes, "save"), async (HttpContext http, SavePlainListRequest body, FrontDeskMastersCommands c, CancellationToken ct) =>
+        mst.MapPost("/commands/" + Op(FrontDeskMasterIds.Purposes, "save"), async (HttpContext http, SavePlainListRequest body, FrontDeskMastersCommands c, CancellationToken ct) =>
             http.HccReply(await c.SavePurposeAsync(http.HccCommand(Op(FrontDeskMasterIds.Purposes, "save")), body, ct)));
-        g.MapPost("/commands/" + Op(FrontDeskMasterIds.VehicleTypes, "save"), async (HttpContext http, SavePlainListRequest body, FrontDeskMastersCommands c, CancellationToken ct) =>
+        mst.MapPost("/commands/" + Op(FrontDeskMasterIds.VehicleTypes, "save"), async (HttpContext http, SavePlainListRequest body, FrontDeskMastersCommands c, CancellationToken ct) =>
             http.HccReply(await c.SaveVehicleTypeAsync(http.HccCommand(Op(FrontDeskMasterIds.VehicleTypes, "save")), body, ct)));
         foreach (var (path, master) in new[] { ("purposes", FrontDeskMasterIds.Purposes), ("vehicle-types", FrontDeskMasterIds.VehicleTypes) })
             g.MapGet("/masters/" + path, async (HttpContext http, FrontDeskMastersQueries q, CancellationToken ct, int? page = null, int? pageSize = null, string? status = null) =>
@@ -50,9 +52,9 @@ public static class FrontDeskMastersEndpoints
                 var (property, _) = http.HccActor();
                 return Results.Ok(await q.PlainListAsync(property, master, page, pageSize, status, ct));
             });
-        g.MapPost("/commands/" + Op(FrontDeskMasterIds.NumberSeries, "save"), async (HttpContext http, SaveNumberSeriesRequest body, FrontDeskMastersCommands c, CancellationToken ct) =>
+        mst.MapPost("/commands/" + Op(FrontDeskMasterIds.NumberSeries, "save"), async (HttpContext http, SaveNumberSeriesRequest body, FrontDeskMastersCommands c, CancellationToken ct) =>
             http.HccReply(await c.SaveNumberSeriesAsync(http.HccCommand(Op(FrontDeskMasterIds.NumberSeries, "save")), body, ct)));
-        g.MapPost("/commands/" + Op(FrontDeskMasterIds.Policies, "save"), async (HttpContext http, SaveBookingPolicyRequest body, FrontDeskMastersCommands c, CancellationToken ct) =>
+        mst.MapPost("/commands/" + Op(FrontDeskMasterIds.Policies, "save"), async (HttpContext http, SaveBookingPolicyRequest body, FrontDeskMastersCommands c, CancellationToken ct) =>
             http.HccReply(await c.SaveBookingPolicyAsync(http.HccCommand(Op(FrontDeskMasterIds.Policies, "save")), body, ct)));
 
         foreach (var (path, master) in Lists)
@@ -61,13 +63,13 @@ public static class FrontDeskMastersEndpoints
             var reactivate = Op(master, "reactivate");
             var delete = Op(master, "delete");
             var reorder = Op(master, "reorder");
-            g.MapPost("/commands/" + retire, async (HttpContext http, FrontDeskRowRequest body, FrontDeskMastersCommands c, CancellationToken ct) =>
+            mst.MapPost("/commands/" + retire, async (HttpContext http, FrontDeskRowRequest body, FrontDeskMastersCommands c, CancellationToken ct) =>
                 http.HccReply(await c.RetireAsync(http.HccCommand(retire), master, body, ct)));
-            g.MapPost("/commands/" + reactivate, async (HttpContext http, FrontDeskRowRequest body, FrontDeskMastersCommands c, CancellationToken ct) =>
+            mst.MapPost("/commands/" + reactivate, async (HttpContext http, FrontDeskRowRequest body, FrontDeskMastersCommands c, CancellationToken ct) =>
                 http.HccReply(await c.ReactivateAsync(http.HccCommand(reactivate), master, body, ct)));
-            g.MapPost("/commands/" + delete, async (HttpContext http, FrontDeskRowRequest body, FrontDeskMastersCommands c, CancellationToken ct) =>
+            mst.MapPost("/commands/" + delete, async (HttpContext http, FrontDeskRowRequest body, FrontDeskMastersCommands c, CancellationToken ct) =>
                 http.HccReply(await c.DeleteAsync(http.HccCommand(delete), master, body, ct)));
-            g.MapPost("/commands/" + reorder, async (HttpContext http, FrontDeskReorderRequest body, FrontDeskMastersCommands c, CancellationToken ct) =>
+            mst.MapPost("/commands/" + reorder, async (HttpContext http, FrontDeskReorderRequest body, FrontDeskMastersCommands c, CancellationToken ct) =>
                 http.HccReply(await c.ReorderAsync(http.HccCommand(reorder), master, body, ct)));
             g.MapGet("/masters/" + path + "/history", async (HttpContext http, FrontDeskMastersQueries q, CancellationToken ct, int? page = null, int? pageSize = null) =>
             {

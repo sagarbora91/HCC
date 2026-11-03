@@ -1,6 +1,7 @@
 using Hcc.Application.Masters;
 using Hcc.Application.MoneyMasters;
 using Hcc.Contracts.MoneyMasters;
+using Hcc.Domain.Configuration;
 using Hcc.Infrastructure.SqlServer;
 using Hcc.Infrastructure.SqlServer.MoneyMasters;
 
@@ -31,48 +32,49 @@ public static class MoneyMastersEndpoints
     {
         ArgumentNullException.ThrowIfNull(api);
         var g = api.MapHccSecured();
+        var mst = g.MapGroup(string.Empty).RequireHccFeature(FeatureIds.Masters); // ADM follow-up (DEC-214): master-list commands only; reads stay on g
         const string pm = MoneyMastersCommands.OpSavePaymentMethod;
-        g.MapPost("/commands/" + pm, async (HttpContext http, SavePaymentMethodRequest body, MoneyMastersCommands c, CancellationToken ct) => http.HccReply(await c.SavePaymentMethodAsync(http.HccCommand(pm), body, ct)));
-        g.MapPost("/commands/" + MoneyMastersCommands.OpRetirePaymentMethod, async (HttpContext http, PaymentMethodIdRequest body, MoneyMastersCommands c, CancellationToken ct) =>
+        mst.MapPost("/commands/" + pm, async (HttpContext http, SavePaymentMethodRequest body, MoneyMastersCommands c, CancellationToken ct) => http.HccReply(await c.SavePaymentMethodAsync(http.HccCommand(pm), body, ct)));
+        mst.MapPost("/commands/" + MoneyMastersCommands.OpRetirePaymentMethod, async (HttpContext http, PaymentMethodIdRequest body, MoneyMastersCommands c, CancellationToken ct) =>
             http.HccReply(await c.RetirePaymentMethodAsync(http.HccCommand(MoneyMastersCommands.OpRetirePaymentMethod), body, ct)));
-        g.MapPost("/commands/" + MoneyMastersCommands.OpReactivatePaymentMethod, async (HttpContext http, PaymentMethodIdRequest body, MoneyMastersCommands c, CancellationToken ct) =>
+        mst.MapPost("/commands/" + MoneyMastersCommands.OpReactivatePaymentMethod, async (HttpContext http, PaymentMethodIdRequest body, MoneyMastersCommands c, CancellationToken ct) =>
             http.HccReply(await c.ReactivatePaymentMethodAsync(http.HccCommand(MoneyMastersCommands.OpReactivatePaymentMethod), body, ct)));
-        g.MapPost("/commands/" + MoneyMastersCommands.OpDeletePaymentMethod, async (HttpContext http, PaymentMethodIdRequest body, MoneyMastersCommands c, CancellationToken ct) =>
+        mst.MapPost("/commands/" + MoneyMastersCommands.OpDeletePaymentMethod, async (HttpContext http, PaymentMethodIdRequest body, MoneyMastersCommands c, CancellationToken ct) =>
             http.HccReply(await c.DeletePaymentMethodAsync(http.HccCommand(MoneyMastersCommands.OpDeletePaymentMethod), body, ct)));
-        g.MapPost("/commands/" + MoneyMastersCommands.OpReorderPaymentMethods, async (HttpContext http, ReorderPaymentMethodsRequest body, MoneyMastersCommands c, CancellationToken ct) =>
+        mst.MapPost("/commands/" + MoneyMastersCommands.OpReorderPaymentMethods, async (HttpContext http, ReorderPaymentMethodsRequest body, MoneyMastersCommands c, CancellationToken ct) =>
             http.HccReply(await c.ReorderPaymentMethodsAsync(http.HccCommand(MoneyMastersCommands.OpReorderPaymentMethods), body, ct)));
 
-        g.MapPost("/commands/" + MoneyMastersCommands.OpSaveBankAccount, async (HttpContext http, SaveBankAccountRequest body, MoneyMastersCommands c, CancellationToken ct) =>
+        mst.MapPost("/commands/" + MoneyMastersCommands.OpSaveBankAccount, async (HttpContext http, SaveBankAccountRequest body, MoneyMastersCommands c, CancellationToken ct) =>
             http.HccReply(await c.SaveBankAccountAsync(http.HccCommand(MoneyMastersCommands.OpSaveBankAccount), body, ct)));
-        g.MapPost("/commands/" + MoneyMastersCommands.OpRetireBankAccount, async (HttpContext http, BankAccountIdRequest body, MoneyMastersCommands c, CancellationToken ct) =>
+        mst.MapPost("/commands/" + MoneyMastersCommands.OpRetireBankAccount, async (HttpContext http, BankAccountIdRequest body, MoneyMastersCommands c, CancellationToken ct) =>
             http.HccReply(await c.RetireBankAccountAsync(http.HccCommand(MoneyMastersCommands.OpRetireBankAccount), body, ct)));
-        g.MapPost("/commands/" + MoneyMastersCommands.OpReactivateBankAccount, async (HttpContext http, BankAccountIdRequest body, MoneyMastersCommands c, CancellationToken ct) =>
+        mst.MapPost("/commands/" + MoneyMastersCommands.OpReactivateBankAccount, async (HttpContext http, BankAccountIdRequest body, MoneyMastersCommands c, CancellationToken ct) =>
             http.HccReply(await c.ReactivateBankAccountAsync(http.HccCommand(MoneyMastersCommands.OpReactivateBankAccount), body, ct)));
-        g.MapPost("/commands/" + MoneyMastersCommands.OpDeleteBankAccount, async (HttpContext http, BankAccountIdRequest body, MoneyMastersCommands c, CancellationToken ct) =>
+        mst.MapPost("/commands/" + MoneyMastersCommands.OpDeleteBankAccount, async (HttpContext http, BankAccountIdRequest body, MoneyMastersCommands c, CancellationToken ct) =>
             http.HccReply(await c.DeleteBankAccountAsync(http.HccCommand(MoneyMastersCommands.OpDeleteBankAccount), body, ct)));
-        g.MapPost("/commands/" + MoneyMastersCommands.OpReorderBankAccounts, async (HttpContext http, ReorderBankAccountsRequest body, MoneyMastersCommands c, CancellationToken ct) =>
+        mst.MapPost("/commands/" + MoneyMastersCommands.OpReorderBankAccounts, async (HttpContext http, ReorderBankAccountsRequest body, MoneyMastersCommands c, CancellationToken ct) =>
             http.HccReply(await c.ReorderBankAccountsAsync(http.HccCommand(MoneyMastersCommands.OpReorderBankAccounts), body, ct)));
 
-        g.MapPost("/commands/" + MoneyMastersCommands.OpSaveExpenseCategory, async (HttpContext http, SaveExpenseCategoryRequest body, MoneyMastersCommands c, CancellationToken ct) =>
+        mst.MapPost("/commands/" + MoneyMastersCommands.OpSaveExpenseCategory, async (HttpContext http, SaveExpenseCategoryRequest body, MoneyMastersCommands c, CancellationToken ct) =>
             http.HccReply(await c.SaveExpenseCategoryAsync(http.HccCommand(MoneyMastersCommands.OpSaveExpenseCategory), body, ct)));
-        g.MapPost("/commands/" + MoneyMastersCommands.OpRetireExpenseCategory, async (HttpContext http, ExpenseCategoryIdRequest body, MoneyMastersCommands c, CancellationToken ct) =>
+        mst.MapPost("/commands/" + MoneyMastersCommands.OpRetireExpenseCategory, async (HttpContext http, ExpenseCategoryIdRequest body, MoneyMastersCommands c, CancellationToken ct) =>
             http.HccReply(await c.RetireExpenseCategoryAsync(http.HccCommand(MoneyMastersCommands.OpRetireExpenseCategory), body, ct)));
-        g.MapPost("/commands/" + MoneyMastersCommands.OpReactivateExpenseCategory, async (HttpContext http, ExpenseCategoryIdRequest body, MoneyMastersCommands c, CancellationToken ct) =>
+        mst.MapPost("/commands/" + MoneyMastersCommands.OpReactivateExpenseCategory, async (HttpContext http, ExpenseCategoryIdRequest body, MoneyMastersCommands c, CancellationToken ct) =>
             http.HccReply(await c.ReactivateExpenseCategoryAsync(http.HccCommand(MoneyMastersCommands.OpReactivateExpenseCategory), body, ct)));
-        g.MapPost("/commands/" + MoneyMastersCommands.OpDeleteExpenseCategory, async (HttpContext http, ExpenseCategoryIdRequest body, MoneyMastersCommands c, CancellationToken ct) =>
+        mst.MapPost("/commands/" + MoneyMastersCommands.OpDeleteExpenseCategory, async (HttpContext http, ExpenseCategoryIdRequest body, MoneyMastersCommands c, CancellationToken ct) =>
             http.HccReply(await c.DeleteExpenseCategoryAsync(http.HccCommand(MoneyMastersCommands.OpDeleteExpenseCategory), body, ct)));
-        g.MapPost("/commands/" + MoneyMastersCommands.OpReorderExpenseCategories, async (HttpContext http, ReorderExpenseCategoriesRequest body, MoneyMastersCommands c, CancellationToken ct) =>
+        mst.MapPost("/commands/" + MoneyMastersCommands.OpReorderExpenseCategories, async (HttpContext http, ReorderExpenseCategoriesRequest body, MoneyMastersCommands c, CancellationToken ct) =>
             http.HccReply(await c.ReorderExpenseCategoriesAsync(http.HccCommand(MoneyMastersCommands.OpReorderExpenseCategories), body, ct)));
 
-        g.MapPost("/commands/" + MoneyMastersCommands.OpSaveExpenseVendor, async (HttpContext http, SaveExpenseVendorRequest body, MoneyMastersCommands c, CancellationToken ct) =>
+        mst.MapPost("/commands/" + MoneyMastersCommands.OpSaveExpenseVendor, async (HttpContext http, SaveExpenseVendorRequest body, MoneyMastersCommands c, CancellationToken ct) =>
             http.HccReply(await c.SaveExpenseVendorAsync(http.HccCommand(MoneyMastersCommands.OpSaveExpenseVendor), body, ct)));
-        g.MapPost("/commands/" + MoneyMastersCommands.OpRetireExpenseVendor, async (HttpContext http, ExpenseVendorIdRequest body, MoneyMastersCommands c, CancellationToken ct) =>
+        mst.MapPost("/commands/" + MoneyMastersCommands.OpRetireExpenseVendor, async (HttpContext http, ExpenseVendorIdRequest body, MoneyMastersCommands c, CancellationToken ct) =>
             http.HccReply(await c.RetireExpenseVendorAsync(http.HccCommand(MoneyMastersCommands.OpRetireExpenseVendor), body, ct)));
-        g.MapPost("/commands/" + MoneyMastersCommands.OpReactivateExpenseVendor, async (HttpContext http, ExpenseVendorIdRequest body, MoneyMastersCommands c, CancellationToken ct) =>
+        mst.MapPost("/commands/" + MoneyMastersCommands.OpReactivateExpenseVendor, async (HttpContext http, ExpenseVendorIdRequest body, MoneyMastersCommands c, CancellationToken ct) =>
             http.HccReply(await c.ReactivateExpenseVendorAsync(http.HccCommand(MoneyMastersCommands.OpReactivateExpenseVendor), body, ct)));
-        g.MapPost("/commands/" + MoneyMastersCommands.OpDeleteExpenseVendor, async (HttpContext http, ExpenseVendorIdRequest body, MoneyMastersCommands c, CancellationToken ct) =>
+        mst.MapPost("/commands/" + MoneyMastersCommands.OpDeleteExpenseVendor, async (HttpContext http, ExpenseVendorIdRequest body, MoneyMastersCommands c, CancellationToken ct) =>
             http.HccReply(await c.DeleteExpenseVendorAsync(http.HccCommand(MoneyMastersCommands.OpDeleteExpenseVendor), body, ct)));
-        g.MapPost("/commands/" + MoneyMastersCommands.OpReorderExpenseVendors, async (HttpContext http, ReorderExpenseVendorsRequest body, MoneyMastersCommands c, CancellationToken ct) =>
+        mst.MapPost("/commands/" + MoneyMastersCommands.OpReorderExpenseVendors, async (HttpContext http, ReorderExpenseVendorsRequest body, MoneyMastersCommands c, CancellationToken ct) =>
             http.HccReply(await c.ReorderExpenseVendorsAsync(http.HccCommand(MoneyMastersCommands.OpReorderExpenseVendors), body, ct)));
 
         g.MapGet("/masters/payment-methods", async (HttpContext http, MoneyMastersQueries q, CancellationToken ct, int? page = null, int? pageSize = null, string? status = null) =>

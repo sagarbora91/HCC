@@ -1,6 +1,7 @@
 using Hcc.Application.Commands;
 using Hcc.Application.RoomMasters;
 using Hcc.Contracts.RoomMasters;
+using Hcc.Domain.Configuration;
 using Hcc.Infrastructure.SqlServer;
 using Hcc.Infrastructure.SqlServer.RoomMasters;
 
@@ -24,33 +25,34 @@ public static class RoomMastersEndpoints
     }
 
     private static void Post<TReq, TRes>(RouteGroupBuilder g, string op, Func<RoomMastersCommands, CommandContext, TReq, CancellationToken, Task<CommandResult<TRes>>> run) =>
-        g.MapPost("/commands/" + op, async (HttpContext http, TReq body, RoomMastersCommands c, CancellationToken ct) => http.HccReply(await run(c, http.HccCommand(op), body, ct)));
+        mst.MapPost("/commands/" + op, async (HttpContext http, TReq body, RoomMastersCommands c, CancellationToken ct) => http.HccReply(await run(c, http.HccCommand(op), body, ct)));
 
     public static RouteGroupBuilder MapRoomMastersEndpoints(this RouteGroupBuilder api)
     {
         ArgumentNullException.ThrowIfNull(api);
         var g = api.MapHccSecured();
-        Post<SaveRoomTypeRequest, RoomTypeView>(g, RoomMastersCommands.OpSaveRoomType, (c, x, b, ct) => c.SaveRoomTypeAsync(x, b, ct));
-        Post<RoomTypeIdRequest, StatusResult>(g, RoomMastersCommands.OpRetireRoomType, (c, x, b, ct) => c.RetireRoomTypeAsync(x, b, ct));
-        Post<RoomTypeIdRequest, StatusResult>(g, RoomMastersCommands.OpReactivateRoomType, (c, x, b, ct) => c.ReactivateRoomTypeAsync(x, b, ct));
-        Post<ReorderRoomTypesRequest, StatusResult>(g, RoomMastersCommands.OpReorderRoomTypes, (c, x, b, ct) => c.ReorderRoomTypesAsync(x, b, ct));
-        Post<RoomTypeIdRequest, DeleteMasterResult>(g, RoomMastersCommands.OpDeleteRoomType, (c, x, b, ct) => c.DeleteRoomTypeAsync(x, b, ct));
-        Post<SaveAmenityRequest, AmenityView>(g, RoomMastersCommands.OpSaveAmenity, (c, x, b, ct) => c.SaveAmenityAsync(x, b, ct));
-        Post<AmenityIdRequest, StatusResult>(g, RoomMastersCommands.OpRetireAmenity, (c, x, b, ct) => c.RetireAmenityAsync(x, b, ct));
-        Post<AmenityIdRequest, StatusResult>(g, RoomMastersCommands.OpReactivateAmenity, (c, x, b, ct) => c.ReactivateAmenityAsync(x, b, ct));
-        Post<ReorderAmenitiesRequest, StatusResult>(g, RoomMastersCommands.OpReorderAmenities, (c, x, b, ct) => c.ReorderAmenitiesAsync(x, b, ct));
-        Post<AmenityIdRequest, DeleteMasterResult>(g, RoomMastersCommands.OpDeleteAmenity, (c, x, b, ct) => c.DeleteAmenityAsync(x, b, ct));
-        Post<SaveOccupancyChargeRequest, OccupancyChargeView>(g, RoomMastersCommands.OpSaveOccupancyCharge, (c, x, b, ct) => c.SaveOccupancyChargeAsync(x, b, ct));
-        Post<OccupancyChargeIdRequest, StatusResult>(g, RoomMastersCommands.OpRetireOccupancyCharge, (c, x, b, ct) => c.RetireOccupancyChargeAsync(x, b, ct));
-        Post<OccupancyChargeIdRequest, StatusResult>(g, RoomMastersCommands.OpReactivateOccupancyCharge, (c, x, b, ct) => c.ReactivateOccupancyChargeAsync(x, b, ct));
-        Post<ReorderOccupancyChargesRequest, StatusResult>(g, RoomMastersCommands.OpReorderOccupancyCharges, (c, x, b, ct) => c.ReorderOccupancyChargesAsync(x, b, ct));
-        Post<OccupancyChargeIdRequest, DeleteMasterResult>(g, RoomMastersCommands.OpDeleteOccupancyCharge, (c, x, b, ct) => c.DeleteOccupancyChargeAsync(x, b, ct));
-        Post<AddRoomsRequest, AddRoomsResult>(g, RoomMastersCommands.OpAddRooms, (c, x, b, ct) => c.AddRoomsAsync(x, b, ct));
-        Post<SaveRoomRequest, RoomMasterView>(g, RoomMastersCommands.OpSaveRoom, (c, x, b, ct) => c.SaveRoomAsync(x, b, ct));
-        Post<RenumberRoomRequest, RoomMasterView>(g, RoomMastersCommands.OpRenumberRoom, (c, x, b, ct) => c.RenumberRoomAsync(x, b, ct));
-        Post<RoomIdRequest, RoomMasterView>(g, RoomMastersCommands.OpRetireRoom, (c, x, b, ct) => c.RetireRoomAsync(x, b, ct));
-        Post<RoomIdRequest, RoomMasterView>(g, RoomMastersCommands.OpReactivateRoom, (c, x, b, ct) => c.ReactivateRoomAsync(x, b, ct));
-        Post<RoomIdRequest, DeleteMasterResult>(g, RoomMastersCommands.OpDeleteRoom, (c, x, b, ct) => c.DeleteRoomAsync(x, b, ct));
+        var mst = g.MapGroup(string.Empty).RequireHccFeature(FeatureIds.Masters); // ADM follow-up (DEC-214): master-list commands only; reads stay on g
+        Post<SaveRoomTypeRequest, RoomTypeView>(mst, RoomMastersCommands.OpSaveRoomType, (c, x, b, ct) => c.SaveRoomTypeAsync(x, b, ct));
+        Post<RoomTypeIdRequest, StatusResult>(mst, RoomMastersCommands.OpRetireRoomType, (c, x, b, ct) => c.RetireRoomTypeAsync(x, b, ct));
+        Post<RoomTypeIdRequest, StatusResult>(mst, RoomMastersCommands.OpReactivateRoomType, (c, x, b, ct) => c.ReactivateRoomTypeAsync(x, b, ct));
+        Post<ReorderRoomTypesRequest, StatusResult>(mst, RoomMastersCommands.OpReorderRoomTypes, (c, x, b, ct) => c.ReorderRoomTypesAsync(x, b, ct));
+        Post<RoomTypeIdRequest, DeleteMasterResult>(mst, RoomMastersCommands.OpDeleteRoomType, (c, x, b, ct) => c.DeleteRoomTypeAsync(x, b, ct));
+        Post<SaveAmenityRequest, AmenityView>(mst, RoomMastersCommands.OpSaveAmenity, (c, x, b, ct) => c.SaveAmenityAsync(x, b, ct));
+        Post<AmenityIdRequest, StatusResult>(mst, RoomMastersCommands.OpRetireAmenity, (c, x, b, ct) => c.RetireAmenityAsync(x, b, ct));
+        Post<AmenityIdRequest, StatusResult>(mst, RoomMastersCommands.OpReactivateAmenity, (c, x, b, ct) => c.ReactivateAmenityAsync(x, b, ct));
+        Post<ReorderAmenitiesRequest, StatusResult>(mst, RoomMastersCommands.OpReorderAmenities, (c, x, b, ct) => c.ReorderAmenitiesAsync(x, b, ct));
+        Post<AmenityIdRequest, DeleteMasterResult>(mst, RoomMastersCommands.OpDeleteAmenity, (c, x, b, ct) => c.DeleteAmenityAsync(x, b, ct));
+        Post<SaveOccupancyChargeRequest, OccupancyChargeView>(mst, RoomMastersCommands.OpSaveOccupancyCharge, (c, x, b, ct) => c.SaveOccupancyChargeAsync(x, b, ct));
+        Post<OccupancyChargeIdRequest, StatusResult>(mst, RoomMastersCommands.OpRetireOccupancyCharge, (c, x, b, ct) => c.RetireOccupancyChargeAsync(x, b, ct));
+        Post<OccupancyChargeIdRequest, StatusResult>(mst, RoomMastersCommands.OpReactivateOccupancyCharge, (c, x, b, ct) => c.ReactivateOccupancyChargeAsync(x, b, ct));
+        Post<ReorderOccupancyChargesRequest, StatusResult>(mst, RoomMastersCommands.OpReorderOccupancyCharges, (c, x, b, ct) => c.ReorderOccupancyChargesAsync(x, b, ct));
+        Post<OccupancyChargeIdRequest, DeleteMasterResult>(mst, RoomMastersCommands.OpDeleteOccupancyCharge, (c, x, b, ct) => c.DeleteOccupancyChargeAsync(x, b, ct));
+        Post<AddRoomsRequest, AddRoomsResult>(mst, RoomMastersCommands.OpAddRooms, (c, x, b, ct) => c.AddRoomsAsync(x, b, ct));
+        Post<SaveRoomRequest, RoomMasterView>(mst, RoomMastersCommands.OpSaveRoom, (c, x, b, ct) => c.SaveRoomAsync(x, b, ct));
+        Post<RenumberRoomRequest, RoomMasterView>(mst, RoomMastersCommands.OpRenumberRoom, (c, x, b, ct) => c.RenumberRoomAsync(x, b, ct));
+        Post<RoomIdRequest, RoomMasterView>(mst, RoomMastersCommands.OpRetireRoom, (c, x, b, ct) => c.RetireRoomAsync(x, b, ct));
+        Post<RoomIdRequest, RoomMasterView>(mst, RoomMastersCommands.OpReactivateRoom, (c, x, b, ct) => c.ReactivateRoomAsync(x, b, ct));
+        Post<RoomIdRequest, DeleteMasterResult>(mst, RoomMastersCommands.OpDeleteRoom, (c, x, b, ct) => c.DeleteRoomAsync(x, b, ct));
 
         g.MapGet("/masters/room-types", async (HttpContext http, RoomMastersQueries q, CancellationToken ct, int? page = null, int? pageSize = null, string? status = null) =>
         {

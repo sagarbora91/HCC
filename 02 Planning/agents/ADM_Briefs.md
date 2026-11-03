@@ -148,3 +148,15 @@ Commands (Owner only: PERM-ADM-002 allow + role Owner; never the actor's own rol
 - History: `s.rolesX.history` (newest first, `version` = policy version); merge with `policy.history` for the Audit tab.
 
 Sync: `ROL_*` → `CreateRole` / `UpdateRole` / `SetRoleFeature` / `SetRoleGrant` / `RetireRole` (expectedVersion = loaded role version); slice `rolesX` ← `GET /admin/roles` custom rows; users with a custom code get `customRole` + base `role`; `/me/capabilities` `features` + custom code → the signed-in user's `rolesX` row (overlayMe). Not mapped yet: `GET /admin/policy-history` (lane U may add it for the Audit tab).
+
+## Gates follow-up (3 Nov)
+
+Feature gates (`RequireHccFeature`, DEC-214) added to the remaining server route groups (commands only; reads stay on `g`). Not compiled (no dotnet SDK in this session): the gate PC build/test run is still needed.
+
+- `GuestServicesEndpoints.cs`: service requests + guest-service settings -> GuestRequests; complaints + recovery discount -> Complaints; lost & found -> LostFound; SnoozeWakeUp -> Alerts.
+- `PayrollEndpoints.cs`: the 11 leave commands -> Leave on their own `leave` group (still not under the payroll module group `pay`).
+- `PosEndpoints.cs` (SaveMenuItem, DecideMenuChange, SetMenuItemAvailability -> PosMenu), `MessagingEndpoints.cs` (UpdateMessageTemplate / Rule -> MessageTemplates), `MaintenanceEndpoints.cs` (SavePmPlan, SaveMaintenanceAsset, SaveAmc, GeneratePmWorkOrders -> MaintenanceAssets): feature group nested inside the module `cmd` group, so both gates apply (module, then feature).
+- Masters -> Masters: `MastersEndpoints`, `RoomMastersEndpoints`, `MoneyMastersEndpoints`, `OpsMastersEndpoints`, `PeopleListsEndpoints`, `FrontDeskMastersEndpoints`, and the discount-reason commands in `CatalogueEndpoints`. Meal-plan / extra-item catalogue commands -> PlansExtras.
+- Test: `FeatureGateHttpTests` Gated dictionary extended; the "never both gates" assertion became "a route with both gates has a feature whose catalogue module Switch equals the module gate id". `ModuleGateHttpTests.NeverGated` unchanged (leave names stay valid: they carry no module gate).
+
+Left ungated on purpose: `CatalogueEndpoints` PostExtra, SetReservationMealPlan, PostMealPlanNights, RequestReasonedDiscount (folio charge / discount commands); PosEndpoints `RetireMenuItem`-style `Master<>` routes and the other POS commands, Maintenance work-order commands and SaveVendor / ReceiveSpare (no feature in the catalogue for them); Payroll non-leave commands (staff, roster, attendance, holidays). Note: pre-existing mismatch noted only, not changed: ExpenseVendor master commands (MoneyMasters) are gated as Masters, not Purchases.

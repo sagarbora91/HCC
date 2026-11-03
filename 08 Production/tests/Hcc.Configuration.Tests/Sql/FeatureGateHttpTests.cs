@@ -39,7 +39,7 @@ public sealed class FeatureGateHttpTests(ConfigDatabase db) : IClassFixture<Conf
     private static readonly Dictionary<string, string[]> Gated = new(StringComparer.Ordinal)
     {
         [FeatureIds.Reservations] = ["AmendReservation", "SetReservationCompany", "CancelReservation", "MarkNoShow", "ConfirmHold"], // CreateReservation: inside ReservationService (walk-in exempt)
-        [FeatureIds.Alerts] = ["SaveReminder", "MarkReminderDone", "DismissReminder"],
+        [FeatureIds.Alerts] = ["SaveReminder", "MarkReminderDone", "DismissReminder", "SnoozeWakeUp"],
         [FeatureIds.Keys] = ["RequestKey", "CancelKey", "ReadKey", "RecordManualKey", "SaveKeyLock", "RegisterKeyEncoder"],
         [FeatureIds.CashBook] = ["LockCashBookDay", "ReopenCashBookDay"],
         [FeatureIds.CounterBills] = ["IssueCounterBill", "RequestCounterBillVoid"],
@@ -54,6 +54,16 @@ public sealed class FeatureGateHttpTests(ConfigDatabase db) : IClassFixture<Conf
         [FeatureIds.Compliance] = ["MarkComplianceDone", "MarkComplianceNotApplicable", "ReopenComplianceItem", "SetComplianceFy", "SaveComplianceProfile", "ToggleComplianceArchive",
             "ToggleComplianceCategoryArchive", "SaveCustomObligation", "DeleteCustomObligation", "AddComplianceEvidence", "DeleteComplianceEvidence", "SaveComplianceSettings", "GenerateCaPack"],
         [FeatureIds.LegacyImport] = ["legacy.import"],
+        // ADM follow-up (3 Nov): guest services, leave, POS menu, templates, maintenance assets, plans & extras, masters. Menu / templates / assets also sit under their module gate.
+        [FeatureIds.GuestRequests] = ["LogServiceRequest", "AssignServiceRequest", "StartServiceRequest", "CompleteServiceRequest", "CancelServiceRequest", "SaveGuestServiceSettings"],
+        [FeatureIds.Complaints] = ["LogComplaint", "UpdateComplaint", "ResolveComplaint", "RecordComplaintFollowUp", "OfferRecoveryDiscount"],
+        [FeatureIds.LostFound] = ["LogLostItem", "ClaimLostItem", "HandOverLostItem", "DisposeLostItem"],
+        [FeatureIds.Leave] = ["RequestLeave", "DecideLeave", "CancelLeave", "ClearLeave", "SetLeavePolicy", "SetLeaveEntOverride", "AddLeaveBlackout", "RemoveLeaveBlackout", "AddLeaveAgenda", "RemoveLeaveAgenda", "ImportLeave"],
+        [FeatureIds.PosMenu] = ["SaveMenuItem", "DecideMenuChange", "SetMenuItemAvailability"],
+        [FeatureIds.MessageTemplates] = ["UpdateMessageTemplate", "UpdateMessageRule"],
+        [FeatureIds.MaintenanceAssets] = ["SavePmPlan", "SaveMaintenanceAsset", "SaveAmc", "GeneratePmWorkOrders"],
+        [FeatureIds.PlansExtras] = ["SaveMealPlan", "RetireMealPlan", "ReactivateMealPlan", "DeleteMealPlan", "SaveExtraItem", "RetireExtraItem", "ReactivateExtraItem", "DeleteExtraItem", "ReorderMealPlans", "ReorderExtraItems"],
+        [FeatureIds.Masters] = ["SaveFloor", "RetireFloor", "ReactivateFloor", "DeleteFloor", "ReorderFloors", "SaveRoomType", "RetireRoomType", "ReactivateRoomType", "DeleteRoomType", "ReorderRoomTypes", "SaveAmenity", "RetireAmenity", "ReactivateAmenity", "DeleteAmenity", "ReorderAmenities", "SaveOccupancyCharge", "RetireOccupancyCharge", "ReactivateOccupancyCharge", "DeleteOccupancyCharge", "ReorderOccupancyCharges", "SavePaymentMethod", "RetirePaymentMethod", "ReactivatePaymentMethod", "DeletePaymentMethod", "ReorderPaymentMethods", "SaveBankAccount", "RetireBankAccount", "ReactivateBankAccount", "DeleteBankAccount", "ReorderBankAccounts", "SaveExpenseCategory", "RetireExpenseCategory", "ReactivateExpenseCategory", "DeleteExpenseCategory", "ReorderExpenseCategories", "SaveExpenseVendor", "RetireExpenseVendor", "ReactivateExpenseVendor", "DeleteExpenseVendor", "ReorderExpenseVendors", "SaveDiscountReason", "RetireDiscountReason", "ReactivateDiscountReason", "DeleteDiscountReason", "ReorderDiscountReasons", "SaveHkTaskType", "RetireHkTaskType", "ReactivateHkTaskType", "DeleteHkTaskType", "ReorderHkTaskTypes", "SaveHkZone", "RetireHkZone", "ReactivateHkZone", "DeleteHkZone", "ReorderHkZones", "SaveComplaintCategory", "RetireComplaintCategory", "ReactivateComplaintCategory", "DeleteComplaintCategory", "ReorderComplaintCategories", "SaveLostFoundCategory", "RetireLostFoundCategory", "ReactivateLostFoundCategory", "DeleteLostFoundCategory", "ReorderLostFoundCategories", "SaveBookingSource", "RetireBookingSource", "ReactivateBookingSource", "DeleteBookingSource", "ReorderBookingSources", "SaveIdType", "RetireIdType", "ReactivateIdType", "DeleteIdType", "ReorderIdTypes", "SaveNumberSeries", "RetireNumberSeries", "ReactivateNumberSeries", "DeleteNumberSeries", "ReorderNumberSeries", "SavePurpose", "RetirePurpose", "ReactivatePurpose", "DeletePurpose", "ReorderPurposes", "SaveVehicleType", "RetireVehicleType", "ReactivateVehicleType", "DeleteVehicleType", "ReorderVehicleTypes", "SaveBookingPolicy", "RetireBookingPolicy", "ReactivateBookingPolicy", "DeleteBookingPolicy", "ReorderBookingPolicies", "SaveDesignation", "RetireDesignation", "ReactivateDesignation", "DeleteDesignation", "ReorderDesignations", "SaveShiftPattern", "RetireShiftPattern", "ReactivateShiftPattern", "DeleteShiftPattern", "ReorderShiftPatterns", "SaveLeaveType", "RetireLeaveType", "ReactivateLeaveType", "DeleteLeaveType", "ReorderLeaveTypes", "SaveHoliday", "RetireHoliday", "ReactivateHoliday", "DeleteHoliday", "ReorderHolidays", "AddRooms", "SaveRoom", "RenumberRoom", "RetireRoom", "ReactivateRoom", "DeleteRoom"],
     };
 
     private WebApplication _app = null!;
@@ -133,8 +143,14 @@ public sealed class FeatureGateHttpTests(ConfigDatabase db) : IClassFixture<Conf
         Assert.Empty(gated.Keys.Except(Gated.Keys, StringComparer.Ordinal));
         Assert.All(gated.Keys, id => Assert.False(FeatureCatalog.Feature(id)!.Core, id));
 
-        // A feature-gated route never also carries a module gate (a module switch is checked through the feature's module, not twice).
-        Assert.DoesNotContain(commands, e => e.Metadata.GetMetadata<HccFeatureGateMetadata>() is not null && e.Metadata.GetMetadata<HccModuleGateMetadata>() is not null);
+        // A route carrying both gates (module, then feature) must have a feature that belongs to that very module switch.
+        foreach (var e in commands)
+        {
+            var feature = e.Metadata.GetMetadata<HccFeatureGateMetadata>();
+            var moduleMeta = e.Metadata.GetMetadata<HccModuleGateMetadata>();
+            if (feature is not null && moduleMeta is not null)
+                Assert.Equal(moduleMeta.ModuleId, FeatureCatalog.ModuleOf(feature.FeatureId)!.Switch);
+        }
         foreach (var name in new[] { "CreateReservation", "RegisterGuest", "CheckIn", "CheckoutStay", "RecordReceipt", "RunBusinessDayClose", "SetSetting", "CreateUser", "IssueInvoice" })
             Assert.All(commands.Where(e => Name(e) == name), e => Assert.Null(e.Metadata.GetMetadata<HccFeatureGateMetadata>()));
         Assert.DoesNotContain(endpoints, e => IsGet(e) && e.Metadata.GetMetadata<HccFeatureGateMetadata>() is not null);

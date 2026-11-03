@@ -1,5 +1,6 @@
 using Hcc.Application.Masters;
 using Hcc.Contracts.Masters;
+using Hcc.Domain.Configuration;
 using Hcc.Infrastructure.SqlServer;
 using Hcc.Infrastructure.SqlServer.Masters;
 
@@ -25,15 +26,16 @@ public static class MastersEndpoints
     {
         ArgumentNullException.ThrowIfNull(api);
         var g = api.MapHccSecured();
-        g.MapPost("/commands/" + MastersCommands.OpSaveFloor, async (HttpContext http, SaveFloorRequest body, MastersCommands c, CancellationToken ct) =>
+        var mst = g.MapGroup(string.Empty).RequireHccFeature(FeatureIds.Masters); // ADM follow-up (DEC-214): master-list commands only; reads stay on g
+        mst.MapPost("/commands/" + MastersCommands.OpSaveFloor, async (HttpContext http, SaveFloorRequest body, MastersCommands c, CancellationToken ct) =>
             http.HccReply(await c.SaveFloorAsync(http.HccCommand(MastersCommands.OpSaveFloor), body, ct)));
-        g.MapPost("/commands/" + MastersCommands.OpRetireFloor, async (HttpContext http, RetireFloorRequest body, MastersCommands c, CancellationToken ct) =>
+        mst.MapPost("/commands/" + MastersCommands.OpRetireFloor, async (HttpContext http, RetireFloorRequest body, MastersCommands c, CancellationToken ct) =>
             http.HccReply(await c.RetireFloorAsync(http.HccCommand(MastersCommands.OpRetireFloor), body, ct)));
-        g.MapPost("/commands/" + MastersCommands.OpReactivateFloor, async (HttpContext http, ReactivateFloorRequest body, MastersCommands c, CancellationToken ct) =>
+        mst.MapPost("/commands/" + MastersCommands.OpReactivateFloor, async (HttpContext http, ReactivateFloorRequest body, MastersCommands c, CancellationToken ct) =>
             http.HccReply(await c.ReactivateFloorAsync(http.HccCommand(MastersCommands.OpReactivateFloor), body, ct)));
-        g.MapPost("/commands/" + MastersCommands.OpReorderFloors, async (HttpContext http, ReorderFloorsRequest body, MastersCommands c, CancellationToken ct) =>
+        mst.MapPost("/commands/" + MastersCommands.OpReorderFloors, async (HttpContext http, ReorderFloorsRequest body, MastersCommands c, CancellationToken ct) =>
             http.HccReply(await c.ReorderFloorsAsync(http.HccCommand(MastersCommands.OpReorderFloors), body, ct)));
-        g.MapPost("/commands/" + MastersCommands.OpDeleteFloor, async (HttpContext http, DeleteFloorRequest body, MastersCommands c, CancellationToken ct) =>
+        mst.MapPost("/commands/" + MastersCommands.OpDeleteFloor, async (HttpContext http, DeleteFloorRequest body, MastersCommands c, CancellationToken ct) =>
             http.HccReply(await c.DeleteFloorAsync(http.HccCommand(MastersCommands.OpDeleteFloor), body, ct)));
 
         g.MapGet("/masters/floors", async (HttpContext http, MastersQueries q, CancellationToken ct, int? page = null, int? pageSize = null, string? status = null) =>

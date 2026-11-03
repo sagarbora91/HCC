@@ -1,5 +1,6 @@
 using Hcc.Application.OpsMasters;
 using Hcc.Contracts.OpsMasters;
+using Hcc.Domain.Configuration;
 using Hcc.Infrastructure.SqlServer;
 using Hcc.Infrastructure.SqlServer.OpsMasters;
 
@@ -30,26 +31,27 @@ public static class OpsMastersEndpoints
     {
         ArgumentNullException.ThrowIfNull(api);
         var g = api.MapHccSecured();
+        var mst = g.MapGroup(string.Empty).RequireHccFeature(FeatureIds.Masters); // ADM follow-up (DEC-214): master-list commands only; reads stay on g
 
-        g.MapPost("/commands/" + OpsMasterDefs.HkTaskTypes.Save, async (HttpContext http, SaveHkTaskTypeRequest body, OpsMastersCommands c, CancellationToken ct) =>
+        mst.MapPost("/commands/" + OpsMasterDefs.HkTaskTypes.Save, async (HttpContext http, SaveHkTaskTypeRequest body, OpsMastersCommands c, CancellationToken ct) =>
             http.HccReply(await c.SaveHkTaskTypeAsync(http.HccCommand(OpsMasterDefs.HkTaskTypes.Save), body, ct)));
-        g.MapPost("/commands/" + OpsMasterDefs.HkZones.Save, async (HttpContext http, SaveHkZoneRequest body, OpsMastersCommands c, CancellationToken ct) =>
+        mst.MapPost("/commands/" + OpsMasterDefs.HkZones.Save, async (HttpContext http, SaveHkZoneRequest body, OpsMastersCommands c, CancellationToken ct) =>
             http.HccReply(await c.SaveHkZoneAsync(http.HccCommand(OpsMasterDefs.HkZones.Save), body, ct)));
-        g.MapPost("/commands/" + OpsMasterDefs.ComplaintCategories.Save, async (HttpContext http, SaveComplaintCategoryRequest body, OpsMastersCommands c, CancellationToken ct) =>
+        mst.MapPost("/commands/" + OpsMasterDefs.ComplaintCategories.Save, async (HttpContext http, SaveComplaintCategoryRequest body, OpsMastersCommands c, CancellationToken ct) =>
             http.HccReply(await c.SaveComplaintCategoryAsync(http.HccCommand(OpsMasterDefs.ComplaintCategories.Save), body, ct)));
-        g.MapPost("/commands/" + OpsMasterDefs.LostFoundCategories.Save, async (HttpContext http, SaveLostFoundCategoryRequest body, OpsMastersCommands c, CancellationToken ct) =>
+        mst.MapPost("/commands/" + OpsMasterDefs.LostFoundCategories.Save, async (HttpContext http, SaveLostFoundCategoryRequest body, OpsMastersCommands c, CancellationToken ct) =>
             http.HccReply(await c.SaveLostFoundCategoryAsync(http.HccCommand(OpsMasterDefs.LostFoundCategories.Save), body, ct)));
 
         foreach (var def in OpsMasterDefs.All)
         {
             var d = def; // captured per master
-            g.MapPost("/commands/" + d.Retire, async (HttpContext http, OpsRowRequest body, OpsMastersCommands c, CancellationToken ct) =>
+            mst.MapPost("/commands/" + d.Retire, async (HttpContext http, OpsRowRequest body, OpsMastersCommands c, CancellationToken ct) =>
                 http.HccReply(await c.RetireAsync(d, http.HccCommand(d.Retire), body, ct)));
-            g.MapPost("/commands/" + d.Reactivate, async (HttpContext http, OpsRowRequest body, OpsMastersCommands c, CancellationToken ct) =>
+            mst.MapPost("/commands/" + d.Reactivate, async (HttpContext http, OpsRowRequest body, OpsMastersCommands c, CancellationToken ct) =>
                 http.HccReply(await c.ReactivateAsync(d, http.HccCommand(d.Reactivate), body, ct)));
-            g.MapPost("/commands/" + d.Delete, async (HttpContext http, OpsRowRequest body, OpsMastersCommands c, CancellationToken ct) =>
+            mst.MapPost("/commands/" + d.Delete, async (HttpContext http, OpsRowRequest body, OpsMastersCommands c, CancellationToken ct) =>
                 http.HccReply(await c.DeleteAsync(d, http.HccCommand(d.Delete), body, ct)));
-            g.MapPost("/commands/" + d.Reorder, async (HttpContext http, OpsReorderRequest body, OpsMastersCommands c, CancellationToken ct) =>
+            mst.MapPost("/commands/" + d.Reorder, async (HttpContext http, OpsReorderRequest body, OpsMastersCommands c, CancellationToken ct) =>
                 http.HccReply(await c.ReorderAsync(d, http.HccCommand(d.Reorder), body, ct)));
         }
 
