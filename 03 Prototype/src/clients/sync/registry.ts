@@ -89,6 +89,9 @@ import {moneyMasters} from './money-master';
 // MA-2 meal plans, extras catalogue, discount reasons (after money: patches the folio lines it loaded):
 import {catalogue} from './catalogue';
 
+// F6-H3
+import {hall} from './hall'; // F6 hall booking: enquiries, halls master, accept, advances, event bill, cancel, refund, credit note
+// F6-H3 end
 export const AREAS:SyncArea[]=[
   core,
   reservations,
@@ -157,4 +160,7 @@ export const AREAS:SyncArea[]=[
   // LF-IMAGES
   guestphoto,
   // LF-IMAGES end
+  // F6-H3
+  hall,
+  // F6-H3 end
 ];

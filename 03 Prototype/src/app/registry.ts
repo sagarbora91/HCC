@@ -42,6 +42,9 @@ import {registration as lfMoney} from '../features/lfmoney/register';
 // F4 lanes: ONE import line inside your own block; the registration name inside your block in `registrations` below.
 // F4-T1
 import {registration as tariffCard} from '../features/tariffcard/register';
+// F6-H3
+import {registration as hallBooking} from '../features/hall/register';
+// F6-H3 end
 // F4-T1 end
 // F4-T2
 import {registration as f4Digest} from '../features/digest/register';
@@ -82,6 +85,9 @@ export const registrations:FeatureRegistration[]=[reservations,guests,customers,
   // F4-T2 end
   // F4-T3
   // F4-T3 end
+  // F6-H3
+  hallBooking,
+  // F6-H3 end
 ];
 export const mobilePages=Object.assign({},...registrations.map(r=>r.mobile?.pages||{})) as Record<string,React.ComponentType>;
 export const mobileModals=Object.assign({},...registrations.map(r=>r.mobile?.modals||{})) as Record<string,React.ComponentType<ModalProps>>;

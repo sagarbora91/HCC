@@ -1,6 +1,7 @@
 // Module 20 · Accounting automation — pure helpers, selectors and the state slice type. Exported names MUST start with 'acc' / 'ACC' (shared mock namespace).
 // Vouchers are DERIVED from source records (folio lines, receipts, expenses, closing records); nothing is keyed by hand.
 // Spec: 02 Planning/modules/HCC_Module_20_Accounting_Spec.md. Money = integer paise.
+import {hallAccSources} from './hall-billing'; // F6-H1
 import {csvMinimal} from '../csv';
 import type {State,Booking,Line,Receipt,Expense} from '../types';
 import {drawer} from '../selectors';
@@ -68,7 +69,7 @@ export const accItcSplit=(itc:number):[string,number][]=>{const g=gstSplit(itc);
 // ── State slice ──
 export type ACCEntry={account:string;debit:number;credit:number};
 export type ACCVoucherType='Sales'|'Receipt'|'Payment'|'Journal'|'Purchase'|'Contra'; // ACC-2: Tally's Purchase and Contra (contract §1)
-export type ACCSourceKind='line'|'receipt'|'expense'|'closing'|'pos'|'opening'|'manual'|'purchase'|'vendor'|'tax'|'ota'|'payroll'|'counter'; // LF-COUNTER: counter bills (§6) // ACC-2 (contract §1) // ACC-1: 'opening' = the hand-entered opening entry (contract §5)
+export type ACCSourceKind='line'|'receipt'|'expense'|'closing'|'pos'|'opening'|'manual'|'purchase'|'vendor'|'tax'|'ota'|'payroll'|'counter'|'hall'; // F6-H1: hall booking sources hall:* // LF-COUNTER: counter bills (§6) // ACC-2 (contract §1) // ACC-1: 'opening' = the hand-entered opening entry (contract §5)
 export type ACCVoucher={no:string;date:string;type:ACCVoucherType;narration:string;
   source:{kind:ACCSourceKind;id:string;sub:string;booking?:string};entries:ACCEntry[];unmapped:string[]};
 export type ACCLock={date:string;lockedAt:string;lockedBy:string;vouchers:ACCVoucher[];debit:number;credit:number;count:number};
@@ -389,6 +390,13 @@ export function accLiveVouchers(s:State,date:string,mapping=accMapping(s)):ACCVo
   // entered — ledger codes / party ids, no mapping — source {kind:'manual', id, sub: template ?? 'journal'}. ──
   out.push(...accManualVouchersOn(s,date));
   // ── end ACC-2 manual ──
+  // F6-H1 (contract §5): hall booking — hall:advance, hall:invoice, hall:advance-apply, hall:balance, hall:cancel, hall:refund
+  for(const v of hallAccSources(s,date)){const miss:string[]=[];
+    push({date,type:v.type,narration:v.narration,source:v.source},miss,v.lines.map(l=>{
+      // 'ledger:<code>' posts straight to a chart ledger (4400 has no mapping key); everything else resolves through the mapping (+ party).
+      const direct=l.key.startsWith('ledger:')?l.key.slice(7):'';if(direct&&!known.get(direct)?.active)miss.push(l.key);
+      const a=direct?(known.get(direct)?.active?direct:ACC_SUSPENSE):l.party?pt(map(l.key,miss),l.party):map(l.key,miss);return {account:a,debit:l.debit,credit:l.credit};}));}
+  // F6-H1 end
   const n:Record<string,number>={};
   // ACC-2 (contract §1): Purchase and Contra vouchers are numbered after the four ACC-1 types (server VoucherBuilder.TypeOrder, same order).
   return (['Sales','Receipt','Payment','Journal','Purchase','Contra'] as ACCVoucherType[]).flatMap(t=>out.filter(v=>v.type===t)).map(v=>{

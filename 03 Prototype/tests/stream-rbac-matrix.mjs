@@ -67,6 +67,7 @@ const PAGES={
   settings:['OWN TAD','ADM-003 + DEC-057/058 (DEC-063 G9: no Manager requests)'],
   approvals:['OWN MGR ACC','ADM-004 audit.view + APR-001 (DEC-063 G10: not the Cashier; Tech admin view at M4)'],
   backup:['OWN TAD','ADM-005 (DEC-063 G9: the Manager gets the Overview backup card instead)'],
+  'hall-booking':['OWN MGR REC CSH SUP HKP ACC MNT','PERM-HAL-001…006 (F6-H3): every staff role but the Tech admin and the Restaurant role; housekeeping / maintenance / supervisor see the calendar and the function sheet without prices (DEC-061)'],
   'tariff-card':['OWN MGR ACC REC CSH','PERM-TRF-001 (F4-T1): view card, history, print; not Restaurant / housekeeping / maintenance (DEC-061)'],
   'owner-digest':['OWN','PERM-DGS-001 (F4-T2): Owner only; navRoleOk hides it from every other role'],
   'revenue-category':['OWN MGR ACC','PERM-RPT-001 + PERM-RPT-002 (F4-T2; DEC-202 #1): Owner, Manager, Accountant; navRoleOk hides it from the Cashier and the rest'],
@@ -96,6 +97,16 @@ const C=(roles,src)=>[roles,src];
 const CMDS={
   BOOK:C('OWN MGR REC','RES-002'),CONFIRM:C('OWN MGR REC','RES-002'),CHANGE_DATES:C('OWN MGR REC','RES-003'),MOVE:C('OWN MGR REC','RES-003/STY-002'),STAY_EARLY_DEPARTURE:C('OWN MGR REC','STY-002 (EarlyDeparture)'),CANCEL:C('OWN MGR REC','RES-004'),
   DIGEST_REDRAFT:C('OWN','PERM-DGS-001 (F4-T2)'),
+  // F6-H1 hall booking (F6-CONTRACT §4)
+  HALL_VENUE_UPSERT:C('OWN','PERM-HAL-006'),HALL_MENU_UPSERT:C('OWN MGR','PERM-HAL-006'),HALL_ENQUIRY_ADD:C('OWN MGR REC','PERM-HAL-001'),HALL_ENQUIRY_UPDATE:C('OWN MGR REC','PERM-HAL-001'),
+  HALL_ENQUIRY_LOST:C('OWN MGR REC','PERM-HAL-001'),HALL_ENQUIRY_SOFT_HOLD:C('OWN MGR','PERM-HAL-001 (Manager+)'),HALL_NIGHT_RUN:C('OWN MGR','hall night run'),
+  QUO_ACCEPT:C('OWN MGR REC','PERM-HAL-003'),HALL_ADVANCE_RECEIVE:C('OWN MGR REC CSH','PERM-HAL-003'),HALL_EVENT_CLOSE:C('OWN MGR REC CSH','PERM-HAL-004'),
+  HALL_EVENT_CANCEL:C('OWN MGR REC','PERM-HAL-004'),HALL_REFUND:C('OWN MGR','PERM-HAL-004 approve'),
+  QUO_CREATE:C('OWN MGR REC','PERM-HAL-002'),QUO_EDIT:C('OWN MGR REC','PERM-HAL-002'),QUO_REVISE:C('OWN MGR REC','PERM-HAL-002'),QUO_SEND:C('OWN MGR REC','PERM-HAL-002'),
+  QUO_LOST:C('OWN MGR REC','PERM-HAL-002'),QUO_CANCEL:C('OWN MGR REC','PERM-HAL-002'),QUO_PLACEHOLDER_OVERRIDE:C('OWN','PERM-HAL-005 (Owner override, spec §8)'),
+  QUO_DISCOUNT_APPROVE:C('OWN','spec §6.3: discount above the limit, Owner (never the author)'),QUO_EXPIRE:C('OWN MGR','quotation expiry run'),HALL_TNC_TEMPLATE_SAVE:C('OWN','PERM-HAL-005'),
+  HALL_ROOM_BLOCK:C('OWN MGR REC','PERM-HAL-003 (F6-H3: rooms for the guests, a group block)'),HALL_CREDIT_NOTE:C('OWN','F6-H3: credit note on a printed hall invoice, Owner (DEC-063 G3)'),
+  // F6-H1 end
   GSV_WAKE_SNOOZE:C('OWN MGR REC','LF B3 (reservations)'),RMD_SAVE:C('OWN MGR REC ACC','PERM-RMD-001'),RMD_DONE:C('OWN MGR REC ACC','PERM-RMD-001'),RMD_DISMISS:C('OWN MGR REC ACC','PERM-RMD-001'), // LF-ALERTS
   CFG_NET_SET:C('OWN','PERM-NET-001 (F5-E1)'),NET_TICK:C('OWN','PERM-NET-001 worker tick stand-in (F5-E1)'), // F5-E1
   STAY_CHECKOUT_BASIS:C('OWN MGR REC','STY-001 (LF A6)'),STAY_FORM_C:C('OWN MGR REC','STY-001 (LF A5)'),STAY_LATE_CHARGE:C('OWN MGR REC','STY-003 (LF A6)'), // LF-DESK
@@ -280,7 +291,7 @@ export function register({test,M,assert}){
       assert.equal(app,set(PAGES[n.id][0]).has(role),`${role} · ${n.id}: documents say ${set(PAGES[n.id][0]).has(role)?'visible':'hidden'} (${PAGES[n.id][1]})`);}
     for(const e of v.entries.filter(e=>e.kind==='action'))assert.ok(M.can(s,u,e.needs)&&v.allowed.has(e.page),e.id);});
   test('[RBAC] nav · housekeeping and maintenance reach only the no-money pages',()=>{
-    for(const u of NO_MONEY_USERS)assert.deepEqual([...surfaces(M,s,u).allowed].sort(),['gsv-my-requests','handover','housekeeping','inventory','maintenance','my-hr','prefs'],u);});
+    for(const u of NO_MONEY_USERS)assert.deepEqual([...surfaces(M,s,u).allowed].sort(),['gsv-my-requests','hall-booking','handover','housekeeping','inventory','maintenance','my-hr','prefs'],u);});
   test('[RBAC] nav · compliance content is Owner + Accountant only: Due-this-week card, assistant answers, commands (DEC-055)',()=>{
     for(const u of USERS){const ok=['owner','accountant'].includes(u);assert.equal(M.cmpHasAccess(s,u),ok,u);assert.equal(M.aiAccess(s,u).compliance,ok,u);}});
   test('[RBAC] nav · Compliance calendar is not listed for Manager or Cashier: drawer, Modules Home, search (W05-1, DEC-055)',()=>{

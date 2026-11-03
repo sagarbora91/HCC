@@ -70,6 +70,14 @@ import {handlers as accountingYear} from './accounting-year'; // ACC-4 year lock
 import {handlers as accountingBank} from './accounting-bank'; // ACC-4 bank reconciliation (contract §2)
 import {accYearLockedOn,accYearLockedMessage,accFyOfDate} from '../../../domain/streams/accounting-year';
 // F5-A1 end
+// F6-H1
+import {handlers as hall} from './hall'; // F6 hall booking: masters, enquiries, accept, advances, bill, cancel, refund
+// F6-H1 end
+// F6-H2
+import {handlers as hallQuote} from './hall-quote'; // F6 quotations + T&C: QUO_* (not QUO_ACCEPT), HALL_TNC_TEMPLATE_SAVE
+// F6-H2 end
+// F6-H3
+// F6-H3 end
 // F4-T1
 import {handlers as tariffCard} from './tariffcard';
 // F4-T1 end
@@ -110,7 +118,17 @@ const F4:Record<string,Handler>={ // F4 lanes: spread your handlers inside your 
   ...feedbackQw,
   // F4-T3 end
 };
-const registry0:Record<string,Handler>={...ACC1,...ACC2,...reservations,...guests,...folio,...housekeeping,...admin,...closing,...expenses,...yieldMod,...groups,...channels,...maintenance,...inventory,...handover,...services,...messaging,...pos,...staff,...accounting,...assistant,...compliance,...cashbook,...cashout,...masters,...credentials,...syshealth,...roommasters,...keys,...LF,...F4,...egress /* F5-E1 */,...catalogue,...accountingYear,...accountingBank /* F5-A1 */};
+const F6:Record<string,Handler>={ // F6 lanes: spread your handlers inside your own block
+  // F6-H1
+  ...hall,
+  // F6-H1 end
+  // F6-H2
+  ...hallQuote,
+  // F6-H2 end
+  // F6-H3
+  // F6-H3 end
+};
+const registry0:Record<string,Handler>={...ACC1,...ACC2,...reservations,...guests,...folio,...housekeeping,...admin,...closing,...expenses,...yieldMod,...groups,...channels,...maintenance,...inventory,...handover,...services,...messaging,...pos,...staff,...accounting,...assistant,...compliance,...cashbook,...cashout,...masters,...credentials,...syshealth,...roommasters,...keys,...LF,...F4,...egress /* F5-E1 */,...catalogue,...accountingYear,...accountingBank /* F5-A1 */,...F6};
 // F5-A1 — ACC-4 §1.2: after the year lock every post / edit / void dated in the year is refused ACC_YEAR_LOCKED (day reopen and month unlock
 // included); the year / bank commands and exports check for themselves. A correction is a journal in the new year: ACC_MANUAL_SAVE takes
 // `refersToFy` (G4), kept on the saved voucher.

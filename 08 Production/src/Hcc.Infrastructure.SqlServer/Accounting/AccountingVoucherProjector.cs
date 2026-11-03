@@ -221,6 +221,21 @@ public sealed class AccountingVoucherProjector(SqlConnectionFactory connections,
                 break;
             }
 
+            case AccountingEvents.HallPosted: // F6-H1: the keyed entries as published; a tender names its till / bank account, a company its 1110 party
+            {
+                var e = Parse<HallPostedEvent>(evt);
+                var entries = new List<SourceEntry>(e.Entries.Count);
+                foreach (var x in e.Entries)
+                {
+                    var party = x.CompanyId is { } co ? PartyLedgers.Company(co)
+                        : x.Tender is { } tn ? await TenderPartyAsync(connection, transaction, propertyId, tn, ct).ConfigureAwait(false) : null;
+                    entries.Add(new SourceEntry(x.MapKey, x.DebitPaise, x.CreditPaise, PartyLedgers.Clip(party)));
+                }
+
+                source = new AccountingSource(e.SourceKey, SourceKinds.Hall, e.Sub, e.BusinessDate, Enum.Parse<VoucherType>(e.VoucherType), e.Narration, entries);
+                break;
+            }
+
             case AccountingEvents.CounterBillIssued: // LF A7
             case AccountingEvents.CounterBillCredited:
             {

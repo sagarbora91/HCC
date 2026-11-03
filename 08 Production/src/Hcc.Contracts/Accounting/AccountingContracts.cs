@@ -11,6 +11,7 @@ public static class AccountingEvents
     // P4 billing / payments (existing payloads).
     public const string CounterBillIssued = "CounterBillIssued";     // LF A7: Hcc.Application.Counter.CounterBillPostedEvent
     public const string CounterBillCredited = "CounterBillCredited"; // LF A7: the void's credit note (same payload + creditNoteNo)
+    public const string HallPosted = "HallPosted";                   // F6-H1: HallPostedEvent — one hall:* source with its keyed entries
     public const string ChargePosted = "ChargePosted";          // {folioId, chargeId, kind room|service|discount|correction, serviceDate, amountPaise, taxPaise}
     public const string ReceiptRecorded = "ReceiptRecorded";    // {folioId, receiptId, kind, tender, amountPaise, businessDate}
     public const string ApprovalDecided = "ApprovalDecided";    // {approvalId, action, status, folioId}: correction + Executed → reversal line (not published as ChargePosted today)
@@ -71,6 +72,7 @@ public static class AccountingEvents
          ManualVoucherApproved, ManualVoucherVoided,                                             // ACC-2 (acc2-manual, contract §2)
          OtaPayoutRecorded, UdhaarPaymentReversed,                                               // ACC-2 flows
          CounterBillIssued, CounterBillCredited,                                                 // LF A7
+         HallPosted,                                                                             // F6-H1
          .. PurchaseEvents.All];                                                                 // ACC-2 acc2-purchase (contract §3)
 }
 
@@ -241,3 +243,11 @@ public sealed record LockEventView(long LockId, DateOnly BusinessDate, string Ac
 public sealed record TallyExportView(DateOnly From, DateOnly To, int Dates, int VoucherCount, long DebitPaise, long CreditPaise, bool Simulated, string FileName, string Xml,
     IReadOnlyList<DateOnly>? ReexportDates = null, IReadOnlyList<DateOnly>? ProvisionalDates = null, long? ExportId = null, int PendingEvents = 0,
     IReadOnlyList<DateOnly>? LegacyDates = null);
+
+/// <summary>F6-H1 (F6-CONTRACT §5): one hall accounting source as the hall commands publish it (<see cref="AccountingEvents.HallPosted"/>):
+/// key hall:advance:&lt;receipt&gt; | hall:invoice:&lt;event&gt; | hall:advance-apply:&lt;event&gt; | hall:balance:&lt;receipt&gt; | hall:cancel:&lt;event&gt; |
+/// hall:refund:&lt;receipt&gt;; entries are mapping keys (receipt:deposit 2000, ledger:4400, line:food 4200, line:attrition 4300, folio:*, method:*,
+/// receipt:company-credit, receipt:udhaar) — the same keys as the prototype's hallAccSources. Tender / company name the party of a control ledger.</summary>
+public sealed record HallPostedEvent(string SourceKey, string Sub, DateOnly BusinessDate, string VoucherType, string Narration, IReadOnlyList<HallPostedEntry> Entries);
+
+public sealed record HallPostedEntry(string MapKey, long DebitPaise, long CreditPaise, string? Tender = null, long? CompanyId = null);

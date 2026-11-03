@@ -59,6 +59,13 @@ public sealed class SqlFlowsStore(SqlConnectionFactory connections) : ICashFlowR
                 WHERE v.property_id = @p AND v.status = 'approved' AND v.voucher_type = 'Receipt' AND ISNULL(v.booked_on, v.voucher_date) = @d
                   AND EXISTS (SELECT 1 FROM acc.manual_line x WHERE x.voucher_id = v.voucher_id AND x.account = @t);
                 """,
+            // F6-int: a hall event — its cash advance / balance receipts (the receipt being checked, Text, left out).
+            CashParty.Hall => """
+                SELECT ISNULL(SUM(CASE WHEN r.business_date = @d THEN r.amount_paise ELSE 0 END), 0), ISNULL(SUM(r.amount_paise), 0)
+                FROM hall.event_receipt r JOIN hall.event e ON e.event_id = r.event_id
+                WHERE r.event_id = @id AND e.property_id = @p AND r.tender = 'Cash' AND r.kind IN ('ADVANCE','BALANCE')
+                  AND r.receipt_id <> ISNULL(TRY_CAST(@t AS BIGINT), 0);
+                """,
             _ => null,
         };
         if (sql is null) return (0, 0);
