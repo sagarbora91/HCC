@@ -49,6 +49,9 @@
     <Project Path="tests/Hcc.Legacy.Tests/Hcc.Legacy.Tests.csproj" />
     <Project Path="tests/Hcc.Egress.Tests/Hcc.Egress.Tests.csproj" /> <!-- F5-E1 -->
     <Project Path="tests/Hcc.Architecture.Tests/Hcc.Architecture.Tests.csproj" /> <!-- F5-E1 -->
+    <!-- F6-H1 -->
+    <Project Path="tests/Hcc.Hall.Tests/Hcc.Hall.Tests.csproj" />
+    <!-- F6-H1 end -->
   </Folder>
   <Folder Name="/database/">
     <File Path="database/migrations.lock.json" />
