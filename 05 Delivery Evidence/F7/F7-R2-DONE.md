@@ -13,7 +13,9 @@
 
 ## Questions for f7-int / owner (not stated in the catalogue entry)
 - Supervisor is treated like Housekeeper / Maintenance for the money guard (masters rule MA-10). Confirm.
-- Nav gate is any of `reports, billing, reservations, checkin, housekeeping` (so Reception sees the non-money and desk reports); the engine's view right is the real gate.
+- Nav gate is any of `reports, billing, reservations, checkin` (Owner, Manager, Accountant, Reception, Cashier); Housekeeping / Maintenance / Supervisor do not get the page until non-money reports exist for them (widen `HubRegister.tsx` + the `report-hub` line in `tests/stream-rbac-matrix.mjs`). The engine's view right is the real gate; the hub also drops money reports for those roles.
+- Edited outside R2's files: one `report-hub` line in `tests/stream-rbac-matrix.mjs` PAGES (required by the RBAC matrix test).
+- Test run: full `npm test` 2570/2583 before two fixes (RBAC doc line, CSS `transparent` pairs in the theme audit); the affected suites (rbac-matrix, themes, fit, rpt-hub) pass 151/151 after.
 - Scheduling is offered only for reports the user may export (no `report.schedule` code in the prototype `can()` yet).
 - Phone schedules are read-only (editing on desktop).
 - `RPT_TOO_LARGE` is not yet in `ErrorCode` (R1).
