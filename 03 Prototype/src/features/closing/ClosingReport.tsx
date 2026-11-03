@@ -1,5 +1,6 @@
 // Closing summary (REQ-CLOSE-004) and its printable, watermarked report.
 import {printDocument} from '../../app/native';
+import {DocPrintButton} from '../reports/documents/DocButton'; // F7-R7
 import React from 'react';
 import {Printer,Hotel} from 'lucide-react';
 import {ClosingRecord,money,closingSummary,isDayClosed} from '../../services/mock';
@@ -35,5 +36,5 @@ export function ClosingReportModal({id}:{id?:string}){
       <ClosingSummaryView rec={rec}/>
       {!!rec.replaced?.length&&<div className="f-span"><h4>Earlier closing records of this date (kept, DEC-077)</h4><ul className="f-list">{rec.replaced.map((x,i)=><li key={i}>Closed {x.closedAt.replace('T',' ')} · net revenue {money(x.revenue.net)} · GST {money(x.revenue.tax)} · receipts {money(x.receipts.net)} — replaced when the day was closed again</li>)}</ul></div>}</>}
     <p className="footnote">All figures derived from fictional source records. GST from the dated GST master (illustrative — CA to confirm).</p></div>
-    <div className="modal-actions no-print"><button className="btn" onClick={closeModal}>Close</button><button className="btn primary" disabled={!rec} onClick={()=>{void printDocument();}}><Printer size={16}/> Print / save PDF</button></div></>;
+    <div className="modal-actions no-print"><button className="btn" onClick={closeModal}>Close</button><DocPrintButton doc="doc.day-end" params={{date}}/>{/* F7-R7 */}<button className="btn primary" disabled={!rec} onClick={()=>{void printDocument();}}><Printer size={16}/> Print / save PDF</button></div></>;
 }

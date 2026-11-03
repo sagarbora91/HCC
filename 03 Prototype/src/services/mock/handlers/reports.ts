@@ -7,6 +7,7 @@ import type {RptState,RptSchedule,RptRun} from '../../../domain/reports/types';
 import {reportDef,canViewReport,canExportReport,runDef} from '../../../domain/reports/engine';
 import {netEnqueue} from '../../../domain/streams/egress';
 import {HccError} from '../../../domain/errors';
+import {docDef} from '../../../domain/reports/documents'; // F7-R7
 
 export const rptSlice=(s:State):RptState=>{const x=s.rptX??(s.rptX={favourites:{},schedules:[],runs:[],exportLog:[]});x.favourites??={};x.schedules??=[];x.runs??=[];x.exportLog??=[];return x;};
 /** Roles a money report may be delivered to (catalogue §1.9). */
@@ -86,6 +87,16 @@ export const handlers:Record<string,Handler>={
   },
   RPT_LOG:k=>{
     const {cmd,s,uid,assert,fail}=k;
+    // F7-R7: a printed document (doc.* / rpt.people.payslip) is logged like a report print (rule V.4); only the print format exists for a document.
+    const dd=docDef(String(cmd.reportId??''));
+    if(dd&&!reportDef(dd.id)){
+      if(!dd.view(s,uid))fail('FORBIDDEN','You cannot print this document.');
+      assert(['print','pdf'].includes(String(cmd.format??'')),'Unknown format.');
+      const x=rptSlice(s);const id=k.id('RPL');
+      x.exportLog=[...x.exportLog,{id,at:s.clock,by:uid,reportId:dd.id,params:Object.fromEntries(Object.entries(cmd.params??{}).map(([a,b])=>[a,String(b)])),format:String(cmd.format) as never,rows:Number(cmd.rows??0),provisional:false}];
+      return `${id} · ${dd.id} · ${String(cmd.format)}`;
+    }
+    // F7-R7 end
     const def=reportDef(String(cmd.reportId??''));assert(def,'No such report.','NOT_FOUND');
     const format=String(cmd.format??'');assert(['print','xlsx','pdf','csv','zip','xml'].includes(format),'Unknown format.');
     if(format==='print'?!canViewReport(s,uid,def!):!canExportReport(s,uid,def!))fail('FORBIDDEN',format==='print'?'You cannot print this report.':'You cannot export this report.');

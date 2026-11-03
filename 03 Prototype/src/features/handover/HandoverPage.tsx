@@ -1,5 +1,6 @@
 // Module 19 · desktop page: My checklists · Handover · Dashboard · Templates (managers).
 import {printDocument} from '../../app/native';
+import {DocPrintButton} from '../reports/documents/DocButton'; // F7-R7
 import React,{useState} from 'react';
 import {Send,CheckCheck,Plus,Pencil,Power,RotateCcw,TimerReset,FlaskConical,AlertTriangle,Printer} from 'lucide-react';
 import {useHcc} from '../../app/context';
@@ -95,7 +96,7 @@ export function HovDashboardBody({compact,fit}:{compact?:boolean;fit?:boolean}){
   if(fit)return <>
     <div className="hov-toolbar fit-ops-bar"><label className="hov-inline">Business date<select value={date} onChange={e=>setDate(e.target.value)}>{dates.map(d=><option key={d} value={d}>{dateLabel(d)}</option>)}</select></label>
       <div className="f-seg" role="group" aria-label="Group by">{(['role','desk'] as const).map(b=><button key={b} type="button" className={by===b?'on':''} aria-pressed={by===b} onClick={()=>setBy(b)}>By {b}</button>)}</div>
-      <button className="btn" onClick={()=>{void printDocument();}}><Printer size={15}/>Print</button></div>
+      <DocPrintButton doc="doc.handover-pack" params={{date}} label="Hand-over pack"/>{/* F7-R7 */}<button className="btn" onClick={()=>{void printDocument();}}><Printer size={15}/>Print</button></div>
     <StatStrip items={[{title:'Completion',value:(total.items?Math.round(total.done*100/total.items):0)+'%'},{title:'Items overdue',value:String(over.length)},
       {title:'Runs past shift end',value:String(lateRuns)},{title:'Notes not acknowledged',value:String(notes.length)}]} variant="small" className="hov-stats" collapseOnTablet/>
     <div className="fit-cols">

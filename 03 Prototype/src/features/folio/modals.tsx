@@ -1,6 +1,7 @@
 // Stream C · Folio dialogs: booking/folio (SCR-08), payment with mixed tenders (SCR-09), charge/discount, checkout with
 // company credit (SCR-10), sample invoice, refund request, correction request and credit note.
 import {PrintTitle,PrintNotes} from '../exports/PrintNotes';
+import {DocPrintButton} from '../reports/documents/DocButton'; // F7-R7
 import {printDocument} from '../../app/native';
 import {FeedbackSheet,FeedbackBillLine} from '../guest-services/Feedback'; // F4-T3
 import {bookingRef} from '../../domain/bookingRef';
@@ -85,6 +86,7 @@ export function BookingModal({id}:{id:string}){
     <div className="receipt-list">{b.receipts.map(r=>{const refundable=r.kind==='payment'?folioRefundable(s,b,r.id):0,refunded=r.kind==='payment'?folioRefunded(b,r.id):0;
       return <div key={r.id}><span className="receipt-icon"><Receipt size={16}/></span><div><strong>{folioReceiptLabel[r.kind]??r.kind} · {r.method}</strong><small>{r.id} · {shortDate(r.date)} · {r.reference}{r.refundOf?' · refund of '+r.refundOf:''}{r.tenderGroup?' · mixed tender '+r.tenderGroup:''}{refunded?' · refunded '+money(refunded):''}{r.actor?` · by ${userName(s,r.actor)}`:''}</small></div>
         <strong className="number">{['refund','deposit-return'].includes(r.kind)?'−':''}{money(r.amount)}</strong>
+        <DocPrintButton doc="doc.receipt" params={{booking:b.id,receipt:r.id}} label="Receipt" className="text-btn"/>{/* F7-R7 */}
         {refundable>0&&permission('payments')&&(()=>{const locked=cbIsLocked(s,r.date),why=cbLockedMessage(r.date,'a refund against receipt '+r.id);return <><button className="text-btn" disabled={busy||locked} title={locked?why:undefined} onClick={()=>open({type:'refund',id:b.id,room:r.id})}><RotateCcw size={13}/> Request refund</button>{locked&&<small className="f-why">{why}</small>}</>;})()} {/* DEC-065 */}</div>;})}
       {!b.receipts.length&&<p className="muted padded">No receipts recorded.</p>}</div>
     {approvals.length>0&&<><div className="section-title compact"><h3>Folio requests</h3><span className="muted">No one approves their own request</span></div><div className="request-list folio-requests">{approvals.map(a=><FolioApprovalRow key={a.id} a={a}/>)}</div></>}
@@ -201,7 +203,7 @@ export function InvoiceModal({id}:{id:string}){
     <PrintNotes doc="invoice"/>
     <FeedbackBillLine/>{/* F4-T3 */}
     {!!b.creditNotes?.length&&<PrintNotes doc="credit-note"/>}
-    <div className="modal-actions no-print"><button className="btn" onClick={()=>booking(b.id)}>Back to folio</button><button className="btn primary" onClick={()=>{void printDocument();}}><Printer size={16}/> Print / save PDF</button></div></>;
+    <div className="modal-actions no-print"><button className="btn" onClick={()=>booking(b.id)}>Back to folio</button>{/* F7-R7 */}<DocPrintButton doc={b.invoiceNo?'doc.invoice':'doc.folio'} params={{booking:b.id}} label={b.invoiceNo?'Print invoice (Lodge look)':'Print folio (Lodge look)'}/>{(b.creditNotes??[]).map(c=><DocPrintButton key={c.id} doc="doc.credit-note" params={{booking:b.id,creditNote:c.id}} label={`Credit note ${c.no}`}/>)}{/* F7-R7 end */}<button className="btn primary" onClick={()=>{void printDocument();}}><Printer size={16}/> Print / save PDF</button></div></>;
 }
 
 /** Refund request (open with {type:'refund', id: bookingId, room: receiptId}). */

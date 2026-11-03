@@ -2,6 +2,7 @@
 // W05-B: SCC statutory payslip (PF / ESIC / MH PT breakdown, amount in words, PDF via the native share/print hook, simulated WhatsApp — DEC-056),
 // dated statutory rates, pay-run unlock and full-and-final settlement. The SCC leave dialogs live in leaveModals.tsx (DEC-116).
 import {printDocument} from '../../app/native';
+import {DocPrintButton} from '../reports/documents/DocButton'; // F7-R7
 import React,{useState} from 'react';
 import {Printer,Info,Hotel,MessageCircle,Plus,Trash2,AlertTriangle} from 'lucide-react';
 import {useHcc} from '../../app/context';
@@ -352,5 +353,5 @@ export function HRPayslipModal({id}:{id?:string}){
       <pre>{hrPayslipMessage(s,run,line)}</pre></div>}
     <div className="modal-actions no-print"><button className="btn" onClick={closeModal}>Close</button>
       {pay&&run.status==='Locked'&&<button className="btn" disabled={busy||!wa} onClick={()=>exec({type:'HR_PAYSLIP_SEND',runId:run.id,staffId},'Payslip sent on WhatsApp (simulated — nothing left this device)')}><MessageCircle size={16}/> Send on WhatsApp{wa?` to ${to}`:''}</button>}
-      <button className="btn primary" onClick={()=>{void printDocument();}}><Printer size={16}/> Payslip PDF</button></div></>;
+      <DocPrintButton doc="rpt.people.payslip" params={{run:run.id,staff:staffId}} label="Payslip (Lodge look)"/>{/* F7-R7 */}<button className="btn primary" onClick={()=>{void printDocument();}}><Printer size={16}/> Payslip PDF</button></div></>;
 }
