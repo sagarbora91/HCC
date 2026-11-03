@@ -77,7 +77,7 @@ export const READS={
   'GET /admin/users':ADMIN,
   'GET /admin/roles':ADMIN,
   'GET /admin/exceptions':ADMIN,
-  'GET /admin/policy-history':ADMIN, // ADM-3: role / policy change log (Audit tab)
+  'GET /admin/policy-history':one(wide('PERM-ADM-001'),wide('PERM-ADM-002',true),wide('PERM-ADM-004',true)), // ADM-3: role / policy change log (Audit tab); server: PERM-ADM-001/002/004 at any mode
   'GET /admin/audit':one(wide('PERM-ADM-004',true)),
   // Wave C3 (A09-05) System health: PERM-SYS-001 (Owner, Tech admin), an action permission held in A.
   'GET /admin/system-health':one(wide('PERM-SYS-001')),

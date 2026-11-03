@@ -153,7 +153,7 @@ export async function register({test,assert,M}){
 
   // ── (3) /me/capabilities ──
   const meSrv=fakeServer({...base,'GET /me/capabilities':()=>({...capabilities({userId:5,displayName:'Tanvi',roles:['MGR','C01']}),
-    features:{'accounting.vouchers':'off','accounting.gst':'off','accounting.tds':'off','accounting.tally':'off','compliance.calendar':'view','x.unknown':'FULL'}})});
+    features:{'accounting.vouchers':'off','accounting.gst':'off','accounting.tds':'off','accounting.tally':'off','accounting.yearend':'off','accounting.bank':'off','compliance.calendar':'view','x.unknown':'FULL'}})});
   const meRt=await startRuntime(S,meSrv,mine);const ms=meRt.get().state;const me=meRt.get().me??ms.users.find(u=>u.id==='5');
   const pageOn=p=>M.cfgPageOnFor(ms,'5',p);
   test('[ADM2-SYNC] /me/capabilities features + roles ["MGR","C01"]: the signed-in user keeps the Manager base role, holds C01 with the off / view levels (full dropped)',()=>{
@@ -161,7 +161,7 @@ export async function register({test,assert,M}){
     const u=ms.users.find(x=>x.id==='5');
     assert.deepEqual([u.role,u.customRole],['Manager','C01']);
     const row=ms.rolesX.roles.find(r=>r.id==='C01');
-    assert.deepEqual(row.features,{'accounting.vouchers':'off','accounting.gst':'off','accounting.tds':'off','accounting.tally':'off','compliance.calendar':'view'});
+    assert.deepEqual(row.features,{'accounting.vouchers':'off','accounting.gst':'off','accounting.tds':'off','accounting.tally':'off','accounting.yearend':'off','accounting.bank':'off','compliance.calendar':'view'});
     assert.equal(row.name,'Day shift manager','the loaded row keeps its name');assert.equal(row.base,'Manager');
     void me;
   });

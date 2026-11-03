@@ -19,5 +19,5 @@ export const registration:FeatureRegistration={
     {group:'ADMINISTRATION',item:{id:'syshealth',label:'System health',icon:Activity,p:'admin'},after:'backup'},
     // LG-UI: Owner only (server PERM-LGC-001); the page itself checks the role. Also linked from Master configuration › Data and system.
     {group:'ADMINISTRATION',item:{id:'legacy-import',label:'Legacy import',icon:Database,p:'admin'},after:'syshealth'}],
-  modals:{'admin-user':UserModal,'admin-role-new':NewRoleModal,'admin-setting':SettingModal,'admin-tariff':TariffModal,'cfg-setting':CfgSettingSheet,'cfg-import':CfgImportSheet},
+  modals:{'admin-user':UserModal,'admin-role-new':NewRoleModal,'admin-setting':SettingModal,'admin-tariff':TariffModal,'cfg-setting':CfgSettingSheet,'cfg-import':CfgImportSheet,'net-set':p=><NetSetModal id={p.id} room={p.room}/>},
 };
