@@ -26,3 +26,19 @@ Phone AVD `codex_api35_google`: both APKs installed (`dumpsys`: versionCode 21, 
 
 ## New defects
 None found (D20-n unused). Nothing else was tested.
+
+## Tablet AVD pass (hcc_tablet_api35, 2560x1600 landscape, v20 demo APK 21/20)
+
+Done 4 Nov 2026. Screens: Modules home, Dashboard (Arrivals, In house), Accounts & Reports, Accounting. Screenshots in `Acceptance\v20\tablet-*.png`.
+
+| Check | Result |
+|---|---|
+| V19-1 stat strips, Dashboard In-house tab | PASS. Same four tiles on every tab; strip has a collapse toggle; no overlap or clipping. |
+| V19-1 stat strips, Accounting | PASS. Four tiles, collapse toggle, tabs and voucher table below. |
+| FIT: lists scroll inside their panel, task never scrolls | PASS on Dashboard (guest list, room map, attention rail) and Accounting (voucher table). |
+| Accounts & Reports page lists Report library, Revenue by category, Owner digest | Present (not opened; server-only data). |
+
+### Defects
+- **D20-1 (S4, cosmetic):** on the tablet the stat strip wraps 3+1, so the fourth tile (Payment receipts on Dashboard, Exceptions on Accounting) sits alone on a second row with empty space to its right. Readable, not blocking.
+
+Not covered on the tablet: Housekeeper no-prices, Administration and the other server pages (server APK needs an elevated shell, see above).
