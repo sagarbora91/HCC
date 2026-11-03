@@ -82,6 +82,9 @@ export const READS={
   'GET /admin/system-health':one(wide('PERM-SYS-001')),
   // F6-H3: the hall snapshot is for every staff role (the calendar and the function sheet carry no prices); the server returns enquiries / quotations / money only to the holders of PERM-HAL-001 / 002 (DEC-061).
   'GET /hall/snapshot':always,
+  // F6-int: menu packages for every staff role (prices stripped without PERM-HAL-002 view); T&C templates for the holders of PERM-HAL-002 (view)
+  'GET /hall/menus':always,
+  'GET /hall/templates':one(anyScope('PERM-HAL-002',true),wide('PERM-ACC-001',true)), // the Accountant's HAL-002 view is not in /me/capabilities (F6-DONE gap)
   // LF-ALERTS B4: PERM-RMD-001 reminders (an action permission).
   'GET /reminders':one(wide('PERM-RMD-001')),
   // LF-BILL A2: the bill-correction register = InvoicePermissions.View (PERM-INV-001), as the invoice reads.
