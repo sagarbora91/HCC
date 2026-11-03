@@ -1,0 +1,25 @@
+{
+ "id": "rpt.acc.tally-xml",
+ "cases": [
+  {
+   "uid": "accountant",
+   "scenario": "ACC-RULEBOOK",
+   "params": {
+    "fy": "2026-27",
+    "vFrom": "2026-04-01",
+    "vTo": "2026-04-30"
+   },
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["file","vouchers","ledgers","notes"],
+     "rows": [
+      ["row","masters.xml",null,114,""],
+      ["row","vouchers.xml",239,null,""]
+     ]
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,119 @@
+{
+ "id": "rpt.acc.trial-balance",
+ "cases": [
+  {
+   "uid": "accountant",
+   "scenario": "ACC-RULEBOOK",
+   "params": {
+    "from": "2026-04-01",
+    "to": "2026-04-30"
+   },
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["code","ledger","group","openDr","openCr","perDr","perCr","closeDr","closeCr"],
+     "rows": [
+      ["row","1000","Cash in hand","cash",2000000,0,18350000,16320000,4030000,0],
+      ["row","1010","UPI clearing","bank",0,0,21300000,21300000,0,0],
+      ["row","1020","Card clearing","bank",0,0,15000000,15000000,0,0],
+      ["row","1030","Bank accounts","bank",30000000,0,62559000,42409000,50150000,0],
+      ["row","1100","Guest ledger (in-house folios)","debtors",0,0,55650000,55650000,0,0],
+      ["row","1110","Company receivables (city ledger)","debtors",4000000,0,6300000,10300000,0,0],
+      ["row","1115","OTA receivables","debtors",0,0,2100000,2100000,0,0],
+      ["row","1200","Staff advances","loans-advances",0,0,500000,500000,0,0],
+      ["row","1340","GST electronic cash ledger","duties-taxes",0,0,10000,0,10000,0],
+      ["row","1360","TDS receivable","loans-advances",0,0,600000,0,600000,0],
+      ["row","1500","Buildings","fixed-assets",600000000,0,0,0,600000000,0],
+      ["row","1510","Furniture, fittings & electrical fittings","fixed-assets",80000000,0,0,0,80000000,0],
+      ["row","1520","Plant & machinery","fixed-assets",50000000,0,0,0,50000000,0],
+      ["row","1530","Computers, software & POS hardware","fixed-assets",8000000,0,0,0,8000000,0],
+      ["row","2000","Advance deposits (guest and group)","current-liabilities",0,1000000,1000000,3150000,0,3150000],
+      ["row","2110","Output CGST","duties-taxes",0,0,25000,1475000,0,1450000],
+      ["row","2120","Output SGST","duties-taxes",0,0,25000,1475000,0,1450000],
+      ["row","2200","Vendor payables","creditors",0,2500000,6000000,10100000,0,6600000],
+      ["row","2300","Salaries payable (net)","current-liabilities",0,0,21350000,21350000,0,0],
+      ["row","2310","PF payable","duties-taxes",0,0,0,3600000,0,3600000],
+      ["row","2320","ESIC payable","duties-taxes",0,0,0,800000,0,800000],
+      ["row","2330","Professional tax payable","duties-taxes",0,0,0,200000,0,200000],
+      ["row","2400","Bank loans (secured)","secured-loans",0,200000000,4000000,0,0,196000000],
+      ["row","3000","Owner's drawings","capital",0,0,5000000,0,5000000,0],
+      ["row","3100","Owner's capital","capital",0,570500000,0,0,0,570500000],
+      ["row","4000","Room revenue","sales",0,0,0,43000000,0,43000000],
+      ["row","4200","Food & beverage revenue","sales",0,0,0,16000000,0,16000000],
+      ["row","4900","Discounts allowed","sales",0,0,1000000,0,1000000,0],
+      ["row","5000","Housekeeping & guest supplies","direct-expenses",0,0,5900000,0,5900000,0],
+      ["row","5010","Linen & laundry","direct-expenses",0,0,4200000,0,4200000,0],
+      ["row","5030","Electricity, water & fuel","direct-expenses",0,0,4500000,0,4500000,0],
+      ["row","5040","Petty cash & sundry","indirect-expenses",0,0,800000,0,800000,0],
+      ["row","5070","OTA commission","indirect-expenses",0,0,354000,0,354000,0],
+      ["row","5080","Bank & card charges","indirect-expenses",0,0,236000,0,236000,0],
+      ["row","5090","Interest on loans","indirect-expenses",0,0,1500000,0,1500000,0],
+      ["row","5100","Salaries & wages","indirect-expenses",0,0,24000000,0,24000000,0],
+      ["row","5110","Employer PF & ESIC","indirect-expenses",0,0,2450000,0,2450000,0],
+      ["row","5900","Cash short","indirect-expenses",0,0,20000,0,20000,0],
+      ["total","Total","Debits equal credits in every column","",774000000,774000000,264729000,264729000,842750000,842750000]
+     ]
+    }
+   ]
+  },
+  {
+   "uid": "accountant",
+   "scenario": "ACC-RULEBOOK",
+   "params": {
+    "from": "2026-04-01",
+    "to": "2026-04-30",
+    "view": "with parties"
+   },
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["code","ledger","group","openDr","openCr","perDr","perCr","closeDr","closeCr"],
+     "rows": [
+      ["row","1000/TILL","Cash in hand · Front-desk cash drawer","cash",2000000,0,18350000,16320000,4030000,0],
+      ["row","1010","UPI clearing","bank",0,0,21300000,21300000,0,0],
+      ["row","1020","Card clearing","bank",0,0,15000000,15000000,0,0],
+      ["row","1030/BA-HDFC","Bank accounts · HDFC","bank",30000000,0,62559000,42409000,50150000,0],
+      ["row","1100","Guest ledger (in-house folios)","debtors",0,0,55650000,55650000,0,0],
+      ["row","1110/CO-1142","Company receivables (city ledger) · Deccan Agro Ltd","debtors",4000000,0,6300000,10300000,0,0],
+      ["row","1115/goibibo","OTA receivables · Goibibo","debtors",0,0,2100000,2100000,0,0],
+      ["row","1200/HR-S07","Staff advances · Farhan Qureshi","loans-advances",0,0,500000,500000,0,0],
+      ["row","1340","GST electronic cash ledger","duties-taxes",0,0,10000,0,10000,0],
+      ["row","1360","TDS receivable","loans-advances",0,0,600000,0,600000,0],
+      ["row","1500","Buildings","fixed-assets",600000000,0,0,0,600000000,0],
+      ["row","1510","Furniture, fittings & electrical fittings","fixed-assets",80000000,0,0,0,80000000,0],
+      ["row","1520","Plant & machinery","fixed-assets",50000000,0,0,0,50000000,0],
+      ["row","1530","Computers, software & POS hardware","fixed-assets",8000000,0,0,0,8000000,0],
+      ["row","2000","Advance deposits (guest and group)","current-liabilities",0,1000000,1000000,3150000,0,3150000],
+      ["row","2110","Output CGST","duties-taxes",0,0,25000,1475000,0,1450000],
+      ["row","2120","Output SGST","duties-taxes",0,0,25000,1475000,0,1450000],
+      ["row","2200/EV-KAVERI","Vendor payables · Kaveri Textiles","creditors",0,0,0,4200000,0,4200000],
+      ["row","2200/EV-MORNING","Vendor payables · Morning Supplies","creditors",0,2500000,6000000,5900000,0,2400000],
+      ["row","2300","Salaries payable (net)","current-liabilities",0,0,21350000,21350000,0,0],
+      ["row","2310","PF payable","duties-taxes",0,0,0,3600000,0,3600000],
+      ["row","2320","ESIC payable","duties-taxes",0,0,0,800000,0,800000],
+      ["row","2330","Professional tax payable","duties-taxes",0,0,0,200000,0,200000],
+      ["row","2400/LN-HDFC","Bank loans (secured) · HDFC term loan","secured-loans",0,200000000,4000000,0,0,196000000],
+      ["row","3000","Owner's drawings","capital",0,0,5000000,0,5000000,0],
+      ["row","3100","Owner's capital","capital",0,570500000,0,0,0,570500000],
+      ["row","4000","Room revenue","sales",0,0,0,43000000,0,43000000],
+      ["row","4200","Food & beverage revenue","sales",0,0,0,16000000,0,16000000],
+      ["row","4900","Discounts allowed","sales",0,0,1000000,0,1000000,0],
+      ["row","5000","Housekeeping & guest supplies","direct-expenses",0,0,5900000,0,5900000,0],
+      ["row","5010","Linen & laundry","direct-expenses",0,0,4200000,0,4200000,0],
+      ["row","5030","Electricity, water & fuel","direct-expenses",0,0,4500000,0,4500000,0],
+      ["row","5040","Petty cash & sundry","indirect-expenses",0,0,800000,0,800000,0],
+      ["row","5070","OTA commission","indirect-expenses",0,0,354000,0,354000,0],
+      ["row","5080","Bank & card charges","indirect-expenses",0,0,236000,0,236000,0],
+      ["row","5090","Interest on loans","indirect-expenses",0,0,1500000,0,1500000,0],
+      ["row","5100","Salaries & wages","indirect-expenses",0,0,24000000,0,24000000,0],
+      ["row","5110","Employer PF & ESIC","indirect-expenses",0,0,2450000,0,2450000,0],
+      ["row","5900","Cash short","indirect-expenses",0,0,20000,0,20000,0],
+      ["total","Total","Debits equal credits in every column","",774000000,774000000,264729000,264729000,842750000,842750000]
+     ]
+    }
+   ]
+  }
+ ]
+}

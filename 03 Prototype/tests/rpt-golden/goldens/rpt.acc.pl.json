@@ -1,0 +1,74 @@
+{
+ "id": "rpt.acc.pl",
+ "cases": [
+  {
+   "uid": "accountant",
+   "scenario": "ACC-RULEBOOK",
+   "params": {
+    "from": "2026-04-01",
+    "to": "2026-04-30"
+   },
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["code","line","group","amount"],
+     "rows": [
+      ["subtotal",null,"Revenue from operations",null,null],
+      ["row","4000","Room revenue","sales",43000000],
+      ["row","4200","Food & beverage revenue","sales",16000000],
+      ["row","4900","Discounts allowed","sales",-1000000],
+      ["subtotal",null,"Total revenue",null,58000000],
+      ["subtotal",null,"Other income",null,null],
+      ["subtotal",null,"Total other income",null,0],
+      ["subtotal",null,"Expenses",null,null],
+      ["subtotal",null,"Cost of materials consumed",null,null],
+      ["row","5000","Housekeeping & guest supplies","direct-expenses",5900000],
+      ["row","5010","Linen & laundry","direct-expenses",4200000],
+      ["subtotal",null,"Total cost of materials consumed",null,10100000],
+      ["subtotal",null,"Employee benefits expense",null,null],
+      ["row","5100","Salaries & wages","indirect-expenses",24000000],
+      ["row","5110","Employer PF & ESIC","indirect-expenses",2450000],
+      ["subtotal",null,"Total employee benefits expense",null,26450000],
+      ["subtotal",null,"Finance costs",null,null],
+      ["row","5080","Bank & card charges","indirect-expenses",236000],
+      ["row","5090","Interest on loans","indirect-expenses",1500000],
+      ["subtotal",null,"Total finance costs",null,1736000],
+      ["subtotal",null,"Depreciation",null,null],
+      ["subtotal",null,"Total depreciation",null,0],
+      ["subtotal",null,"Other expenses",null,null],
+      ["row","5030","Electricity, water & fuel","direct-expenses",4500000],
+      ["row","5040","Petty cash & sundry","indirect-expenses",800000],
+      ["row","5070","OTA commission","indirect-expenses",354000],
+      ["row","5900","Cash short","indirect-expenses",20000],
+      ["subtotal",null,"Total other expenses",null,5674000],
+      ["subtotal",null,"Total expenses",null,43960000],
+      ["total",null,"Profit before tax",null,14040000]
+     ]
+    }
+   ]
+  },
+  {
+   "uid": "accountant",
+   "scenario": "ACC-RULEBOOK",
+   "params": {
+    "from": "2026-04-01",
+    "to": "2026-04-30",
+    "tallyView": true
+   },
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["code","line","group","amount"],
+     "rows": [
+      ["row","sales","Sales Accounts","",58000000],
+      ["row","direct-expenses","Direct Expenses","",14600000],
+      ["row","indirect-expenses","Indirect Expenses","",29360000],
+      ["total",null,"Profit before tax",null,14040000]
+     ]
+    }
+   ]
+  }
+ ]
+}

@@ -123,6 +123,17 @@ public static class HccComposition
         Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.Tax.GstSummaryReport>(services); // F7-R5
         services.AddSingleton<Hcc.Reporting.Documents.DocumentService>(); // F7-R7 document layouts
         services.AddScoped<Hcc.Reporting.Documents.DocumentSql>(); // F7-R7
+        // F7-R6 accounting reports (batch 2): they read the ACC-1 / ACC-3 queries, built per call by AccQueries
+        services.AddSingleton<Hcc.Reporting.Reports.Acc.AccQueries>(); // F7-R6
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.Acc.TrialBalanceReport>(services); // F7-R6
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.Acc.StatementReport>(services); // F7-R6
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.Acc.DayBookReport>(services); // F7-R6
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.Acc.PlReport>(services); // F7-R6
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.Acc.BalanceSheetReport>(services); // F7-R6
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.Acc.CashRatioReport>(services); // F7-R6
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.Acc.AgeingReport>(services); // F7-R6
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.Acc.TallyXmlReport>(services); // F7-R6
+        // F7-R6 end
         // F7-RPT end
         // F5-E1
         services.AddEgressModule();                      // F5-E1 internet egress gate: net.* settings, "egress" client, hold / replay, System health Egress

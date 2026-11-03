@@ -12,6 +12,10 @@ export const RPT_NO_MONEY_ROLES=['Supervisor','Housekeeper','Maintenance','Stock
 /** PERM-INV-001 invoices.view: Owner, Manager, Reception, Cashier, Accountant. PERM-ACC-001 accounting.view: Owner, Manager, Accountant (Cashier removed by migration 3700). */
 export const RPT_V2_GRANTS:Record<string,string[]>={'PERM-INV-001':['Owner','Manager','Reception','Cashier','Accountant'],'PERM-ACC-001':['Owner','Manager','Accountant'],/** F7: PERM-ACC-013 accounting.tax — Owner, Accountant (migration 4249); tax reports per DEC-202. */'PERM-ACC-013':['Owner','Accountant']};
 // F7-R5 end
+// F7-R6
+/** PERM-ACC-006 accounting.tally.export (simulated): Owner + Accountant (G13). Same grants as the server seed 1001. */
+RPT_V2_GRANTS['PERM-ACC-006']=['Owner','Accountant'];
+// F7-R6 end
 /** One permission: PERM-* codes through the access matrix (scoped cells such as the Cashier's own-shift V·S pass only for `ownShift` reports),
  *  anything else is a page permission through can(). */
 export function rptHolds(s:State,uid:string,perm:string,ownShift=false):boolean{
