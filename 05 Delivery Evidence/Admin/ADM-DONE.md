@@ -39,7 +39,7 @@ Branch `claude/adm` (on top of main 456167a + the plan). Plan: `02 Planning/HCC_
 4. `tools/Start-Gate.ps1`; on PASS the owner merges to main; APK bump goes with the next APK wave (v19 prep exists).
 
 ## 6. Open items
-- Server gates for guest requests, complaints, lost & found, leave, POS menu, message templates, maintenance assets, masters: the prototype refuses them; the server relies on the per-role grid removing ids plus the existing module gates. Add `RequireHccFeature` to those route groups in a follow-up (list in `ADM_Briefs.md` Lane S notes).
-- Sync mapping of `ROL_*` has no automated prototype tests.
+- ~~Server gates for guest requests, complaints, lost & found, leave, POS menu, message templates, maintenance assets, masters~~ — done 3 Nov 2026 (commit eacc398); the expense-vendor master list is gated as Masters, not Purchases (owner to confirm).
+- ~~Sync mapping of `ROL_*` has no automated prototype tests~~ — done 3 Nov 2026 (`tests/sync-adm-roles.mjs`, 13 tests).
 - DEC-217 warning text fires only for explicit `PERM-ACC-003/004` grants; the prototype matrix has no such ids yet, so it is server-only in practice.
-- ADM-3 phone Roles tab verified by markup tests, not by a rendered phone smoke; run `tools/masters-smoke.mjs`-style smoke on the hotel PC.
+- ADM-3 phone Roles tab verified by markup tests, not by a rendered phone smoke; run the walkthrough `ADM_Walkthrough_Script.md` §G on the hotel PC.
