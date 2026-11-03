@@ -10,6 +10,7 @@ import {cfgPageOn} from '../domain/streams/config';
 import {cmpHasAccess} from '../domain/streams/compliance';
 import {rmdCanManage} from '../domain/streams/reminders'; // LF-ALERTS
 import {trcCan} from '../domain/streams/tariffcard'; // F4-T1
+import {hallCanOpen} from '../features/hall/access'; // F6-H3
 import {rbacCanViewClosing,rbacSeesApprovals,rbacIsRestaurant,rbacSeesBooks,rbacIsRole,rbacTechAdminTemplates,RBAC_RESTAURANT_PAGES} from '../domain/streams/rbac';
 
 export type CategoryId='front'|'cash'|'hkm'|'guestsvc'|'customers'|'revenue'|'stock'|'people'|'accounts'|'admin';
@@ -62,6 +63,9 @@ export const PAGE_CATEGORY:Record<string,CategoryId>={
   // F4-T2 end
   // F4-T3
   // F4-T3 end
+  // F6-H3
+  'hall-booking':'revenue',
+  // F6-H3 end
   access:'admin',settings:'admin',approvals:'admin',backup:'admin',roadmap:'admin',
 };
 
@@ -103,6 +107,9 @@ export const PAGE_BLURB:Record<string,string>={
   'desk-alerts':'Desk reminders with alert days and guests\' wake-up calls', // LF-ALERTS
   'counter-bills':'Bills for walk-in customers: paid now, Udhaar credit or company credit', // LF-UI
   'tariff-card':'Published room, meal and extra prices by valid-from date; rate sheet', // F4-T1
+  // F6-H3
+  'hall-booking':'Halls and lawn: enquiries, quotations with terms, calendar, events, event-day bill',
+  // F6-H3 end
 };
 
 /** Extra words people type for a page (synonyms, hotel jargon, Hindi-English habits). The label and category are matched too. */
@@ -149,6 +156,9 @@ export const PAGE_KEYWORDS:Record<string,string[]>={
   'legacy-import':['legacy import','old software','lodge','old data','import history','dry run','migration','legacy','previous software'],
   'counter-bills':['counter bill','direct bill','walk-in','walk in','udhaar','credit note','bill'], // LF-UI
   'tariff-card':['tariff card','rate card','rate sheet','price list','tariff','weekend rate','extra person','gst inclusive'], // F4-T1
+  // F6-H3
+  'hall-booking':['hall','banquet','lawn','wedding','function','event','quotation','quote','enquiry','beo','function sheet','catering','plates','marriage','party','t&c','terms'],
+  // F6-H3 end
   'desk-alerts':['reminder','reminders','alert','alerts','wake up','wake-up','wakeup','alarm','alert days','due date'], // LF-ALERTS
   roadmap:['roadmap','future','planned','modules','phases'],
   prefs:['appearance','display','text size','font','font size','bigger text','larger text','zoom','motion','animation','density','compact','start page','home page','page size','rows','toast','messages','preferences','my settings','theme'],
@@ -229,6 +239,7 @@ export function navFilterModules<T extends {id:string}>(s:State,items:readonly T
  * its own shifts & pay only. */
 export function navRoleOk(s:State,uid:string,page:string):boolean{
   if(rbacIsRestaurant(s,uid))return RBAC_RESTAURANT_PAGES.includes(page);
+  if(page==='hall-booking')return hallCanOpen(s,uid); // F6-H3: every signed-in staff role but the Tech admin (the calendar shows no prices to housekeeping / maintenance, DEC-061)
   if(page==='tariff-card')return trcCan(s,uid,'view'); // F4-T1: PERM-TRF-001 (not housekeeping / maintenance, DEC-061)
   // F4-T2
   if(page==='owner-digest')return dgsCanView(s,uid);      // PERM-DGS-001: Owner only

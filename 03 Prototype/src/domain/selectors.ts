@@ -68,8 +68,11 @@ export function drawer(s:State){
   const expenses=s.expenses.filter(e=>e.date===s.date&&(e.status==='Posted'||e.status==='Reversed')&&mnyIsDrawer(s,e.method)).reduce((a,e)=>a+e.amount,0);
   // DEC-130: Udhaar (customer credit) payments taken in cash are desk receipts into the drawer.
   // ACC-2 (acc2-purchase): vendor payments in drawer cash leave it (a reversing void brings the cash back on the void date).
-  return s.openingCash+receipts+outlet-expenses+cxDeskNet(s,s.date)+expUdDeskCash(s,s.date)-expVendorPayCash(s,s.date)+lfCounterCash(s,s.date); // LF-COUNTER (§6): counter bills in drawer cash
+  return s.openingCash+receipts+outlet-expenses+cxDeskNet(s,s.date)+expUdDeskCash(s,s.date)-expVendorPayCash(s,s.date)+lfCounterCash(s,s.date)+hallDrawerCash(s,s.date); // F6-H3 hall cash; LF-COUNTER (§6): counter bills in drawer cash
 }
+/** F6-H3: hall advances / balances taken and refunds paid in drawer cash on a date (inlined like lfCounterCash: selectors import no stream). */
+function hallDrawerCash(s:State,date:string){let n=0;for(const e of s.hallX?.events??[])for(const r of e.receipts??[]){
+  if(r.date!==date||!r.method||!mnyIsDrawer(s,r.method))continue;n+=r.kind==='REFUND'?-r.amountPaise:r.amountPaise;}return n;}
 /** LF-COUNTER (§6): counter-bill drawer cash on a date — paid in drawer cash (+), credited on its credit date (−). Same as ctrDrawerCash
  *  (domain/streams/counter.ts), inlined here to keep selectors free of stream imports (module order). */
 function lfCounterCash(s:State,date:string){let n=0;for(const b of s.counterX?.bills??[]){if(b.settlement.mode!=='paid'||!mnyIsDrawer(s,b.settlement.method??''))continue;
