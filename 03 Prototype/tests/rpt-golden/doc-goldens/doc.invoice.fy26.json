@@ -1,0 +1,51 @@
+{
+ "id": "doc.invoice",
+ "tag": "fy26",
+ "tables": [
+  {
+   "key": "details",
+   "columns": ["item","value"],
+   "rows": [
+    ["row","Guest","Rohan Zende"],
+    ["row","Room","108"],
+    ["row","Booking","HCC-H0004"],
+    ["row","Arrival","2026-05-15"],
+    ["row","Departure","2026-05-17"],
+    ["row","Nights","2"],
+    ["row","Bill to","Rohan Zende"],
+    ["row","Buyer GSTIN",""],
+    ["row","Tax invoice no","DEMO/2026-27/0283"]
+   ]
+  },
+  {
+   "key": "lines",
+   "columns": ["desc","date","net","rate","cgst","sgst","total"],
+   "rows": [
+    ["row","Room night · 2026-05-15","2026-05-15",205000,5,5125,5125,215250],
+    ["row","Room night · 2026-05-16","2026-05-16",205000,5,5125,5125,215250],
+    ["row","Laundry","2026-05-16",21000,18,1890,1890,24780],
+    ["total","Total",null,431000,null,12140,12140,455280]
+   ]
+  },
+  {
+   "key": "summary",
+   "columns": ["item","amount"],
+   "rows": [
+    ["row","Net charges",431000],
+    ["row","CGST",12140],
+    ["row","SGST",12140],
+    ["total","Total including GST",455280],
+    ["row","Payments received (net)",455280],
+    ["total","Balance",0],
+    ["row","Refundable deposit held separately",0]
+   ]
+  },
+  {
+   "key": "notes",
+   "columns": ["note"],
+   "rows": [
+    ["row","Demonstration - not a tax invoice. GST from the dated GST master, intra-state (CGST + SGST); illustrative, CA to confirm."]
+   ]
+  }
+ ]
+}

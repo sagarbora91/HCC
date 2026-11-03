@@ -121,6 +121,8 @@ public static class HccComposition
         Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.Tax.InvoiceRegisterReport>(services); // F7-R5
         Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.Tax.BillCorrectionsReport>(services); // F7-R5
         Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.Tax.GstSummaryReport>(services); // F7-R5
+        services.AddSingleton<Hcc.Reporting.Documents.DocumentService>(); // F7-R7 document layouts
+        services.AddScoped<Hcc.Reporting.Documents.DocumentSql>(); // F7-R7
         // F7-RPT end
         // F5-E1
         services.AddEgressModule();                      // F5-E1 internet egress gate: net.* settings, "egress" client, hold / replay, System health Egress
@@ -266,6 +268,9 @@ public static class HccComposition
         // F7-R1
         api.MapReportEndpoints();        // F7-R1 /reports/catalogue, /reports/{id}, export, print-log, schedules, runs, favourites
         // F7-R1 end
+        // F7-R7
+        api.MapDocumentEndpoints();      // F7-R7 /documents/invoice, credit-note, payslip, bill, kot (Lodge look, html or pdf)
+        // F7-R7 end
         // LF lanes: ONE api.Map<Lane>Endpoints(); line inside your own block (append only).
         // LF-DOCDB
         api.MapDocumentObjectEndpoints(); // LF-docdb: POST /admin/documents/sweep (PERM-DOC-006)
