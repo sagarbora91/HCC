@@ -120,6 +120,8 @@ export * from '../../domain/streams/hall-billing'; // F6 hall money (one truth t
 export {hallSeed} from '../../fixtures/ext/hall';
 // F6-H1 end
 // F6-H2
+export * from '../../domain/streams/hall-quote'; // F6 quotations + T&C (numbering, snapshot, guard, print model, CSV)
+export {hallTncSeed,HALL_TNC_HEADINGS} from '../../fixtures/ext/hall-seed';
 // F6-H2 end
 // F6-H3
 // F6-H3 end
