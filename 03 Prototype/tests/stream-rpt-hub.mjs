@@ -77,12 +77,12 @@ export function register({test,assert}){
     assert.ok(render(ctxFor(false,'owner'),h(H.ReportsHub)).includes('Revenue by room category and tender'));
     assert.ok(render(ctxFor(false,'reception'),h(H.ReportsHub)).includes('Room status today'));
   });
-  test('[F7R2] a role that may open no report gets the honest empty state (tech admin; the Cashier has own-shift money reports since R4), not a blank pane',()=>{
-    for(const u of ['techadmin']){
-      assert.equal(H.reportCatalogue(s0,u).length,0,u+' sees no report in the engine catalogue');
-      const html=render(ctxFor(false,u),h(H.ReportsHub));
-      assert.match(html,/class="fit-page fit-split"/,u);assert.ok(html.includes('No reports available'),u);
-    }
+  test('[F7R2] a role that may open no report gets the honest empty state (Restaurant; since R8 every seeded role opens at least one report), not a blank pane',()=>{
+    const s=H.seed();const t=s.users.find(u=>u.id==='techadmin');s.users=[...s.users,{...t,id:'rst',role:'Restaurant',name:'Restaurant (fictional)'}];
+    assert.equal(H.reportCatalogue(s,'rst').length,0,'Restaurant sees no report in the engine catalogue');
+    const ctx={...ctxFor(false,'techadmin'),s,uid:'rst',user:s.users.at(-1),permission:p=>H.can(s,'rst',p)};
+    const html=render(ctx,h(H.ReportsHub));
+    assert.match(html,/class="fit-page fit-split"/);assert.ok(html.includes('No reports available'));
   });
   test('[F7R2] the phone hub renders cards and chips, no table, no fit- class',()=>{
     const html=render(ctxFor(true,'owner'),h(H.ReportsHubMobile));
