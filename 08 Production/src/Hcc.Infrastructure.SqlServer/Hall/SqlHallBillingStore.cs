@@ -251,6 +251,14 @@ public sealed class SqlHallBillingStore : IHallBillingStore
         await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
     }
 
+    public async Task SetEventBlockAsync(ICommandTransaction tx, long eventId, long blockId, CancellationToken ct)
+    {
+        await using var cmd = Cmd(tx, "UPDATE hall.event SET block_id = @b WHERE event_id = @e;");
+        P(cmd, "@b", SqlDbType.BigInt, blockId);
+        P(cmd, "@e", SqlDbType.BigInt, eventId);
+        await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+    }
+
     public async Task<HallEventRow?> LockEventAsync(ICommandTransaction tx, int propertyId, long eventId, CancellationToken ct)
     {
         await using var cmd = Cmd(tx, """

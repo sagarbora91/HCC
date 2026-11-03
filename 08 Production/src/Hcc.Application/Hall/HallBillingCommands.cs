@@ -20,7 +20,12 @@ namespace Hcc.Application.Hall;
 /// <summary><see cref="TillId"/>: the till whose open shift takes a cash tender; omitted = the property's only open shift (shared till, DEC-052).</summary>
 public sealed record HallTenderIn(long AmountPaise, string Method, string? Reference = null, int? TillId = null);
 
-public sealed record AcceptQuotationRequest(long QuotationId, int? Version = null, string? Reason = null, string? CapacityReason = null, HallTenderIn? Advance = null);
+/// <summary>F6-int (spec §10.3): rooms for the event's guests, held as a group block inside the accept transaction (refused NOT_AVAILABLE when the rooms are not free).
+/// Arrival / departure default to the first event date / the day after the last; cut-off defaults to two days before arrival (not before today).</summary>
+public sealed record HallRoomBlockIn(IReadOnlyList<Hcc.Contracts.Inventory.GroupBlockAllotment> Allotments, DateOnly? Arrival = null, DateOnly? Departure = null, DateOnly? Cutoff = null);
+
+public sealed record AcceptQuotationRequest(long QuotationId, int? Version = null, string? Reason = null, string? CapacityReason = null, HallTenderIn? Advance = null,
+    HallRoomBlockIn? RoomBlock = null);
 
 public sealed record HallAdvanceRequest(long EventId, long AmountPaise, string Method, string? Reference = null, int? TillId = null);
 
@@ -85,6 +90,9 @@ public interface IHallBillingStore
 
     Task MarkAcceptedAsync(ICommandTransaction tx, long versionId, long enquiryId, CancellationToken ct);
 
+    /// <summary>F6-int: the group block holding rooms for the event's guests.</summary>
+    Task SetEventBlockAsync(ICommandTransaction tx, long eventId, long blockId, CancellationToken ct);
+
     Task<HallEventRow?> LockEventAsync(ICommandTransaction tx, int propertyId, long eventId, CancellationToken ct);
 
     Task<long> InsertReceiptAsync(ICommandTransaction tx, HallReceiptIn r, CancellationToken ct);
@@ -114,7 +122,8 @@ public interface IHallBillingStore
 /// never the canceller). Every money movement publishes <see cref="AccountingEvents.HallPosted"/>. Roles: HallRules (PERM-HAL-003 / 004; the
 /// RBAC seed 4345 is lane H3's).
 /// </summary>
-public sealed class HallBillingCommands(ICommandRunner runner, IHallBillingStore store, IGstMasterStore gstStore, InvoiceService invoices, TimeProvider clock, IAccessPolicy policy, ICashDrawerPort? drawer = null)
+public sealed class HallBillingCommands(ICommandRunner runner, IHallBillingStore store, IGstMasterStore gstStore, InvoiceService invoices, TimeProvider clock, IAccessPolicy policy, ICashDrawerPort? drawer = null,
+    Accounting.CashGuardService? cashGuard = null, Inventory.IInventoryStore? inventory = null, Inventory.GroupBlockOptions? groupBlocks = null)
 {
     public const string OpAccept = "AcceptQuotation", OpAdvance = "ReceiveHallAdvance", OpClose = "CloseHallEvent", OpCancel = "CancelHallEvent", OpRefund = "ApproveHallRefund";
 
@@ -141,9 +150,12 @@ public sealed class HallBillingCommands(ICommandRunner runner, IHallBillingStore
     }
 
     /// <summary>F6-H3: a cash tender moves the drawer of the open shift (hall advance / balance = a desk receipt in, a cash refund = out); other tenders and a host without the till port do nothing.</summary>
-    private async Task CashAsync(ICommandTransaction tx, CommandContext ctx, string? method, int? tillId, bool inward, long receiptId, Paise amount, string label, string? reference, CancellationToken c)
+    private async Task CashAsync(ICommandTransaction tx, CommandContext ctx, string? method, int? tillId, bool inward, long receiptId, Paise amount, string label, string? reference, CancellationToken c, long? eventId = null)
     {
         if (method != "Cash" || drawer is null) return;
+        if (inward && cashGuard is not null && eventId is { } ev) // F6-int: cash receipt limit per event (rulebook B9; CashParty "hall", this receipt excluded)
+            await cashGuard.EnsureReceiptAsync(tx, ctx.PropertyId, new Accounting.CashParty(Accounting.CashParty.Hall, ev, receiptId.ToString(CultureInfo.InvariantCulture)),
+                amount.Value, await store.BusinessDateAsync(tx, ctx.PropertyId, c).ConfigureAwait(false), "this hall event", c).ConfigureAwait(false);
         var till = tillId ?? await store.SingleOpenTillAsync(tx, ctx.PropertyId, c).ConfigureAwait(false)
             ?? throw HccException.Validation("Cash goes into the open cash shift: choose the till (no single open shift was found).");
         await drawer.RecordMovementAsync(tx, till, inward ? Hcc.Domain.Payments.CashMovementKind.Payment : Hcc.Domain.Payments.CashMovementKind.Refund,
@@ -186,6 +198,25 @@ public sealed class HallBillingCommands(ICommandRunner runner, IHallBillingStore
             var eventId = await store.InsertEventAsync(tx, new NewHallEvent(ctx.PropertyId, q.QuotationId, q.V, q.VenueId, q.Dates, q.Slot, q.EventType, q.GuaranteedPax,
                 q.CustomerName, q.CustomerPhone, q.CompanyId, ctx.PrincipalId, now, ctx.IdempotencyKey), q.Lines, plan, holdRows, c).ConfigureAwait(false);
             await store.MarkAcceptedAsync(tx, q.VersionId, q.EnquiryId, c).ConfigureAwait(false);
+            long? blockId = null;
+            if (req.RoomBlock is { } rb) // F6-int: registerRoomHold equivalent — a group block in the same transaction
+            {
+                if (inventory is null || groupBlocks is not { Enabled: true }) throw Inventory.GroupBlockOptions.Refusal();
+                var arrival = rb.Arrival ?? q.Dates.Min();
+                var departure = rb.Departure ?? q.Dates.Max().AddDays(1);
+                if (arrival < bd || departure <= arrival) throw HccException.Validation("Room block: arrival from today on and departure after arrival.");
+                var cutoff = rb.Cutoff ?? (arrival.AddDays(-2) < bd ? bd : arrival.AddDays(-2));
+                if (cutoff < bd || cutoff > arrival) throw HccException.Validation("Room block: the cut-off must be between today's business date and the arrival date.");
+                var allot = (rb.Allotments ?? []).Where(x => x.Rooms != 0).ToList();
+                if (allot.Count == 0 || allot.Any(x => x.Rooms is < 1 or > 100)) throw HccException.Validation("Room block: hold 1–100 rooms per type.");
+                if (allot.Select(x => x.RoomTypeId).Distinct().Count() != allot.Count) throw HccException.Validation("Room block: each room type may appear once.");
+                var blk = await inventory.CreateGroupBlockAsync(tx, new Inventory.GroupBlockDraft(ctx.PropertyId, "HEV-" + N(eventId), $"Hall event {N(eventId)} · {q.CustomerName}".Trim() is { Length: > 200 } nm ? nm[..200] : $"Hall event {N(eventId)} · {q.CustomerName}",
+                    arrival, departure, cutoff, allot), c).ConfigureAwait(false);
+                await store.SetEventBlockAsync(tx, eventId, blk.GroupBlockId, c).ConfigureAwait(false);
+                await tx.PublishAsync("GroupBlockCreated", blk.GroupBlockId, new { blk.GroupBlockId, blk.Code }, c).ConfigureAwait(false);
+                blockId = blk.GroupBlockId;
+            }
+
             long? receiptId = null;
             if (req.Advance is { AmountPaise: > 0 } a)
             {
@@ -195,7 +226,7 @@ public sealed class HallBillingCommands(ICommandRunner runner, IHallBillingStore
 
             await tx.AuditAsync("HALL_QUO_ACCEPT", "hall-event-" + N(eventId),
                 $"{q.Number} v{q.V} accepted · {venue.Name} {string.Join(", ", q.Dates.Select(d => d.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)))} {q.Slot} · total {Rs(total.Value)}"
-                + (reason.Length > 0 ? " · " + reason : "") + (receiptId is null ? "" : $" · advance {Rs(req.Advance!.AmountPaise)}"), c).ConfigureAwait(false);
+                + (reason.Length > 0 ? " · " + reason : "") + (receiptId is null ? "" : $" · advance {Rs(req.Advance!.AmountPaise)}") + (blockId is null ? "" : $" · room block {blockId}"), c).ConfigureAwait(false);
             return new HallEventResult(eventId, "CONFIRMED", receiptId, TotalPaise: total.Value);
         }, ct).ConfigureAwait(false);
     }
@@ -219,7 +250,7 @@ public sealed class HallBillingCommands(ICommandRunner runner, IHallBillingStore
         string method, string? reference, int? tillId, DateTime now, CancellationToken c)
     {
         var rid = await store.InsertReceiptAsync(tx, new HallReceiptIn(eventId, bd, "ADVANCE", method, null, false, Trim(reference), amount, ctx.PrincipalId, now), c).ConfigureAwait(false);
-        await CashAsync(tx, ctx, method, tillId, true, rid, amount, $"Hall advance · {who}", Trim(reference), c).ConfigureAwait(false);
+        await CashAsync(tx, ctx, method, tillId, true, rid, amount, $"Hall advance · {who}", Trim(reference), c, eventId).ConfigureAwait(false);
         await store.SetAdvancePaidAsync(tx, eventId, HallBilling.Allocate(plan, amount), c).ConfigureAwait(false);
         await tx.PublishAsync(AccountingEvents.HallPosted, eventId, new HallPostedEvent("hall:advance:" + N(rid), "hall-advance", bd, "Receipt",
             $"Hall advance · {who} · {method}{(Trim(reference) is { } r ? " · " + r : "")} · event {N(eventId)}",
@@ -304,7 +335,7 @@ public sealed class HallBillingCommands(ICommandRunner runner, IHallBillingStore
             {
                 receiptId = await store.InsertReceiptAsync(tx, new HallReceiptIn(e.EventId, bd, "BALANCE", method, mode == "COMPANY" ? settle.CompanyId : null, mode == "UDHAAR",
                     Trim(settle.Reference), balance, ctx.PrincipalId, now), c).ConfigureAwait(false);
-                await CashAsync(tx, ctx, method, settle.TillId, true, receiptId.Value, balance, $"Hall balance · {who}", Trim(settle.Reference), c).ConfigureAwait(false);
+                await CashAsync(tx, ctx, method, settle.TillId, true, receiptId.Value, balance, $"Hall balance · {who}", Trim(settle.Reference), c, e.EventId).ConfigureAwait(false);
                 var dr = mode switch
                 {
                     "COMPANY" => new HallPostedEntry("receipt:company-credit", balance.Value, 0, CompanyId: settle.CompanyId),

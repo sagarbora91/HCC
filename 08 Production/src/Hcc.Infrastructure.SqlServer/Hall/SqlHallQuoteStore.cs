@@ -50,7 +50,7 @@ public sealed class SqlHallQuoteStore : IHallQuoteStore
         return set;
     }
 
-    public async Task<HallEnquiryRow?> LockEnquiryAsync(ICommandTransaction tx, int propertyId, long enquiryId, CancellationToken ct)
+    public async Task<HallQuoteEnquiryRow?> LockEnquiryAsync(ICommandTransaction tx, int propertyId, long enquiryId, CancellationToken ct)
     {
         await using var cmd = Cmd(tx, """
             SELECT enquiry_id, status, name, phone, event_type, dates, slot, pax, venue_id, company_id
@@ -60,7 +60,7 @@ public sealed class SqlHallQuoteStore : IHallQuoteStore
         P(cmd, "@p", SqlDbType.Int, propertyId);
         await using var r = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
         if (!await r.ReadAsync(ct).ConfigureAwait(false)) return null;
-        return new HallEnquiryRow(r.GetInt64(0), r.GetString(1), r.GetString(2), r.GetString(3), r.GetString(4), Dates(r.GetString(5)), r.GetString(6), r.GetInt32(7),
+        return new HallQuoteEnquiryRow(r.GetInt64(0), r.GetString(1), r.GetString(2), r.GetString(3), r.GetString(4), Dates(r.GetString(5)), r.GetString(6), r.GetInt32(7),
             r.IsDBNull(8) ? null : r.GetInt32(8), r.IsDBNull(9) ? null : r.GetInt64(9));
     }
 

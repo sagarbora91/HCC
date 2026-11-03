@@ -37,6 +37,14 @@ public static class HallLostReasons
 
 // ── views (money fields are null for a caller without PERM-HAL-002 view: DEC-061, housekeeping / maintenance never receive *Paise) ──
 
+public sealed record HallMenuView(int MenuId, string Code, string Name, long? PerPlatePaise, bool Veg, bool Active, int Version, IReadOnlyList<string> Items);
+
+public sealed record HallTncClauseView(int N, string Heading, string Text);
+
+public sealed record HallTncVersionView(int V, string EffectiveFrom, IReadOnlyList<HallTncClauseView> Clauses);
+
+public sealed record HallTncTemplateView(int TemplateId, string Code, string EventType, IReadOnlyList<HallTncVersionView> Versions);
+
 public sealed record HallLostReasonView(string Id, string Label, bool NeedsNote);
 
 public sealed record HallSlotView(string Slot, string From, string To, long? RatePaise, int? MinPlates);
@@ -106,6 +114,12 @@ public interface IHallStore
 
     // ── reads (own connection; money fields are null when seesMoney is false) ──
     Task<IReadOnlyList<HallVenueView>> VenuesAsync(int propertyId, bool seesMoney, CancellationToken ct);
+
+    /// <summary>F6-int: menu packages (per-plate price null without the money view) with their POS item codes.</summary>
+    Task<IReadOnlyList<HallMenuView>> MenusAsync(int propertyId, bool seesMoney, CancellationToken ct);
+
+    /// <summary>F6-int: T&amp;C templates with every version and its clauses (no money).</summary>
+    Task<IReadOnlyList<HallTncTemplateView>> TncTemplatesAsync(int propertyId, CancellationToken ct);
 
     Task<IReadOnlyList<HallEnquiryView>> EnquiriesAsync(int propertyId, string? status, CancellationToken ct);
 

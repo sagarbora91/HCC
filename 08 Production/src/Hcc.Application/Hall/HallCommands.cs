@@ -259,6 +259,17 @@ public sealed class HallQueries(IAccessPolicy policy, IHallStore store)
 
     public IReadOnlyList<HallLostReasonView> LostReasons() => HallLostReasons.All;
 
+    /// <summary>F6-int: menu packages — everyone who sees the calendar may read the names; the per-plate price only with the money view (DEC-061).</summary>
+    public async Task<IReadOnlyList<HallMenuView>> MenusAsync(int propertyId, int principalId, CancellationToken ct = default) =>
+        await store.MenusAsync(propertyId, await MoneyAsync(propertyId, principalId, ct).ConfigureAwait(false), ct).ConfigureAwait(false);
+
+    /// <summary>F6-int: T&amp;C templates (read by whoever quotes; only the Owner saves them, PERM-HAL-005).</summary>
+    public async Task<IReadOnlyList<HallTncTemplateView>> TncTemplatesAsync(int propertyId, int principalId, CancellationToken ct = default)
+    {
+        await RequireAsync(propertyId, principalId, HallPermissions.Quotations, ct).ConfigureAwait(false);
+        return await store.TncTemplatesAsync(propertyId, ct).ConfigureAwait(false);
+    }
+
     public async Task<IReadOnlyList<HallCalendarRowView>> CalendarAsync(int propertyId, int principalId, DateOnly from, DateOnly to, int? venueId, CancellationToken ct = default)
     {
         if (to < from || to.DayNumber - from.DayNumber > 400) throw HccException.Validation("Calendar range: up to 400 days.");

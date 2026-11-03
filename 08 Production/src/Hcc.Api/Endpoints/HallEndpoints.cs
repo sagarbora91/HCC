@@ -76,6 +76,8 @@ public static class HallEndpoints
 
         // ── F6-H3: reads (the calendar and the function sheet carry no money; every other money field is null without the view of PERM-HAL-002, DEC-061) ──
         g.MapGet("/hall/venues", async (HttpContext http, HallQueries q, CancellationToken ct) => { var (p, u) = http.HccActor(); return Results.Ok(await q.VenuesAsync(p, u, ct)); });
+        g.MapGet("/hall/menus", async (HttpContext http, HallQueries q, CancellationToken ct) => { var (p, u) = http.HccActor(); return Results.Ok(await q.MenusAsync(p, u, ct)); });
+        g.MapGet("/hall/templates", async (HttpContext http, HallQueries q, CancellationToken ct) => { var (p, u) = http.HccActor(); return Results.Ok(await q.TncTemplatesAsync(p, u, ct)); });
         g.MapGet("/hall/lost-reasons", (HttpContext http, HallQueries q) => Results.Ok(q.LostReasons()));
         g.MapGet("/hall/calendar", async (HttpContext http, HallQueries q, CancellationToken ct, string from, string to, int? venue = null) =>
         {

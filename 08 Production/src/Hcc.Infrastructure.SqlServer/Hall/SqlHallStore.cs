@@ -249,6 +249,40 @@ public sealed class SqlHallStore(SqlConnectionFactory connections) : IHallStore
     }
 
     // ── reads ──
+    public Task<IReadOnlyList<HallMenuView>> MenusAsync(int propertyId, bool seesMoney, CancellationToken ct) => ReadAsync<IReadOnlyList<HallMenuView>>(async conn =>
+    {
+        var rows = new List<(int Id, string Code, string Name, long Rate, bool Veg, bool Active, int Version)>();
+        await using (var cmd = Q(conn, "SELECT menu_id, code, name, per_plate_paise, veg, active, version FROM hall.menu_package WHERE property_id = @p ORDER BY code;", propertyId))
+        await using (var r = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false))
+            while (await r.ReadAsync(ct).ConfigureAwait(false)) rows.Add((r.GetInt32(0), r.GetString(1), r.GetString(2), r.GetInt64(3), r.GetBoolean(4), r.GetBoolean(5), r.GetInt32(6)));
+        var items = new Dictionary<int, List<string>>();
+        await using (var cmd = Q(conn, "SELECT i.menu_id, i.pos_item_code FROM hall.menu_package_item i JOIN hall.menu_package m ON m.menu_id = i.menu_id WHERE m.property_id = @p ORDER BY i.menu_id, i.seq;", propertyId))
+        await using (var r = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false))
+            while (await r.ReadAsync(ct).ConfigureAwait(false))
+            {
+                if (!items.TryGetValue(r.GetInt32(0), out var l)) items[r.GetInt32(0)] = l = [];
+                l.Add(r.GetString(1));
+            }
+        return rows.Select(m => new HallMenuView(m.Id, m.Code, m.Name, seesMoney ? m.Rate : null, m.Veg, m.Active, m.Version, items.TryGetValue(m.Id, out var l) ? l : [])).ToList();
+    }, ct);
+
+    public Task<IReadOnlyList<HallTncTemplateView>> TncTemplatesAsync(int propertyId, CancellationToken ct) => ReadAsync<IReadOnlyList<HallTncTemplateView>>(async conn =>
+    {
+        var rows = new List<(int T, string Code, string Type, int V, DateTime Eff, int? N, string? H, string? B)>();
+        await using (var cmd = Q(conn, """
+            SELECT t.template_id, t.code, t.event_type, v.v, v.effective_from, c.n, c.heading, c.body
+            FROM hall.tnc_template t JOIN hall.tnc_template_version v ON v.template_id = t.template_id
+            LEFT JOIN hall.tnc_clause c ON c.template_id = v.template_id AND c.v = v.v
+            WHERE t.property_id = @p ORDER BY t.event_type, v.v, c.n;
+            """, propertyId))
+        await using (var r = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false))
+            while (await r.ReadAsync(ct).ConfigureAwait(false))
+                rows.Add((r.GetInt32(0), r.GetString(1), r.GetString(2), r.GetInt32(3), r.GetDateTime(4), r.IsDBNull(5) ? null : r.GetInt32(5), r.IsDBNull(6) ? null : r.GetString(6), r.IsDBNull(7) ? null : r.GetString(7)));
+        return rows.GroupBy(x => (x.T, x.Code, x.Type)).Select(t => new HallTncTemplateView(t.Key.T, t.Key.Code, t.Key.Type,
+            t.GroupBy(x => (x.V, x.Eff)).Select(v => new HallTncVersionView(v.Key.V, v.Key.Eff.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture),
+                v.Where(x => x.N is not null).Select(x => new HallTncClauseView(x.N!.Value, x.H!, x.B!)).ToList())).ToList())).ToList();
+    }, ct);
+
     public Task<IReadOnlyList<HallVenueView>> VenuesAsync(int propertyId, bool seesMoney, CancellationToken ct) => ReadAsync<IReadOnlyList<HallVenueView>>(async conn =>
     {
         var raw = new List<(int Id, string Code, string Name, string Kind, bool Active, int Version, string? Combined, int? Mp, string Gst, Dictionary<string, int> Cap)>();

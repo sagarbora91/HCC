@@ -129,7 +129,7 @@ export const hall:SyncArea={
       await c.api.command('RequestCreditNote',{invoiceId,mode:'full',reason:String(c.cmd.reason??'')});}},
   ],
   unmapped:{
-    HALL_ROOM_BLOCK:'the server room block for a hall event comes with the groups module (next wave); block the rooms from Groups',HALL_NIGHT_RUN:'the server night run closes lapsed enquiries',
+    HALL_ROOM_BLOCK:'on the server the rooms are blocked inside AcceptQuotation (roomBlock), refused when the rooms are not free; a later block or release is done from Groups',HALL_NIGHT_RUN:'the server night run closes lapsed enquiries',
     HALL_MENU_UPSERT:'menu packages are read from the server (GET /hall/menus); edit them in the menu master on the server',
   },
 };

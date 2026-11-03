@@ -55,7 +55,7 @@ public sealed record HallQuoteState(long QuotationId, string Number, string Fy, 
     public HallQuoteVersionRow Latest => Versions.First(v => v.V == CurrentVersion);
 }
 
-public sealed record HallEnquiryRow(long EnquiryId, string Status, string Name, string Phone, string EventType, IReadOnlyList<DateOnly> Dates, string Slot, int Pax, int? VenueId,
+public sealed record HallQuoteEnquiryRow(long EnquiryId, string Status, string Name, string Phone, string EventType, IReadOnlyList<DateOnly> Dates, string Slot, int Pax, int? VenueId,
     long? CompanyId);
 
 public sealed record HallVenueSlotsRow(int VenueId, string Code, string Name, bool Active, string GstClass, IReadOnlyDictionary<string, long> SlotRates);
@@ -70,7 +70,7 @@ public interface IHallQuoteStore
 
     Task<IReadOnlySet<string>> RolesAsync(ICommandTransaction tx, int principalId, CancellationToken ct);
 
-    Task<HallEnquiryRow?> LockEnquiryAsync(ICommandTransaction tx, int propertyId, long enquiryId, CancellationToken ct);
+    Task<HallQuoteEnquiryRow?> LockEnquiryAsync(ICommandTransaction tx, int propertyId, long enquiryId, CancellationToken ct);
 
     Task<IReadOnlyList<HallVenueSlotsRow>> VenuesAsync(ICommandTransaction tx, int propertyId, CancellationToken ct);
 
