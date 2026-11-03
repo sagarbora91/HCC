@@ -89,6 +89,7 @@ export function register({test,M,assert}){
   test('[HB] mapping switch Q6: hall.foodLedger 4400 puts the food in 4400; ROOM lines go to 4000 at the room rule',()=>{
     let {s}=golden();s={...s,hallX:{...s.hallX,settings:{...s.hallX.settings,foodLedger:'4400'}}};
     const L=ledger(s,['2026-12-05']);assert.equal(L['4400'],-(2375000+9880000));assert.equal(L['4200'],undefined);
+    assert.equal(M.hallTaxBps(M.seed(),'BANQUET_FOOD','2026-12-05'),1800,'banquet food 18 % (CA, DEC-239), not restaurant 5 %');assert.equal(M.hallTaxBps(M.seed(),'HALL_RENT','2026-12-05'),1800);
     assert.equal(M.hallTaxBps(M.seed(),'ROOM','2026-12-05',400000),500);assert.equal(M.hallTaxBps(M.seed(),'ROOM','2026-12-05',800000),1800);
   });
 }

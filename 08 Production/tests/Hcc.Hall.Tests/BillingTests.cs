@@ -116,6 +116,7 @@ public sealed class BillingTests
     public void Gst_classes_from_the_dated_master()
     {
         Assert.Equal(1800, HallBilling.TaxBps(Gst, HallBilling.ClassHallRent, EventDay, Paise.Zero));
+        Assert.Equal(1800, HallBilling.TaxBps(Gst, HallBilling.ClassBanquetFood, EventDay, P(65_000))); // banquet food 18 % (CA, DEC-239)
         Assert.Equal(500, HallBilling.TaxBps(Gst, HallBilling.ClassRoom, EventDay, P(400_000)));
         Assert.Equal(1800, HallBilling.TaxBps(Gst, HallBilling.ClassRoom, EventDay, P(800_000)));
     }
