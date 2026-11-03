@@ -100,6 +100,14 @@ public static class HccComposition
         services.AddHostedService<Hcc.Api.Endpoints.ReportScheduleWorker>();
         // F7-R1 end
         // F7-RPT (report lanes: one services.AddReport<...>() line each)
+        // F7-R4 money-a reports (batch 1)
+        services.AddSingleton<Hcc.Reporting.Sql.IMoneyReportSource>(sp => new Hcc.Reporting.Sql.SqlMoneyReportSource(sp.GetRequiredService<SqlPlatform>().Connections));
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.Money.ShiftReport>(services);
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.Money.CollectionDetailReport>(services);
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.Money.CreditBillsReport>(services);
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.Money.ExpenseRegisterReport>(services);
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.Money.ExpensesByHeadReport>(services);
+        // F7-R4 end
         // F7-RPT end
         // F5-E1
         services.AddEgressModule();                      // F5-E1 internet egress gate: net.* settings, "egress" client, hold / replay, System health Egress

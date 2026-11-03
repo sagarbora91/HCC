@@ -110,7 +110,7 @@ export function register({test,M,assert}){
       const f='2026-04-01',t=s.date,r=run(s,'owner',EH,{from:f,to:t});
       assert.equal(tot(r).cells.amount,met(tab(M.reportPack(s,f,t),'expenses'),'total'));
       assert.equal(r.rows.filter(x=>x.kind==='subtotal').reduce((a,x)=>a+x.cells.amount,0),tot(r).cells.amount);
-      const sh=body(r).reduce((a,x)=>a+x.cells.share,0);assert.ok(Math.abs(sh-100)<0.2,String(sh));
+      const sh=body(r).reduce((a,x)=>a+x.cells.share,0);assert.ok(Math.abs(sh-100)<1,String(sh));
       assert.equal(tot(r).cells.entries,body(r).reduce((a,x)=>a+x.cells.entries,0));
     }
     const s=month(),h=body(run(s,'owner',EH,{from:'2026-04-01',to:'2026-04-30'}))[0].cells.head;

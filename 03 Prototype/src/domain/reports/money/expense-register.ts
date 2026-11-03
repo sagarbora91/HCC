@@ -29,7 +29,7 @@ export const expenseRegister=registerReport({
     const list=expenseRegisterRows(s,p.from!,p.to!,{status:p.status as string,category:p.category as string,funding:p.funding as string,q:p.q as string});
     const cap=expCapitalIds(s);
     const counted=(e:Expense)=>expenseCounts(e)&&!cap.has(e.id);
-    const cell=(e:Expense)=>({date:e.date,description:expDescription(e)+(e.reversalOf?' (reverses '+e.reversalOf+')':''),category:e.category,funding:e.method,amount:e.amount,
+    const cell=(e:Expense)=>({date:e.date,description:expDescription(e)+(e.reversalOf?' (reversal)':''),category:e.category,funding:e.method,amount:e.amount,
       gst:e.gstPaise??0,gstRate:e.gstRateBps?e.gstRateBps/100:null,itc:e.gstPaise?(e.itc==='allowed'?'allowed':'disallowed'):'',status:e.status,vendor:e.vendor??'',by:userName(s,e.actor)});
     const cats=[...new Set(list.map(e=>e.category))].sort();
     const rows=cats.flatMap(c=>{

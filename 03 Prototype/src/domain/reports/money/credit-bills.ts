@@ -1,6 +1,7 @@
 // F7-R4 · rpt.money.credit-bills: bills charged to a company or credit guest and not paid on the spot. Adapter over the company-credit and
 // guest-credit receipts of stays and the company counter bills; "used after this bill" = the account's open balance after the bill (company:
-// opening outstanding + credit given up to it - company payments up to that date; guest: open Udhaar receivables on that date).
+// credit given up to it - company payments (with TDS) up to that date; guest: credit given - Udhaar payments up to that date). Balances carried in from
+// before HCC (the demo's opening outstanding) are not part of it: the books hold them (accounting opening balances).
 import type {State} from '../../types';
 import {registerReport} from '../catalogue';
 import {reportReceipts} from '../../streams/closing';
@@ -35,7 +36,7 @@ export function creditLines(s:State,from:string,to:string):CreditLine[]{
     if(l.account.startsWith('C:')){
       const c=g.companies.find(x=>'C:'+x.id===l.account);
       const paid=(g.payments??[]).filter(p=>c&&p.company===c.id&&p.date<=l.date).reduce((a,p)=>a+p.amount+(p.tds??0),0);
-      return Math.max(0,(c?.openingOutstanding??0)+after-paid);
+      return Math.max(0,after-paid);
     }
     return Math.max(0,after-(s.expensesX?.udhaar??[]).filter(r=>!r.void&&(r.guestId&&'G:'+r.guestId===l.account)).reduce((a,r)=>a+r.settlements.filter(x=>x.date<=l.date).reduce((x,y)=>x+y.amount,0),0));
   };
@@ -46,7 +47,7 @@ export const creditBills=registerReport({
   id:'rpt.money.credit-bills',title:'Credit bills of the day',area:'money',priority:'P1',status:'built',moneyFlag:true,moneyGate:'PERM-RPT-002',
   viewPerms:['PERM-RPT-002'],dateClass:'D-B',
   params:[...rangeParams('D-B'),{key:'party',label:'Party',type:'text'}],
-  columns:CREDIT_COLS,dateBasis:'Credit raised by business date: company credit and guest credit given at check-out, and company counter bills. Used after this bill = the account\'s open balance after the bill. Outstanding and ageing are in the accounting ageing report.',
+  columns:CREDIT_COLS,dateBasis:'Credit raised by business date: company credit and guest credit given at check-out, and company counter bills. Used after this bill = credit raised on the account up to this bill less payments received up to its date (balances carried in from before HCC are in the accounting opening balances). Outstanding and ageing are in the accounting ageing report.',
   formats:['screen','xlsx','pdf'],phone:'yes',
   select:(s,_uid,p)=>{
     const q=String(p.party??'').trim().toLowerCase();
