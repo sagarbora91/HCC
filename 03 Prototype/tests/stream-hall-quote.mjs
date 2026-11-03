@@ -59,7 +59,7 @@ export function register({test,M,assert}){
   test('[HQUO] placeholder guard: send refused HCC_TNC_PLACEHOLDER; Owner-only override with a reason, logged; once per quotation',()=>{
     let s=enq(M.seed());s=create(s);const id=lastQ(s).id;
     assert.throws(()=>M.execute(s,'reception',{type:'QUO_SEND',id}),e=>e.code==='HCC_TNC_PLACEHOLDER');
-    assert.throws(()=>M.execute(s,'manager',{type:'QUO_PLACEHOLDER_OVERRIDE',id,reason:'customer in a hurry'}),e=>e.code==='HCC_TNC_OWNER_ONLY');
+    assert.throws(()=>M.execute(s,'manager',{type:'QUO_PLACEHOLDER_OVERRIDE',id,reason:'customer in a hurry'}),e=>e.code==='FORBIDDEN');
     assert.throws(()=>M.execute(s,'owner',{type:'QUO_PLACEHOLDER_OVERRIDE',id,reason:'x'}),/reason/);
     s=M.execute(s,'owner',{type:'QUO_PLACEHOLDER_OVERRIDE',id,reason:'Paper T&C handed over by hand'});
     const o=M.hallLatest(lastQ(s)).placeholderOverride;assert.deepEqual([o.by,o.reason],['owner','Paper T&C handed over by hand']);
@@ -69,9 +69,9 @@ export function register({test,M,assert}){
     s=M.execute(s,'reception',{type:'QUO_REVISE',id});assert.ok(M.hallLatest(lastQ(s)).placeholderOverride,'carried to v2 (once per quotation)');
     assert.throws(()=>M.execute(s,'owner',{type:'QUO_PLACEHOLDER_OVERRIDE',id,reason:'again please'}),/one override/);
   });
-  test('[HQUO] T&C template: Owner only (Reception / Manager refused HCC_TNC_OWNER_ONLY); new version; a sent snapshot never changes',()=>{
+  test('[HQUO] T&C template: Owner only (Reception / Manager refused FORBIDDEN); new version; a sent snapshot never changes',()=>{
     let s=realTnc(enq(M.seed()),'RECEPTION');
-    for(const u of ['reception','manager'])assert.throws(()=>M.execute(s,u,{type:'HALL_TNC_TEMPLATE_SAVE',eventType:'GENERAL',clauses:[{heading:'H1',text:'abc'}]}),e=>e.code==='HCC_TNC_OWNER_ONLY');
+    for(const u of ['reception','manager'])assert.throws(()=>M.execute(s,u,{type:'HALL_TNC_TEMPLATE_SAVE',eventType:'GENERAL',clauses:[{heading:'H1',text:'abc'}]}),e=>e.code==='FORBIDDEN');
     s=create(s);const id=lastQ(s).id;s=M.execute(s,'reception',{type:'QUO_SEND',id});
     const before=structuredClone(M.hallLatest(lastQ(s)).tnc);assert.equal(before.templateId,'T-RECEPTION');assert.equal(before.hasPlaceholder,false);
     s=M.execute(s,'owner',{type:'HALL_TNC_TEMPLATE_SAVE',eventType:'RECEPTION',clauses:[{heading:'Advance',text:'Changed wording after sending.'}]});

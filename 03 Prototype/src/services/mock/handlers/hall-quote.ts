@@ -120,7 +120,7 @@ export const handlers:Record<string,Handler>={
     return `Quotation ${q.number} v${v.v} sent · valid until ${n.validUntil} · T&C ${tnc.templateId} v${tnc.v} kept with it · outbox message held until messaging is switched on`;
   },
   QUO_PLACEHOLDER_OVERRIDE:k=>{
-    if(k.user.role!=='Owner')k.fail('HCC_TNC_OWNER_ONLY','Only the Owner can override the T&C placeholder (PERM-HAL-005).');
+    if(k.user.role!=='Owner')k.fail('FORBIDDEN','Only the Owner can override the T&C placeholder (PERM-HAL-005).');
     const q=quo(k),v=latest(k,q);k.assert(v.status==='DRAFT','Override a draft before it is sent.','INVALID_TRANSITION');
     const reason=txt(k.cmd.reason);k.assert(reason.length>=5,'Give the reason for sending with placeholder T&C (at least 5 characters).');
     k.assert(!q.versions.some(w=>w.placeholderOverride&&w.v!==v.v),'This quotation already used its one override (spec §7).','INVALID_TRANSITION');
@@ -160,7 +160,7 @@ export const handlers:Record<string,Handler>={
     return `Quotation expiry · ${n} quotation(s) expired`;
   },
   HALL_TNC_TEMPLATE_SAVE:k=>{
-    if(k.user.role!=='Owner')k.fail('HCC_TNC_OWNER_ONLY','Only the Owner edits T&C templates (PERM-HAL-005).');
+    if(k.user.role!=='Owner')k.fail('FORBIDDEN','Only the Owner edits T&C templates (PERM-HAL-005).');
     const x=hallEnsure(k.s),c=k.cmd,eventType=txt(c.eventType);
     k.assert(eventType==='GENERAL'||HALL_EVENT_TYPES.includes(eventType as never),'Choose the event type (or General).');
     const p=hallTncClausesProblem(c.clauses);k.assert(!p,p??'');
