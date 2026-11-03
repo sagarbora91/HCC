@@ -53,7 +53,7 @@ export const CFG_GROUPS:CfgGroup[]=[
   {id:'people',label:'People, payroll and leave',section:'Operations and people',money:true,blurb:'Departments, dated PF / ESIC / PT rates, leave policy, weekly offs',link:{page:'staff',label:'Open Staff & payroll'}},
   {id:'compliance',label:'Compliance obligations',section:'Operations and people',money:true,blurb:'GST, TDS, PF, ESIC and PT list, due rules, CA contact'},
   {id:'modules',label:'Modules on/off',section:'Software and security',money:false,blurb:'Switch optional modules off; their data is kept'},
-  {id:'users',label:'Users, roles and PINs',section:'Software and security',money:false,blurb:'Users and roles live in Access control; PIN lock options',link:{page:'access',label:'Open Access control'}},
+  {id:'users',label:'Users, roles and PINs',section:'Software and security',money:false,blurb:'Users and roles live in Administration; PIN lock options',link:{page:'access',label:'Open Administration'}},
   {id:'messages',label:'Messages and documents',section:'Software and security',money:false,blurb:'Sender name, consent, gateway key',link:{page:'messages',label:'Open Messages'}},
   {id:'data',label:'Data and system',section:'Software and security',money:false,blurb:'Backup schedule, restore drill, ID image retention, storage, diagnostics, about'},
 ];

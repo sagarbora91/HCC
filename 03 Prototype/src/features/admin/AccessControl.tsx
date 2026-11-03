@@ -1,40 +1,67 @@
 // SCR-16 Access control (BL-024/025): users, role templates, effective access, exceptions, policy history.
 import React,{useState} from 'react';
 import {PolicyLimitEditor} from './PolicyLimitEditor';
-import {ShieldCheck,Info,UserPlus} from 'lucide-react';
+import {ShieldCheck,Info,UserPlus,ExternalLink} from 'lucide-react';
 import {permissions,Role,money,authorize,adminPolicy,adminUserStatus,adminOtherActiveOwners,adminEffectiveAccess,adminCellCode,adminDescribeCell,adminLimitFor,adminExceptionActive,adminApprovalInbox,ADMIN_PERMS,ADMIN_FINANCIAL_MODULES,adminScopeText,
-  adminTemplateRoles,adminServerPermIds,adminPermModule} from '../../services/mock';
+  adminTemplateRoles,adminServerPermIds,adminPermModule,rolList,rolOfUser,rolRoleName} from '../../services/mock';
 import type {User,PolicyCell} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {Pill,Empty,shortDate,clockTime,field,submit} from '../../components/ui';
 import {FitPage,FitTabs,useFitTab,ScrollPanel,FitNote} from '../../components/fit';
 import {DecisionPill,StatusPill,GuardedButton,firstName} from './parts';
+import {CfgModulesPanel} from './config/panels';
+import {RolesPanel,RolePreviewCard} from './RolesPanel';
 import {CredentialsPanel} from '../../clients/sync/CredentialsPanel'; // production build only (Wave 4 G1: passwords / PINs, hotel devices — DEC-062)
 
-/** FIT (contract §6 `access`, DEC-196): the five sections (+ the production-only sign-in tab) are page tabs; ids = kebab-case of the labels. */
-const BASE_TABS=[{id:'users',label:'Users'},{id:'role-templates',label:'Role templates'},{id:'effective-access',label:'Effective access'},{id:'exceptions',label:'Exceptions'},{id:'policy-history',label:'Policy history'}] as const;
-const SIGN_IN_TAB={id:'sign-in-devices',label:'Sign-in & devices'} as const;
-const TAB_IDS=['users','role-templates','effective-access','exceptions','policy-history','sign-in-devices'] as const;
+/** ADM-3 (DEC-214…221): the page is "Administration" with four tabs. FIT ids = kebab-case of the labels (SUB_SCREENS). */
+const TABS_DEF=[{id:'modules',label:'Modules & features'},{id:'roles',label:'Roles'},{id:'users',label:'Users'},{id:'audit',label:'Audit'}] as const;
+const TAB_IDS=['modules','roles','users','audit'] as const;
 type AccessTab=typeof TAB_IDS[number];
-const TABS:readonly {id:AccessTab;label:string}[]=process.env.HCC_BUILD==='production'?[...BASE_TABS,SIGN_IN_TAB]:BASE_TABS;
-export function AccessControl(){
+const TABS:readonly {id:AccessTab;label:string}[]=TABS_DEF;
+/** Inner sections: Users keeps effective access, exceptions and (production) sign-in & devices; Roles keeps the built-in matrix. */
+type UserSec='people'|'effective'|'exceptions'|'sign-in';
+const USER_SECS:{id:UserSec;label:string}[]=[{id:'people',label:'People'},{id:'effective',label:'Effective access'},{id:'exceptions',label:'Exceptions'},
+  ...(process.env.HCC_BUILD==='production'?[{id:'sign-in' as UserSec,label:'Sign-in & devices'}]:[])];
+export function SecBar<T extends string>({label,value,onChange,options}:{label:string;value:T;onChange:(v:T)=>void;options:{id:T;label:string}[]}){
+  return <div className="adm-secbar" role="group" aria-label={label}>{options.map(o=><button type="button" key={o.id} aria-pressed={value===o.id} className={value===o.id?'on':''} onClick={()=>onChange(o.id)}>{o.label}</button>)}</div>;
+}
+export function ModulesTab(){
+  const {go,permission}=useHcc();
+  return <ScrollPanel title="Modules & features" label="Modules and features" footer={<FitNote text="Switching a module or sub-function off hides it for everyone; roles then decide who sees what is left (Roles tab). Data and history are kept."/>}>
+    <CfgModulesPanel/>
+    {permission('admin')&&<p className="adm-more"><button type="button" className="text-btn" onClick={()=>go('settings')}><ExternalLink size={14}/> Open Master configuration for everything else</button></p>}
+  </ScrollPanel>;
+}
+export function AdministrationPage(){
   const {s,uid,go}=useHcc();
   const [tab,setTab]=useFitTab<AccessTab>('access',TAB_IDS,'users');
-  const [credUser,setCredUser]=useState<string|undefined>();
   const pol=adminPolicy(s);
   const pending=adminApprovalInbox(s).filter(r=>r.kind==='policy'&&r.status==='Pending');
   const own=authorize(s,uid,'PERM-ADM-002');
-  const counts:Partial<Record<AccessTab,number>>={exceptions:pol.exceptions.filter(e=>adminExceptionActive(s,e)).length,'policy-history':pol.history.length};
+  const counts:Partial<Record<AccessTab,number>>={roles:rolList(s).filter(r=>!r.retired).length||undefined,users:s.users.length,audit:pol.history.length+(s.rolesX?.history.length??0)};
   const banners=pending.length>0||own.decision==='approval';
-  return <FitPage title="Access control" sub="The right access, for the right person — role templates, scopes, limits and exceptions."
+  return <FitPage title="Administration" sub="Modules, roles and users — the right access, for the right person."
       actions={<div className="inline"><Pill tone="blue">Policy v{pol.version}</Pill><Pill tone="orange">Simulated identity · not production security</Pill></div>}
       toolbar={banners?<div className="adm-fit-banners">
         {pending.length>0&&<div className="info-note adm-banner"><Info size={16}/><span>{pending.length} policy change request{pending.length>1?'s':''} waiting for Owner approval.</span><button className="text-btn" onClick={()=>go('approvals')}>Open approvals</button></div>}
         {own.decision==='approval'&&<div className="info-note adm-banner"><ShieldCheck size={16}/><span>Your role may only <strong>request</strong> role-template and exception changes. Each change you make becomes a request the Owner approves (PERM-ADM-002).</span></div>}</div>:undefined}
       tabs={<FitTabs page="access" value={tab} onChange={setTab} tabs={TABS.map(x=>({id:x.id,label:x.label,count:counts[x.id]}))}/>}>
-    {tab==='users'&&<UsersTab onCredential={process.env.HCC_BUILD==='production'?id=>{setCredUser(id);setTab('sign-in-devices');}:undefined}/>}{tab==='role-templates'&&<TemplatesTab/>}{tab==='effective-access'&&<EffectiveTab/>}{tab==='exceptions'&&<ExceptionsTab/>}{tab==='policy-history'&&<HistoryTab/>}
-    {process.env.HCC_BUILD==='production'&&tab==='sign-in-devices'&&<ScrollPanel title="Sign-in & devices" label="Sign-in and devices"><CredentialsPanel key={credUser??''} uid={uid} initialUser={credUser}/></ScrollPanel>}
+    {tab==='modules'&&<ModulesTab/>}{tab==='roles'&&<RolesTab/>}{tab==='users'&&<UsersSection/>}{tab==='audit'&&<AuditTab/>}
   </FitPage>;
+}
+export const AccessControl=AdministrationPage;
+export function RolesTab(){
+  const [sec,setSec]=useState<'custom'|'builtin'>('custom');
+  return <div className="fit-stack"><SecBar label="Roles section" value={sec} onChange={setSec} options={[{id:'custom',label:'Custom roles'},{id:'builtin',label:'Built-in role matrix'}]}/>
+    {sec==='custom'?<RolesPanel/>:<TemplatesTab/>}</div>;
+}
+export function UsersSection(){
+  const {uid}=useHcc();
+  const [sec,setSec]=useState<UserSec>('people');const [credUser,setCredUser]=useState<string|undefined>();
+  return <div className="fit-stack"><SecBar label="Users section" value={sec} onChange={setSec} options={USER_SECS}/>
+    {sec==='people'&&<UsersTab onCredential={process.env.HCC_BUILD==='production'?id=>{setCredUser(id);setSec('sign-in');}:undefined}/>}
+    {sec==='effective'&&<EffectiveTab/>}{sec==='exceptions'&&<ExceptionsTab/>}
+    {process.env.HCC_BUILD==='production'&&sec==='sign-in'&&<ScrollPanel title="Sign-in & devices" label="Sign-in and devices"><CredentialsPanel key={credUser??''} uid={uid} initialUser={credUser}/></ScrollPanel>}</div>;
 }
 
 function userBlock(s:ReturnType<typeof useHcc>['s'],uid:string,u:User):string|undefined{
@@ -52,7 +79,7 @@ function UsersTab({onCredential}:{onCredential?:(id:string)=>void}){
     <div className="table-wrap"><table className="adm-table"><thead><tr><th>Person</th><th>Role</th><th>Status</th><th>Access until</th><th>Assigned</th><th>Actions</th></tr></thead><tbody>
       {s.users.map(u=>{const st=adminUserStatus(s,u),block=userBlock(s,uid,u);return <tr key={u.id}>
         <td><strong>{firstName(u.name)}</strong><small>{u.id}{u.id===uid?' · you':''}</small></td>
-        <td>{u.role}</td><td><StatusPill status={st}/></td>
+        <td>{rolRoleName(s,u)}{u.customRole&&<small>Custom · base {u.role}</small>}</td><td><StatusPill status={st}/></td>
         <td>{u.expiresOn?shortDate(u.expiresOn):<span className="muted">No expiry</span>}</td>
         <td>{u.assignedBy?<>{firstName(s.users.find(x=>x.id===u.assignedBy)?.name||u.assignedBy)}<small>{u.assignedOn&&shortDate(u.assignedOn)}</small></>:<span className="muted">Fixture</span>}</td>
         <td className="adm-wrap"><div className="inline">
@@ -114,12 +141,13 @@ function EffectiveTab(){
   const [who,setWho]=useState(uid);const [amt,setAmt]=useState('');const [only,setOnly]=useState('All');
   const ctx=amt?{amount:Math.round(Number(amt)*100)}:{};
   const rows=adminEffectiveAccess(s,who,ctx).filter(r=>only==='All'||(only==='Allowed'?r.decision==='allow':only==='Denied'?r.decision==='deny':r.decision==='approval'));
-  const u=s.users.find(x=>x.id===who);
+  const u=s.users.find(x=>x.id===who);const cr=rolOfUser(s,who);
   return <><div className="adm-fit-filters"><div className="form-row adm-filters">
       <label>User<select value={who} onChange={e=>setWho(e.target.value)}>{s.users.map(x=><option key={x.id} value={x.id}>{firstName(x.name)} · {x.role} ({adminUserStatus(s,x)})</option>)}</select></label>
       <label>Try an amount for limits (₹, optional)<input type="number" min="0" step="0.01" value={amt} onChange={e=>setAmt(e.target.value)} placeholder="e.g. 500"/></label>
       <div className="filters" aria-label="Show">{['All','Allowed','Approval required','Denied'].map(x=><button key={x} className={only===x?'active':''} aria-pressed={only===x} onClick={()=>setOnly(x)}>{x}</button>)}</div>
     </div></div>
+    {cr&&<RolePreviewCard role={cr}/>}
     <ScrollPanel label="Effective access" footer={u?<FitNote text="Evaluation order (DEC-040): disabled / expired user → scope → explicit deny (role or exception — deny wins) → no grant (default deny) → limit → allow. The module column shows the coarse gate commands also check."/>:undefined}>
     <div className="table-wrap"><table className="adm-table"><thead><tr><th>Permission</th><th>Decision</th><th>Why</th><th>Deciding rule</th><th>Module gate</th></tr></thead><tbody>
       {rows.map(r=><tr key={r.perm.id}><td><strong>{r.perm.id}</strong><small>{r.perm.action}</small></td><td><DecisionPill d={r.decision}/></td><td className="adm-wrap">{r.reason}</td><td className="adm-wrap"><small>{r.rule}</small></td>
@@ -152,15 +180,20 @@ function ExceptionsTab(){
     </ScrollPanel></form></div></div>;
 }
 
-function HistoryTab(){
-  const {s}=useHcc();const pol=adminPolicy(s);
-  const req=adminApprovalInbox(s).filter(r=>r.kind==='policy');
+/** Audit: policy.history + rolesX.history merged, newest first (version · who · when · summary · before → after). */
+export function mergedPolicyHistory(s:ReturnType<typeof useHcc>['s']){
+  const rows=[...adminPolicy(s).history.map(h=>({...h,src:'policy' as const})),...(s.rolesX?.history??[]).map(h=>({...h,src:'roles' as const}))];
+  return rows.sort((a,b)=>b.at.localeCompare(a.at)||b.version-a.version);
+}
+function AuditTab(){
+  const {s}=useHcc();
+  const req=adminApprovalInbox(s).filter(r=>r.kind==='policy');const rows=mergedPolicyHistory(s);
   return <div className="fit-stack">
     {req.length>0&&<ScrollPanel title="Change requests" label="Policy change requests"><div className="table-wrap"><table className="adm-table"><thead><tr><th>Request</th><th>Change</th><th>Requested by</th><th>For version</th><th>Status</th></tr></thead><tbody>
       {req.map(r=><tr key={r.a.id}><td><strong>{r.a.id}</strong><small>{r.a.reason}</small></td><td className="adm-wrap">{String(r.a.meta?.summary||'')}<small>{String(r.a.meta?.before||'')} → {String(r.a.meta?.after||'')}</small></td><td>{r.requester}</td><td>v{r.a.version}</td><td><StatusPill status={r.status}/>{r.derived&&<small>{r.derived}</small>}</td></tr>)}
     </tbody></table></div></ScrollPanel>}
-    <ScrollPanel title="Policy versions" label="Policy versions">
+    <ScrollPanel title="Policy versions" label="Policy versions" footer={<FitNote text="Role, grid, user-role and permission changes in one list, newest first."/>}>
     <div className="table-wrap"><table className="adm-table"><thead><tr><th>Version</th><th>When</th><th>Who</th><th>Change</th><th>Before → after</th><th>Reason</th></tr></thead><tbody>
-      {pol.history.map((h,i)=><tr key={i}><td><strong>v{h.version}</strong></td><td>{shortDate(h.at.slice(0,10))} {clockTime(h.at)}</td><td>{firstName(h.actor)}</td><td className="adm-wrap">{h.summary}</td><td className="adm-wrap">{h.before} → {h.after}</td><td className="adm-wrap">{h.reason}</td></tr>)}
-    </tbody></table></div></ScrollPanel></div>;
+      {rows.map((h,i)=><tr key={i}><td><strong>v{h.version}</strong>{h.src==='roles'&&<small>Roles</small>}</td><td>{shortDate(h.at.slice(0,10))} {clockTime(h.at)}</td><td>{firstName(h.actor)}</td><td className="adm-wrap">{h.summary}</td><td className="adm-wrap">{h.before} → {h.after}</td><td className="adm-wrap">{h.reason}</td></tr>)}
+    </tbody></table>{!rows.length&&<Empty title="No policy changes yet"/>}</div></ScrollPanel></div>;
 }

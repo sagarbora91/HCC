@@ -10,7 +10,7 @@ const baseGroups:{label:string;items:NavItem[]}[]=[
   {label:'CASH & BILLING',items:[{id:'folios',label:'Guests & folios',icon:Receipt,p:['billing','reports']}]},
   {label:'OPERATIONS',items:[{id:'housekeeping',label:'Housekeeping',icon:Brush,p:'housekeeping'},{id:'expenses',label:'Expenses',icon:Wallet,p:['expenses','reports']}]},
   {label:'CLOSING & REPORTS',items:[{id:'closing',label:'Day closing',icon:Sunset,p:['close','reports']},{id:'reports',label:'Reports',icon:ChartNoAxesCombined,p:'reports'}]},
-  {label:'ADMINISTRATION',items:[{id:'access',label:'Access control',icon:ShieldCheck,p:'admin'},{id:'settings',label:'Master configuration',icon:Settings,p:['admin','masters']}]},
+  {label:'ADMINISTRATION',items:[{id:'access',label:'Administration',icon:ShieldCheck,p:'admin'},{id:'settings',label:'Master configuration',icon:Settings,p:['admin','masters']}]},
 ];
 import {extraNav,extraLanding} from './registry';
 /** Base groups plus stream nav items (app/registry.ts). */

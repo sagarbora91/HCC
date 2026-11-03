@@ -8,6 +8,7 @@ import {ApprovalsAudit} from './ApprovalsAudit';
 import {SystemHealth} from './SystemHealth';
 import {LegacyImport} from './LegacyImport';
 import {UserModal,SettingModal,TariffModal} from './modals';
+import {NewRoleModal} from './RolesPanel';
 import {CfgSettingSheet,CfgImportSheet} from './config/SettingSheet';
 export const registration:FeatureRegistration={
   pages:{access:AccessControl,settings:HotelSettings,approvals:ApprovalsAudit,syshealth:SystemHealth,'legacy-import':LegacyImport},
@@ -17,5 +18,5 @@ export const registration:FeatureRegistration={
     {group:'ADMINISTRATION',item:{id:'syshealth',label:'System health',icon:Activity,p:'admin'},after:'backup'},
     // LG-UI: Owner only (server PERM-LGC-001); the page itself checks the role. Also linked from Master configuration › Data and system.
     {group:'ADMINISTRATION',item:{id:'legacy-import',label:'Legacy import',icon:Database,p:'admin'},after:'syshealth'}],
-  modals:{'admin-user':UserModal,'admin-setting':SettingModal,'admin-tariff':TariffModal,'cfg-setting':CfgSettingSheet,'cfg-import':CfgImportSheet},
+  modals:{'admin-user':UserModal,'admin-role-new':NewRoleModal,'admin-setting':SettingModal,'admin-tariff':TariffModal,'cfg-setting':CfgSettingSheet,'cfg-import':CfgImportSheet},
 };

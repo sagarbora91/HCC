@@ -43,6 +43,7 @@ export type SrvRole={roleCode:string;name:string;credentialKind:string;ownerOnly
 export type SrvRoles={roles:SrvRole[];permissions:{permissionId:string;resourceAction:string;kind:string;isMoney:boolean}[]};
 export type SrvException={exceptionId:number;userId:number;permissionId:string;effect:string;mode:string;scope:string;limit?:number|null;limitUnit?:string|null;
   reason:string;validUntilUtc:string;grantedBy:number;grantedUtc:string;revokedUtc?:string|null};
+export type SrvPolicyChange={version:number;roleCode:string;action:string;changedBy:number;changedByName?:string|null;changedUtc:string;summary:string;before?:string|null;after?:string|null};
 export type SrvAudit={auditId:number;atUtc:string;principalId:number;actor:string;action:string;target:string;detail:string;operation?:string|null};
 export type SrvValues={businessDate:string;values:Record<string,unknown>;scheduled:{key:string;value:unknown;effectiveFrom:string}[];
   /** Setting row version per key saved at least once (SetSetting expectedVersion; absent = never saved). */versions?:Record<string,string>|null;
@@ -246,6 +247,9 @@ async function loadPolicy(c:LoaderCtx):Promise<HccPolicy>{
 async function loadRoles(c:LoaderCtx):Promise<ROLState>{
   if(!isAdmin(c)||!c.mayRead('GET /admin/roles'))return c.current('rolesX')??{roles:[],history:[]};
   const x=rolesFromServer(await optional(()=>c.api.get<SrvRoles>('/admin/roles'),null));
+  // ADM-3 Audit tab: GET /admin/policy-history (newest first); a failed read leaves the history empty.
+  const h=c.mayRead('GET /admin/policy-history')?await optional(()=>c.api.get<{items:SrvPolicyChange[]}>('/admin/policy-history',{take:50}),{items:[]}):{items:[]};
+  x.history=h.items.map(i=>({version:i.version,at:utcToClock(i.changedUtc),actor:i.changedByName||String(i.changedBy),summary:`${i.roleCode?i.roleCode+' · ':''}${i.summary}`,before:i.before??'—',after:i.after??'—',reason:i.action}));
   for(const r of x.roles)c.ids.setVersion('role',r.id,String(r.version));
   return x;
 }

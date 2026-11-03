@@ -49,7 +49,7 @@ export async function register({test,M,assert}){
     for(const p of ['legacy-import','syshealth']){const h=X.render(s,'reception',p);assert.ok(h.startsWith('<section class="fit-page'),p);assert.match(h,/is for the (Owner|Owner and the Tech admin)/,p);}
   });
   test('[FIT-ADMIN-B] sub-screens: access / backup / prefs ids in SUB_SCREENS equal the useFitTab ids; defaults users / history / text',()=>{
-    assert.deepEqual(sub('access'),['users','role-templates','effective-access','exceptions','policy-history','sign-in-devices']);
+    assert.deepEqual(sub('access'),['modules','roles','users','audit']); // ADM-3: Administration
     assert.deepEqual(sub('backup'),['history','restore']);assert.deepEqual(sub('prefs'),['text','appearance','display','navigation','alerts']);
     for(const p of ['syshealth','roadmap','legacy-import'])assert.deepEqual(sub(p),[],p+' has no tabs');
     assert.ok(read('src/features/admin/AccessControl.tsx').includes("useFitTab<AccessTab>('access',TAB_IDS,'users')"));
@@ -58,9 +58,9 @@ export async function register({test,M,assert}){
     assert.ok(X.render(s,'owner','access').includes('data-tab="users" aria-selected="true"'));
     assert.ok(X.render(s,'owner','backup').includes('data-tab="history" aria-selected="true"'));
   });
-  test('[FIT-ADMIN-B] access: the demo build shows five tabs (sign-in only in production); each tab renders its panels',()=>{
+  test('[FIT-ADMIN-B] access (Administration, ADM-3): the demo build shows four tabs (sign-in only in production, inside Users); each tab renders its panels',()=>{
     const h=X.render(s,'owner','access');assert.ok(!h.includes('Sign-in &amp; devices'));
-    const want={users:['New user','Person'],'role-templates':['Permission matrix','Edit role template','Module access'],'effective-access':['Evaluation order','Deciding rule'],exceptions:['Add exception','Reason (required)'],'policy-history':['Policy versions']};
+    const want={modules:['Core modules','Sub-functions'],roles:['New role','Built-in role matrix'],users:['New user','Person'],audit:['Policy versions']};
     for(const [tab,texts] of Object.entries(want)){const t=withTab('access',tab,()=>X.render(s,'owner','access'));
       assert.ok(t.includes('data-tab="'+tab+'" aria-selected="true"'),tab);for(const x of texts)assert.ok(t.includes(x),tab+': '+x);
       assert.ok(t.includes('data-fit-scroll=""'),tab+': a scroll panel');}

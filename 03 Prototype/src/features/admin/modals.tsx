@@ -2,7 +2,7 @@
 // 'admin-tariff' (room = room type). The synthetic 'admin-tax' dialog was removed by DEC-069 (GST master rows use 'cfg-setting').
 import React,{useState} from 'react';
 import {Check,AlertTriangle,Info} from 'lucide-react';
-import {roles,authorize,adminImpactPreview,adminSettingHistory,adminSettingValue,adminTariffOn,adminBaseRate,adminRoomTypes,ADMIN_SETTINGS} from '../../services/mock';
+import {roles,rolList,rolCredentialKind,authorize,adminImpactPreview,adminSettingHistory,adminSettingValue,adminTariffOn,adminBaseRate,adminRoomTypes,ADMIN_SETTINGS} from '../../services/mock';
 import type {AdminImpact,Role} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {Empty,field,submit,shortDate,clockTime} from '../../components/ui';
@@ -13,18 +13,27 @@ export function UserModal({id}:{id?:string}){
   const u=id?s.users.find(x=>x.id===id):undefined;
   if(id&&!u)return <Empty title="This user is unavailable"/>;
   const self=u?.id===uid;
+  const customRoles=rolList(s).filter(c=>!c.retired||c.id===u?.customRole);
+  const [pick,setPick]=useState<string>(u?.customRole||u?.role||'Reception');
+  const cr=customRoles.find(c=>c.id===pick);const baseOf=(cr?cr.base:pick) as Role;
   return <><div className="modal-heading"><div className="eyebrow">{u?u.id:'NEW USER'}</div><h2>{u?'Edit '+firstName(u.name):'Create a demo user'}</h2><p>Fictional staff only. One role per user; an expiry ends access after that business day.</p></div>
     <form className="form" onSubmit={e=>submit(e,f=>{
-      const role=field(f,'role') as Role,expiresOn=field(f,'expiresOn');
-      if(!u)run({type:'USER_CREATE',name:field(f,'name'),role,expiresOn:expiresOn||undefined,key:modal!.key},'User created',{close:true});
+      const pick=field(f,'role'),expiresOn=field(f,'expiresOn');
+      const cr=rolList(s).find(c=>c.id===pick); // ADM-3: a custom role is picked by its id (C01…); User.role stays its base
+      const role=pick as Role;
+      if(!u)run({type:'USER_CREATE',name:field(f,'name'),...(cr?{customRole:cr.id}:{role}),expiresOn:expiresOn||undefined,key:modal!.key},'User created',{close:true});
       else{const cmd:Record<string,unknown>={type:'USER_UPDATE',id:u.id,key:modal!.key};
         if(field(f,'name')!==firstName(u.name))cmd.name=field(f,'name');
-        if(!self){if(role!==u.role)cmd.role=role;if((expiresOn||undefined)!==u.expiresOn)cmd.expiresOn=expiresOn;const en=f.get('enabled')==='on';if(en!==u.enabled)cmd.enabled=en;}
+        if(!self){if(cr){if(cr.id!==u.customRole)cmd.customRole=cr.id;}else if(role!==u.role||u.customRole)cmd.role=role;
+          if((expiresOn||undefined)!==u.expiresOn)cmd.expiresOn=expiresOn;const en=f.get('enabled')==='on';if(en!==u.enabled)cmd.enabled=en;}
         run(cmd as {type:string},'User updated',{close:true});}
     })}>
       <label>Name<input name="name" required minLength={2} maxLength={40} defaultValue={u?firstName(u.name):''} placeholder="e.g. Rohan"/></label>
-      <div className="form-row"><label>Role<select name="role" defaultValue={u?.role||'Reception'} disabled={self}>{roles.map(r=><option key={r} value={r} disabled={r==='Owner'&&user.role!=='Owner'}>{r}{r==='Owner'&&user.role!=='Owner'?' (Owner only)':''}</option>)}</select></label>
+      <div className="form-row"><label>Role<select name="role" aria-label="Role" value={pick} onChange={e=>setPick(e.target.value)} disabled={self}>
+          <optgroup label="Built-in roles">{roles.map(r=><option key={r} value={r} disabled={r==='Owner'&&user.role!=='Owner'}>{r}{r==='Owner'&&user.role!=='Owner'?' (Owner only)':''}</option>)}</optgroup>
+          {customRoles.length>0&&<optgroup label="Custom roles">{customRoles.map(c=>{const dis=c.money&&user.role!=='Owner';return <option key={c.id} value={c.id} disabled={dis}>{c.name} · base {c.base}{dis?' (money role: Owner only)':''}</option>;})}</optgroup>}</select></label>
         <label>Access until (optional)<input type="date" name="expiresOn" min={s.date} defaultValue={u?.expiresOn||''} disabled={self}/></label></div>
+      <p className="muted adm-signin-kind">{cr?`${cr.name} is a custom role based on ${cr.base}. `:''}Signs in with a {rolCredentialKind(baseOf)==='PASSWORD'?'password':'PIN'}, following the base role.</p>
       {u&&<label className="checkbox-line"><input type="checkbox" name="enabled" defaultChecked={u.enabled} disabled={self}/>Account enabled</label>}
       {self&&<div className="info-note"><Info size={16}/>This is your own account: you can rename it, but another administrator must change your role, status or expiry.</div>}
       {u?.role==='Owner'&&!self&&<div className="info-note"><Info size={16}/>The last active owner cannot be disabled, demoted or given an expiry (DEC-033).</div>}

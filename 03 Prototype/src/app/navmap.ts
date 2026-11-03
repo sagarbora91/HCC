@@ -126,7 +126,7 @@ export const PAGE_KEYWORDS:Record<string,string[]>={
   'plans-extras':['meal plan','meal plans','ep','cp','map','ap','breakfast','extras','extra bed','catalogue','free text','discount reason','laundry','package'],
   assistant:['assistant','ask','question','ai','management assistant','insight'],
   compliance:['compliance','gst','gstr','tds','pf','epf','esic','pt','professional tax','due date','due dates','filing','return','ca pack','calendar'],
-  access:['access','users','roles','permissions','rbac','login','disable user'],
+  access:['administration','admin','access','access control','users','roles','role','custom role','permissions','rbac','login','disable user','modules','features','audit'],
   settings:['settings','configuration','config','master configuration','masters','admin','setup','hotel configuration','tax','tariff','hotel','policy','display','device','modules on off','branding'],
   approvals:['approval','approvals','audit','audit log','pending','discount approval','history','who did'],
   backup:['backup','restore','recovery','export data'],

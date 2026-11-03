@@ -155,12 +155,10 @@ export const SUB_SCREENS:SubScreen[]=[
   {page:'approvals',id:'expenses',label:'Pending expenses'},
   {page:'approvals',id:'audit',label:'Audit log'},
   // FIT-ADMIN-B
-  {page:'access',id:'users',label:'Users'},
-  {page:'access',id:'role-templates',label:'Role templates',keywords:['permissions','matrix']},
-  {page:'access',id:'effective-access',label:'Effective access'},
-  {page:'access',id:'exceptions',label:'Exceptions'},
-  {page:'access',id:'policy-history',label:'Policy history'},
-  {page:'access',id:'sign-in-devices',label:'Sign-in & devices',keywords:['password','pin','devices']}, // production build only; the demo build falls back to Users
+  {page:'access',id:'modules',label:'Modules & features',keywords:['switch','sub-functions']},
+  {page:'access',id:'roles',label:'Roles',keywords:['custom role','permissions','matrix','grid']},
+  {page:'access',id:'users',label:'Users',keywords:['password','pin','devices','exceptions','effective access']},
+  {page:'access',id:'audit',label:'Audit',keywords:['policy history','policy versions']},
   {page:'backup',id:'history',label:'Backup history'},
   {page:'backup',id:'restore',label:'Restore procedure'},
   {page:'prefs',id:'text',label:'Text size',keywords:['font','zoom']},

@@ -1,0 +1,53 @@
+/* ADM-3 · Administration page: Roles tab (role list, access grid, advanced ids, preview) and the section bars. Tokens and role variables only (CP-3). */
+.adm-secbar{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 4px}
+.adm-secbar button{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:6px 14px;min-height:36px;font-size:13px;cursor:pointer}
+.adm-secbar button.on{background:var(--primary-tint);border-color:var(--primary);color:var(--primary-dark);font-weight:600}
+.adm-more{margin:12px 0 0}
+.adm-rolelist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.adm-role{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;text-align:left;padding:10px 14px;border:0;border-bottom:1px solid var(--line);background:var(--surface);color:var(--ink);min-height:52px}
+.adm-role>span,.adm-role>div{display:flex;flex-direction:column;gap:2px;min-width:0}
+.adm-role small{color:var(--muted);font-size:12.5px;line-height:1.35}
+.adm-role.builtin{opacity:.8}
+button.adm-role{cursor:pointer;border-left:3px solid transparent}
+button.adm-role.on{background:var(--primary-tint);border-left-color:var(--primary)}
+button.adm-role:focus-visible{outline:2px solid var(--primary);outline-offset:-2px}
+.adm-role-head{display:flex;flex-direction:column;gap:8px;padding:4px 0 12px}
+.adm-inline-form{display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap}
+.adm-inline-form label{display:flex;flex-direction:column;gap:4px;flex:1 1 200px;font-size:13px}
+.adm-locknote{display:inline-flex;align-items:center;gap:4px;margin-left:8px;color:var(--muted);font-size:12.5px}
+.adm-grid{display:flex;flex-direction:column;gap:14px;padding:6px 0}
+.adm-grid-mod h4{margin:0 0 6px;font-size:14px;color:var(--ink)}
+.adm-grid-mod h4 small{color:var(--muted);font-weight:400}
+.adm-grid-mod.off .adm-grid-row{opacity:.7}
+.adm-grid-row{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:8px 0;border-top:1px solid var(--line)}
+.adm-grid-label{display:flex;flex-direction:column;gap:2px;flex:1 1 220px;min-width:0}
+.adm-grid-label small{color:var(--muted);font-size:12.5px;line-height:1.35}
+.adm-seg{display:inline-flex;border:1px solid var(--line-strong);border-radius:8px;overflow:hidden;flex:none}
+.adm-seg button{border:0;background:var(--surface);color:var(--ink);padding:6px 16px;min-height:36px;min-width:56px;font-size:13px;cursor:pointer}
+.adm-seg button+button{border-left:1px solid var(--line)}
+.adm-seg button[aria-checked="true"]{background:var(--primary-fill);color:var(--on-primary);font-weight:600}
+.adm-seg button:disabled{opacity:.55;cursor:not-allowed}
+.adm-seg button:focus-visible{outline:2px solid var(--primary);outline-offset:-2px}
+.adm-advanced{margin:14px 0;border-top:1px solid var(--line);padding-top:10px}
+.adm-advanced summary{cursor:pointer;font-weight:600;min-height:36px;display:flex;align-items:center}
+.adm-warn-line{display:flex;gap:4px;align-items:flex-start;color:var(--danger-text);font-size:12.5px;line-height:1.4}
+.adm-preview{margin:14px 0;padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:var(--info-bg)}
+.adm-preview h3{margin:0 0 4px;font-size:14px}
+.adm-preview-rows{margin:8px 0 0;display:flex;flex-direction:column;gap:6px}
+.adm-preview-rows div{display:grid;grid-template-columns:minmax(110px,150px) minmax(0,1fr);gap:8px}
+.adm-preview-rows dt{color:var(--muted);font-size:12.5px}
+.adm-preview-rows dd{margin:0;font-size:13px;overflow-wrap:anywhere}
+.adm-retire{margin:16px 0 4px}
+.adm-desktop-note{display:flex;gap:6px;align-items:flex-start;color:var(--muted);font-size:13px;margin:10px 0}
+.adm-phone-title{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:8px 0}
+.adm-phone-title h2{margin:0;font-size:18px}
+@media (min-width:900px){.app-shell .fit-cols.adm-roles-cols{grid-template-columns:minmax(300px,380px) minmax(0,1fr)}}
+/* phone: 16 px text, 48 px targets, the segmented control becomes three full-width buttons, rows stack as cards */
+.m-shell .adm-grid-row{flex-direction:column;align-items:stretch;border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:8px}
+.m-shell .adm-grid-label small,.m-shell .adm-role small,.m-shell .adm-preview-rows dt,.m-shell .adm-locknote{font-size:16px}
+.m-shell .adm-seg{display:grid;grid-template-columns:repeat(3,1fr);width:100%}
+.m-shell .adm-seg button{min-height:48px;font-size:16px}
+.m-shell .adm-secbar button,.m-shell .adm-advanced summary,.m-shell .adm-inline-form .btn,.m-shell .adm-retire .btn{min-height:48px;font-size:16px}
+.m-shell .adm-inline-form input{min-height:48px;font-size:16px}
+.m-shell .adm-preview-rows div{grid-template-columns:1fr}
+.m-shell .adm-money{min-height:48px}
