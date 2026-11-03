@@ -51,6 +51,9 @@ import {registration as f4Digest} from '../features/digest/register';
 // F4-T2 end
 // F4-T3
 // F4-T3 end
+// F7-R2
+import {registration as f7Hub} from '../features/reports/HubRegister';
+// F7-R2 end
 export type ModalProps={id?:string;room?:string};
 export type FeatureRegistration={
   /** Page components by page ID (shown when the nav item with this ID is selected). */
@@ -85,6 +88,9 @@ export const registrations:FeatureRegistration[]=[reservations,guests,customers,
   // F4-T2 end
   // F4-T3
   // F4-T3 end
+  // F7-R2
+  f7Hub,
+  // F7-R2 end
   // F6-H3
   hallBooking,
   // F6-H3 end

@@ -198,6 +198,13 @@
           "Hcc.Infrastructure.SqlServer": "[0.1.0, )"
         }
       },
+      "hcc.reporting": {
+        "type": "Project",
+        "dependencies": {
+          "Hcc.Application": "[0.1.0, )",
+          "Hcc.Infrastructure.SqlServer": "[0.1.0, )"
+        }
+      },
       "Microsoft.Data.SqlClient": {
         "type": "CentralTransitive",
         "requested": "[6.1.7, )",

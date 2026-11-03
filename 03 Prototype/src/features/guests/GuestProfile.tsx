@@ -1,5 +1,6 @@
 // Guest profile: read-only (masked) card, edit modal, registration card print, and the Guests page (SCR-05).
 import {printDocument} from '../../app/native';
+import {DocPrintButton} from '../reports/documents/DocButton'; // F7-R7
 import {bookingRef} from '../../domain/bookingRef';
 import React,{useState} from 'react';
 import {Printer,Hotel,ShieldCheck,UserPlus,Lock} from 'lucide-react';
@@ -96,7 +97,7 @@ export function RegistrationCard({id}:{id?:string}){
     {g?.party.length?<table><thead><tr><th>Name</th><th>Age band</th><th>Relation</th><th>ID (masked)</th><th>Photo</th></tr></thead><tbody>{g.party.map((p,i)=><tr key={i}><td>{p.name}</td><td>{p.ageBand}</td><td>{p.relation||'—'}</td><td>{p.idLast4?`${p.idType||'ID'} · ${guestIdMask(p.idLast4)}`:'—'}</td><td>{partyPhoto(i+1)?'On file':'—'}</td></tr>)}</tbody></table>:<p className="muted">None recorded.</p>}
     <div className="gs-sign"><div><span/>Guest signature</div><div><span/>Front desk</div></div>
     <p className="footnote">All names, contact details and ID references are fictional. ID numbers are masked on this card; no ID images are stored. Printed from the HCC interactive prototype.</p></div>
-    <div className="modal-actions no-print"><button className="btn" onClick={()=>booking(b.id)}>Back to booking</button><button className="btn primary" onClick={()=>{void printDocument();}}><Printer size={16}/> Print / save PDF</button></div></>;
+    <div className="modal-actions no-print"><button className="btn" onClick={()=>booking(b.id)}>Back to booking</button><DocPrintButton doc="doc.registration-card" params={{booking:b.id}}/>{/* F7-R7 */}<button className="btn primary" onClick={()=>{void printDocument();}}><Printer size={16}/> Print / save PDF</button></div></>;
 }
 
 /** Page 'guests' (SCR-05): search by name/phone/booking, profile detail, duplicates, history. */

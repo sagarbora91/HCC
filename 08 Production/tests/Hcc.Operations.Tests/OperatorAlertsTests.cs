@@ -58,6 +58,7 @@ public sealed class OperatorAlertsTests
             typeof(OtaChannelManagerWorker).FullName!, typeof(OutboxFailureLogger).FullName!, typeof(RetentionWorker).FullName!, typeof(SchemaGuard).FullName!,
             typeof(DocumentReleaseWorker).FullName!, typeof(DocumentSweepWorker).FullName!,   // LF-docdb: document release consumer and the nightly orphan sweep
             typeof(DigestDraftWorker).FullName!, typeof(FeedbackFollowUpWorker).FullName!, typeof(EgressOutboxWorker).FullName!,   // F5-E1 egress replay; F4: owner digest drafts and the feedback follow-up sweep (outbox workers)
+            typeof(Hcc.Api.Endpoints.ReportScheduleWorker).FullName!,   // F7-R1 scheduled report runs (outbox; held while egress is OFF)
         ];
         Assert.Equal(expected.Order(StringComparer.Ordinal), HccEventLogLoggerProvider.OperatorCategories.Order(StringComparer.Ordinal));
         Assert.True(HccEventLogLoggerProvider.Forwards(typeof(OutboxFailureLogger).FullName, LogLevel.Warning));

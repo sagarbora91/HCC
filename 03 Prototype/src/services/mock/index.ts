@@ -106,6 +106,15 @@ export * from '../../app/shortcuts';
 // LF-IMAGES
 export * from '../../domain/streams/printnotes'; // LF-images B6: which branding text prints on which document
 // LF-IMAGES end
+// F7-R1
+export * from '../../domain/reports/engine'; // report engine: catalogue, params, run, renderers (F7-CONTRACT §2)
+export * from '../../domain/reports/money/revenue-by-category-tender';
+export {buildXlsx} from '../../app/xlsx'; // golden harness: unzip the workbook the Excel renderer builds
+export {rptSlice,rptScheduleDue,rptResolveTokens,RPT_MONEY_RECIPIENT_ROLES} from './handlers/reports';
+import {registry as rptRegistry} from './handlers';
+import {handlers as rptHandlers} from './handlers/reports';
+for(const [t,h] of Object.entries(rptHandlers))if(!(t in rptRegistry))rptRegistry[t]=h; // integration: move into registry0 (handlers/index.ts) at merge
+// F7-R1 end
 // F5-E1
 export * from '../../domain/streams/egress'; // F5-E1 internet egress gate mirror
 // F5-E1 end

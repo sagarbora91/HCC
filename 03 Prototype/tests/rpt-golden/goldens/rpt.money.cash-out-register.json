@@ -1,0 +1,33 @@
+{
+ "id": "rpt.money.cash-out-register",
+ "cases": [
+  {
+   "uid": "owner",
+   "scenario": "ACC-RULEBOOK",
+   "params": {
+    "from": "2026-04-01",
+    "to": "2026-05-01"
+   },
+   "tables": [
+    {
+     "key": "records",
+     "title": "Records",
+     "columns": ["date","kind","amount","bankSlip","fromTill","toTill","reason","status","decidedBy"],
+     "rows": [
+      ["row","2026-04-25","bank deposit",15000000,"HDFC · SLIP-20260425","Front desk",null,null,"Confirmed","Sagar"]
+     ]
+    },
+    {
+     "key": "kinds",
+     "title": "Totals per kind",
+     "columns": ["kind","count","amount"],
+     "rows": [
+      ["row","bank deposit",1,15000000],
+      ["row","till transfer",0,0],
+      ["row","owner drawing",0,0]
+     ]
+    }
+   ]
+  }
+ ]
+}

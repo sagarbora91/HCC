@@ -1,0 +1,51 @@
+{
+ "id": "rpt.acc.balance-sheet",
+ "cases": [
+  {
+   "uid": "accountant",
+   "scenario": "ACC-RULEBOOK",
+   "params": {
+    "asOf": "2026-04-30"
+   },
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["block","line","amount"],
+     "rows": [
+      ["subtotal","Note","An HCC view of the books — not the statutory statement",null],
+      ["row","Owner's funds","Owner's drawings",-5000000],
+      ["row","Owner's funds","Owner's capital",570500000],
+      ["row","Owner's funds","Profit for the year to date",14040000],
+      ["subtotal","Owner's funds","Total owner's funds",579540000],
+      ["row","Non-current liabilities","Bank loans (secured)",196000000],
+      ["subtotal","Non-current liabilities","Total non-current liabilities",196000000],
+      ["row","Current liabilities","Advance deposits (guest and group)",3150000],
+      ["row","Current liabilities","Output CGST",1450000],
+      ["row","Current liabilities","Output SGST",1450000],
+      ["row","Current liabilities","Vendor payables",6600000],
+      ["row","Current liabilities","PF payable",3600000],
+      ["row","Current liabilities","ESIC payable",800000],
+      ["row","Current liabilities","Professional tax payable",200000],
+      ["subtotal","Current liabilities","Total current liabilities",17250000],
+      ["subtotal","Liabilities","Total liabilities",792790000],
+      ["row","Non-current assets","Buildings",600000000],
+      ["row","Non-current assets","Furniture, fittings & electrical fittings",80000000],
+      ["row","Non-current assets","Plant & machinery",50000000],
+      ["row","Non-current assets","Computers, software & POS hardware",8000000],
+      ["subtotal","Non-current assets","Total non-current assets",738000000],
+      ["row","Current assets","Cash in hand",4030000],
+      ["row","Current assets","Bank accounts",50150000],
+      ["row","Current assets","GST electronic cash ledger",10000],
+      ["row","Current assets","TDS receivable",600000],
+      ["subtotal","Current assets","Total current assets",54790000],
+      ["subtotal","Assets","Total assets",792790000],
+      ["row","Check","Suspense (9999)",0],
+      ["row","Check","Opening-balance difference (1400)",0],
+      ["total","Balanced","Difference (assets - liabilities)",0]
+     ]
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,23 @@
+{
+ "id": "rpt.guests.rate-changes",
+ "cases": [
+  {
+   "uid": "owner",
+   "scenario": "FY26",
+   "params": {
+    "from": "2026-10-01",
+    "to": "2026-10-24"
+   },
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["changedAt","room","booking","guest","oldRate","newRate","oldGuests","newGuests","reason","authorisedBy","changedBy"],
+     "rows": [
+      ["total","Total · 0 changes",null,null,null,null,0,null,null,"Net change in rate (new - old)",null,null]
+     ]
+    }
+   ]
+  }
+ ]
+}

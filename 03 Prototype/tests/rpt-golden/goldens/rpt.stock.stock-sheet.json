@@ -1,0 +1,69 @@
+{
+ "id": "rpt.stock.stock-sheet",
+ "cases": [
+  {
+   "uid": "owner",
+   "scenario": "BASE",
+   "params": {},
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["item","kind","unit","store","floor1","floor2","floor3","rooms","soiled","laundry","total","cost","value"],
+     "rows": [
+      ["row","Bed sheet (king)","Linen","pc",40,6,6,6,48,10,24,140,65000,9100000],
+      ["row","Pillow cover","Linen","pc",82,12,10,12,102,18,40,276,12000,3312000],
+      ["row","Duvet cover","Linen","pc",22,3,3,3,24,4,8,67,140000,9380000],
+      ["row","Bath towel","Linen","pc",30,5,4,6,54,14,30,143,45000,6435000],
+      ["row","Hand towel","Linen","pc",52,8,7,8,54,12,26,167,18000,3006000],
+      ["row","Bath mat","Linen","pc",28,4,3,4,27,6,10,82,22000,1804000],
+      ["row","Bathrobe","Linen","pc",6,0,0,2,6,1,2,17,160000,2720000],
+      ["row","Soap bar 30 g","Amenities","pc",260,30,28,26,0,0,0,344,1400,481600],
+      ["row","Shampoo 30 ml","Amenities","pc",70,14,10,12,0,0,0,106,1200,127200],
+      ["row","Dental kit","Amenities","pc",150,20,18,16,0,0,0,204,1800,367200],
+      ["row","Water bottle 500 ml","Amenities","pc",310,36,40,30,0,0,0,416,900,374400],
+      ["row","Tea & coffee kit","Amenities","pc",180,24,20,22,0,0,0,246,1500,369000],
+      ["row","Slippers (pair)","Amenities","pair",64,8,6,6,0,0,0,84,3500,294000],
+      ["row","Floor cleaner 5 L","Cleaning supplies","can",5,1,1,1,0,0,0,8,45000,360000],
+      ["row","Glass cleaner 500 ml","Cleaning supplies","bottle",8,2,1,2,0,0,0,13,12000,156000],
+      ["row","Toilet cleaner 1 L","Cleaning supplies","bottle",14,3,2,3,0,0,0,22,9500,209000],
+      ["row","Garbage bags (roll of 30)","Cleaning supplies","roll",4,1,1,0,0,0,0,6,6000,36000],
+      ["total","Total value",null,null,null,null,null,null,null,null,null,null,null,38531400]
+     ]
+    }
+   ]
+  },
+  {
+   "uid": "housekeeper",
+   "scenario": "BASE",
+   "params": {},
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["item","kind","unit","store","floor1","floor2","floor3","rooms","soiled","laundry","total"],
+     "rows": [
+      ["row","Bed sheet (king)","Linen","pc",40,6,6,6,48,10,24,140],
+      ["row","Pillow cover","Linen","pc",82,12,10,12,102,18,40,276],
+      ["row","Duvet cover","Linen","pc",22,3,3,3,24,4,8,67],
+      ["row","Bath towel","Linen","pc",30,5,4,6,54,14,30,143],
+      ["row","Hand towel","Linen","pc",52,8,7,8,54,12,26,167],
+      ["row","Bath mat","Linen","pc",28,4,3,4,27,6,10,82],
+      ["row","Bathrobe","Linen","pc",6,0,0,2,6,1,2,17],
+      ["row","Soap bar 30 g","Amenities","pc",260,30,28,26,0,0,0,344],
+      ["row","Shampoo 30 ml","Amenities","pc",70,14,10,12,0,0,0,106],
+      ["row","Dental kit","Amenities","pc",150,20,18,16,0,0,0,204],
+      ["row","Water bottle 500 ml","Amenities","pc",310,36,40,30,0,0,0,416],
+      ["row","Tea & coffee kit","Amenities","pc",180,24,20,22,0,0,0,246],
+      ["row","Slippers (pair)","Amenities","pair",64,8,6,6,0,0,0,84],
+      ["row","Floor cleaner 5 L","Cleaning supplies","can",5,1,1,1,0,0,0,8],
+      ["row","Glass cleaner 500 ml","Cleaning supplies","bottle",8,2,1,2,0,0,0,13],
+      ["row","Toilet cleaner 1 L","Cleaning supplies","bottle",14,3,2,3,0,0,0,22],
+      ["row","Garbage bags (roll of 30)","Cleaning supplies","roll",4,1,1,0,0,0,0,6],
+      ["total","Total value",null,null,null,null,null,null,null,null,null,null]
+     ]
+    }
+   ]
+  }
+ ]
+}

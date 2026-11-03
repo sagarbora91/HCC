@@ -2,6 +2,7 @@
 // difference, tabs Rooms · Meal plans & extras · Seasons & weekends · Halls (placeholder) · History · Print. Buttons by permission
 // (PERM-TRF-001…003). Publishing writes the existing masters (never a second price list, DEC-MA-102).
 import React,{useState} from 'react';
+import {DocPrintButton} from '../reports/documents/DocButton'; // F7-R7
 import {FilePlus2,Send,Upload,XCircle,Trash2,Printer,Download,FileUp} from 'lucide-react';
 import {useHcc} from '../../app/context';
 import {saveCsv,printDocument} from '../../app/native';
@@ -59,7 +60,7 @@ export function TariffCardPage(){
     {tab==='halls'&&<ScrollPanel label="Halls" footer={note}><Empty title="After hall booking" body="Hall prices join the card when hall booking is built (wave F6). A hall line on a draft cannot be published until then."/></ScrollPanel>}
     {tab==='seasons'&&<Seasons v={v} note={note} editable={ui.canEdit} weekend={ui.canWeekend}/>}
     {tab==='history'&&<History note={note}/>}
-    {tab==='print'&&<ScrollPanel label="Rate sheet" title="Rate sheet" actions={<><button className="btn" onClick={()=>{void printDocument();}}><Printer size={15}/> Print</button>
+    {tab==='print'&&<ScrollPanel label="Rate sheet" title="Rate sheet" actions={<><DocPrintButton doc="doc.rate-card" params={{version:v?.id}} label="Letterhead card"/>{/* F7-R7 */}<button className="btn" onClick={()=>{void printDocument();}}><Printer size={15}/> Print</button>
       <button className="btn" onClick={()=>{void saveCsv(`tariff-card-${v?.id??'none'}.csv`,rateSheetCsv(s,v?.id)).then(()=>toast('CSV saved'));}}><Download size={15}/> CSV</button></>}>
       <RateSheetDoc sheet={rateSheetModel(s,v?.id)}/></ScrollPanel>}
   </FitPage>;

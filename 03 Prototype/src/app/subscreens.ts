@@ -187,6 +187,11 @@ export const SUB_SCREENS:SubScreen[]=[
   {page:'counter-bills',id:'bills',label:'Bills'},
   {page:'cashier',id:'credit-guests',label:'Credit guests',keywords:['guest credit','udhaar','outstanding']},
   // LF-UI end
+  // F7-R2
+  {page:'report-hub',id:'reports',label:'Reports',keywords:['report library','catalogue','search reports','favourites']},
+  {page:'report-hub',id:'scheduled',label:'Scheduled runs',keywords:['subscriptions','schedule','email report']},
+  {page:'report-hub',id:'log',label:'Export log',keywords:['print log','who exported']},
+  // F7-R2 end
   // F4-T1
   {page:'tariff-card',id:'rooms',label:'Rooms',keywords:['room prices','weekday','weekend','extra person']},
   {page:'tariff-card',id:'meals',label:'Meal plans & extras',keywords:['breakfast','cp','map','add-on']},

@@ -95,6 +95,46 @@ public static class HccComposition
         // LF-ALERTS end
         // LF-IMAGES
         // LF-IMAGES end
+        // F7-R1
+        Hcc.Reporting.ReportingModule.AddReportingModule(services); // F7-R1 report engine: catalogue, runner, renderers, schedules / runs / export log
+        services.AddHostedService<Hcc.Api.Endpoints.ReportScheduleWorker>();
+        // F7-R1 end
+        // F7-RPT (report lanes: one services.AddReport<...>() line each)
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.Guests.MovementRegisterReport>(services); // F7-R3
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.Guests.GuestRegisterReport>(services); // F7-R3
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.Guests.FormCRegisterReport>(services); // F7-R3
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.Guests.RateChangesReport>(services); // F7-R3
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.Rooms.RoomStatusReport>(services); // F7-R3
+        // F7-R4 money-a reports (batch 1)
+        services.AddSingleton<Hcc.Reporting.Sql.IMoneyReportSource>(sp => new Hcc.Reporting.Sql.SqlMoneyReportSource(sp.GetRequiredService<SqlPlatform>().Connections));
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.Money.ShiftReport>(services);
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.Money.CollectionDetailReport>(services);
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.Money.CreditBillsReport>(services);
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.Money.ExpenseRegisterReport>(services);
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.Money.ExpensesByHeadReport>(services);
+        // F7-R4 end
+        // F7-R5 tax reports (GST summary reads the ACC-3 queries, which the accounting endpoints otherwise build per request)
+        services.AddSingleton(sp => Hcc.Api.Endpoints.AccountingAgeingEndpoints.GstQueriesOf(sp)); // F7-R5
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.Tax.SacSummaryReport>(services); // F7-R5
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.Tax.DocumentsIssuedReport>(services); // F7-R5
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.Tax.GstByBillReport>(services); // F7-R5
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.Tax.InvoiceRegisterReport>(services); // F7-R5
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.Tax.BillCorrectionsReport>(services); // F7-R5
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.Tax.GstSummaryReport>(services); // F7-R5
+        services.AddSingleton<Hcc.Reporting.Documents.DocumentService>(); // F7-R7 document layouts
+        services.AddScoped<Hcc.Reporting.Documents.DocumentSql>(); // F7-R7
+        // F7-R6 accounting reports (batch 2): they read the ACC-1 / ACC-3 queries, built per call by AccQueries
+        services.AddSingleton<Hcc.Reporting.Reports.Acc.AccQueries>(); // F7-R6
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.Acc.TrialBalanceReport>(services); // F7-R6
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.Acc.StatementReport>(services); // F7-R6
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.Acc.DayBookReport>(services); // F7-R6
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.Acc.PlReport>(services); // F7-R6
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.Acc.BalanceSheetReport>(services); // F7-R6
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.Acc.CashRatioReport>(services); // F7-R6
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.Acc.AgeingReport>(services); // F7-R6
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.Acc.TallyXmlReport>(services); // F7-R6
+        // F7-R6 end
+        // F7-RPT end
         // F5-E1
         services.AddEgressModule();                      // F5-E1 internet egress gate: net.* settings, "egress" client, hold / replay, System health Egress
         // F5-E1 end
@@ -244,6 +284,12 @@ public static class HccComposition
         // F4-T2
         api.MapRevenueDigestEndpoints(); // F4-T2 GET /reports/revenue-by-category-tender, GET /digest/drafts
         // F4-T2 end
+        // F7-R1
+        api.MapReportEndpoints();        // F7-R1 /reports/catalogue, /reports/{id}, export, print-log, schedules, runs, favourites
+        // F7-R1 end
+        // F7-R7
+        api.MapDocumentEndpoints();      // F7-R7 /documents/invoice, credit-note, payslip, bill, kot (Lodge look, html or pdf)
+        // F7-R7 end
         // LF lanes: ONE api.Map<Lane>Endpoints(); line inside your own block (append only).
         // LF-DOCDB
         api.MapDocumentObjectEndpoints(); // LF-docdb: POST /admin/documents/sweep (PERM-DOC-006)

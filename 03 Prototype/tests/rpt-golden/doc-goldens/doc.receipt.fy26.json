@@ -1,0 +1,29 @@
+{
+ "id": "doc.receipt",
+ "tag": "fy26",
+ "tables": [
+  {
+   "key": "details",
+   "columns": ["item","value"],
+   "rows": [
+    ["row","Receipt no","H-RC-00008"],
+    ["row","Date","2026-05-15"],
+    ["row","Received from","Rohan Zende"],
+    ["row","Booking","HCC-H0004"],
+    ["row","Room","108"],
+    ["row","Towards","Refundable deposit"],
+    ["row","Mode","Cash"],
+    ["row","Reference","CASH-00008"],
+    ["row","Amount","₹1,000"],
+    ["row","In words","Rupees One Thousand Only"]
+   ]
+  },
+  {
+   "key": "notes",
+   "columns": ["note"],
+   "rows": [
+    ["row","Subject to realisation of cheque or card payment. A tax invoice is issued at check-out."]
+   ]
+  }
+ ]
+}

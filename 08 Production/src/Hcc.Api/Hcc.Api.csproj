@@ -6,6 +6,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Hcc.Infrastructure.SqlServer\Hcc.Infrastructure.SqlServer.csproj" />
     <ProjectReference Include="..\Hcc.Operations\Hcc.Operations.csproj" />
+    <ProjectReference Include="..\Hcc.Reporting\Hcc.Reporting.csproj" /> <!-- F7-R1 -->
     <ProjectReference Include="..\Hcc.Operations\Hcc.Operations.csproj" />
   </ItemGroup>
   <ItemGroup>
