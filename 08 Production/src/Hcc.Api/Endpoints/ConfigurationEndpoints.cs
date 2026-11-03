@@ -68,9 +68,14 @@ public static class ConfigurationEndpoints
         {
             var http = ctx.HttpContext;
             var (property, _) = http.HccActor();
-            await http.RequestServices.GetRequiredService<IModuleGate>().EnsureFeatureOnAsync(property, featureId, http.RequestAborted).ConfigureAwait(false);
-            var session = http.GetHccSession();
-            await http.RequestServices.GetRequiredService<IFeatureAccess>().EnsureFullAsync(session.PropertyId, session.UserId, featureId, http.RequestAborted).ConfigureAwait(false);
+            // ADM-int: a module test host that composes only its own module has neither service; the real composition (HccComposition) has both.
+            if (http.RequestServices.GetService<IModuleGate>() is { } gate)
+                await gate.EnsureFeatureOnAsync(property, featureId, http.RequestAborted).ConfigureAwait(false);
+            if (http.RequestServices.GetService<IFeatureAccess>() is { } access)
+            {
+                var session = http.GetHccSession();
+                await access.EnsureFullAsync(session.PropertyId, session.UserId, featureId, http.RequestAborted).ConfigureAwait(false);
+            }
             return await next(ctx).ConfigureAwait(false);
         });
         return builder;

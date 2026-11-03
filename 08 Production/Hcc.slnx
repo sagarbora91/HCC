@@ -294,6 +294,8 @@
     <File Path="database/migrations/4300_hall_schema.sql" />
     <File Path="database/migrations/4320_hall_billing.sql" />
     <File Path="database/migrations/4740_hall_source_kinds.sql" />
+    <File Path="database/migrations/4800_roles_as_data.sql" /> <!-- ADM-2 -->
+    <File Path="database/migrations/4801_cfg_change_source_cascade.sql" /> <!-- ADM-int -->
     <!-- F6-H1 end -->
     <!-- F6-H2 4330-4344, 4349 -->
     <File Path="database/migrations/4330_hall_quote_series.sql" />

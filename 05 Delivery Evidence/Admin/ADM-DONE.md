@@ -43,3 +43,24 @@ Branch `claude/adm` (on top of main 456167a + the plan). Plan: `02 Planning/HCC_
 - ~~Sync mapping of `ROL_*` has no automated prototype tests~~ — done 3 Nov 2026 (`tests/sync-adm-roles.mjs`, 13 tests).
 - DEC-217 warning text fires only for explicit `PERM-ACC-003/004` grants; the prototype matrix has no such ids yet, so it is server-only in practice.
 - ADM-3 phone Roles tab verified by markup tests, not by a rendered phone smoke; run the walkthrough `ADM_Walkthrough_Script.md` §G on the hotel PC.
+
+## 7. Integrated onto main (ADM-int, 3 Nov 2026, Opus integrator)
+Merged origin/main c5c7d5f6 (F4 tariff / revenue / digest, F5 year lock / bank / egress, F6 hall booking, F7 reports, GST DEC-239) and then 53f0518d (docs only) into `claude/adm`.
+
+- **Conflicts:** Decision Register (both blocks kept), `types.ts` SCHEMA, `features/admin/register.tsx` (NewRoleModal + NetSetModal), `handlers/index.ts` (`...roles` added to main's `registry0` under the F5 year guard), `AccessPorts.cs` (main's `AuditAsync` entity filter), migration lock (regenerated with `tools/migrations-lock.mjs --add --accept-out-of-order`), 14 hash-pin test files (main side, then re-pinned), `stream-fit.mjs` allow-list (union). `Hcc.slnx` merged clean; 4800 + 4801 added to its migration list.
+- **SCHEMA 15** = ADM-2 custom roles (rolesX, User.customRole); 14 = F6 hall. Re-pins: BASE d6df4a46… → 70983afb…, FY26 history 961b04c2… → e1247964… (schema only), FY26 whole e64651dd… → f1b37a3e… (schema + demo roles C01/C02 and their users).
+- **Catalogue additions** (prototype, `FeatureCatalog.cs`, golden): revenue.tariffcard (`tariff-card`, TRC_, PERM-TRF-), revenue.feedback (FBK_, QW_, PERM-FBK-), revenue.hall (`hall-booking`, HALL_, PERM-HAL-), revenue.quotations (QUO_, requires hall), accounting.yearend (ACC_YEAR_), accounting.bank (BANK_), reports.hub (`report-hub`), reports.digest (`owner-digest`, `revenue-category`, DIGEST_, PERM-DGS-), admin.internet (NET_, PERM-NET-). Still 18 modules. Demo roles and tests now take "every switchable Accounting feature" from the catalogue.
+- **Lane S fixes:** RoomMasters `Post` helper used an out-of-scope `mst`; missing usings (Reservations endpoints, two test files); the dependants cascade wrote source `dependant` (9 chars, not in CK_cfg_change_source) → new migration **4801** allows `cascade`; `RequireHccFeature` skips a gate service a single-module test host does not compose (the full composition has both); TAD role-edit refusal is APPROVAL_REQUIRED (Request-mode seed grant); the modules group count follows the catalogue. Role reads regenerated: only `GET /admin/policy-history` for MGR/ACC → 200 (the prototype read rule now matches the server: PERM-ADM-001/002/004).
+- **Prototype:** ADM `.cfg-features` CSS moved from the frozen `m-config.css` into `adm-roles.css` (CT-B was a real failure, not a clone artefact); fit allow-list rows for the new Administration page.
+- **APK v20 S4 fixes (APK_v19_Emulator_Report):** V19-1 compact stat strips wrap rather than hide the last card (`z-fit.css`); V19-2 phone app-bar shows the date (label "Business date" kept for screen readers only); V19-3 phone key-log filters two per row, 48 px, full width (`m-keys.css`); V19-4 `build-production.mjs --assemble` runs Gradle by absolute path in `04 Android/android`.
+- **Decision renumbering** (admin plan keeps DEC-214…221; wave proposals now Proposed rows in the register; tables in each DONE file):
+
+| Old proposed | New | Source |
+|---|---|---|
+| DEC-214…218 | DEC-240…244 | LF/LF-int-DONE |
+| DEC-219…222 | DEC-245…248 | F4/F4-int-DONE |
+| DEC-223…226 | DEC-249…252 | F5/ACC4-DONE |
+| DEC-227…234 | DEC-253…260 | F6/F6-DONE |
+| DEC-235…238 | DEC-261…264 | F7/F7-DONE |
+
+- **Counts:** prototype **2777/2777** (main 2731); tsc, build and build:production clean; fit check `access, overview, accounting, keys` owner on tab-land + lap-1366: 0 failing of 302; phone 360 px check (access tabs, keys, rooms): 7/7. Server: build 0 warnings; **4088 pass / 6 fail in 42 projects** (main 4059/42); the 6 are the known Linux-only ones (GstIds DPAPI, Legacy absolute folder, 3 Operations HostingTests, Stays RoomBoardQuerySqlTests ceiling). The full prototype suite needs a 6 GB heap here (`NODE_OPTIONS=--max-old-space-size=6144`).
