@@ -180,5 +180,5 @@ Every new nav page is listed in `PAGE_CATEGORY` (navmap test) and gets blurb + k
 | Q8 | Restaurant / hall rows | same page |
 | Q9 | Advances basis | both received and adjusted |
 | Q10 | Digest | yes; e-mail money (Owner + Accountant), WhatsApp counts only |
-| Q11 | Room GST 18 % (DEC-198) | CA to confirm; card reads the dated master |
+| Q11 | Room GST 18 % (DEC-198) | **Closed 3 Nov 2026 (DEC-239): CA confirmed room GST 5 %**; card reads the dated master |
 | Q12 | Feedback URL text on the bill | blank until the owner sets it (line hidden when blank) |

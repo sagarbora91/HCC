@@ -157,7 +157,7 @@ Draft → Sent → Accepted → (event created)
 | Hall rent | 18 % |
 | Banquet catering (food in the hall) | 18 % (CA to confirm 5 % vs 18 % for outdoor/event catering) |
 | Decor, sound, other services | 18 % |
-| Rooms on the event | room rate per the room master (DEC-198: Owner sets 18 %) |
+| Rooms on the event | room rate per the room master (room GST 5 % ≤ ₹7,500 per the CA, DEC-239; banquet food / hall 18 %) |
 
 - CGST + SGST on every line, rounded half away from zero (always; DEC-136, place of supply = the hotel).
 - The rate is taken at the **invoice date**; the quotation shows the rate on its own date and says "GST at the rate on the invoice date".
