@@ -12,6 +12,12 @@ import './rooms/room-status';
 // F7-R4
 // F7-R4 end
 // F7-R5
+import './tax/sac-summary';
+import './tax/documents-issued';
+import './tax/gst-by-bill';
+import './tax/invoice-register';
+import './tax/bill-corrections';
+import './tax/gst-summary';
 // F7-R5 end
 // F7-R6
 // F7-R6 end

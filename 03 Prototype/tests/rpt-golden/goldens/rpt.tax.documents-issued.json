@@ -1,0 +1,61 @@
+{
+ "id": "rpt.tax.documents-issued",
+ "cases": [
+  {
+   "uid": "owner",
+   "scenario": "FY26",
+   "params": {
+    "month": "2026-10"
+   },
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["nature","series","fromNo","toNo","total","cancelled","net"],
+     "rows": [
+      ["row","Invoices for outward supply","INV","DEMO/2026-27/0975","DEMO/2026-27/1155",181,0,181],
+      ["total","Total",null,null,null,181,0,181]
+     ]
+    }
+   ]
+  },
+  {
+   "uid": "owner",
+   "scenario": "FY26",
+   "params": {
+    "month": "2026-05"
+   },
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["nature","series","fromNo","toNo","total","cancelled","net"],
+     "rows": [
+      ["row","Invoices for outward supply (legacy Lodge bills)","LGC","1204","1204",1,0,1],
+      ["row","Invoices for outward supply","INV","DEMO/2026-27/0199","DEMO/2026-27/0353",155,0,155],
+      ["total","Total",null,null,null,156,0,156]
+     ]
+    }
+   ]
+  },
+  {
+   "uid": "owner",
+   "scenario": "LF-PARITY",
+   "params": {
+    "month": "2026-10"
+   },
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["nature","series","fromNo","toNo","total","cancelled","net"],
+     "rows": [
+      ["row","Invoices for outward supply","INV","DEMO/2026-27/0002","DEMO/2026-27/0004",2,0,2],
+      ["row","Credit notes","CRN","DEMO-CN/2026-27/0001","DEMO-CN/2026-27/0001",1,0,1],
+      ["total","Total",null,null,null,3,0,3]
+     ]
+    }
+   ]
+  }
+ ]
+}

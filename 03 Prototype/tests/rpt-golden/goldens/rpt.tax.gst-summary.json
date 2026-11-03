@@ -1,0 +1,99 @@
+{
+ "id": "rpt.tax.gst-summary",
+ "cases": [
+  {
+   "uid": "accountant",
+   "scenario": "FY26",
+   "params": {
+    "month": "2026-10"
+   },
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["line","amount","tiesGstr1","tiesGstr3b"],
+     "rows": [
+      ["subtotal","Output GST by rate",null,null,null],
+      ["row","Rate 5 %",5481575,0,null],
+      ["row","Rate 18 %",64620,0,null],
+      ["subtotal","Output GST by section",null,null,null],
+      ["row","B2B",860175,0,null],
+      ["row","B2CS",4686020,0,null],
+      ["row","Credit notes (CDNR)",0,0,null],
+      ["subtotal","Advances",null,null,null],
+      ["row","Advance GST raised (11A)",0,null,null],
+      ["row","Advance GST adjusted (11B)",0,null,null],
+      ["subtotal","Input tax credit",null,null,null],
+      ["row","ITC CGST",0,null,1],
+      ["row","ITC SGST",0,null,1],
+      ["row","ITC IGST",0,null,1],
+      ["row","Reverse charge (RCM)",0,null,1],
+      ["subtotal","Book output (vouchers)",null,null,null],
+      ["row","CGST",2946112,0,1],
+      ["row","SGST",2946103,0,1],
+      ["row","IGST",0,0,1],
+      ["subtotal","Set-off (s.49)",null,null,null],
+      ["row","Output CGST",2946112,null,1],
+      ["row","Output SGST",2946103,null,1],
+      ["row","Output IGST",0,null,1],
+      ["row","Payable in cash",5892215,null,1],
+      ["row","Challan to deposit",5892215,null,1],
+      ["subtotal","Cash ledger",null,null,null],
+      ["row","Cash paid in the month",0,null,null],
+      ["row","TCS credit",0,null,null],
+      ["row","Cash ledger balance",0,null,null],
+      ["row","Difference: Books output GST ₹58922.15 (net of advances 11A ₹0.00 / 11B ₹0.00) vs GSTR-1 working summary ₹55461.95: differ by ₹3460.20 — a sale booked without an invoice in the period (e.g. an Udhaar credit or a folio not yet invoiced) or an invoice dated in another month.",null,null,null],
+      ["total","Does not tie — see the differences",null,0,1]
+     ]
+    }
+   ]
+  },
+  {
+   "uid": "owner",
+   "scenario": "LF-PARITY",
+   "params": {
+    "month": "2026-10"
+   },
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["line","amount","tiesGstr1","tiesGstr3b"],
+     "rows": [
+      ["subtotal","Output GST by rate",null,null,null],
+      ["row","Rate 5 %",60000,0,null],
+      ["row","Rate 18 %",13500,0,null],
+      ["subtotal","Output GST by section",null,null,null],
+      ["row","B2B",0,0,null],
+      ["row","B2CS",73500,0,null],
+      ["row","Credit notes (CDNR)",0,0,null],
+      ["subtotal","Advances",null,null,null],
+      ["row","Advance GST raised (11A)",0,null,null],
+      ["row","Advance GST adjusted (11B)",0,null,null],
+      ["subtotal","Input tax credit",null,null,null],
+      ["row","ITC CGST",0,null,1],
+      ["row","ITC SGST",0,null,1],
+      ["row","ITC IGST",0,null,1],
+      ["row","Reverse charge (RCM)",0,null,1],
+      ["subtotal","Book output (vouchers)",null,null,null],
+      ["row","CGST",122200,0,1],
+      ["row","SGST",122200,0,1],
+      ["row","IGST",0,0,1],
+      ["subtotal","Set-off (s.49)",null,null,null],
+      ["row","Output CGST",122200,null,1],
+      ["row","Output SGST",122200,null,1],
+      ["row","Output IGST",0,null,1],
+      ["row","Payable in cash",244400,null,1],
+      ["row","Challan to deposit",244400,null,1],
+      ["subtotal","Cash ledger",null,null,null],
+      ["row","Cash paid in the month",0,null,null],
+      ["row","TCS credit",0,null,null],
+      ["row","Cash ledger balance",0,null,null],
+      ["row","Difference: Books output GST ₹2444.00 (net of advances 11A ₹0.00 / 11B ₹0.00) vs GSTR-1 working summary ₹735.00: differ by ₹1709.00 — a sale booked without an invoice in the period (e.g. an Udhaar credit or a folio not yet invoiced) or an invoice dated in another month.",null,null,null],
+      ["total","Does not tie — see the differences",null,0,1]
+     ]
+    }
+   ]
+  }
+ ]
+}
