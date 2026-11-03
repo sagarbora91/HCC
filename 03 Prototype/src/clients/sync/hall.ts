@@ -5,8 +5,8 @@
 //                  RequestCreditNote {invoiceId, mode:'full'} for a hall invoice (the invoice source 'hall', Owner decides)
 //   commands  HALL_ENQUIRY_ADD / _UPDATE / _LOST / _SOFT_HOLD, HALL_VENUE_UPSERT, QUO_ACCEPT, HALL_ADVANCE_RECEIVE, HALL_EVENT_CLOSE, HALL_EVENT_CANCEL, HALL_REFUND, HALL_CREDIT_NOTE
 //   ids       venue = its code (V-SAGAR), enquiry ENQ-<n>, quotation QUO-<n>, event HEV-<n>, receipt HRC-<n>; the numbers are the server ids (IdDirectory kinds hallVenue / hallEnquiry / hallQuotation / hallEvent).
-//   not yet   QUO_CREATE / QUO_EDIT / QUO_REVISE / QUO_SEND / QUO_LOST / QUO_CANCEL / QUO_PLACEHOLDER_OVERRIDE / HALL_TNC_TEMPLATE_SAVE (lane H2's server commands: map them when H2 merges),
-//             HALL_ROOM_BLOCK (server room block with the groups module, next wave), HALL_NIGHT_RUN (the server night run does it).
+//             CreateQuotation | EditQuotation | ReviseQuotation | SendQuotation | OverrideTncPlaceholder | ApproveQuotationDiscount | LoseQuotation | CancelQuotation | SaveTncTemplate (H2, mapped by F6-int)
+//   not yet   HALL_ROOM_BLOCK (the server blocks rooms inside AcceptQuotation when the request names roomBlock), HALL_NIGHT_RUN (the server night run does it), hall-menu master writes.
 import {HccClientError} from '../errors';
 import type {SyncArea} from './types';
 import type {HallState,Venue,Enquiry,Quotation,QuoteVersion,QuoteLine,AdvanceRow,HallEvent,HallReceipt,HallInvoice} from '../../domain/streams/hall';
@@ -35,6 +35,10 @@ const line=(l:SrvLine):QuoteLine=>({id:'L'+l.seq,kind:l.kind as QuoteLine['kind'
   discountPaise:n(l.discountPaise),gstClass:l.gstClass,...(l.taxBps!==null?{taxBps:l.taxBps}:{})});
 const advance=(a:SrvAdv):AdvanceRow=>({id:'ADV-'+a.seq,label:a.label,...(a.pctBps!==null?{pctBps:a.pctBps}:{}),amountPaise:n(a.amountPaise),due:a.due,paidPaise:n(a.paidPaise),receiptIds:[]});
 
+const quoHeader=(c:any,h:any)=>h?{eventType:h.eventType,dates:h.dates,slot:h.slot,venueId:h.venueId?c.ids.server('hallVenue',String(h.venueId)):undefined,setup:h.setup,pax:h.pax,guaranteedPax:h.guaranteedPax}:undefined;
+const quoLines=(ls:any)=>Array.isArray(ls)?ls.map((l:any)=>({kind:String(l.kind),desc:String(l.desc),qty:Number(l.qty),ratePaise:Number(l.ratePaise),refId:l.refId?String(l.refId):undefined,unit:l.unit,
+  listRatePaise:l.listRatePaise===undefined?undefined:Number(l.listRatePaise),discountPaise:Number(l.discountPaise??0),gstClass:l.gstClass})):undefined;
+const quoAdvance=(a:any)=>Array.isArray(a)&&a.length?a.map((r:any)=>({due:String(r.due),pctBps:r.pctBps,amountPaise:r.amountPaise,label:r.label})):undefined;
 /** GET /hall/snapshot → s.hallX (pure; the prototype screens and rules read this shape). */
 export function hallFromServer(r:SrvHallSnapshot):HallState{
   const seed=hallSeed(),code=new Map(r.venues.map(v=>[v.venueId,v.code]));
@@ -98,6 +102,16 @@ export const hall:SyncArea={
         capacity:v.capacity,minPlates:v.minPlates,gstClass:v.gstClass,active:v.active!==false,expectedVersion:c.cmd.version===undefined?undefined:Number(c.cmd.version),
         combinedOf:Array.isArray(v.combinedOf)?v.combinedOf.map((id:string)=>c.ids.server('hallVenue',id)):undefined,
         slots:(v.slots??[]).map((s:any)=>({slot:s.slot,from:s.from,to:s.to,ratePaise:Number(s.ratePaise),minPlates:s.minPlates}))});}},
+    {type:'QUO_CREATE',reload:['hallX'],async send(c){const k=c.cmd;
+      await c.api.command('CreateQuotation',{enquiryId:num(k.enquiryId,'ENQ','enquiry'),header:quoHeader(c,k.header),lines:quoLines(k.lines),menuCode:k.menuId?String(k.menuId):undefined,advance:quoAdvance(k.advance)});}},
+    {type:'QUO_EDIT',reload:['hallX'],async send(c){const k=c.cmd;
+      await c.api.command('EditQuotation',{quotationId:num(k.id,'QUO','quotation'),version:k.version===undefined?undefined:Number(k.version),header:quoHeader(c,k.header),lines:quoLines(k.lines),advance:quoAdvance(k.advance)});}},
+    ...([['QUO_REVISE','ReviseQuotation'],['QUO_SEND','SendQuotation'],['QUO_PLACEHOLDER_OVERRIDE','OverrideTncPlaceholder'],['QUO_DISCOUNT_APPROVE','ApproveQuotationDiscount'],
+      ['QUO_LOST','LoseQuotation'],['QUO_CANCEL','CancelQuotation']] as const).map(([type,op])=>({type,reload:['hallX'] as ['hallX'],async send(c:any){const k=c.cmd;
+      await c.api.command(op,{quotationId:num(k.id,'QUO','quotation'),version:k.version===undefined?undefined:Number(k.version),reason:k.reason?String(k.reason):undefined,
+        reasonId:k.reasonId?String(k.reasonId):undefined,note:k.note?String(k.note):undefined});}})),
+    {type:'HALL_TNC_TEMPLATE_SAVE',reload:['hallX'],async send(c){const k=c.cmd;
+      await c.api.command('SaveTncTemplate',{eventType:String(k.eventType??''),clauses:(Array.isArray(k.clauses)?k.clauses:[]).map((x:any)=>({heading:String(x.heading??''),text:String(x.text??'')})),effectiveFrom:k.effectiveFrom?day(k.effectiveFrom):undefined});}},
     {type:'QUO_ACCEPT',reload:['hallX'],async send(c){const k=c.cmd,a=k.advance as Record<string,any>|undefined;
       await c.api.command('AcceptQuotation',{quotationId:num(k.id,'QUO','quotation'),version:k.version===undefined?undefined:Number(k.version),reason:k.reason?String(k.reason):undefined,
         capacityReason:k.capacityReason?String(k.capacityReason):undefined,advance:a&&Number(a.amountPaise)>0?{amountPaise:Number(a.amountPaise),method:String(a.method??''),reference:a.reference}:undefined});}},
@@ -115,10 +129,7 @@ export const hall:SyncArea={
       await c.api.command('RequestCreditNote',{invoiceId,mode:'full',reason:String(c.cmd.reason??'')});}},
   ],
   unmapped:{
-    QUO_CREATE:'lane H2 server commands are merged next (F6 coordinator)',QUO_EDIT:'lane H2 server commands are merged next (F6 coordinator)',QUO_REVISE:'lane H2 server commands are merged next (F6 coordinator)',
-    QUO_SEND:'lane H2 server commands are merged next (F6 coordinator)',QUO_LOST:'lane H2 server commands are merged next (F6 coordinator)',QUO_CANCEL:'lane H2 server commands are merged next (F6 coordinator)',
-    QUO_PLACEHOLDER_OVERRIDE:'lane H2 server commands are merged next (F6 coordinator)',HALL_TNC_TEMPLATE_SAVE:'lane H2 server commands are merged next (F6 coordinator)',
     HALL_ROOM_BLOCK:'the server room block for a hall event comes with the groups module (next wave); block the rooms from Groups',HALL_NIGHT_RUN:'the server night run closes lapsed enquiries',
-    HALL_MENU_UPSERT:'menu packages on the server come with lane H2 tables (4330–4344)',
+    HALL_MENU_UPSERT:'menu packages are read from the server (GET /hall/menus); edit them in the menu master on the server',
   },
 };

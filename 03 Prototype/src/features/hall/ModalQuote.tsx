@@ -1,6 +1,6 @@
 // F6-H3 · modal 'hall-quote' (id = quotation id, or 'new:<enquiry id>' before the first save): the quotation editor (header, lines, totals, advance plan, T&C preview, version
 // strip, status pill) with Save / Send / Revise / Accept / Mark lost / Print. Editing lines is desktop-only: the phone shows the summary with Send / Accept (spec §17).
-// Commands are H2's QUO_CREATE / QUO_EDIT / QUO_REVISE / QUO_SEND / QUO_LOST / QUO_CANCEL / QUO_PLACEHOLDER_OVERRIDE and H1's QUO_ACCEPT (payloads in F6-H3-DONE.md).
+// Commands are H2's QUO_CREATE / QUO_EDIT / QUO_REVISE / QUO_SEND / QUO_LOST / QUO_CANCEL / QUO_PLACEHOLDER_OVERRIDE and QUO_DISCOUNT_APPROVE and H1's QUO_ACCEPT (payloads reconciled with handlers/hall-quote.ts by F6-int).
 import React,{useState} from 'react';
 import {Printer,Send,FilePlus2,CheckCircle2,XCircle,Trash2,Plus} from 'lucide-react';
 import {useHcc} from '../../app/context';
@@ -43,11 +43,11 @@ function Editor({q,enqId}:{q?:Quotation;enqId:string}){
   const [extra,setExtra]=useState({desc:'',qty:'1',rate:''}),[menuId,setMenuId]=useState(''),[panel,setPanel]=useState<''|'accept'|'lost'|'override'>('');
   const [acc,setAcc]=useState({amount:'',method:mnyNames(s,'frontdesk')[0]??'Cash',ref:'',reason:'',capReason:''}),[lost,setLost]=useState({reasonId:x.lostReasons[0]?.id??'',note:''}),[ovr,setOvr]=useState('');
   const setH=(patch:Partial<QuoteDraft['header']>)=>setD(o=>hallSyncLines(s,{...o,header:{...o.header,...patch}}));
-  const payload=()=>({header:d.header,lines:d.lines,advance:d.advance.length?d.advance:undefined,validUntil:d.validUntil});
+  const boss=ui.role==='Owner'||ui.role==='Manager';
+  const payload=()=>({header:d.header,lines:d.lines,advance:boss&&d.advance.length?d.advance.map(r=>({label:r.label,due:r.due,...(r.pctBps!==undefined?{pctBps:r.pctBps}:r.amountPaise!==undefined?{amountPaise:r.amountPaise}:{})})):undefined});
   const save=()=>q?run({type:'QUO_EDIT',id:q.id,...payload()},'Quotation saved',{close:false}):run({type:'QUO_CREATE',enquiryId:enqId,...payload()},'Quotation created',{close:false});
   const send=async()=>{if(editable&&!(await save()))return;if(q)await run({type:'QUO_SEND',id:q.id},`Quotation ${q.number} sent`,{close:false});};
   const mut=x.menus.filter(m=>m.active),status=v?.status??'DRAFT';
-  const boss=ui.role==='Owner'||ui.role==='Manager';
   const sent=status==='SENT'||status==='EXPIRED';
   const canAccept=!!q&&ui.accept&&shown===q.currentVersion&&sent;
   return <ModalFrame heading={<><h2>{q?`Quotation ${q.number}`:'New quotation'}{q&&<> · v{shown}</>}</h2>
@@ -94,7 +94,8 @@ function Editor({q,enqId}:{q?:Quotation;enqId:string}){
         <dl className="hall-totals"><div><dt>Total before GST</dt><dd>{money(t.taxablePaise)}</dd></div><div><dt>CGST</dt><dd>{money(t.cgstPaise)}</dd></div><div><dt>SGST</dt><dd>{money(t.sgstPaise)}</dd></div>
           <div className="grand"><dt>Grand total</dt><dd>{money(t.totalPaise)}</dd></div>
           <div><dt>Discount</dt><dd>{(disc.bps/100).toFixed(2)} % <small>{disc.limitBps===null?'(any, Owner)':`(limit ${disc.limitBps/100} % for your role)`}</small></dd></div></dl>
-        {editable&&!disc.within&&<p className="hall-warn" role="alert">This discount is above your limit. Lower it, or ask a Manager or the Owner to do it.</p>}</section>
+        {editable&&!disc.within&&<p className="hall-warn" role="alert">This discount is above your limit. Lower it, or ask the Owner to approve it.</p>}
+        {q&&latest?.status==='DRAFT'&&shown===q.currentVersion&&ui.role==='Owner'&&latest.createdBy!==uid&&!latest.approvalId&&<button type="button" className="btn" disabled={busy} onClick={()=>run({type:'QUO_DISCOUNT_APPROVE',id:q.id,version:q.currentVersion},'Discount approved',{close:false})}>Approve discount</button>}</section>
       <section className="hall-box"><h3>Payment plan</h3><div className="table-wrap"><table className="table"><thead><tr><th>Instalment</th><th>Due</th><th className="num">Amount</th></tr></thead>
         <tbody>{plan.map(r=><tr key={r.id}><td>{r.label}{r.pctBps?` (${r.pctBps/100} %)`:''}</td><td>{r.due==='ON_ACCEPT'?'On acceptance':r.due==='EVENT_DAY'?'On the event day':dayLabel(r.due)}</td><td className="num">{money(r.amountPaise??0)}</td></tr>)}</tbody></table></div>
         <p className="muted">Advances carry no GST. The balance row takes any rounding difference.</p></section>

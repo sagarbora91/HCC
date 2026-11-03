@@ -129,7 +129,7 @@ function TemplateEditor({t,canEdit}:{t:TncTemplate;canEdit:boolean}){
   const {s,run,busy}=useHcc();const last=t.versions[t.versions.length-1];
   const [clauses,setClauses]=useState<TncClause[]>(()=>last?.clauses.map(c=>({...c}))??[]);
   const dirty=JSON.stringify(clauses)!==JSON.stringify(last?.clauses??[]),ph=hallHasPlaceholder(clauses);
-  return <ScrollPanel label="Clauses" title={`${t.eventType==='GENERAL'?'General':EVENT_LABEL[t.eventType]} · v${last?.v??0}`} actions={canEdit?<button className="btn primary" disabled={busy||!dirty} onClick={()=>run({type:'HALL_TNC_TEMPLATE_SAVE',templateId:t.id,clauses,effectiveFrom:s.date},'Terms saved as a new version',{close:false})}>Save as new version</button>:undefined}
+  return <ScrollPanel label="Clauses" title={`${t.eventType==='GENERAL'?'General':EVENT_LABEL[t.eventType]} · v${last?.v??0}`} actions={canEdit?<button className="btn primary" disabled={busy||!dirty} onClick={()=>run({type:'HALL_TNC_TEMPLATE_SAVE',eventType:t.eventType,clauses,effectiveFrom:s.date},'Terms saved as a new version',{close:false})}>Save as new version</button>:undefined}
     footer={<FitNote lines={1} text="Saving makes a new version from today. Quotations already sent keep their own copy of the terms."/>}>
     {ph&&<p className="hall-warn" role="alert">Some clauses still say “OWNER TO REPLACE”. A quotation cannot be sent with them until the Owner replaces the text or records an override.</p>}
     {clauses.map((c,i)=><div className="hall-clause" key={c.n}><Field label={`Clause ${c.n} heading`}><input value={c.heading} disabled={!canEdit} onChange={e=>setClauses(o=>o.map((z,j)=>j===i?{...z,heading:e.target.value}:z))}/></Field>

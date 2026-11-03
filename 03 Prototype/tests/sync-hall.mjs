@@ -30,8 +30,8 @@ export async function register({test,M,assert}){
   test('[HSYNC] area: registered once, owns hallX, maps the money commands and lists H2 / groups commands as unmapped with a reason',()=>{
     assert.equal(X.AREAS.filter(a=>a.id==='hall').length,1);
     const mapped=X.hall.commands.map(c=>c.type);
-    for(const t of ['HALL_ENQUIRY_ADD','HALL_ENQUIRY_UPDATE','HALL_ENQUIRY_LOST','HALL_ENQUIRY_SOFT_HOLD','HALL_VENUE_UPSERT','QUO_ACCEPT','HALL_ADVANCE_RECEIVE','HALL_EVENT_CLOSE','HALL_EVENT_CANCEL','HALL_REFUND','HALL_CREDIT_NOTE'])assert.ok(mapped.includes(t),t);
-    for(const t of ['QUO_CREATE','QUO_SEND','HALL_ROOM_BLOCK','HALL_NIGHT_RUN','HALL_TNC_TEMPLATE_SAVE'])assert.ok(X.hall.unmapped[t]?.length>10,t);
+    for(const t of ['HALL_ENQUIRY_ADD','HALL_ENQUIRY_UPDATE','HALL_ENQUIRY_LOST','HALL_ENQUIRY_SOFT_HOLD','HALL_VENUE_UPSERT','QUO_ACCEPT','HALL_ADVANCE_RECEIVE','HALL_EVENT_CLOSE','HALL_EVENT_CANCEL','HALL_REFUND','HALL_CREDIT_NOTE','QUO_CREATE','QUO_EDIT','QUO_REVISE','QUO_SEND','QUO_LOST','QUO_CANCEL','QUO_PLACEHOLDER_OVERRIDE','QUO_DISCOUNT_APPROVE','HALL_TNC_TEMPLATE_SAVE'])assert.ok(mapped.includes(t),t);
+    for(const t of ['HALL_ROOM_BLOCK','HALL_NIGHT_RUN'])assert.ok(X.hall.unmapped[t]?.length>10,t);
     assert.equal(X.hall.loaders[0].slice,'hallX');
   });
 }
