@@ -97,7 +97,7 @@ export async function register({test,M,assert}){
     // desk purpose / vehicle / reminders (sheets.tsx, alerts Mobile.tsx, Arrivals.tsx), docdb databases panel (SystemHealth.tsx).
     const FROM_MAIN=new Set(['03 Prototype/src/styles/m-keys.css','03 Prototype/src/app/mobile/MobileShell.tsx',
       '03 Prototype/src/app/mobile/sheets.tsx','03 Prototype/src/features/alerts/Mobile.tsx','03 Prototype/src/mobile/frontdesk/Arrivals.tsx','03 Prototype/src/mobile/admin/SystemHealth.tsx','03 Prototype/src/features/lfmoney/Mobile.tsx',
-      '03 Prototype/src/styles/m-config.css','03 Prototype/src/features/admin/AccessControl.tsx','03 Prototype/src/features/admin/register.tsx','03 Prototype/src/styles/admin.css']); // ADM-1/2/3 (Administration page: features in the hub, not FIT layout changes)   // LF-finish L5: phone counter bills
+      '03 Prototype/src/styles/m-config.css','03 Prototype/src/features/admin/AccessControl.tsx','03 Prototype/src/features/admin/register.tsx','03 Prototype/src/styles/admin.css','03 Prototype/src/mobile/admin/Access.tsx','03 Prototype/src/styles/adm-roles.css','03 Prototype/src/features/admin/RolesPanel.tsx']); // ADM-1/2/3 (Administration page: features in the hub, not FIT layout changes)   // LF-finish L5: phone counter bills
     const bad=out.split('\n').map(s=>s.trim()).filter(Boolean).filter(phone).filter(f=>!FROM_MAIN.has(f));
     assert.deepEqual(bad,[],'phone-layout files changed since '+FIT_BASE);
   });
