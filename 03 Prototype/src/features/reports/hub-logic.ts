@@ -17,7 +17,8 @@ export const roleSeesMoney=(role?:Role)=>!!role&&!NO_MONEY_ROLES.includes(role);
 
 /** The definitions this user may open: engine view right, and money reports only for roles that may see money. */
 export function hubDefs(s:State,uid:string,defs:readonly RptDefinition[],canView:(d:RptDefinition)=>boolean):RptDefinition[]{
-  const money=roleSeesMoney(roleOf(s,uid));
+  const role=roleOf(s,uid);if(!role)return [];   // unknown or disabled user: nothing
+  const money=roleSeesMoney(role);
   return defs.filter(d=>canView(d)&&(money||!d.moneyFlag));
 }
 export type HubFilter={query:string;area:RptArea|'all';favOnly:boolean;favs:readonly string[];phone?:boolean};
