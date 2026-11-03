@@ -137,7 +137,7 @@ export function register({test,assert}){
     for(const u of ['accountant','supervisor','housekeeper','maint'])assert.ok(rows(run(s,u,RS,{filter:'occupied'})).every(x=>x.cells.guest===''),u);
     for(const u of ['cashier','techadmin'])assert.equal(code(()=>run(s,u,RS)),'FORBIDDEN',u);
     assert.ok(M.reportCatalogue(s,'housekeeper').map(d=>d.id).join()===RS,'Housekeeping sees only the room board report');
-    assert.ok(!M.reportCatalogue(s,'cashier').some(d=>d.area==='guests'||d.area==='rooms'),'Cashier sees no guests / rooms report (R4 gives the Cashier own-shift money reports)');
+    assert.ok(!M.reportCatalogue(s,'cashier').some(d=>d.area==='guests'||d.area==='rooms'||d.area==='tax'),'Cashier sees no guests / rooms / tax report (R4 gives the Cashier own-shift money reports)');
   });
 
   test(T+'layouts: registration card (Lodge look, HCC letterhead, ID masked) and day-end sheet (money only with the finance right)',()=>{

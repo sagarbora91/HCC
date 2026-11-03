@@ -1,0 +1,24 @@
+{
+ "id": "rpt.tax.bill-corrections",
+ "cases": [
+  {
+   "uid": "owner",
+   "scenario": "LF-PARITY",
+   "params": {
+    "from": "2026-10-01",
+    "to": "2026-10-24"
+   },
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["correctedAt","oldNo","newNo","guest","room","oldAmount","newAmount","difference","oldGst","newGst","reason","correctedBy","approvedBy"],
+     "rows": [
+      ["row","2026-10-24 08:13","DEMO/2026-27/0001","DEMO/2026-27/0002","Corrected Bill Guest (fictional)","106",1004000,630000,-374000,54000,30000,"Wrong rent and laundry (fictional)","Aarav","Sagar"],
+      ["total","Total · 1 correction",null,null,null,null,1004000,630000,-374000,54000,30000,null,null,null]
+     ]
+    }
+   ]
+  }
+ ]
+}

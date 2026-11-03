@@ -1,0 +1,46 @@
+{
+ "id": "rpt.tax.sac-summary",
+ "cases": [
+  {
+   "uid": "owner",
+   "scenario": "FY26",
+   "params": {
+    "month": "2026-10"
+   },
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["sac","description","uqc","quantity","totalValue","taxable","cgst","sgst","rate"],
+     "rows": [
+      ["row","996311","Room or unit accommodation","OTH",181,113064000,107680000,2692000,2692000,5],
+      ["row","996331","Restaurant / food services","OTH",42,2049075,1951500,48792,48783,5],
+      ["row","999712","Laundry services","OTH",14,423620,359000,32310,32310,18],
+      ["total","Total","Legacy Lodge bills are not in this table: their GST was reported by the CA from the old software.",null,null,115536695,109990500,2773102,2773093,null]
+     ]
+    }
+   ]
+  },
+  {
+   "uid": "accountant",
+   "scenario": "LF-PARITY",
+   "params": {
+    "month": "2026-10"
+   },
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["sac","description","uqc","quantity","totalValue","taxable","cgst","sgst","rate"],
+     "rows": [
+      ["row","996311","Room or unit accommodation","OTH",1,-315000,-300000,-7500,-7500,5],
+      ["row","996311","Room or unit accommodation","OTH",1,-59000,-50000,-4500,-4500,18],
+      ["row","999712","Laundry services","OTH",1,70800,60000,5400,5400,18],
+      ["row","999799","Other services","OTH",1,17700,15000,1350,1350,18],
+      ["total","Total","Legacy Lodge bills are not in this table: their GST was reported by the CA from the old software.",null,null,-285500,-275000,-5250,-5250,null]
+     ]
+    }
+   ]
+  }
+ ]
+}

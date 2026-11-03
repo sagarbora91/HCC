@@ -1242,5 +1242,599 @@
   ],
   "phone": "yes",
   "layout": "table"
+ },
+ {
+  "id": "rpt.tax.bill-corrections",
+  "title": "Bill corrections",
+  "area": "tax",
+  "priority": "P1",
+  "status": "built",
+  "moneyFlag": true,
+  "moneyGate": "PERM-RPT-002",
+  "viewPerms": [
+   "PERM-RPT-002"
+  ],
+  "deskPerms": [],
+  "exportPerm": "PERM-RPT-003",
+  "dateClass": "D-B",
+  "params": [
+   "from",
+   "to",
+   "correctedBy"
+  ],
+  "columns": [
+   {
+    "key": "correctedAt",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "oldNo",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "newNo",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "guest",
+    "type": "text",
+    "money": false,
+    "mask": "guestName",
+    "computed": null
+   },
+   {
+    "key": "room",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "oldAmount",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "newAmount",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "difference",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "oldGst",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "newGst",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "reason",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "correctedBy",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "approvedBy",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   }
+  ],
+  "formats": [
+   "screen",
+   "xlsx",
+   "pdf",
+   "csv"
+  ],
+  "phone": "yes",
+  "layout": "table"
+ },
+ {
+  "id": "rpt.tax.documents-issued",
+  "title": "Documents issued (Table 13)",
+  "area": "tax",
+  "priority": "P1",
+  "status": "built",
+  "moneyFlag": false,
+  "moneyGate": null,
+  "viewPerms": [
+   "PERM-ACC-013"
+  ],
+  "deskPerms": [],
+  "exportPerm": "PERM-RPT-003",
+  "dateClass": "D-M",
+  "params": [
+   "month"
+  ],
+  "columns": [
+   {
+    "key": "nature",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "series",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "fromNo",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "toNo",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "total",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "cancelled",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "net",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   }
+  ],
+  "formats": [
+   "screen",
+   "xlsx",
+   "pdf",
+   "csv"
+  ],
+  "phone": "no",
+  "layout": "table"
+ },
+ {
+  "id": "rpt.tax.gst-by-bill",
+  "title": "GST by bill",
+  "area": "tax",
+  "priority": "P1",
+  "status": "built",
+  "moneyFlag": true,
+  "moneyGate": "PERM-ACC-013",
+  "viewPerms": [
+   "PERM-ACC-013"
+  ],
+  "deskPerms": [],
+  "exportPerm": "PERM-RPT-003",
+  "dateClass": "D-M",
+  "params": [
+   "month",
+   "level",
+   "zeroTax"
+  ],
+  "columns": [
+   {
+    "key": "billNo",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "billDate",
+    "type": "date",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "party",
+    "type": "text",
+    "money": false,
+    "mask": "guestName",
+    "computed": null
+   },
+   {
+    "key": "gstin",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "room",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "net",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "tax0",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "tax5",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "tax12",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "tax18",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "tax28",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "cgst",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "sgst",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   }
+  ],
+  "formats": [
+   "screen",
+   "xlsx",
+   "pdf",
+   "csv"
+  ],
+  "phone": "no",
+  "layout": "table"
+ },
+ {
+  "id": "rpt.tax.gst-summary",
+  "title": "GST summary (ties to GSTR-1 and GSTR-3B)",
+  "area": "tax",
+  "priority": "P1",
+  "status": "ACC-3",
+  "moneyFlag": true,
+  "moneyGate": "PERM-ACC-013",
+  "viewPerms": [
+   "PERM-ACC-013"
+  ],
+  "deskPerms": [],
+  "exportPerm": "PERM-RPT-003",
+  "dateClass": "D-M",
+  "params": [
+   "month"
+  ],
+  "columns": [
+   {
+    "key": "line",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "amount",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "tiesGstr1",
+    "type": "bool",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "tiesGstr3b",
+    "type": "bool",
+    "money": false,
+    "mask": null,
+    "computed": null
+   }
+  ],
+  "formats": [
+   "screen",
+   "xlsx",
+   "pdf",
+   "csv"
+  ],
+  "phone": "yes",
+  "layout": "table"
+ },
+ {
+  "id": "rpt.tax.invoice-register",
+  "title": "Invoice register",
+  "area": "tax",
+  "priority": "P1",
+  "status": "built",
+  "moneyFlag": true,
+  "moneyGate": "PERM-ACC-013",
+  "viewPerms": [
+   "PERM-ACC-013"
+  ],
+  "deskPerms": [],
+  "exportPerm": "PERM-RPT-003",
+  "dateClass": "D-B",
+  "params": [
+   "from",
+   "to",
+   "series",
+   "billType"
+  ],
+  "columns": [
+   {
+    "key": "invoiceNo",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "date",
+    "type": "date",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "party",
+    "type": "text",
+    "money": false,
+    "mask": "guestName",
+    "computed": null
+   },
+   {
+    "key": "room",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "tariff",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "other",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "discount",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "gst",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "roundOff",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "net",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "cash",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "cardUpi",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "credit",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "status",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   }
+  ],
+  "formats": [
+   "screen",
+   "xlsx",
+   "pdf"
+  ],
+  "phone": "no",
+  "layout": "table"
+ },
+ {
+  "id": "rpt.tax.sac-summary",
+  "title": "SAC summary (Table 12)",
+  "area": "tax",
+  "priority": "P1",
+  "status": "built",
+  "moneyFlag": true,
+  "moneyGate": "PERM-ACC-013",
+  "viewPerms": [
+   "PERM-ACC-013"
+  ],
+  "deskPerms": [],
+  "exportPerm": "PERM-RPT-003",
+  "dateClass": "D-M",
+  "params": [
+   "month"
+  ],
+  "columns": [
+   {
+    "key": "sac",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "description",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "uqc",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "quantity",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "totalValue",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "taxable",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "cgst",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "sgst",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "rate",
+    "type": "pct",
+    "money": false,
+    "mask": null,
+    "computed": null
+   }
+  ],
+  "formats": [
+   "screen",
+   "xlsx",
+   "pdf",
+   "csv"
+  ],
+  "phone": "no",
+  "layout": "table"
  }
 ]
