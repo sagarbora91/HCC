@@ -98,6 +98,10 @@ const CMDS={
   DIGEST_REDRAFT:C('OWN','PERM-DGS-001 (F4-T2)'),
   GSV_WAKE_SNOOZE:C('OWN MGR REC','LF B3 (reservations)'),RMD_SAVE:C('OWN MGR REC ACC','PERM-RMD-001'),RMD_DONE:C('OWN MGR REC ACC','PERM-RMD-001'),RMD_DISMISS:C('OWN MGR REC ACC','PERM-RMD-001'), // LF-ALERTS
   CFG_NET_SET:C('OWN','PERM-NET-001 (F5-E1)'),NET_TICK:C('OWN','PERM-NET-001 worker tick stand-in (F5-E1)'), // F5-E1
+  // F7-R1 report engine commands (F7-CONTRACT §2): view / export of the report (rule V); schedules by their owner or the Owner
+  RPT_FAV_TOGGLE:C('OWN MGR ACC','report view (rule V)'),RPT_SCHEDULE_SAVE:C('OWN MGR ACC','view + PERM-RPT-003 (a schedule sends a file)'),
+  RPT_SCHEDULE_DELETE:C('OWN MGR ACC','schedule owner or the Owner'),RPT_RUN_DUE:C('OWN MGR ACC','report outbox tick stand-in'),RPT_LOG:C('OWN MGR ACC','print = view; file = view + export (rule V.4)'),
+  // F7-R1 end
   STAY_CHECKOUT_BASIS:C('OWN MGR REC','STY-001 (LF A6)'),STAY_FORM_C:C('OWN MGR REC','STY-001 (LF A5)'),STAY_LATE_CHARGE:C('OWN MGR REC','STY-003 (LF A6)'), // LF-DESK
   REGISTER:C('OWN MGR REC','GST-002'),GUEST_SAVE:C('OWN MGR REC','GST-002'),GUEST_PHOTO:C('OWN MGR REC','GST-003 / DOC-004 (LF-images B5; checkin stand-in)'),GUEST_PHOTO_REMOVE:C('OWN MGR REC','GST-003 / DOC-004 (LF-images B5)'),GUEST_ID_VIEW:C('OWN MGR REC','GST-003 (DEC-068 Show ID)'),CHECKIN:C('OWN MGR REC','STY-001'),CHECKOUT:C('OWN MGR REC','STY-003'),
   COMPANY_CREDIT_REQUEST:C('OWN MGR REC','PAY-005 + §7 (raised by REC)'),
@@ -214,6 +218,13 @@ const K=k=>'cmd:'+k;
  * or the check depends on the record). roles = who passes the guard for this record per the documents. */
 const OTHER=u=>u==='owner'?'manager':'owner';
 const PAYLOADS={
+  // F7-R1: the engine's demo report (Owner, Manager, Accountant); a Manager-owned schedule may be deleted by the Manager or the Owner only.
+  RPT_FAV_TOGGLE:{roles:'OWN MGR ACC',run:(M,u)=>M.execute(M.seed(),u,{type:'RPT_FAV_TOGGLE',reportId:'rpt.money.revenue-by-category-tender'})},
+  RPT_SCHEDULE_SAVE:{roles:'OWN MGR ACC',run:(M,u)=>M.execute(M.seed(),u,{type:'RPT_SCHEDULE_SAVE',reportId:'rpt.money.revenue-by-category-tender',params:{},format:'xlsx',cadence:{kind:'daily',time:'07:00'},recipients:['owner']})},
+  RPT_SCHEDULE_DELETE:{roles:'OWN MGR',run:(M,u)=>{const s=M.execute(M.seed(),'manager',{type:'RPT_SCHEDULE_SAVE',reportId:'rpt.money.revenue-by-category-tender',params:{},format:'xlsx',cadence:{kind:'daily',time:'07:00'},recipients:['owner']});
+    return M.execute(s,u,{type:'RPT_SCHEDULE_DELETE',id:s.rptX.schedules[0].id});}},
+  RPT_LOG:{roles:'OWN MGR ACC',run:(M,u)=>M.execute(M.seed(),u,{type:'RPT_LOG',reportId:'rpt.money.revenue-by-category-tender',params:{},format:'print',rows:0})},
+  // F7-R1 end
   // DEC-120: EXP-102 is Reception's pending expense in the seed.
   EXP_EDIT:{roles:'OWN MGR REC ACC',run:(M,u)=>M.execute(M.seed(),u,{type:'EXP_EDIT',id:'EXP-102',amount:85000,category:'Supplies',method:'UPI',description:'Morning supplies',reason:'Add the description'})},
   EXP_VOID:{roles:'OWN MGR ACC',run:(M,u)=>M.execute(M.seed(),u,{type:'EXP_VOID',id:'EXP-102',reason:'Duplicate entry'})},
