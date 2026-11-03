@@ -136,7 +136,7 @@ export function register({test,assert}){
     for(const u of ['owner','manager','reception'])assert.equal(rows(run(s,u,RS,{filter:'occupied'}))[0].cells.guest.length>2,true,u);
     for(const u of ['accountant','supervisor','housekeeper','maint'])assert.ok(rows(run(s,u,RS,{filter:'occupied'})).every(x=>x.cells.guest===''),u);
     for(const u of ['cashier','techadmin'])assert.equal(code(()=>run(s,u,RS)),'FORBIDDEN',u);
-    assert.ok(M.reportCatalogue(s,'housekeeper').map(d=>d.id).join()===RS,'Housekeeping sees only the room board report');
+    assert.ok(M.reportCatalogue(s,'housekeeper').map(d=>d.id).filter(i=>!i.startsWith('rpt.stock.')).join()===RS,'Housekeeping sees only the room board report (F7-R8: plus the stock quantity reports, PERM-STK-001)');
     assert.ok(!M.reportCatalogue(s,'cashier').some(d=>d.area==='guests'||d.area==='rooms'||d.area==='tax'),'Cashier sees no guests / rooms / tax report (R4 gives the Cashier own-shift money reports)');
   });
 

@@ -1,5 +1,354 @@
 [
  {
+  "id": "rpt.admin.audit-log",
+  "title": "Audit log",
+  "area": "admin",
+  "priority": "P1",
+  "status": "built",
+  "moneyFlag": false,
+  "moneyGate": null,
+  "viewPerms": [
+   "PERM-ADM-004"
+  ],
+  "deskPerms": [],
+  "exportPerm": "PERM-RPT-003",
+  "dateClass": "D-B",
+  "params": [
+   "from",
+   "to",
+   "actor",
+   "action",
+   "text"
+  ],
+  "columns": [
+   {
+    "key": "at",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "actor",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "action",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "detail",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "id",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   }
+  ],
+  "formats": [
+   "screen",
+   "xlsx",
+   "pdf",
+   "csv"
+  ],
+  "phone": "yes",
+  "layout": "table"
+ },
+ {
+  "id": "rpt.admin.config-history",
+  "title": "Configuration and masters history",
+  "area": "admin",
+  "priority": "P2",
+  "status": "built",
+  "moneyFlag": false,
+  "moneyGate": null,
+  "viewPerms": [
+   "PERM-CFG-001"
+  ],
+  "deskPerms": [],
+  "exportPerm": "PERM-RPT-003",
+  "dateClass": "D-B",
+  "params": [
+   "from",
+   "to"
+  ],
+  "columns": [
+   {
+    "key": "at",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "actor",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "key",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "before",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "after",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "effective",
+    "type": "date",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "reason",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   }
+  ],
+  "formats": [
+   "screen",
+   "xlsx",
+   "pdf",
+   "csv"
+  ],
+  "phone": "yes",
+  "layout": "table"
+ },
+ {
+  "id": "rpt.admin.export-log",
+  "title": "Export and print log",
+  "area": "admin",
+  "priority": "P2",
+  "status": "built",
+  "moneyFlag": false,
+  "moneyGate": null,
+  "viewPerms": [
+   "PERM-ADM-004"
+  ],
+  "deskPerms": [],
+  "exportPerm": "PERM-RPT-003",
+  "dateClass": "D-B",
+  "params": [
+   "from",
+   "to",
+   "report",
+   "user"
+  ],
+  "columns": [
+   {
+    "key": "at",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "user",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "report",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "params",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "format",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "rows",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   }
+  ],
+  "formats": [
+   "screen",
+   "xlsx",
+   "pdf"
+  ],
+  "phone": "no",
+  "layout": "table"
+ },
+ {
+  "id": "rpt.admin.report-dictionary",
+  "title": "Report dictionary",
+  "area": "admin",
+  "priority": "P2",
+  "status": "built",
+  "moneyFlag": false,
+  "moneyGate": null,
+  "viewPerms": [
+   "PERM-RPT-001",
+   "PERM-RPT-002"
+  ],
+  "deskPerms": [],
+  "exportPerm": "PERM-RPT-003",
+  "dateClass": null,
+  "params": [],
+  "columns": [
+   {
+    "key": "metric",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "definition",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "zero",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   }
+  ],
+  "formats": [
+   "screen",
+   "pdf",
+   "csv"
+  ],
+  "phone": "yes",
+  "layout": "table"
+ },
+ {
+  "id": "rpt.guests.daily-ops",
+  "title": "Daily operations",
+  "area": "guests",
+  "priority": "P1",
+  "status": "built",
+  "moneyFlag": true,
+  "moneyGate": "PERM-RPT-002",
+  "viewPerms": [
+   "PERM-RPT-002"
+  ],
+  "deskPerms": [],
+  "exportPerm": "PERM-RPT-003",
+  "dateClass": "D-F",
+  "params": [
+   "from",
+   "to"
+  ],
+  "columns": [
+   {
+    "key": "date",
+    "type": "date",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "status",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "arrivals",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "departures",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "occupied",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "netRevenue",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "netReceipts",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "expenses",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   }
+  ],
+  "formats": [
+   "screen",
+   "xlsx",
+   "pdf",
+   "csv"
+  ],
+  "phone": "yes",
+  "layout": "table"
+ },
+ {
   "id": "rpt.guests.form-c-register",
   "title": "Form C register (foreign guests)",
   "area": "guests",
@@ -539,6 +888,259 @@
   "layout": "table"
  },
  {
+  "id": "rpt.money.cash-book",
+  "title": "Cash book",
+  "area": "money",
+  "priority": "P1",
+  "status": "built",
+  "moneyFlag": true,
+  "moneyGate": "PERM-RPT-002",
+  "viewPerms": [
+   "PERM-RPT-002"
+  ],
+  "deskPerms": [],
+  "exportPerm": "PERM-RPT-003",
+  "dateClass": "D-S",
+  "params": [
+   "from",
+   "to"
+  ],
+  "columns": [
+   {
+    "key": "date",
+    "type": "date",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "status",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "opening",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "receipts",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "payments",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "closing",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "counted",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "overShort",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   }
+  ],
+  "formats": [
+   "screen",
+   "xlsx",
+   "pdf",
+   "csv"
+  ],
+  "phone": "yes",
+  "layout": "table"
+ },
+ {
+  "id": "rpt.money.cash-out-register",
+  "title": "Banking, transfers and drawings",
+  "area": "money",
+  "priority": "P2",
+  "status": "built",
+  "moneyFlag": true,
+  "moneyGate": "PERM-RPT-002",
+  "viewPerms": [
+   "PERM-RPT-002"
+  ],
+  "deskPerms": [],
+  "exportPerm": "PERM-RPT-003",
+  "dateClass": "D-B",
+  "params": [
+   "from",
+   "to",
+   "kind"
+  ],
+  "columns": [
+   {
+    "key": "date",
+    "type": "date",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "kind",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "amount",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "bankSlip",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "fromTill",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "toTill",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "reason",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "status",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "decidedBy",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   }
+  ],
+  "formats": [
+   "screen",
+   "xlsx",
+   "pdf"
+  ],
+  "phone": "yes",
+  "layout": "table"
+ },
+ {
+  "id": "rpt.money.closing-records",
+  "title": "Earlier closing records",
+  "area": "money",
+  "priority": "P2",
+  "status": "built",
+  "moneyFlag": true,
+  "moneyGate": "PERM-RPT-002",
+  "viewPerms": [
+   "PERM-CLS-001"
+  ],
+  "deskPerms": [],
+  "exportPerm": "PERM-RPT-003",
+  "dateClass": "D-FY",
+  "params": [
+   "fy"
+  ],
+  "columns": [
+   {
+    "key": "date",
+    "type": "date",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "closedBy",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "closedAt",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "netRevenue",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "netReceipts",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "cashDifference",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "corrections",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   }
+  ],
+  "formats": [
+   "screen",
+   "xlsx",
+   "pdf"
+  ],
+  "phone": "yes",
+  "layout": "table"
+ },
+ {
   "id": "rpt.money.collection-detail",
   "title": "Collection detail (receipts register)",
   "area": "money",
@@ -719,6 +1321,76 @@
   "layout": "table"
  },
  {
+  "id": "rpt.money.expense-month",
+  "title": "Expenses month and tax feed",
+  "area": "money",
+  "priority": "P2",
+  "status": "built",
+  "moneyFlag": true,
+  "moneyGate": "PERM-RPT-002",
+  "viewPerms": [
+   "PERM-RPT-002"
+  ],
+  "deskPerms": [],
+  "exportPerm": "PERM-RPT-003",
+  "dateClass": "D-M",
+  "params": [
+   "month"
+  ],
+  "columns": [
+   {
+    "key": "head",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "amount",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "entries",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "gstPaid",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "itcAllowed",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "itcDisallowed",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   }
+  ],
+  "formats": [
+   "screen",
+   "xlsx",
+   "pdf",
+   "csv"
+  ],
+  "phone": "yes",
+  "layout": "table"
+ },
+ {
   "id": "rpt.money.expense-register",
   "title": "Expense register",
   "area": "money",
@@ -892,6 +1564,141 @@
    "pdf"
   ],
   "phone": "summary",
+  "layout": "table"
+ },
+ {
+  "id": "rpt.money.expenses-cash",
+  "title": "Expenses and cash",
+  "area": "money",
+  "priority": "P1",
+  "status": "built",
+  "moneyFlag": true,
+  "moneyGate": "PERM-RPT-002",
+  "viewPerms": [
+   "PERM-RPT-002"
+  ],
+  "deskPerms": [],
+  "exportPerm": "PERM-RPT-003",
+  "dateClass": "D-F",
+  "params": [
+   "from",
+   "to"
+  ],
+  "columns": [
+   {
+    "key": "date",
+    "type": "date",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "day",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "opening",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "expected",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "counted",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "difference",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "cashExpenses",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   }
+  ],
+  "formats": [
+   "screen",
+   "xlsx",
+   "pdf",
+   "csv"
+  ],
+  "phone": "yes",
+  "layout": "table"
+ },
+ {
+  "id": "rpt.money.receipts-deposits",
+  "title": "Receipts and deposits",
+  "area": "money",
+  "priority": "P1",
+  "status": "built",
+  "moneyFlag": true,
+  "moneyGate": "PERM-RPT-002",
+  "viewPerms": [
+   "PERM-RPT-002"
+  ],
+  "deskPerms": [],
+  "exportPerm": "PERM-RPT-003",
+  "dateClass": "D-F",
+  "params": [
+   "from",
+   "to"
+  ],
+  "columns": [
+   {
+    "key": "date",
+    "type": "date",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "net",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "depositsIn",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "depositsOut",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   }
+  ],
+  "formats": [
+   "screen",
+   "xlsx",
+   "pdf",
+   "csv"
+  ],
+  "phone": "yes",
   "layout": "table"
  },
  {
@@ -1137,6 +1944,236 @@
   "layout": "table"
  },
  {
+  "id": "rpt.rest.closed-bills",
+  "title": "Closed bills",
+  "area": "rest",
+  "priority": "P2",
+  "status": "built",
+  "moneyFlag": true,
+  "moneyGate": "PERM-POS-004",
+  "viewPerms": [
+   "PERM-POS-004"
+  ],
+  "deskPerms": [],
+  "exportPerm": "PERM-RPT-003",
+  "dateClass": "D-DAY",
+  "params": [
+   "from"
+  ],
+  "columns": [
+   {
+    "key": "check",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "outlet",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "table",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "closedAt",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "items",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "total",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "tender",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "server",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   }
+  ],
+  "formats": [
+   "screen",
+   "xlsx",
+   "pdf"
+  ],
+  "phone": "yes",
+  "layout": "table"
+ },
+ {
+  "id": "rpt.rest.day-summary",
+  "title": "Outlet day summary",
+  "area": "rest",
+  "priority": "P1",
+  "status": "built",
+  "moneyFlag": true,
+  "moneyGate": "PERM-POS-004",
+  "viewPerms": [
+   "PERM-POS-004"
+  ],
+  "deskPerms": [],
+  "exportPerm": "PERM-RPT-003",
+  "dateClass": "D-DAY",
+  "params": [
+   "from"
+  ],
+  "columns": [
+   {
+    "key": "outlet",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "bills",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "net",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "tax",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "total",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "open",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   }
+  ],
+  "formats": [
+   "screen",
+   "xlsx",
+   "pdf"
+  ],
+  "phone": "yes",
+  "layout": "table"
+ },
+ {
+  "id": "rpt.rooms.occupancy",
+  "title": "Occupancy, ADR and RevPAR",
+  "area": "rooms",
+  "priority": "P1",
+  "status": "built",
+  "moneyFlag": true,
+  "moneyGate": "PERM-RPT-002",
+  "viewPerms": [
+   "PERM-RPT-002"
+  ],
+  "deskPerms": [],
+  "exportPerm": "PERM-RPT-003",
+  "dateClass": "D-F",
+  "params": [
+   "from",
+   "to"
+  ],
+  "columns": [
+   {
+    "key": "date",
+    "type": "date",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "sellable",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "occupied",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "occupancy",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "roomRevenue",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "adr",
+    "type": "text",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "revpar",
+    "type": "text",
+    "money": true,
+    "mask": null,
+    "computed": null
+   }
+  ],
+  "formats": [
+   "screen",
+   "xlsx",
+   "pdf",
+   "csv"
+  ],
+  "phone": "yes",
+  "layout": "table"
+ },
+ {
   "id": "rpt.rooms.room-status",
   "title": "Room status today",
   "area": "rooms",
@@ -1231,6 +2268,686 @@
     "key": "notes",
     "type": "text",
     "money": false,
+    "mask": null,
+    "computed": null
+   }
+  ],
+  "formats": [
+   "screen",
+   "xlsx",
+   "pdf"
+  ],
+  "phone": "yes",
+  "layout": "table"
+ },
+ {
+  "id": "rpt.stock.consumption",
+  "title": "Consumption per occupied room-night",
+  "area": "stock",
+  "priority": "P2",
+  "status": "built",
+  "moneyFlag": false,
+  "moneyGate": null,
+  "viewPerms": [
+   "PERM-STK-001"
+  ],
+  "deskPerms": [],
+  "exportPerm": "PERM-RPT-003",
+  "dateClass": "D-B",
+  "params": [
+   "from",
+   "to"
+  ],
+  "columns": [
+   {
+    "key": "item",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "kind",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "used",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "perRN",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "std",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "variance",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "flag",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   }
+  ],
+  "formats": [
+   "screen",
+   "xlsx",
+   "pdf"
+  ],
+  "phone": "yes",
+  "layout": "table"
+ },
+ {
+  "id": "rpt.stock.counts",
+  "title": "Stock counts",
+  "area": "stock",
+  "priority": "P3",
+  "status": "built",
+  "moneyFlag": true,
+  "moneyGate": "PERM-STK-004",
+  "viewPerms": [
+   "PERM-STK-001"
+  ],
+  "deskPerms": [],
+  "exportPerm": "PERM-RPT-003",
+  "dateClass": null,
+  "params": [],
+  "columns": [
+   {
+    "key": "count",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "date",
+    "type": "date",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "location",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "status",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "item",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "system",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "counted",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "variance",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "value",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "by",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   }
+  ],
+  "formats": [
+   "screen",
+   "xlsx",
+   "pdf"
+  ],
+  "phone": "yes",
+  "layout": "table"
+ },
+ {
+  "id": "rpt.stock.laundry",
+  "title": "Laundry batches",
+  "area": "stock",
+  "priority": "P3",
+  "status": "built",
+  "moneyFlag": true,
+  "moneyGate": "PERM-STK-004",
+  "viewPerms": [
+   "PERM-STK-001"
+  ],
+  "deskPerms": [],
+  "exportPerm": "PERM-RPT-003",
+  "dateClass": null,
+  "params": [],
+  "columns": [
+   {
+    "key": "batch",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "vendor",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "sent",
+    "type": "date",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "status",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "pieces",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "received",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "damaged",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "missing",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "charge",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   }
+  ],
+  "formats": [
+   "screen",
+   "xlsx",
+   "pdf"
+  ],
+  "phone": "yes",
+  "layout": "table"
+ },
+ {
+  "id": "rpt.stock.losses",
+  "title": "Losses",
+  "area": "stock",
+  "priority": "P3",
+  "status": "built",
+  "moneyFlag": true,
+  "moneyGate": "PERM-STK-004",
+  "viewPerms": [
+   "PERM-STK-001"
+  ],
+  "deskPerms": [],
+  "exportPerm": "PERM-RPT-003",
+  "dateClass": "D-B",
+  "params": [
+   "from",
+   "to"
+  ],
+  "columns": [
+   {
+    "key": "date",
+    "type": "date",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "item",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "location",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "qty",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "reason",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "value",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "by",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   }
+  ],
+  "formats": [
+   "screen",
+   "xlsx",
+   "pdf"
+  ],
+  "phone": "yes",
+  "layout": "table"
+ },
+ {
+  "id": "rpt.stock.movements",
+  "title": "Stock movements",
+  "area": "stock",
+  "priority": "P3",
+  "status": "built",
+  "moneyFlag": false,
+  "moneyGate": null,
+  "viewPerms": [
+   "PERM-STK-001"
+  ],
+  "deskPerms": [],
+  "exportPerm": "PERM-RPT-003",
+  "dateClass": "D-B",
+  "params": [
+   "from",
+   "to",
+   "item"
+  ],
+  "columns": [
+   {
+    "key": "when",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "type",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "item",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "qty",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "from",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "to",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "ref",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "by",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   }
+  ],
+  "formats": [
+   "screen",
+   "xlsx",
+   "pdf",
+   "csv"
+  ],
+  "phone": "yes",
+  "layout": "table"
+ },
+ {
+  "id": "rpt.stock.par",
+  "title": "Par and minimums",
+  "area": "stock",
+  "priority": "P3",
+  "status": "built",
+  "moneyFlag": false,
+  "moneyGate": null,
+  "viewPerms": [
+   "PERM-STK-001"
+  ],
+  "deskPerms": [],
+  "exportPerm": "PERM-RPT-003",
+  "dateClass": null,
+  "params": [],
+  "columns": [
+   {
+    "key": "item",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "perSet",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "required",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "held",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "coverage",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "min",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "clean",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   }
+  ],
+  "formats": [
+   "screen",
+   "xlsx",
+   "pdf"
+  ],
+  "phone": "yes",
+  "layout": "table"
+ },
+ {
+  "id": "rpt.stock.reorder",
+  "title": "Reorder alerts",
+  "area": "stock",
+  "priority": "P2",
+  "status": "built",
+  "moneyFlag": true,
+  "moneyGate": "PERM-STK-004",
+  "viewPerms": [
+   "PERM-STK-001"
+  ],
+  "deskPerms": [],
+  "exportPerm": "PERM-RPT-003",
+  "dateClass": null,
+  "params": [],
+  "columns": [
+   {
+    "key": "item",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "kind",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "clean",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "min",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "suggest",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "cost",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   }
+  ],
+  "formats": [
+   "screen",
+   "xlsx",
+   "pdf"
+  ],
+  "phone": "yes",
+  "layout": "table"
+ },
+ {
+  "id": "rpt.stock.stock-sheet",
+  "title": "Stock by location",
+  "area": "stock",
+  "priority": "P1",
+  "status": "built",
+  "moneyFlag": true,
+  "moneyGate": "PERM-STK-004",
+  "viewPerms": [
+   "PERM-STK-001"
+  ],
+  "deskPerms": [],
+  "exportPerm": "PERM-RPT-003",
+  "dateClass": null,
+  "params": [],
+  "columns": [
+   {
+    "key": "item",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "kind",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "unit",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "store",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "floor1",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "floor2",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "floor3",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "rooms",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "soiled",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "laundry",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "total",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "cost",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "value",
+    "type": "money",
+    "money": true,
     "mask": null,
     "computed": null
    }
