@@ -25,5 +25,5 @@ export function catalogueRecord(d:RptDefinition){
   return {id:d.id,title:d.title,area:d.area,priority:d.priority,status:d.status,moneyFlag:d.moneyFlag,moneyGate:d.moneyGate??null,
     viewPerms:d.viewPerms,deskPerms:d.deskPerms??[],exportPerm:d.exportPerm??'PERM-RPT-003',dateClass:d.dateClass??null,
     params:d.params.map(p=>p.key),columns:d.columns.map(c=>({key:c.key,type:c.type,money:c.money,mask:c.mask??null,computed:c.computed?.expr??null})),
-    formats:d.formats,phone:d.phone,layout:d.layout??'table'};
+    formats:d.formats,phone:d.phone,layout:d.layout??'table',side:d.serverMirror===false?'prototype':'both'};
 }

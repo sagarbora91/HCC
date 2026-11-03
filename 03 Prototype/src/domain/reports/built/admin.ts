@@ -13,7 +13,7 @@ import {col,rowOf,rangeParams,userName} from '../money/common';
 const A4='PERM-ADM-004';
 
 export const AUDIT_COLS:RptColumn[]=[col('at','Time','text'),col('actor','Actor','text'),col('action','Action','text'),col('detail','Detail','text'),col('id','Id','text')];
-export const auditLog=registerReport({
+export const auditLog=registerReport({serverMirror:false,
   id:'rpt.admin.audit-log',title:'Audit log',area:'admin',priority:'P1',status:'built',moneyFlag:false,viewPerms:[A4],dateClass:'D-B',
   params:[...rangeParams('D-B'),{key:'actor',label:'Actor',type:'text'},{key:'action',label:'Action',type:'text'},{key:'text',label:'Contains',type:'text'}],columns:AUDIT_COLS,
   dateBasis:'Audit events by the date they were recorded, newest first. Detail is shown only to roles with audit detail; money in a detail is masked for roles that never see hotel money (DEC-061).',
@@ -28,7 +28,7 @@ export const auditLog=registerReport({
 void avEntity;
 
 export const EXPORT_LOG_COLS:RptColumn[]=[col('at','Time','text'),col('user','User','text'),col('report','Report','text'),col('params','Parameters','text'),col('format','Format','text'),col('rows','Rows','int')];
-export const exportLog=registerReport({
+export const exportLog=registerReport({serverMirror:false,
   id:'rpt.admin.export-log',title:'Export and print log',area:'admin',priority:'P2',status:'built',moneyFlag:false,viewPerms:[A4],dateClass:'D-B',
   params:[...rangeParams('D-B'),{key:'report',label:'Report',type:'text'},{key:'user',label:'User',type:'user'}],columns:EXPORT_LOG_COLS,
   dateBasis:'Every print and export is recorded when it is made (rule V.4): who, which report, which parameters, which format and how many rows. Newest first. Owner and Manager only.',
@@ -45,14 +45,14 @@ export const exportLog=registerReport({
 });
 
 export const DICT_COLS:RptColumn[]=[col('metric','Metric','text'),col('definition','Definition','text'),col('zero','Zero handling','text')];
-export const reportDictionaryReport=registerReport({
+export const reportDictionaryReport=registerReport({serverMirror:false,
   id:'rpt.admin.report-dictionary',title:'Report dictionary',area:'admin',priority:'P2',status:'built',moneyFlag:false,viewPerms:['PERM-RPT-001','PERM-RPT-002'],params:[],columns:DICT_COLS,
   dateBasis:'Static: the figures of the closing reports as the Financial Rulebook (section 6, REQ-RPT-006) defines them.',formats:['screen','pdf','csv'],phone:'yes',
   select:(_s,_u,p)=>({params:p,columns:DICT_COLS,rows:reportDictionary.map(([a,b,c])=>rowOf('row',{metric:a,definition:b,zero:c}))}),
 });
 
 export const CONFIG_COLS:RptColumn[]=[col('at','Changed','text'),col('actor','By','text'),col('key','Setting','text'),col('before','Before','text'),col('after','After','text'),col('effective','Effective from','date'),col('reason','Reason','text')];
-export const configHistory=registerReport({
+export const configHistory=registerReport({serverMirror:false,
   id:'rpt.admin.config-history',title:'Configuration and masters history',area:'admin',priority:'P2',status:'built',moneyFlag:false,viewPerms:['PERM-CFG-001'],dateClass:'D-B',params:rangeParams('D-B'),columns:CONFIG_COLS,
   dateBasis:'Changes of the configuration settings by the date they were made, newest first. Money values are masked for roles that never see hotel money (DEC-061).',formats:['screen','xlsx','pdf','csv'],phone:'yes',
   select:(s,uid,p)=>({params:p,columns:CONFIG_COLS,rows:(s.configHistory??[]).filter(h=>h.at.slice(0,10)>=p.from!&&h.at.slice(0,10)<=p.to!).sort((a,b)=>b.at.localeCompare(a.at)||b.id.localeCompare(a.id))

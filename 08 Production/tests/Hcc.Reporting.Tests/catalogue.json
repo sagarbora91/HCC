@@ -117,7 +117,8 @@
    "csv"
   ],
   "phone": "yes",
-  "layout": "table"
+  "layout": "table",
+  "side": "both"
  },
  {
   "id": "rpt.acc.balance-sheet",
@@ -166,7 +167,8 @@
    "csv"
   ],
   "phone": "summary",
-  "layout": "table"
+  "layout": "table",
+  "side": "both"
  },
  {
   "id": "rpt.acc.cash-ratio",
@@ -228,7 +230,8 @@
    "pdf"
   ],
   "phone": "summary",
-  "layout": "table"
+  "layout": "table",
+  "side": "both"
  },
  {
   "id": "rpt.acc.day-book",
@@ -312,7 +315,8 @@
    "csv"
   ],
   "phone": "yes",
-  "layout": "table"
+  "layout": "table",
+  "side": "both"
  },
  {
   "id": "rpt.acc.pl",
@@ -369,7 +373,8 @@
    "csv"
   ],
   "phone": "summary",
-  "layout": "table"
+  "layout": "table",
+  "side": "both"
  },
  {
   "id": "rpt.acc.statement",
@@ -454,7 +459,8 @@
    "csv"
   ],
   "phone": "yes",
-  "layout": "table"
+  "layout": "table",
+  "side": "both"
  },
  {
   "id": "rpt.acc.tally-xml",
@@ -510,7 +516,8 @@
    "xml"
   ],
   "phone": "yes",
-  "layout": "table"
+  "layout": "table",
+  "side": "both"
  },
  {
   "id": "rpt.acc.trial-balance",
@@ -602,7 +609,8 @@
    "csv"
   ],
   "phone": "yes",
-  "layout": "table"
+  "layout": "table",
+  "side": "both"
  },
  {
   "id": "rpt.admin.audit-log",
@@ -669,7 +677,8 @@
    "csv"
   ],
   "phone": "yes",
-  "layout": "table"
+  "layout": "table",
+  "side": "prototype"
  },
  {
   "id": "rpt.admin.config-history",
@@ -747,7 +756,8 @@
    "csv"
   ],
   "phone": "yes",
-  "layout": "table"
+  "layout": "table",
+  "side": "prototype"
  },
  {
   "id": "rpt.admin.export-log",
@@ -819,7 +829,8 @@
    "pdf"
   ],
   "phone": "no",
-  "layout": "table"
+  "layout": "table",
+  "side": "prototype"
  },
  {
   "id": "rpt.admin.report-dictionary",
@@ -866,7 +877,8 @@
    "csv"
   ],
   "phone": "yes",
-  "layout": "table"
+  "layout": "table",
+  "side": "prototype"
  },
  {
   "id": "rpt.guests.daily-ops",
@@ -951,7 +963,8 @@
    "csv"
   ],
   "phone": "yes",
-  "layout": "table"
+  "layout": "table",
+  "side": "prototype"
  },
  {
   "id": "rpt.guests.form-c-register",
@@ -1087,7 +1100,8 @@
    "pdf"
   ],
   "phone": "summary",
-  "layout": "table"
+  "layout": "table",
+  "side": "both"
  },
  {
   "id": "rpt.guests.guest-register",
@@ -1237,7 +1251,8 @@
    "pdf"
   ],
   "phone": "no",
-  "layout": "table"
+  "layout": "table",
+  "side": "both"
  },
  {
   "id": "rpt.guests.movement-register",
@@ -1382,7 +1397,8 @@
    "csv"
   ],
   "phone": "summary",
-  "layout": "table"
+  "layout": "table",
+  "side": "both"
  },
  {
   "id": "rpt.guests.rate-changes",
@@ -1490,7 +1506,8 @@
    "csv"
   ],
   "phone": "yes",
-  "layout": "table"
+  "layout": "table",
+  "side": "both"
  },
  {
   "id": "rpt.money.cash-book",
@@ -1575,7 +1592,8 @@
    "csv"
   ],
   "phone": "yes",
-  "layout": "table"
+  "layout": "table",
+  "side": "prototype"
  },
  {
   "id": "rpt.money.cash-out-register",
@@ -1667,7 +1685,8 @@
    "pdf"
   ],
   "phone": "yes",
-  "layout": "table"
+  "layout": "table",
+  "side": "prototype"
  },
  {
   "id": "rpt.money.closing-records",
@@ -1743,7 +1762,8 @@
    "pdf"
   ],
   "phone": "yes",
-  "layout": "table"
+  "layout": "table",
+  "side": "prototype"
  },
  {
   "id": "rpt.money.collection-detail",
@@ -1845,7 +1865,8 @@
    "csv"
   ],
   "phone": "yes",
-  "layout": "table"
+  "layout": "table",
+  "side": "both"
  },
  {
   "id": "rpt.money.credit-bills",
@@ -1923,7 +1944,8 @@
    "pdf"
   ],
   "phone": "yes",
-  "layout": "table"
+  "layout": "table",
+  "side": "both"
  },
  {
   "id": "rpt.money.expense-month",
@@ -1993,7 +2015,8 @@
    "csv"
   ],
   "phone": "yes",
-  "layout": "table"
+  "layout": "table",
+  "side": "prototype"
  },
  {
   "id": "rpt.money.expense-register",
@@ -2104,7 +2127,8 @@
    "csv"
   ],
   "phone": "yes",
-  "layout": "table"
+  "layout": "table",
+  "side": "both"
  },
  {
   "id": "rpt.money.expenses-by-head",
@@ -2169,7 +2193,8 @@
    "pdf"
   ],
   "phone": "summary",
-  "layout": "table"
+  "layout": "table",
+  "side": "both"
  },
  {
   "id": "rpt.money.expenses-cash",
@@ -2247,7 +2272,8 @@
    "csv"
   ],
   "phone": "yes",
-  "layout": "table"
+  "layout": "table",
+  "side": "prototype"
  },
  {
   "id": "rpt.money.receipts-deposits",
@@ -2304,7 +2330,8 @@
    "csv"
   ],
   "phone": "yes",
-  "layout": "table"
+  "layout": "table",
+  "side": "prototype"
  },
  {
   "id": "rpt.money.revenue-by-category-tender",
@@ -2439,7 +2466,8 @@
    "csv"
   ],
   "phone": "summary",
-  "layout": "table"
+  "layout": "table",
+  "side": "both"
  },
  {
   "id": "rpt.money.shift-report",
@@ -2546,7 +2574,8 @@
    "pdf"
   ],
   "phone": "yes",
-  "layout": "table"
+  "layout": "table",
+  "side": "both"
  },
  {
   "id": "rpt.rest.closed-bills",
@@ -2629,7 +2658,8 @@
    "pdf"
   ],
   "phone": "yes",
-  "layout": "table"
+  "layout": "table",
+  "side": "prototype"
  },
  {
   "id": "rpt.rest.day-summary",
@@ -2698,7 +2728,8 @@
    "pdf"
   ],
   "phone": "yes",
-  "layout": "table"
+  "layout": "table",
+  "side": "prototype"
  },
  {
   "id": "rpt.rooms.occupancy",
@@ -2776,7 +2807,8 @@
    "csv"
   ],
   "phone": "yes",
-  "layout": "table"
+  "layout": "table",
+  "side": "prototype"
  },
  {
   "id": "rpt.rooms.room-status",
@@ -2883,7 +2915,8 @@
    "pdf"
   ],
   "phone": "yes",
-  "layout": "table"
+  "layout": "table",
+  "side": "both"
  },
  {
   "id": "rpt.stock.consumption",
@@ -2960,7 +2993,8 @@
    "pdf"
   ],
   "phone": "yes",
-  "layout": "table"
+  "layout": "table",
+  "side": "prototype"
  },
  {
   "id": "rpt.stock.counts",
@@ -3055,7 +3089,8 @@
    "pdf"
   ],
   "phone": "yes",
-  "layout": "table"
+  "layout": "table",
+  "side": "prototype"
  },
  {
   "id": "rpt.stock.laundry",
@@ -3143,7 +3178,8 @@
    "pdf"
   ],
   "phone": "yes",
-  "layout": "table"
+  "layout": "table",
+  "side": "prototype"
  },
  {
   "id": "rpt.stock.losses",
@@ -3220,7 +3256,8 @@
    "pdf"
   ],
   "phone": "yes",
-  "layout": "table"
+  "layout": "table",
+  "side": "prototype"
  },
  {
   "id": "rpt.stock.movements",
@@ -3306,7 +3343,8 @@
    "csv"
   ],
   "phone": "yes",
-  "layout": "table"
+  "layout": "table",
+  "side": "prototype"
  },
  {
   "id": "rpt.stock.par",
@@ -3380,7 +3418,8 @@
    "pdf"
   ],
   "phone": "yes",
-  "layout": "table"
+  "layout": "table",
+  "side": "prototype"
  },
  {
   "id": "rpt.stock.reorder",
@@ -3447,7 +3486,8 @@
    "pdf"
   ],
   "phone": "yes",
-  "layout": "table"
+  "layout": "table",
+  "side": "prototype"
  },
  {
   "id": "rpt.stock.stock-sheet",
@@ -3563,7 +3603,8 @@
    "pdf"
   ],
   "phone": "yes",
-  "layout": "table"
+  "layout": "table",
+  "side": "prototype"
  },
  {
   "id": "rpt.tax.bill-corrections",
@@ -3684,7 +3725,8 @@
    "csv"
   ],
   "phone": "yes",
-  "layout": "table"
+  "layout": "table",
+  "side": "both"
  },
  {
   "id": "rpt.tax.documents-issued",
@@ -3761,7 +3803,8 @@
    "csv"
   ],
   "phone": "no",
-  "layout": "table"
+  "layout": "table",
+  "side": "both"
  },
  {
   "id": "rpt.tax.gst-by-bill",
@@ -3882,7 +3925,8 @@
    "csv"
   ],
   "phone": "no",
-  "layout": "table"
+  "layout": "table",
+  "side": "both"
  },
  {
   "id": "rpt.tax.gst-summary",
@@ -3938,7 +3982,8 @@
    "csv"
   ],
   "phone": "yes",
-  "layout": "table"
+  "layout": "table",
+  "side": "both"
  },
  {
   "id": "rpt.tax.invoice-register",
@@ -4066,7 +4111,8 @@
    "pdf"
   ],
   "phone": "no",
-  "layout": "table"
+  "layout": "table",
+  "side": "both"
  },
  {
   "id": "rpt.tax.sac-summary",
@@ -4157,6 +4203,7 @@
    "csv"
   ],
   "phone": "no",
-  "layout": "table"
+  "layout": "table",
+  "side": "both"
  }
 ]

@@ -14,7 +14,7 @@ export const CASHBOOK_COLS:RptColumn[]=[col('date','Business date','date'),col('
   col('payments','Payments (incl. banking)','money',true),col('closing','Closing (book)','money',true),col('counted','Counted','money',true),col('overShort','Over / short','money',true)];
 export const CASHBOOK_ENTRY_COLS:RptColumn[]=[col('date','Business date','date'),col('ref','Reference','text'),col('entry','Entry','text'),col('detail','Detail','text'),col('booking','Booking','text'),
   col('guest','Guest','text',false,{mask:'guestName'}),col('in','Receipt','money',true),col('out','Payment','money',true),col('balance','Balance','money',true),col('by','By','text')];
-export const cashBook=registerReport({
+export const cashBook=registerReport({serverMirror:false,
   id:'rpt.money.cash-book',title:'Cash book',area:'money',priority:'P1',status:'built',moneyFlag:true,moneyGate:GATE,viewPerms:[GATE],dateClass:'D-S',
   params:rangeParams('D-F').map(p=>({...p,dateClass:'D-S' as const})),columns:CASHBOOK_COLS,
   dateBasis:'One row per known business date: opening = the closing float, receipts and payments = the cashier-shift movements of that date (plus banking after the count), closing = book balance, counted and over / short from the closing record. Second block: every entry with the running balance.',
@@ -32,7 +32,7 @@ export const cashBook=registerReport({
 
 export const CLOSING_COLS:RptColumn[]=[col('date','Business date','date'),col('closedBy','Closed by','text'),col('closedAt','Closed at','text'),col('netRevenue','Net revenue','money',true),
   col('netReceipts','Net receipts','money',true),col('cashDifference','Cash difference','money',true),col('corrections','Corrections','int')];
-export const closingRecords=registerReport({
+export const closingRecords=registerReport({serverMirror:false,
   id:'rpt.money.closing-records',title:'Earlier closing records',area:'money',priority:'P2',status:'built',moneyFlag:true,moneyGate:GATE,viewPerms:['PERM-CLS-001'],dateClass:'D-FY',
   params:[{key:'fy',label:'Financial year',type:'fy',dateClass:'D-FY'}],columns:CLOSING_COLS,
   dateBasis:'One row per closed business date, newest first, from the stored closing record. Corrections = how many times the Owner reopened that date.',
@@ -47,7 +47,7 @@ export const closingRecords=registerReport({
 export const CASHOUT_COLS:RptColumn[]=[col('date','Date','date'),col('kind','Kind','text'),col('amount','Amount','money',true),col('bankSlip','Bank and slip','text'),col('fromTill','From till','text'),
   col('toTill','To till','text'),col('reason','Reason','text'),col('status','Status','text'),col('decidedBy','Decided by','text')];
 const KIND:Record<string,string>={banking:'bank deposit',till:'till transfer',drawing:'owner drawing'};
-export const cashOutRegister=registerReport({
+export const cashOutRegister=registerReport({serverMirror:false,
   id:'rpt.money.cash-out-register',title:'Banking, transfers and drawings',area:'money',priority:'P2',status:'built',moneyFlag:true,moneyGate:GATE,viewPerms:[GATE],dateClass:'D-B',
   params:[...rangeParams('D-B'),{key:'kind',label:'Kind',type:'enum',options:['all','bank deposit','till transfer','owner drawing'],default:'all'}],columns:CASHOUT_COLS,
   dateBasis:'Cash-out records by the business date the cash left the drawer. The slip photo is never in the report. Totals per kind leave out rejected records.',
@@ -64,7 +64,7 @@ export const cashOutRegister=registerReport({
 });
 
 export const EXPMONTH_COLS:RptColumn[]=[col('head','Head','text'),col('amount','Amount','money',true),col('entries','Entries','int'),col('gstPaid','GST paid','money',true),col('itcAllowed','ITC allowed','money',true),col('itcDisallowed','ITC disallowed','money',true)];
-export const expenseMonth=registerReport({
+export const expenseMonth=registerReport({serverMirror:false,
   id:'rpt.money.expense-month',title:'Expenses month and tax feed',area:'money',priority:'P2',status:'built',moneyFlag:true,moneyGate:GATE,viewPerms:[GATE],dateClass:'D-M',
   params:[{key:'month',label:'Month',type:'month',dateClass:'D-M'}],columns:EXPMONTH_COLS,
   dateBasis:'The month\'s counted expenses (the tax-feed figures of expMonthSummary), by head; GST paid and ITC allowed are month totals, shown on the total row.',

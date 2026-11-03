@@ -11,7 +11,7 @@ const kindLabel=(k:string)=>INV_KINDS.find(x=>x.id===k)?.label??k;
 const base={area:'stock' as const,viewPerms:[V],phone:'yes' as const};
 
 export const STOCK_SHEET_COLS:RptColumn[]=[col('item','Item','text'),col('kind','Kind','text'),col('unit','Unit','text'),...INV_LOCS.map(l=>col(l.id,l.short,'int')),col('total','Total','int'),col('cost','Unit cost','money',true),col('value','Value','money',true)];
-export const stockSheet=registerReport({...base,id:'rpt.stock.stock-sheet',title:'Stock by location',priority:'P1',status:'built',moneyFlag:true,moneyGate:G,params:[],columns:STOCK_SHEET_COLS,formats:['screen','xlsx','pdf'],
+export const stockSheet=registerReport({serverMirror:false,...base,id:'rpt.stock.stock-sheet',title:'Stock by location',priority:'P1',status:'built',moneyFlag:true,moneyGate:G,params:[],columns:STOCK_SHEET_COLS,formats:['screen','xlsx','pdf'],
   dateBasis:'The stock held now: pieces per location, total, unit cost and value (total × standard cost).',
   select:(s,_u,p)=>{
     const items=invSlice(s).items;
@@ -21,14 +21,14 @@ export const stockSheet=registerReport({...base,id:'rpt.stock.stock-sheet',title
   }});
 
 export const REORDER_COLS:RptColumn[]=[col('item','Item','text'),col('kind','Kind','text'),col('clean','Clean stock','int'),col('min','Minimum','int'),col('suggest','Suggested order','int'),col('cost','Unit cost','money',true)];
-export const stockReorder=registerReport({...base,id:'rpt.stock.reorder',title:'Reorder alerts',priority:'P2',status:'built',moneyFlag:true,moneyGate:G,params:[],columns:REORDER_COLS,formats:['screen','xlsx','pdf'],
+export const stockReorder=registerReport({serverMirror:false,...base,id:'rpt.stock.reorder',title:'Reorder alerts',priority:'P2',status:'built',moneyFlag:true,moneyGate:G,params:[],columns:REORDER_COLS,formats:['screen','xlsx','pdf'],
   dateBasis:'Items whose clean stock (store + floor pantries) is below the minimum, now. Suggested = the larger of the reorder quantity and twice the minimum less clean stock.',
   select:(s,_u,p)=>({params:p,columns:REORDER_COLS,rows:invAlerts(s).sort((a,b)=>(a.clean-a.item.min)-(b.clean-b.item.min)||a.item.name.localeCompare(b.item.name))
     .map(a=>rowOf('row',{item:a.item.name,kind:kindLabel(a.item.kind),clean:a.clean,min:a.item.min,suggest:a.suggest,cost:a.item.cost}))}) });
 
 export const LAUNDRY_COLS:RptColumn[]=[col('batch','Batch','text'),col('vendor','Vendor','text'),col('sent','Sent','date'),col('status','Status','text'),col('pieces','Pieces sent','int'),
   col('received','Received','int'),col('damaged','Damaged','int'),col('missing','Missing','int'),col('charge','Laundry charge','money',true)];
-export const stockLaundry=registerReport({...base,id:'rpt.stock.laundry',title:'Laundry batches',priority:'P3',status:'built',moneyFlag:true,moneyGate:G,params:[],columns:LAUNDRY_COLS,formats:['screen','xlsx','pdf'],
+export const stockLaundry=registerReport({serverMirror:false,...base,id:'rpt.stock.laundry',title:'Laundry batches',priority:'P3',status:'built',moneyFlag:true,moneyGate:G,params:[],columns:LAUNDRY_COLS,formats:['screen','xlsx','pdf'],
   dateBasis:'Every laundry batch, newest first. Received, damaged and missing are blank while the batch is still out; the charge is the one computed when the batch came back.',
   select:(s,_u,p)=>({params:p,columns:LAUNDRY_COLS,rows:[...invSlice(s).batches].sort((a,b)=>b.sent.localeCompare(a.sent)||b.id.localeCompare(a.id)).map(b=>{
     const back=b.status!=='Out';return rowOf('row',{batch:b.id,vendor:b.vendor,sent:b.sent,status:b.status,pieces:b.lines.reduce((a,l)=>a+l.sent,0),received:back?b.lines.reduce((a,l)=>a+(l.received??0),0):null,
@@ -36,7 +36,7 @@ export const stockLaundry=registerReport({...base,id:'rpt.stock.laundry',title:'
 
 export const COUNTS_COLS:RptColumn[]=[col('count','Count','text'),col('date','Date','date'),col('location','Location','text'),col('status','Status','text'),col('item','Item','text'),
   col('system','System','int'),col('counted','Counted','int'),col('variance','Variance','int'),col('value','Variance value','money',true),col('by','Counted by','text')];
-export const stockCounts=registerReport({...base,id:'rpt.stock.counts',title:'Stock counts',priority:'P3',status:'built',moneyFlag:true,moneyGate:G,params:[],columns:COUNTS_COLS,formats:['screen','xlsx','pdf'],
+export const stockCounts=registerReport({serverMirror:false,...base,id:'rpt.stock.counts',title:'Stock counts',priority:'P3',status:'built',moneyFlag:true,moneyGate:G,params:[],columns:COUNTS_COLS,formats:['screen','xlsx','pdf'],
   dateBasis:'Each count with the lines where the count differs from the system quantity (invCountVariance); the variance value is shown on the first line of the count.',
   select:(s,_u,p)=>{
     const rows:RptRow[]=[];
@@ -49,7 +49,7 @@ export const stockCounts=registerReport({...base,id:'rpt.stock.counts',title:'St
   }});
 
 export const LOSSES_COLS:RptColumn[]=[col('date','Date','date'),col('item','Item','text'),col('location','Location','text'),col('qty','Qty','int'),col('reason','Reason','text'),col('value','Value','money',true),col('by','By','text')];
-export const stockLosses=registerReport({...base,id:'rpt.stock.losses',title:'Losses',priority:'P3',status:'built',moneyFlag:true,moneyGate:G,dateClass:'D-B',params:rangeParams('D-B'),columns:LOSSES_COLS,formats:['screen','xlsx','pdf'],
+export const stockLosses=registerReport({serverMirror:false,...base,id:'rpt.stock.losses',title:'Losses',priority:'P3',status:'built',moneyFlag:true,moneyGate:G,dateClass:'D-B',params:rangeParams('D-B'),columns:LOSSES_COLS,formats:['screen','xlsx','pdf'],
   dateBasis:'Recorded losses by date, oldest first; value at the standard cost when recorded.',
   select:(s,_u,p)=>{
     const L=invSlice(s).losses.filter(l=>l.date>=p.from!&&l.date<=p.to!).sort((a,b)=>a.date.localeCompare(b.date)||a.id.localeCompare(b.id));
@@ -59,7 +59,7 @@ export const stockLosses=registerReport({...base,id:'rpt.stock.losses',title:'Lo
   }});
 
 export const CONSUMPTION_COLS:RptColumn[]=[col('item','Item','text'),col('kind','Kind','text'),col('used','Used','int'),col('perRN','Per room-night','text'),col('std','Standard','text'),col('variance','Variance %','int'),col('flag','Flag','text')];
-export const stockConsumption=registerReport({...base,id:'rpt.stock.consumption',title:'Consumption per occupied room-night',priority:'P2',status:'built',moneyFlag:false,dateClass:'D-B',params:rangeParams('D-B'),columns:CONSUMPTION_COLS,formats:['screen','xlsx','pdf'],phone:'yes',
+export const stockConsumption=registerReport({serverMirror:false,...base,id:'rpt.stock.consumption',title:'Consumption per occupied room-night',priority:'P2',status:'built',moneyFlag:false,dateClass:'D-B',params:rangeParams('D-B'),columns:CONSUMPTION_COLS,formats:['screen','xlsx','pdf'],phone:'yes',
   dateBasis:'Amenities and cleaning supplies: use moves; linen: room-change moves. Per room-night = used ÷ occupied room-nights of the range (the first row of the total block).',
   select:(s,_u,p)=>{
     const c=invConsumption(s,p.from!,p.to!);
@@ -69,12 +69,12 @@ export const stockConsumption=registerReport({...base,id:'rpt.stock.consumption'
   }});
 
 export const PAR_COLS:RptColumn[]=[col('item','Linen item','text'),col('perSet','Per set','int'),col('required','Required (sets)','int'),col('held','Held','int'),col('coverage','Coverage %','int'),col('min','Minimum','int'),col('clean','Clean stock','int')];
-export const stockPar=registerReport({...base,id:'rpt.stock.par',title:'Par and minimums',priority:'P3',status:'built',moneyFlag:false,params:[],columns:PAR_COLS,formats:['screen','xlsx','pdf'],
+export const stockPar=registerReport({serverMirror:false,...base,id:'rpt.stock.par',title:'Par and minimums',priority:'P3',status:'built',moneyFlag:false,params:[],columns:PAR_COLS,formats:['screen','xlsx','pdf'],
   dateBasis:'Linen items with a par by room type: pieces per set of rooms, required for the configured number of sets, held now, coverage and the reorder minimum.',
   select:(s,_u,p)=>({params:p,columns:PAR_COLS,rows:invSlice(s).items.filter(i=>i.kind==='linen'&&i.par).map(i=>rowOf('row',{item:i.name,perSet:invParPerSet(s,i),required:invParRequired(s,i),held:invTotal(i),coverage:invParCoverage(s,i),min:i.min,clean:invClean(i)}))}) });
 
 export const MOVES_COLS:RptColumn[]=[col('when','When','text'),col('type','Type','text'),col('item','Item','text'),col('qty','Qty','int'),col('from','From','text'),col('to','To','text'),col('ref','Reference','text'),col('by','By','text')];
-export const stockMovements=registerReport({...base,id:'rpt.stock.movements',title:'Stock movements',priority:'P3',status:'built',moneyFlag:false,dateClass:'D-B',
+export const stockMovements=registerReport({serverMirror:false,...base,id:'rpt.stock.movements',title:'Stock movements',priority:'P3',status:'built',moneyFlag:false,dateClass:'D-B',
   params:[...rangeParams('D-B'),{key:'item',label:'Item',type:'text'}],columns:MOVES_COLS,formats:['screen','xlsx','pdf','csv'],
   dateBasis:'Every stock move in the range, newest first.',
   select:(s,_u,p)=>{

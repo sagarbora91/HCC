@@ -27,6 +27,7 @@ export type RptResult={id:string;title:string;params:RptBoundParams;columns:RptC
 export type RptDefinition<P extends RptBoundParams=RptBoundParams>={id:string;title:string;area:RptArea;priority:RptPriority;status:RptStatus;
   moneyFlag:boolean;moneyGate?:string;viewPerms:string[];deskPerms?:string[];exportPerm?:string;dateClass?:RptDateClass;
   params:RptParam[];columns:RptColumn[];dateBasis:string;formats:RptFormat[];phone:RptPhone;layout?:'table'|'document';legacyIds?:string[];
+  /** F7-int: false = prototype-only for now (no Hcc.Reporting mirror yet; R8's moved built reports). The server cross-check skips these and asserts it registers none of them. */ serverMirror?:boolean;
   /** F7-R1: scoped grants (Cashier V·S own shift) count for this report. */ ownShift?:boolean;
   select:(s:State,uid:string,p:P)=>Omit<RptResult,'about'|'title'|'id'>&{about?:Partial<RptAbout>}};
 export type RptPrintTable={columns:RptColumn[];rows:RptRow[];title?:string};

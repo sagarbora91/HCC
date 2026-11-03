@@ -63,9 +63,14 @@ public sealed class EngineTests
     {
         using var doc = JsonDocument.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "catalogue.json")));
         var server = ServerCatalogue().ToDictionary(d => d.Id);
-        var ids = doc.RootElement.EnumerateArray().Select(e => e.GetProperty("id").GetString()!).ToList();
+        // F7-int: "side": "prototype" marks reports with no server mirror yet (R8's moved built reports); the server must not register them.
+        var all = doc.RootElement.EnumerateArray().ToList();
+        static bool Mirrored(JsonElement e) => !e.TryGetProperty("side", out var s) || s.GetString() != "prototype";
+        var protoOnly = all.Where(e => !Mirrored(e)).Select(e => e.GetProperty("id").GetString()!).ToList();
+        Assert.DoesNotContain(protoOnly, server.ContainsKey);
+        var ids = all.Where(Mirrored).Select(e => e.GetProperty("id").GetString()!).ToList();
         Assert.Equal(server.Keys.Order(StringComparer.Ordinal), ids.Order(StringComparer.Ordinal));
-        foreach (var e in doc.RootElement.EnumerateArray())
+        foreach (var e in all.Where(Mirrored))
         {
             var d = server[e.GetProperty("id").GetString()!];
             Assert.Equal(e.GetProperty("title").GetString(), d.Title);

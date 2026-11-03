@@ -14,7 +14,7 @@ const FIN={moneyFlag:true as const,moneyGate:GATE,viewPerms:[GATE],dateClass:'D-
 
 export const DAILY_OPS_COLS:RptColumn[]=[col('date','Business date','date'),col('status','Day status','text'),col('arrivals','Arrivals','int'),col('departures','Departures','int'),
   col('occupied','Occupied room-nights','int'),col('netRevenue','Net revenue','money',true),col('netReceipts','Net receipts','money',true),col('expenses','Expenses','money',true)];
-export const dailyOps=registerReport({
+export const dailyOps=registerReport({serverMirror:false,
   id:'rpt.guests.daily-ops',title:'Daily operations',area:'guests',priority:'P1',status:'built',...FIN,params:rangeParams('D-F'),
   columns:DAILY_OPS_COLS,legacyIds:[],
   dateBasis:'Charges by service date, receipts by receipt date, expenses by business date (the closing report pack, tab Daily operations). Total row = the tab tiles.',
@@ -28,7 +28,7 @@ export const dailyOps=registerReport({
 
 export const OCCUPANCY_COLS:RptColumn[]=[col('date','Business date','date'),col('sellable','Sellable','int'),col('occupied','Occupied','int'),col('occupancy','Occupancy','text'),
   col('roomRevenue','Room revenue','money',true),col('adr','ADR','text',true),col('revpar','RevPAR','text',true)];
-export const occupancyReport=registerReport({
+export const occupancyReport=registerReport({serverMirror:false,
   id:'rpt.rooms.occupancy',title:'Occupancy, ADR and RevPAR',area:'rooms',priority:'P1',status:'built',...FIN,params:rangeParams('D-F'),
   columns:OCCUPANCY_COLS,legacyIds:['A35'],
   dateBasis:'Occupancy = occupied ÷ sellable room-nights; ADR = room revenue ÷ occupied; RevPAR = room revenue ÷ sellable (rounded half-up, dash when the divisor is zero). The total row recomputes the ratios from the totals.',
@@ -43,7 +43,7 @@ export const occupancyReport=registerReport({
 
 /** One column per tender is dynamic (the tenders found in the range); the definition lists the fixed ones. */
 export const RECEIPTS_COLS:RptColumn[]=[col('date','Receipt date','date'),col('net','Net receipts','money',true),col('depositsIn','Deposits in','money',true),col('depositsOut','Deposits out','money',true)];
-export const receiptsDeposits=registerReport({
+export const receiptsDeposits=registerReport({serverMirror:false,
   id:'rpt.money.receipts-deposits',title:'Receipts and deposits',area:'money',priority:'P1',status:'built',...FIN,params:rangeParams('D-F'),
   columns:RECEIPTS_COLS,legacyIds:['C2.PreviousAdvance'],
   dateBasis:'Payments minus refunds by receipt date, one column per tender; deposits received and returned by receipt date. Totals per tender; deposits held now is a point-in-time figure in the second block.',
@@ -63,7 +63,7 @@ export const receiptsDeposits=registerReport({
 
 export const EXPCASH_COLS:RptColumn[]=[col('date','Business date','date'),col('day','Day','text'),col('opening','Opening float','money',true),col('expected','Expected cash','money',true),
   col('counted','Counted','money',true),col('difference','Difference','money',true),col('cashExpenses','Cash expenses','money',true)];
-export const expensesCash=registerReport({
+export const expensesCash=registerReport({serverMirror:false,
   id:'rpt.money.expenses-cash',title:'Expenses and cash',area:'money',priority:'P1',status:'built',...FIN,params:rangeParams('D-F'),
   columns:EXPCASH_COLS,
   dateBasis:'Expenses by business date, split by what they settle to; drawer opening, expected, counted and difference from the closing record (open day: the live shift). Cash in / out by receipt date.',
