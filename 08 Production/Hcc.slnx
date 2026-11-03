@@ -7,7 +7,7 @@
     <Project Path="src/Hcc.Infrastructure.SqlServer/Hcc.Infrastructure.SqlServer.csproj" />
     <Project Path="src/Hcc.Operations/Hcc.Operations.csproj" />
     <Project Path="src/Hcc.Api/Hcc.Api.csproj" />
-    <!-- F7-R1 range: Hcc.Reporting -->
+    <Project Path="src/Hcc.Reporting/Hcc.Reporting.csproj" /> <!-- F7-R1 -->
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Hcc.Billing.Tests/Hcc.Billing.Tests.csproj" />
@@ -50,7 +50,7 @@
     <Project Path="tests/Hcc.Legacy.Tests/Hcc.Legacy.Tests.csproj" />
     <Project Path="tests/Hcc.Egress.Tests/Hcc.Egress.Tests.csproj" /> <!-- F5-E1 -->
     <Project Path="tests/Hcc.Architecture.Tests/Hcc.Architecture.Tests.csproj" /> <!-- F5-E1 -->
-    <!-- F7-R1 range: Hcc.Reporting.Tests -->
+    <Project Path="tests/Hcc.Reporting.Tests/Hcc.Reporting.Tests.csproj" /> <!-- F7-R1 -->
   </Folder>
   <Folder Name="/database/">
     <File Path="database/migrations.lock.json" />
@@ -281,5 +281,11 @@
     <File Path="database/migrations/4732_egress_audit.sql" /> <!-- F5-E1 -->
     <File Path="database/migrations/4733_egress_rbac_seed.sql" /> <!-- F5-E1 -->
     <File Path="database/migrations/4734_egress_firewall_state.sql" /> <!-- F5-E1 -->
+    <File Path="database/migrations/4400_rpt_schema.sql" /> <!-- F7-R1 -->
+    <File Path="database/migrations/4401_rpt_favourite.sql" /> <!-- F7-R1 -->
+    <File Path="database/migrations/4402_rpt_schedule.sql" /> <!-- F7-R1 -->
+    <File Path="database/migrations/4403_rpt_run.sql" /> <!-- F7-R1 -->
+    <File Path="database/migrations/4404_rpt_export_log.sql" /> <!-- F7-R1 -->
+    <File Path="database/migrations/4405_rpt_rbac_seed.sql" /> <!-- F7-R1 -->
   </Folder>
 </Solution>

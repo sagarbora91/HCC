@@ -24,10 +24,14 @@ export function toPrintModel(r:RptResult,property:string):RptPrintModel{
   const orientation=wide?'landscape':'portrait';const per=RPT_PRINT_ROWS[orientation];
   const pages:RptPrintModel['pages']=[];let cur:RptPrintModel['pages'][number]={tables:[]},used=0;
   for(const t of tables){
-    let i=0;
-    do{const room=per-used;if(room<=3&&cur.tables.length){pages.push(cur);cur={tables:[]};used=0;continue;}
-      const chunk=t.rows.slice(i,i+Math.max(1,per-used-1));cur.tables.push({columns:t.columns,rows:chunk,...(t.title?{title:t.title}:{})});used+=chunk.length+2;i+=chunk.length;
-      if(i<t.rows.length){pages.push(cur);cur={tables:[]};used=0;}}while(i<t.rows.length);
+    // Same paging as the server PrintModel (Hcc.Reporting PrintModelBuilder): a table that does not fit continues on the next page.
+    let i=0,placed=false;
+    while(!placed||i<t.rows.length){
+      if(per-used<=3&&cur.tables.length){pages.push(cur);cur={tables:[]};used=0;}
+      const chunk=t.rows.slice(i,i+Math.max(1,per-used-1));cur.tables.push({columns:t.columns,rows:chunk,...(t.title?{title:t.title}:{})});
+      used+=chunk.length+2;i+=chunk.length;placed=true;
+      if(i<t.rows.length){pages.push(cur);cur={tables:[]};used=0;}
+    }
   }
   if(cur.tables.length||!pages.length)pages.push(cur);
   const params=Object.entries(r.params).filter(([k,v])=>v!==undefined&&k!=='legacy').map(([k,v])=>[label[k]??k,String(v)] as [string,string]);

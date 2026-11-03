@@ -96,6 +96,8 @@ public static class HccComposition
         // LF-IMAGES
         // LF-IMAGES end
         // F7-R1
+        Hcc.Reporting.ReportingModule.AddReportingModule(services); // F7-R1 report engine: catalogue, runner, renderers, schedules / runs / export log
+        services.AddHostedService<Hcc.Api.Endpoints.ReportScheduleWorker>();
         // F7-R1 end
         // F7-RPT (report lanes: one services.AddReport<...>() line each)
         // F7-RPT end
@@ -240,6 +242,9 @@ public static class HccComposition
         // F4-T2
         api.MapRevenueDigestEndpoints(); // F4-T2 GET /reports/revenue-by-category-tender, GET /digest/drafts
         // F4-T2 end
+        // F7-R1
+        api.MapReportEndpoints();        // F7-R1 /reports/catalogue, /reports/{id}, export, print-log, schedules, runs, favourites
+        // F7-R1 end
         // LF lanes: ONE api.Map<Lane>Endpoints(); line inside your own block (append only).
         // LF-DOCDB
         api.MapDocumentObjectEndpoints(); // LF-docdb: POST /admin/documents/sweep (PERM-DOC-006)
