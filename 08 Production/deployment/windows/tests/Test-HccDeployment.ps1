@@ -346,7 +346,7 @@ Check 'A09-15 upgrade: New-HccBackupKey comes before migrate (the safety backup 
 Check 'import order: every shipped template, dependencies first (room types, ledgers, outlets before their users)' {
     $order = Get-HccImportOrder
     $templates = @(Get-ChildItem -LiteralPath (Join-Path (Split-Path -Parent $root) 'import-templates\templates') -Filter '*.csv' | ForEach-Object { $_.BaseName } | Sort-Object)
-    (($order | Sort-Object) -join ',') -eq ($templates -join ',') -and $order.Count -eq 39 -and
+    (($order | Sort-Object) -join ',') -eq ($templates -join ',') -and $order.Count -eq 41 -and
     $order.IndexOf('room-types') -lt $order.IndexOf('rooms') -and $order.IndexOf('room-types') -lt $order.IndexOf('companies') -and
     $order.IndexOf('ledgers') -lt $order.IndexOf('opening-balances') -and $order.IndexOf('pos-outlets') -lt $order.IndexOf('pos-menu') -and
     $order.IndexOf('bank-accounts') -lt $order.IndexOf('payment-methods') -and $order.IndexOf('booking-sources') -lt $order.IndexOf('policies') -and $order.IndexOf('pos-outlets') -lt $order.IndexOf('pos-tables')
@@ -487,6 +487,8 @@ $psExe = (Get-Process -Id $PID).Path
 $tmp = Join-Path ([IO.Path]::GetTempPath()) ('hcc-ps-test-' + [guid]::NewGuid().ToString('N'))
 function DryRun([string]$Script, [string[]]$ScriptArgs) {
     $ErrorActionPreference = 'Continue'
+    # Windows PowerShell 5.1 drops an empty-string argument passed to a native exe; quote it so the script still receives ''.
+    if ($PSVersionTable.PSVersion.Major -lt 7) { $ScriptArgs = @($ScriptArgs | ForEach-Object { if ($_ -eq '') { '""' } else { $_ } }) }
     $out = & $psExe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File (Join-Path $root $Script) @ScriptArgs -WhatIf 2>&1 | Out-String
     return [pscustomobject]@{ Exit = $LASTEXITCODE; Out = $out }
 }
@@ -496,7 +498,7 @@ Check 'Backup-HccDatabase -WhatIf full: exit 0, prints plan, creates nothing' {
 }
 Check 'Backup-HccDatabase -WhatIf differential + copy-only tag' {
     $d = DryRun 'Backup-HccDatabase.ps1' @('-Type', 'Differential', '-BackupDirectory', $tmp)
-    $t = DryRun 'Backup-HccDatabase.ps1' @('-Type', 'Full', '-CopyOnly', '-Tag', 'premigrate_0100_to_0200', '-BackupDirectory', $tmp)
+    $t = DryRun 'Backup-HccDatabase.ps1' @('-Type', 'Full', '-CopyOnly', '-Tag', 'premigrate_0100_to_0200', '-Database', 'Hcc', '-BackupDirectory', $tmp)
     $d.Exit -eq 0 -and $d.Out -match 'DIFFERENTIAL' -and $t.Exit -eq 0 -and $t.Out -match 'COPY_ONLY' -and $t.Out -match '_PRE_'
 }
 Check 'Backup-HccDatabase refuses an ETP database and a relative folder' {
@@ -588,7 +590,7 @@ Check 'Import-HccMasters -WhatIf lists the sample files in server order, asks fo
     $r = DryRun 'Import-HccMasters.ps1' @('-Folder', $samples, '-OpeningBalancesDate', '2026-10-25', '-ServerUrl', 'https://hotelpc:5443')
     $d = DryRun 'Import-HccMasters.ps1' @('-Folder', $samples, '-OpeningBalancesDate', '2026-10-25', '-DryRun', '-Only', 'rooms')
     $lines = @($r.Out -split "`r?`n" | Where-Object { $_ -match 'UploadImportBatch' })
-    $r.Exit -eq 0 -and $lines.Count -eq 39 -and $lines[0] -match ' 1\. room-types\.csv' -and $lines[1] -match 'rooms\.csv' -and $lines[14] -match 'stock-items\.csv' -and
+    $r.Exit -eq 0 -and $lines.Count -eq 41 -and $lines[0] -match ' 1\. room-types\.csv' -and $lines[1] -match 'rooms\.csv' -and $lines[14] -match 'stock-items\.csv' -and
     $r.Out -match 'POST https://hotelpc:5443/api/v1/auth/sign-in' -and $r.Out -match 'opening-balances as at 2026-10-25' -and $r.Out -match '\*{8}' -and
     $d.Exit -eq 0 -and $d.Out -match 'POST https://localhost:5443/api/v1/commands/UploadImportBatch \(master rooms\)' -and $d.Out -match 'dryRun=true' -and @($d.Out -split "`r?`n" | Where-Object { $_ -match 'UploadImportBatch' }).Count -eq 1
 }
@@ -791,8 +793,9 @@ Check 'LF-docdb default config names HccDocuments; the sample hcc-ops.json carri
 }
 Check 'LF-docdb backup file names are per database (HccDocuments_FULL_...) and retention never mixes the two' {
     $d = New-HccBackupFileName -Database HccDocuments -Type Full -UtcNow $now
+    $del = Select-HccBackupsToDelete -Names @($d, (Nm Full 200), (Nm Full 201), (Nm Full 202), (Nm Full 203)) -Database HccDocuments -UtcNow $now -RetentionDays 30 -KeepMinFulls 3
     $d -eq 'HccDocuments_FULL_20261025T120000Z.bak' -and (ConvertFrom-HccBackupFileName ($d + '.hccenc')).Database -eq 'HccDocuments' -and
-    @(Select-HccBackupsToDelete -Names @($d, (Nm Full 200), (Nm Full 201), (Nm Full 202), (Nm Full 203)) -Database HccDocuments -UtcNow $now -RetentionDays 30 -KeepMinFulls 3).Count -eq 0 -and
+    $del.Count -eq 0 -and
     (Select-HccRestoreChain -Names @($d, (Nm Full 1)) -Database HccDocuments).Full -eq $d
 }
 Check 'LF-docdb backup result of the documents database is written to the MAIN database with database_name; the main statement is unchanged' {
