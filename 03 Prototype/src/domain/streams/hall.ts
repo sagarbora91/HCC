@@ -49,7 +49,8 @@ export type HallLostReason={id:string;label:string;needsNote:boolean};
 export type HallCancelSlab={minDays:number;keptBps:number};
 export type HallSettings={validityDays:number;expiryReminderDays:number;advanceDefault:[number,number,'BALANCE'];secondDueDays:number;
   discountLimitBps:{RECEPTION:number;MANAGER:number;OWNER:number|null};refundManagerLimitPaise:number;
-  cancelSlabs:HallCancelSlab[];paxReduceFreeBps:number;enquiryAutoLostDays:number;enquiryWarnDays?:number;softHoldMaxDays?:number};
+  cancelSlabs:HallCancelSlab[];paxReduceFreeBps:number;enquiryAutoLostDays:number;enquiryWarnDays?:number;softHoldMaxDays?:number;
+  /** Q6 mapping switch hall.foodLedger: food in the hall to 4200 F&B (default) or 4400 with the hall income. */foodLedger?:'4200'|'4400'};
 export type HallState={venues:Venue[];enquiries:Enquiry[];quotations:Quotation[];templates:TncTemplate[];menus:MenuPackage[];events:HallEvent[];
   lostReasons:HallLostReason[];settings:HallSettings;seq?:number};
 
