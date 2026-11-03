@@ -15,7 +15,7 @@ export const rateChanges=registerReport({
   moneyFlag:true,moneyGate:'PERM-RPT-002',viewPerms:['PERM-RPT-002'],dateClass:'D-B',
   params:[{key:'from',label:'From',type:'date',dateClass:'D-B'},{key:'to',label:'To',type:'date',dateClass:'D-B'},{key:'room',label:'Room',type:'room'},{key:'changedBy',label:'Changed by',type:'user'}],
   columns:RATE_CHANGE_COLS,
-  dateBasis:'Changes by the business date they were made on (range up to 92 days). Rates are per night; guests = adults + children. Footer: count and net change in rate (new − old).',
+  dateBasis:'Changes by the business date they were made on (range up to 92 days). Rates are per night; guests = adults + children. Footer: count and net change in rate (new - old).',
   formats:['screen','xlsx','pdf','csv'],phone:'yes',legacyIds:['A36'],
   select:(s,_uid,p)=>{
     rangeGuard(p.from,p.to,92,s.date);
@@ -24,7 +24,7 @@ export const rateChanges=registerReport({
       return {kind:'row',cells:{changedAt:c.at.replace('T',' ').slice(0,16),room:c.room,booking:b?bookingNo(b):c.booking,guest:b?.guest??'',oldRate:c.oldRate,newRate:c.newRate,oldGuests:c.oldPeople+c.oldChildren,
         newGuests:c.newPeople+c.newChildren,reason:c.reason,authorisedBy:userLabel(s,c.approvedBy??c.by),changedBy:userLabel(s,c.by)}};});
     const net=list.reduce((a,c)=>a+c.newRate-c.oldRate,0);
-    rows.push({kind:'total',cells:{changedAt:`Total · ${list.length} change${list.length===1?'':'s'}`,newRate:net,reason:'Net change in rate (new − old)'}});
+    rows.push({kind:'total',cells:{changedAt:`Total · ${list.length} change${list.length===1?'':'s'}`,newRate:net,reason:'Net change in rate (new - old)'}});
     return {params:p,columns:RATE_CHANGE_COLS,rows};
   },
 });

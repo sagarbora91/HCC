@@ -14,7 +14,7 @@
      "title": null,
      "columns": ["changedAt","room","booking","guest","oldRate","newRate","oldGuests","newGuests","reason","authorisedBy","changedBy"],
      "rows": [
-      ["total","Total · 0 changes",null,null,null,null,0,null,null,"Net change in rate (new − old)",null,null]
+      ["total","Total · 0 changes",null,null,null,null,0,null,null,"Net change in rate (new - old)",null,null]
      ]
     }
    ]
