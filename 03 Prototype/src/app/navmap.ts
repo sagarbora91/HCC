@@ -62,6 +62,9 @@ export const PAGE_CATEGORY:Record<string,CategoryId>={
   // F4-T2 end
   // F4-T3
   // F4-T3 end
+  // F7-R2
+  'report-hub':'accounts',
+  // F7-R2 end
   access:'admin',settings:'admin',approvals:'admin',backup:'admin',roadmap:'admin',
 };
 
@@ -85,6 +88,7 @@ export function crumbsFor(page:string,pageLabel:string):{label:string;page?:stri
 
 /** One line under each page tile. */
 export const PAGE_BLURB:Record<string,string>={
+  'report-hub':'Every report: search, view, export, print or schedule', // F7-R2
   overview:'Today at a glance: arrivals, occupancy, cash',
   rooms:'Live room board with status and guests',calendar:'Date grid of room availability',reservations:'Search, create and manage bookings',guests:'Front-desk guest list and guest profiles',arrivals:'Check guests in; look up a booking ID',
   folios:'Guest bills, payments and balances',cashier:'Shift cash, drawer and counts',cashbook:'Daily cash in and out with running balance',pos:'Restaurant and room-service checks',expenses:'Record and approve petty expenses',
@@ -107,6 +111,7 @@ export const PAGE_BLURB:Record<string,string>={
 
 /** Extra words people type for a page (synonyms, hotel jargon, Hindi-English habits). The label and category are matched too. */
 export const PAGE_KEYWORDS:Record<string,string[]>={
+  'report-hub':['reports','report library','catalogue','schedule','export','print','favourites'], // F7-R2
   overview:['home','dashboard','today','summary','kpi','occupancy'],
   rooms:['room board','rooms','availability','vacant','dirty','clean','blocked','status','floor'],
   calendar:['calendar','availability','tape chart','grid','dates'],
