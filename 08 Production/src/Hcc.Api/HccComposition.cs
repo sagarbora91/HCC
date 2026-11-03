@@ -105,6 +105,14 @@ public static class HccComposition
         Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.Guests.FormCRegisterReport>(services); // F7-R3
         Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.Guests.RateChangesReport>(services); // F7-R3
         Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.Rooms.RoomStatusReport>(services); // F7-R3
+        // F7-R5 tax reports (GST summary reads the ACC-3 queries, which the accounting endpoints otherwise build per request)
+        services.AddSingleton(sp => Hcc.Api.Endpoints.AccountingAgeingEndpoints.GstQueriesOf(sp)); // F7-R5
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.Tax.SacSummaryReport>(services); // F7-R5
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.Tax.DocumentsIssuedReport>(services); // F7-R5
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.Tax.GstByBillReport>(services); // F7-R5
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.Tax.InvoiceRegisterReport>(services); // F7-R5
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.Tax.BillCorrectionsReport>(services); // F7-R5
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.Tax.GstSummaryReport>(services); // F7-R5
         // F7-RPT end
         // F5-E1
         services.AddEgressModule();                      // F5-E1 internet egress gate: net.* settings, "egress" client, hold / replay, System health Egress
