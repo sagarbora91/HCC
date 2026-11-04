@@ -20,3 +20,10 @@ af-ctr-svc, af-ctr-reads, af-ctr-ui, af-small, af-crm, af-pay08, af-ctl02-perf, 
 
 ## Verification: NOT COMPLETE
 Full npm test, both builds, dotnet build, full dotnet test, print-layout, tablet-back and fit check were started (script .scratch/verify.sh, logs .scratch/v-*.log, status .scratch/verify-status.txt) but had not finished when this lane was stopped. No counts are claimed. Baseline: prototype 2777 / server 4094. Secret scan not yet run. Line-ending check: git diff --shortstat 6a29f3e6..HEAD = 3317+/234-, with --ignore-cr-at-eol 3275+/192- (42 lines differ: a CRLF/LF mix to investigate, likely lane files).
+
+## Final verification (coordinator, 4-5 Nov 2026, claude/auditfix at the commit that adds this section)
+
+- npm test: **2827/2827** (21 async tests counted; baseline 2777). Earlier 2826/2827 failure was the FIT phone-layout guard; allowlisted the two intended phone changes (src/mobile/money/Payment.tsx for PAY-08, src/mobile/admin/sheets.tsx for UX-05), commits 8209ca3c and 3196ebbe.
+- dotnet test Hcc.slnx -maxcpucount:1: **4162 passed, 0 failed, 0 skipped across 42 projects** (baseline 4094, +68). dotnet build, npm run build, npm run build:production: exit 0. migrations lock in step (220).
+- tests/check-print-layout.mjs and tests/check-tablet-back.mjs: PASS (run with HCC_PLAYWRIGHT_PATH and HCC_CHROME_PATH = installed Chrome; the integrator's own run never executed them because of a mangled path). tools/fit-screen-check.mjs --pages counter-bills: PASS, 0 failing of 787.
+- Secret scan on 6a29f3e6..HEAD: ok, 0 findings (3,298 lines, 100 files). Line endings: tests/run.mjs restored to LF; raw and --ignore-cr-at-eol diffs agree (3298/192).
