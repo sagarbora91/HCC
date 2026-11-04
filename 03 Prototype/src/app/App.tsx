@@ -27,7 +27,8 @@ import {isNative,decideBack,hasStepBack,runStepBack,listenBackButton,styleStatus
 import {MobileShell} from './mobile/MobileShell';
 import {announceTab,type MobileTab} from './mobile/tabs';
 import {Empty,ExitAsk,DiscardAsk,dateLabel,clockTime} from '../components/ui';
-import {announceFolioDuplicate} from '../domain/streams/folio'; // AF-PAY08
+import {announceFolioDuplicate,folioDupDetails} from '../domain/streams/folio'; // AF-PAY08
+const DUP_TOAST='Needs your confirmation: tick "This is a second, separate payment" to post it.'; // AF-V22 D21-1: the dialog shows the full sentence once
 import {HccClientError} from '../clients/errors'; // AF-PAY08
 import {getSyncRuntime} from '../clients/sync/instance'; // AF-PAY08
 import {Overview} from '../features/overview/Overview';
@@ -191,7 +192,7 @@ function AppShell({initial,server}:{initial:Restored;/** Production only: state,
       busyRef.current=true;setBusy(true);
       try{
         const r=await server.run(cmd);
-        if(!r.ok){setError(r.text);toast(r.text,true);
+        if(!r.ok){if(!folioDupDetails(r.error))setError(r.text);toast(folioDupDetails(r.error)?DUP_TOAST:r.text,!folioDupDetails(r.error));
           // AF-PAY08 (PAY-08): a refused equal receipt is announced to the payment dialog that owns this key (it offers "This is a second, separate payment");
           // a lost answer (RESULT_UNKNOWN) refreshes the server data after 3 s so the folio shows the receipt if it did land.
           announceFolioDuplicate(cmd.key,r.error);
@@ -221,7 +222,7 @@ function AppShell({initial,server}:{initial:Restored;/** Production only: state,
     }catch(e){
       const code=codeOf(e),text=`${errorTitle[code]}: ${(e as Error).message}`;
       announceFolioDuplicate(command.key,e); // AF-PAY08
-      setError(text);toast(text,true);return false;
+      if(!folioDupDetails(e))setError(text);toast(folioDupDetails(e)?DUP_TOAST:text,!folioDupDetails(e));return false;
     }
   }
   function switchUser(id:string){

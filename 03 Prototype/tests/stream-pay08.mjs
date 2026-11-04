@@ -62,6 +62,11 @@ export function register({test,M,assert}){
     assert.equal(M.recentEqualReceipt(b,rows,'2026-10-24T10:04','refund'),undefined);
     assert.equal(M.recentEqualReceipt(b,rows,'2026-10-24T09:00'),undefined,'a receipt in the future of the clock is ignored');
   });
+  test('[AF-V22 D21-1] a refused duplicate is shown once: one amber confirmation, one prominent tick, no "Not posted" panel, no early note, a short toast',async()=>{
+    const ph=await readFile('src/mobile/money/Payment.tsx','utf8'),mod=await readFile('src/features/folio/modals.tsx','utf8'),app=await readFile('src/app/App.tsx','utf8');
+    for(const src of [ph,mod]){assert.match(src,/early&&!dup&&/);assert.match(src,/Needs your confirmation/);assert.match(src,/<label className="folio-dup-tick">/);assert.match(src,/This is a second, separate payment/);}
+    assert.match(ph,/failed&&!dup&&/);assert.match(app,/folioDupDetails\(r\.error\)\?DUP_TOAST/);assert.match(app,/if\(!folioDupDetails\(r\.error\)\)setError\(r\.text\)/);
+  });
   test('[AF-PAY08] shell and dialog wiring: App.tsx announces a refused duplicate and refreshes after RESULT_UNKNOWN; the payment dialog offers the tick',async()=>{
     const app=await readFile('src/app/App.tsx','utf8'),mod=await readFile('src/features/folio/modals.tsx','utf8');
     assert.match(app,/\/\/ AF-PAY08 \(PAY-08\)[\s\S]*announceFolioDuplicate\(cmd\.key,r\.error\)[\s\S]*RESULT_UNKNOWN[\s\S]*getSyncRuntime\(\)\.refresh\(\)[\s\S]*\/\/ AF-PAY08 end/);

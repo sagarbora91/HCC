@@ -132,8 +132,9 @@ export function PaymentModal({id}:{id:string}){
   };
   // AF-PAY08: early amber note (receipts carry their time in the demo; the server enforces the same 10-minute rule on its own clock) and, after a refusal, the confirmation tick.
   const early=recentEqualReceipt(b,effective.map(r=>({method:r.method,amount:paise(r.amount)})),s.clock,kind);
-  const dupNote=<>{early&&<div className="info-note folio-dup-note" role="note"><AlertTriangle size={16}/><span>A {money(early.receipt.amount)} {early.receipt.method} receipt was recorded at {((early.receipt as {at?:string}).at??'').slice(11,16)}. Post again only for a second, separate payment.</span></div>}
-    {dup&&<div className="info-note folio-dup-confirm" role="alert"><AlertTriangle size={16}/><span>{dup.message}<label className="folio-dup-tick"><input type="checkbox" checked={confirmDup} onChange={e=>setConfirmDup(e.target.checked)}/> This is a second, separate payment</label></span></div>}</>;
+  const dupNote=<>{early&&!dup&&<div className="info-note folio-dup-note" role="note"><AlertTriangle size={16}/><span>A {money(early.receipt.amount)} {early.receipt.method} receipt was recorded at {((early.receipt as {at?:string}).at??'').slice(11,16)}. Post again only for a second, separate payment.</span></div>}
+    {dup&&<div className="info-note folio-dup-confirm" role="alert"><AlertTriangle size={16}/><span><strong className="folio-dup-title">Needs your confirmation</strong>{dup.message}</span></div>}
+    {dup&&<label className="folio-dup-tick"><input type="checkbox" checked={confirmDup} onChange={e=>setConfirmDup(e.target.checked)}/><span>This is a second, separate payment</span></label>}</>;
   // AF-PAY08 end
   const kindLabel:Record<string,string>={payment:'Payment / advance against folio',deposit:'Receive refundable deposit','deposit-return':'Return refundable deposit'};
   if(step==='confirm')return <><div className="modal-heading"><div className="eyebrow">{bookingRef(b)} · {b.guest}</div><h2>Confirm before posting</h2><p>{kindLabel[kind]} · {money(target)}</p></div>

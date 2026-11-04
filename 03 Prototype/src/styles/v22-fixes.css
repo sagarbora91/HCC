@@ -1,0 +1,5 @@
+/* AF-V22 D21-1: a refused equal receipt asks for a confirmation (amber, once); the tick is a full-width 48 px row so it is not missed. Shared by the desktop and phone payment dialogs. */
+.info-note.folio-dup-confirm{background:var(--warn-bg);border-color:var(--warn-border);color:var(--warn-text)}
+.folio-dup-title{display:block;font-weight:700;margin-bottom:2px}
+.folio-dup-tick{display:flex;align-items:center;gap:12px;min-height:48px;margin:8px 0;padding:10px 12px;border:2px solid var(--warn-fill);border-radius:10px;background:var(--surface);color:var(--ink);font-weight:650;cursor:pointer}
+.folio-dup-tick input{width:24px;height:24px;flex:none;margin:0}

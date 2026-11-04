@@ -46,8 +46,9 @@ export function MmPayment({id}:{id?:string}){
   const kindLong=MM_PAY_KINDS.find(k=>k.id===kind)!.long;
   // AF-PAY08: early amber note (the demo receipts carry their time; the server enforces the 10-minute rule on its own clock) and, after a refusal, the 48 px confirmation tick.
   const early=recentEqualReceipt(b,eff.map(r=>({method:r.method,amount:mmPaise(r.amount)})),s.clock,kind);
-  const dupNote=<>{early&&<div className="info-note folio-dup-note" role="note"><AlertTriangle size={18}/><span>A {money(early.receipt.amount)} {early.receipt.method} receipt was recorded at {((early.receipt as {at?:string}).at??'').slice(11,16)}. Post again only for a second, separate payment.</span></div>}
-    {dup&&<div className="info-note folio-dup-confirm" role="alert"><AlertTriangle size={18}/><span>{dup.message}<label className="folio-dup-tick" style={{display:'flex',alignItems:'center',gap:8,minHeight:48}}><input type="checkbox" style={{width:24,height:24}} checked={confirmDup} onChange={e=>setConfirmDup(e.target.checked)}/> This is a second, separate payment</label></span></div>}</>;
+  const dupNote=<>{early&&!dup&&<div className="info-note folio-dup-note" role="note"><AlertTriangle size={18}/><span>A {money(early.receipt.amount)} {early.receipt.method} receipt was recorded at {((early.receipt as {at?:string}).at??'').slice(11,16)}. Post again only for a second, separate payment.</span></div>}
+    {dup&&<div className="info-note folio-dup-confirm" role="alert"><AlertTriangle size={18}/><span><strong className="folio-dup-title">Needs your confirmation</strong>{dup.message}</span></div>}
+    {dup&&<label className="folio-dup-tick"><input type="checkbox" checked={confirmDup} onChange={e=>setConfirmDup(e.target.checked)}/><span>This is a second, separate payment</span></label>}</>;
 
   if(step==='confirm')return <><div className="modal-heading"><div className="eyebrow">{bookingRef(b)} · {b.guest}</div><h2>Confirm before posting</h2><p>{kindLong}</p></div>
     <div className="mm-confirm-amt"><span>Total</span><strong className="number">{money(target)}</strong></div>
@@ -56,10 +57,10 @@ export function MmPayment({id}:{id?:string}){
       {kind!=='payment'&&<div className="mm-row mm-row-total"><div className="mm-row-main"><strong>Deposit held after posting</strong></div><div className="mm-row-amt"><strong className="number">{money(t.deposit+(kind==='deposit'?target:-target))}</strong></div></div>}</div>
     <div className="info-note mm-unverified"><AlertTriangle size={18}/><span><strong>Not verified.</strong> Manual entry — the bank/UPI transaction is not checked. Fictional demonstration receipt; no money moves.</span></div>
     {dupNote}
-    {failed&&(saved?<div className="mm-recover ok" role="status"><Check size={18}/><span><strong>Saved, but the confirmation was lost.</strong> The receipt is on the folio. Tap “Check again” — it reuses the same request and never creates a second receipt.</span></div>
+    {failed&&!dup&&(saved?<div className="mm-recover ok" role="status"><Check size={18}/><span><strong>Saved, but the confirmation was lost.</strong> The receipt is on the folio. Tap “Check again” — it reuses the same request and never creates a second receipt.</span></div>
       :<div className="mm-recover" role="status"><RefreshCw size={18}/><span><strong>Not posted.</strong> {error||'The service did not accept it.'} You can safely try again — the same request is reused.</span></div>)}
     <div className="modal-actions"><button type="button" className="btn" disabled={busy} onClick={()=>{setStep('form');setFailed(false);}}>Edit</button>
-      <button className="btn primary mm-big" disabled={busy||(!!dup&&!confirmDup)} onClick={post}>{busy?'Posting…':failed?(saved?'Check again':'Try again'):'Confirm '+money(target)} <Check size={18}/></button></div></>;
+      <button className="btn primary mm-big" disabled={busy||(!!dup&&!confirmDup)} onClick={post}>{busy?'Posting…':failed&&!dup?(saved?'Check again':'Try again'):'Confirm '+money(target)} <Check size={18}/></button></div></>;
 
   return <><div className="modal-heading"><div className="eyebrow">{bookingRef(b)} · {b.guest}</div><h2>Record a payment</h2><p>Balance {money(t.balance)} · Deposit held {money(t.deposit)}</p></div>
     <form className="form mm-form" onSubmit={review} noValidate>

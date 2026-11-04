@@ -34,3 +34,11 @@
 .rpt-card dl div{display:flex;justify-content:space-between;gap:12px}
 .rpt-card dt{color:var(--muted)}
 .rpt-card dd{margin:0;text-align:right}
+/* AF-V22 D21-3: phone Report library. The search box was a flex item of a column, so its 220px basis became its HEIGHT (a ~570px empty card): it keeps its own height. */
+.rpt-m .rpt-search{flex:none;min-height:48px}
+/* Parameters get the app's field styling: label above, full-width 48px control, 16px text; From / To sit side by side when they fit. */
+.rpt-m .rpt-params{align-items:stretch;gap:12px;margin:4px 0}
+.rpt-m .rpt-params label{display:flex;flex-direction:column;gap:4px;flex:1 1 150px;font-size:16px;font-weight:600;color:var(--ink)}
+.rpt-m .rpt-params label.rpt-check{flex:1 1 100%;flex-direction:row;align-items:center;gap:10px;min-height:48px}
+.rpt-m .rpt-params input:not([type=checkbox]),.rpt-m .rpt-params select{box-sizing:border-box;width:100%;min-height:48px;padding:10px 12px;font-size:16px;font-weight:400;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:8px}
+.rpt-m .rpt-params input[type=checkbox]{width:24px;height:24px}
