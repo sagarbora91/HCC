@@ -92,6 +92,9 @@ import {catalogue} from './catalogue';
 // F6-H3
 import {hall} from './hall'; // F6 hall booking: enquiries, halls master, accept, advances, event bill, cancel, refund, credit note
 // F6-H3 end
+// AF-NETSET
+import {egress} from './egress';
+// AF-NETSET end
 export const AREAS:SyncArea[]=[
   core,
   reservations,
@@ -163,4 +166,7 @@ export const AREAS:SyncArea[]=[
   // F6-H3
   hall,
   // F6-H3 end
+  // AF-NETSET
+  egress,
+  // AF-NETSET end
 ];
