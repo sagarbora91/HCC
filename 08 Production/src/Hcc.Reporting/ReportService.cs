@@ -100,8 +100,12 @@ public sealed class ReportService(ReportRunner runner, IReportCatalogue catalogu
         if (!await runner.CanViewAsync(c, def, ct).ConfigureAwait(false)) throw new HccException(HccErrorCode.FORBIDDEN, $"You cannot print {def.Title}.");
         if (req.Rows < 0) throw HccException.Validation("Row count.");
         return await exportLog.AppendAsync(c.PropertyId, new ReportExportLogRecord(0, clock.GetUtcNow(), c.PrincipalId, id, JsonSerializer.Serialize(req.Params ?? new Dictionary<string, string>()),
-            ReportFormat.Print, req.Rows, null, req.Provisional), ct).ConfigureAwait(false);
+            PrintLogFormat(req.Format), req.Rows, null, req.Provisional), ct).ConfigureAwait(false);
     }
+
+    /// <summary>AF-INT (EX-01): the format the device reports for a print-log row. Blank or "print" = Print; xlsx / csv / pdf as the export route parses them.</summary>
+    private static ReportFormat PrintLogFormat(string? format) =>
+        string.IsNullOrWhiteSpace(format) || string.Equals(format.Trim(), "print", StringComparison.OrdinalIgnoreCase) ? ReportFormat.Print : ParseFormat(format.Trim());
 
     public async Task<bool> ToggleFavouriteAsync(Caller c, string id, CancellationToken ct = default)
     {
