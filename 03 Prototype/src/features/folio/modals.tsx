@@ -5,7 +5,7 @@ import {DocPrintButton} from '../reports/documents/DocButton'; // F7-R7
 import {printDocument} from '../../app/native';
 import {FeedbackSheet,FeedbackBillLine} from '../guest-services/Feedback'; // F4-T3
 import {bookingRef} from '../../domain/bookingRef';
-import React,{useState} from 'react';
+import React,{useState,useEffect} from 'react';
 import {Receipt,Printer,Info,ShieldCheck,Check,ArrowRight,Hotel,Plus,Trash2,RotateCcw,Building2,AlertTriangle} from 'lucide-react';
 import {resStatus,Approval,money,nights,totals,folioNights,folioRefundable,folioRefunded,folioLineReversed,folioLineCorrectable,folioApprovalsFor,folioApprovalStatus,folioKind,folioKindLabel,folioReceiptLabel,folioCompanyCreditState,folioCheckoutBlockers,FOLIO_MANAGER_CREDIT_LIMIT,mnyNames,mnyMethod,mnyIsDrawer,plural,rbacCanViewFolios,rbacCanDiscount,rbacCanRequestCorrection,rbacDiscountLimit,rbacApprovalLimit,RBAC_OWNER_DECIDES} from '../../services/mock';
 import {useHcc} from '../../app/context';
@@ -15,6 +15,7 @@ import {bookingActionSlots} from '../../app/registry';
 import {CompanyCreditPanel} from '../groups/credit';
 import {ApplyDepositPanel,useOtaCredit} from './deposit'; // ACC-2
 import {useCashBlock} from '../../clients/sync/cashier-ui';
+import {recentEqualReceipt,onFolioDuplicate} from '../../domain/streams/folio'; // AF-PAY08
 const useBooking=(id:string)=>{const c=useHcc();return {...c,b:c.s.bookings.find(b=>b.id===id)};};
 /** Production only (W4 D1): issue the tax invoice for a departed stay that has none — the step after checkout was refused (e.g. no hotel
  *  GSTIN yet) or the checkout user could not issue invoices. Maps to IssueInvoice (sync/money.ts INVOICE_ISSUE) with a stable key. */
@@ -97,6 +98,8 @@ const paise=(v:string)=>Math.round(Number(v||0)*100);
 /** SCR-09 payment dialog: one or more tender rows summing to the amount, then a confirmation summary before posting. */
 export function PaymentModal({id}:{id:string}){
   const {s,b,run,booking,modal,busy}=useBooking(id);
+  const [dup,setDup]=useState<{receiptId:string;message:string}|null>(null),[confirmDup,setConfirmDup]=useState(false); // AF-PAY08
+  useEffect(()=>onFolioDuplicate(modal?.key,setDup),[modal?.key]); // AF-PAY08: the shell announces a refused equal receipt for this dialog's key
   const t=b?totals(b):undefined;
   const [kind,setKind]=useState('payment');
   // MA-3: methods from the payment-methods master (front desk); reference rule and drawer effect from the row.
@@ -122,17 +125,24 @@ export function PaymentModal({id}:{id:string}){
   };
   const next=(e:React.FormEvent)=>{e.preventDefault();const p=check();setProblem(p);if(!p)setStep('confirm');};
   const post=()=>{
-    const cmd=single?{type:'PAYMENT',id:b.id,amount:target,kind,method:effective[0].method,reference:effective[0].reference.trim(),key:modal!.key}
+    const base=single?{type:'PAYMENT',id:b.id,amount:target,kind,method:effective[0].method,reference:effective[0].reference.trim(),key:modal!.key}
       :{type:'PAYMENT',id:b.id,amount:target,kind,tenders:effective.map(r=>({method:r.method,amount:paise(r.amount),reference:r.reference.trim()})),key:modal!.key};
+    const cmd=dup&&confirmDup?{...base,confirmDuplicate:true}:base; // AF-PAY08: the same dialog, the same key; the cashier ticked "second, separate payment"
     run(cmd,single?'Receipt recorded once':`${rows.length} receipts recorded once`,{after:()=>booking(b.id)});
   };
+  // AF-PAY08: early amber note (receipts carry their time in the demo; the server enforces the same 10-minute rule on its own clock) and, after a refusal, the confirmation tick.
+  const early=recentEqualReceipt(b,effective.map(r=>({method:r.method,amount:paise(r.amount)})),s.clock,kind);
+  const dupNote=<>{early&&<div className="info-note folio-dup-note" role="note"><AlertTriangle size={16}/><span>A {money(early.receipt.amount)} {early.receipt.method} receipt was recorded at {((early.receipt as {at?:string}).at??'').slice(11,16)}. Post again only for a second, separate payment.</span></div>}
+    {dup&&<div className="info-note folio-dup-confirm" role="alert"><AlertTriangle size={16}/><span>{dup.message}<label className="folio-dup-tick"><input type="checkbox" checked={confirmDup} onChange={e=>setConfirmDup(e.target.checked)}/> This is a second, separate payment</label></span></div>}</>;
+  // AF-PAY08 end
   const kindLabel:Record<string,string>={payment:'Payment / advance against folio',deposit:'Receive refundable deposit','deposit-return':'Return refundable deposit'};
   if(step==='confirm')return <><div className="modal-heading"><div className="eyebrow">{bookingRef(b)} · {b.guest}</div><h2>Confirm before posting</h2><p>{kindLabel[kind]} · {money(target)}</p></div>
     <div className="summary-list">{effective.map((r,i)=><div key={i}><span>{r.method}{r.reference.trim()?' · '+r.reference.trim():''}</span><strong>{money(paise(r.amount))}</strong></div>)}
       <div><span>Total</span><strong>{money(target)}</strong></div>
       {kind==='payment'&&<div><span>Balance after posting</span><strong>{money(t.balance-target)}</strong></div>}</div>
+    {dupNote}
     <div className="info-note folio-unverified"><AlertTriangle size={16}/><span><strong>Manual entry — bank/UPI transaction not verified</strong>. This is a fictional demonstration receipt; no money moves. Retrying after an unclear result reuses the same request and never creates a second receipt.</span></div>
-    <div className="modal-actions"><button type="button" className="btn" disabled={busy} onClick={()=>setStep('form')}>Edit</button><button className="btn primary" disabled={busy} onClick={post}>{busy?'Posting…':'Post '+(single?'receipt':rows.length+' receipts')} <Check size={16}/></button></div></>;
+    <div className="modal-actions"><button type="button" className="btn" disabled={busy} onClick={()=>setStep('form')}>Edit</button><button className="btn primary" disabled={busy||(!!dup&&!confirmDup)} onClick={post}>{busy?'Posting…':'Post '+(single?'receipt':rows.length+' receipts')} <Check size={16}/></button></div></>;
   return <><div className="modal-heading"><div className="eyebrow">{bookingRef(b)} · {b.guest}</div><h2>Record a payment</h2><p>Balance {money(t.balance)} · Deposit held {money(t.deposit)}</p></div>
     <form className="form" onSubmit={next} noValidate>
       <label>Entry type<select name="kind" value={kind} onChange={e=>{setKind(e.target.value);if(e.target.value==='deposit-return')setRows(rows.slice(0,1));}}>{Object.entries(kindLabel).map(([k,v])=><option key={k} value={k}>{v}</option>)}</select></label>
@@ -148,6 +158,7 @@ export function PaymentModal({id}:{id:string}){
           {!single&&<span className={'muted '+(sum!==target?'folio-mismatch':'')}>Allocated {money(sum)} of {money(target||0)}{sum!==target?` · ${money(target-sum)} left`:' ✓'}</span>}</div>
       </fieldset>
       {cashBlock&&<div className="info-note" role="status"><Info size={16}/>{cashBlock}</div>}
+      {early&&dupNote}
       {[...new Set(rows.map(r=>mnyMethod(s,r.method)).filter(m=>m&&Number(m.surchargePct)>0))].map(m=><div key={m!.id} className="info-note" role="note"><Info size={16}/>{m!.name}: surcharge {Number(m!.surchargePct)/100} % (payment methods master) — not added automatically; post it as a charge if the hotel applies it.</div>)}
       {problem&&<p className="field-error" role="alert">{problem}</p>}
       <div className="info-note"><Info size={16}/>Refunds are requested from the original receipt on the folio and need approval before a cashier executes them.</div>

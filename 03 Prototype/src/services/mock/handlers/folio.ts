@@ -2,6 +2,7 @@
 // COMPANY_CREDIT_REQUEST, CORRECTION_REQUEST, CREDIT_NOTE). Replaces the built-in versions of the owned commands;
 // existing error message texts are kept (tests match on them).
 import type {Handler,Kit} from '../commands';
+import {HccError} from '../../../domain/errors';
 import {deskCheckoutLate} from './desk'; // LF-DESK
 import type {Approval,Booking,Receipt} from '../../../domain/types';
 import {money,addDays} from '../../../domain/money';
@@ -11,7 +12,7 @@ import {rbacCanDiscount,rbacDiscountLimit,rbacApprovalLimit,rbacCanRequestCorrec
 import {cbIsLocked,cbLockedMessage} from '../../../domain/streams/cashbook';
 import {mnyMethod,mnyMethodFor,mnyIsDrawer} from '../../../domain/streams/money-master';
 import {mstFail} from '../../../domain/streams/masters';
-import {FOLIO_MANAGER_CREDIT_LIMIT,folioExpiresAt,folioKind,folioApprovalExpired,folioRefundable,folioOutstandingRefunds,folioLineCorrectable} from '../../../domain/streams/folio';
+import {recentEqualReceipt,folioDupMessage,FOLIO_DUP_REASON,FOLIO_MANAGER_CREDIT_LIMIT,folioExpiresAt,folioKind,folioApprovalExpired,folioRefundable,folioOutstandingRefunds,folioLineCorrectable} from '../../../domain/streams/folio';
 import {fdmAllocate} from '../../../domain/streams/frontdesk-master';
 import {closingReopened} from '../../../domain/streams/closing';
 import {grpAccountOf,grpExposure,grpBookingExposure,grpCreditRefusal} from '../../../domain/streams/groups';
@@ -63,6 +64,15 @@ const validMethod=(k:Kit,method:unknown,reference:unknown,original?:string):stri
   return m!.name;
 };
 
+// AF-PAY08 (AF-DEC-1): the server's duplicate-receipt rule on s.clock; `confirmDuplicate` bypasses it. Runs after execute()'s idempotent same-key check.
+function dupGuard(k:Kit,x:Booking,kind:string,rows:{method:string;amount:number}[]){
+  if(k.cmd.confirmDuplicate===true)return;
+  const hit=recentEqualReceipt(x,rows,k.s.clock,kind);if(!hit)return;
+  const at=(hit.receipt as Receipt&{at?:string}).at!;
+  throw Object.assign(new HccError('VALIDATION',folioDupMessage(hit.receipt.method,kind,money(hit.receipt.amount),at,hit.minutes,hit.receipt.id)),{details:{reason:FOLIO_DUP_REASON,receiptId:hit.receipt.id}});
+}
+// AF-PAY08 end
+
 const PAYMENT:Handler=k=>{
   // PERM-PAY-001/002 (coarse: payments)
   const {s,cmd,req,b,open,positive,assert,mutable,fail,id,uid}=k;
@@ -77,8 +87,9 @@ const PAYMENT:Handler=k=>{
     assert(cmd.amount===bal,`Receive exactly the balance due after the bill correction: ${money(bal)}.`);
     assert(!Array.isArray(cmd.tenders)||cmd.tenders.length<=1,'Receive the correction balance with a single tender.');
     const method=validMethod(k,cmd.method,cmd.reference);
+    dupGuard(k,x,'payment',[{method,amount:cmd.amount}]); // AF-PAY08
     if(mnyIsDrawer(s,method))accCashEnforce(s,{kind:'receipt',party:'booking:'+x.id,scope:'booking:'+x.id,amount:cmd.amount});
-    x.receipts.push({id:id('RCPT'),amount:cmd.amount,method,date:s.date,kind:'payment',reference:'Bill correction '+corr!.id+(String(cmd.reference??'').trim()?' · '+String(cmd.reference).trim():''),actor:uid});
+    x.receipts.push(Object.assign({id:id('RCPT'),amount:cmd.amount,method,date:s.date,kind:'payment' as const,reference:'Bill correction '+corr!.id+(String(cmd.reference??'').trim()?' · '+String(cmd.reference).trim():''),actor:uid},{at:s.clock})); // AF-PAY08: at = s.clock
     x.version++;
     return `${x.id} · payment ${money(cmd.amount)} · balance after bill correction ${corr!.id} settled`;
   }
@@ -96,13 +107,14 @@ const PAYMENT:Handler=k=>{
   assert(sum===cmd.amount,`Tender rows total ${money(sum)} but the payment amount is ${money(cmd.amount)}. They must be equal.`);
   if(kind==='deposit-return'){const ld=x.receipts.find(r=>r.kind==='deposit'&&cbIsLocked(s,r.date));assert(!ld,cbLockedMessage(ld?.date??'','returning a deposit taken on that day'),'DAY_CLOSED');} // DEC-065
   if(kind==='deposit-return')assert(cmd.amount<=totals(x).deposit,'Return cannot exceed the deposit held.');
+  dupGuard(k,x,kind,tenders); // AF-PAY08
   // ACC-2 flows (contract §7, rulebook B9): cash from the guest at or above ₹2,00,000 on a day or for the booking is refused (CASH_LIMIT).
   if(kind!=='deposit-return'){const cash=tenders.filter(t=>mnyIsDrawer(s,t.method)).reduce((a,t)=>a+t.amount,0);if(cash)accCashEnforce(s,{kind:'receipt',party:'booking:'+x.id,scope:'booking:'+x.id,amount:cash});}
   const group=tenders.length>1?id('TND'):undefined;
   for(const t of tenders){
     const r:Receipt={id:id('RCPT'),amount:t.amount,method:t.method,date:s.date,kind,reference:t.reference||'Demo cash',actor:uid};
     if(group)r.tenderGroup=group;
-    x.receipts.push(r);
+    x.receipts.push(Object.assign(r,{at:s.clock})); // AF-PAY08: at = s.clock (the duplicate guard)
   }
   x.version++;
   return x.id+' · '+kind+' · '+money(cmd.amount)+(tenders.length>1?` · ${tenders.length} tenders (${tenders.map(t=>t.method).join(' + ')})`:'')+' · manual entry, not verified';
