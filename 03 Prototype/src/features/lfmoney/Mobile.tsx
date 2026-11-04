@@ -74,10 +74,10 @@ function BillCards({bills,empty}:{bills:CTRBill[];empty:React.ReactNode}){
 function BillsPhone(){
   const {s}=useHcc();const bills=[...ctrState(s).bills].reverse();
   const [f,setF]=useState<CounterLookupQuery>({invoiceNo:'',from:'',to:''});const [q,setQ]=useState<CounterLookupQuery>({});
-  const prod=process.env.HCC_BUILD==='production';
-  const srv=prod?useCounterBillLookup(q,true):NO_LOOKUP; // eslint-disable-line react-hooks/rules-of-hooks
+
+  const srv=process.env.HCC_BUILD==='production'?useCounterBillLookup(q,true):NO_LOOKUP; // eslint-disable-line react-hooks/rules-of-hooks
   const searching=counterLookupActive(q);
-  const found=!searching?[]:prod?[...(srv.data??[])].reverse():ctrLookupLocal(ctrState(s).bills,q);
+  const found=!searching?[]:process.env.HCC_BUILD==='production'?[...(srv.data??[])].reverse():ctrLookupLocal(ctrState(s).bills,q);
   return <div>
     <form className="form padded" aria-label="Find an older bill" onSubmit={e=>{e.preventDefault();setQ({invoiceNo:f.invoiceNo?.trim(),from:f.from,to:f.to});}}>
       <label>Find an older bill — invoice no.<input style={T48} value={f.invoiceNo} maxLength={40} onChange={e=>setF({...f,invoiceNo:e.target.value})}/></label>
@@ -85,8 +85,8 @@ function BillsPhone(){
       <label>To<input style={T48} type="date" value={f.to} onChange={e=>setF({...f,to:e.target.value})}/></label>
       <button type="submit" className="btn" style={T48} disabled={!counterLookupActive(f)}>Find</button>
       {searching&&<button type="button" className="btn" style={T48} onClick={()=>{setQ({});setF({invoiceNo:'',from:'',to:''});}}>Clear</button>}</form>
-    {searching?(prod&&srv.status==='loading'&&!srv.data?<p className="muted padded" role="status">Looking for the bill…</p>
-      :prod&&srv.status==='error'&&!srv.data?<p className="muted padded" role="alert">Could not look the bill up: {srv.error}</p>
+    {searching?(process.env.HCC_BUILD==='production'&&srv.status==='loading'&&!srv.data?<p className="muted padded" role="status">Looking for the bill…</p>
+      :process.env.HCC_BUILD==='production'&&srv.status==='error'&&!srv.data?<p className="muted padded" role="alert">Could not look the bill up: {srv.error}</p>
       :<BillCards bills={found} empty={<Empty title="No bill matches" body="Check the invoice number or widen the dates."/>}/>)
     :<BillCards bills={bills} empty={<Empty title="No counter bills yet" body="Issue one from the New bill tab."/>}/>}
   </div>;
