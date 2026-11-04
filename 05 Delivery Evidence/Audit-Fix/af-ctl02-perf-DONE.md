@@ -60,4 +60,4 @@ Import `BLCChange` from the types module if not already imported. Notes: `remove
 af-ctl02-perf (wave 2, 4 Nov): CTL-02 closed on the server (the correction register carries requester, approval, decider and stored changes in one batch; 2 new SQL tests; client mapping owed to af-int). PER-01 measured: customer list / profile cost is linear, about 29 ms and 4.3 MB per 1,000 guests (30k: 0.85 s, 125 MB per call); recommendation: approve the SQL-side rewrite (Q7). See `05 Delivery Evidence/Audit-Fix/PER-01-measurement.md`.
 
 ## Secret scan and line endings
-Appended below after the final commit.
+Secret scan (Invoke-SecretScan, base 6a29f3e6): ok=true, 0 findings, 507 lines in 12 files. Line endings: `git diff --stat claude/auditfix..HEAD` and `--ignore-cr-at-eol` show identical counts (316 insertions, 8 deletions); `SqlBillCorrectionStore.cs` is LF in the repo (kept LF), `BillCorrectionService.cs` and the new test files are CRLF.
