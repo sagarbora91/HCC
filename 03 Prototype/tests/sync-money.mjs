@@ -128,7 +128,7 @@ export async function register({test,assert,M}){
   const cc=await run({type:'COMPANY_CREDIT_REQUEST',id:'1201',key:'cc:1201:1'});const ccCmd=srv.commands('RequestAdjustment')[0];
   const cor=await run({type:'CORRECTION_REQUEST',id:'1201',lineId:'9002',reason:'Wrong folio',key:'cor:1'});const corCmd=srv.commands('RequestAdjustment')[0];
   test('[W4-3 money] CHARGE → PostCharge (GST category, no client tax); DISCOUNT / REFUND_REQUEST / COMPANY_CREDIT_REQUEST / CORRECTION_REQUEST → RequestAdjustment bound to the loaded folio version',()=>{
-    assert.deepEqual(cashBody.body,{folioId:5001,kind:'deposit',tender:'Cash',amountPaise:100000,reference:null,tillId:3});
+    assert.deepEqual(cashBody.body,{folioId:5001,kind:'deposit',tender:'Cash',amountPaise:100000,reference:null,tillId:3,confirmDuplicate:false});
     for(const x of [charge,disc,rr,cc,cor])assert.ok(x.r.ok,x.r.text);
     assert.deepEqual([chargeCmd.key,chargeCmd.body],['chg:1',{folioId:5001,label:'Dinner',amountPaise:30000,gstCategory:'food'}]);
     // DEC-077: a missed charge on the reopened day names it as the service date (the server decides whether that day is reopened).
