@@ -105,7 +105,7 @@ switch ($State) {
             if ($PSCmdlet.ShouldProcess('ops.egress_firewall_state', "record applied_state = $wanted")) { Invoke-EgressSql ("UPDATE ops.egress_firewall_state SET applied_state = " + (ConvertTo-HccSqlLiteral $wanted) + ", applied_utc = SYSUTCDATETIME(), detail = " + (ConvertTo-HccSqlLiteral $detail) + " WHERE id = 1;") | Out-Null }
         } catch {
             $msg = $_.Exception.GetType().Name
-            try { Invoke-EgressSql ("UPDATE ops.egress_firewall_state SET detail = " + (ConvertTo-HccSqlLiteral ("not applied: " + $msg)) + " WHERE id = 1;") | Out-Null } catch { }
+            if ($PSCmdlet.ShouldProcess('ops.egress_firewall_state', "record detail = not applied: $msg")) { try { Invoke-EgressSql ("UPDATE ops.egress_firewall_state SET detail = " + (ConvertTo-HccSqlLiteral ("not applied: " + $msg)) + " WHERE id = 1;") | Out-Null } catch { } }
             Write-HccLog "Egress firewall apply failed ($msg); the software gate still holds." -Level ERROR
             exit 1
         }

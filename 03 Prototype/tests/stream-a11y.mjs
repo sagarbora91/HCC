@@ -49,8 +49,8 @@ export function register({test,assert}){
     assert.match(m,/e\.key==='Escape'\)\{e\.preventDefault\(\);closeModal\(\)/);
     assert.doesNotMatch(m,/autoFocus/);
     assert.match(m,/aria-labelledby/);
-    // AC-04: submit still clears the dirty flag so no "Discard" prompt follows a successful submit
-    assert.match(m,/onSubmitCapture=\{\(\)=>setDirty\(false\)\}/);
+    // UX-05: only a successful run() clears the flag (App.tsx AC-04); the sheet never clears it on submit
+    assert.doesNotMatch(m,/onSubmitCapture/);
     const app=read('src/app/App.tsx');
     assert.match(app,/AC-04/);assert.match(app,/closeModal=\(\)=>\{if\(dirty\.current\)\{setDiscardAsk\(true\)/);assert.doesNotMatch(app,/window\.confirm/); // V14-1: the app's own DiscardAsk dialog
   });

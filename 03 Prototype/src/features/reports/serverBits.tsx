@@ -98,6 +98,7 @@ export function ServerHistorySummary({compact=false}:{compact?:boolean}){
       <span className="hist-label">{m.label}</span>
       <span className="hist-bar" aria-hidden="true"><i style={{width:Math.max(2,Math.round(m.roomRevenue/max*100))+'%'}}/></span>
       <span className="hist-val"><strong>{money(m.roomRevenue)}</strong><small>{m.occupancy} occupied · ADR {m.adr}</small></span></li>)}</ul>
+    {f.data.errors.length>0&&<p className="sync-report-note" role="alert">{f.data.errors.length} month(s) could not be loaded from the server: {f.data.errors.map(e=>e.month).join(', ')}. Totals cover the loaded months.</p>}
     <p className="sync-report-note">Stays and cancellations per month are on the server PC.</p>
   </section>;
 }

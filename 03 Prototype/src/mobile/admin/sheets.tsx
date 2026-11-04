@@ -29,11 +29,11 @@ export function MaRejectSheet({id}:{id?:string}){
 }
 
 export function MaAuditFilterSheet(){
-  const {s,closeModal}=useHcc();const {audit}=useMaUi();
+  const {s,closeModal,setDirty}=useHcc();const {audit}=useMaUi();
   const [f,setF]=useState(audit);const {actors,actions}=maAuditOptions(s);
   const set=(k:keyof typeof f)=>(e:React.ChangeEvent<HTMLInputElement|HTMLSelectElement>)=>setF({...f,[k]:e.target.value});
   return <><div className="modal-heading"><h2>Filter audit log</h2><p>Narrow by who, what, text or business date.</p></div>
-    <form className="form" onSubmit={e=>{e.preventDefault();maSetUi({audit:f});closeModal();}}>
+    <form className="form" onSubmit={e=>{e.preventDefault();maSetUi({audit:f});setDirty(false);closeModal();}}>
       <label>Actor<select value={f.actor||''} onChange={set('actor')}><option value="">All actors</option>{actors.map(a=><option key={a}>{a}</option>)}</select></label>
       <label>Action<select value={f.action||''} onChange={set('action')}><option value="">All actions</option>{actions.map(a=><option key={a}>{a}</option>)}</select></label>
       <label>Contains text<input value={f.text||''} onChange={set('text')} enterKeyHint="search" placeholder="booking, room, setting…"/></label>

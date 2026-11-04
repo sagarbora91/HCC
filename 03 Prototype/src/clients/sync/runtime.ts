@@ -37,7 +37,15 @@ export const NOT_ON_SERVER='Not available on the server yet';
 /** Commands no area maps whose refusal says more than NOT_ON_SERVER. MSG_DOC_EXTRACT (A09-08): the production app has no capture screen for
  *  CaptureIdDocument yet, and a Production server has no OCR engine, so a scan request gets the server's own sentence (errors.ts) instead of a
  *  developer-style "not on the server yet". Once a capture screen sends the real command, the server's refusal reaches the user unchanged. */
-export const UNMAPPED_TEXT:Record<string,string>={MSG_DOC_EXTRACT:OCR_NOT_CONFIGURED};
+export const UNMAPPED_TEXT:Record<string,string>={MSG_DOC_EXTRACT:OCR_NOT_CONFIGURED,
+  // AF-SMALL (audit items 24/25): commands with no server mapping answer in words instead of the generic refusal.
+  RPT_RUN_DUE:'Scheduled reports are run by the hotel server on their own schedule; there is no "run now" from this device.',
+  TRC_IMPORT:'The rate card is imported on the hotel server PC (CSV); not available from this device.',
+  AI_ASK:'The management assistant is a demonstration feature of the prototype and is not on the server.',AI_CLEAR:'The management assistant is a demonstration feature of the prototype and is not on the server.',AI_SETTINGS:'The management assistant is a demonstration feature of the prototype and is not on the server.',
+  KEY_AGENT_STEP:'Demo encoder controls: the real Key Agent runs beside the hotel PC and reports on its own.',KEY_CLOCK:'Demo encoder controls: the real Key Agent runs beside the hotel PC and reports on its own.',KEY_SIM:'Demo encoder controls: the real Key Agent runs beside the hotel PC and reports on its own.',KEY_ENCODER:'Demo encoder controls: the real Key Agent runs beside the hotel PC and reports on its own.',
+  SHIFT_CLOSE:'A shift is closed by submitting the cash count (Cashier › Submit count).',
+  STAY_CHECKOUT_BASIS:'Change the check-out basis from the booking (Change stay).',
+  QUO_EXPIRE:'Runs on the hotel server on its own schedule.',NET_TICK:'Runs on the hotel server on its own schedule.',DIGEST_REDRAFT:'Runs on the hotel server on its own schedule.',GRP_SWEEP:'Runs on the hotel server on its own schedule.',HALL_NIGHT_RUN:'Runs on the hotel server on its own schedule.'};
 export const READ_ONLY_REFUSAL='Server unavailable — read-only. Nothing was sent and nothing is saved on this device';
 /** Focus / visibility refreshes at most this often. */
 export const FOCUS_REFRESH_MS=30_000;
