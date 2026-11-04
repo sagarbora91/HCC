@@ -4,7 +4,9 @@
 import {HccClientError} from '../errors';
 import {serverId,protoId,protoUserId,utcToClock} from './map';
 import type {BLCState,BLCCorrection,CTRState,CTRBill,STRState,GuestAgreedRate} from '../../domain/types';
-import type {SyncArea,CommandCtx} from './types';
+import type {SyncArea,SyncApi,CommandCtx} from './types';
+import {mnyIsDrawer,mnyMethod} from '../../domain/streams/money-master';
+import {shiftClosedText} from './money';
 
 const text=(v:unknown)=>String(v??'').trim();
 const stayOf=(c:CommandCtx,id:string)=>{const s=c.ids.server('stay',id);if(s===undefined)throw new HccClientError('VALIDATION','This stay is not in house on the server. Refresh and try again.');return s;};
@@ -74,6 +76,13 @@ export function creditAccountsFromServer(rows:SrvCreditGuest[]):Map<string,Credi
 }
 export type {GuestAgreedRate};
 
+/** HIS-01: an older bill by invoice number and/or date range (GET /counter-bills?invoiceNo=&from=&to=); same rows as the list, oldest first. */
+export async function counterBillLookup(api:SyncApi,q:{invoiceNo?:string;from?:string;to?:string}):Promise<CTRBill[]>{
+  const query:Record<string,string>={};
+  if(text(q.invoiceNo))query.invoiceNo=text(q.invoiceNo);if(text(q.from))query.from=text(q.from);if(text(q.to))query.to=text(q.to);
+  return counterBillsFromServer(await api.get<SrvCounterBill[]>('/counter-bills',query)).bills;
+}
+
 export const lfmoney:SyncArea={
   id:'lfmoney',
   // Read side: the correction register (GET /invoices/corrections, the A2 "Bill updation report"). The list row carries totals, invoice numbers, status,
@@ -98,12 +107,26 @@ export const lfmoney:SyncArea={
       await c.api.command('SetGuestCreditAccount',{guestId:serverId(k.guestId,'Guest'),limitPaise:Number(k.limit),active:k.active!==false,note:text(k.note)||undefined});}},
     {type:'GUEST_CREDIT_REQUEST',reload:['bookings'],async send(c){const k=c.cmd;
       await c.api.command('RequestGuestCredit',{stayId:stayOf(c,text(k.booking??k.id)),reason:text(k.reason)});}},
-    {type:'CTR_BILL_ISSUE',reload:[],async send(c){const k=c.cmd as Record<string,any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+    {type:'CTR_BILL_ISSUE',reload:[],
+      // AF-CTR-UI (BIL-01 / UX-01): the method must be a front-desk row of the payment-methods master, a reference when the row needs one, and a cash (drawer)
+      // method needs the open shift — the phone says so before any request. The server (CounterBillService) re-checks all of it.
+      precheck(cmd,s){const k=cmd as Record<string,any>;const st=k.settlement??{}; // eslint-disable-line @typescript-eslint/no-explicit-any
+        if(text(st.mode)!=='paid')return undefined;
+        const method=text(st.method);if(!method)return 'Choose the payment method.';
+        if(mnyMethod(s,method)?.needsReference&&!text(st.reference))return 'Enter the payment reference.';
+        if(mnyIsDrawer(s,method)&&!s.shiftOpen)return shiftClosedText(s);
+        return undefined;},
+      async send(c){const k=c.cmd as Record<string,any>; // eslint-disable-line @typescript-eslint/no-explicit-any
       const lines=(Array.isArray(k.lines)?k.lines:[]).map((l:Record<string,unknown>)=>({label:text(l.label),qty:Number(l.qty??1),unitPaise:Number(l.unit),gstCategory:l.gstCategory?text(l.gstCategory):undefined,
         extraId:l.extraId?text(l.extraId):undefined,menuItemId:l.menuItemId?text(l.menuItemId):undefined}));
       const st=k.settlement??{};
+      // BIL-01: a cash (drawer) counter bill carries the till of the open shift; the server refuses cash without one.
+      let tillId:number|undefined;
+      if(text(st.mode)==='paid'&&mnyIsDrawer(c.state,text(st.method))){
+        tillId=c.ids.server('till','current');
+        if(tillId===undefined)throw new HccClientError('INVALID_TRANSITION','The cash shift is closed. Open a cashier shift first, then issue the cash bill (or settle by UPI / card).');}
       await c.api.command('IssueCounterBill',{party:{name:text(k.party?.name),phone:text(k.party?.phone)||undefined,gstin:text(k.party?.gstin)||undefined,address:text(k.party?.address)||undefined,
-        guestId:k.party?.guestId?serverId(k.party.guestId,'Guest'):undefined},lines,settlement:{mode:text(st.mode),method:text(st.method)||undefined,reference:text(st.reference)||undefined,
+        guestId:k.party?.guestId?serverId(k.party.guestId,'Guest'):undefined},lines,settlement:{mode:text(st.mode),method:text(st.method)||undefined,reference:text(st.reference)||undefined,tillId,
         companyId:st.companyId?serverId(st.companyId,'Company'):undefined},discountPaise:Number(k.discount?.amount??0),discountReason:text(k.discount?.reason)||undefined,remark:text(k.remark)||undefined});}},
     {type:'CTR_BILL_VOID_REQUEST',reload:[],async send(c){await c.api.command('RequestCounterBillVoid',{billId:serverId(c.cmd.id,'CounterBill'),reason:text(c.cmd.reason)});}},
     {type:'BILL_CORRECTION_REQUEST',reload:['bookings'],async send(c){const k=c.cmd;const b=c.state.bookings.find(x=>x.id===text(k.booking));
