@@ -10,14 +10,14 @@ import {dirname} from 'node:path';
 export function createRunner({log=console,setExitCode=true,hookProcess=setExitCode}={}){
   let passed=0,asyncTests=0;
   const results=[],pending=[];
-  const fail=(name,e)=>{results.push({name,status:'failed',error:e&&e.message!==undefined?String(e.message):String(e)});log.error('FAIL',name,e);if(setExitCode)process.exitCode=1;};
-  const pass=name=>{passed++;results.push({name,status:'passed'});log.log('PASS',name);};
+  const fail=(name,e,isAsync)=>{results.push({name,status:'failed',...(isAsync?{async:true}:{}),error:e&&e.message!==undefined?String(e.message):String(e)});log.error('FAIL',name,e);if(setExitCode)process.exitCode=1;};
+  const pass=(name,isAsync)=>{passed++;results.push({name,status:'passed',...(isAsync?{async:true}:{})});log.log('PASS',name);};
   function test(name,fn){
     let r;
     try{r=fn();}catch(e){fail(name,e);return;}
     if(r&&typeof r.then==='function'){
       asyncTests++;
-      const promise=Promise.resolve(r).then(()=>pass(name),e=>fail(name,e));
+      const promise=Promise.resolve(r).then(()=>pass(name,true),e=>fail(name,e,true));
       pending.push({name,promise});
     }else pass(name);
   }
