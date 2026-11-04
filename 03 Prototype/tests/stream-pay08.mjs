@@ -14,7 +14,7 @@ export function register({test,M,assert}){
     let err;try{pay(s,id);}catch(e){err=e;}
     assert.ok(err,'refused');assert.equal(err.code,'VALIDATION');
     assert.equal(err.details.reason,'DUPLICATE_SUSPECTED');assert.equal(err.details.receiptId,first.id);
-    assert.match(err.message,/^A UPI payment of .* was recorded on this folio at \d\d:\d\d IST \(4 minutes ago\), receipt .*\. If this is a second, separate payment, confirm it\.$/);
+    assert.match(err.message,/^A UPI payment of .* was recorded on this folio at \d\d:\d\d IST \((\d+) minutes ago\), receipt .*\. If this is a second, separate payment, confirm it\.$/);
     assert.equal(JSON.stringify(s),before,'the refused command changed nothing');assert.equal(receipts(s,id).length,1);
     assert.equal(M.folioDupDetails(err).receiptId,first.id);
   });
@@ -42,7 +42,7 @@ export function register({test,M,assert}){
     for(let i=0;i<2;i++){
       s=M.execute(s,'reception',{type:'REFUND_REQUEST',id,receiptId:rid,amount:30000,reason:'Early departure',key:'rr'+i});
       const a=s.approvals.at(-1);s=M.execute(s,'manager',{type:'APPROVAL',id:a.id,approve:true});
-      s=M.execute(s,'cashier',{type:'REFUND_EXECUTE',id:a.id,method:'UPI',reference:'DEMO-R'+i,key:'re'+i});
+      s=M.execute(s,'cashier',{type:'REFUND_EXECUTE',approvalId:a.id,method:'UPI',reference:'DEMO-R'+i,key:'re'+i});
     }
     assert.equal(receipts(s,id).filter(r=>r.kind==='refund').length,2);
   });

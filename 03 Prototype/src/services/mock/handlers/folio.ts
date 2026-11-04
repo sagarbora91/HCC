@@ -107,9 +107,10 @@ const PAYMENT:Handler=k=>{
   assert(sum===cmd.amount,`Tender rows total ${money(sum)} but the payment amount is ${money(cmd.amount)}. They must be equal.`);
   if(kind==='deposit-return'){const ld=x.receipts.find(r=>r.kind==='deposit'&&cbIsLocked(s,r.date));assert(!ld,cbLockedMessage(ld?.date??'','returning a deposit taken on that day'),'DAY_CLOSED');} // DEC-065
   if(kind==='deposit-return')assert(cmd.amount<=totals(x).deposit,'Return cannot exceed the deposit held.');
-  dupGuard(k,x,kind,tenders); // AF-PAY08
   // ACC-2 flows (contract §7, rulebook B9): cash from the guest at or above ₹2,00,000 on a day or for the booking is refused (CASH_LIMIT).
   if(kind!=='deposit-return'){const cash=tenders.filter(t=>mnyIsDrawer(s,t.method)).reduce((a,t)=>a+t.amount,0);if(cash)accCashEnforce(s,{kind:'receipt',party:'booking:'+x.id,scope:'booking:'+x.id,amount:cash});}
+  // AF-PAY08: after the hard cash cap (ACC-2 B9, a refusal of its own) so a cap test keeps its own message; before anything is written
+  dupGuard(k,x,kind,tenders);
   const group=tenders.length>1?id('TND'):undefined;
   for(const t of tenders){
     const r:Receipt={id:id('RCPT'),amount:t.amount,method:t.method,date:s.date,kind,reference:t.reference||'Demo cash',actor:uid};
