@@ -21,7 +21,7 @@ public sealed record StayRateChangeRow(long ChangeId, long StayId, long Reservat
 
 public interface ILfMoneyReadStore
 {
-    Task<IReadOnlyList<CounterBillListRow>> CounterBillsAsync(int propertyId, int take, CancellationToken ct);
+    Task<IReadOnlyList<CounterBillListRow>> CounterBillsAsync(int propertyId, int take, string? invoiceNo, DateOnly? from, DateOnly? to, CancellationToken ct);
 
     Task<IReadOnlyList<CreditGuestRow>> CreditGuestsAsync(int propertyId, CancellationToken ct);
 
@@ -41,10 +41,14 @@ public sealed class LfMoneyReadService(ILfMoneyReadStore store, IAccessPolicy po
         if (!await policy.HasAsync(propertyId, principalId, perm, null, ct).ConfigureAwait(false)) throw new HccException(HccErrorCode.FORBIDDEN, $"Access denied: {what} are shown to money roles only.");
     }
 
-    public async Task<IReadOnlyList<CounterBillListRow>> CounterBillsAsync(int propertyId, int principalId, CancellationToken ct = default)
+    public async Task<IReadOnlyList<CounterBillListRow>> CounterBillsAsync(int propertyId, int principalId, string? invoiceNo = null, DateOnly? from = null, DateOnly? to = null, int? take = null, CancellationToken ct = default)
     {
         await RequireAsync(propertyId, principalId, LfMoneyPermissions.CounterIssue, "counter bills", ct).ConfigureAwait(false);
-        return await store.CounterBillsAsync(propertyId, Take, ct).ConfigureAwait(false);
+        var inv = string.IsNullOrWhiteSpace(invoiceNo) ? null : invoiceNo.Trim();
+        if (inv is { Length: > 40 }) throw HccException.Validation("The invoice number is too long (40 characters at most).");
+        if (from is not null && to is not null && from > to) throw HccException.Validation("The 'from' date is after the 'to' date.");
+        var n = Math.Clamp(take ?? Take, 1, Take);
+        return await store.CounterBillsAsync(propertyId, n, inv, from, to, ct).ConfigureAwait(false);
     }
 
     public async Task<IReadOnlyList<CreditGuestRow>> CreditGuestsAsync(int propertyId, int principalId, CancellationToken ct = default)

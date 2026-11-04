@@ -80,10 +80,14 @@ public static class LfMoneyEndpoints
             var (p, u) = http.HccActor();
             return Results.Ok(await c.ListAsync(p, u, ct));
         });
-        g.MapGet("/counter-bills", async (HttpContext http, Hcc.Application.Counter.LfMoneyReadService c, CancellationToken ct) =>
+        g.MapGet("/counter-bills", async (HttpContext http, Hcc.Application.Counter.LfMoneyReadService c, string? invoiceNo, string? from, string? to, int? take, CancellationToken ct) =>
         {
             var (p, u) = http.HccActor();
-            return Results.Ok(await c.CounterBillsAsync(p, u, ct));
+            // AF-CTR-READS (HIS-01): look up an older bill by invoice number and/or business-date range (yyyy-MM-dd).
+            DateOnly? Day(string? v, string name) => string.IsNullOrWhiteSpace(v) ? null
+                : DateOnly.TryParseExact(v.Trim(), "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var d) ? d
+                : throw Hcc.Domain.Errors.HccException.Validation($"'{name}' must be a date written yyyy-MM-dd.");
+            return Results.Ok(await c.CounterBillsAsync(p, u, invoiceNo, Day(from, "from"), Day(to, "to"), take, ct));
         });
         g.MapGet("/guests/credit", async (HttpContext http, Hcc.Application.Counter.LfMoneyReadService c, CancellationToken ct) =>
         {
