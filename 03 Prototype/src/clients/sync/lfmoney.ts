@@ -5,7 +5,7 @@ import {HccClientError} from '../errors';
 import {serverId,protoId,protoUserId,utcToClock} from './map';
 import type {BLCState,BLCCorrection,BLCChange,CTRState,CTRBill,STRState,GuestAgreedRate} from '../../domain/types';
 import type {SyncArea,SyncApi,CommandCtx} from './types';
-import {mnyIsDrawer,mnyMethod} from '../../domain/streams/money-master';
+import {mnyIsDrawer,mnyMethod,mnyNames} from '../../domain/streams/money-master';
 import {shiftClosedText} from './money';
 
 const text=(v:unknown)=>String(v??'').trim();
@@ -124,8 +124,10 @@ export const lfmoney:SyncArea={
       // method needs the open shift — the phone says so before any request. The server (CounterBillService) re-checks all of it.
       precheck(cmd,s){const k=cmd as Record<string,any>;const st=k.settlement??{}; // eslint-disable-line @typescript-eslint/no-explicit-any
         if(text(st.mode)!=='paid')return undefined;
-        const method=text(st.method);if(!method)return 'Choose the payment method.';
-        if(mnyMethod(s,method)?.needsReference&&!text(st.reference))return 'Enter the payment reference.';
+        const method=text(st.method);
+        // AF-INT: the same words as the server refusals (PaymentMethodBook.Choose / Pick), so the phone and the server say one thing.
+        if(!method){const names=mnyNames(s,'frontdesk');return `Select a payment method (${names.length>1?names.slice(0,-1).join(', ')+' or '+names[names.length-1]:names[0]??'Cash'}).`;}
+        if(mnyMethod(s,method)?.needsReference&&!text(st.reference))return 'Enter the transaction reference for a non-cash payment.';
         if(mnyIsDrawer(s,method)&&!s.shiftOpen)return shiftClosedText(s);
         return undefined;},
       async send(c){const k=c.cmd as Record<string,any>; // eslint-disable-line @typescript-eslint/no-explicit-any

@@ -61,7 +61,7 @@ export async function register({test,assert}){
   test('[AF-CTR] UPI sends no tillId and keeps the reference',()=>{
     assert.equal(o3.ok,true,JSON.stringify(o3));const c=s3.commands('IssueCounterBill');assert.equal(c.length,1);
     assert.equal(c[0].body.settlement.tillId,undefined);assert.equal(c[0].body.settlement.reference,'UPI-REF-1');assert.equal(c[0].body.settlement.method,'UPI');
-    assert.equal(o3b.ok,false);assert.equal(o3b.reason,'precheck');assert.match(o3b.text,/Enter the payment reference.$/); // a UPI bill without a reference never leaves the device
+    assert.equal(o3b.ok,false);assert.equal(o3b.reason,'precheck');assert.match(o3b.text,/Enter the transaction reference for a non-cash payment\.$/); // a UPI bill without a reference never leaves the device
   });
   test('[AF-CTR] a drawer method from the master that is not named "Cash" still sends tillId',()=>{
     assert.equal(o4.ok,true,JSON.stringify(o4));const c=s4.commands('IssueCounterBill');assert.equal(c.length,1);
