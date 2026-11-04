@@ -91,7 +91,8 @@ export function createHttpTransport(o:HttpOptions={}){
       return {text,...(fileName?{fileName}:{}),...(contentType?{contentType}:{})};
     },
     /** Plain POST without Idempotency-Key — only for non-command routes (POST /auth/sign-in, /auth/sign-out). Never retried. */
-    post:<T>(path:string,body?:unknown)=>once<T>('POST',path,body,{}),
+    // AF-FIX2 F6: optional extra headers (RPT_FAV_TOGGLE passes its Idempotency-Key); still never retried.
+    post:<T>(path:string,body?:unknown,headers:Record<string,string>={})=>once<T>('POST',path,body,headers),
     /** AF-SYNC-OPS: plain PUT / DELETE for the non-command routes (report schedules). No Idempotency-Key, never retried; a 204 answers undefined. */
     put:<T>(path:string,body?:unknown)=>once<T>('PUT',path,body,{}),
     delete:<T>(path:string)=>once<T>('DELETE',path,undefined,{}),

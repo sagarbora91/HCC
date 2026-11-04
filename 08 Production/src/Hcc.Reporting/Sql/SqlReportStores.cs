@@ -55,6 +55,23 @@ public sealed class SqlReportStores(SqlConnectionFactory connections) : IReportP
         return (bool)(await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false))!;
     }
 
+    /// <summary>AF-FIX2 F6: set the favourite to a wanted state in one statement (repeat = same result).</summary>
+    public async Task<bool> SetAsync(int propertyId, int principalId, string reportId, bool favourite, CancellationToken ct = default)
+    {
+        await using var conn = await connections.OpenAsync(ct).ConfigureAwait(false);
+        await using var cmd = connections.Command("""
+            IF @f = 1
+              BEGIN
+                IF NOT EXISTS (SELECT 1 FROM rpt.favourite WITH (UPDLOCK, HOLDLOCK) WHERE property_id = @p AND principal_id = @u AND report_id = @r)
+                  INSERT rpt.favourite(property_id, principal_id, report_id) VALUES (@p, @u, @r);
+              END
+            ELSE DELETE rpt.favourite WHERE property_id = @p AND principal_id = @u AND report_id = @r;
+            SELECT CAST(@f AS BIT);
+            """, conn);
+        Add(cmd, "@p", SqlDbType.Int, propertyId); Add(cmd, "@u", SqlDbType.Int, principalId); Add(cmd, "@r", SqlDbType.VarChar, reportId); Add(cmd, "@f", SqlDbType.Bit, favourite);
+        return (bool)(await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false))!;
+    }
+
     public async Task<IReadOnlyList<string>> FavouritesAsync(int propertyId, int principalId, CancellationToken ct = default)
     {
         await using var conn = await connections.OpenAsync(ct).ConfigureAwait(false);

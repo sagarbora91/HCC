@@ -286,14 +286,25 @@ export const money:SyncArea={
         // AF-PAY08 (PAY-08): confirmDuplicate=true is the cashier's "second, separate payment" tick. The resend uses its own key suffix (:confirm) so it can
         // never collide with the refused attempt's key (same key + a changed payload would be IDEMPOTENCY_MISMATCH).
         const confirm=c.cmd.confirmDuplicate===true;
+        const split=tenders.length>1;
+        const isDup=(e:unknown):e is HccClientError=>e instanceof HccClientError&&e.details?.reason==='DUPLICATE_SUSPECTED';
         for(const [i,t] of tenders.entries()){
-          const step=tenders.length>1?(confirm?'confirm-t'+(i+1):'t'+(i+1)):confirm?'confirm':undefined;
+          const body=(conf:boolean)=>({...target,kind,tender:t.method,amountPaise:t.amount,reference:t.reference||null,tillId:tillFor(c,t.method),confirmDuplicate:conf});
           try{
-            results.push(await c.api.command('RecordReceipt',{...target,kind,tender:t.method,amountPaise:t.amount,reference:t.reference||null,tillId:tillFor(c,t.method),confirmDuplicate:confirm},
-              step?{step}:{}));
+            if(split&&confirm){
+              // AF-FIX2 F1: a confirmed resend of a split first replays each row under its ORIGINAL key and payload (key tN, confirmDuplicate false):
+              // a row recorded by the refused attempt comes back as an idempotent replay (no second receipt, no second drawer movement).
+              // Only a row the server refuses as DUPLICATE_SUSPECTED (the refused row, or a later equal row) is then sent confirmed under confirm-tN.
+              try{results.push(await c.api.command('RecordReceipt',body(false),{step:'t'+(i+1)}));continue;}
+              catch(e){if(!isDup(e))throw e;}
+              results.push(await c.api.command('RecordReceipt',body(true),{step:'confirm-t'+(i+1)}));
+              continue;
+            }
+            const step=split?'t'+(i+1):confirm?'confirm':undefined;
+            results.push(await c.api.command('RecordReceipt',body(confirm),step?{step}:{}));
           }catch(e){
             // A refusal on a later tender row: the rows before it are already recorded (each row is its own receipt).
-            if(i>0&&e instanceof HccClientError&&e.details?.reason==='DUPLICATE_SUSPECTED')
+            if(i>0&&isDup(e))
               throw new HccClientError(e.wireCode,`${e.message} Tender rows 1 to ${i} were already recorded; check the folio before confirming.`,e.details,e.httpStatus);
             throw e;
           }

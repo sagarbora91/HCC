@@ -180,6 +180,7 @@ public sealed class CounterBillService(ICommandRunner runner, IAccessPolicy poli
                 priced.Add(new CounterLine(seq, l.Label!.Trim(), Blank(l.ExtraId), Blank(l.MenuItemId), l.Qty, new Paise(l.UnitPaise), cat, g.Bps));
             }
 
+            if (CounterBillRules.BillRefusal(priced) is { } tooBig) throw HccException.Validation(tooBig);
             var gross = priced.Aggregate(Paise.Zero, (a, l) => a + l.Amount);
             if (discount.Value > 0)
             {

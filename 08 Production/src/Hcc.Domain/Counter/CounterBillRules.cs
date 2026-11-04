@@ -29,6 +29,10 @@ public static class CounterBillRules
 
     public const int MaxLines = 30, MaxQty = 99;
 
+    /// <summary>AF-FIX2 F2: sanity caps so an absurd amount is a plain refusal, never an overflow (HTTP 500). Unit price at most ₹1 crore;
+    /// one counter bill (before discount) at most ₹10 crore. 30 lines × 99 × the unit cap still fits a long, and the sums are checked.</summary>
+    public const long MaxUnitPaise = 1_000_000_000L, MaxBillPaise = 10_000_000_000L;
+
     public static string? LineRefusal(int seq, string label, int qty, Paise unit)
     {
         var at = "Line " + seq.ToString(CultureInfo.InvariantCulture) + ": ";
@@ -36,7 +40,19 @@ public static class CounterBillRules
         if (label.Length > 120) return at + "Keep the description to 120 characters.";
         if (qty is < 1 or > MaxQty) return at + $"Quantity: a whole number from 1 to {MaxQty}.";
         if (unit.Value <= 0) return at + "Enter the unit price in whole paise (more than 0).";
+        if (unit.Value > MaxUnitPaise) return at + "The unit price can be at most ₹1,00,00,000.00. Check the amount (it is in paise).";
         return null;
+    }
+
+    /// <summary>AF-FIX2 F2: refusal when the bill before discount is above <see cref="MaxBillPaise"/> (checked sum; an overflow is refused too).</summary>
+    public static string? BillRefusal(IReadOnlyList<CounterLine> lines)
+    {
+        ArgumentNullException.ThrowIfNull(lines);
+        const string text = "One counter bill can be at most ₹10,00,00,000.00. Check the quantities and prices, or split the bill.";
+        long gross = 0;
+        try { foreach (var l in lines) gross = checked(gross + checked(l.Unit.Value * l.Qty)); }
+        catch (OverflowException) { return text; }
+        return gross > MaxBillPaise ? text : null;
     }
 
     public static CounterLine? Dominant(IReadOnlyList<CounterLine> lines) => lines.OrderByDescending(l => l.Amount.Value).ThenBy(l => l.Seq).FirstOrDefault();

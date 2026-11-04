@@ -183,7 +183,7 @@ public sealed class BillingService(ICommandRunner runner, IBillingStore store, I
                 if (equal is not null)
                 {
                     if (!req.ConfirmDuplicate) throw DuplicateReceiptGuard.Refusal(equal, kind == ReceiptKind.Payment ? "payment" : "deposit", now);
-                    duplicateNote = $" · confirmed second payment (receipt {equal.ReceiptId.ToString(System.Globalization.CultureInfo.InvariantCulture)} {(int)Math.Floor((now - equal.RecordedUtc).TotalMinutes)} min earlier)";
+                    duplicateNote = $" · confirmed second payment (receipt {equal.ReceiptId.ToString(System.Globalization.CultureInfo.InvariantCulture)} {Math.Max(0, (int)Math.Floor((now - equal.RecordedUtc).TotalMinutes))} min earlier)";
                 }
             }
 

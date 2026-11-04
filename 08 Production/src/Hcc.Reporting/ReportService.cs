@@ -14,6 +14,14 @@ public interface IReportFavourites
 {
     Task<bool> ToggleAsync(int propertyId, int principalId, string reportId, CancellationToken ct = default);
     Task<IReadOnlyList<string>> FavouritesAsync(int propertyId, int principalId, CancellationToken ct = default);
+
+    /// <summary>AF-FIX2 F6: set (not flip) the favourite, so a retried request after a lost answer gives the same state. Returns the state now stored.
+    /// The default reads then toggles only when it differs; the SQL store overrides it with one idempotent statement.</summary>
+    async Task<bool> SetAsync(int propertyId, int principalId, string reportId, bool favourite, CancellationToken ct = default)
+    {
+        var now = (await FavouritesAsync(propertyId, principalId, ct).ConfigureAwait(false)).Contains(reportId, StringComparer.Ordinal);
+        return now == favourite ? now : await ToggleAsync(propertyId, principalId, reportId, ct).ConfigureAwait(false);
+    }
 }
 
 public interface IReportPrincipalRoles
@@ -107,12 +115,17 @@ public sealed class ReportService(ReportRunner runner, IReportCatalogue catalogu
     private static ReportFormat PrintLogFormat(string? format) =>
         string.IsNullOrWhiteSpace(format) || string.Equals(format.Trim(), "print", StringComparison.OrdinalIgnoreCase) ? ReportFormat.Print : ParseFormat(format.Trim());
 
-    public async Task<bool> ToggleFavouriteAsync(Caller c, string id, CancellationToken ct = default)
+    public Task<bool> ToggleFavouriteAsync(Caller c, string id, CancellationToken ct = default) => SetFavouriteAsync(c, id, null, ct);
+
+    /// <summary>Toggle when <paramref name="wanted"/> is null (older clients); otherwise set it (AF-FIX2 F6: idempotent on a retry).</summary>
+    public async Task<bool> SetFavouriteAsync(Caller c, string id, bool? wanted, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(c);
         var def = (catalogue.Find(id) ?? throw new HccException(HccErrorCode.NOT_FOUND, $"No report {id}.")).Definition;
         if (!await runner.CanViewAsync(c, def, ct).ConfigureAwait(false)) throw new HccException(HccErrorCode.FORBIDDEN, "You cannot open this report.");
-        return await favourites.ToggleAsync(c.PropertyId, c.PrincipalId, id, ct).ConfigureAwait(false);
+        return wanted is bool w
+            ? await favourites.SetAsync(c.PropertyId, c.PrincipalId, id, w, ct).ConfigureAwait(false)
+            : await favourites.ToggleAsync(c.PropertyId, c.PrincipalId, id, ct).ConfigureAwait(false);
     }
 
     public Task<IReadOnlyList<string>> FavouritesAsync(Caller c, CancellationToken ct = default)

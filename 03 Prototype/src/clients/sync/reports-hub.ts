@@ -1,11 +1,13 @@
 // AF-SYNC-OPS (OPS-03 + interim EX-01) · Report hub favourites, schedules, run history and the device-side export log.
 //   server  GET /reports/favourites · POST /reports/favourites/{id} (toggle) · GET/POST /reports/schedules · PUT/DELETE /reports/schedules/{sid}
 //           GET /reports/runs · POST /reports/{id}/print-log        (Hcc.Api ReportEndpoints, Hcc.Reporting ReportService)
-// These are plain routes, not /commands/: no Idempotency-Key, and they are never retried (a favourite toggle must not flip twice). The
+// These are plain routes, not /commands/, and they are never retried. The favourite post carries the wanted state and the action's
+// Idempotency-Key (AF-FIX2 F6), so a manual retry after a lost answer cannot flip it back. The
 // slice rptX has no other owner in the sync layer, so this area owns it; the export log (exportLog) is write-only from this device.
 // RPT_LOG is the interim EX-01 closure: a print / CSV / Excel made on the device is logged on the server with its format. RPT_RUN_DUE is
 // the server worker's job and stays unmapped.
 import {HccClientError} from '../errors';
+import {IDEMPOTENCY_HEADER,checkIdempotencyKey} from '../wire';
 import {serverId,protoId,protoUserId,utcToClock} from './map';
 import type {RptState,RptSchedule,RptRun} from '../../domain/reports/types';
 import type {SyncArea,CommandCtx} from './types';
@@ -46,7 +48,11 @@ export const reportsHub:SyncArea={
     return out;
   }}],
   commands:[
-    {type:'RPT_FAV_TOGGLE',reload:['rptX'],async send(c){const res=await c.api.transport.post<{favourite:boolean}>('/reports/favourites/'+reportId(c));return {result:res};}},
+    // AF-FIX2 F6: the device sends the wanted state ({favourite:true|false}, from the loaded favourites) and the action's Idempotency-Key, so a manual
+    // retry after a lost answer sets the same value again instead of flipping it back. A body without `favourite` still toggles (older clients).
+    {type:'RPT_FAV_TOGGLE',reload:['rptX'],async send(c){const path='/reports/favourites/'+reportId(c);
+      const mine=c.state.rptX?.favourites?.[c.me.uid]??[];const favourite=!mine.includes(text(c.cmd.reportId));
+      const res=await c.api.transport.post<{favourite:boolean}>(path,{favourite},{[IDEMPOTENCY_HEADER]:checkIdempotencyKey(c.key)});return {result:res};}},
     {type:'RPT_SCHEDULE_SAVE',reload:['rptX'],async send(c){const k=c.cmd;const cad=(k.cadence&&typeof k.cadence==='object'?k.cadence:{}) as {kind?:string;day?:number;time?:string};
       const body={reportId:text(k.reportId),params:strMap(k.params),format:text(k.format),cadence:text(cad.kind),day:cad.kind==='daily'||cad.day===undefined?undefined:Number(cad.day),time:text(cad.time),
         recipients:(Array.isArray(k.recipients)?k.recipients:[]).map(r=>serverId(r as string,'User')),enabled:k.enabled!==false};

@@ -134,5 +134,10 @@ public sealed class ScheduleTests
         Assert.Equal(HccErrorCode.FORBIDDEN, (await Assert.ThrowsAsync<HccException>(() => s.ExportAsync(Rig.C(3), "rpt.admin.engine-test", "xlsx", new Dictionary<string, string?>(), Ct))).Code);
         Assert.True(await s.ToggleFavouriteAsync(Rig.C(1), "rpt.admin.engine-test", Ct));
         Assert.False(await s.ToggleFavouriteAsync(Rig.C(1), "rpt.admin.engine-test", Ct));
+        // AF-FIX2 F6: a wanted state is set, not flipped - a repeat gives the same answer (default interface SetAsync on the memory store).
+        Assert.True(await s.SetFavouriteAsync(Rig.C(1), "rpt.admin.engine-test", true, Ct));
+        Assert.True(await s.SetFavouriteAsync(Rig.C(1), "rpt.admin.engine-test", true, Ct));
+        Assert.False(await s.SetFavouriteAsync(Rig.C(1), "rpt.admin.engine-test", false, Ct));
+        Assert.False(await s.SetFavouriteAsync(Rig.C(1), "rpt.admin.engine-test", false, Ct));
     }
 }

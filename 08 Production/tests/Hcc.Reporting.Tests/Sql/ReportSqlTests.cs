@@ -78,7 +78,14 @@ public sealed class ReportSqlTests(ReportDatabase db) : IClassFixture<ReportData
         Assert.True(await s.ToggleAsync(p, 1, "rpt.money.x", Ct));
         Assert.Equal(["rpt.money.x"], await s.FavouritesAsync(p, 1, Ct));
         Assert.False(await s.ToggleAsync(p, 1, "rpt.money.x", Ct));
-        var id = await s.SaveAsync(p, new ReportScheduleRecord(0, "rpt.money.x", new Dictionary<string, string> { ["range"] = "yesterday" }, ReportFormat.Xlsx, "weekly", 1, new TimeOnly(7, 0), 2, [1, 5], true), Ct);
+        // AF-FIX2 F6: SetAsync is idempotent (a retried request after a lost answer leaves the same state).
+        Assert.True(await s.SetAsync(p, 1, "rpt.money.x", true, Ct));
+        Assert.True(await s.SetAsync(p, 1, "rpt.money.x", true, Ct));
+        Assert.Equal(["rpt.money.x"], await s.FavouritesAsync(p, 1, Ct));
+        Assert.False(await s.SetAsync(p, 1, "rpt.money.x", false, Ct));
+        Assert.False(await s.SetAsync(p, 1, "rpt.money.x", false, Ct));
+        Assert.Empty(await s.FavouritesAsync(p, 1, Ct));
+        var id =await s.SaveAsync(p, new ReportScheduleRecord(0, "rpt.money.x", new Dictionary<string, string> { ["range"] = "yesterday" }, ReportFormat.Xlsx, "weekly", 1, new TimeOnly(7, 0), 2, [1, 5], true), Ct);
         var sc = Assert.Single(await s.ListAsync(p, Ct));
         Assert.Equal(("weekly", (int?)1, new TimeOnly(7, 0), "yesterday", 5), (sc.Cadence, sc.Day, sc.Time, sc.Params["range"], sc.Recipients[1]));
         await s.SaveAsync(p, sc with { LastRun = new DateTimeOffset(2026, 10, 24, 2, 0, 0, TimeSpan.Zero), Enabled = false }, Ct);

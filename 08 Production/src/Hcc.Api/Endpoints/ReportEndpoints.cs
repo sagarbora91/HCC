@@ -4,7 +4,7 @@
 //   GET  /reports/{id}/export?format=xlsx|pdf|csv&…   the file (view + export permission); one rpt.export_log row
 //   POST /reports/{id}/print-log               a print from the screen: one rpt.export_log row (view permission)
 //   GET|POST /reports/schedules · PUT|DELETE /reports/schedules/{sid} · GET /reports/runs (PERM-RPT-004)
-//   POST /reports/favourites/{id}              toggle · GET /reports/favourites
+//   POST /reports/favourites/{id}              set {favourite} or toggle (no body) · GET /reports/favourites
 using Hcc.Reporting;
 using Hcc.Reporting.Sql;
 
@@ -24,8 +24,9 @@ public static class ReportEndpoints
         g.MapGet("/reports/catalogue", async (HttpContext http, ReportService s, CancellationToken ct) =>
             Results.Ok((await s.CatalogueAsync(http.HccCaller(), ct).ConfigureAwait(false)).Select(e => new { e.Definition, e.CanExport, e.Money })));
         g.MapGet("/reports/favourites", async (HttpContext http, ReportService s, CancellationToken ct) => Results.Ok(await s.FavouritesAsync(http.HccCaller(), ct).ConfigureAwait(false)));
-        g.MapPost("/reports/favourites/{id}", async (HttpContext http, ReportService s, string id, CancellationToken ct) =>
-            Results.Ok(new { favourite = await s.ToggleFavouriteAsync(http.HccCaller(), id, ct).ConfigureAwait(false) }));
+        // AF-FIX2 F6: an optional body {"favourite": true|false} sets the state (a retry gives the same answer); no body = toggle (older clients).
+        g.MapPost("/reports/favourites/{id}", async (HttpContext http, ReportService s, string id, FavouriteRequest? body, CancellationToken ct) =>
+            Results.Ok(new { favourite = await s.SetFavouriteAsync(http.HccCaller(), id, body?.Favourite, ct).ConfigureAwait(false) }));
         g.MapGet("/reports/schedules", async (HttpContext http, ReportService s, CancellationToken ct) => Results.Ok(await s.SchedulesAsync(http.HccCaller(), ct).ConfigureAwait(false)));
         g.MapPost("/reports/schedules", async (HttpContext http, ReportService s, ScheduleRequest body, CancellationToken ct) =>
             Results.Ok(new { id = await s.SaveScheduleAsync(http.HccCaller(), null, body, ct).ConfigureAwait(false) }));
@@ -49,6 +50,9 @@ public static class ReportEndpoints
         return api;
     }
 }
+
+/// <summary>AF-FIX2 F6: body of POST /reports/favourites/{id}; null Favourite = toggle.</summary>
+public sealed record FavouriteRequest(bool? Favourite);
 
 /// <summary>Runs due report schedules once a minute (the 2-second outbox poll is throttled here); delivery is held by the egress gate while net.* is OFF.</summary>
 public sealed class ReportScheduleWorker(ReportService service, SqlReportStores stores, TimeProvider clock, ILogger<ReportScheduleWorker> logger) : OutboxPollingWorker(logger, "Scheduled reports")

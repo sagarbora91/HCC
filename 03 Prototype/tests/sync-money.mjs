@@ -336,7 +336,8 @@ export async function register({test,assert,M}){
     assert.ok(dupA.ok,dupA.text);assert.deepEqual([dupAcmd.key,dupAcmd.body.confirmDuplicate],['pay:dup',false]);
     assert.ok(dupB.ok,dupB.text);assert.deepEqual([dupBcmd.key,dupBcmd.body.confirmDuplicate],['pay:dup:confirm',true]);
     assert.notEqual(dupAcmd.key,dupBcmd.key,'the confirmed resend never reuses the refused attempt key (same key + changed payload = IDEMPOTENCY_MISMATCH)');
-    assert.ok(dupC.ok,dupC.text);assert.deepEqual(dupCcmds.map(c=>[c.key,c.body.confirmDuplicate]),[['pay:dup2:confirm-t1',true],['pay:dup2:confirm-t2',true]]);
+    // AF-FIX2 F1: a confirmed split resend first replays each row under its original key tN (unconfirmed); only a row the server refuses goes on as confirm-tN.
+    assert.ok(dupC.ok,dupC.text);assert.deepEqual(dupCcmds.map(c=>[c.key,c.body.confirmDuplicate]),[['pay:dup2:t1',false],['pay:dup2:t2',false]]);
   });
   st.dupRefuse=true;srv.reset();const dupR=await rt.run({type:'PAYMENT',id:'1201',amount:100000,kind:'payment',method:'UPI',reference:'UPI-1',key:'pay:dup3'});st.dupRefuse=false;
   srv.reset();st.dupRefuse=true;const dupR2=await rt.run({type:'PAYMENT',id:'1201',amount:226500,kind:'payment',key:'pay:dup4',

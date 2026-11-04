@@ -9,6 +9,8 @@ import {mnyIsDrawer,mnyMethod,mnyNames} from '../../domain/streams/money-master'
 import {shiftClosedText} from './money';
 
 const text=(v:unknown)=>String(v??'').trim();
+/** AF-FIX2 F4: the counter method as the master names it (`cash` / ` CASH ` → Cash), so the drawer test and the till see the same row as the server. */
+const ctrMethod=(s:Parameters<typeof mnyMethod>[0],v:unknown)=>{const t=text(v);return t?(mnyMethod(s,t)?.name??t):'';};
 const stayOf=(c:CommandCtx,id:string)=>{const s=c.ids.server('stay',id);if(s===undefined)throw new HccClientError('VALIDATION','This stay is not in house on the server. Refresh and try again.');return s;};
 
 /** Server room-type id for a prototype room-type code: IdDirectory, then the loaded room-type master, then one read of GET /masters/room-types. */
@@ -123,8 +125,10 @@ export const lfmoney:SyncArea={
       // AF-CTR-UI (BIL-01 / UX-01): the method must be a front-desk row of the payment-methods master, a reference when the row needs one, and a cash (drawer)
       // method needs the open shift — the phone says so before any request. The server (CounterBillService) re-checks all of it.
       precheck(cmd,s){const k=cmd as Record<string,any>;const st=k.settlement??{}; // eslint-disable-line @typescript-eslint/no-explicit-any
+        // AF-FIX2 F5: a company bill needs the company account (the server's own words).
+        if(text(st.mode)==='company'&&!text(st.companyId))return 'Choose the company account.';
         if(text(st.mode)!=='paid')return undefined;
-        const method=text(st.method);
+        const method=ctrMethod(s,st.method);
         // AF-INT: the same words as the server refusals (PaymentMethodBook.Choose / Pick), so the phone and the server say one thing.
         if(!method){const names=mnyNames(s,'frontdesk');return `Select a payment method (${names.length>1?names.slice(0,-1).join(', ')+' or '+names[names.length-1]:names[0]??'Cash'}).`;}
         if(mnyMethod(s,method)?.needsReference&&!text(st.reference))return 'Enter the transaction reference for a non-cash payment.';
@@ -134,13 +138,14 @@ export const lfmoney:SyncArea={
       const lines=(Array.isArray(k.lines)?k.lines:[]).map((l:Record<string,unknown>)=>({label:text(l.label),qty:Number(l.qty??1),unitPaise:Number(l.unit),gstCategory:l.gstCategory?text(l.gstCategory):undefined,
         extraId:l.extraId?text(l.extraId):undefined,menuItemId:l.menuItemId?text(l.menuItemId):undefined}));
       const st=k.settlement??{};
+      const method=text(st.mode)==='paid'?ctrMethod(c.state,st.method):text(st.method);
       // BIL-01: a cash (drawer) counter bill carries the till of the open shift; the server refuses cash without one.
       let tillId:number|undefined;
-      if(text(st.mode)==='paid'&&mnyIsDrawer(c.state,text(st.method))){
+      if(text(st.mode)==='paid'&&mnyIsDrawer(c.state,method)){
         tillId=c.ids.server('till','current');
         if(tillId===undefined)throw new HccClientError('INVALID_TRANSITION','The cash shift is closed. Open a cashier shift first, then issue the cash bill (or settle by UPI / card).');}
       await c.api.command('IssueCounterBill',{party:{name:text(k.party?.name),phone:text(k.party?.phone)||undefined,gstin:text(k.party?.gstin)||undefined,address:text(k.party?.address)||undefined,
-        guestId:k.party?.guestId?serverId(k.party.guestId,'Guest'):undefined},lines,settlement:{mode:text(st.mode),method:text(st.method)||undefined,reference:text(st.reference)||undefined,tillId,
+        guestId:k.party?.guestId?serverId(k.party.guestId,'Guest'):undefined},lines,settlement:{mode:text(st.mode),method:method||undefined,reference:text(st.reference)||undefined,tillId,
         companyId:st.companyId?serverId(st.companyId,'Company'):undefined},discountPaise:Number(k.discount?.amount??0),discountReason:text(k.discount?.reason)||undefined,remark:text(k.remark)||undefined});}},
     {type:'CTR_BILL_VOID_REQUEST',reload:[],async send(c){await c.api.command('RequestCounterBillVoid',{billId:serverId(c.cmd.id,'CounterBill'),reason:text(c.cmd.reason)});}},
     {type:'BILL_CORRECTION_REQUEST',reload:['bookings'],async send(c){const k=c.cmd;const b=c.state.bookings.find(x=>x.id===text(k.booking));

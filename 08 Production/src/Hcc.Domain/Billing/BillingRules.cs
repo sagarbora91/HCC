@@ -195,7 +195,8 @@ public static class DuplicateReceiptGuard
         ArgumentNullException.ThrowIfNull(recent);
         return recent
             .Where(x => x.Kind == kind && x.Amount == amount && string.Equals(x.Tender, tender, StringComparison.OrdinalIgnoreCase)
-                && x.RecordedUtc <= nowUtc && nowUtc - x.RecordedUtc <= Window)
+                // AF-FIX2 F3: absolute difference, so a receipt that lies "in the future" after the server clock stepped back (NTP / manual change) still counts.
+                && (nowUtc - x.RecordedUtc).Duration() <= Window)
             .OrderByDescending(x => x.RecordedUtc).ThenByDescending(x => x.ReceiptId)
             .FirstOrDefault();
     }
@@ -203,7 +204,7 @@ public static class DuplicateReceiptGuard
     /// <summary>The refusal: VALIDATION with <c>details.reason</c> DUPLICATE_SUSPECTED and <c>details.receiptId</c>. Times are shown in IST (UTC+5:30).</summary>
     public static HccException Refusal(RecentReceipt found, string kindWord, DateTime nowUtc)
     {
-        var minutes = (int)Math.Floor((nowUtc - found.RecordedUtc).TotalMinutes);
+        var minutes = Math.Max(0, (int)Math.Floor((nowUtc - found.RecordedUtc).TotalMinutes)); // never "-2 minutes ago" after a clock step back
         var at = found.RecordedUtc.AddMinutes(330).ToString("HH:mm", System.Globalization.CultureInfo.InvariantCulture);
         return new HccException(HccErrorCode.VALIDATION,
             $"A {found.Tender} {kindWord} of {found.Amount} was recorded on this folio at {at} IST ({minutes} minutes ago), receipt {found.ReceiptId.ToString(System.Globalization.CultureInfo.InvariantCulture)}. If this is a second, separate payment, confirm it.",
