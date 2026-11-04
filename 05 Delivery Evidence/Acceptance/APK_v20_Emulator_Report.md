@@ -39,6 +39,6 @@ Done 4 Nov 2026. Screens: Modules home, Dashboard (Arrivals, In house), Accounts
 | Accounts & Reports page lists Report library, Revenue by category, Owner digest | Present (not opened; server-only data). |
 
 ### Defects
-- **D20-1 (S4, cosmetic):** on the tablet the stat strip wraps 3+1, so the fourth tile (Payment receipts on Dashboard, Exceptions on Accounting) sits alone on a second row with empty space to its right. Readable, not blocking.
+- **D20-1 (S4, cosmetic) - FIXED on branch `claude/apk20` (not in the v20 APKs; ships in the next build):** on the tablet the stat strip wraps 3+1, so the fourth tile (Payment receipts on Dashboard, Exceptions on Accounting) sits alone on a second row with empty space to its right. Readable, not blocking.
 
 Not covered on the tablet: Housekeeper no-prices, Administration and the other server pages (server APK needs an elevated shell, see above).

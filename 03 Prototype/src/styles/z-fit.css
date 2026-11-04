@@ -302,3 +302,5 @@ html:has(.fit-signin),html:has(.fit-signin) body,html:has(.fit-signin) #root{hei
 .fit-page .key-log-card{margin-bottom:12px;flex:none}
 /* V19-1: a compact strip never hides its last card under the toggle or past the edge — the cards wrap to a second line instead of scrolling sideways */
 .app-shell .fit-stats.fit-stats-compact,.app-shell .fit-small-stats.fit-stats-compact{flex-wrap:wrap;overflow-x:visible;row-gap:6px}
+/* D20-1: when the cards wrap they share each row's width, so a lone last card is not left beside empty space */
+.app-shell .fit-stats.fit-stats-compact>.fit-stat{flex:1 1 auto}
