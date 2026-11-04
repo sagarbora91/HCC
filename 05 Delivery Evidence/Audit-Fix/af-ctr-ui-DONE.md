@@ -28,12 +28,12 @@ Counts: `npm test` 2778 before (af-runner total after the wave-0 merge) -> 2791 
 - `npm test` through the lock: 2791/2791.
 - `npm run build` and `npm run build:production`: exit 0, no warnings in the logs.
 - Quick loop used: `HCC_TEST_ONLY='sync-counter-bills|stream-af-counter-ui'` 69/69 (includes the other suites matching the regex).
-- Fit check: see Open items.
+- `node tools/fit-screen-check.mjs --pages counter-bills`: 0 failing of 787.
 - Secret scan (`Invoke-SecretScan`, base 6a29f3e6): ok true, 0 findings, 586 lines in 13 files.
 Named tests (exact): `[AF-CTR] CTR_BILL_ISSUE cash sends tillId 7 of the open shift and the method name`; `[AF-CTR] cash with the shift closed is refused before any request (0 commands sent, INVALID_TRANSITION text)`; `[AF-CTR] UPI sends no tillId and keeps the reference`; `[AF-CTR] a drawer method from the master that is not named "Cash" still sends tillId`; `[AF-CTR] counterBillLookup sends GET /counter-bills?invoiceNo=… and maps rows`. Stream tests: method select / company select / item picker / till line / Find row / editable price on desktop and phone (6), `ctrLookupLocal` filter, picker + default method.
 
 ## Open items
-- Fit check `node tools/fit-screen-check.mjs --pages counter-bills`: FIT_RESULT_PLACEHOLDER
+- Fit check `node tools/fit-screen-check.mjs --pages counter-bills`: PASS, 0 failing of 787 checks (port 4197, prototype build, default viewports, `--no-shots`). Report: `05 Delivery Evidence\Audit-Fixf-ctr-ui-fitit-check-20261104-1454.md`.
 - Phone check (`tests/check-phone-*.mjs`): none exists for counter bills; not run. The phone screen is checked by the source tests only.
 - The prototype build (no server) cannot show the production lookup; it uses the local filter (by design in the brief).
 - DEC-241 untouched: the picked item's master price is only a suggestion; a typed price below it goes through unchanged, as before.
