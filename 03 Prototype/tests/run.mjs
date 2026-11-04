@@ -6,8 +6,8 @@ await mkdir('tests/.generated',{recursive:true});
 await build({entryPoints:['src/services/mock/index.ts'],bundle:true,platform:'node',format:'esm',outfile:'tests/.generated/mock.mjs',logLevel:'error'});
 const M=await import('./.generated/mock.mjs');
 const {seed,execute,totals,drawer,available,can,metrics}=M;
-let passed=0;const results=[];
-function test(name,fn){try{fn();passed++;results.push({name,status:'passed'});console.log('PASS',name);}catch(e){results.push({name,status:'failed',error:e.message});console.error('FAIL',name,e);process.exitCode=1;}}
+import {createRunner} from './_runner.mjs';
+const runner=createRunner();const {test,results}=runner;
 function book(s=seed(),uid='owner'){const next=execute(s,uid,{type:'BOOK',guest:'Journey Test',room:'105',arrival:s.date,departure:'2026-10-26',people:2});return [next,next.bookings.at(-1).id];}
 function inhouse(){let [s,id]=book();s=execute(s,'owner',{type:'REGISTER',id});s=execute(s,'owner',{type:'CHECKIN',id});return [s,id];}
 test('Fixture totals are derived, not hardcoded',()=>{const s=seed();assert.equal(metrics(s).occupied,8);assert.equal(metrics(s).collections,2150000);assert.equal(drawer(s),1072500);}); // DEC-069 GST: drawer 1075000 → 1072500 (POS-F01 cash ₹500+₹50 → ₹500+₹25)
@@ -41,9 +41,14 @@ test('Existing tax snapshots survive settings changes',()=>{const [s,id]=inhouse
 test('Room move conflict preserves original allocation',()=>{const [s,id]=inhouse(),copy=JSON.stringify(s);assert.throws(()=>execute(s,'owner',{type:'MOVE',id,room:'101',departure:'2026-10-27'}),/unavailable/);assert.equal(JSON.stringify(s),copy);});
 test('Refund cannot exceed receipts',()=>{assert.throws(()=>execute(seed(),'owner',{type:'REFUND_REQUEST',id:'HCC-1041',receiptId:'seed-pay-0',amount:99999999,reason:'Test'}),e=>e.code==='VALIDATION'&&/cannot exceed/.test(e.message));});
 test('End-to-end close and next day preserve opening cash',()=>{let s=seed();for(const b of s.bookings.filter(b=>b.status==='Confirmed')){s=execute(s,'owner',{type:'REGISTER',id:b.id});s=execute(s,'owner',{type:'CHECKIN',id:b.id});}s=execute(s,'owner',{type:'EXPENSE_APPROVE',id:'EXP-102',approve:true});s=execute(s,'owner',{type:'NIGHT_POST'});const expected=drawer(s);s=execute(s,'owner',{type:'SHIFT_CLOSE',counted:expected});s=tillClear(M,s);s=execute(s,'owner',{type:'DAY_CLOSE'});assert.throws(()=>execute(s,'owner',{type:'NIGHT_POST'}),/closed/);s=execute(s,'owner',{type:'NEXT_DAY'});assert.equal(s.date,'2026-10-25');assert.equal(s.openingCash,expected);assert.equal(s.shiftOpen,false,'DEC-078: no shift in the closer’s name');s=execute(s,'owner',{type:'SHIFT_OPEN'});assert.equal(s.shiftOpen,true);assert.equal(s.openingCash,expected);});
-await import('./m1.mjs').then(x=>x.register({test,M,assert}));
+try{
+await import('./m1.mjs').then(x=>x.register({test,M,assert}));await runner.drain();
 // Stream test suites: tests/stream-*.mjs, then the Wave 4 sync-layer suites tests/sync-*.mjs (harness: _sync-harness.mjs);
-// each exports register({test,M,assert}).
-for(const f of (await (await import('node:fs/promises')).readdir(new URL('.',import.meta.url))).filter(f=>/^(stream|sync)-.*\.mjs$/.test(f)).sort())await import('./'+f).then(x=>x.register({test,M,assert}));
-await mkdir('evidence',{recursive:true});await writeFile('evidence/domain-tests.json',JSON.stringify({runAt:new Date().toISOString(),passed,total:results.length,results},null,2));
-console.log(`${passed}/${results.length} tests passed`);
+// each exports register({test,M,assert}). HCC_TEST_ONLY=<regex> limits this list (dev loop only).
+const only=process.env.HCC_TEST_ONLY?new RegExp(process.env.HCC_TEST_ONLY):null;
+if(only)console.log('filter: '+only);
+for(const f of (await (await import('node:fs/promises')).readdir(new URL('.',import.meta.url))).filter(f=>/^(stream|sync)-.*\.mjs$/.test(f)&&(!only||only.test(f))).sort()){
+  try{await import('./'+f).then(x=>x.register({test,M,assert}));await runner.drain();}
+  catch(e){test('[suite] '+f+': '+(e&&e.message),()=>{throw e;});}
+}
+}finally{await runner.finish({evidencePath:'evidence/domain-tests.json'});}
