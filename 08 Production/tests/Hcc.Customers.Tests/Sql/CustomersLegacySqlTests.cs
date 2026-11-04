@@ -57,13 +57,14 @@ public class CustomersLegacySqlTests : IAsyncLifetime
         Assert.Equal("2026-10-23", p.LastStay);                             // last stay stays the live one
         Assert.Equal(416_667, p.AvgRatePaise);                              // live only
 
-        var row = (await _w.Queries.ListAsync(_w.PropertyId, _w.Users["owner"], null, null, 1, 50, Ct)).Customers.Single(c => c.Key == CrmWorld.Asha);
+        var ashaToken = await _w.Queries.TokenAsync(_w.PropertyId, CrmWorld.Asha, Ct);
+        var row = (await _w.Queries.ListAsync(_w.PropertyId, _w.Users["owner"], null, null, 1, 50, Ct)).Customers.Single(c => c.Key == ashaToken);
         Assert.Equal((3, 2, 10, 2_887_500L, "2024-08-01"), (row.Stays, row.LegacyStays, row.Nights, row.LifetimePaise!.Value, row.FirstStay!));
 
         // Reception and the Cashier see the legacy rows without money, like live stays.
         foreach (var user in new[] { "reception", "cashier" })
         {
-            var masked = await _w.Queries.ProfileAsync(_w.PropertyId, _w.Users[user], CrmWorld.Asha, Ct);
+            var masked = await _w.Queries.ProfileAsync(_w.PropertyId, _w.Users[user], ashaToken, Ct); // AF-CRM: a masked role sends the ck_ token, not the mobile key
             Assert.Equal(2, masked.LegacyStays!.Count);
             Assert.All(masked.LegacyStays, s => Assert.Null(s.NetPaise));
             Assert.Null(masked.LegacyLifetimePaise);
@@ -90,7 +91,8 @@ public class CustomersLegacySqlTests : IAsyncLifetime
         var p = await _w.Queries.ProfileAsync(_w.PropertyId, _w.Users["owner"], CrmWorld.Asha, Ct);
         Assert.Equal(3, p.LegacyStays!.Count);
         Assert.Equal("2023-05-01", p.FirstStay);
-        var row = (await _w.Queries.ListAsync(_w.PropertyId, _w.Users["owner"], null, null, 1, 50, Ct)).Customers.Single(c => c.Key == CrmWorld.Asha);
+        var ashaToken = await _w.Queries.TokenAsync(_w.PropertyId, CrmWorld.Asha, Ct);
+        var row = (await _w.Queries.ListAsync(_w.PropertyId, _w.Users["owner"], null, null, 1, 50, Ct)).Customers.Single(c => c.Key == ashaToken);
         Assert.Equal((3, 12), (row.LegacyStays, row.Nights));
     }
 }

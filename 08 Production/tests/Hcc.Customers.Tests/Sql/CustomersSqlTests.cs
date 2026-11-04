@@ -25,6 +25,8 @@ public class CustomersSqlTests : IAsyncLifetime
 
     private int U(string user) => _w.Users[user];
 
+    private Task<string> T(string rawKey) => _w.Queries.TokenAsync(_w.PropertyId, rawKey, Ct);
+
     private static async Task Fails(HccErrorCode code, Func<Task> action)
     {
         var e = await Assert.ThrowsAsync<HccException>(action);
@@ -57,7 +59,7 @@ public class CustomersSqlTests : IAsyncLifetime
         // list: 5 customers (the expired hold is not a booking); newest stay first
         var list = await _w.Queries.ListAsync(_w.PropertyId, U("owner"), null, null, 1, 50, Ct);
         Assert.Equal(5, list.Total);
-        Assert.Equal(CrmWorld.VikramPhone, list.Customers[0].Key);
+        Assert.Equal(await T(CrmWorld.VikramPhone), list.Customers[0].Key); // AF-CRM: the wire key is the ck_ token
         var vik = await Profile("owner", CrmWorld.VikramName);
         Assert.Equal(1, vik.CompletedStays);
         Assert.Equal(315_000, vik.LifetimePaise);
@@ -72,7 +74,7 @@ public class CustomersSqlTests : IAsyncLifetime
         // DEC-079 (v2 CRM-004): lifetime spend is money for the Owner and Manager; Reception and the Cashier see the profile without it.
         Assert.Equal(1_732_500, (await Profile("manager", CrmWorld.Asha)).LifetimePaise);
         Assert.Null((await Profile("reception", CrmWorld.Asha)).LifetimePaise);
-        var cash = await Profile("cashier", CrmWorld.Asha);
+        var cash = await Profile("cashier", await T(CrmWorld.Asha)); // AF-CRM: a masked role sends the ck_ token; its raw mobile key is NOT_FOUND
         Assert.True(cash.Masked);
         Assert.Null(cash.LifetimePaise);
         Assert.Equal("••••••1111", cash.Phone);
@@ -101,9 +103,9 @@ public class CustomersSqlTests : IAsyncLifetime
         var d = await _w.Queries.DuplicatesAsync(_w.PropertyId, U("manager"), Ct);
         Assert.Equal(3, d.Groups.Count);
         Assert.Equal(["email", "name-without-phone", "name-without-phone"], d.Groups.Select(g => g.Reason));
-        Assert.Equal([CrmWorld.Asha2, CrmWorld.Asha], d.Groups[0].Customers.Select(c => c.Key));
-        Assert.Equal(CrmWorld.VikramPhone, d.Groups[1].SuggestedSurvivor);
-        Assert.Equal(CrmWorld.Asha, d.Groups[2].SuggestedSurvivor);
+        Assert.Equal([await T(CrmWorld.Asha2), await T(CrmWorld.Asha)], d.Groups[0].Customers.Select(c => c.Key));
+        Assert.Equal(await T(CrmWorld.VikramPhone), d.Groups[1].SuggestedSurvivor);
+        Assert.Equal(await T(CrmWorld.Asha), d.Groups[2].SuggestedSurvivor);
         await Fails(HccErrorCode.FORBIDDEN, () => _w.Queries.DuplicatesAsync(_w.PropertyId, U("reception"), Ct));
     }
 
@@ -137,12 +139,12 @@ public class CustomersSqlTests : IAsyncLifetime
         Assert.Equal(1, p.CompletedStays);
         Assert.Equal(315_000, p.LifetimePaise);
         Assert.Equal(1, p.Cancelled);
-        Assert.Equal([CrmWorld.VikramName], p.MergedFrom);
+        Assert.Equal([await T(CrmWorld.VikramName)], p.MergedFrom);
         Assert.Equal(["corporate"], p.Tags);
         Assert.Equal(["Prefers ground floor"], p.Notes.Select(n => n.Body));
         Assert.Equal(4, (await _w.Queries.ListAsync(_w.PropertyId, U("owner"), null, null, 1, 50, Ct)).Total);
         // the old key still resolves (bookmarks, notes written by an older client)
-        Assert.Equal(CrmWorld.VikramPhone, (await Profile("owner", CrmWorld.VikramName)).Key);
+        Assert.Equal(await T(CrmWorld.VikramPhone), (await Profile("owner", CrmWorld.VikramName)).Key);
         // no other module's rows were touched
         Assert.Equal(2, await _w.CountAsync("SELECT COUNT(*) FROM gst.guest WHERE full_name = N'Vikram Shah'", Ct));
         Assert.Equal(1, await _w.CountAsync("SELECT COUNT(*) FROM crm.customer_alias", Ct));
@@ -151,7 +153,8 @@ public class CustomersSqlTests : IAsyncLifetime
         var approved = await _w.Queries.MergesAsync(_w.PropertyId, U("manager"), "Approved", Ct);
         Assert.Equal("Vikram Shah", approved.Merges.Single().SourceName);
         // the duplicate is gone from the duplicate list
-        Assert.DoesNotContain((await _w.Queries.DuplicatesAsync(_w.PropertyId, U("manager"), Ct)).Groups, g => g.Customers.Any(c => c.Key == CrmWorld.VikramName));
+        var vikramNameToken = await T(CrmWorld.VikramName);
+        Assert.DoesNotContain((await _w.Queries.DuplicatesAsync(_w.PropertyId, U("manager"), Ct)).Groups, g => g.Customers.Any(c => c.Key == vikramNameToken));
     }
 
     [Fact]
@@ -173,7 +176,7 @@ public class CustomersSqlTests : IAsyncLifetime
         var m2 = await Propose("manager", CrmWorld.VikramPhone, CrmWorld.Asha, "Vikram is Asha's husband, same account");
         await _w.Commands.DecideMergeAsync(_w.Ctx("owner", Key()), new DecideCustomerMergeRequest(m2.MergeId, true, m2.Version), Ct);
         var p = await Profile("owner", CrmWorld.VikramName);
-        Assert.Equal(CrmWorld.Asha, p.Key);
+        Assert.Equal(await T(CrmWorld.Asha), p.Key);
         Assert.Equal(6, p.Stays.Count);
         Assert.Equal(2, p.MergedFrom.Count);
         Assert.Equal(2, await _w.CountAsync("SELECT COUNT(*) FROM crm.customer_alias WHERE target_key = '" + CrmWorld.Asha + "'", Ct));
@@ -189,7 +192,7 @@ public class CustomersSqlTests : IAsyncLifetime
         await Fails(HccErrorCode.FORBIDDEN, () => _w.Commands.AddTagAsync(_w.Ctx("cashier", Key()), req, Ct));
         await Fails(HccErrorCode.VALIDATION, () => _w.Commands.AddTagAsync(_w.Ctx("reception", Key()), new AddCustomerTagRequest(CrmWorld.Asha, "no<good>"), Ct));
         await Fails(HccErrorCode.NOT_FOUND, () => _w.Commands.AddNoteAsync(_w.Ctx("reception", Key()), new AddCustomerNoteRequest("n:ghost", "hello"), Ct));
-        Assert.Equal(["vip"], (await Profile("cashier", CrmWorld.Asha)).Tags);
+        Assert.Equal(["vip"], (await Profile("cashier", await T(CrmWorld.Asha))).Tags);
         Assert.Equal(["vip"], (await _w.Queries.ListAsync(_w.PropertyId, U("owner"), null, "VIP", 1, 50, Ct)).Customers.Single().Tags);
         await _w.Commands.RemoveTagAsync(_w.Ctx("reception", Key()), new RemoveCustomerTagRequest(CrmWorld.Asha, "vip"), Ct);
         await Fails(HccErrorCode.NOT_FOUND, () => _w.Commands.RemoveTagAsync(_w.Ctx("reception", Key()), new RemoveCustomerTagRequest(CrmWorld.Asha, "vip"), Ct));

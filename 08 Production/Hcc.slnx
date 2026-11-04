@@ -310,5 +310,8 @@
     <!-- F6-H2 end -->
     <!-- F6-H3 4345-4348 -->
     <!-- F6-H3 end -->
+    <!-- AF-CRM -->
+    <File Path="database/migrations/4900_crm_customer_key_secret.sql" />
+    <!-- AF-CRM end -->
   </Folder>
 </Solution>
