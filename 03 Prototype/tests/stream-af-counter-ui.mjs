@@ -4,7 +4,7 @@ import {build} from 'esbuild';
 import {mkdir,writeFile} from 'node:fs/promises';
 
 await mkdir('tests/.generated',{recursive:true});
-await writeFile('tests/.generated/af-ctr-ui-entry.ts',"export {ctrLookupLocal,counterLookupActive,ctrCatalogueOptions,ctrMethods,ctrDefaultMethod} from '../../src/clients/sync/counterHooks';\n");
+await writeFile('tests/.generated/af-ctr-ui-entry.ts',"export {ctrLookupLocal,counterLookupActive,ctrCatalogueOptions,ctrMethods,ctrDefaultMethod} from '../../src/features/lfmoney/counterLocal';\n");
 let X;try{
   await build({entryPoints:['tests/.generated/af-ctr-ui-entry.ts'],bundle:true,platform:'node',format:'esm',outfile:'tests/.generated/af-ctr-ui.mjs',logLevel:'error'});
   X=await import('./.generated/af-ctr-ui.mjs');
