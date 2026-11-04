@@ -12,35 +12,40 @@ public sealed class SqlLfMoneyReadStore(SqlConnectionFactory connections) : ILfM
 
     private static long? L(SqlDataReader r, int i) => r.IsDBNull(i) ? null : r.GetInt64(i);
 
-    public async Task<IReadOnlyList<CounterBillListRow>> CounterBillsAsync(int propertyId, int take, CancellationToken ct)
+    public async Task<IReadOnlyList<CounterBillListRow>> CounterBillsAsync(int propertyId, int take, string? invoiceNo, DateOnly? from, DateOnly? to, CancellationToken ct)
     {
+        // AF-CTR-READS (CON-01): one batch, one id set. The id set is fixed once, so a bill committed meanwhile can neither add a header without lines nor push a header out.
         await using var conn = await connections.OpenAsync(ct).ConfigureAwait(false);
-        var lines = new Dictionary<long, List<CounterBillLineRow>>();
-        await using (var lc = connections.Command("""
-            SELECT l.bill_id, l.seq, l.label, l.extra_id, l.menu_item_id, l.qty, l.unit_paise, l.amount_paise, l.gst_category, l.tax_bps, l.sac
-            FROM ctr.bill_line l WHERE l.bill_id IN (SELECT TOP (@n) bill_id FROM ctr.bill WHERE property_id = @p ORDER BY bill_id DESC) ORDER BY l.bill_id, l.seq;
-            """, conn))
-        {
-            lc.Parameters.Add("@p", SqlDbType.Int).Value = propertyId;
-            lc.Parameters.Add("@n", SqlDbType.Int).Value = take;
-            await using var rd = await lc.ExecuteReaderAsync(ct).ConfigureAwait(false);
-            while (await rd.ReadAsync(ct).ConfigureAwait(false))
-            {
-                var id = rd.GetInt64(0);
-                if (!lines.TryGetValue(id, out var l)) lines[id] = l = [];
-                l.Add(new CounterBillLineRow(rd.GetInt32(1), rd.GetString(2), S(rd, 3), S(rd, 4), rd.GetInt32(5), rd.GetInt64(6), rd.GetInt64(7), rd.GetString(8), rd.GetInt32(9), rd.GetString(10).Trim()));
-            }
-        }
-
-        var list = new List<CounterBillListRow>();
         await using var cmd = connections.Command("""
-            SELECT TOP (@n) bill_id, invoice_no, business_date, issued_utc, issued_by, party_name, party_phone, party_gstin, party_address, guest_id, company_id, discount_paise, discount_reason,
-              net_paise, tax_paise, cgst_paise, sgst_paise, total_paise, remark, settlement_mode, method, reference, udhaar_id, status, credit_note_no, credit_note_reason, void_approval_id
-            FROM ctr.bill WHERE property_id = @p ORDER BY bill_id DESC;
+            DECLARE @ids TABLE(bill_id BIGINT PRIMARY KEY);
+            INSERT @ids SELECT TOP (@n) bill_id FROM ctr.bill
+              WHERE property_id = @p
+                AND (@inv IS NULL OR RTRIM(invoice_no) = @inv)
+                AND (@from IS NULL OR business_date >= @from) AND (@to IS NULL OR business_date <= @to)
+              ORDER BY bill_id DESC;
+            SELECT l.bill_id, l.seq, l.label, l.extra_id, l.menu_item_id, l.qty, l.unit_paise, l.amount_paise, l.gst_category, l.tax_bps, l.sac
+            FROM ctr.bill_line l JOIN @ids i ON i.bill_id = l.bill_id ORDER BY l.bill_id, l.seq;
+            SELECT b.bill_id, b.invoice_no, b.business_date, b.issued_utc, b.issued_by, b.party_name, b.party_phone, b.party_gstin, b.party_address, b.guest_id, b.company_id, b.discount_paise, b.discount_reason,
+              b.net_paise, b.tax_paise, b.cgst_paise, b.sgst_paise, b.total_paise, b.remark, b.settlement_mode, b.method, b.reference, b.udhaar_id, b.status, b.credit_note_no, b.credit_note_reason, b.void_approval_id
+            FROM ctr.bill b JOIN @ids i ON i.bill_id = b.bill_id ORDER BY b.bill_id DESC;
             """, conn);
         cmd.Parameters.Add("@p", SqlDbType.Int).Value = propertyId;
         cmd.Parameters.Add("@n", SqlDbType.Int).Value = take;
+        cmd.Parameters.Add("@inv", SqlDbType.NVarChar, 40).Value = (object?)invoiceNo ?? DBNull.Value;
+        cmd.Parameters.Add("@from", SqlDbType.Date).Value = from is null ? DBNull.Value : from.Value.ToDateTime(TimeOnly.MinValue);
+        cmd.Parameters.Add("@to", SqlDbType.Date).Value = to is null ? DBNull.Value : to.Value.ToDateTime(TimeOnly.MinValue);
         await using var r = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+
+        var lines = new Dictionary<long, List<CounterBillLineRow>>();
+        while (await r.ReadAsync(ct).ConfigureAwait(false))
+        {
+            var id = r.GetInt64(0);
+            if (!lines.TryGetValue(id, out var l)) lines[id] = l = [];
+            l.Add(new CounterBillLineRow(r.GetInt32(1), r.GetString(2), S(r, 3), S(r, 4), r.GetInt32(5), r.GetInt64(6), r.GetInt64(7), r.GetString(8), r.GetInt32(9), r.GetString(10).Trim()));
+        }
+
+        await r.NextResultAsync(ct).ConfigureAwait(false);
+        var list = new List<CounterBillListRow>();
         while (await r.ReadAsync(ct).ConfigureAwait(false))
         {
             var id = r.GetInt64(0);
