@@ -86,6 +86,15 @@ export const READS={
   // F6-int: menu packages for every staff role (prices stripped without PERM-HAL-002 view); T&C templates for the holders of PERM-HAL-002 (view)
   'GET /hall/menus':always,
   'GET /hall/templates':one(anyScope('PERM-HAL-002',true)),
+  // AF-SYNC-OPS (integration): room keys, tariff card, report favourites / schedules / runs (server permission checks in KeysEndpoints, TariffCardEndpoints, ReportService).
+  'GET /keys/log':one(wide('PERM-KEY-001')),
+  'GET /keys/encoder':one(wide('PERM-KEY-001')),
+  'GET /keys/panel/:id':one(wide('PERM-KEY-001')),
+  'GET /keys/locks':one(wide('PERM-KEY-004')),
+  'GET /tariff-card':one(wide('PERM-TRF-001')),
+  'GET /reports/favourites':always, // server answers every signed-in role (ReportService.FavouritesAsync has no permission gate)
+  'GET /reports/schedules':one(wide('PERM-RPT-004')),
+  'GET /reports/runs':one(wide('PERM-RPT-004')),
   // LF-ALERTS B4: PERM-RMD-001 reminders (an action permission).
   'GET /reminders':one(wide('PERM-RMD-001')),
   // LF-BILL A2: the bill-correction register = InvoicePermissions.View (PERM-INV-001), as the invoice reads.

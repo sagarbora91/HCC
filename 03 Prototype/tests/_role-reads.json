@@ -157,7 +157,15 @@
     "GET /stays/rate-changes": "/stays/rate-changes",
     "GET /hall/snapshot": "/hall/snapshot",
     "GET /hall/menus": "/hall/menus",
-    "GET /hall/templates": "/hall/templates"
+    "GET /hall/templates": "/hall/templates",
+    "GET /keys/log": "/keys/log",
+    "GET /keys/encoder": "/keys/encoder",
+    "GET /keys/panel/:id": "/keys/panel/1",
+    "GET /keys/locks": "/keys/locks",
+    "GET /tariff-card": "/tariff-card",
+    "GET /reports/favourites": "/reports/favourites",
+    "GET /reports/schedules": "/reports/schedules",
+    "GET /reports/runs": "/reports/runs"
   },
   "roles": {
     "OWN": {
@@ -1216,7 +1224,15 @@
         "GET /stays/rate-changes": "200",
         "GET /hall/snapshot": "200",
         "GET /hall/menus": "200",
-        "GET /hall/templates": "200"
+        "GET /hall/templates": "200",
+        "GET /keys/log": "200",
+        "GET /keys/encoder": "200",
+        "GET /keys/panel/:id": "404",
+        "GET /keys/locks": "200",
+        "GET /tariff-card": "200",
+        "GET /reports/favourites": "200",
+        "GET /reports/schedules": "200",
+        "GET /reports/runs": "200"
       }
     },
     "MGR": {
@@ -2040,7 +2056,15 @@
         "GET /stays/rate-changes": "200",
         "GET /hall/snapshot": "200",
         "GET /hall/menus": "200",
-        "GET /hall/templates": "200"
+        "GET /hall/templates": "200",
+        "GET /keys/log": "200",
+        "GET /keys/encoder": "200",
+        "GET /keys/panel/:id": "404",
+        "GET /keys/locks": "200",
+        "GET /tariff-card": "200",
+        "GET /reports/favourites": "200",
+        "GET /reports/schedules": "200",
+        "GET /reports/runs": "200"
       }
     },
     "REC": {
@@ -2564,7 +2588,15 @@
         "GET /stays/rate-changes": "200",
         "GET /hall/snapshot": "200",
         "GET /hall/menus": "200",
-        "GET /hall/templates": "200"
+        "GET /hall/templates": "200",
+        "GET /keys/log": "200",
+        "GET /keys/encoder": "200",
+        "GET /keys/panel/:id": "404",
+        "GET /keys/locks": "403",
+        "GET /tariff-card": "200",
+        "GET /reports/favourites": "200",
+        "GET /reports/schedules": "403",
+        "GET /reports/runs": "403"
       }
     },
     "CSH": {
@@ -2933,7 +2965,15 @@
         "GET /stays/rate-changes": "403",
         "GET /hall/snapshot": "200",
         "GET /hall/menus": "200",
-        "GET /hall/templates": "403"
+        "GET /hall/templates": "403",
+        "GET /keys/log": "403",
+        "GET /keys/encoder": "403",
+        "GET /keys/panel/:id": "403",
+        "GET /keys/locks": "403",
+        "GET /tariff-card": "200",
+        "GET /reports/favourites": "200",
+        "GET /reports/schedules": "403",
+        "GET /reports/runs": "403"
       }
     },
     "ACC": {
@@ -3402,7 +3442,15 @@
         "GET /stays/rate-changes": "403",
         "GET /hall/snapshot": "200",
         "GET /hall/menus": "200",
-        "GET /hall/templates": "200"
+        "GET /hall/templates": "200",
+        "GET /keys/log": "403",
+        "GET /keys/encoder": "403",
+        "GET /keys/panel/:id": "403",
+        "GET /keys/locks": "403",
+        "GET /tariff-card": "200",
+        "GET /reports/favourites": "200",
+        "GET /reports/schedules": "200",
+        "GET /reports/runs": "200"
       }
     },
     "SUP": {
@@ -3671,7 +3719,15 @@
         "GET /stays/rate-changes": "403",
         "GET /hall/snapshot": "200",
         "GET /hall/menus": "200",
-        "GET /hall/templates": "403"
+        "GET /hall/templates": "403",
+        "GET /keys/log": "403",
+        "GET /keys/encoder": "403",
+        "GET /keys/panel/:id": "403",
+        "GET /keys/locks": "403",
+        "GET /tariff-card": "403",
+        "GET /reports/favourites": "200",
+        "GET /reports/schedules": "403",
+        "GET /reports/runs": "403"
       }
     },
     "HKP": {
@@ -3905,7 +3961,15 @@
         "GET /stays/rate-changes": "403",
         "GET /hall/snapshot": "200",
         "GET /hall/menus": "200",
-        "GET /hall/templates": "403"
+        "GET /hall/templates": "403",
+        "GET /keys/log": "403",
+        "GET /keys/encoder": "403",
+        "GET /keys/panel/:id": "403",
+        "GET /keys/locks": "403",
+        "GET /tariff-card": "403",
+        "GET /reports/favourites": "200",
+        "GET /reports/schedules": "403",
+        "GET /reports/runs": "403"
       }
     },
     "MNT": {
@@ -4124,7 +4188,15 @@
         "GET /stays/rate-changes": "403",
         "GET /hall/snapshot": "200",
         "GET /hall/menus": "200",
-        "GET /hall/templates": "403"
+        "GET /hall/templates": "403",
+        "GET /keys/log": "403",
+        "GET /keys/encoder": "403",
+        "GET /keys/panel/:id": "403",
+        "GET /keys/locks": "403",
+        "GET /tariff-card": "403",
+        "GET /reports/favourites": "200",
+        "GET /reports/schedules": "403",
+        "GET /reports/runs": "403"
       }
     },
     "TAD": {
@@ -4383,7 +4455,15 @@
         "GET /stays/rate-changes": "403",
         "GET /hall/snapshot": "200",
         "GET /hall/menus": "200",
-        "GET /hall/templates": "403"
+        "GET /hall/templates": "403",
+        "GET /keys/log": "403",
+        "GET /keys/encoder": "403",
+        "GET /keys/panel/:id": "403",
+        "GET /keys/locks": "403",
+        "GET /tariff-card": "403",
+        "GET /reports/favourites": "200",
+        "GET /reports/schedules": "403",
+        "GET /reports/runs": "403"
       }
     },
     "RST": {
@@ -4577,7 +4657,15 @@
         "GET /stays/rate-changes": "403",
         "GET /hall/snapshot": "200",
         "GET /hall/menus": "200",
-        "GET /hall/templates": "403"
+        "GET /hall/templates": "403",
+        "GET /keys/log": "403",
+        "GET /keys/encoder": "403",
+        "GET /keys/panel/:id": "403",
+        "GET /keys/locks": "403",
+        "GET /tariff-card": "403",
+        "GET /reports/favourites": "200",
+        "GET /reports/schedules": "403",
+        "GET /reports/runs": "403"
       }
     }
   }

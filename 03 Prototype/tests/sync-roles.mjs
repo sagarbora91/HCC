@@ -69,6 +69,10 @@ function routes(role){
     'GET /reminders':()=>({bucket:'today',businessDate:'2026-10-24',items:[]}), // LF-ui
     'GET /invoices/corrections':()=>[], // LF-finish
     'GET /counter-bills':()=>[],'GET /guests/credit':()=>[],'GET /stays/rate-changes':()=>[],
+    // AF-INT (sync-ops integration): empty answers for the keys, tariff card and report-hub loaders
+    'GET /keys/log':()=>({rows:[],totals:{},total:0}),'GET /keys/encoder':()=>({online:false,lastSeenUtc:null}),'GET /keys/panel/:id':()=>reply(404,{code:'NOT_FOUND',message:'No booking.'}),'GET /keys/locks':()=>({locks:[]}),
+    'GET /tariff-card':()=>({versions:[],weekendDaysDefault:[5,6]}),
+    'GET /reports/favourites':()=>[],'GET /reports/schedules':()=>[],'GET /reports/runs':()=>[],
     'GET /admin/system-health':()=>({checkedUtc:'2026-10-24T04:00:00.000Z',parked:[],lastBackup:null,lastSuccessfulBackupUtc:null,lastRestoreDrill:null,eventLog:'off'}),
     'GET /configuration/requests':()=>({items:[]}),
     'GET /configuration/history':()=>({page:1,pageSize:100,total:0,items:[]}),
