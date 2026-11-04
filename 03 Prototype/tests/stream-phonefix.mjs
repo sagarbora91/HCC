@@ -9,9 +9,9 @@ export function register({test,M,assert}){
     for(const u of s.users.filter(u=>u.enabled)){
       const shown=N.navFilterModules(s,N.navItems,u.id).filter(n=>M.can(s,u.id,n.p)).some(n=>n.id==='compliance');
       assert.equal(shown,u.role==='Owner'||u.role==='Accountant',u.role);}});
-  test('[PF] AC-04 sheet form submit clears the dirty flag before the child handler runs (capture phase)',async()=>{
+  test('[PF] UX-05 a successful run() clears the dirty flag; ModalHost no longer clears it at submit-capture',async()=>{
     const src=await readFile('src/app/ModalHost.tsx','utf8');
-    assert.ok(/onSubmitCapture=\{\(\)=>setDirty\(false\)\}/.test(src));assert.ok(!/ onSubmit=\{\(\)=>setDirty/.test(src));
+    assert.ok(!/onSubmitCapture/.test(src));assert.ok(!/ onSubmit=\{\(\)=>setDirty/.test(src));
     const app=await readFile('src/app/App.tsx','utf8');
     assert.ok(/setError\(''\);dirty\.current=false;/.test(app),'run() success clears dirty');});
   test('[PF] AC-03 count-sheet formula: opening + cash in - cash out = expected, restaurant cash included',()=>{

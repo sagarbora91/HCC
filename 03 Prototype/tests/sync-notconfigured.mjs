@@ -82,4 +82,16 @@ export async function register({test,assert}){
     const sim=demo.banner({notConfigured:MESSAGING});
     assert.ok(sim.includes('Simulated.')&&!sim.includes(MESSAGING),'the demo build is unchanged');
   });
+
+  // AF-SMALL (audit items 24 / 25): every command that no area maps has words, and sends nothing.
+  const AF_KEYS=['RPT_RUN_DUE','TRC_IMPORT','AI_ASK','AI_CLEAR','AI_SETTINGS','KEY_AGENT_STEP','KEY_CLOCK','KEY_SIM','KEY_ENCODER','SHIFT_CLOSE','STAY_CHECKOUT_BASIS','QUO_EXPIRE','NET_TICK','DIGEST_REDRAFT','GRP_SWEEP','HALL_NIGHT_RUN'];
+  const afBefore=off.calls.length;
+  const afAsk=await rtOff.run({type:'AI_ASK',text:'hello'});
+  const afSent=off.calls.length-afBefore;
+  test('[AF-SMALL] every unmapped command in audit items 24/25 has its own text; AI_ASK is refused as unmapped with that text and sends 0 requests',()=>{
+    for(const k of AF_KEYS){assert.equal(typeof S.UNMAPPED_TEXT[k],'string',k);assert.ok(S.UNMAPPED_TEXT[k].trim().length>10,k);}
+    assert.ok(S.UNMAPPED_TEXT.MSG_DOC_EXTRACT===OCR,'MSG_DOC_EXTRACT kept');
+    assert.deepEqual([afAsk.ok,afAsk.reason,afAsk.text],[false,'unmapped',S.UNMAPPED_TEXT.AI_ASK]);
+    assert.equal(afSent,0);
+  });
 }

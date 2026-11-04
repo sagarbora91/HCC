@@ -89,4 +89,30 @@ export const reports=(ctx:any,phone:boolean)=>renderToStaticMarkup(<HccContext.P
     assert.ok(html[1].includes('Loading the report'));
     assert.ok(html[2].includes('Loading the report'));
   });
+
+  // AF-PERF06: history loads three months at a time; one failing month is an error cell, not a rejected history.
+  let inflight=0,maxInflight=0;const slow=fakeServer({'GET /reports/daily':async({query})=>{inflight++;maxInflight=Math.max(maxInflight,inflight);await new Promise(r=>setTimeout(r,15));inflight--;return view(query.from,query.to||query.from);},
+    'GET /closing/business-date':()=>({businessDate:'2027-03-15',closed:false}),'GET /closing/records':()=>({items:[]})});
+  const rtSlow=await startRuntime(S,slow);slow.reset();
+  const HS=await S.loadServerHistory(rtSlow.api,'2027-03-15',()=>at);
+  const slowCalls=slow.gets('/reports/daily').length;
+  const badM=fakeServer({'GET /reports/daily':({query})=>query.from.startsWith('2026-06')?reply(500,{code:'INTERNAL',message:'boom'}):view(query.from,query.to||query.from),
+    'GET /closing/business-date':()=>({businessDate:'2026-10-24',closed:false}),'GET /closing/records':()=>({items:[]})});
+  const rtBad=await startRuntime(S,badM);badM.reset();
+  const HB=await S.loadServerHistory(rtBad.api,'2026-10-24',()=>at).then(h=>h,e=>({rejected:String(e.message)}));
+  test('[AF-PERF06] history loads at most 3 months at a time',()=>{
+    assert.equal(HS.months.length,12);assert.equal(slowCalls,12);
+    assert.ok(maxInflight<=3&&maxInflight>=1,'max in flight '+maxInflight);
+    assert.deepEqual(HS.errors,[]);
+  });
+  test('[AF-PERF06] one failing month yields an error cell, the other months and totals, no rejection',()=>{
+    assert.equal(HB.rejected,undefined);
+    assert.equal(HB.months.length,7);
+    const jun=HB.months.find(m=>m.month==='2026-06');
+    assert.deepEqual([jun.error,jun.roomRevenue,jun.occupied],[true,0,0]);
+    assert.deepEqual(HB.errors.map(e=>e.month),['Jun 2026']);
+    assert.equal(HB.months.filter(m=>!m.error).length,6);
+    assert.equal(HB.total.roomRevenue,HB.months.reduce((a,m)=>a+m.roomRevenue,0));
+    assert.ok(HB.total.roomRevenue>0);
+  });
 }

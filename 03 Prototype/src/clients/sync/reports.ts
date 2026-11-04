@@ -57,20 +57,26 @@ export function fyMonths(date:string):MonthRange[]{
   }
   return out;
 }
-export type ServerMonth={month:string;label:string;sellable:number;occupied:number;occupancy:string;adr:string;revpar:string;roomRevenue:number;netRevenue:number};
-export type ServerHistory={from:string;to:string;months:ServerMonth[];total:{sellable:number;occupied:number;occupancy:string;adr:string;revpar:string;roomRevenue:number;netRevenue:number};asOfUtc:string};
+export type ServerMonth={month:string;label:string;sellable:number;occupied:number;occupancy:string;adr:string;revpar:string;roomRevenue:number;netRevenue:number;error?:boolean};
+export type ServerHistory={from:string;to:string;months:ServerMonth[];errors:{month:string;text:string}[];total:{sellable:number;occupied:number;occupancy:string;adr:string;revpar:string;roomRevenue:number;netRevenue:number};asOfUtc:string};
 const ratio=(p:number|null)=>p===null||p===undefined?'\u2014':money(p);
 export const pct=(occ:number,sell:number)=>sell?(Math.round(occ/sell*1000)/10).toFixed(1)+'%':'\u2014';
 const div=(a:number,b:number)=>b?Math.round(a/b):null;
 /** One GET per month; month figures are the server's own strings, the financial-year total is summed from the months. */
 export async function loadServerHistory(api:SyncApi,date:string,now:()=>Date=()=>new Date()):Promise<ServerHistory>{
   const ranges=fyMonths(date);
-  const views=await Promise.all(ranges.map(r=>api.get<SrvDailyView>('/reports/daily',{from:r.from,to:r.to})));
-  const months=ranges.map((r,i)=>{const o=views[i].report.occupancy;
+  // AF-PERF06: at most 3 months in flight (up to 12 parallel GETs before); a failed month becomes an error cell, the others still load.
+  const settled:PromiseSettledResult<SrvDailyView>[]=[];
+  for(let i=0;i<ranges.length;i+=3)settled.push(...await Promise.allSettled(ranges.slice(i,i+3).map(r=>api.get<SrvDailyView>('/reports/daily',{from:r.from,to:r.to}))));
+  const errors:{month:string;text:string}[]=[];
+  const months:ServerMonth[]=ranges.map((r,i)=>{const v=settled[i];
+    if(v.status==='rejected'){errors.push({month:r.label,text:v.reason instanceof Error?v.reason.message:String(v.reason)});
+      return {month:r.month,label:r.label,sellable:0,occupied:0,occupancy:'—',adr:'—',revpar:'—',roomRevenue:0,netRevenue:0,error:true};}
+    const o=v.value.report.occupancy;
     return {month:r.month,label:r.label,sellable:o.sellableRoomNights,occupied:o.occupiedRoomNights,occupancy:o.occupancyPct,adr:ratio(o.adrPaise),revpar:ratio(o.revParPaise),
-      roomRevenue:o.roomRevenuePaise,netRevenue:views[i].report.revenue.netPaise};});
+      roomRevenue:o.roomRevenuePaise,netRevenue:v.value.report.revenue.netPaise};});
   const sum=(k:'sellable'|'occupied'|'roomRevenue'|'netRevenue')=>months.reduce((a,m)=>a+m[k],0);
   const sellable=sum('sellable'),occupied=sum('occupied'),roomRevenue=sum('roomRevenue');
-  return {from:ranges[0]?.from??date,to:date,months,asOfUtc:now().toISOString(),
+  return {from:ranges[0]?.from??date,to:date,months,errors,asOfUtc:now().toISOString(),
     total:{sellable,occupied,occupancy:pct(occupied,sellable),adr:ratio(div(roomRevenue,occupied)),revpar:ratio(div(roomRevenue,sellable)),roomRevenue,netRevenue:sum('netRevenue')}};
 }

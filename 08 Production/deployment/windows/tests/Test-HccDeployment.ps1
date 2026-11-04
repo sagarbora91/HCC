@@ -826,6 +826,11 @@ Check 'LF-docdb Restore-HccDrill -WhatIf names both scratch copies and the refer
     $r = DryRun 'Restore-HccDrill.ps1' @('-BackupDirectory', $tmp, '-ConfigPath', (Join-Path $tmp 'none.json'))
     $r.Exit -eq 0 -and $r.Out -match 'documents database: would pick the newest FULL' -and $r.Out -match 'HccDrill_\d+Documents' -and $r.Out -match 'reference check: would count object_ref' -and $r.Out -match 'one RestoreDrill row per database'
 }
+Check 'DEP-01 Set-HccEgress -State Apply -WhatIf with the rule missing: no database write, exit 1, the catch write is only planned' {
+    # No instance answers (and no firewall rule exists on a test PC), so Apply lands in its catch block; under -WhatIf that block may only PLAN the detail write.
+    $e = DryRun 'Set-HccEgress.ps1' @('-State', 'Apply', '-Instance', 'localhost\NoSuchInstance_dep01', '-Database', 'Hcc', '-ConfigPath', (Join-Path $tmp 'none.json'))
+    $e.Exit -eq 1 -and $e.Out -match 'What if: Performing the operation "record detail = not applied: ' -and $e.Out -match 'ops\.egress_firewall_state' -and $e.Out -notmatch 'record applied_state'
+}
 
 Write-Host ''
 Write-Host "Passed: $script:passed  Failed: $script:failed"
