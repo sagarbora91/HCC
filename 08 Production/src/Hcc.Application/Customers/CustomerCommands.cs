@@ -30,10 +30,13 @@ public sealed class CustomerCommands(ICommandRunner runner, IAccessPolicy policy
 
     private static string Target(string key) => "crm:" + key;
 
-    /// <summary>Resolves a (possibly merged-away) key to the live customer or NOT_FOUND.</summary>
-    private static Customer Find(CrmSource src, IReadOnlyList<Customer> index, string? key)
+    /// <summary>
+    /// Resolves a (possibly merged-away) key to the live customer or NOT_FOUND. AF-CRM (PR-01): the key arrives as a ck_ token or a raw n: key; a raw
+    /// mobile key is accepted only from a reader who may see contact details.
+    /// </summary>
+    private static Customer Find(CrmSource src, IReadOnlyList<Customer> index, CustomerKeySpace keys, bool contact, string? key)
     {
-        var k = CustomerRules.Resolve((key ?? string.Empty).Trim(), src.Aliases);
+        var k = CustomerRules.Resolve(keys.ResolveInbound(key, contact), src.Aliases);
         return index.FirstOrDefault(c => c.Key == k) ?? throw new HccException(HccErrorCode.NOT_FOUND, "Customer not found.");
     }
 
@@ -45,8 +48,10 @@ public sealed class CustomerCommands(ICommandRunner runner, IAccessPolicy policy
         var reason = CustomerRules.CleanReason(req.Reason);
         var src = await reads.LoadAsync(ctx.PropertyId, ct).ConfigureAwait(false);
         var index = src.Index();
-        var source = Find(src, index, req.SourceKey);
-        var target = Find(src, index, req.TargetKey);
+        var keys = await CustomerKeySpace.ForAsync(reads, ctx.PropertyId, src, index, ct).ConfigureAwait(false);
+        var contact = await policy.HasAsync(ctx.PropertyId, ctx.PrincipalId, CustomerPermissions.Edit, null, ct).ConfigureAwait(false);
+        var source = Find(src, index, keys, contact, req.SourceKey);
+        var target = Find(src, index, keys, contact, req.TargetKey);
         if (source.Key == target.Key) throw HccException.Validation("Choose two different customers.");
         return await runner.RunAsync(ctx with { Operation = OpPropose }, req, async (tx, c) =>
         {
@@ -54,7 +59,7 @@ public sealed class CustomerCommands(ICommandRunner runner, IAccessPolicy policy
                 ?? throw new HccException(HccErrorCode.INVALID_TRANSITION, "This customer already has a pending merge, or one of the two was merged already.");
             await tx.AuditAsync("CRM_MERGE_PROPOSE", Target(source.Key), $"merge {source.Name} ({source.Stays.Count} stays) into {target.Name} ({target.Stays.Count} stays) · {reason}", c).ConfigureAwait(false);
             var m = (await store.LockMergeAsync(tx, ctx.PropertyId, id, c).ConfigureAwait(false))!;
-            return CustomerViews.Merge(m);
+            return CustomerViews.Merge(m, keys);
         }, ct).ConfigureAwait(false);
     }
 
@@ -64,6 +69,8 @@ public sealed class CustomerCommands(ICommandRunner runner, IAccessPolicy policy
         ArgumentNullException.ThrowIfNull(req);
         await policy.RequireAsync(ctx.PropertyId, ctx.PrincipalId, CustomerPermissions.MergeDecide, null, null, ct).ConfigureAwait(false);
         var expected = VersionToken.Parse(req.ExpectedVersion);
+        var decideSrc = await reads.LoadAsync(ctx.PropertyId, ct).ConfigureAwait(false);
+        var keys = await CustomerKeySpace.ForAsync(reads, ctx.PropertyId, decideSrc, decideSrc.Index(), ct).ConfigureAwait(false);
         var note = string.IsNullOrWhiteSpace(req.Note) ? null : req.Note.Trim();
         if (note is { Length: > CustomerRules.ReasonMax }) throw HccException.Validation($"The note is limited to {CustomerRules.ReasonMax} characters.");
         return await runner.RunAsync(ctx with { Operation = OpDecide }, req, async (tx, c) =>
@@ -87,29 +94,31 @@ public sealed class CustomerCommands(ICommandRunner runner, IAccessPolicy policy
             }
 
             var fresh = (await store.LockMergeAsync(tx, ctx.PropertyId, req.MergeId, c).ConfigureAwait(false))!;
-            return CustomerViews.Merge(fresh);
+            return CustomerViews.Merge(fresh, keys);
         }, ct).ConfigureAwait(false);
     }
 
-    private async Task<(CrmSource Src, Customer C)> EditableAsync(CommandContext ctx, string? key, CancellationToken ct)
+    private async Task<(CustomerKeySpace Keys, Customer C)> EditableAsync(CommandContext ctx, string? key, CancellationToken ct)
     {
         await policy.RequireAsync(ctx.PropertyId, ctx.PrincipalId, CustomerPermissions.Edit, null, null, ct).ConfigureAwait(false);
         var src = await reads.LoadAsync(ctx.PropertyId, ct).ConfigureAwait(false);
-        return (src, Find(src, src.Index(), key));
+        var index = src.Index();
+        var keys = await CustomerKeySpace.ForAsync(reads, ctx.PropertyId, src, index, ct).ConfigureAwait(false);
+        return (keys, Find(src, index, keys, true, key));
     }
 
     public async Task<CommandResult<CustomerChangeResult>> AddTagAsync(CommandContext ctx, AddCustomerTagRequest req, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(ctx);
         ArgumentNullException.ThrowIfNull(req);
-        var (_, cust) = await EditableAsync(ctx, req.CustomerKey, ct).ConfigureAwait(false);
+        var (keys, cust) = await EditableAsync(ctx, req.CustomerKey, ct).ConfigureAwait(false);
         var tag = CustomerRules.CleanTag(req.Tag);
         return await runner.RunAsync(ctx with { Operation = OpAddTag }, req, async (tx, c) =>
         {
             if (await store.TagCountAsync(tx, ctx.PropertyId, cust.Key, c).ConfigureAwait(false) >= CustomerRules.TagsMax) throw HccException.Validation($"A customer can have at most {CustomerRules.TagsMax} tags.");
             var added = await store.AddTagAsync(tx, ctx.PropertyId, cust.Key, tag, ctx.PrincipalId, UtcNow, c).ConfigureAwait(false);
             await tx.AuditAsync("CRM_TAG", Target(cust.Key), $"{cust.Name} · tag {tag}{(added ? " added" : " already set")}", c).ConfigureAwait(false);
-            return new CustomerChangeResult(cust.Key, added ? $"tag {tag} added" : $"tag {tag} was already set");
+            return new CustomerChangeResult(keys.TokenOf(cust.Key), added ? $"tag {tag} added" : $"tag {tag} was already set");
         }, ct).ConfigureAwait(false);
     }
 
@@ -117,13 +126,13 @@ public sealed class CustomerCommands(ICommandRunner runner, IAccessPolicy policy
     {
         ArgumentNullException.ThrowIfNull(ctx);
         ArgumentNullException.ThrowIfNull(req);
-        var (_, cust) = await EditableAsync(ctx, req.CustomerKey, ct).ConfigureAwait(false);
+        var (keys, cust) = await EditableAsync(ctx, req.CustomerKey, ct).ConfigureAwait(false);
         var tag = CustomerRules.CleanTag(req.Tag);
         return await runner.RunAsync(ctx with { Operation = OpRemoveTag }, req, async (tx, c) =>
         {
             if (!await store.RemoveTagAsync(tx, ctx.PropertyId, cust.Key, tag, c).ConfigureAwait(false)) throw new HccException(HccErrorCode.NOT_FOUND, "Tag not found.");
             await tx.AuditAsync("CRM_TAG", Target(cust.Key), $"{cust.Name} · tag {tag} removed", c).ConfigureAwait(false);
-            return new CustomerChangeResult(cust.Key, $"tag {tag} removed");
+            return new CustomerChangeResult(keys.TokenOf(cust.Key), $"tag {tag} removed");
         }, ct).ConfigureAwait(false);
     }
 
@@ -131,13 +140,13 @@ public sealed class CustomerCommands(ICommandRunner runner, IAccessPolicy policy
     {
         ArgumentNullException.ThrowIfNull(ctx);
         ArgumentNullException.ThrowIfNull(req);
-        var (_, cust) = await EditableAsync(ctx, req.CustomerKey, ct).ConfigureAwait(false);
+        var (keys, cust) = await EditableAsync(ctx, req.CustomerKey, ct).ConfigureAwait(false);
         var body = CustomerRules.CleanNote(req.Body);
         return await runner.RunAsync(ctx with { Operation = OpAddNote }, req, async (tx, c) =>
         {
             var id = await store.AddNoteAsync(tx, ctx.PropertyId, cust.Key, body, ctx.PrincipalId, UtcNow, c).ConfigureAwait(false);
             await tx.AuditAsync("CRM_NOTE", Target(cust.Key), $"{cust.Name} · note {id.ToString(CultureInfo.InvariantCulture)} added", c).ConfigureAwait(false);
-            return new CustomerChangeResult(cust.Key, "note added");
+            return new CustomerChangeResult(keys.TokenOf(cust.Key), "note added");
         }, ct).ConfigureAwait(false);
     }
 
@@ -145,7 +154,7 @@ public sealed class CustomerCommands(ICommandRunner runner, IAccessPolicy policy
     {
         ArgumentNullException.ThrowIfNull(ctx);
         ArgumentNullException.ThrowIfNull(req);
-        var (_, cust) = await EditableAsync(ctx, req.CustomerKey, ct).ConfigureAwait(false);
+        var (keys, cust) = await EditableAsync(ctx, req.CustomerKey, ct).ConfigureAwait(false);
         var text = CustomerRules.CleanPreferences(req.Preferences);
         byte[]? expected = req.ExpectedVersion is null ? null : VersionToken.Parse(req.ExpectedVersion);
         return await runner.RunAsync(ctx with { Operation = OpPreferences }, req, async (tx, c) =>
@@ -160,7 +169,7 @@ public sealed class CustomerCommands(ICommandRunner runner, IAccessPolicy policy
 
             await store.SetPrefAsync(tx, ctx.PropertyId, cust.Key, text, ctx.PrincipalId, UtcNow, c).ConfigureAwait(false);
             await tx.AuditAsync("CRM_PREFERENCES", Target(cust.Key), $"{cust.Name} · preferences {(text.Length == 0 ? "cleared" : "updated")}", c).ConfigureAwait(false);
-            return new CustomerChangeResult(cust.Key, text.Length == 0 ? "preferences cleared" : "preferences saved");
+            return new CustomerChangeResult(keys.TokenOf(cust.Key), text.Length == 0 ? "preferences cleared" : "preferences saved");
         }, ct).ConfigureAwait(false);
     }
 
@@ -169,7 +178,7 @@ public sealed class CustomerCommands(ICommandRunner runner, IAccessPolicy policy
     {
         ArgumentNullException.ThrowIfNull(ctx);
         ArgumentNullException.ThrowIfNull(req);
-        var (_, cust) = await EditableAsync(ctx, req.CustomerKey, ct).ConfigureAwait(false);
+        var (keys, cust) = await EditableAsync(ctx, req.CustomerKey, ct).ConfigureAwait(false);
         if (cust.GuestIds.Count == 0) throw new HccException(HccErrorCode.INVALID_TRANSITION, "This customer has no saved guest profile yet, so there is nothing to attach consent to.");
         return await runner.RunAsync(ctx with { Operation = OpConsent }, req, async (tx, c) =>
         {
@@ -193,7 +202,7 @@ public sealed class CustomerCommands(ICommandRunner runner, IAccessPolicy policy
 
             var summary = last.OptOut ? "opted out of marketing" : $"WhatsApp {Yn(last.WhatsApp)} · SMS {Yn(last.Sms)} · Email {Yn(last.Email)}";
             await tx.AuditAsync("CRM_CONSENT", Target(cust.Key), $"{cust.Name} · {summary}{(stopped > 0 ? $" · {stopped} queued stopped" : string.Empty)}", c).ConfigureAwait(false);
-            return new CustomerChangeResult(cust.Key, summary);
+            return new CustomerChangeResult(keys.TokenOf(cust.Key), summary);
         }, ct).ConfigureAwait(false);
     }
 

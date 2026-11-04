@@ -150,6 +150,30 @@ public sealed partial class SqlCustomerReadStore(SqlConnectionFactory connection
         while (await rd.ReadAsync(ct).ConfigureAwait(false)) list.Add(CrmSql.ReadMerge(rd));
         return list;
     }
+
+    /// <summary>AF-CRM (PR-01): the per-property secret of the ck_ wire key; created on first use. A lost insert race reads the winner's row.</summary>
+    public async Task<byte[]> KeySecretAsync(int propertyId, CancellationToken ct = default)
+    {
+        for (var attempt = 0; ; attempt++)
+        {
+            await using var conn = await connections.OpenAsync(ct).ConfigureAwait(false);
+            await using var cmd = connections.Command("""
+                IF NOT EXISTS (SELECT 1 FROM crm.customer_key_secret WITH (UPDLOCK, HOLDLOCK) WHERE property_id = @p)
+                    INSERT crm.customer_key_secret(property_id, secret, created_utc) VALUES (@p, @s, SYSUTCDATETIME());
+                SELECT secret FROM crm.customer_key_secret WHERE property_id = @p;
+                """, conn);
+            cmd.P("@p", SqlDbType.Int, propertyId);
+            cmd.P("@s", SqlDbType.VarBinary, System.Security.Cryptography.RandomNumberGenerator.GetBytes(32), 32);
+            try
+            {
+                return (byte[])(await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false))!;
+            }
+            catch (SqlException ex) when (ex.Number is 2627 or 2601 && attempt < 3)
+            {
+                // another request created the row first: read it again
+            }
+        }
+    }
 }
 
 /// <summary>Write side inside the command transaction.</summary>

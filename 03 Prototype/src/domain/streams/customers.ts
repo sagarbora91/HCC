@@ -35,7 +35,7 @@ export type Customer={
 };
 
 const clean=(n:string)=>n.replace(/\s*\(fictional\)\s*/i,'').trim();
-const normName=(n:string)=>clean(n).toLowerCase().replace(/[^a-z0-9 ]+/g,' ').replace(/\s+/g,' ').trim();
+const normName=(n:string)=>clean(n).normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}\p{M} ]+/gu,' ').replace(/\s+/g,' ').trim(); // AF-DEC-4: letters, digits and combining marks of any script (Devanagari matras)
 export const customerPhoneKey=(p?:string)=>{const d=String(p||'').replace(/\D/g,'');return d.length>=10?d.slice(-10):'';};
 const top=(xs:string[],n:number)=>{const m=new Map<string,number>();for(const x of xs)if(x)m.set(x,(m.get(x)||0)+1);return [...m].sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0])).slice(0,n).map(x=>x[0]);};
 
@@ -78,7 +78,7 @@ export function customerIndex(s:State,legacy?:LegacyLookup):Customer[]{
 export function customerSearch(list:Customer[],q:string,phoneOk=true):Customer[]{
   const text=q.trim();
   if(!text)return list;
-  if(/[a-z]/i.test(text)){const words=normName(text).split(' ').filter(Boolean);return list.filter(c=>words.every(w=>normName(c.name).includes(w))||c.stays.some(b=>deskVehicleMatches(b,text)));} // LF-DESK: or a vehicle number
+  if(/\p{L}/u.test(text)){const words=normName(text).split(' ').filter(Boolean);return list.filter(c=>words.every(w=>normName(c.name).includes(w))||c.stays.some(b=>deskVehicleMatches(b,text)));} // LF-DESK: or a vehicle number
   const digits=text.replace(/\D/g,'');
   if(!phoneOk||digits.length<3)return [];
   return list.filter(c=>c.phone.replace(/\D/g,'').includes(digits));

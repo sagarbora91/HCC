@@ -12,6 +12,7 @@ public sealed record CustomerStayView(long ReservationId, string BookingNo, stri
 public sealed record LegacyStayView(long StayId, string LegacyFy, long LegacyBookingId, int? LegacyBillNo, string Arrival, string? Departure, int Nights, string Room, int RoomCount, string Status, long? NetPaise);
 
 /// <summary>
+/// <c>Key</c> = opaque per-property token (<c>ck_...</c>); never the phone number (AF-DEC-3). The same token is accepted by every customer request.
 /// <c>Stays</c> = live bookings only; <c>LegacyStays</c> = old-program stays; <c>Nights</c> and <c>LifetimePaise</c> include legacy;
 /// <c>FirstStay</c> = the earlier of the first legacy and the first live arrival (LG contract §9).
 /// </summary>
@@ -24,6 +25,7 @@ public sealed record CustomerConsentView(bool WhatsApp, bool Sms, bool Email, bo
 
 public sealed record CustomerNoteView(long NoteId, string Body, int AuthorId, string CreatedUtc);
 
+/// <summary><c>Key</c> = opaque per-property token (<c>ck_...</c>); never the phone number. <c>MergedFrom</c> carries tokens too.</summary>
 public sealed record CustomerProfile(
     string Key, string Name, string Phone, string? Email, bool Masked, IReadOnlyList<long> GuestIds, IReadOnlyList<CustomerStayView> Stays,
     int CompletedStays, int Nights, long? LifetimePaise, long? AvgRatePaise, string? FirstStay, string? LastStay, CustomerStayView? Current, IReadOnlyList<CustomerStayView> Upcoming,

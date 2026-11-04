@@ -57,4 +57,28 @@ export function register({test,M,assert}){
     assert.ok(C.bookingIdLookup(s,'hcc-h').length<=8);
     const conf=s.bookings.find(x=>x.status==='Confirmed');assert.ok(C.bookingIdLookup(s,conf.id).some(x=>x.status==='Confirmed'));
   });
+  // AF-CRM (AF-DEC-4): Unicode-aware names, fictional Marathi guests
+  const devaBase=()=>{const base=M.baseFixture();const a=base.bookings[0];return {base,a};};
+  test('[AF-CRM] two Devanagari phone-less bookings are two customers',()=>{
+    const {base,a}=devaBase();
+    const b1={...a,id:'DV-1',guest:'राम पाटील',phone:''},b2={...a,id:'DV-2',guest:'सीता जोशी',phone:''};
+    const idx=C.customerIndex({...base,guests:[],bookings:[b1,b2]});
+    assert.equal(idx.length,2);assert.deepEqual(idx.map(c=>c.stays.length),[1,1]);
+  });
+  test('[AF-CRM] Devanagari search by one word finds the guest',()=>{
+    const {base,a}=devaBase();
+    const b1={...a,id:'DV-1',guest:'राम पाटील',phone:''},b2={...a,id:'DV-2',guest:'सीता जोशी',phone:''};
+    const idx=C.customerIndex({...base,guests:[],bookings:[b1,b2]});
+    assert.deepEqual(C.customerSearch(idx,'राम').map(c=>c.name),['राम पाटील']);
+    assert.deepEqual(C.customerSearch(idx,'जोशी').map(c=>c.name),['सीता जोशी']);
+    assert.equal(C.customerSearch(idx,'गीता').length,0);
+  });
+  test('[AF-CRM] ASCII normalisation unchanged (table)',()=>{
+    const {base,a}=devaBase();
+    const table=[['Asha Rao','asha rao'],['Asha Rao (fictional)','asha rao'],['ASHA  RAO','asha rao'],["O'Brien-Smith",'o brien smith'],['Dr. A. P. J. Kalam','dr a p j kalam'],['  leading space','leading space'],['trailing!!!','trailing'],['Room 101 Guest','room 101 guest'],['A_B','a b'],['Mr. & Mrs. Patil','mr mrs patil'],['R2-D2','r2 d2'],['x@y.com','x y com']];
+    for(const [n,exp] of table){
+      const idx=C.customerIndex({...base,guests:[],bookings:[{...a,id:'T-1',guest:n,phone:''}]});
+      assert.equal(idx.length,1);assert.equal(idx[0].key,'n:'+exp,n);
+    }
+  });
 }

@@ -51,15 +51,19 @@ public static class CustomerRules
         return sb.ToString();
     }
 
-    /// <summary>Lower case, anything but a-z/0-9 becomes a space, spaces collapsed; the prototype's "(fictional)" marker is dropped.</summary>
+    /// <summary>
+    /// AF-DEC-4 (ID-01): NFKC, lower case, letters / digits of any script and combining marks (Devanagari matras) are kept, anything else becomes one space,
+    /// spaces collapsed; the prototype's "(fictional)" marker is dropped. ASCII input gives exactly what the old a-z/0-9 rule gave.
+    /// </summary>
     public static string NormName(string? name)
     {
-        var s = (name ?? string.Empty).Replace("(fictional)", " ", StringComparison.OrdinalIgnoreCase).Trim().ToLowerInvariant();
+        var s = (name ?? string.Empty).Replace("(fictional)", " ", StringComparison.OrdinalIgnoreCase).Trim().Normalize(NormalizationForm.FormKC).ToLowerInvariant();
         var sb = new StringBuilder();
         var space = true;
-        foreach (var c in s)
+        foreach (var r in s.EnumerateRunes())
         {
-            if (c is >= 'a' and <= 'z' or >= '0' and <= '9') { sb.Append(c); space = false; }
+            var cat = Rune.GetUnicodeCategory(r);
+            if (Rune.IsLetterOrDigit(r) || cat is UnicodeCategory.NonSpacingMark or UnicodeCategory.SpacingCombiningMark) { sb.Append(r.ToString()); space = false; }
             else if (!space) { sb.Append(' '); space = true; }
         }
 
@@ -89,7 +93,10 @@ public static class CustomerRules
     public static string KeyOf(string? phone, string? name)
     {
         var p = PhoneKey(phone);
-        return p.Length > 0 ? p : "n:" + NormName(name);
+        if (p.Length > 0) return p;
+        var n = NormName(name);
+        // AF-DEC-4: a symbol-only name has no usable text; key it by its raw bytes so two different unusable names never share one customer.
+        return n.Length > 0 ? "n:" + n : "n:#" + Convert.ToHexString(Encoding.UTF8.GetBytes((name ?? string.Empty).Trim()));
     }
 
     /// <summary>Follows merge aliases to the surviving key (cycle-safe).</summary>
@@ -165,7 +172,7 @@ public static class CustomerRules
         ArgumentNullException.ThrowIfNull(list);
         var text = (q ?? string.Empty).Trim();
         if (text.Length == 0) return list;
-        if (text.Any(c => c is >= 'a' and <= 'z' or >= 'A' and <= 'Z'))
+        if (text.Any(char.IsLetter))
         {
             var words = NormName(text).Split(' ', StringSplitOptions.RemoveEmptyEntries);
             return list.Where(c => words.All(w => NormName(c.Name).Contains(w, StringComparison.Ordinal))).ToList();

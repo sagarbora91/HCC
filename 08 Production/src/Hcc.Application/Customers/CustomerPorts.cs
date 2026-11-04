@@ -46,6 +46,9 @@ public interface ICustomerReadStore
 
     Task<IReadOnlyList<CrmMerge>> MergesAsync(int propertyId, string? status, CancellationToken ct = default);
 
+    /// <summary>AF-CRM (PR-01 / AF-DEC-3): the property's secret for the opaque ck_ customer key; created on first use.</summary>
+    Task<byte[]> KeySecretAsync(int propertyId, CancellationToken ct = default);
+
     /// <summary>LG §9: the legacy stays of one customer key (lgc.v_customer_stay), newest arrival first.</summary>
     Task<IReadOnlyList<CrmLegacyStay>> LegacyStaysAsync(int propertyId, string customerKey, CancellationToken ct = default);
 
