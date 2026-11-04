@@ -101,6 +101,7 @@ export async function register({test,M,assert}){
       '03 Prototype/src/features/accounting/Mobile.tsx','03 Prototype/src/mobile/admin/Settings.tsx',
       '03 Prototype/src/features/tariffcard/TariffCardMobile.tsx','03 Prototype/src/styles/m-f4.css',
       '03 Prototype/src/features/channels/ChannelsMobile.tsx',
+      '03 Prototype/src/mobile/money/Payment.tsx',   // AF-INT (PAY-08): phone payment sheet confirms a suspected duplicate receipt (behaviour change, not FIT layout)
       '03 Prototype/src/features/hall/HallMobile.tsx']);   // F6-H3: hall booking phone page (new feature, not FIT)
       // F5-int: phone OTA banner   // F4-T1: tariff card phone cards + its sheet (new feature, not FIT)
     const bad=out.split('\n').map(s=>s.trim()).filter(Boolean).filter(phone).filter(f=>!FROM_MAIN.has(f));
