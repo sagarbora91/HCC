@@ -174,18 +174,42 @@ public sealed class SqlBillCorrectionStore(SqlConnectionFactory connections) : I
 
     public async Task<IReadOnlyList<BillCorrectionListRow>> ListAsync(int propertyId, CancellationToken ct)
     {
+        // AF-CTL02 (CTL-02): one batch, one id set — the register rows and their changes come from the same fixed set of corrections.
         await using var conn = await connections.OpenAsync(ct).ConfigureAwait(false);
         await using var cmd = connections.Command("""
-            SELECT c.correction_id, o.invoice_no, c.credit_note_no, n.invoice_no, c.status, c.old_total_paise, c.new_total_paise, c.delta_paise, c.settlement, c.reason, c.requested_utc
-            FROM ivc.bill_correction c JOIN ivc.invoice o ON o.invoice_id = c.old_invoice_id LEFT JOIN ivc.invoice n ON n.invoice_id = c.new_invoice_id
-            WHERE c.property_id = @p ORDER BY c.correction_id DESC;
+            DECLARE @ids TABLE(correction_id BIGINT PRIMARY KEY);
+            INSERT @ids SELECT correction_id FROM ivc.bill_correction WHERE property_id = @p;
+            SELECT c.correction_id, o.invoice_no, c.credit_note_no, n.invoice_no, c.status, c.old_total_paise, c.new_total_paise, c.delta_paise, c.settlement, c.reason, c.requested_utc,
+                   c.requested_by, c.approval_id, a.decided_by, a.decided_utc
+            FROM ivc.bill_correction c JOIN @ids i ON i.correction_id = c.correction_id
+            JOIN ivc.invoice o ON o.invoice_id = c.old_invoice_id LEFT JOIN ivc.invoice n ON n.invoice_id = c.new_invoice_id
+            LEFT JOIN bill.approval a ON a.approval_id = c.approval_id
+            ORDER BY c.correction_id DESC;
+            SELECT h.correction_id, h.seq, h.kind, h.night, h.old_rate_paise, h.new_rate_paise, h.charge_id, h.label, h.amount_paise, h.gst_category, h.service_date
+            FROM ivc.bill_correction_change h JOIN @ids i ON i.correction_id = h.correction_id ORDER BY h.correction_id, h.seq;
             """, conn);
         P(cmd, "@p", SqlDbType.Int, propertyId);
-        var list = new List<BillCorrectionListRow>();
         await using var rd = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+        var heads = new List<(long Id, string Old, string? Cn, string? New, string Status, long OldT, long NewT, long Delta, string? Settle, string Reason, DateTime Req, int By, long Appr, int? DBy, DateTime? DUtc)>();
         while (await rd.ReadAsync(ct).ConfigureAwait(false))
-            list.Add(new BillCorrectionListRow(rd.GetInt64(0), rd.GetString(1), rd.IsDBNull(2) ? null : rd.GetString(2), rd.IsDBNull(3) ? null : rd.GetString(3), rd.GetString(4),
-                rd.GetInt64(5), rd.GetInt64(6), rd.GetInt64(7), rd.IsDBNull(8) ? null : rd.GetString(8), rd.GetString(9), rd.GetDateTime(10)));
-        return list;
+            heads.Add((rd.GetInt64(0), rd.GetString(1), rd.IsDBNull(2) ? null : rd.GetString(2), rd.IsDBNull(3) ? null : rd.GetString(3), rd.GetString(4),
+                rd.GetInt64(5), rd.GetInt64(6), rd.GetInt64(7), rd.IsDBNull(8) ? null : rd.GetString(8), rd.GetString(9), rd.GetDateTime(10),
+                rd.GetInt32(11), rd.GetInt64(12), rd.IsDBNull(13) ? null : rd.GetInt32(13), rd.IsDBNull(14) ? null : rd.GetDateTime(14)));
+        var byId = new Dictionary<long, List<StoredBillChange>>();
+        if (await rd.NextResultAsync(ct).ConfigureAwait(false))
+        {
+            static DateOnly? Dt(SqlDataReader r, int i) => r.IsDBNull(i) ? null : DateOnly.FromDateTime(r.GetDateTime(i));
+            static long? L(SqlDataReader r, int i) => r.IsDBNull(i) ? null : r.GetInt64(i);
+            static string? S(SqlDataReader r, int i) => r.IsDBNull(i) ? null : r.GetString(i);
+            while (await rd.ReadAsync(ct).ConfigureAwait(false))
+            {
+                var id = rd.GetInt64(0);
+                if (!byId.TryGetValue(id, out var l)) byId[id] = l = [];
+                l.Add(new StoredBillChange(rd.GetInt32(1), rd.GetString(2), Dt(rd, 3), L(rd, 4), L(rd, 5), L(rd, 6), S(rd, 7), L(rd, 8), S(rd, 9), Dt(rd, 10)));
+            }
+        }
+
+        return heads.Select(h => new BillCorrectionListRow(h.Id, h.Old, h.Cn, h.New, h.Status, h.OldT, h.NewT, h.Delta, h.Settle, h.Reason, h.Req, h.By, h.Appr, h.DBy, h.DUtc,
+            byId.TryGetValue(h.Id, out var ch) ? ch : [])).ToList();
     }
 }

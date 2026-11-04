@@ -31,7 +31,8 @@ public sealed record StoredBillChange(int Seq, string Kind, DateOnly? Night, lon
 
 /// <summary>The correction register (A2; W7 "Bill updation report").</summary>
 public sealed record BillCorrectionListRow(long CorrectionId, string OldInvoiceNo, string? CreditNoteNo, string? NewInvoiceNo, string Status, long OldTotalPaise,
-    long NewTotalPaise, long DeltaPaise, string? Settlement, string Reason, DateTime RequestedUtc);
+    long NewTotalPaise, long DeltaPaise, string? Settlement, string Reason, DateTime RequestedUtc, int RequestedBy, long ApprovalId, int? DecidedBy, DateTime? DecidedUtc,
+    IReadOnlyList<StoredBillChange> Changes);
 
 public interface IBillCorrectionStore
 {
