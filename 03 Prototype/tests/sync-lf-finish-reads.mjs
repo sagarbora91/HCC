@@ -61,4 +61,19 @@ export async function register({test,assert}){
     assert.deepEqual(rmCalls[0].body,{captureId:30,reason:'Removed from the guest profile'});
     assert.equal(none.ok,false);assert.equal(photoSrv.commands('RemoveGuestPhoto').length,1);
   });
+  // AF-INT (CTL-02): the correction register row carries requester, approval, decider and the stored changes
+  const corr=await startRuntime(S,mk(capabilities(),{'GET /invoices/corrections':()=>[
+    {correctionId:3,oldInvoiceNo:'INV/2627/0001',creditNoteNo:'CRN/2627/0001',newInvoiceNo:'INV/2627/0002',status:'Issued',oldTotalPaise:210000,newTotalPaise:157500,deltaPaise:-52500,settlement:'refund-due',
+      reason:'Wrong rate',requestedUtc:'2026-10-24T04:00:00Z',requestedBy:2,approvalId:9,decidedBy:1,decidedUtc:'2026-10-24T05:00:00Z',
+      changes:[{seq:1,kind:'room-rate',night:'2026-10-23',oldRatePaise:200000,newRatePaise:150000,chargeId:null,label:null,amountPaise:null,gstCategory:null,serviceDate:null}]},
+    {correctionId:2,oldInvoiceNo:'INV/2627/0003',creditNoteNo:null,newInvoiceNo:null,status:'Pending',oldTotalPaise:100000,newTotalPaise:90000,deltaPaise:-10000,settlement:null,
+      reason:'Remove line',requestedUtc:'2026-10-24T03:00:00Z',requestedBy:2,approvalId:8,decidedBy:null,decidedUtc:null,changes:[]}]}));
+  const cs=corr.get().state.billCorrectionX?.corrections??[];
+  test('[AF-INT CTL-02] the correction register maps requester, approval, approver (Issued only), decision time and the stored changes',()=>{
+    assert.equal(cs.length,2);
+    const c3=cs.find(c=>c.id==='3'),c2=cs.find(c=>c.id==='2');
+    assert.equal(c3.changes.length,1);assert.equal(c3.changes[0].kind,'room-rate');assert.equal(c3.changes[0].newRate,150000);assert.equal(c3.changes[0].night,'2026-10-23');
+    assert.ok(c3.requestedBy&&c3.approvalId&&c3.approvedBy&&c3.decidedAt,'requester, approval, approver and decision time are set');
+    assert.deepEqual(c2.changes,[]);assert.equal(c2.approvedBy,undefined);assert.equal(c2.decidedAt,undefined);assert.ok(c2.requestedBy);
+  });
 }

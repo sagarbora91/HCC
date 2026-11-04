@@ -3,7 +3,7 @@
 //   GUEST_RATE_SET → SetGuestAgreedRate, GUEST_RATE_CLEAR → ClearGuestAgreedRate (keyed by room-type id: roomTypeIdOf learns it from the masters slice or GET /masters/room-types).
 import {HccClientError} from '../errors';
 import {serverId,protoId,protoUserId,utcToClock} from './map';
-import type {BLCState,BLCCorrection,CTRState,CTRBill,STRState,GuestAgreedRate} from '../../domain/types';
+import type {BLCState,BLCCorrection,BLCChange,CTRState,CTRBill,STRState,GuestAgreedRate} from '../../domain/types';
 import type {SyncArea,SyncApi,CommandCtx} from './types';
 import {mnyIsDrawer,mnyMethod} from '../../domain/streams/money-master';
 import {shiftClosedText} from './money';
@@ -25,13 +25,25 @@ async function roomTypeIdOf(c:CommandCtx,code:string):Promise<number>{
   c.ids.learn('roomType',code,id);return id;
 }
 
+type SrvCorrectionChange={seq:number;kind:string;night:string|null;oldRatePaise:number|null;newRatePaise:number|null;chargeId:number|null;label:string|null;
+  amountPaise:number|null;gstCategory:string|null;serviceDate:string|null};
 type SrvCorrection={correctionId:number;oldInvoiceNo:string;creditNoteNo:string|null;newInvoiceNo:string|null;status:string;oldTotalPaise:number;newTotalPaise:number;
-  deltaPaise:number;settlement:string|null;reason:string;requestedUtc:string};
+  deltaPaise:number;settlement:string|null;reason:string;requestedUtc:string;requestedBy:number;approvalId:number;decidedBy:number|null;decidedUtc:string|null;
+  changes:SrvCorrectionChange[]};
+/** CTL-02: one stored change of the register row (the server keeps what the request saw). */
+function blcChange(c:SrvCorrectionChange):BLCChange|null{
+  if(c.kind==='room-rate'&&c.night)return {kind:'room-rate',night:String(c.night).slice(0,10),oldRate:c.oldRatePaise??0,newRate:c.newRatePaise??0};
+  if(c.kind==='remove-line'&&c.chargeId!=null)return {kind:'remove-line',lineId:protoId(c.chargeId)};
+  if(c.kind==='add-line')return {kind:'add-line',label:c.label??'',amount:c.amountPaise??0,gstCategory:c.gstCategory??'',date:String(c.serviceDate??'').slice(0,10)};
+  return null;
+}
 export function billCorrectionsFromServer(rows:SrvCorrection[],bookings:{id:string;invoiceNo?:string}[]):BLCState{
   const bookingOf=(inv:string)=>bookings.find(b=>b.invoiceNo===inv)?.id??'';
   return {corrections:rows.map(r=>({id:String(r.correctionId),booking:bookingOf(r.oldInvoiceNo),oldInvoiceNo:r.oldInvoiceNo,
-    ...(r.creditNoteNo?{creditNoteNo:r.creditNoteNo}:{}),...(r.newInvoiceNo?{newInvoiceNo:r.newInvoiceNo}:{}),changes:[],reason:r.reason,requestedBy:'',at:utcToClock(r.requestedUtc),
-    approvalId:'',status:r.status as BLCCorrection['status'],oldTotal:r.oldTotalPaise,newTotal:r.newTotalPaise,delta:r.deltaPaise,
+    ...(r.creditNoteNo?{creditNoteNo:r.creditNoteNo}:{}),...(r.newInvoiceNo?{newInvoiceNo:r.newInvoiceNo}:{}),
+    changes:(r.changes??[]).map(blcChange).filter((x):x is BLCChange=>x!==null),reason:r.reason,requestedBy:protoUserId(r.requestedBy),at:utcToClock(r.requestedUtc),
+    approvalId:protoId(r.approvalId),...(r.status==='Issued'&&r.decidedBy!=null?{approvedBy:protoUserId(r.decidedBy)}:{}),...(r.decidedUtc?{decidedAt:utcToClock(r.decidedUtc)}:{}),
+    status:r.status as BLCCorrection['status'],oldTotal:r.oldTotalPaise,newTotal:r.newTotalPaise,delta:r.deltaPaise,
     ...(r.settlement?{settlement:r.settlement as NonNullable<BLCCorrection['settlement']>}:{})}))};
 }
 
