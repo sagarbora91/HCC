@@ -68,6 +68,8 @@ export async function register({test,assert,M}){
     'GET /availability':()=>({businessDate:'2026-10-24',arrival:'2026-12-20',departure:'2026-12-22',nights:2,party:1,types:[{roomTypeId:2,code:'Deluxe',maxOccupancy:3,availableRooms:5,violations:[]},
       {roomTypeId:3,code:'Suite',maxOccupancy:4,availableRooms:2,violations:[]}],rooms:[]}),
     ...Object.fromEntries(CMDS.map(n=>['POST /commands/'+n,ok(n)])),
+    // AF-PAY08: st.dupRefuse makes RecordReceipt answer like the server's duplicate-receipt guard
+    'POST /commands/RecordReceipt':a=>st.dupRefuse?reply(422,{code:'VALIDATION',message:'A UPI payment of ₹1,000.00 was recorded on this folio at 10:02 IST (4 minutes ago), receipt 9. If this is a second, separate payment, confirm it.',details:{reason:'DUPLICATE_SUSPECTED',receiptId:9}}):ok('RecordReceipt')(a),
   });
   // The whole registry: W4-1's CHECKOUT mapper (frontdesk.ts) calls the money helpers (company credit, IssueInvoice after CheckoutStay).
   // Without the yield area: its approvals patch (GET /yield/*) is not served here, and a failing patch keeps the previous approvals (runtime rule).
@@ -113,10 +115,10 @@ export async function register({test,assert,M}){
   test('[W4-3 money] PAYMENT → RecordReceipt per tender (cash on the desk till, key <action> or <action>:t1…), then the folio and approvals reload',()=>{
     assert.ok(pay1.r.ok,pay1.r.text);const c=pay1.rr;
     assert.equal(pay1.calls[0],'POST /commands/RecordReceipt');assert.ok(pay1.calls.includes('GET /folios/by-reservation/1201'));
-    assert.deepEqual([c[0].key,c[0].body],['pay:1',{folioId:5001,kind:'payment',tender:'Cash',amountPaise:100000,reference:null,tillId:3}]);
+    assert.deepEqual([c[0].key,c[0].body],['pay:1',{folioId:5001,kind:'payment',tender:'Cash',amountPaise:100000,reference:null,tillId:3,confirmDuplicate:false}]);
     assert.ok(pay2.r.ok,pay2.r.text);const c2=pay2.rr;
     assert.deepEqual(c2.map(x=>x.key),['pay:2:t1','pay:2:t2']);
-    assert.deepEqual(c2.map(x=>x.body),[{folioId:5001,kind:'payment',tender:'UPI',amountPaise:200000,reference:'UPI-9',tillId:null},{folioId:5001,kind:'payment',tender:'Card',amountPaise:26500,reference:'CARD-1',tillId:null}]);
+    assert.deepEqual(c2.map(x=>x.body),[{folioId:5001,kind:'payment',tender:'UPI',amountPaise:200000,reference:'UPI-9',tillId:null,confirmDuplicate:false},{folioId:5001,kind:'payment',tender:'Card',amountPaise:26500,reference:'CARD-1',tillId:null,confirmDuplicate:false}]);
   });
   srv.reset();await rt.run({type:'PAYMENT',id:'1201',amount:100000,kind:'deposit',method:'Cash',key:'pay:3'});const cashBody=srv.commands('RecordReceipt')[0];
   const charge=await run({type:'CHARGE',id:'1201',amount:30000,label:'Dinner',gst:'food',key:'chg:1'});const chargeCmd=srv.commands('PostCharge')[0];
@@ -126,7 +128,7 @@ export async function register({test,assert,M}){
   const cc=await run({type:'COMPANY_CREDIT_REQUEST',id:'1201',key:'cc:1201:1'});const ccCmd=srv.commands('RequestAdjustment')[0];
   const cor=await run({type:'CORRECTION_REQUEST',id:'1201',lineId:'9002',reason:'Wrong folio',key:'cor:1'});const corCmd=srv.commands('RequestAdjustment')[0];
   test('[W4-3 money] CHARGE → PostCharge (GST category, no client tax); DISCOUNT / REFUND_REQUEST / COMPANY_CREDIT_REQUEST / CORRECTION_REQUEST → RequestAdjustment bound to the loaded folio version',()=>{
-    assert.deepEqual(cashBody.body,{folioId:5001,kind:'deposit',tender:'Cash',amountPaise:100000,reference:null,tillId:3});
+    assert.deepEqual(cashBody.body,{folioId:5001,kind:'deposit',tender:'Cash',amountPaise:100000,reference:null,tillId:3,confirmDuplicate:false});
     for(const x of [charge,disc,rr,cc,cor])assert.ok(x.r.ok,x.r.text);
     assert.deepEqual([chargeCmd.key,chargeCmd.body],['chg:1',{folioId:5001,label:'Dinner',amountPaise:30000,gstCategory:'food'}]);
     // DEC-077: a missed charge on the reopened day names it as the service date (the server decides whether that day is reopened).
@@ -323,5 +325,28 @@ export async function register({test,assert,M}){
     assert.equal(after.invoiceNo,'INV/2627/0000002');
     assert.deepEqual([again.ok,again.reason],[false,'precheck']);assert.match(again.text,/already been issued/);
     assert.deepEqual([csNo.ok,csNo.reason],[false,'precheck']);assert.match(csNo.text,/cannot issue tax invoices/);
+  });
+
+  // ── AF-PAY08 (PAY-08): a fresh dialog key after RESULT_UNKNOWN must not post a second receipt silently ──
+  srv.reset();const dupA=await rt.run({type:'PAYMENT',id:'1201',amount:100000,kind:'payment',method:'UPI',reference:'UPI-1',key:'pay:dup'});const dupAcmd=srv.commands('RecordReceipt')[0];
+  srv.reset();const dupB=await rt.run({type:'PAYMENT',id:'1201',amount:100000,kind:'payment',method:'UPI',reference:'UPI-1',confirmDuplicate:true,key:'pay:dup'});const dupBcmd=srv.commands('RecordReceipt')[0];
+  srv.reset();const dupC=await rt.run({type:'PAYMENT',id:'1201',amount:226500,kind:'payment',confirmDuplicate:true,key:'pay:dup2',
+    tenders:[{method:'UPI',amount:200000,reference:'UPI-9'},{method:'Card',amount:26500,reference:'CARD-1'}]});const dupCcmds=srv.commands('RecordReceipt');
+  test('[AF-PAY08] PAYMENT sends confirmDuplicate=false by default and true with step :confirm when set',()=>{
+    assert.ok(dupA.ok,dupA.text);assert.deepEqual([dupAcmd.key,dupAcmd.body.confirmDuplicate],['pay:dup',false]);
+    assert.ok(dupB.ok,dupB.text);assert.deepEqual([dupBcmd.key,dupBcmd.body.confirmDuplicate],['pay:dup:confirm',true]);
+    assert.notEqual(dupAcmd.key,dupBcmd.key,'the confirmed resend never reuses the refused attempt key (same key + changed payload = IDEMPOTENCY_MISMATCH)');
+    assert.ok(dupC.ok,dupC.text);assert.deepEqual(dupCcmds.map(c=>[c.key,c.body.confirmDuplicate]),[['pay:dup2:confirm-t1',true],['pay:dup2:confirm-t2',true]]);
+  });
+  st.dupRefuse=true;srv.reset();const dupR=await rt.run({type:'PAYMENT',id:'1201',amount:100000,kind:'payment',method:'UPI',reference:'UPI-1',key:'pay:dup3'});st.dupRefuse=false;
+  srv.reset();st.dupRefuse=true;const dupR2=await rt.run({type:'PAYMENT',id:'1201',amount:226500,kind:'payment',key:'pay:dup4',
+    tenders:[{method:'UPI',amount:200000,reference:'UPI-9'},{method:'Card',amount:26500,reference:'CARD-1'}]});st.dupRefuse=false;
+  test('[AF-PAY08] a DUPLICATE_SUSPECTED refusal is surfaced with details.reason',()=>{
+    assert.deepEqual([dupR.ok,dupR.reason],[false,'server']);
+    assert.match(dupR.text,/second, separate payment/);
+    assert.equal(dupR.error.details.reason,'DUPLICATE_SUSPECTED');assert.equal(dupR.error.details.receiptId,9);assert.equal(dupR.error.code,'VALIDATION');
+    assert.deepEqual([dupR2.ok,dupR2.reason],[false,'server']);
+    assert.equal(dupR2.error.details.reason,'DUPLICATE_SUSPECTED');
+    assert.match(dupR2.text,/second, separate payment/);
   });
 }

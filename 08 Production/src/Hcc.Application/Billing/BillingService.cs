@@ -173,6 +173,20 @@ public sealed class BillingService(ICommandRunner runner, IBillingStore store, I
                 if (amount > figures.Deposit) throw HccException.Validation($"Return cannot exceed the deposit held ({figures.Deposit}).");
             }
 
+            // AF-PAY08 (AF-DEC-1): an equal payment / deposit on this folio in the last 10 minutes needs an explicit confirmation (server clock, not the business date).
+            string? duplicateNote = null;
+            if (kind is ReceiptKind.Payment or ReceiptKind.Deposit)
+            {
+                var now = Now;
+                var recent = await store.RecentReceiptsAsync(tx, f.FolioId, now - DuplicateReceiptGuard.Window, ct2).ConfigureAwait(false);
+                var equal = DuplicateReceiptGuard.FindEqual(recent, kind, tender, amount, now);
+                if (equal is not null)
+                {
+                    if (!req.ConfirmDuplicate) throw DuplicateReceiptGuard.Refusal(equal, kind == ReceiptKind.Payment ? "payment" : "deposit", now);
+                    duplicateNote = $" · confirmed second payment (receipt {equal.ReceiptId.ToString(System.Globalization.CultureInfo.InvariantCulture)} {(int)Math.Floor((now - equal.RecordedUtc).TotalMinutes)} min earlier)";
+                }
+            }
+
             int? tillId = null;
             long? shiftId = null;
             if (cash)
@@ -195,7 +209,7 @@ public sealed class BillingService(ICommandRunner runner, IBillingStore store, I
             if (shiftId is { } sid)
                 await CashDesk.RecordReceiptMovementAsync(store, tx, sid, tillId!.Value, f.BusinessDate, kind, id, amount, f.FolioId, receipt.Reference, caller.PrincipalId, Now, ct2).ConfigureAwait(false);
             var version = await store.TouchFolioAsync(tx, f.FolioId, ct2).ConfigureAwait(false);
-            await tx.AuditAsync("RECEIPT_RECORDED", Target("folio", f.FolioId), $"{FolioTotals.KindCode(kind)} · {tender} · {amount} · receipt {id}" + (cash ? "" : " · manual entry, not verified"), ct2).ConfigureAwait(false);
+            await tx.AuditAsync("RECEIPT_RECORDED", Target("folio", f.FolioId), $"{FolioTotals.KindCode(kind)} · {tender} · {amount} · receipt {id}" + (cash ? "" : " · manual entry, not verified") + duplicateNote, ct2).ConfigureAwait(false);
             await tx.PublishAsync("ReceiptRecorded", f.FolioId, new { folioId = f.FolioId, receiptId = id, kind = FolioTotals.KindCode(kind), tender, amountPaise = amount.Value, businessDate = f.BusinessDate }, ct2).ConfigureAwait(false);
             return new ReceiptResult(id, f.FolioId, FolioTotals.KindCode(kind), tender, amount.Value, f.BusinessDate, shiftId, null, version);
         }, ct).ConfigureAwait(false);

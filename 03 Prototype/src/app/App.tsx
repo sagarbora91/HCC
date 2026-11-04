@@ -27,6 +27,9 @@ import {isNative,decideBack,hasStepBack,runStepBack,listenBackButton,styleStatus
 import {MobileShell} from './mobile/MobileShell';
 import {announceTab,type MobileTab} from './mobile/tabs';
 import {Empty,ExitAsk,DiscardAsk,dateLabel,clockTime} from '../components/ui';
+import {announceFolioDuplicate} from '../domain/streams/folio'; // AF-PAY08
+import {HccClientError} from '../clients/errors'; // AF-PAY08
+import {getSyncRuntime} from '../clients/sync/instance'; // AF-PAY08
 import {Overview} from '../features/overview/Overview';
 import {RoomBoard} from '../features/rooms/RoomBoard';
 import {Reservations} from '../features/reservations/Reservations';
@@ -188,7 +191,13 @@ function AppShell({initial,server}:{initial:Restored;/** Production only: state,
       busyRef.current=true;setBusy(true);
       try{
         const r=await server.run(cmd);
-        if(!r.ok){setError(r.text);toast(r.text,true);return false;}
+        if(!r.ok){setError(r.text);toast(r.text,true);
+          // AF-PAY08 (PAY-08): a refused equal receipt is announced to the payment dialog that owns this key (it offers "This is a second, separate payment");
+          // a lost answer (RESULT_UNKNOWN) refreshes the server data after 3 s so the folio shows the receipt if it did land.
+          announceFolioDuplicate(cmd.key,r.error);
+          if(r.error instanceof HccClientError&&r.error.code==='RESULT_UNKNOWN')window.setTimeout(()=>{void getSyncRuntime().refresh().catch(()=>undefined);},3000);
+          // AF-PAY08 end
+          return false;}
         setError('');dirty.current=false;if(opts.close)setModal(null);opts.after?.();
         // Partial success (e.g. checkout done, tax invoice refused): the follow-up problem stays visible on the screen the action led to.
         if(r.warning){setError(r.warning);toast(r.warning,true);}else toast(msg||'Updated successfully');
@@ -211,6 +220,7 @@ function AppShell({initial,server}:{initial:Restored;/** Production only: state,
       return true;
     }catch(e){
       const code=codeOf(e),text=`${errorTitle[code]}: ${(e as Error).message}`;
+      announceFolioDuplicate(command.key,e); // AF-PAY08
       setError(text);toast(text,true);return false;
     }
   }

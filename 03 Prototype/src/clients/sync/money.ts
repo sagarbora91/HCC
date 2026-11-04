@@ -283,9 +283,21 @@ export const money:SyncArea={
         const preArrival=known===undefined&&b.status==='Confirmed'&&kind!=='deposit-return';
         const target=preArrival?{folioId:0,reservationId:serverId(b.id,'Booking')}:{folioId:folioOf(c,b.id).folioId};
         const results=[];
-        for(const [i,t] of tenders.entries())
-          results.push(await c.api.command('RecordReceipt',{...target,kind,tender:t.method,amountPaise:t.amount,reference:t.reference||null,tillId:tillFor(c,t.method)},
-            tenders.length>1?{step:'t'+(i+1)}:{}));
+        // AF-PAY08 (PAY-08): confirmDuplicate=true is the cashier's "second, separate payment" tick. The resend uses its own key suffix (:confirm) so it can
+        // never collide with the refused attempt's key (same key + a changed payload would be IDEMPOTENCY_MISMATCH).
+        const confirm=c.cmd.confirmDuplicate===true;
+        for(const [i,t] of tenders.entries()){
+          const step=tenders.length>1?(confirm?'confirm-t'+(i+1):'t'+(i+1)):confirm?'confirm':undefined;
+          try{
+            results.push(await c.api.command('RecordReceipt',{...target,kind,tender:t.method,amountPaise:t.amount,reference:t.reference||null,tillId:tillFor(c,t.method),confirmDuplicate:confirm},
+              step?{step}:{}));
+          }catch(e){
+            // A refusal on a later tender row: the rows before it are already recorded (each row is its own receipt).
+            if(i>0&&e instanceof HccClientError&&e.details?.reason==='DUPLICATE_SUSPECTED')
+              throw new HccClientError(e.wireCode,`${e.message} Tender rows 1 to ${i} were already recorded; check the folio before confirming.`,e.details,e.httpStatus);
+            throw e;
+          }
+        }
         return {result:results};
       }},
     {type:'CHARGE',reload:FOLIO,

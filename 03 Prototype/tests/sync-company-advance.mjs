@@ -76,7 +76,7 @@ export async function register({test,assert}){
   const rr=srv.commands('RecordReceipt');const calls=srv.calls.map(c=>`${c.method} ${c.path}`);
   test('[G5 advance] PAYMENT on a Confirmed booking with no folio sends RecordReceipt by reservationId (folioId 0), then the bookings reload',()=>{
     assert.ok(dep.ok,dep.text);assert.equal(rr.length,1);
-    assert.deepEqual([rr[0].key,rr[0].body],['adv:1',{folioId:0,reservationId:1301,kind:'deposit',tender:'UPI',amountPaise:50000,reference:'UPI-ADV-1',tillId:null}]);
+    assert.deepEqual([rr[0].key,rr[0].body],['adv:1',{folioId:0,reservationId:1301,kind:'deposit',tender:'UPI',amountPaise:50000,reference:'UPI-ADV-1',tillId:null,confirmDuplicate:false}]);
     assert.ok(calls.includes('GET /reservations'),calls.join(','));
   });
   srv.reset();

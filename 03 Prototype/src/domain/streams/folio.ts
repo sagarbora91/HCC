@@ -1,7 +1,7 @@
 // Stream C · Payments & folio (owns PAYMENT, CHARGE, DISCOUNT, APPROVAL, CHECKOUT, REFUND_REQUEST, REFUND_EXECUTE,
 // COMPANY_CREDIT_REQUEST, CORRECTION_REQUEST, CREDIT_NOTE) — pure domain helpers and selectors
 // (re-exported by services/mock/index.ts for UI and tests). Export names are prefixed `folio`/`FOLIO_` to avoid clashes.
-import type {Approval,Booking,Line,State} from '../types';
+import type {Approval,Booking,Line,Receipt,State} from '../types';
 import {addMinutes} from '../money';
 
 /** Payment tenders accepted by PAYMENT (SCR-09). Company credit is applied only via an approved request at checkout. */
@@ -84,3 +84,45 @@ export function folioCheckoutBlockers(s:State,b:Booking,t:{balance:number;deposi
   if(s.approvals.some(a=>a.booking===b.id&&a.status==='Pending'&&!folioApprovalExpired(s,a)))out.push('A request on this folio is pending approval.');
   return out;
 }
+
+// AF-PAY08 (AF-DEC-1 · PAY-08): duplicate-receipt guard. A payment / deposit equal in kind, tender and amount to one recorded on the same folio in the
+// last 10 minutes needs an explicit confirmation. The server enforces it on its own clock (RecordReceipt, details.reason DUPLICATE_SUSPECTED); the demo
+// mock enforces it on s.clock (receipts carry `at`), and the payment dialog shows an early amber note from the same helper.
+export const FOLIO_DUP_REASON='DUPLICATE_SUSPECTED';
+export const FOLIO_DUP_WINDOW_MINUTES=10;
+export type FolioDupRow={method:string;amount:number};
+const dupAt=(r:Receipt)=>(r as Receipt&{at?:string}).at;
+const dupMinutes=(clock:string,at:string)=>Math.floor((Date.parse(clock+':00Z')-Date.parse(at+':00Z'))/60000);
+/** The newest receipt of this booking with the same kind, method and amount (paise) as one of `rows`, recorded within 10 minutes of `clock`. */
+export function recentEqualReceipt(b:Booking,rows:readonly FolioDupRow[],clock:string,kind:string='payment'):{receipt:Receipt;row:FolioDupRow;minutes:number}|undefined{
+  if(kind!=='payment'&&kind!=='deposit')return undefined; // refunds and deposit returns are never flagged
+  let best:{receipt:Receipt;row:FolioDupRow;minutes:number}|undefined;
+  for(const r of b.receipts){
+    const at=dupAt(r);if(!at||r.kind!==kind)continue;
+    const minutes=dupMinutes(clock,at);if(!(minutes>=0&&minutes<=FOLIO_DUP_WINDOW_MINUTES))continue;
+    const row=rows.find(x=>x.amount===r.amount&&x.method.toLowerCase()===r.method.toLowerCase());
+    if(row&&(!best||minutes<best.minutes||(minutes===best.minutes&&r.id>best.receipt.id)))best={receipt:r,row,minutes};
+  }
+  return best;
+}
+/** Same sentence as the server (DuplicateReceiptGuard.Refusal). */
+export function folioDupMessage(method:string,kind:string,amountText:string,at:string,minutes:number,receiptId:string){
+  return `A ${method} ${kind==='deposit'?'deposit':'payment'} of ${amountText} was recorded on this folio at ${at.slice(11,16)} IST (${minutes} minutes ago), receipt ${receiptId}. If this is a second, separate payment, confirm it.`;
+}
+/** `details.reason` of a refused RecordReceipt (or the mock's equivalent): the receipt that looks equal, else undefined. */
+export function folioDupDetails(e:unknown):{receiptId:string}|undefined{
+  const d=(e as {details?:{reason?:unknown;receiptId?:unknown}}|null|undefined)?.details;
+  return d&&d.reason===FOLIO_DUP_REASON?{receiptId:String(d.receiptId??'')}:undefined;
+}
+/** The shell (App.run) announces a refused duplicate for the dialog that owns `key`; the payment dialogs listen (onFolioDuplicate returns the unsubscribe). */
+export const FOLIO_DUP_EVENT='hcc:duplicate-suspected';
+export function announceFolioDuplicate(key:string|undefined,e:unknown):void{
+  const d=folioDupDetails(e);if(!d||typeof window==='undefined'||typeof CustomEvent==='undefined')return;
+  window.dispatchEvent(new CustomEvent(FOLIO_DUP_EVENT,{detail:{key,receiptId:d.receiptId,message:(e as Error).message}}));
+}
+export function onFolioDuplicate(key:string|undefined,cb:(d:{receiptId:string;message:string})=>void):()=>void{
+  if(typeof window==='undefined')return ()=>undefined;
+  const on=(ev:Event)=>{const d=(ev as CustomEvent).detail as {key?:string;receiptId:string;message:string};if(d.key===key)cb({receiptId:d.receiptId,message:d.message});};
+  window.addEventListener(FOLIO_DUP_EVENT,on);return ()=>window.removeEventListener(FOLIO_DUP_EVENT,on);
+}
+// AF-PAY08 end

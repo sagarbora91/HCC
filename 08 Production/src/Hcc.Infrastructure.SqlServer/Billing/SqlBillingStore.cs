@@ -115,6 +115,16 @@ public sealed class SqlBillingStore(SqlConnectionFactory connections) : IBilling
         return await ReadListAsync(cmd, r => ReadReceipt(r, 0), ct).ConfigureAwait(false);
     }
 
+    public async Task<IReadOnlyList<RecentReceipt>> RecentReceiptsAsync(ICommandTransaction tx, long folioId, DateTime sinceUtc, CancellationToken ct)
+    {
+        // AF-PAY08: uses IX_receipt_folio (folio_id); a folio has few receipts, the time filter is applied on that small set.
+        await using var cmd = Cmd(tx, "SELECT receipt_id, kind, method, amount_paise, recorded_utc FROM pay.receipt WHERE folio_id = @f AND recorded_utc >= @s ORDER BY recorded_utc DESC, receipt_id DESC;");
+        cmd.Parameters.Add("@f", SqlDbType.BigInt).Value = folioId;
+        cmd.Parameters.Add("@s", SqlDbType.DateTime2).Value = sinceUtc;
+        return await ReadListAsync(cmd, rd => new RecentReceipt(rd.GetInt64(0), FolioTotals.ParseKind(rd.GetString(1)), rd.GetString(2), SqlValues.ReadPaise(rd, 3),
+            DateTime.SpecifyKind(rd.GetDateTime(4), DateTimeKind.Utc)), ct).ConfigureAwait(false);
+    }
+
     public async Task<IReadOnlyList<ApprovalRow>> ApprovalsForFolioAsync(ICommandTransaction tx, long folioId, CancellationToken ct)
     {
         await using var cmd = Cmd(tx, $"SELECT {ApprovalColumns} FROM bill.approval WHERE folio_id = @f ORDER BY approval_id;");
