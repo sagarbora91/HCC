@@ -21,8 +21,11 @@ public sealed record ChargeResult(long ChargeId, long FolioId, string Kind, Date
 /// Advance before check-in: a Confirmed booking has no folio until check-in, so send <c>FolioId</c> 0 (or omit it) with
 /// <c>ReservationId</c>; the reservation's folio is opened in the same transaction (it is the one check-in then finds) and the
 /// receipt is recorded on it. With a <c>FolioId</c> the reservation id is ignored.
+/// AF-DEC-1 (PAY-08): a payment / deposit equal in kind, tender and amount to one recorded on the same folio in the last 10 minutes is refused
+/// (VALIDATION, <c>details.reason</c> DUPLICATE_SUSPECTED) unless <c>ConfirmDuplicate</c> is true.
 /// </summary>
-public sealed record RecordReceiptRequest(long FolioId, string Kind, string Tender, long AmountPaise, string? Reference, int? TillId, long? ReservationId = null);
+public sealed record RecordReceiptRequest(long FolioId, string Kind, string Tender, long AmountPaise, string? Reference, int? TillId, long? ReservationId = null,
+    bool ConfirmDuplicate = false);
 
 public sealed record ReceiptResult(long ReceiptId, long FolioId, string Kind, string Tender, long AmountPaise, DateOnly BusinessDate, long? ShiftId,
     long? RefundOf, string FolioVersion);

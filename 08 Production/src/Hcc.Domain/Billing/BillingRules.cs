@@ -1,3 +1,4 @@
+using Hcc.Contracts;
 using Hcc.Domain.Errors;
 using Hcc.Domain.Money;
 
@@ -175,6 +176,42 @@ public static class Tenders
         if (tender is null || !All.Contains(tender, StringComparer.Ordinal)) throw HccException.Validation("Select a payment method (Cash, UPI, Card or Bank transfer).");
         if (tender != Cash && string.IsNullOrWhiteSpace(reference)) throw HccException.Validation("Enter the transaction reference for a non-cash payment.");
         return tender;
+    }
+}
+
+/// <summary>A receipt recorded on a folio recently (id, kind, tender as stored, amount, server time), read for the PAY-08 duplicate guard.</summary>
+public sealed record RecentReceipt(long ReceiptId, ReceiptKind Kind, string Tender, Paise Amount, DateTime RecordedUtc);
+
+/// <summary>AF-DEC-1 (PAY-08): a receipt equal in kind, tender and amount to one recorded on the same folio within this window needs an explicit confirmation.</summary>
+public static class DuplicateReceiptGuard
+{
+    public static readonly TimeSpan Window = TimeSpan.FromMinutes(10);
+
+    public const string Reason = "DUPLICATE_SUSPECTED";
+
+    /// <summary>The newest receipt of the same kind, tender (case-insensitive on the master's canonical name) and exact paise recorded within <see cref="Window"/> of <paramref name="nowUtc"/>, else null.</summary>
+    public static RecentReceipt? FindEqual(IEnumerable<RecentReceipt> recent, ReceiptKind kind, string tender, Paise amount, DateTime nowUtc)
+    {
+        ArgumentNullException.ThrowIfNull(recent);
+        return recent
+            .Where(x => x.Kind == kind && x.Amount == amount && string.Equals(x.Tender, tender, StringComparison.OrdinalIgnoreCase)
+                && x.RecordedUtc <= nowUtc && nowUtc - x.RecordedUtc <= Window)
+            .OrderByDescending(x => x.RecordedUtc).ThenByDescending(x => x.ReceiptId)
+            .FirstOrDefault();
+    }
+
+    /// <summary>The refusal: VALIDATION with <c>details.reason</c> DUPLICATE_SUSPECTED and <c>details.receiptId</c>. Times are shown in IST (UTC+5:30).</summary>
+    public static HccException Refusal(RecentReceipt found, string kindWord, DateTime nowUtc)
+    {
+        var minutes = (int)Math.Floor((nowUtc - found.RecordedUtc).TotalMinutes);
+        var at = found.RecordedUtc.AddMinutes(330).ToString("HH:mm", System.Globalization.CultureInfo.InvariantCulture);
+        return new HccException(HccErrorCode.VALIDATION,
+            $"A {found.Tender} {kindWord} of {found.Amount} was recorded on this folio at {at} IST ({minutes} minutes ago), receipt {found.ReceiptId.ToString(System.Globalization.CultureInfo.InvariantCulture)}. If this is a second, separate payment, confirm it.",
+            new Dictionary<string, System.Text.Json.JsonElement>
+            {
+                ["reason"] = System.Text.Json.JsonSerializer.SerializeToElement(Reason),
+                ["receiptId"] = System.Text.Json.JsonSerializer.SerializeToElement(found.ReceiptId),
+            });
     }
 }
 

@@ -136,6 +136,9 @@ public interface IBillingStore
 
     Task<IReadOnlyList<PostedReceipt>> ReceiptsAsync(ICommandTransaction tx, long folioId, CancellationToken ct);
 
+    /// <summary>AF-PAY08: the folio's receipts recorded at or after <paramref name="sinceUtc"/> (server time), newest first, for the duplicate-receipt guard.</summary>
+    Task<IReadOnlyList<RecentReceipt>> RecentReceiptsAsync(ICommandTransaction tx, long folioId, DateTime sinceUtc, CancellationToken ct);
+
     Task<IReadOnlyList<ApprovalRow>> ApprovalsForFolioAsync(ICommandTransaction tx, long folioId, CancellationToken ct);
 
     /// <summary>The canonical room-night charge for a folio and date, read under UPDLOCK + HOLDLOCK (spike T07).</summary>
