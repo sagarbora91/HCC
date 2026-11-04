@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using Hcc.Application.Access;
 using Hcc.Application.Configuration;
+using Hcc.Application.Egress;
 using Hcc.Domain.Configuration;
 using Hcc.Infrastructure.Egress;
 using Hcc.Infrastructure.SqlServer;
@@ -62,6 +63,7 @@ public static class EgressEndpoints
         services.AddSingleton<EgressOutbox>();
         services.AddSingleton<EgressHealth>();
         services.AddHostedService<EgressOutboxWorker>();
+        services.AddSingleton<NetSettingCommands>(); // AF-NETSET
         return services;
     }
 
@@ -77,6 +79,10 @@ public static class EgressEndpoints
             var owner = await policy.HasAsync(property, principal, EgressPermissions.Change, null, ct);
             return Results.Ok(await health.ReadAsync(owner, ct));
         });
+        // AF-NETSET (audit item 23): the Owner's Internet switch; PERM-NET-001, written through Master configuration (no firewall write here).
+        g.MapPost("/commands/" + NetSettingCommands.Operation, async (HttpContext http, SetNetSettingRequest body, NetSettingCommands s, CancellationToken ct) =>
+            http.HccReply(await s.SetAsync(http.HccCommand(NetSettingCommands.Operation), body, ct)));
+        // AF-NETSET end
         return api;
     }
 }

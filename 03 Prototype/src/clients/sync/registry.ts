@@ -97,6 +97,9 @@ import {keys} from './keys'; // OPS-01 room keys
 import {tariffcard} from './tariffcard'; // OPS-02 tariff card
 import {reportsHub} from './reports-hub'; // OPS-03 report favourites / schedules / print log
 // AF-SYNC-OPS end
+// AF-NETSET
+import {egress} from './egress';
+// AF-NETSET end
 export const AREAS:SyncArea[]=[
   core,
   reservations,
@@ -173,4 +176,7 @@ export const AREAS:SyncArea[]=[
   tariffcard,
   reportsHub,
   // AF-SYNC-OPS end
+  // AF-NETSET
+  egress,
+  // AF-NETSET end
 ];
