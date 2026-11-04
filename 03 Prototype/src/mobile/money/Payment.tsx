@@ -1,9 +1,10 @@
 // M10 Payment (phone override of 'payment'): keypad amount, tender chips, "+ Split" rows, confirm screen, lost-response recovery.
 // Sends the same PAYMENT command as the desktop PaymentModal (built by mmPaymentCommand).
-import React,{useState} from 'react';
+import React,{useEffect,useState} from 'react';
 import {bookingRef} from '../../domain/bookingRef';
 import {Plus,Trash2,ArrowRight,Check,AlertTriangle,RefreshCw,Info} from 'lucide-react';
 import {money,totals,mnyIsDrawer} from '../../services/mock';
+import {recentEqualReceipt,onFolioDuplicate} from '../../domain/streams/folio'; // AF-PAY08
 import {useHcc} from '../../app/context';
 import {Empty} from '../../components/ui';
 import {useCashBlock} from '../../clients/sync/cashier-ui';
@@ -27,6 +28,8 @@ export function MmPayment({id}:{id?:string}){
   const [step,setStep]=useState<'form'|'confirm'>('form');
   const [problem,setProblem]=useState('');
   const [failed,setFailed]=useState(false);
+  const [dup,setDup]=useState<{receiptId:string;message:string}|null>(null),[confirmDup,setConfirmDup]=useState(false); // AF-PAY08
+  useEffect(()=>onFolioDuplicate(modal?.key,setDup),[modal?.key]); // AF-PAY08: the shell announces a refused equal receipt for this sheet's key
   if(!b||!t)return <Empty title="This record is unavailable"/>;
   const single=rows.length===1,eff=mmEffectiveRows(total,rows),target=mmPaise(total);
   const sum=eff.reduce((a,r)=>a+(mmPaise(r.amount)||0),0),left=(target||0)-sum;
@@ -39,8 +42,12 @@ export function MmPayment({id}:{id?:string}){
   const review=(e:React.FormEvent)=>{e.preventDefault();const p=mmPaymentProblem(kind,total,rows,t.deposit,s);setProblem(p);if(!p)setStep('confirm');};
   const key=modal!.key;
   const saved=s.processed.includes(key); // lost-response recovery: the receipt exists even though the answer was lost
-  const post=async()=>{const ok=await run(mmPaymentCommand(b.id,kind,total,rows,key),single?'Receipt recorded once':`${rows.length} receipts recorded once`,{after:()=>booking(b.id)});setFailed(!ok);};
+  const post=async()=>{const cmd=mmPaymentCommand(b.id,kind,total,rows,key);const ok=await run(dup&&confirmDup?{...cmd,confirmDuplicate:true}:cmd,single?'Receipt recorded once':`${rows.length} receipts recorded once`,{after:()=>booking(b.id)});setFailed(!ok);};
   const kindLong=MM_PAY_KINDS.find(k=>k.id===kind)!.long;
+  // AF-PAY08: early amber note (the demo receipts carry their time; the server enforces the 10-minute rule on its own clock) and, after a refusal, the 48 px confirmation tick.
+  const early=recentEqualReceipt(b,eff.map(r=>({method:r.method,amount:mmPaise(r.amount)})),s.clock,kind);
+  const dupNote=<>{early&&<div className="info-note folio-dup-note" role="note"><AlertTriangle size={18}/><span>A {money(early.receipt.amount)} {early.receipt.method} receipt was recorded at {((early.receipt as {at?:string}).at??'').slice(11,16)}. Post again only for a second, separate payment.</span></div>}
+    {dup&&<div className="info-note folio-dup-confirm" role="alert"><AlertTriangle size={18}/><span>{dup.message}<label className="folio-dup-tick" style={{display:'flex',alignItems:'center',gap:8,minHeight:48}}><input type="checkbox" style={{width:24,height:24}} checked={confirmDup} onChange={e=>setConfirmDup(e.target.checked)}/> This is a second, separate payment</label></span></div>}</>;
 
   if(step==='confirm')return <><div className="modal-heading"><div className="eyebrow">{bookingRef(b)} · {b.guest}</div><h2>Confirm before posting</h2><p>{kindLong}</p></div>
     <div className="mm-confirm-amt"><span>Total</span><strong className="number">{money(target)}</strong></div>
@@ -48,10 +55,11 @@ export function MmPayment({id}:{id?:string}){
       {kind==='payment'&&<div className="mm-row mm-row-total"><div className="mm-row-main"><strong>Balance after posting</strong></div><div className="mm-row-amt"><strong className="number">{money(t.balance-target)}</strong></div></div>}
       {kind!=='payment'&&<div className="mm-row mm-row-total"><div className="mm-row-main"><strong>Deposit held after posting</strong></div><div className="mm-row-amt"><strong className="number">{money(t.deposit+(kind==='deposit'?target:-target))}</strong></div></div>}</div>
     <div className="info-note mm-unverified"><AlertTriangle size={18}/><span><strong>Not verified.</strong> Manual entry — the bank/UPI transaction is not checked. Fictional demonstration receipt; no money moves.</span></div>
+    {dupNote}
     {failed&&(saved?<div className="mm-recover ok" role="status"><Check size={18}/><span><strong>Saved, but the confirmation was lost.</strong> The receipt is on the folio. Tap “Check again” — it reuses the same request and never creates a second receipt.</span></div>
       :<div className="mm-recover" role="status"><RefreshCw size={18}/><span><strong>Not posted.</strong> {error||'The service did not accept it.'} You can safely try again — the same request is reused.</span></div>)}
     <div className="modal-actions"><button type="button" className="btn" disabled={busy} onClick={()=>{setStep('form');setFailed(false);}}>Edit</button>
-      <button className="btn primary mm-big" disabled={busy} onClick={post}>{busy?'Posting…':failed?(saved?'Check again':'Try again'):'Confirm '+money(target)} <Check size={18}/></button></div></>;
+      <button className="btn primary mm-big" disabled={busy||(!!dup&&!confirmDup)} onClick={post}>{busy?'Posting…':failed?(saved?'Check again':'Try again'):'Confirm '+money(target)} <Check size={18}/></button></div></>;
 
   return <><div className="modal-heading"><div className="eyebrow">{bookingRef(b)} · {b.guest}</div><h2>Record a payment</h2><p>Balance {money(t.balance)} · Deposit held {money(t.deposit)}</p></div>
     <form className="form mm-form" onSubmit={review} noValidate>
