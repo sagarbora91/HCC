@@ -5,11 +5,11 @@ Lane af-verify · branch `claude/af-verify` · worktree `E:\Projects\HCC\worktre
 Method: read the audit-fix code (not the lanes' DONE files) and attacked it. A passing test = the system refused or behaved correctly; a failing test = finding (kept failing). All heavy runs through `tools\Invoke-Serialized.ps1`, one at a time.
 
 ## Test files added (all new)
-- `08 Production/tests/Hcc.Counter.Tests/Sql/AuditFixVerifyCounterTests.cs` (V-CTR, 46 cases incl. theories)
-- `08 Production/tests/Hcc.Billing.Tests/Sql/AuditFixVerifyPayTests.cs` (V-PAY, 16 cases)
-- `08 Production/tests/Hcc.Customers.Tests/Sql/AuditFixVerifyCrmTests.cs` (V-CRM, 11 cases; includes real HTTP)
-- `08 Production/tests/Hcc.Egress.Tests/Sql/AuditFixVerifyNetTests.cs` (V-NET, 25 cases)
-- `08 Production/tests/Hcc.Invoices.Tests/Sql/AuditFixVerifyRegisterTests.cs` (V-REG, 1 case)
+- `08 Production/tests/Hcc.Counter.Tests/Sql/AuditFixVerifyCounterTests.cs` (V-CTR, theories included)
+- `08 Production/tests/Hcc.Billing.Tests/Sql/AuditFixVerifyPayTests.cs` (V-PAY)
+- `08 Production/tests/Hcc.Customers.Tests/Sql/AuditFixVerifyCrmTests.cs` (V-CRM; includes real HTTP)
+- `08 Production/tests/Hcc.Egress.Tests/Sql/AuditFixVerifyNetTests.cs` (V-NET)
+- `08 Production/tests/Hcc.Invoices.Tests/Sql/AuditFixVerifyRegisterTests.cs` (V-REG)
 - `03 Prototype/tests/sync-af-verify.mjs` (13 tests; V-CMAP, V-PAY-C, V-OPS, V-NET-C)
 - Runner attempts: throw-away script `.scratch/runner/run-attempts.mjs` (not committed; results below).
 The plan named `Hcc.Integration.Tests/AuditFixVerifyTests.cs`; the hostile tests sit in the project whose harness they need (Counter / Billing / Customers / Egress / Invoices) instead.
@@ -127,7 +127,13 @@ Totals: 6 red (S1 0, S2 1, S3 1, S4 4).
 See V-REG-01 (green) and O10 (runner).
 
 ## Regression sweep (claude/auditfix head 5b9d8dda + my test files)
-RESULTS_PLACEHOLDER
+| Suite | Command (through the lock) | Expected | Observed |
+|---|---|---|---|
+| Prototype | `HCC_TEST_ONLY='^(?!.*sync-af-verify)' npm test` (filter only leaves out my own new file, the inline tests and m1 always run) | 2827/2827 | **2827/2827** passed (21 async), same as af-int |
+| Server | `dotnet test Hcc.slnx -maxcpucount:1 --logger trx` (full, 42 projects) | 4162 passed, 0 failed | **4252 passed, 9 failed, 4261 total**: the 4162 baseline tests all pass; the 99 server tests I added give 90 green + 9 red (V_PAY_09 = F3, eight `V_CTR_10b` cases = F2). No other failure, no difference from af-int. |
+| Prototype with my file | `npm test` (no filter) | | 2827 + 13 added tests: 4 of mine red (V-CMAP-02, V-CMAP-04, V-PAY-C03, V-OPS-02) |
+
+Logs: `.scratch/npm-full.log`, `.scratch/dotnet-full.log` (not committed). The red tests will make the gate suites red until F1..F6 are fixed or the tests are consciously quarantined by the coordinator.
 
 ## Not run
 - Browser checks (fit tool, phone checks): not run in this lane; no UI file was changed by me and the Playwright/Chrome paths were not needed for the attempts above.
