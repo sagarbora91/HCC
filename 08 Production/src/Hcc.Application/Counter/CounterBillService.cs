@@ -89,8 +89,11 @@ public interface ICounterBillStore
 /// </summary>
 public sealed class CounterBillService(ICommandRunner runner, IAccessPolicy policy, ICounterBillStore store, IBillingStore billing, IGstRateResolver gst,
     InvoiceService invoices, TimeProvider clock, ICashDrawerPort? drawer = null, ICompanyCreditGuard? credit = null,
-    Accounting.CashGuardService? cashGuard = null, Catalogue.ICatalogueStore? catalogue = null, Pos.IPosStore? pos = null) : ILfApprovalHandler
+    Accounting.CashGuardService? cashGuard = null, Catalogue.ICatalogueStore? catalogue = null, Pos.IPosStore? pos = null, MoneyMasters.IPaymentMethodSource? methods = null) : ILfApprovalHandler
 {
+    private async Task<IReadOnlyList<Hcc.Domain.MoneyMasters.TenderMethod>?> MethodsAsync(ICommandTransaction? tx, int propertyId, CancellationToken ct) =>
+        methods is null ? null : await methods.MethodsAsync(tx, propertyId, ct).ConfigureAwait(false);
+
     public const string OpIssue = "IssueCounterBill";
     public const string OpRequestVoid = "RequestCounterBillVoid";
     public const string PermIssue = "PERM-CTR-001";
@@ -120,13 +123,18 @@ public sealed class CounterBillService(ICommandRunner runner, IAccessPolicy poli
         if (!CounterBillRules.Settlements.Contains(mode)) throw HccException.Validation("Settle the bill paid, on Udhaar or on company credit.");
         if (mode == CounterBillRules.Udhaar && phone is null && party.GuestId is null) throw HccException.Validation("An Udhaar bill needs the customer's mobile number.");
         if (mode == CounterBillRules.Company && s.CompanyId is null) throw HccException.Validation("Choose the company account.");
-        var cash = mode == CounterBillRules.Paid && string.Equals(s.Method?.Trim(), Tenders.Cash, StringComparison.OrdinalIgnoreCase);
+        Hcc.Domain.MoneyMasters.TenderMethod? method = null;
+        var cash = false;
         if (mode == CounterBillRules.Paid)
         {
-            if (string.IsNullOrWhiteSpace(s.Method)) throw HccException.Validation("Choose the payment method.");
+            var stored = await MethodsAsync(null, ctx.PropertyId, ct).ConfigureAwait(false);
+            // AF-CTR-SVC (BIL-02 / MA-11): the counter uses the payment-methods master exactly as the folio receipt does (AF-DEC-2: front-desk place).
+            method = Hcc.Domain.MoneyMasters.PaymentMethodBook.Pick(stored, s.Method, Hcc.Contracts.MoneyMasters.MoneyMasterValues.FrontDesk, s.Reference);
+            cash = method.SettlesToTill;
             if (cash && s.TillId is null) throw HccException.Validation("Choose the till that receives the cash.");
-            if (!cash && string.IsNullOrWhiteSpace(s.Reference)) throw HccException.Validation("Enter the payment reference (UPI / card / bank).");
         }
+
+        var tender = method?.Name; // the master's canonical name is what gets stored ("upi" -> "UPI")
 
         var discount = new Paise(req.DiscountPaise);
         if (discount.Value < 0) throw HccException.Validation("The discount cannot be negative.");
@@ -200,7 +208,7 @@ public sealed class CounterBillService(ICommandRunner runner, IAccessPolicy poli
             var now = Now;
             var temp = "CTR-" + Guid.NewGuid().ToString("N")[..12];
             var billId = await store.InsertAsync(tx, new NewCounterBill(ctx.PropertyId, temp, bd, now, ctx.PrincipalId, party with { Name = name, Phone = phone, Gstin = gstin },
-                companyId, discount, Blank(req.DiscountReason), totals, Blank(req.Remark), mode, mode == CounterBillRules.Paid ? s.Method!.Trim() : null, Blank(s.Reference),
+                companyId, discount, Blank(req.DiscountReason), totals, Blank(req.Remark), mode, tender, Blank(s.Reference),
                 ctx.IdempotencyKey), priced, c).ConfigureAwait(false);
 
             var issued = await invoices.IssueInTransactionAsync(tx, new IssueInvoiceRequest(CounterInvoiceSource.SourceKind, billId, gstin is null ? null : "B2B",
@@ -224,7 +232,7 @@ public sealed class CounterBillService(ICommandRunner runner, IAccessPolicy poli
             await store.SetSettlementAsync(tx, billId, cash ? s.TillId : null, movementId, udhaarId, c).ConfigureAwait(false);
             await tx.AuditAsync("COUNTER_BILL_ISSUED", "counter-" + N(billId),
                 $"{issued.InvoiceNo} · {name} · {priced.Count} line(s) · net {totals.Net.Value} + tax {totals.Tax.Value} = {totals.Total.Value} · {mode}" + (discount.Value > 0 ? $" · discount {discount.Value}" : ""), c).ConfigureAwait(false);
-            await tx.PublishAsync(EventIssued, billId, Posted(billId, issued.InvoiceNo, bd, mode, mode == CounterBillRules.Paid ? s.Method!.Trim() : null, name, phone, companyId, priced, discount, totals), c).ConfigureAwait(false);
+            await tx.PublishAsync(EventIssued, billId, Posted(billId, issued.InvoiceNo, bd, mode, tender, name, phone, companyId, priced, discount, totals), c).ConfigureAwait(false);
             return new CounterBillResult(billId, issued.InvoiceNo, totals.Net.Value, totals.Tax.Value, totals.Cgst.Value, totals.Sgst.Value, totals.Total.Value, mode, udhaarId, "Issued");
         }, ct).ConfigureAwait(false);
     }

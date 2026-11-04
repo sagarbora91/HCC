@@ -1,5 +1,7 @@
 using Hcc.Application.Accounting;
 using Hcc.Application.Counter;
+using Hcc.Application.MoneyMasters;
+using Hcc.Contracts.MoneyMasters;
 using Hcc.Closing.Tests.Harness;
 using Hcc.Contracts;
 using Hcc.Contracts.Billing;
@@ -92,5 +94,103 @@ public sealed class CounterPostingTests
             [new("Banquet hall · wedding", 1, 19_000_000, "banquet")], new("paid", "Cash", TillId: till)), Ct));
         Assert.Equal(HccErrorCode.VALIDATION, big.Code);
         Assert.Equal(CashGuard.Reason, big.Details!["reason"].GetString());
+    }
+
+    // ── AF-CTR-SVC (BIL-02 / Missed E): the counter takes its tender from the payment-methods master, front-desk place ──
+
+    private static readonly string[] WrittenTables = ["ctr.bill", "pay.cash_movement", "ivc.invoice", "plat.outbox"];
+
+    private static async Task<long[]> CountsAsync(Hotel h) =>
+        [.. await Task.WhenAll(WrittenTables.Select(t => h.LongAsync($"SELECT COUNT(*) FROM {t}", Ct)))];
+
+    private static IssueCounterBillRequest Paid(string? method, string? reference = null, int? till = null) =>
+        new(new("Walk-in (fictional)"), [new("Tea", 2, 2500, "food")], new("paid", method, reference, till));
+
+    private static async Task<HccException> RefusedAsync(Hotel h, IssueCounterBillRequest req, HccErrorCode code)
+    {
+        var before = await CountsAsync(h);
+        var ex = await Assert.ThrowsAsync<HccException>(() => h.Get<CounterBillService>().IssueAsync(h.Ctx(h.Reception, CounterBillService.OpIssue), req, Ct));
+        Assert.Equal(code, ex.Code);
+        Assert.Equal(before, await CountsAsync(h));
+        return ex;
+    }
+
+    [Fact]
+    public async Task Counter_cash_without_till_is_refused_and_nothing_is_written()
+    {
+        await using var h = await Hotel.CreateAsync(Ct);
+        var ex = await RefusedAsync(h, Paid("Cash"), HccErrorCode.VALIDATION);
+        Assert.Equal("Choose the till that receives the cash.", ex.Message);
+    }
+
+    [Fact]
+    public async Task Counter_misspelled_tender_Cashh_with_reference_is_refused_and_nothing_is_written()
+    {
+        await using var h = await Hotel.CreateAsync(Ct);
+        var ex = await RefusedAsync(h, Paid("Cashh", "R1"), HccErrorCode.VALIDATION);
+        Assert.StartsWith("Select a payment method (", ex.Message);
+    }
+
+    [Fact]
+    public async Task Counter_upi_without_reference_is_refused()
+    {
+        await using var h = await Hotel.CreateAsync(Ct);
+        var ex = await RefusedAsync(h, Paid("UPI"), HccErrorCode.VALIDATION);
+        Assert.Equal("Enter the transaction reference for a non-cash payment.", ex.Message);
+    }
+
+    [Fact]
+    public async Task Counter_retired_method_is_refused_MASTER_RETIRED()
+    {
+        await using var h = await Hotel.CreateAsync(Ct);
+        var m = (await h.Get<MoneyMastersCommands>().SavePaymentMethodAsync(h.Ctx(h.Owner, "SavePaymentMethod"),
+            new SavePaymentMethodRequest(null, "WALLET", "Paytm wallet", "wallet", "BANK-1", true, ["frontdesk", "pos"], Ledger: "1010"), Ct)).Value;
+        await h.Get<MoneyMastersCommands>().RetirePaymentMethodAsync(h.Ctx(h.Owner, "RetirePaymentMethod"), new PaymentMethodIdRequest(m.PaymentMethodId, m.Version), Ct);
+        var ex = await RefusedAsync(h, Paid("Paytm wallet", "W-1"), HccErrorCode.INVALID_TRANSITION);
+        Assert.Equal("MASTER_RETIRED", ex.Details!["reason"].GetString());
+    }
+
+    [Fact]
+    public async Task Counter_lower_case_upi_is_accepted_and_stored_as_UPI()
+    {
+        await using var h = await Hotel.CreateAsync(Ct);
+        await h.ScalarAsync($"UPDATE inv.property SET gstin = '{HotelGstin}', address = N'12 Station Road, Latur (fictional)' WHERE property_id = {h.PropertyId};", Ct);
+        var r = await h.Get<CounterBillService>().IssueAsync(h.Ctx(h.Reception, CounterBillService.OpIssue), Paid("upi", "UPI-REF-77"), Ct);
+        Assert.Equal("UPI", await h.ScalarAsync($"SELECT method FROM ctr.bill WHERE bill_id = {r.Value.BillId}", Ct));
+        Assert.Equal("UPI", await h.ScalarAsync("SELECT TOP 1 JSON_VALUE(payload, '$.tender') FROM plat.outbox WHERE event_type = 'CounterBillIssued' ORDER BY outbox_id DESC", Ct));
+    }
+
+    [Fact]
+    public async Task Counter_cash_with_open_shift_till_posts_one_bill_one_movement_one_outbox_event()
+    {
+        await using var h = await Hotel.CreateAsync(Ct);
+        await h.ScalarAsync($"UPDATE inv.property SET gstin = '{HotelGstin}', address = N'12 Station Road, Latur (fictional)' WHERE property_id = {h.PropertyId};", Ct);
+        var (till, _) = await h.OpenTillAsync(0, Ct);
+        var bills = await h.LongAsync("SELECT COUNT(*) FROM ctr.bill", Ct);
+        var moves = await h.LongAsync("SELECT COUNT(*) FROM pay.cash_movement", Ct);
+        var events = await h.LongAsync("SELECT COUNT(*) FROM plat.outbox WHERE event_type = 'CounterBillIssued'", Ct);
+        var r = await h.Get<CounterBillService>().IssueAsync(h.Ctx(h.Reception, CounterBillService.OpIssue), Paid("cash", null, till), Ct);
+        Assert.Equal(bills + 1, await h.LongAsync("SELECT COUNT(*) FROM ctr.bill", Ct));
+        Assert.Equal(moves + 1, await h.LongAsync("SELECT COUNT(*) FROM pay.cash_movement", Ct));
+        Assert.Equal(1, await h.LongAsync($"SELECT COUNT(*) FROM pay.cash_movement WHERE kind = 'pos-sale' AND source_type = 'counter-bill' AND source_id = {r.Value.BillId}", Ct));
+        Assert.Equal(events + 1, await h.LongAsync("SELECT COUNT(*) FROM plat.outbox WHERE event_type = 'CounterBillIssued'", Ct));
+        Assert.Equal("Cash", await h.ScalarAsync($"SELECT method FROM ctr.bill WHERE bill_id = {r.Value.BillId}", Ct));
+    }
+
+    [Fact]
+    public async Task Counter_same_key_replay_posts_once()
+    {
+        await using var h = await Hotel.CreateAsync(Ct);
+        await h.ScalarAsync($"UPDATE inv.property SET gstin = '{HotelGstin}', address = N'12 Station Road, Latur (fictional)' WHERE property_id = {h.PropertyId};", Ct);
+        var c = h.Get<CounterBillService>();
+        var key = Hotel.Key();
+        var req = Paid("UPI", "UPI-REF-88");
+        var first = await c.IssueAsync(h.Ctx(h.Reception, CounterBillService.OpIssue, key), req, Ct);
+        Assert.False(first.Replayed);
+        var before = await CountsAsync(h);
+        var again = await c.IssueAsync(h.Ctx(h.Reception, CounterBillService.OpIssue, key), req, Ct);
+        Assert.True(again.Replayed);
+        Assert.Equal(first.Value.BillId, again.Value.BillId);
+        Assert.Equal(before, await CountsAsync(h));
     }
 }
