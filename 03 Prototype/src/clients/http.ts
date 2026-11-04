@@ -47,7 +47,7 @@ export function createHttpTransport(o:HttpOptions={}){
   const connection=o.connection??createConnection();
   const retries=Math.max(0,o.commandRetries??1),timeoutMs=o.timeoutMs??15000;
   type Res=Awaited<ReturnType<FetchLike>>;
-  async function send(method:'GET'|'POST',path:string,body:unknown,headers:Record<string,string>,accept:string):Promise<{res:Res;text:string}>{
+  async function send(method:'GET'|'POST'|'PUT'|'DELETE',path:string,body:unknown,headers:Record<string,string>,accept:string):Promise<{res:Res;text:string}>{
     let res:Res;
     const ctl=typeof AbortController!=='undefined'?new AbortController():undefined;
     const timer=ctl?setTimeout(()=>ctl.abort(),timeoutMs):undefined;
@@ -68,7 +68,7 @@ export function createHttpTransport(o:HttpOptions={}){
     if(err.wireCode==='UNAVAILABLE')connection.markUnavailable(err.message);else connection.markOnline();
     throw err;
   }
-  async function once<T>(method:'GET'|'POST',path:string,body:unknown,headers:Record<string,string>):Promise<T>{
+  async function once<T>(method:'GET'|'POST'|'PUT'|'DELETE',path:string,body:unknown,headers:Record<string,string>):Promise<T>{
     const {res,text}=await send(method,path,body,headers,'application/json');
     if(!res.ok)fail(res,text);
     let json:unknown=undefined;
@@ -92,6 +92,9 @@ export function createHttpTransport(o:HttpOptions={}){
     },
     /** Plain POST without Idempotency-Key — only for non-command routes (POST /auth/sign-in, /auth/sign-out). Never retried. */
     post:<T>(path:string,body?:unknown)=>once<T>('POST',path,body,{}),
+    /** AF-SYNC-OPS: plain PUT / DELETE for the non-command routes (report schedules). No Idempotency-Key, never retried; a 204 answers undefined. */
+    put:<T>(path:string,body?:unknown)=>once<T>('PUT',path,body,{}),
+    delete:<T>(path:string)=>once<T>('DELETE',path,undefined,{}),
     /** POST /commands/<name> with Idempotency-Key; retried on UNAVAILABLE with the identical key and body. */
     async command<T>(name:string,body:Record<string,unknown>,opts:Partial<CommandOptions>={}):Promise<T>{
       const key=checkIdempotencyKey(opts.idempotencyKey??newIdempotencyKey(name));

@@ -92,6 +92,11 @@ import {catalogue} from './catalogue';
 // F6-H3
 import {hall} from './hall'; // F6 hall booking: enquiries, halls master, accept, advances, event bill, cancel, refund, credit note
 // F6-H3 end
+// AF-SYNC-OPS
+import {keys} from './keys'; // OPS-01 room keys
+import {tariffcard} from './tariffcard'; // OPS-02 tariff card
+import {reportsHub} from './reports-hub'; // OPS-03 report favourites / schedules / print log
+// AF-SYNC-OPS end
 export const AREAS:SyncArea[]=[
   core,
   reservations,
@@ -163,4 +168,9 @@ export const AREAS:SyncArea[]=[
   // F6-H3
   hall,
   // F6-H3 end
+  // AF-SYNC-OPS
+  keys,
+  tariffcard,
+  reportsHub,
+  // AF-SYNC-OPS end
 ];
