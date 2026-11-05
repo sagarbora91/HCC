@@ -315,9 +315,9 @@ public partial class AuditFixVerifyCrmTests : IAsyncLifetime
         Assert.Empty((await List("owner", "!!!")).Customers); // symbol-only query: no letters, no digits -> nothing (not everything)
     }
 
-    // V-CRM-11: the audit trail keeps the RAW key in its target (stored rows stay raw by design) - recorded as an observation
+    // V-CRM-11 (closed by AF2 phone digits): the audit target is the opaque ck_ token, not the raw key
     [Fact]
-    public async Task V_CRM_11_observation_audit_target_keeps_the_raw_key_for_stored_rows()
+    public async Task V_CRM_11_audit_target_is_the_opaque_token()
     {
         var token = await T(CrmWorld.Asha);
         await _w.Commands.AddTagAsync(_w.Ctx("reception", Key()), new AddCustomerTagRequest(token, "vip"), Ct);

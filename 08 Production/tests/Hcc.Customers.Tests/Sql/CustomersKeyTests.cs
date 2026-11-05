@@ -168,4 +168,65 @@ public partial class CustomersKeyTests : IAsyncLifetime
         Assert.Equal(["राम पाटील"], (await List("cashier", "पाटील")).Customers.Select(c => c.Name));
         Assert.Empty((await List("owner", "गीता")).Customers);
     }
+
+    private async Task<string> AuditAndOutboxDumpAsync()
+    {
+        var audit = (string?)await _w.ScalarAsync("SELECT STRING_AGG(CONCAT(action, '|', target, '|', detail), CHAR(10)) FROM plat.audit_event WHERE action LIKE 'CRM[_]%'", Ct) ?? string.Empty;
+        var outbox = (string?)await _w.ScalarAsync("SELECT STRING_AGG(CONCAT(event_type, '|', aggregate_id, '|', payload), CHAR(10)) FROM plat.outbox WHERE event_type = 'CustomerMerged'", Ct) ?? string.Empty;
+        return audit + "\n@@OUTBOX@@\n" + outbox;
+    }
+
+    private static void AssertNoPhone(string dump)
+    {
+        foreach (var phone in new[] { CrmWorld.Asha, CrmWorld.Asha2, CrmWorld.VikramPhone, "9820099999" })
+            Assert.DoesNotContain(phone, dump, StringComparison.Ordinal);
+        Assert.False(TenDigits().IsMatch(dump), "10-digit run in audit/outbox: " + TenDigits().Match(dump).Value);
+    }
+
+    // AF2 phone digits: the audit target and the CustomerMerged payload carry the opaque ck_ token, never the raw key (mobile number)
+    [Fact]
+    public async Task Audit_rows_and_outbox_payloads_of_every_crm_command_carry_no_phone_digits()
+    {
+        await AddPhonelessBooking("HCC-D1", "राम पाटील");
+        await AddPhonelessBooking("HCC-D2", "सीता जोशी");
+        await AddPhonelessBooking("HCC-D3", "9820099999"); // a customer whose name is a phone number
+        var ashaToken = await T(CrmWorld.Asha);
+        var ramToken = (await List("owner")).Customers.Single(c => c.Name == "राम पाटील").Key;
+        var sitaToken = (await List("owner")).Customers.Single(c => c.Name == "सीता जोशी").Key;
+        var numberToken = (await List("owner")).Customers.Single(c => c.Name == "9820099999").Key;
+
+        await _w.Commands.AddTagAsync(_w.Ctx("reception", Key()), new AddCustomerTagRequest(ashaToken, "vip"), Ct);
+        await _w.Commands.RemoveTagAsync(_w.Ctx("reception", Key()), new RemoveCustomerTagRequest(ashaToken, "vip"), Ct);
+        await _w.Commands.AddNoteAsync(_w.Ctx("reception", Key()), new AddCustomerNoteRequest(ashaToken, "Likes tea"), Ct);
+        await _w.Commands.SetPreferencesAsync(_w.Ctx("reception", Key()), new SetCustomerPreferencesRequest(ashaToken, "Quiet"), Ct);
+        await _w.Commands.SetConsentAsync(_w.Ctx("reception", Key()), new SetCustomerConsentRequest(ashaToken, WhatsApp: false), Ct);
+        await _w.Commands.AddTagAsync(_w.Ctx("reception", Key()), new AddCustomerTagRequest(numberToken, "vip"), Ct);
+        // Devanagari customer merged into the phone customer (approved) and another one rejected
+        var m1 = (await _w.Commands.ProposeMergeAsync(_w.Ctx("manager", Key()), new ProposeCustomerMergeRequest(ramToken, ashaToken, "Same person"), Ct)).Value;
+        await _w.Commands.DecideMergeAsync(_w.Ctx("owner", Key()), new DecideCustomerMergeRequest(m1.MergeId, true, m1.Version), Ct);
+        var m2 = (await _w.Commands.ProposeMergeAsync(_w.Ctx("manager", Key()), new ProposeCustomerMergeRequest(sitaToken, ashaToken, "Not sure"), Ct)).Value;
+        await _w.Commands.DecideMergeAsync(_w.Ctx("owner", Key()), new DecideCustomerMergeRequest(m2.MergeId, false, m2.Version), Ct);
+        // a merge with raw phone keys as input (contact role) must still be audited with tokens
+        var m3 = (await _w.Commands.ProposeMergeAsync(_w.Ctx("manager", Key()), new ProposeCustomerMergeRequest(CrmWorld.VikramName, CrmWorld.VikramPhone, "Same person"), Ct)).Value;
+        await _w.Commands.DecideMergeAsync(_w.Ctx("owner", Key()), new DecideCustomerMergeRequest(m3.MergeId, true, m3.Version), Ct);
+
+        var dump = await AuditAndOutboxDumpAsync();
+        AssertNoPhone(dump);
+        Assert.True(await _w.CountAsync("SELECT COUNT(*) FROM plat.audit_event WHERE action LIKE 'CRM[_]%'", Ct) >= 11);
+        Assert.Equal(0, await _w.CountAsync("SELECT COUNT(*) FROM plat.audit_event WHERE action LIKE 'CRM[_]%' AND target NOT LIKE 'crm:ck[_]%'", Ct));
+        // the stable target id is the same token the API shows, so the trail can still be tied to one customer
+        Assert.Equal(1, await _w.CountAsync($"SELECT COUNT(*) FROM plat.audit_event WHERE action = 'CRM_NOTE' AND target = 'crm:{ashaToken}'", Ct));
+        // propose runs on the live index key, so its target is the token the API shows. (Approve/reject read the key back from crm.customer_merge.source_key,
+        // a VARCHAR column: a Devanagari key is stored as '?' there - see af2-phone-digits-DONE.md open item - so only the ck_ shape is asserted for those.)
+        Assert.Equal(1, await _w.CountAsync($"SELECT COUNT(*) FROM plat.audit_event WHERE action = 'CRM_MERGE_PROPOSE' AND target = 'crm:{ramToken}'", Ct));
+        Assert.Equal(1, await _w.CountAsync($"SELECT COUNT(*) FROM plat.audit_event WHERE action = 'CRM_MERGE_APPROVE' AND target = 'crm:{await T(CrmWorld.VikramName)}'", Ct));
+        var vikName = await T(CrmWorld.VikramName);
+        var vikPhone = await T(CrmWorld.VikramPhone);
+        var payload = (string)(await _w.ScalarAsync($"SELECT TOP 1 payload FROM plat.outbox WHERE event_type = 'CustomerMerged' AND payload LIKE '%{vikName}%'", Ct))!;
+        using var doc = JsonDocument.Parse(payload);
+        Assert.Equal(vikName, doc.RootElement.EnumerateObject().Single(p => p.Name.Equals("SourceKey", StringComparison.OrdinalIgnoreCase)).Value.GetString());
+        Assert.Equal(vikPhone, doc.RootElement.EnumerateObject().Single(p => p.Name.Equals("TargetKey", StringComparison.OrdinalIgnoreCase)).Value.GetString());
+        Assert.Equal(2, await _w.CountAsync("SELECT COUNT(*) FROM plat.outbox WHERE event_type = 'CustomerMerged'", Ct));
+        Assert.Contains("राम पाटील", dump, StringComparison.Ordinal); // the name stays in the detail: who/what stays readable
+    }
 }
