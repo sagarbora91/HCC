@@ -101,6 +101,7 @@ import {hall} from './hall'; // F6 hall booking: enquiries, halls master, accept
 // F12-CAP-GUEST
 // F12-CAP-GUEST end
 // F12-CAP-PEOPLE
+import {measPeople} from './meas-people';
 // F12-CAP-PEOPLE end
 // F12-FORECAST
 // F12-FORECAST end
@@ -192,6 +193,7 @@ export const AREAS:SyncArea[]=[
   // F12-CAP-GUEST
   // F12-CAP-GUEST end
   // F12-CAP-PEOPLE
+  measPeople,
   // F12-CAP-PEOPLE end
   // F12-FORECAST
   // F12-FORECAST end

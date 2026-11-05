@@ -91,6 +91,7 @@ import {handlers as hallQuote} from './hall-quote'; // F6 quotations + T&C: QUO_
 // F12-CAP-GUEST
 // F12-CAP-GUEST end
 // F12-CAP-PEOPLE
+import {handlers as measPeople} from './meas-people';
 // F12-CAP-PEOPLE end
 // F12-FORECAST
 // F12-FORECAST end
@@ -154,6 +155,7 @@ const F12:Record<string,Handler>={ // F12 lanes (MEAS-CONTRACT §6): spread your
   // F12-CAP-GUEST
   // F12-CAP-GUEST end
   // F12-CAP-PEOPLE
+  ...measPeople,
   // F12-CAP-PEOPLE end
   // F12-FORECAST
   // F12-FORECAST end

@@ -146,6 +146,7 @@ export {hallTncSeed,HALL_TNC_HEADINGS} from '../../fixtures/ext/hall-seed';
 // F12-CAP-GUEST
 // F12-CAP-GUEST end
 // F12-CAP-PEOPLE
+export {measPeopleDemoTraining,measPeopleDemoPulse} from '../../fixtures/ext/meas-people';
 // F12-CAP-PEOPLE end
 // F12-FORECAST
 // F12-FORECAST end

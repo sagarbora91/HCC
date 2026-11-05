@@ -319,6 +319,8 @@
     <!-- F12-CAP-GUEST -->
     <!-- F12-CAP-GUEST end -->
     <!-- F12-CAP-PEOPLE -->
+    <File Path="database/migrations/4825_meas_people_training.sql" />
+    <File Path="database/migrations/4826_meas_people_exit_pulse.sql" />
     <!-- F12-CAP-PEOPLE end -->
     <!-- F12-FORECAST -->
     <!-- F12-FORECAST end -->

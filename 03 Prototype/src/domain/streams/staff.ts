@@ -906,3 +906,88 @@ export function hrSettingValue(s:State,key:string,ym=s.date.slice(0,7)):string{
     default:return '—';
   }
 }
+
+// F12-CAP-PEOPLE · MEAS people captures (MEAS-CONTRACT §2): training records + certificate-expiry reminder, staff exit reason, anonymous pulse.
+// Stored in s.measX (training[], exit{staffId}, pulse[]); no existing HR shape changes. Never touches payroll maths. HR-001 gate = hrCanManage.
+import type {MeasTraining,MeasExit,MeasPulse,MeasState} from './measure-types';
+import {measOn as hrMeasSwitchOn} from './measure';
+import {HccError} from '../errors';
+import type {ErrorCode} from '../errors';
+
+/** Switch keys (contract §1.2). Exit reasons belong to the attrition measure. */
+export const HR_MEAS_KEYS={training:'meas.people.training',exit:'meas.people.attrition',pulse:'meas.people.pulse'} as const;
+export const HR_MEAS_EXIT_REASONS=['Resigned','Better pay','Relocated','Personal / family','Studies','Health','Dismissed','End of contract','Absconded','Retired','Other'] as const;
+/** Days before validTo from which a certificate shows as expiring (existing desk reminders carry the alert). */
+export const HR_MEAS_EXPIRY_DAYS=30;
+/** Pulse answers: four 1-5 scores and a 0-10 recommend; a pulse never stores a staff id (department only). */
+export const HR_MEAS_PULSE_QUESTIONS=[{key:'workload',label:'My workload is manageable'},{key:'respect',label:'I am treated with respect'},
+  {key:'tools',label:'I have the tools and supplies I need'},{key:'payFairness',label:'My pay is fair for my work'}] as const;
+const hrMeasDate=(v:unknown)=>typeof v==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(v)&&!Number.isNaN(Date.parse(v+'T00:00:00Z'))&&new Date(v+'T00:00:00Z').toISOString().slice(0,10)===v;
+const hrMeasFail=(code:string,msg:string):never=>{throw new HccError(code as ErrorCode,msg);};
+
+export const hrMeasSlice=(s:State):MeasState=>s.measX??{};
+/** Payroll module on AND the people pack/item on (measOn applies the same rule once meas-settings lands; the module test is kept here so it holds on the stub too). */
+export const hrMeasPeopleOn=(s:State,key:string)=>!(s.configX?.modulesOff??[]).includes('payroll')&&hrMeasSwitchOn(s,key);
+/** Capture-form helper: throws MEAS_OFF when the module, pack or item is off. Data is kept. */
+export function hrMeasGuard(s:State,key:string):void{if(!hrMeasPeopleOn(s,key))hrMeasFail('MEAS_OFF','This measurement is switched off (Administration > Measurement reports, or the Payroll module is off).');}
+/** Indian FY quarter key of a date: 2026-27-Q1 = April-June 2026 ... Q4 = January-March 2027. */
+export function hrMeasQuarter(date:string):string{const y=+date.slice(0,4),m=+date.slice(5,7),fy=m>=4?y:y-1,q=m>=4?Math.floor((m-4)/3)+1:4;return `${fy}-${String(fy+1).slice(-2)}-Q${q}`;}
+
+export type HrMeasTrainingInput={id?:string;staff:string;course:string;date:string;hours:number;certificateNo?:string;validTo?:string;evidenceRef?:string;mandatory?:boolean};
+/** Validate a training record; returns the clean record (id filled by the caller). */
+export function hrMeasTrainingClean(s:State,i:HrMeasTrainingInput):Omit<MeasTraining,'id'>{
+  const st=hrSlice(s).staff.find(x=>x.id===i.staff);
+  if(!st)hrMeasFail('NOT_FOUND','Choose a staff member from the staff list.');
+  const course=String(i.course??'').trim();
+  if(course.length<2||course.length>80)hrMeasFail('VALIDATION','Enter the course name (2-80 characters).');
+  if(!hrMeasDate(i.date))hrMeasFail('VALIDATION','Enter the training date.');
+  if(i.date>s.date)hrMeasFail('VALIDATION','The training date cannot be in the future.');
+  if(!Number.isFinite(i.hours)||i.hours<=0||i.hours>200)hrMeasFail('VALIDATION','Hours must be more than 0 and at most 200.');
+  const cert=String(i.certificateNo??'').trim().slice(0,40),ev=String(i.evidenceRef??'').trim().slice(0,120);
+  if(i.validTo!==undefined&&i.validTo!==''){if(!hrMeasDate(i.validTo))hrMeasFail('VALIDATION','Enter a valid "valid to" date.');if(i.validTo<i.date)hrMeasFail('VALIDATION','"Valid to" cannot be before the training date.');}
+  return {staff:i.staff,course,date:i.date,hours:Math.round(i.hours*100)/100,...(cert?{certificateNo:cert}:{}),...(i.validTo?{validTo:i.validTo}:{}),...(ev?{evidenceRef:ev}:{}),...(i.mandatory?{mandatory:true}:{})};
+}
+/** Save (new or edit) a training record and keep its certificate-expiry reminder (existing desk reminders, lead 30 days). Caller has checked HR-001 + the switch. */
+export function hrMeasTrainingSave(s:State,uid:string,i:HrMeasTrainingInput,newId:string):MeasTraining{
+  const c=hrMeasTrainingClean(s,i),x=s.measX??(s.measX={}),list=x.training??(x.training=[]);
+  let rec:MeasTraining;
+  if(i.id){const at=list.findIndex(t=>t.id===i.id);if(at<0)hrMeasFail('NOT_FOUND','Training record not found.');rec={id:i.id,...c};list[at]=rec;}
+  else{rec={id:newId,...c};list.push(rec);}
+  const rid='RMD-MEAS-'+rec.id,rem=(s.remindersX??(s.remindersX={reminders:[],leadDaysDefault:3}));rem.reminders??=[];
+  const at=rem.reminders.findIndex(r=>r.id===rid),name=hrStaffById(s,rec.staff)?.name??rec.staff;
+  if(rec.validTo){
+    const r={id:rid,subject:`Certificate expires: ${rec.course} · ${name}`,date:rec.validTo,leadDays:HR_MEAS_EXPIRY_DAYS,role:'Manager' as const,...(rec.certificateNo?{note:`Certificate ${rec.certificateNo}`}:{}),
+      repeat:'none' as const,status:'open' as const,by:uid,at:s.clock};
+    if(at>=0)rem.reminders[at]=r;else rem.reminders.push(r);
+  }else if(at>=0)rem.reminders.splice(at,1);
+  return rec;
+}
+/** Certificates that expire within `days` of the business date (or already have), soonest first. */
+export function hrMeasTrainingExpiring(s:State,days=HR_MEAS_EXPIRY_DAYS):(MeasTraining&{daysLeft:number})[]{
+  const edge=addDays(s.date,days);
+  return (hrMeasSlice(s).training??[]).filter(t=>t.validTo&&t.validTo<=edge).map(t=>({...t,daysLeft:Math.round((Date.parse(t.validTo!+'T00:00:00Z')-Date.parse(s.date+'T00:00:00Z'))/86400000)}))
+    .sort((a,b)=>a.daysLeft-b.daysLeft);
+}
+/** Mandatory certificates already past their valid-to date on the business date (a gap list, not a rule). */
+export function hrMeasMandatoryLapsed(s:State):(MeasTraining&{daysLeft:number})[]{return hrMeasTrainingExpiring(s,-1).filter(t=>t.mandatory);}
+/** Set or clear (reason '') the exit reason of a staff member. The staff record and payroll are not changed. */
+export function hrMeasExitSet(s:State,staff:string,reason:string,exitDate:string):MeasExit|undefined{
+  const st=hrSlice(s).staff.find(x=>x.id===staff);if(!st)hrMeasFail('NOT_FOUND','Choose a staff member from the staff list.');
+  const x=s.measX??(s.measX={}),map=x.exit??(x.exit={});
+  if(!reason){delete map[staff];return undefined;}
+  if(!(HR_MEAS_EXIT_REASONS as readonly string[]).includes(reason))hrMeasFail('VALIDATION','Choose an exit reason from the list.');
+  if(!hrMeasDate(exitDate))hrMeasFail('VALIDATION','Enter the exit date.');
+  if(st!.joined&&exitDate<st!.joined)hrMeasFail('VALIDATION','The exit date cannot be before the joining date.');
+  if(exitDate>addDays(s.date,31))hrMeasFail('VALIDATION','The exit date cannot be more than a month ahead.');
+  return map[staff]={reason,exitDate};
+}
+export type HrMeasPulseInput={dept:string;workload:number;respect:number;tools:number;payFairness:number;recommend:number};
+/** Add an anonymous pulse answer: department + five scores + the quarter key. NO staff id, user id or name is read or stored. */
+export function hrMeasPulseAdd(s:State,i:HrMeasPulseInput,newId:string):MeasPulse{
+  const d=hrSlice(s).depts.find(x=>x.id===i.dept);if(!d)hrMeasFail('VALIDATION','Choose your department.');
+  for(const q of HR_MEAS_PULSE_QUESTIONS){const v=i[q.key];if(!Number.isInteger(v)||v<1||v>5)hrMeasFail('VALIDATION',`Answer "${q.label}" with 1 to 5.`);}
+  if(!Number.isInteger(i.recommend)||i.recommend<0||i.recommend>10)hrMeasFail('VALIDATION','Recommend score must be 0 to 10.');
+  const rec:MeasPulse={id:newId,quarter:hrMeasQuarter(s.date),dept:d!.id,workload:i.workload,respect:i.respect,tools:i.tools,payFairness:i.payFairness,recommend:i.recommend};
+  const x=s.measX??(s.measX={});(x.pulse??(x.pulse=[])).push(rec);return rec;
+}
+// F12-CAP-PEOPLE end
