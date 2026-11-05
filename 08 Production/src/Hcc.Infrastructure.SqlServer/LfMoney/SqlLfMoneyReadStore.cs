@@ -84,7 +84,8 @@ public sealed class SqlLfMoneyReadStore(SqlConnectionFactory connections) : ILfM
         await using var conn = await connections.OpenAsync(ct).ConfigureAwait(false);
         await using var cmd = connections.Command("""
             SELECT TOP (@n) c.change_id, c.stay_id, c.reservation_id, rm.room_no, c.business_date, c.changed_utc, c.changed_by, c.approval_id, c.approved_by, c.scope, c.reason,
-              c.old_rate_paise, c.new_rate_paise, c.old_people, c.new_people, c.old_children, c.new_children, c.effective_from, c.reposted_json
+              c.old_rate_paise, c.new_rate_paise, c.old_people, c.new_people, c.old_children, c.new_children, c.effective_from, c.reposted_json,
+              c.tariff_paise, c.agreed_rate_paise, c.agreed_after_paise, c.threshold_bps, c.over_threshold
             FROM gst.stay_rate_change c JOIN inv.room rm ON rm.room_id = c.room_id WHERE c.property_id = @p ORDER BY c.change_id DESC;
             """, conn);
         cmd.Parameters.Add("@p", SqlDbType.Int).Value = propertyId;
@@ -94,7 +95,7 @@ public sealed class SqlLfMoneyReadStore(SqlConnectionFactory connections) : ILfM
         while (await r.ReadAsync(ct).ConfigureAwait(false))
             list.Add(new StayRateChangeRow(r.GetInt64(0), r.GetInt64(1), r.GetInt64(2), r.GetString(3), DateOnly.FromDateTime(r.GetDateTime(4)), r.GetDateTime(5), r.GetInt32(6),
                 L(r, 7), r.IsDBNull(8) ? null : r.GetInt32(8), r.GetString(9), r.GetString(10), r.GetInt64(11), r.GetInt64(12), r.GetByte(13), r.GetByte(14), r.GetByte(15), r.GetByte(16),
-                DateOnly.FromDateTime(r.GetDateTime(17)), r.GetString(18)));
+                DateOnly.FromDateTime(r.GetDateTime(17)), r.GetString(18), L(r, 19), L(r, 20), L(r, 21), r.IsDBNull(22) ? null : r.GetInt32(22), r.GetBoolean(23)));
         return list;
     }
 }

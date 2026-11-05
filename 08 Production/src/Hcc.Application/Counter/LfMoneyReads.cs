@@ -17,7 +17,8 @@ public sealed record CreditGuestRow(long GuestId, string Name, string? Phone, lo
 
 /// <summary>One applied rate / guest-count change of a stay (gst.stay_rate_change; append-only).</summary>
 public sealed record StayRateChangeRow(long ChangeId, long StayId, long ReservationId, string RoomNo, DateOnly BusinessDate, DateTime ChangedUtc, int ChangedBy, long? ApprovalId, int? ApprovedBy,
-    string Scope, string Reason, long OldRatePaise, long NewRatePaise, int OldPeople, int NewPeople, int OldChildren, int NewChildren, DateOnly EffectiveFrom, string RepostedJson);
+    string Scope, string Reason, long OldRatePaise, long NewRatePaise, int OldPeople, int NewPeople, int OldChildren, int NewChildren, DateOnly EffectiveFrom, string RepostedJson,
+    long? TariffPaise = null, long? AgreedRatePaise = null, long? AgreedAfterPaise = null, int? ThresholdBps = null, bool OverThreshold = false); // CTL-01 (4920)
 
 public interface ILfMoneyReadStore
 {

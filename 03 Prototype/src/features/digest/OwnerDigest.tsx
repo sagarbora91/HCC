@@ -1,7 +1,7 @@
 // F4-T2 · Owner digest: the "Yesterday" card (Dashboard) and the printable page 'owner-digest'. Owner only (PERM-DGS-001).
 import React,{useMemo,useState} from 'react';
 import {Printer,ArrowRight} from 'lucide-react';
-import {money,dgsCard,dgsCanView,dgsClosedDates,dgsYesterday,dgsSlice,DGS_REASON} from '../../services/mock';
+import {money,dgsCard,dgsCanView,dgsClosedDates,dgsYesterday,dgsSlice,dgsRateLine,DGS_REASON} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {Empty,Pill} from '../../components/ui';
 import {printDocument} from '../../app/native';
@@ -10,7 +10,7 @@ import {FitPage,ScrollPanel} from '../../components/fit';
 export function YesterdayCard(){
   const {s,uid,go}=useHcc();
   const d=dgsYesterday(s);
-  const c=useMemo(()=>dgsCanView(s,uid)&&s.closings?.[d]?dgsCard(s,d):null,[s.closings,s.bookings,s.posX,s.counterX,s.approvals,uid,d]); // eslint-disable-line react-hooks/exhaustive-deps
+  const c=useMemo(()=>dgsCanView(s,uid)&&s.closings?.[d]?dgsCard(s,d):null,[s.closings,s.bookings,s.posX,s.counterX,s.approvals,s.stayRateX,uid,d]); // eslint-disable-line react-hooks/exhaustive-deps
   if(!c)return null;
   return <div className="attention-item"><span className="attention-icon blue"><ArrowRight size={19}/></span><div><strong>Yesterday · {c.occupancy.pct} occupied, {money(c.revenueTotal.net)} revenue</strong>
     <p>{money(c.collected)} collected · {c.pendingApprovals.reduce((t,x)=>t+x.count,0)} approvals waiting</p><button className="text-btn" onClick={()=>go('owner-digest')}>Open the digest <ArrowRight size={14}/></button></div></div>;
@@ -32,6 +32,8 @@ export function OwnerDigest(){
         {row('Advances received / adjusted / held',`${money(c.advances.received)} / ${money(c.advances.adjusted)} / ${c.advances.held===undefined?'—':money(c.advances.held)}`)}
         {row('Expenses',`${money(c.expenses.posted)} · ${c.expenses.approved} posted, ${c.expenses.pending} pending`)}{row('Cash in drawer at close',c.cashAtClose===undefined?'—':money(c.cashAtClose))}
         {row('Pending approvals',c.pendingApprovals.length?c.pendingApprovals.map(x=>`${x.kind} ${x.count}`).join(', '):'None')}
+        {row('Rate cuts beyond the agreed-rate threshold',c.rateCuts.length||'None')}
+        {c.rateCuts.map((r,i)=><tr key={'cut'+i}><td>{`Room ${r.room} · ${r.booking}`}</td><td>{dgsRateLine(r).trim().replace(/^Room \S+ · \S+ · /,'')}</td></tr>)}
         {row('Reorder alerts',c.reorder)}{row('Complaints / lost & found over SLA',c.overdue.complaints+c.overdue.lostFound)}
         {row('Feedback',c.feedback.count?`${c.feedback.count} · ${c.feedback.average.toFixed(1)} stars`:'None')}
         {row('Tomorrow',`${c.tomorrow.arrivals} arrivals${c.tomorrow.rooms.length?' (rooms '+c.tomorrow.rooms.join(', ')+')':''} · ${c.tomorrow.events} events`)}

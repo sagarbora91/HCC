@@ -427,7 +427,9 @@ export type PhotoProfile={maxBytes:number;edges:number[];qualities:number[];labe
 /** §2 A1 */
 export type STRRateChange={id:string;booking:string;room:string;date:string;at:string;by:string;approvalId?:string;approvedBy?:string;
   scope:'next'|'today-next'|'all';reason:string;oldRate:number;newRate:number;oldPeople:number;newPeople:number;oldChildren:number;newChildren:number;
-  effectiveFrom:string;reposted:{reversal:string;line:string;night:string}[]};
+  effectiveFrom:string;reposted:{reversal:string;line:string;night:string}[];
+  /** CTL-01 (AF2-CTL01, server 4920): tariff and agreed rate the change was judged against, agreed rate after it, threshold (bps), beyond it. Optional (old saves). */
+  tariff?:number;agreedRate?:number;agreedAfter?:number;thresholdBps?:number;overThreshold?:boolean};
 export type STRState={changes:STRRateChange[]};     // s.stayRateX
 /** §3 B1 */
 export type GuestAgreedRate={type:string;rate:number;plan?:string;validTo?:string;note?:string;setBy:string;at:string};

@@ -164,5 +164,23 @@ public sealed class RevenueByCategoryTests
         Assert.Contains("Pending approvals 3", wa, StringComparison.Ordinal);
         Assert.Contains("Arrivals tomorrow 2", wa, StringComparison.Ordinal);
         Assert.Contains("₹", DigestBodies.Email(facts), StringComparison.Ordinal);
+        Assert.Contains("Rate reductions beyond the agreed-rate threshold: 0", DigestBodies.Email(facts), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Ctl01_digest_lists_rate_cuts_beyond_the_threshold_by_name_in_the_email_and_by_count_on_whatsapp()
+    {
+        var (data, cat) = Sample();
+        var cut = new RateReductionLine("101", "HCC-S0001", 200000, 250000, 190000, 2400, 1500, "Meera (Manager)", "Sagar (Owner)", "Corporate rate");
+        var direct = cut with { RoomNo = "102", ApprovedBy = null, ChangedBy = "Sagar (Owner)" };
+        var facts = new DigestFacts(D2, DailyPackCalculator.Compute(data, D2, D2), RevenueByCategoryCalculator.Compute(data, cat, D2, D2), 0, 0, RateReductions: [cut, direct]);
+        var email = DigestBodies.Email(facts);
+        Assert.Contains("Rate reductions beyond the agreed-rate threshold: 2", email, StringComparison.Ordinal);
+        Assert.Contains("  Room 101 · HCC-S0001 · agreed ₹2,500 → ₹1,900 (24% below; threshold 15%) · tariff ₹2,000 · by Meera (Manager) · approved by Sagar (Owner) · Corporate rate", email, StringComparison.Ordinal);
+        Assert.Contains("Room 102", email, StringComparison.Ordinal);
+        Assert.Contains("applied directly", email, StringComparison.Ordinal);
+        var wa = DigestBodies.WhatsApp(facts);
+        Assert.Contains("Rate cuts beyond threshold 2", wa, StringComparison.Ordinal);
+        Assert.DoesNotContain("Meera", wa, StringComparison.Ordinal);
     }
 }

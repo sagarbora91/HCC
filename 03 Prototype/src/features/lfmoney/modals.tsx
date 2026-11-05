@@ -1,7 +1,7 @@
 // LF-UI · money dialogs: 'stay-rate' (rate / guest change, A1), 'bill-correct' (Correct this bill, A2), 'agreed-rate' (B1) and 'credit-account' (B2).
 import React,{useState} from 'react';
 import {useHcc} from '../../app/context';
-import {money,strRefusal,strCanDirect,STR_SCOPES,STR_SCOPE_LABEL,strTariff,blcRefusal,blcPreview,blcLive,blcNightOf,type STRScope,type BLCChange,type Booking} from '../../services/mock';
+import {money,strRefusal,strCanDirect,STR_SCOPES,STR_SCOPE_LABEL,strTariff,strAgreedRate,strJudgedText,blcRefusal,blcPreview,blcLive,blcNightOf,type STRScope,type BLCChange,type Booking} from '../../services/mock';
 import {Empty} from '../../components/ui';
 import type {ModalProps} from '../../app/registry';
 
@@ -16,14 +16,15 @@ export function StayRateModal({id}:ModalProps){
   const set=(p:Partial<typeof f>)=>setF(x=>({...x,...p}));
   const input={rate:paise(f.rate),people:Number(f.people),children:Number(f.children),scope:f.scope,reason:f.reason};
   const refusal=strRefusal(s,b,input);const direct=!refusal&&strCanDirect(s,uid,b,input);
-  return <><div className="modal-heading"><h2>Rate / guest change · room {b.room}</h2><p>Current rate {money(b.rate)} per night for {b.people} guest{b.people===1?'':'s'}. Tariff today {money(strTariff(s,b))}.</p></div>
+  return <><div className="modal-heading"><h2>Rate / guest change · room {b.room}</h2><p>Current rate {money(b.rate)} per night for {b.people} guest{b.people===1?'':'s'}. Tariff today {money(strTariff(s,b))}. Agreed rate {money(strAgreedRate(s,b))}.</p></div>
     <form className="form" onSubmit={e=>{e.preventDefault();void run({type:'STAY_RATE_CHANGE',booking:b.id,...input,key:modal!.key},direct?'Rate changed.':'Rate change sent for approval.',{close:true});}}>
       <div className="form-row"><label>New rate per night (₹)<input type="number" min={0} step="0.01" value={f.rate} onChange={e=>set({rate:e.target.value})}/></label>
         <label>Guests<input type="number" min={1} max={4} value={f.people} onChange={e=>set({people:e.target.value})}/></label>
         <label>Children<input type="number" min={0} max={3} value={f.children} onChange={e=>set({children:e.target.value})}/></label></div>
       <label>Applies to<select value={f.scope} onChange={e=>set({scope:e.target.value as STRScope})}>{STR_SCOPES.map(x=><option key={x} value={x}>{STR_SCOPE_LABEL[x]}</option>)}</select></label>
       <label>Reason (required)<input value={f.reason} maxLength={200} onChange={e=>set({reason:e.target.value})}/></label>
-      {refusal?<p className="muted" role="status">{refusal}</p>:<p className="muted" role="status">{direct?'You can apply this directly.':'This needs an approval from the Owner or a Manager within their limit.'}</p>}
+      {refusal?<p className="muted" role="status">{refusal}</p>:<p className="muted" role="status">{direct?'You can apply this directly.':'This needs an approval from the Owner or a Manager within their limit.'}
+        {input.rate!==b.rate&&Number.isFinite(input.rate)?` (${strJudgedText(s,b,input.rate)})`:''}</p>}
       <div className="modal-actions"><button type="button" className="btn" onClick={closeModal}>Cancel</button><button className="btn primary" disabled={busy||!!refusal}>{direct?'Apply change':'Request approval'}</button></div>
     </form></>;
 }

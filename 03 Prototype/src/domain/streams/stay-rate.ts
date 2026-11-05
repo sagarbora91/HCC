@@ -10,6 +10,7 @@ import {rmsCapacity,rmsOccFor} from './roommasters';
 import {guestDuplicates} from './guests';
 import {mstMoneyOn} from './masters';
 import {resCapacity} from './reservations';
+import {cfgValueOn} from './config'; // AF2-CTL01 threshold (called at run time only)
 
 export type {STRRateChange,STRState,GuestAgreedRate};
 export const STR_SCOPES=['next','today-next','all'] as const;
@@ -50,6 +51,30 @@ export function strDirectFloor(s:State,uid:string,b:Booking,date=s.date):number{
   const pct=adminLimitFor(s,'Manager','PERM-RATE-001')??0;
   return Math.ceil(strTariff(s,b,date)*(100-pct)/100);
 }
+// ── CTL-01 (AF2-CTL01; AUDITFIX-PLAN §2 Q4 default (a)): a reduction is judged against the stay's AGREED rate as well as the tariff; the stricter wins. ──
+/** Master configuration › Rooms and rate plans (Owner-only, config.ts 'rate-control'); server RateControlSettings.ThresholdKey. */
+export const STR_THRESHOLD_KEY='rate.agreedReductionBps';
+export const STR_THRESHOLD_DEFAULT=1500;
+/** The threshold in force (basis points, 0–10000): the Owner's setting, else 15 % (the Manager's PERM-RATE-001 limit). */
+export function strThresholdBps(s:State):number{const v=Number(cfgValueOn(s,STR_THRESHOLD_KEY));return Number.isInteger(v)&&v>=0&&v<=10000?v:STR_THRESHOLD_DEFAULT;}
+/** The agreed rate of a stay: the agreed rate after its latest change (an Owner-set rate becomes the new agreed rate; a Manager's does not, so a stay
+ *  cannot be walked down in steps), else the rate before its first change, else the booking's rate. */
+export function strAgreedRate(s:State,b:Booking):number{
+  const ch=strChangesFor(s,b.id);
+  for(let i=ch.length-1;i>=0;i--)if(ch[i].agreedAfter!==undefined)return ch[i].agreedAfter!;
+  return ch.length?ch[0].oldRate:b.rate;
+}
+/** The lowest rate a Manager sets or approves against the agreed rate (rounded up): a rate AT the floor passes, one paisa below needs the Owner. */
+export const strAgreedFloor=(agreed:number,bps:number)=>Math.ceil(agreed*(10000-Math.min(10000,Math.max(0,bps)))/10000);
+/** Basis points below the agreed rate (0 for a raise), rounded down. */
+export const strReductionBps=(agreed:number,rate:number)=>agreed<=0||rate>=agreed?0:Math.floor((agreed-rate)*10000/agreed);
+/** True when `rate` is more than the Owner's threshold below the stay's agreed rate. */
+export const strOverThreshold=(s:State,b:Booking,rate:number)=>rate<strAgreedFloor(strAgreedRate(s,b),strThresholdBps(s));
+/** "₹2,500 agreed · 24 % below · over the 15 % threshold (Owner)" — shown on the rate-change form and in the audit text. */
+export function strJudgedText(s:State,b:Booking,rate:number):string{
+  const agreed=strAgreedRate(s,b),bps=strThresholdBps(s),pct=(v:number)=>`${(v/100).toLocaleString('en-IN',{maximumFractionDigits:2})} %`;
+  return `agreed ${money(agreed)} · ${pct(strReductionBps(agreed,rate))} below`+(strOverThreshold(s,b,rate)?` · over the ${pct(bps)} threshold (Owner)`:'');
+}
 /** True when the stay's room type has an extra-person charge (MA-1 occupancy master), so a raise of guests changes money. */
 export function strExtraChargeApplies(s:State,b:Booking):boolean{
   const r=s.rooms.find(x=>x.id===b.room);const o=r?rmsOccFor(s,r.type):undefined;if(!o)return false;
@@ -62,14 +87,16 @@ export function strCanDirect(s:State,uid:string,b:Booking,change:{rate:number;pe
   if(u.role!=='Manager')return false;
   const raise=change.people+change.children>(b.people+(b.children??0));
   if(raise&&strExtraChargeApplies(s,b))return false;
+  if(change.rate!==b.rate&&strOverThreshold(s,b,change.rate))return false; // CTL-01: more than the threshold below the agreed rate → the Owner
   if(change.rate>=strTariff(s,b))return true;          // at or above the tariff never loses money
   return change.rate>=strDirectFloor(s,uid,b);
 }
-/** Whether an approver may decide a rate-change approval: the Owner anything; a Manager within the same limit. */
+/** Whether an approver may decide a rate-change approval: the Owner anything; a Manager within the same limits (tariff and, CTL-01, the agreed rate). */
 export function strCanApprove(s:State,uid:string,b:Booking,rate:number):boolean{
   const u=s.users.find(x=>x.id===uid);if(!u)return false;
   if(u.role==='Owner')return true;
   if(u.role!=='Manager')return false;
+  if(rate!==b.rate&&strOverThreshold(s,b,rate))return false;
   return rate>=strTariff(s,b)||rate>=strDirectFloor(s,uid,b);
 }
 /** Refusal text for a STAY_RATE_CHANGE input, or ''. */

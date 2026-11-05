@@ -72,14 +72,16 @@ export function counterBillsFromServer(rows:SrvCounterBill[]):CTRState{
 }
 
 type SrvRateChange={changeId:number;stayId:number;reservationId:number;roomNo:string;businessDate:string;changedUtc:string;changedBy:number;approvalId:number|null;approvedBy:number|null;
-  scope:string;reason:string;oldRatePaise:number;newRatePaise:number;oldPeople:number;newPeople:number;oldChildren:number;newChildren:number;effectiveFrom:string;repostedJson:string};
+  scope:string;reason:string;oldRatePaise:number;newRatePaise:number;oldPeople:number;newPeople:number;oldChildren:number;newChildren:number;effectiveFrom:string;repostedJson:string;
+  tariffPaise?:number|null;agreedRatePaise?:number|null;agreedAfterPaise?:number|null;thresholdBps?:number|null;overThreshold?:boolean}; // CTL-01 (4920)
 const repostedOf=(j:string):{reversal:string;line:string;night:string}[]=>{try{const a=JSON.parse(j);return Array.isArray(a)?a.map(x=>({reversal:String(x?.reversal??''),line:String(x?.line??''),night:String(x?.night??'')})):[];}catch{return [];}};
 /** GET /stays/rate-changes → s.stayRateX (applied changes, oldest first). */
 export function rateChangesFromServer(rows:SrvRateChange[]):STRState{
   return {changes:rows.map(r=>({id:protoId(r.changeId),booking:protoId(r.reservationId),room:r.roomNo,date:String(r.businessDate).slice(0,10),at:utcToClock(r.changedUtc),by:protoUserId(r.changedBy),
     ...(r.approvalId?{approvalId:protoId(r.approvalId)}:{}),...(r.approvedBy?{approvedBy:protoUserId(r.approvedBy)}:{}),scope:r.scope as STRState['changes'][number]['scope'],reason:r.reason,
     oldRate:r.oldRatePaise,newRate:r.newRatePaise,oldPeople:r.oldPeople,newPeople:r.newPeople,oldChildren:r.oldChildren,newChildren:r.newChildren,effectiveFrom:String(r.effectiveFrom).slice(0,10),
-    reposted:repostedOf(r.repostedJson)})).reverse()};
+    reposted:repostedOf(r.repostedJson),
+    ...(r.agreedRatePaise!=null?{tariff:r.tariffPaise??0,agreedRate:r.agreedRatePaise,agreedAfter:r.agreedAfterPaise??r.agreedRatePaise,thresholdBps:r.thresholdBps??0,overThreshold:!!r.overThreshold}:{})})).reverse()};
 }
 
 type SrvCreditGuest={guestId:number;name:string;phone:string|null;limitPaise:number;active:boolean;customerKey:string;note:string|null;openPaise:number;oldestOpenDate:string|null};
