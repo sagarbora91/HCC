@@ -54,3 +54,12 @@ export const CFG_INVARIANTS:[string,string][]=[
 ];
 /** Group to open when another page links into the hub (read once by the hub on mount). */
 export const cfgNav:{group?:CfgGroupId}={};
+
+/** ADM-UX: configuration-change messages stay on screen about 8 s (the personal toast length is never shortened). */
+export const CFG_TOAST_MS=8000;
+/** ADM-UX item 4: dependants switched off with a parent stay off when the parent comes back; say so plainly. */
+export const cfgSwitchOnNote=(label:string,stillOff:string[])=>stillOff.length
+  ?`${label} switched on. ${stillOff.join(', ')} ${stillOff.length>1?'stay':'stays'} off — switch ${stillOff.length>1?'them':'it'} on separately.`
+  :`${label} switched on`;
+/** Plain sentence under a row that cannot be changed. */
+export const CFG_CORE_PLAIN='Always on — the hotel cannot run without it.';

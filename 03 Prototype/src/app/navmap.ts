@@ -26,7 +26,7 @@ export const NAV_CATEGORIES:NavCategory[]=[
   {id:'stock',label:'Stock & Purchasing',blurb:'Linen, amenities and supplies',icon:Package},
   {id:'people',label:'People & Payroll',blurb:'Staff, shifts, leave and pay',icon:IdCard},
   {id:'accounts',label:'Accounts & Reports',blurb:'Day closing, reports, accounting',icon:ChartNoAxesCombined},
-  {id:'admin',label:'Admin & Setup',blurb:'Access, configuration, audit, backup',icon:ShieldCheck},
+  {id:'admin',label:'Admin & Setup',blurb:'Modules on/off, users, roles, audit, backup',icon:ShieldCheck},
 ];
 export const DASHBOARD={id:'overview',label:'Dashboard',icon:LayoutDashboard};
 export const categoryOf=(id:CategoryId)=>NAV_CATEGORIES.find(c=>c.id===id)!;

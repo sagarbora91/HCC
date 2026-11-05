@@ -5,14 +5,14 @@ import {FaultMode} from '../services/mock/faults';
 import type {Display} from './display';
 import type {Metrics} from './useMetrics';
 export type Modal={type:string;id?:string;room?:string;key:string}|null;
-export type RunOptions={close?:boolean;after?:()=>void};
+export type RunOptions={close?:boolean;after?:()=>void;toastMs?:number}; // toastMs: show this message at least this long (ADM-UX; never shortens the personal preference)
 export type Ctx={
   s:State;uid:string;user:User;m:Metrics;
   page:string;go:(p:string,opts?:{tab?:string;replace?:boolean})=>void;
   modal:Modal;open:(m:{type:string;id?:string;room?:string})=>void;closeModal:()=>void;booking:(id:string)=>void;
   error:string;busy:boolean;
   run:(cmd:Command,msg?:string,opts?:RunOptions)=>Promise<boolean>;
-  toast:(text:string,error?:boolean)=>void;
+  toast:(text:string,error?:boolean,minMs?:number)=>void;
   permission:(p:Permission|Permission[])=>boolean;
   act:(p:Permission,fn:()=>void,label:string,style?:string)=>React.ReactNode;
   search:string;setSearch:(v:string)=>void;filter:string;setFilter:(v:string)=>void;

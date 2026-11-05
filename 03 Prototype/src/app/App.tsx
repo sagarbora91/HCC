@@ -40,7 +40,7 @@ import {DayClosing} from '../features/closing/DayClosing';
 import {Reports} from '../features/reports/Reports';
 import {AccessControl} from '../features/admin/AccessControl';
 import {HotelSettings} from '../features/admin/HotelSettings';
-import {useApplyPrefs,usePrefs,toastMs,resolveStartPage} from './prefs'; // CP-1 personal preferences (this device)
+import {useApplyPrefs,usePrefs,toastMs,toastDuration,resolveStartPage} from './prefs'; // CP-1 personal preferences (this device)
 import {TextSizeQuick} from '../features/prefs/parts';
 
 const SESSION_KEY='hcc-session'; // staff picked on this device (per device, not hotel data)
@@ -120,7 +120,7 @@ function AppShell({initial,server}:{initial:Restored;/** Production only: state,
   const catOk=(()=>{const c=parseCatPage(page);return !c||pagesOfCategory(c).some(p=>allowedIds.includes(p));})();
   const current=page===HOME_PAGE||(parseCatPage(page)&&catOk)?page:page==='more'&&display.isMobile?'more':allowedIds.includes(page)?page:HOME_PAGE;
 
-  const toast=useCallback((text:string,isError=false)=>{setNotice({text,error:isError});window.clearTimeout(toastTimer.current);const ms=toastMs(prefsRef.current.toastSeconds);if(ms!==null)toastTimer.current=window.setTimeout(()=>setNotice(null),ms);},[]); // CP-1 E1: duration from prefs (6.5 s default)
+  const toast=useCallback((text:string,isError=false,minMs?:number)=>{setNotice({text,error:isError});window.clearTimeout(toastTimer.current);const ms=toastDuration(prefsRef.current.toastSeconds,minMs);if(ms!==null)toastTimer.current=window.setTimeout(()=>setNotice(null),ms);},[]); // CP-1 E1: duration from prefs (6.5 s default)
   function persist(next:State){setS(next);stateRef.current=next;if(!saveStored(next))setNotice({text:'Browser storage is unavailable. Changes will last only until this page closes.',error:true});}
   const open=(x:{type:string;id?:string;room?:string})=>{
     if(offline&&x.type==='new'){toast(READ_ONLY_HINT,true);return;} // APK12-5: no new booking while the server is unreachable
@@ -201,7 +201,7 @@ function AppShell({initial,server}:{initial:Restored;/** Production only: state,
           return false;}
         setError('');dirty.current=false;if(opts.close)setModal(null);opts.after?.();
         // Partial success (e.g. checkout done, tax invoice refused): the follow-up problem stays visible on the screen the action led to.
-        if(r.warning){setError(r.warning);toast(r.warning,true);}else toast(msg||'Updated successfully');
+        if(r.warning){setError(r.warning);toast(r.warning,true);}else toast(msg||'Updated successfully',false,opts.toastMs);
         return true;
       }finally{busyRef.current=false;setBusy(false);}
     }
@@ -217,7 +217,7 @@ function AppShell({initial,server}:{initial:Restored;/** Production only: state,
       setError('');dirty.current=false; // AC-04: a completed action never leaves the sheet dirty (no "Discard?" prompt afterwards)
       if(opts.close)setModal(null);
       opts.after?.();
-      toast(duplicate?'Already recorded earlier — no duplicate was created.':(msg||'Updated successfully'));
+      toast(duplicate?'Already recorded earlier — no duplicate was created.':(msg||'Updated successfully'),false,duplicate?undefined:opts.toastMs);
       return true;
     }catch(e){
       const code=codeOf(e),text=`${errorTitle[code]}: ${(e as Error).message}`;

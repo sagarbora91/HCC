@@ -3,3 +3,14 @@
 .folio-dup-title{display:block;font-weight:700;margin-bottom:2px}
 .folio-dup-tick{display:flex;align-items:center;gap:12px;min-height:48px;margin:8px 0;padding:10px 12px;border:2px solid var(--warn-fill);border-radius:10px;background:var(--surface);color:var(--ink);font-weight:650;cursor:pointer}
 .folio-dup-tick input{width:24px;height:24px;flex:none;margin:0}
+/* ADM-UX: the On/Off pill is a real switch; fixed rows show a lock + plain reason and do not look tappable. */
+.cfg-mod.tappable{cursor:pointer}
+.cfg-mod.tappable:hover{border-color:var(--primary)}
+.cfg-mod.locked{background:var(--sand-2)}
+button.pill.cfg-switch{border:0;font:inherit;font-weight:700;cursor:pointer;min-height:44px;min-width:64px;padding:0 14px;border-radius:999px}
+button.pill.cfg-switch:disabled{cursor:not-allowed;opacity:.6}
+button.pill.cfg-switch:focus-visible{outline:3px solid var(--primary);outline-offset:2px}
+.cfg-mod .cfg-lock{display:flex;align-items:flex-start;gap:6px;color:var(--ink);font-size:13.5px;line-height:1.4}
+.cfg-mod .cfg-lock svg{flex:none;margin-top:2px}
+.cfg-mod .cfg-stays{color:var(--ink);font-weight:600}
+.drawer-item .drawer-hint{display:block;font-weight:400;opacity:.8}

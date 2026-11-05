@@ -1,7 +1,7 @@
 // Hamburger menu: one slide-in drawer on desktop and phone (replaces the long sidebar and the phone "More" list).
 // Categories collapse; only the one holding the current page starts open. Everything comes from navmap.ts, filtered by role.
 import React,{useEffect,useRef,useState} from 'react';
-import {X,LayoutGrid,Search,ChevronDown,FlaskConical,LogOut,Hotel,Smartphone,KeyRound} from 'lucide-react';
+import {X,LayoutGrid,Search,ChevronDown,FlaskConical,LogOut,Hotel,Smartphone,KeyRound,ShieldCheck} from 'lucide-react';
 import {useHcc} from './context';
 import {navItems} from './nav';
 import {trapTab,useReturnFocus} from '../components/ui';
@@ -27,6 +27,7 @@ export function NavDrawer({onClose}:{onClose:()=>void}){
       <button type="button" className="drawer-search" onClick={()=>{onClose();openSearch();}}><Search size={18}/>Search pages and actions<kbd>Ctrl K</kbd></button>
       <nav aria-label="Modules" className="drawer-nav">
         <button type="button" className={'drawer-item'+(page===HOME_PAGE?' on':'')} aria-current={page===HOME_PAGE?'page':undefined} onClick={()=>nav(HOME_PAGE)}><LayoutGrid size={19}/>Modules Home</button>
+        {permission('admin')&&<button type="button" data-page="admin-setup" className={'drawer-item'+(page===catPage('admin')?' on':'')} aria-current={page===catPage('admin')?'page':undefined} onClick={()=>nav(catPage('admin'))}><ShieldCheck size={19}/><span>Admin &amp; Setup<small className="drawer-hint">Modules on/off, users, roles, audit</small></span></button>}
         {allowed.has(DASHBOARD.id)&&<button type="button" className={'drawer-item'+(page===DASHBOARD.id?' on':'')} aria-current={page===DASHBOARD.id?'page':undefined} onClick={()=>nav(DASHBOARD.id)}><DASHBOARD.icon size={19}/>{DASHBOARD.label}</button>}
         {cats.map(({c,items})=>{const isOpen=openCat===c.id;return <div key={c.id} className="drawer-cat">
           <button type="button" className={'drawer-item drawer-cat-btn'+(here===c.id?' here':'')} aria-expanded={isOpen} onClick={()=>setOpenCat(isOpen?undefined:c.id)}>
