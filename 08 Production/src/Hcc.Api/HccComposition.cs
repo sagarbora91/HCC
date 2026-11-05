@@ -147,6 +147,8 @@ public static class HccComposition
         // F6-H3
         // F6-H3 end
         // F12-SETTINGS
+        services.AddSingleton<Hcc.Application.Configuration.IMeasurementGate, Hcc.Application.Configuration.MeasurementGate>(); // F12 MEAS gate (module + pack + item)
+        if (Hcc.Application.Configuration.MeasurementCatalogue.Provider() is { } measProvider) services.AddSingleton(measProvider); // 'measure' group, once ConfigCatalog lists it
         // F12-SETTINGS end
         // F12-CAP-DESK
         // F12-CAP-DESK end

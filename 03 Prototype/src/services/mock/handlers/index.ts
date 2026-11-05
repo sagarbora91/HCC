@@ -83,6 +83,7 @@ import {handlers as hallQuote} from './hall-quote'; // F6 quotations + T&C: QUO_
 // F6-H3
 // F6-H3 end
 // F12-SETTINGS
+import {handlers as measSettings} from './meas-settings'; // MEAS_PACK_SET, MEAS_ITEM_SET (MEAS-CONTRACT §1.4)
 // F12-SETTINGS end
 // F12-CAP-DESK
 // F12-CAP-DESK end
@@ -146,6 +147,7 @@ const F6:Record<string,Handler>={ // F6 lanes: spread your handlers inside your 
 };
 const F12:Record<string,Handler>={ // F12 lanes (MEAS-CONTRACT §6): spread your handlers inside your own block
   // F12-SETTINGS
+  ...measSettings,
   // F12-SETTINGS end
   // F12-CAP-DESK
   // F12-CAP-DESK end

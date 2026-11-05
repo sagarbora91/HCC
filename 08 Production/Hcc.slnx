@@ -311,6 +311,9 @@
     <!-- F6-H3 4345-4348 -->
     <!-- F6-H3 end -->
     <!-- F12-SETTINGS -->
+    <Project Path="tests/Hcc.Meas.Tests/Hcc.Meas.Tests.csproj" />
+    <File Path="database/migrations/4802_meas_rbac_seed.sql" />
+    <File Path="database/migrations/4803_meas_settings_seed.sql" />
     <!-- F12-SETTINGS end -->
     <!-- F12-CAP-DESK -->
     <!-- F12-CAP-DESK end -->

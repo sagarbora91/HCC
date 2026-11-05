@@ -19,7 +19,7 @@ public interface IReportPropertyInfo
 
 public sealed record RunOptions(int? Page = null, int PageSize = ReportRunner.PageDesktop, bool All = false, bool Export = false, string? ExportFormat = null);
 
-public sealed class ReportRunner(IReportCatalogue catalogue, IAccessPolicy policy, IReportPropertyInfo property, IEnumerable<IComputedColumnEngine> engines, TimeProvider clock)
+public sealed class ReportRunner(IReportCatalogue catalogue, IAccessPolicy policy, IReportPropertyInfo property, IEnumerable<IComputedColumnEngine> engines, TimeProvider clock, Hcc.Application.Configuration.IMeasurementGate? measurement = null) // F12-SETTINGS: IMeasuredReport honoured
 {
     public const int PageDesktop = 100;
     public const int PagePhone = 50;
@@ -46,12 +46,16 @@ public sealed class ReportRunner(IReportCatalogue catalogue, IAccessPolicy polic
         return string.IsNullOrEmpty(d.MoneyGate) || await HoldsAsync(c, d.MoneyGate, d.OwnShift, ct).ConfigureAwait(false);
     }
 
+    // F12-SETTINGS: a measurement report (selector implements IMeasuredReport) is absent from the catalogue while its switch is off.
+    private async Task<bool> MeasOnAsync(Caller c, string id, CancellationToken ct) =>
+        measurement is null || catalogue.Find(id) is not Hcc.Application.Configuration.IMeasuredReport m || await measurement.IsOnAsync(c.PropertyId, m.MeasKey, ct).ConfigureAwait(false);
+
     /// <summary>Definitions the caller may view, with export / money flags.</summary>
     public async Task<IReadOnlyList<ReportCatalogueEntry>> CatalogueAsync(Caller c, CancellationToken ct = default)
     {
         var list = new List<ReportCatalogueEntry>();
         foreach (var d in catalogue.All)
-            if (await CanViewAsync(c, d, ct).ConfigureAwait(false))
+            if (await MeasOnAsync(c, d.Id, ct).ConfigureAwait(false) && await CanViewAsync(c, d, ct).ConfigureAwait(false))
                 list.Add(new ReportCatalogueEntry(d, await CanExportAsync(c, d, ct).ConfigureAwait(false), await HoldsMoneyGateAsync(c, d, ct).ConfigureAwait(false)));
         return list;
     }
@@ -62,6 +66,7 @@ public sealed class ReportRunner(IReportCatalogue catalogue, IAccessPolicy polic
         var o = options ?? new RunOptions();
         var sel = catalogue.Find(id) ?? throw new HccException(HccErrorCode.NOT_FOUND, $"No report {id}.");
         var def = sel.Definition;
+        if (sel is Hcc.Application.Configuration.IMeasuredReport mr && measurement is not null) await measurement.EnsureOnAsync(caller.PropertyId, mr.MeasKey, ct).ConfigureAwait(false); // F12-SETTINGS: MEAS_OFF
         if (!await CanViewAsync(caller, def, ct).ConfigureAwait(false)) throw new HccException(HccErrorCode.FORBIDDEN, $"You cannot open {def.Title}.");
         if (o.Export && !await CanExportAsync(caller, def, ct).ConfigureAwait(false))
             throw new HccException(HccErrorCode.FORBIDDEN, $"Exporting {def.Title} needs {(string.IsNullOrEmpty(def.ExportPerm) ? DefaultExportPerm : def.ExportPerm)}.");

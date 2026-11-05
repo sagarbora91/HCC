@@ -40,7 +40,7 @@ import {rolPageLevel} from './roles'; // ADM-2
 import {featureAll,featureById,featureOfPage,featureOfCommand,featureClosure,featureExempt,featureKey,type FeatureRef} from '../feature-catalogue'; // ADM-1
 
 // ───────────────────────────── Groups (fixed names — a test pins them) ─────────────────────────────
-export type CfgGroupId='property'|'rooms'|'frontdesk'|'money'|'pos'|'hkm'|'people'|'compliance'|'modules'|'users'|'messages'|'internet'|'data';
+export type CfgGroupId='property'|'rooms'|'frontdesk'|'money'|'pos'|'hkm'|'people'|'compliance'|'modules'|'users'|'messages'|'internet'|'data'|'measure'; // F12-SETTINGS: 'measure'
 export const CFG_SECTIONS=['Business setup','Operations and people','Software and security'] as const;
 export type CfgSection=typeof CFG_SECTIONS[number];
 export type CfgGroup={id:CfgGroupId;label:string;section:CfgSection;money:boolean;blurb:string;link?:{page:string;label:string}};
@@ -58,6 +58,7 @@ export const CFG_GROUPS:CfgGroup[]=[
   {id:'messages',label:'Messages and documents',section:'Software and security',money:false,blurb:'Sender name, consent, gateway key',link:{page:'messages',label:'Open Messages'}},
   {id:'internet',label:'Internet access',section:'Software and security',money:false,blurb:'Master switch, one switch per service (messages, OTA, ID scan, payment links, e-mail, updates) and an allowed time window; Owner changes, Manager reads'},
   {id:'data',label:'Data and system',section:'Software and security',money:false,blurb:'Backup schedule, restore drill, ID image retention, storage, diagnostics, about'},
+  {id:'measure',label:'Measurement reports',section:'Software and security',money:false,blurb:'Switch measurement packs and individual reports on or off. Off = hidden from the hub, phone, search and digests; its data is kept.'}, // F12-SETTINGS (MEAS-CONTRACT §1.1)
 ];
 export const cfgGroup=(id:string)=>CFG_GROUPS.find(g=>g.id===id);
 
