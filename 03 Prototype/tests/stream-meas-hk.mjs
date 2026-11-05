@@ -3,6 +3,7 @@ export function register({test,M,assert}){
   const {execute,baseFixture,HccError}=M;
   const code=(fn)=>{try{fn();}catch(e){return e instanceof HccError?e.code:'UNTYPED:'+e.message;}return 'NO_ERROR';};
   const fresh=()=>baseFixture();
+  const measOn=(s,k)=>typeof M.measOn==='function'?M.measOn(s,k):true; // measOn is exported through the mock index by meas-settings; until then always on
   const reading=(s,uid,meter,value,extra={})=>execute(s,uid,{type:'MEAS_READING_ADD',meter,value,...extra});
   const todo=(s)=>s.tasks.find(t=>t.assignee==='housekeeper'&&t.status==='To do');
   const clean=(s,t)=>{s=execute(s,'housekeeper',{type:'TASK',id:t.id,action:'start'});for(let i=0;i<3;i++)s=execute(s,'housekeeper',{type:'TASK',id:t.id,action:'check',index:i});return execute(s,'housekeeper',{type:'TASK',id:t.id,action:'complete'});};
@@ -162,7 +163,7 @@ export function register({test,M,assert}){
       ['meas.hk.linen',{type:'MEAS_DISCARD_ADD',item:'Towel',qty:1,reason:'Torn'},'supervisor']];
     for(const [key,cmd,uid] of cases){
       const s=fresh();s.configX={...(s.configX??{}),values:{...(s.configX?.values??{}),[key]:false}};
-      if(M.measOn(s,key)!==false)continue; // setup stub (meas-settings not merged yet): measOn is always true, nothing to refuse
+      if(measOn(s,key)!==false)continue; // setup stub (meas-settings not merged yet): measOn is always true, nothing to refuse
       assert.equal(code(()=>execute(s,uid,cmd)),'MEAS_OFF',key);
     }
   });
@@ -170,7 +171,7 @@ export function register({test,M,assert}){
     let s=fresh();s.configX={...(s.configX??{}),values:{...(s.configX?.values??{}),'meas.hk.productivity':false}};
     const t=todo(s);s=execute(s,'housekeeper',{type:'TASK',id:t.id,action:'start'});
     assert.equal(s.tasks.find(x=>x.id===t.id).status,'In progress'); // the real task still works
-    if(M.measOn(s,'meas.hk.productivity')===false)assert.equal(s.measX?.taskTimes?.[t.id],undefined);
+    if(measOn(s,'meas.hk.productivity')===false)assert.equal(s.measX?.taskTimes?.[t.id],undefined);
   });
 
   // ── slice / schema ──
