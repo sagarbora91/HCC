@@ -20,7 +20,7 @@ public sealed class MeasForecastTests
         var c = MeasForecast.NightCounts(xs);
         Assert.Equal(1, c[D("2026-01-01")]);
         Assert.Equal(2, c[D("2026-01-02")]);
-        Assert.Equal(4, MeasForecast.OnBooks(xs, D("2026-01-02"), D("2025-12-24")));
+        Assert.Equal(3, MeasForecast.OnBooks(xs, D("2026-01-02"), D("2025-12-24"))); // 101, 103 (not yet cancelled), 104 (no-show before the night)
         Assert.Equal(2, MeasForecast.OnBooks(xs, D("2026-01-02"), D("2025-12-31")));
         Assert.Equal(3, MeasForecast.OnBooks(xs, D("2026-01-02"), D("2026-01-01")));
     }
