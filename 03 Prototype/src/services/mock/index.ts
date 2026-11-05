@@ -137,6 +137,18 @@ export {hallTncSeed,HALL_TNC_HEADINGS} from '../../fixtures/ext/hall-seed';
 // F6-H2 end
 // F6-H3
 // F6-H3 end
+// F12-SETTINGS
+// F12-SETTINGS end
+// F12-CAP-DESK
+// F12-CAP-DESK end
+// F12-CAP-HK
+// F12-CAP-HK end
+// F12-CAP-GUEST
+// F12-CAP-GUEST end
+// F12-CAP-PEOPLE
+// F12-CAP-PEOPLE end
+// F12-FORECAST
+// F12-FORECAST end
 // F4-T1
 export * from '../../domain/streams/tariffcard';
 // F4-T1 end

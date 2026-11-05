@@ -45,3 +45,4 @@ tools/legacy/.runs/
 tools/legacy/__pycache__/
 tools/legacy/**/__pycache__/
 tools/legacy/__pycache__/
+.scratch/

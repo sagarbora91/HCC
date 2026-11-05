@@ -146,6 +146,36 @@ public static class HccComposition
         // F6-H2 end
         // F6-H3
         // F6-H3 end
+        // F12-SETTINGS
+        // F12-SETTINGS end
+        // F12-CAP-DESK
+        // F12-CAP-DESK end
+        // F12-CAP-HK
+        // F12-CAP-HK end
+        // F12-CAP-GUEST
+        // F12-CAP-GUEST end
+        // F12-CAP-PEOPLE
+        // F12-CAP-PEOPLE end
+        // F12-FORECAST
+        // F12-FORECAST end
+        // F12-RPT-DAILY
+        // F12-RPT-DAILY end
+        // F12-RPT-REVENUE
+        // F12-RPT-REVENUE end
+        // F12-RPT-GUEST
+        // F12-RPT-GUEST end
+        // F12-RPT-HK
+        // F12-RPT-HK end
+        // F12-RPT-PEOPLE
+        // F12-RPT-PEOPLE end
+        // F12-STUDY-A
+        // F12-STUDY-A end
+        // F12-STUDY-B
+        // F12-STUDY-B end
+        // F12-STUDY-PACK
+        // F12-STUDY-PACK end
+        // F12-DIGEST
+        // F12-DIGEST end
         // F4 lanes: ONE services.Add<Lane>Module(); line inside your own block (append only).
         // F4-T1
         services.AddTariffCardModule();                 // F4-T1 tariff card (PERM-TRF-001…003)
@@ -319,6 +349,36 @@ public static class HccComposition
         // F6-H2 end
         // F6-H3
         // F6-H3 end
+        // F12-SETTINGS
+        // F12-SETTINGS end
+        // F12-CAP-DESK
+        // F12-CAP-DESK end
+        // F12-CAP-HK
+        // F12-CAP-HK end
+        // F12-CAP-GUEST
+        // F12-CAP-GUEST end
+        // F12-CAP-PEOPLE
+        // F12-CAP-PEOPLE end
+        // F12-FORECAST
+        // F12-FORECAST end
+        // F12-RPT-DAILY
+        // F12-RPT-DAILY end
+        // F12-RPT-REVENUE
+        // F12-RPT-REVENUE end
+        // F12-RPT-GUEST
+        // F12-RPT-GUEST end
+        // F12-RPT-HK
+        // F12-RPT-HK end
+        // F12-RPT-PEOPLE
+        // F12-RPT-PEOPLE end
+        // F12-STUDY-A
+        // F12-STUDY-A end
+        // F12-STUDY-B
+        // F12-STUDY-B end
+        // F12-STUDY-PACK
+        // F12-STUDY-PACK end
+        // F12-DIGEST
+        // F12-DIGEST end
         // F4-T1
         api.MapTariffCardEndpoints();    // F4-T1 tariff card
         // F4-T1 end

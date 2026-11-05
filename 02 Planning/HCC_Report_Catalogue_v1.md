@@ -17,7 +17,7 @@ Date: 1 November 2026. Status: draft for the W7 agents. Docs only: no code, no b
 ## 1. Rules for every report
 
 ### 1.1 Naming and words
-- Id = `rpt.<area>.<slug>`. Areas: `guests` (guests and stays), `rooms` (rooms and housekeeping), `money` (money and cash), `tax`, `acc` (accounting), `people`, `stock`, `rest` (restaurant), `admin` (admin and audit). Slug is lower-case with hyphens. An id never changes once built.
+- Id = `rpt.<area>.<slug>`. Areas: `guests` (guests and stays), `rooms` (rooms and housekeeping), `money` (money and cash), `tax`, `acc` (accounting), `people`, `stock`, `rest` (restaurant), `admin` (admin and audit), `revenue` (revenue management, MEAS) and `study` (analytics and study, MEAS). Slug is lower-case with hyphens. An id never changes once built.
 - **Status:** `built` (works in the prototype or server), `partial` (works but lacks a server side, a date range or an export), `ACC-3` (the ACC-3 wave is building it now), `planned` (new).
 - **Priority:** P1 = needed at go-live (used daily or required by law or tax), P2 = useful, P3 = later.
 - Money = integer paise everywhere; screens show it through `money()` / `rupees()`; Excel gets numbers with format `#,##0.00`, never text.
@@ -238,6 +238,60 @@ Columns of new entries are what HCC should show, from HCC's real data. The HTML 
 | rpt.admin.report-dictionary | Report dictionary | Admin and audit | built | P2 | - | n |
 | rpt.admin.cancelled-lines | Cancelled folio lines | Admin and audit | planned | P2 | C1.CancelItem | y |
 | rpt.admin.desk-reminders | Desk reminders and wake-up calls | Admin and audit | planned | P3 | C7.AlertsGuestInfo | n |
+| rpt.guests.manager-flash | Manager's flash | Guests and stays | planned (MEAS) | P1 | - | y |
+| rpt.guests.regrets-denials | Regrets and denials | Guests and stays | planned (MEAS) | P1 | - | n |
+| rpt.guests.rate-variance | Rate variance / rate check | Guests and stays | planned (MEAS) | P1 | - | y |
+| rpt.rooms.room-discrepancy | Room discrepancy | Rooms and housekeeping | planned (MEAS) | P1 | - | n |
+| rpt.money.high-balance | High-balance and credit-limit | Money and cash | planned (MEAS) | P1 | - | y |
+| rpt.money.allowances-voids | Allowances, rebates, voids and corrections | Money and cash | planned (MEAS) | P1 | - | y |
+| rpt.guests.no-show-cancel | No-show, cancellation and early departure | Guests and stays | planned (MEAS) | P2 | - | y |
+| rpt.rooms.inventory-exceptions | Complimentary, house-use and out-of-order | Rooms and housekeeping | planned (MEAS) | P1 | - | n |
+| rpt.money.cashier-variance | Cashier and shift variance | Money and cash | planned (MEAS) | P1 | - | y |
+| rpt.revenue.demand-calendar | Demand calendar | Revenue management | planned (MEAS) | P1 | - | y |
+| rpt.revenue.pickup-pace | Pickup and pace | Revenue management | planned (MEAS) | P2 | - | y |
+| rpt.revenue.displacement | Displacement calculator | Revenue management | planned (MEAS) | P2 | - | y |
+| rpt.revenue.overbooking-wash | Overbooking and wash | Revenue management | planned (MEAS) | P2 | - | n |
+| rpt.revenue.restriction-effect | Length-of-stay and minimum-stay controls | Revenue management | planned (MEAS) | P2 | - | y |
+| rpt.revenue.rate-parity | Rate shop and parity | Revenue management | planned (MEAS) | P2 | - | y |
+| rpt.guests.satisfaction | Guest satisfaction and NPS | Guests and stays | planned (MEAS) | P1 | - | n |
+| rpt.guests.reputation-index | Online reputation | Guests and stays | planned (MEAS) | P2 | - | n |
+| rpt.guests.service-recovery | Service recovery | Guests and stays | planned (MEAS) | P2 | - | y |
+| rpt.guests.desk-timing | Arrival and departure experience | Guests and stays | planned (MEAS) | P2 | - | n |
+| rpt.guests.upsell | Upsell and upgrade | Guests and stays | planned (MEAS) | P2 | - | y |
+| rpt.guests.repeat-loyalty | Repeat guests and loyalty base | Guests and stays | planned (MEAS) | P2 | - | y |
+| rpt.rooms.hk-productivity | Attendant productivity and turnaround | Rooms and housekeeping | planned (MEAS) | P1 | - | n |
+| rpt.rooms.ooo-days | Out-of-order and lost inventory | Rooms and housekeeping | planned (MEAS) | P2 | - | n |
+| rpt.rooms.ppm-compliance | Preventive maintenance compliance | Rooms and housekeeping | planned (MEAS) | P2 | - | n |
+| rpt.rooms.utilities-per-room | Energy, water and LPG per occupied room-night | Rooms and housekeeping | planned (MEAS) | P2 | - | n |
+| rpt.stock.linen-cost | Linen, laundry and guest-supply cost per occupied room | Stock | planned (MEAS) | P2 | - | n |
+| rpt.acc.asset-life | Asset register, FF&E reserve and renovation cycle | Accounting | planned (MEAS) | P2 | - | y |
+| rpt.people.staff-productivity | Staff per occupied room, overtime, absenteeism | People | planned (MEAS) | P2 | - | n |
+| rpt.people.attrition | Attrition and tenure | People | planned (MEAS) | P2 | - | n |
+| rpt.people.agent-scorecard | Performance by desk user | People | planned (MEAS) | P2 | - | y |
+| rpt.people.training | Training hours and certifications | People | planned (MEAS) | P2 | - | n |
+| rpt.people.staff-pulse | Staff pulse (optional) | People | planned (MEAS) | P3 | - | n |
+| rpt.study.revenue-monthly | Monthly revenue and cash (FY history) | Analytics and study | planned (MEAS) | P2 | - | y |
+| rpt.study.year-comparison | Year comparison | Analytics and study | planned (MEAS) | P2 | - | y |
+| rpt.study.index-vs-base | Index vs a base year | Analytics and study | planned (MEAS) | P2 | - | y |
+| rpt.study.fy-deep-dive | FY deep dive (price-volume, segments, top bills) | Analytics and study | planned (MEAS) | P2 | - | y |
+| rpt.study.occupancy-history | Occupancy history (three denominators) | Analytics and study | planned (MEAS) | P2 | - | n |
+| rpt.study.operations-patterns | Operations patterns | Analytics and study | planned (MEAS) | P2 | - | n |
+| rpt.study.rooms-and-rates | Rooms, rates and discounts | Analytics and study | planned (MEAS) | P2 | - | y |
+| rpt.study.zero-rate-complimentary | Zero-rate and complimentary stays | Analytics and study | planned (MEAS) | P2 | - | y |
+| rpt.study.receivables-bad-debt | Receivables and bad debt (legacy + live ageing) | Analytics and study | planned (MEAS) | P2 | - | y |
+| rpt.study.revenue-kpi | Occupancy, ADR, RevPAR by month, FY, type, channel | Analytics and study | planned (MEAS) | P2 | - | y |
+| rpt.study.channel-economics | Channel economics and net ADR | Analytics and study | planned (MEAS) | P2 | - | y |
+| rpt.study.pricing-shape | Day-of-week, length-of-stay, segment mix, rate ladder, upgrades | Analytics and study | planned (MEAS) | P2 | - | y |
+| rpt.study.guest-repeat-value | Repeat guests, frequency, lifetime value, repeat customer list | Analytics and study | planned (MEAS) | P2 | - | y |
+| rpt.study.guest-origin-plan | Guest origin, nationality, meal plan, company guests | Analytics and study | planned (MEAS) | P2 | - | n |
+| rpt.study.housekeeping-operations | Turnaround, idle streaks, check-in/out vs standard, daily load | Analytics and study | planned (MEAS) | P2 | - | n |
+| rpt.study.fnb-halls-ancillary | F&B on bills, breakfast covers, hall utilisation, ancillary | Analytics and study | planned (MEAS) | P2 | - | y |
+| rpt.study.finance-cost | USALI P&L, break-even, paid-outs, cash & bank, GST by slab | Analytics and study | planned (MEAS) | P2 | - | y |
+| rpt.study.corporate-accounts | Corporate accounts, win-back list, account base | Analytics and study | planned (MEAS) | P2 | - | y |
+| rpt.study.compliance-risk | Capture rates, audit-trail counts, risk register, licence calendar | Analytics and study | planned (MEAS) | P2 | - | n |
+| rpt.study.forecast-scenarios | Seasonality indices, forecast (three methods), scenarios, budget vs actual, comp-set index | Analytics and study | planned (MEAS) | P2 | - | y |
+| rpt.study.owner-dashboard | Owner 12-KPI monthly dashboard | Analytics and study | planned (MEAS) | P1 | - | y |
+| rpt.study.management-pack | Management study pack (PDF + Excel) | Analytics and study | planned (MEAS) | P1 | - | y |
 
 ## 3. Entries by area
 
@@ -4140,6 +4194,627 @@ Columns of new entries are what HCC should show, from HCC's real data. The HTML 
 - **Depends on:** LF B3, B4
 - **Notes:** No money column.
 
+### 3.10 Measurement (MEAS, wave F12) (54 entries)
+
+Added 5 Nov 2026 by `claude/meas` (plan `02 Planning/HCC_Measurement_Reports_Plan_MEAS_2026-11-05.md`, contract `02 Planning/agents/MEAS-CONTRACT.md`). Two new areas: `revenue` (Revenue management, 6 entries) and `study` (Analytics and study, 22 entries). Status of every entry is `planned (MEAS)`; the integrator moves it to `built` from code. Every entry is switchable in Master configuration > Measurement reports (`measOn`, contract section 1) and returns `MEAS_OFF` / is hidden everywhere when off. Column lists below fix the column keys, order and money flags; a lane may add a column but never removes one or changes a money flag without a DONE note.
+
+#### rpt.guests.manager-flash - Manager's flash
+- **Purpose:** Manager's flash: Any KPI more than 10 % below its target (meas.target.*) is the red-row rule (see Exception rule).
+- **Status:** planned (MEAS). **Priority:** P1. **Money flag:** y. **Switch:** `meas.daily.flash (core)`. **Lane:** meas-rpt-daily.
+- **Parameters:** Date (default yesterday); Compare with (budget / same day last year). Date class D-DAY (one business date; default yesterday for the flash, else today).
+- **Columns in order:** Occupancy %; ADR; RevPAR; Arrivals; Departures; In-house; No-shows; Comps; OOO; Rooms on books +7 / +14 / +30; each KPI with target, last-year and variance. (Money columns: flagged y one by one in the lane; removed, not blanked, for roles without the money gate (rule M); Housekeeping, Maintenance and Stock-only roles never see them, DEC-061.)
+- **Exception rule (red row):** Any KPI more than 10 % below its target (meas.target.*).
+- **Who may see it:** PERM-RPT-002 (Supervisor: ops variant without money). Print and export: rule V.
+- **Formats:** Screen, PDF. **Phone:** yes.
+- **Data source:** reportPack, yldOcc, lgc history, closing record. **Capture needed:** none.
+- **Depends on:** F7 report engine.
+
+#### rpt.guests.regrets-denials - Regrets and denials
+- **Purpose:** Regrets and denials: More than 3 price regrets on a night under 60 % occupancy is the red-row rule (see Exception rule).
+- **Status:** planned (MEAS). **Priority:** P1. **Money flag:** n. **Switch:** `meas.daily.regrets`. **Lane:** meas-rpt-daily.
+- **Parameters:** Date range; Reason; Channel; Room type. Date class D-B (range; default month start to today; max 92 days).
+- **Columns in order:** Date; Reason; Channel; Lead days; Room type; Nights lost; Rooms lost; Quoted rate (hidden without money gate); Converted later. (Money columns: none.)
+- **Exception rule (red row):** More than 3 price regrets on a night under 60 % occupancy.
+- **Who may see it:** PERM-RPT-001. Print and export: rule V.
+- **Formats:** Screen, Excel, PDF, CSV. **Phone:** yes (capture).
+- **Data source:** res.turnaway log. **Capture needed:** res.turnaway (meas-cap-desk).
+- **Depends on:** F7 report engine; res.turnaway (meas-cap-desk).
+
+#### rpt.guests.rate-variance - Rate variance / rate check
+- **Purpose:** Rate variance / rate check: No reason, or variance above the 15 % agreed-rate threshold (AF2 CTL-01) is the red-row rule (see Exception rule).
+- **Status:** planned (MEAS). **Priority:** P1. **Money flag:** y. **Switch:** `meas.daily.rate-variance`. **Lane:** meas-rpt-daily.
+- **Parameters:** Date range; Room type; User. Date class D-B (range; default month start to today; max 92 days).
+- **Columns in order:** Booking; Guest (masked per 1.6); Room; Card rate; Charged rate; Difference; Difference %; Reason code; User; Approver. (Money columns: flagged y one by one in the lane; removed, not blanked, for roles without the money gate (rule M); Housekeeping, Maintenance and Stock-only roles never see them, DEC-061.)
+- **Exception rule (red row):** No reason, or variance above the 15 % agreed-rate threshold (AF2 CTL-01).
+- **Who may see it:** PERM-RPT-002. Print and export: rule V.
+- **Formats:** Screen, Excel, PDF, CSV. **Phone:** yes.
+- **Data source:** stay.rate_change, tariff_card_line, YLDOverride. **Capture needed:** none.
+- **Depends on:** F7 report engine.
+
+#### rpt.rooms.room-discrepancy - Room discrepancy
+- **Purpose:** Room discrepancy: Any mismatch older than 2 hours is the red-row rule (see Exception rule).
+- **Status:** planned (MEAS). **Priority:** P1. **Money flag:** n. **Switch:** `meas.daily.discrepancy`. **Lane:** meas-rpt-daily.
+- **Parameters:** As-of time (default now). Date class D-NOW (no date: state now).
+- **Columns in order:** Room; Front-office status; Housekeeping status; Mismatch kind (sold-but-vacant, vacant-but-occupied, OOO-with-stay, sleep-out); Since; Age hours. (Money columns: none.)
+- **Exception rule (red row):** Any mismatch older than 2 hours.
+- **Who may see it:** PERM-HK-001. Print and export: rule V.
+- **Formats:** Screen, PDF. **Phone:** yes.
+- **Data source:** rooms, bookings, hkTasks, roomoffline. **Capture needed:** none.
+- **Depends on:** F7 report engine.
+
+#### rpt.money.high-balance - High-balance and credit-limit
+- **Purpose:** High-balance and credit-limit: Balance above deposit plus limit; walk-in without company above Rs 5,000 or any balance older than 2 nights is the red-row rule (see Exception rule).
+- **Status:** planned (MEAS). **Priority:** P1. **Money flag:** y. **Switch:** `meas.daily.high-balance (core when credit is on)`. **Lane:** meas-rpt-daily.
+- **Parameters:** Threshold (default meas.target.highBalance). Date class D-NOW (no date: state now).
+- **Columns in order:** Room; Guest (masked); Company; Days in house; Balance; Deposit; Limit; Over by. (Money columns: flagged y one by one in the lane; removed, not blanked, for roles without the money gate (rule M); Housekeeping, Maintenance and Stock-only roles never see them, DEC-061.)
+- **Exception rule (red row):** Balance above deposit plus limit; walk-in without company above Rs 5,000 or any balance older than 2 nights.
+- **Who may see it:** PERM-RPT-002. Print and export: rule V.
+- **Formats:** Screen, Excel, PDF. **Phone:** yes.
+- **Data source:** folio lines, receipts, company credit limits. **Capture needed:** setting meas.target.highBalance.
+- **Depends on:** F7 report engine; setting meas.target.highBalance.
+
+#### rpt.money.allowances-voids - Allowances, rebates, voids and corrections
+- **Purpose:** Allowances, rebates, voids and corrections: Any entry without a reason or an approver; a user above the daily cap is the red-row rule (see Exception rule).
+- **Status:** planned (MEAS). **Priority:** P1. **Money flag:** y. **Switch:** `meas.daily.adjustments`. **Lane:** meas-rpt-daily.
+- **Parameters:** Date range; Kind; User. Date class D-B (range; default month start to today; max 92 days).
+- **Columns in order:** Date; Kind (discount, allowance, rebate, void, correction, refund); Bill; Amount; Reason code; User; Approver. (Money columns: flagged y one by one in the lane; removed, not blanked, for roles without the money gate (rule M); Housekeeping, Maintenance and Stock-only roles never see them, DEC-061.)
+- **Exception rule (red row):** Any entry without a reason or an approver; a user above the daily cap.
+- **Who may see it:** PERM-RPT-002. Print and export: rule V.
+- **Formats:** Screen, Excel, PDF, CSV. **Phone:** no.
+- **Data source:** discount-log, cancelled-lines, bill-corrections, refunds. **Capture needed:** allowance reason codes (meas-cap-desk).
+- **Depends on:** F7 report engine; allowance reason codes (meas-cap-desk).
+
+#### rpt.guests.no-show-cancel - No-show, cancellation and early departure
+- **Purpose:** No-show, cancellation and early departure: Retention waived without an approver; no-show rate above target is the red-row rule (see Exception rule).
+- **Status:** planned (MEAS). **Priority:** P2. **Money flag:** y. **Switch:** `meas.daily.no-show`. **Lane:** meas-rpt-daily.
+- **Parameters:** Date range; Channel; Kind. Date class D-B (range; default month start to today; max 92 days).
+- **Columns in order:** Booking; Channel; Lead days; Kind; Retention charge applied; Charge waived; Waived by; Approver. (Money columns: flagged y one by one in the lane; removed, not blanked, for roles without the money gate (rule M); Housekeeping, Maintenance and Stock-only roles never see them, DEC-061.)
+- **Exception rule (red row):** Retention waived without an approver; no-show rate above target.
+- **Who may see it:** PERM-RPT-002. Print and export: rule V.
+- **Formats:** Screen, Excel, PDF, CSV. **Phone:** yes.
+- **Data source:** bookings, folio. **Capture needed:** none (needs F8 qw-noshow guards or this wave stubs them).
+- **Depends on:** F7 report engine; none (needs F8 qw-noshow guards or this wave stubs them).
+
+#### rpt.rooms.inventory-exceptions - Complimentary, house-use and out-of-order
+- **Purpose:** Complimentary, house-use and out-of-order: Complimentary without approver; OOO more than 7 days without a work order is the red-row rule (see Exception rule).
+- **Status:** planned (MEAS). **Priority:** P1. **Money flag:** n. **Switch:** `meas.daily.inventory (core)`. **Lane:** meas-rpt-daily.
+- **Parameters:** Date range (default yesterday and today). Date class D-S (range; default last 7 days; max 31 days).
+- **Columns in order:** Room; Kind (complimentary, house use, OOO, OOS); From; To / expected return; Beneficiary; Approver; Reason; Work order. (Money columns: none.)
+- **Exception rule (red row):** Complimentary without approver; OOO more than 7 days without a work order.
+- **Who may see it:** PERM-RPT-001. Print and export: rule V.
+- **Formats:** Screen, PDF. **Phone:** yes.
+- **Data source:** stays (complimentary type DEC-266), roomoffline, mnt work orders. **Capture needed:** roomoffline reason + expected return (meas-cap-hk).
+- **Depends on:** F7 report engine; roomoffline reason + expected return (meas-cap-hk).
+
+#### rpt.money.cashier-variance - Cashier and shift variance
+- **Purpose:** Cashier and shift variance: Variance above Rs 100, or three variances in a month by one cashier is the red-row rule (see Exception rule).
+- **Status:** planned (MEAS). **Priority:** P1. **Money flag:** y. **Switch:** `meas.daily.cashier`. **Lane:** meas-rpt-daily.
+- **Parameters:** Date range; Cashier. Date class D-B (range; default month start to today; max 92 days).
+- **Columns in order:** Date; Shift; Cashier; Expected cash; Counted cash; Paid-outs; Float; Variance; Month-to-date variance. (Money columns: flagged y one by one in the lane; removed, not blanked, for roles without the money gate (rule M); Housekeeping, Maintenance and Stock-only roles never see them, DEC-061.)
+- **Exception rule (red row):** Variance above Rs 100, or three variances in a month by one cashier.
+- **Who may see it:** PERM-RPT-002 (Cashier: own shift only, rule V.S). Print and export: rule V.
+- **Formats:** Screen, Excel, PDF. **Phone:** no.
+- **Data source:** closing shifts, cash book. **Capture needed:** none.
+- **Depends on:** F7 report engine.
+
+#### rpt.revenue.demand-calendar - Demand calendar
+- **Purpose:** Demand calendar: Forecast 85 % or more with BAR unchanged; forecast 25 % or less with no offer open is the red-row rule (see Exception rule).
+- **Status:** planned (MEAS). **Priority:** P1. **Money flag:** y. **Switch:** `meas.rev.demand-calendar`. **Lane:** meas-rpt-revenue.
+- **Parameters:** From (default today); Nights (default 90, max 92). Date class D-FWD (range; default today to +90 days (revenue) ; max 92 days).
+- **Columns in order:** Date; Weekday; On the books; Forecast; Same night last year; Event; BAR; Suggested rate; Offer open. (Money columns: flagged y one by one in the lane; removed, not blanked, for roles without the money gate (rule M); Housekeeping, Maintenance and Stock-only roles never see them, DEC-061.)
+- **Exception rule (red row):** Forecast 85 % or more with BAR unchanged; forecast 25 % or less with no offer open.
+- **Who may see it:** PERM-RPT-001 (rate column behind PERM-RPT-002). Print and export: rule V.
+- **Formats:** Screen, Excel, PDF. **Phone:** yes.
+- **Data source:** yldOcc, lgc stays history, tariffs, yld.event. **Capture needed:** yld.event master (meas-forecast).
+- **Depends on:** F7 report engine; yld.event master (meas-forecast).
+
+#### rpt.revenue.pickup-pace - Pickup and pace
+- **Purpose:** Pickup and pace: Pace worse than minus 10 % against last year is the red-row rule (see Exception rule).
+- **Status:** planned (MEAS). **Priority:** P2. **Money flag:** y. **Switch:** `meas.rev.pickup`. **Lane:** meas-rpt-revenue.
+- **Parameters:** Months ahead (1-12); Channel. Date class D-NOW (no date: state now).
+- **Columns in order:** Month; Rooms on books; Last year same snapshot; Revenue on books; Last year revenue; Pace %; Pickup last 7 days; Lead-time bucket. (Money columns: flagged y one by one in the lane; removed, not blanked, for roles without the money gate (rule M); Housekeeping, Maintenance and Stock-only roles never see them, DEC-061.)
+- **Exception rule (red row):** Pace worse than minus 10 % against last year.
+- **Who may see it:** PERM-RPT-002. Print and export: rule V.
+- **Formats:** Screen, Excel, PDF. **Phone:** yes.
+- **Data source:** bookings createdAt / cancelledAt, yld.otb_snapshot. **Capture needed:** weekly yld.otb_snapshot job (meas-forecast).
+- **Depends on:** F7 report engine; weekly yld.otb_snapshot job (meas-forecast).
+
+#### rpt.revenue.displacement - Displacement calculator
+- **Purpose:** Displacement calculator: Net loss; offered rate below the counter-rate is the red-row rule (see Exception rule).
+- **Status:** planned (MEAS). **Priority:** P2. **Money flag:** y. **Switch:** `meas.rev.displacement`. **Lane:** meas-forecast (calculator) + meas-rpt-revenue (report shell).
+- **Parameters:** Enquiry (group, long stay or hall); From; To; Rooms; Offered rate. Date class D-FWD (range; default today to +90 days (revenue) ; max 92 days).
+- **Columns in order:** Night; Forecast occupancy; Rooms displaced; Transient revenue displaced; Offer revenue; Net gain or loss; Recommendation (accept / counter-rate / decline). (Money columns: flagged y one by one in the lane; removed, not blanked, for roles without the money gate (rule M); Housekeeping, Maintenance and Stock-only roles never see them, DEC-061.)
+- **Exception rule (red row):** Net loss; offered rate below the counter-rate.
+- **Who may see it:** PERM-RPT-002. Print and export: rule V.
+- **Formats:** Screen, PDF. **Phone:** yes.
+- **Data source:** yield forecast, groups, HB quotations. **Capture needed:** none.
+- **Depends on:** F7 report engine.
+
+#### rpt.revenue.overbooking-wash - Overbooking and wash
+- **Purpose:** Overbooking and wash: Rooms oversold above the allowed number is the red-row rule (see Exception rule).
+- **Status:** planned (MEAS). **Priority:** P2. **Money flag:** n. **Switch:** `meas.rev.overbooking`. **Lane:** meas-rpt-revenue.
+- **Parameters:** Date range; Room type; Channel. Date class D-F (range; default FY start to today; max 366 days).
+- **Columns in order:** Weekday; Channel; No-show %; Cancellation %; Expected wash rooms; Oversold allowed (yld.overbook); Walked guests; Cost of walk. (Money columns: none.)
+- **Exception rule (red row):** Rooms oversold above the allowed number.
+- **Who may see it:** PERM-RPT-001. Print and export: rule V.
+- **Formats:** Screen, Excel, PDF. **Phone:** no.
+- **Data source:** bookings history, res.turnaway, walked-guest record. **Capture needed:** walked-guest record + yld.overbook (meas-cap-desk / meas-forecast).
+- **Depends on:** F7 report engine; walked-guest record + yld.overbook (meas-cap-desk / meas-forecast).
+
+#### rpt.revenue.restriction-effect - Length-of-stay and minimum-stay controls
+- **Purpose:** Length-of-stay and minimum-stay controls: Restriction on a night that stayed under 40 % occupancy is the red-row rule (see Exception rule).
+- **Status:** planned (MEAS). **Priority:** P2. **Money flag:** y. **Switch:** `meas.rev.restrictions`. **Lane:** meas-rpt-revenue.
+- **Parameters:** Date range; Restriction kind. Date class D-B (range; default month start to today; max 92 days).
+- **Columns in order:** Night; Restriction (MIN_STAY / CTA); Bookings refused; Bookings re-shaped; Revenue on the night; Same nights unrestricted; Enforced or advisory. (Money columns: flagged y one by one in the lane; removed, not blanked, for roles without the money gate (rule M); Housekeeping, Maintenance and Stock-only roles never see them, DEC-061.)
+- **Exception rule (red row):** Restriction on a night that stayed under 40 % occupancy.
+- **Who may see it:** PERM-RPT-002. Print and export: rule V.
+- **Formats:** Screen, Excel, PDF. **Phone:** no.
+- **Data source:** YLDRestriction, YLDViolation counter. **Capture needed:** restriction counters + yld.restrictionsEnforce (meas-forecast).
+- **Depends on:** F7 report engine; restriction counters + yld.restrictionsEnforce (meas-forecast).
+
+#### rpt.revenue.rate-parity - Rate shop and parity
+- **Purpose:** Rate shop and parity: OTA rate below direct; our rate more than 15 % above the set median with occupancy under 40 % is the red-row rule (see Exception rule).
+- **Status:** planned (MEAS). **Priority:** P2. **Money flag:** y. **Switch:** `meas.rev.rate-shop`. **Lane:** meas-rpt-revenue.
+- **Parameters:** From; Nights (max 92); Room type. Date class D-FWD (range; default today to +90 days (revenue) ; max 92 days).
+- **Columns in order:** Stay date; Direct rate; OTA rate; Competitor 1..6 rate; Set median; Our position; Parity exception. (Money columns: flagged y one by one in the lane; removed, not blanked, for roles without the money gate (rule M); Housekeeping, Maintenance and Stock-only roles never see them, DEC-061.)
+- **Exception rule (red row):** OTA rate below direct; our rate more than 15 % above the set median with occupancy under 40 %.
+- **Who may see it:** PERM-RPT-002. Print and export: rule V.
+- **Formats:** Screen, Excel, PDF. **Phone:** yes (entry).
+- **Data source:** channels publish log, yld.rateshop. **Capture needed:** yld.rateshop entry form (meas-forecast).
+- **Depends on:** F7 report engine; yld.rateshop entry form (meas-forecast).
+
+#### rpt.guests.satisfaction - Guest satisfaction and NPS
+- **Purpose:** Guest satisfaction and NPS: NPS below target (default 30); any score of 2 or lower unanswered for 48 hours is the red-row rule (see Exception rule).
+- **Status:** planned (MEAS). **Priority:** P1. **Money flag:** n. **Switch:** `meas.guest.survey`. **Lane:** meas-rpt-guest.
+- **Parameters:** Month; Room type; Channel. Date class D-M (month; default current month; any month with data).
+- **Columns in order:** Month; Responses; Response rate; Overall; Cleanliness; Staff; Value; Breakfast; NPS; Verbatim (no guest identity for Housekeeping). (Money columns: none.)
+- **Exception rule (red row):** NPS below target (default 30); any score of 2 or lower unanswered for 48 hours.
+- **Who may see it:** PERM-RPT-001. Print and export: rule V.
+- **Formats:** Screen, Excel, PDF. **Phone:** yes (form).
+- **Data source:** gsv.survey. **Capture needed:** gsv.survey (meas-cap-guest).
+- **Depends on:** F7 report engine; gsv.survey (meas-cap-guest).
+
+#### rpt.guests.reputation-index - Online reputation
+- **Purpose:** Online reputation: Score drop of 0.3 or more in a month; response rate under 80 % is the red-row rule (see Exception rule).
+- **Status:** planned (MEAS). **Priority:** P2. **Money flag:** n. **Switch:** `meas.guest.reputation`. **Lane:** meas-rpt-guest.
+- **Parameters:** Financial year; Platform. Date class D-FY (financial year; default current FY; any FY with data incl. legacy FYs).
+- **Columns in order:** Month; Platform; Reviews received; Average score; 12-month score; Response rate; Themes. (Money columns: none.)
+- **Exception rule (red row):** Score drop of 0.3 or more in a month; response rate under 80 %.
+- **Who may see it:** PERM-RPT-001. Print and export: rule V.
+- **Formats:** Screen, Excel, PDF. **Phone:** yes.
+- **Data source:** gsv.review_month. **Capture needed:** gsv.review_month (meas-cap-guest).
+- **Depends on:** F7 report engine; gsv.review_month (meas-cap-guest).
+
+#### rpt.guests.service-recovery - Service recovery
+- **Purpose:** Service recovery: Repeat cause (same room, same category, 90 days); compensation without approval is the red-row rule (see Exception rule).
+- **Status:** planned (MEAS). **Priority:** P2. **Money flag:** y. **Switch:** `meas.guest.recovery`. **Lane:** meas-rpt-guest.
+- **Parameters:** Date range; Category; Room. Date class D-B (range; default month start to today; max 92 days).
+- **Columns in order:** Category; Room; Complaints; Hours to resolve; Within SLA %; Root cause; Compensation; Approver; Repeat in 90 days. (Money columns: flagged y one by one in the lane; removed, not blanked, for roles without the money gate (rule M); Housekeeping, Maintenance and Stock-only roles never see them, DEC-061.)
+- **Exception rule (red row):** Repeat cause (same room, same category, 90 days); compensation without approval.
+- **Who may see it:** PERM-RPT-001 (compensation column behind GSV-004). Print and export: rule V.
+- **Formats:** Screen, Excel, PDF. **Phone:** yes.
+- **Data source:** GSVComplaint, GSVRecovery. **Capture needed:** rootCause code list (meas-cap-guest).
+- **Depends on:** F7 report engine; rootCause code list (meas-cap-guest).
+
+#### rpt.guests.desk-timing - Arrival and departure experience
+- **Purpose:** Arrival and departure experience: Median above 8 minutes at check-in; above 6 minutes at check-out is the red-row rule (see Exception rule).
+- **Status:** planned (MEAS). **Priority:** P2. **Money flag:** n. **Switch:** `meas.guest.desk-timing`. **Lane:** meas-rpt-guest.
+- **Parameters:** Date range; Desk user. Date class D-B (range; default month start to today; max 92 days).
+- **Columns in order:** Hour; Desk user; Arrivals; Median minutes arrival-to-key; Median minutes bill-to-checkout; Queue peak. (Money columns: none.)
+- **Exception rule (red row):** Median above 8 minutes at check-in; above 6 minutes at check-out.
+- **Who may see it:** PERM-RPT-001. Print and export: rule V.
+- **Formats:** Screen, Excel, PDF. **Phone:** no.
+- **Data source:** audit log, KEYS log (DEC-212), folio settle. **Capture needed:** none.
+- **Depends on:** F7 report engine.
+
+#### rpt.guests.upsell - Upsell and upgrade
+- **Purpose:** Upsell and upgrade: Free upgrade without an approver; upsell revenue per arrival below target is the red-row rule (see Exception rule).
+- **Status:** planned (MEAS). **Priority:** P2. **Money flag:** y. **Switch:** `meas.guest.upsell`. **Lane:** meas-rpt-guest.
+- **Parameters:** Date range; Desk user. Date class D-B (range; default month start to today; max 92 days).
+- **Columns in order:** Arrivals; Upgrades paid; Upgrades free; Approver; Late check-out charged; Day-use sold; Breakfast add-on; Extra bed; Revenue per arrival. (Money columns: flagged y one by one in the lane; removed, not blanked, for roles without the money gate (rule M); Housekeeping, Maintenance and Stock-only roles never see them, DEC-061.)
+- **Exception rule (red row):** Free upgrade without an approver; upsell revenue per arrival below target.
+- **Who may see it:** PERM-RPT-002. Print and export: rule V.
+- **Formats:** Screen, Excel, PDF. **Phone:** yes.
+- **Data source:** folio lines (UPG, LCO), stay segments, rate plans. **Capture needed:** UPG / LCO items, booked type kept (meas-cap-desk).
+- **Depends on:** F7 report engine; UPG / LCO items, booked type kept (meas-cap-desk).
+
+#### rpt.guests.repeat-loyalty - Repeat guests and loyalty base
+- **Purpose:** Repeat guests and loyalty base: Repeat share falls two months running is the red-row rule (see Exception rule).
+- **Status:** planned (MEAS). **Priority:** P2. **Money flag:** y. **Switch:** `meas.guest.repeat`. **Lane:** meas-rpt-guest.
+- **Parameters:** Month. Date class D-M (month; default current month; any month with data).
+- **Columns in order:** Month; Customers seen before; Repeat share; Stays; Revenue share; 3+ stay guests (name, last stay, mobile: rule V); Loyalty tag; Offer sent. (Money columns: flagged y one by one in the lane; removed, not blanked, for roles without the money gate (rule M); Housekeeping, Maintenance and Stock-only roles never see them, DEC-061.)
+- **Exception rule (red row):** Repeat share falls two months running.
+- **Who may see it:** PERM-CRM (revenue column behind PERM-RPT-002). Print and export: rule V.
+- **Formats:** Screen, Excel, PDF. **Phone:** yes.
+- **Data source:** customers, stays, messaging outbox, lgc history. **Capture needed:** cust.loyaltyTag (meas-cap-guest).
+- **Depends on:** F7 report engine; cust.loyaltyTag (meas-cap-guest).
+
+#### rpt.rooms.hk-productivity - Attendant productivity and turnaround
+- **Purpose:** Attendant productivity and turnaround: Pass rate under 95 %; median departure room over 45 minutes; a same-day re-let not inspected before arrival is the red-row rule (see Exception rule).
+- **Status:** planned (MEAS). **Priority:** P1. **Money flag:** n. **Switch:** `meas.hk.productivity`. **Lane:** meas-rpt-hk.
+- **Parameters:** Date range; Attendant; Shift. Date class D-S (range; default last 7 days; max 31 days).
+- **Columns in order:** Attendant; Shift; Departure rooms; Stayover rooms; Minutes per room; Vacated-to-inspected minutes; Inspection pass %; Rejections by reason; Same-day re-let compliance. (Money columns: none.)
+- **Exception rule (red row):** Pass rate under 95 %; median departure room over 45 minutes; a same-day re-let not inspected before arrival.
+- **Who may see it:** PERM-HK-001. Print and export: rule V.
+- **Formats:** Screen, Excel, PDF. **Phone:** yes.
+- **Data source:** hk tasks (startedAt, finishedAt, inspectedAt), bookings. **Capture needed:** task timestamps + inspection result (meas-cap-hk); extends rpt.rooms.hk-turnaround.
+- **Depends on:** F7 report engine; task timestamps + inspection result (meas-cap-hk); extends rpt.rooms.hk-turnaround.
+
+#### rpt.rooms.ooo-days - Out-of-order and lost inventory
+- **Purpose:** Out-of-order and lost inventory: OOO more than 7 days without a work order; idle 14+ nights is the red-row rule (see Exception rule).
+- **Status:** planned (MEAS). **Priority:** P2. **Money flag:** n. **Switch:** `meas.hk.ooo`. **Lane:** meas-rpt-hk.
+- **Parameters:** Date range; Reason. Date class D-B (range; default month start to today; max 92 days).
+- **Columns in order:** Room; Reason; Room-days; Work order; Days without ticket; Lost revenue at ADR; Idle 14+ nights while sellable. (Money columns: none.)
+- **Exception rule (red row):** OOO more than 7 days without a work order; idle 14+ nights.
+- **Who may see it:** PERM-HK-001 (lost-revenue column behind PERM-RPT-002). Print and export: rule V.
+- **Formats:** Screen, Excel, PDF. **Phone:** yes.
+- **Data source:** roomoffline, mnt work orders, stays. **Capture needed:** roomoffline reason list + expected return + work-order link (meas-cap-hk).
+- **Depends on:** F7 report engine; roomoffline reason list + expected return + work-order link (meas-cap-hk).
+
+#### rpt.rooms.ppm-compliance - Preventive maintenance compliance
+- **Purpose:** Preventive maintenance compliance: Preventive task overdue more than 7 days; P1 MTTR above 24 hours; third failure of one asset in 90 days is the red-row rule (see Exception rule).
+- **Status:** planned (MEAS). **Priority:** P2. **Money flag:** n. **Switch:** `meas.hk.ppm`. **Lane:** meas-rpt-hk.
+- **Parameters:** Date range; Asset kind. Date class D-F (range; default FY start to today; max 366 days).
+- **Columns in order:** Asset kind; Plans due; Done on time; Overdue; Preventive-to-corrective ratio; MTTR by priority; Repeat failures in 90 days; AMC visits due. (Money columns: none.)
+- **Exception rule (red row):** Preventive task overdue more than 7 days; P1 MTTR above 24 hours; third failure of one asset in 90 days.
+- **Who may see it:** PERM-MNT-001 (cost behind MNT-004). Print and export: rule V.
+- **Formats:** Screen, Excel, PDF. **Phone:** yes.
+- **Data source:** MNTPlan, MNTWorkOrder, MNTAmc. **Capture needed:** none.
+- **Depends on:** F7 report engine.
+
+#### rpt.rooms.utilities-per-room - Energy, water and LPG per occupied room-night
+- **Purpose:** Energy, water and LPG per occupied room-night: More than 15 % above the 3-month average per occupied night is the red-row rule (see Exception rule).
+- **Status:** planned (MEAS). **Priority:** P2. **Money flag:** n. **Switch:** `meas.hk.utilities`. **Lane:** meas-rpt-hk.
+- **Parameters:** Month; Meter. Date class D-M (month; default current month; any month with data).
+- **Columns in order:** Day; Electricity kWh; Water kL; LPG kg; Diesel litres; DG hours; Per occupied room-night; Per available room; Unit cost; Cost per occupied night; Last year same month. (Money columns: none.)
+- **Exception rule (red row):** More than 15 % above the 3-month average per occupied night.
+- **Who may see it:** PERM-MNT-001 (cost behind MNT-004). Print and export: rule V.
+- **Formats:** Screen, Excel, PDF. **Phone:** yes (reading).
+- **Data source:** mnt.meter_reading, utility expenses, occupancy. **Capture needed:** mnt.meter + mnt.meter_reading (meas-cap-hk).
+- **Depends on:** F7 report engine; mnt.meter + mnt.meter_reading (meas-cap-hk).
+
+#### rpt.stock.linen-cost - Linen, laundry and guest-supply cost per occupied room
+- **Purpose:** Linen, laundry and guest-supply cost per occupied room: Loss above 2 % of par in a month; cost per occupied night above target is the red-row rule (see Exception rule).
+- **Status:** planned (MEAS). **Priority:** P2. **Money flag:** n. **Switch:** `meas.hk.linen`. **Lane:** meas-rpt-hk.
+- **Parameters:** Month; Item group. Date class D-M (month; default current month; any month with data).
+- **Columns in order:** Item; Par; On hand; Laundry batches; Lost; Damaged; Discarded (reason); Amenities issued; Cost per occupied room-night. (Money columns: none.)
+- **Exception rule (red row):** Loss above 2 % of par in a month; cost per occupied night above target.
+- **Who may see it:** STK-001 (cost behind STK-004). Print and export: rule V.
+- **Formats:** Screen, Excel, PDF. **Phone:** no.
+- **Data source:** inventory.ts, laundry batches. **Capture needed:** discard reason (meas-cap-hk); extends rpt.stock.consumption.
+- **Depends on:** F7 report engine; discard reason (meas-cap-hk); extends rpt.stock.consumption.
+
+#### rpt.acc.asset-life - Asset register, FF&E reserve and renovation cycle
+- **Purpose:** Asset register, FF&E reserve and renovation cycle: Asset past expected life with no plan; reserve spent above accrued is the red-row rule (see Exception rule).
+- **Status:** planned (MEAS). **Priority:** P2. **Money flag:** y. **Switch:** `meas.hk.assets`. **Lane:** meas-rpt-hk.
+- **Parameters:** As-of date; Asset kind. Date class D-ASOF (one date; default today).
+- **Columns in order:** Asset; Age; Expected life; Condition grade; Replacement due; WDV; Replacement cost; FF&E reserve accrued; Capex spent; Refurbishment due (category). (Money columns: flagged y one by one in the lane; removed, not blanked, for roles without the money gate (rule M); Housekeeping, Maintenance and Stock-only roles never see them, DEC-061.)
+- **Exception rule (red row):** Asset past expected life with no plan; reserve spent above accrued.
+- **Who may see it:** PERM-ACC-001. Print and export: rule V.
+- **Formats:** Screen, Excel, PDF. **Phone:** no.
+- **Data source:** accounting-assets.ts, MNTAsset, P&L revenue. **Capture needed:** asset life fields + ffe.reservePct (meas-cap-hk / meas-settings).
+- **Depends on:** F7 report engine; asset life fields + ffe.reservePct (meas-cap-hk / meas-settings).
+
+#### rpt.people.staff-productivity - Staff per occupied room, overtime, absenteeism
+- **Purpose:** Staff per occupied room, overtime, absenteeism: OT above 10 %; absenteeism above 5 %; rostered hours above forecast need by 20 % is the red-row rule (see Exception rule).
+- **Status:** planned (MEAS). **Priority:** P2. **Money flag:** n. **Switch:** `meas.people.productivity`. **Lane:** meas-rpt-people.
+- **Parameters:** Month; Department. Date class D-M (month; default current month; any month with data).
+- **Columns in order:** Department; Headcount; Staff-hours per occupied room-night; OT %; Absenteeism %; Late marks; Rostered hours on low-forecast nights. (Money columns: none.)
+- **Exception rule (red row):** OT above 10 %; absenteeism above 5 %; rostered hours above forecast need by 20 %.
+- **Who may see it:** HR-001 (payroll column behind HR-005). Print and export: rule V.
+- **Formats:** Screen, Excel, PDF. **Phone:** yes.
+- **Data source:** HRAtt, roster, forecast. **Capture needed:** none.
+- **Depends on:** F7 report engine.
+
+#### rpt.people.attrition - Attrition and tenure
+- **Purpose:** Attrition and tenure: Attrition above 30 % a year in any department is the red-row rule (see Exception rule).
+- **Status:** planned (MEAS). **Priority:** P2. **Money flag:** n. **Switch:** `meas.people.attrition`. **Lane:** meas-rpt-people.
+- **Parameters:** Financial year; Department. Date class D-FY (financial year; default current FY; any FY with data incl. legacy FYs).
+- **Columns in order:** Department; Joiners; Leavers; Exit reasons; Tenure at exit; 12-month attrition %; Vacancy days. (Money columns: none.)
+- **Exception rule (red row):** Attrition above 30 % a year in any department.
+- **Who may see it:** HR-001. Print and export: rule V.
+- **Formats:** Screen, Excel, PDF. **Phone:** no.
+- **Data source:** HRStaff. **Capture needed:** staff.exitReason list (meas-cap-people).
+- **Depends on:** F7 report engine; staff.exitReason list (meas-cap-people).
+
+#### rpt.people.agent-scorecard - Performance by desk user
+- **Purpose:** Performance by desk user: A user outside the team interquartile range on discounts or variances is the red-row rule (see Exception rule).
+- **Status:** planned (MEAS). **Priority:** P2. **Money flag:** y. **Switch:** `meas.people.scorecard`. **Lane:** meas-rpt-people.
+- **Parameters:** Month; Desk user. Date class D-M (month; default current month; any month with data).
+- **Columns in order:** User; Check-ins; Check-outs; Rate edits; Discounts (count, Rs, % with reason); Comps requested; Upsell per arrival; Complaints attributed; Cash variances; Regrets logged; Survey score. (Money columns: flagged y one by one in the lane; removed, not blanked, for roles without the money gate (rule M); Housekeeping, Maintenance and Stock-only roles never see them, DEC-061.)
+- **Exception rule (red row):** A user outside the team interquartile range on discounts or variances.
+- **Who may see it:** PERM-RPT-002 (Owner and Manager only). Print and export: rule V.
+- **Formats:** Screen, Excel, PDF. **Phone:** no.
+- **Data source:** audit log, folio, closing, gsv, survey. **Capture needed:** none.
+- **Depends on:** F7 report engine.
+
+#### rpt.people.training - Training hours and certifications
+- **Purpose:** Training hours and certifications: A mandatory certificate (fire safety, first aid, FSSAI handler, POSH) expired or missing is the red-row rule (see Exception rule).
+- **Status:** planned (MEAS). **Priority:** P2. **Money flag:** n. **Switch:** `meas.people.training`. **Lane:** meas-rpt-people.
+- **Parameters:** As-of date; Department. Date class D-ASOF (one date; default today).
+- **Columns in order:** Staff; Course; Date; Hours; Certificate no; Valid to; Days to expiry; Hours per head this quarter. (Money columns: none.)
+- **Exception rule (red row):** A mandatory certificate (fire safety, first aid, FSSAI handler, POSH) expired or missing.
+- **Who may see it:** HR-001. Print and export: rule V.
+- **Formats:** Screen, Excel, PDF. **Phone:** yes.
+- **Data source:** hr.training, TRAINING.replay completion. **Capture needed:** hr.training (meas-cap-people).
+- **Depends on:** F7 report engine; hr.training (meas-cap-people).
+
+#### rpt.people.staff-pulse - Staff pulse (optional)
+- **Purpose:** Staff pulse (optional): eNPS below 0 is the red-row rule (see Exception rule).
+- **Status:** planned (MEAS). **Priority:** P3. **Money flag:** n. **Switch:** `meas.people.pulse`. **Lane:** meas-rpt-people.
+- **Parameters:** Financial year; Quarter. Date class D-FY (financial year; default current FY; any FY with data incl. legacy FYs).
+- **Columns in order:** Quarter; Department; Responses; Workload; Respect; Tools; Pay fairness; Would recommend; eNPS. (Money columns: none.)
+- **Exception rule (red row):** eNPS below 0.
+- **Who may see it:** HR-001 (Owner, Manager). Print and export: rule V.
+- **Formats:** Screen, PDF. **Phone:** yes.
+- **Data source:** hr.pulse (anonymous, department only). **Capture needed:** hr.pulse (meas-cap-people).
+- **Depends on:** F7 report engine; hr.pulse (meas-cap-people).
+
+#### rpt.study.revenue-monthly - Monthly revenue and cash (FY history)
+- **Purpose:** Ports the workbook sheets of `E:\Projects\HCC\Existing Software\Reports` to HCC, running on legacy plus live data as one series (plan section 7A).
+- **Status:** planned (MEAS). **Priority:** P2. **Money flag:** y. **Switch:** `meas.study.revenue-monthly`. **Lane:** meas-study-a.
+- **Parameters:** Date class D-FY (financial year; default current FY; any FY with data incl. legacy FYs); report-specific parameters in the lane. Legacy FYs 2017-18 to 2026-27 allowed.
+- **Columns in order:** one table block per workbook sheet: Monthly Revenue: Monthly, FY Summary, FY x Month grid.
+- **Exception rule (red row):** none unless the workbook sheet defines a flag; the golden totals (plan 7A.1 rule 4) are the acceptance rule.
+- **Who may see it:** PERM-RPT-002 (money-free variants PERM-RPT-001; names and mobiles rule V). Legacy rows carry the `legacy` marker (rule 1.10).
+- **Formats:** Screen, Excel (native OpenXML charts), PDF (ChartBlock). **Phone:** no.
+- **Data source:** analytics selectors `domain/analytics/*.ts` (prototype) and `Hcc.Reporting/Analytics/*` (server) over stays, bills, receipts, lgc history, rooms master.
+- **Legacy equivalents:** the workbook named in the Notes.
+- **Notes:** Extends rpt.guests.history-summary; heads, GST, discount, cash received vs billed; heat map.
+
+#### rpt.study.year-comparison - Year comparison
+- **Purpose:** Ports the workbook sheets of `E:\Projects\HCC\Existing Software\Reports` to HCC, running on legacy plus live data as one series (plan section 7A).
+- **Status:** planned (MEAS). **Priority:** P2. **Money flag:** y. **Switch:** `meas.study.year-comparison`. **Lane:** meas-study-a.
+- **Parameters:** Date class D-F (range; default FY start to today; max 366 days); report-specific parameters in the lane. Legacy FYs 2017-18 to 2026-27 allowed.
+- **Columns in order:** one table block per workbook sheet: Year Comparison: Summary, Month x Year grids, YoY growth, Like-for-like Apr-Oct (date-exact window), Cumulative YTD, CAGR, Revenue head mix.
+- **Exception rule (red row):** none unless the workbook sheet defines a flag; the golden totals (plan 7A.1 rule 4) are the acceptance rule.
+- **Who may see it:** PERM-RPT-002 (money-free variants PERM-RPT-001; names and mobiles rule V). Legacy rows carry the `legacy` marker (rule 1.10).
+- **Formats:** Screen, Excel (native OpenXML charts), PDF (ChartBlock). **Phone:** no.
+- **Data source:** analytics selectors `domain/analytics/*.ts` (prototype) and `Hcc.Reporting/Analytics/*` (server) over stays, bills, receipts, lgc history, rooms master.
+- **Legacy equivalents:** the workbook named in the Notes.
+- **Notes:** Like-for-like window = any from / to; cumulative lines per FY.
+
+#### rpt.study.index-vs-base - Index vs a base year
+- **Purpose:** Ports the workbook sheets of `E:\Projects\HCC\Existing Software\Reports` to HCC, running on legacy plus live data as one series (plan section 7A).
+- **Status:** planned (MEAS). **Priority:** P2. **Money flag:** y. **Switch:** `meas.study.covid-index`. **Lane:** meas-study-a.
+- **Parameters:** Date class D-FY (financial year; default current FY; any FY with data incl. legacy FYs); report-specific parameters in the lane. Legacy FYs 2017-18 to 2026-27 allowed.
+- **Columns in order:** one table block per workbook sheet: Year Comparison: COVID impact and recovery, Best and worst months.
+- **Exception rule (red row):** none unless the workbook sheet defines a flag; the golden totals (plan 7A.1 rule 4) are the acceptance rule.
+- **Who may see it:** PERM-RPT-002 (money-free variants PERM-RPT-001; names and mobiles rule V). Legacy rows carry the `legacy` marker (rule 1.10).
+- **Formats:** Screen, Excel (native OpenXML charts), PDF (ChartBlock). **Phone:** no.
+- **Data source:** analytics selectors `domain/analytics/*.ts` (prototype) and `Hcc.Reporting/Analytics/*` (server) over stays, bills, receipts, lgc history, rooms master.
+- **Legacy equivalents:** the workbook named in the Notes.
+- **Notes:** Base FY is a parameter (default 2018-19); recovery statistics.
+
+#### rpt.study.fy-deep-dive - FY deep dive (price-volume, segments, top bills)
+- **Purpose:** Ports the workbook sheets of `E:\Projects\HCC\Existing Software\Reports` to HCC, running on legacy plus live data as one series (plan section 7A).
+- **Status:** planned (MEAS). **Priority:** P2. **Money flag:** y. **Switch:** `meas.study.deep-dive`. **Lane:** meas-study-a.
+- **Parameters:** Date class D-FY (financial year; default current FY; any FY with data incl. legacy FYs); report-specific parameters in the lane. Legacy FYs 2017-18 to 2026-27 allowed.
+- **Columns in order:** one table block per workbook sheet: Year Comparison: FY 2022-23 deep dive A-G.
+- **Exception rule (red row):** none unless the workbook sheet defines a flag; the golden totals (plan 7A.1 rule 4) are the acceptance rule.
+- **Who may see it:** PERM-RPT-002 (money-free variants PERM-RPT-001; names and mobiles rule V). Legacy rows carry the `legacy` marker (rule 1.10).
+- **Formats:** Screen, Excel (native OpenXML charts), PDF (ChartBlock). **Phone:** no.
+- **Data source:** analytics selectors `domain/analytics/*.ts` (prototype) and `Hcc.Reporting/Analytics/*` (server) over stays, bills, receipts, lgc history, rooms master.
+- **Legacy equivalents:** the workbook named in the Notes.
+- **Notes:** Any FY against its neighbours; top-N bills under rule V.
+
+#### rpt.study.occupancy-history - Occupancy history (three denominators)
+- **Purpose:** Ports the workbook sheets of `E:\Projects\HCC\Existing Software\Reports` to HCC, running on legacy plus live data as one series (plan section 7A).
+- **Status:** planned (MEAS). **Priority:** P2. **Money flag:** n. **Switch:** `meas.study.occupancy`. **Lane:** meas-study-a.
+- **Parameters:** Date class D-FY (financial year; default current FY; any FY with data incl. legacy FYs); report-specific parameters in the lane. Legacy FYs 2017-18 to 2026-27 allowed.
+- **Columns in order:** one table block per workbook sheet: Occupancy: Monthly, FY summary, FY x Month grid, Weekday vs weekend, Seasonality, Room-type mix.
+- **Exception rule (red row):** none unless the workbook sheet defines a flag; the golden totals (plan 7A.1 rule 4) are the acceptance rule.
+- **Who may see it:** PERM-RPT-002 (money-free variants PERM-RPT-001; names and mobiles rule V). Legacy rows carry the `legacy` marker (rule 1.10).
+- **Formats:** Screen, Excel (native OpenXML charts), PDF (ChartBlock). **Phone:** no.
+- **Data source:** analytics selectors `domain/analytics/*.ts` (prototype) and `Hcc.Reporting/Analytics/*` (server) over stays, bills, receipts, lgc history, rooms master.
+- **Legacy equivalents:** the workbook named in the Notes.
+- **Notes:** Supersedes the P2 adr-trend for history; rooms in service from the room master first-sale / in-service dates.
+
+#### rpt.study.operations-patterns - Operations patterns
+- **Purpose:** Ports the workbook sheets of `E:\Projects\HCC\Existing Software\Reports` to HCC, running on legacy plus live data as one series (plan section 7A).
+- **Status:** planned (MEAS). **Priority:** P2. **Money flag:** n. **Switch:** `meas.study.patterns`. **Lane:** meas-study-a.
+- **Parameters:** Date class D-FY (financial year; default current FY; any FY with data incl. legacy FYs); report-specific parameters in the lane. Legacy FYs 2017-18 to 2026-27 allowed.
+- **Columns in order:** one table block per workbook sheet: Operations Patterns: CheckIn_Hour, CheckOut_Hour, Arrivals_DOW, Departures_DOW, Turnover_EarlyLate, LengthOfStay, GroupSize, Purpose, BookingSource, AdvanceLead, Status.
+- **Exception rule (red row):** none unless the workbook sheet defines a flag; the golden totals (plan 7A.1 rule 4) are the acceptance rule.
+- **Who may see it:** PERM-RPT-002 (money-free variants PERM-RPT-001; names and mobiles rule V). Legacy rows carry the `legacy` marker (rule 1.10).
+- **Formats:** Screen, Excel (native OpenXML charts), PDF (ChartBlock). **Phone:** no.
+- **Data source:** analytics selectors `domain/analytics/*.ts` (prototype) and `Hcc.Reporting/Analytics/*` (server) over stays, bills, receipts, lgc history, rooms master.
+- **Legacy equivalents:** the workbook named in the Notes.
+- **Notes:** With the HCC reservation log the lead-time proxy becomes the real booking window (2.3).
+
+#### rpt.study.rooms-and-rates - Rooms, rates and discounts
+- **Purpose:** Ports the workbook sheets of `E:\Projects\HCC\Existing Software\Reports` to HCC, running on legacy plus live data as one series (plan section 7A).
+- **Status:** planned (MEAS). **Priority:** P2. **Money flag:** y. **Switch:** `meas.study.rooms-rates`. **Lane:** meas-study-a.
+- **Parameters:** Date class D-FY (financial year; default current FY; any FY with data incl. legacy FYs); report-specific parameters in the lane. Legacy FYs 2017-18 to 2026-27 allowed.
+- **Columns in order:** one table block per workbook sheet: Rooms & Rates: Room Nights, Room Revenue, Room Avg Rate, Room Share, Room Occupancy, Top Bottom Rooms, Low Sales, Room Type FY, Tariff Trend, Rate Overrides, Discount Control, Payment Mix, Unpaid Ageing.
+- **Exception rule (red row):** none unless the workbook sheet defines a flag; the golden totals (plan 7A.1 rule 4) are the acceptance rule.
+- **Who may see it:** PERM-RPT-002 (money-free variants PERM-RPT-001; names and mobiles rule V). Legacy rows carry the `legacy` marker (rule 1.10).
+- **Formats:** Screen, Excel (native OpenXML charts), PDF (ChartBlock). **Phone:** no.
+- **Data source:** analytics selectors `domain/analytics/*.ts` (prototype) and `Hcc.Reporting/Analytics/*` (server) over stays, bills, receipts, lgc history, rooms master.
+- **Legacy equivalents:** the workbook named in the Notes.
+- **Notes:** Room x FY heat maps; rate-override reasons become the HCC reason codes.
+
+#### rpt.study.zero-rate-complimentary - Zero-rate and complimentary stays
+- **Purpose:** Ports the workbook sheets of `E:\Projects\HCC\Existing Software\Reports` to HCC, running on legacy plus live data as one series (plan section 7A).
+- **Status:** planned (MEAS). **Priority:** P2. **Money flag:** y. **Switch:** `meas.study.zero-rate`. **Lane:** meas-study-a.
+- **Parameters:** Date class D-FY (financial year; default current FY; any FY with data incl. legacy FYs); report-specific parameters in the lane. Legacy FYs 2017-18 to 2026-27 allowed.
+- **Columns in order:** one table block per workbook sheet: Zero-rate: all 12 sheets.
+- **Exception rule (red row):** none unless the workbook sheet defines a flag; the golden totals (plan 7A.1 rule 4) are the acceptance rule.
+- **Who may see it:** PERM-RPT-002 (money-free variants PERM-RPT-001; names and mobiles rule V). Legacy rows carry the `legacy` marker (rule 1.10).
+- **Formats:** Screen, Excel (native OpenXML charts), PDF (ChartBlock). **Phone:** no.
+- **Data source:** analytics selectors `domain/analytics/*.ts` (prototype) and `Hcc.Reporting/Analytics/*` (server) over stays, bills, receipts, lgc history, rooms master.
+- **Legacy equivalents:** the workbook named in the Notes.
+- **Notes:** Live rows use the DEC-266 complimentary type; legacy rows keep note-parsed events; revenue-given-up estimates A / B / C.
+
+#### rpt.study.receivables-bad-debt - Receivables and bad debt (legacy + live ageing)
+- **Purpose:** Ports the workbook sheets of `E:\Projects\HCC\Existing Software\Reports` to HCC, running on legacy plus live data as one series (plan section 7A).
+- **Status:** planned (MEAS). **Priority:** P2. **Money flag:** y. **Switch:** `meas.study.receivables`. **Lane:** meas-study-a.
+- **Parameters:** Date class D-ASOF (one date; default today); report-specific parameters in the lane. Legacy FYs 2017-18 to 2026-27 allowed.
+- **Columns in order:** one table block per workbook sheet: Receivables: Summary, Bad Debt Schedule, Ageing by FY, Top 100 Dues, Top Debtors, Debtor Contacts, Company vs Walk-in, Follow-up List, Monthly Unpaid, Cutover Comparison.
+- **Exception rule (red row):** none unless the workbook sheet defines a flag; the golden totals (plan 7A.1 rule 4) are the acceptance rule.
+- **Who may see it:** PERM-RPT-002 (money-free variants PERM-RPT-001; names and mobiles rule V). Legacy rows carry the `legacy` marker (rule 1.10).
+- **Formats:** Screen, Excel (native OpenXML charts), PDF (ChartBlock). **Phone:** no.
+- **Data source:** analytics selectors `domain/analytics/*.ts` (prototype) and `Hcc.Reporting/Analytics/*` (server) over stays, bills, receipts, lgc history, rooms master.
+- **Legacy equivalents:** the workbook named in the Notes.
+- **Notes:** Wires to rpt.acc.ageing for live dues; legacy block flagged bad debt per DEC-265; names and mobiles under rule V (Owner, Accountant).
+
+#### rpt.study.revenue-kpi - Occupancy, ADR, RevPAR by month, FY, type, channel
+- **Purpose:** Ports the workbook sheets of `E:\Projects\HCC\Existing Software\Reports` to HCC, running on legacy plus live data as one series (plan section 7A).
+- **Status:** planned (MEAS). **Priority:** P2. **Money flag:** y. **Switch:** `meas.study.rm-kpi`. **Lane:** meas-study-b.
+- **Parameters:** Date class D-FY (financial year; default current FY; any FY with data incl. legacy FYs); report-specific parameters in the lane. Legacy FYs 2017-18 to 2026-27 allowed.
+- **Columns in order:** one table block per workbook sheet: Revenue Management: KPI by Month, KPI by FY, KPI by Room Type, KPI by Channel.
+- **Exception rule (red row):** none unless the workbook sheet defines a flag; the golden totals (plan 7A.1 rule 4) are the acceptance rule.
+- **Who may see it:** PERM-RPT-002 (money-free variants PERM-RPT-001; names and mobiles rule V). Legacy rows carry the `legacy` marker (rule 1.10).
+- **Formats:** Screen, Excel (native OpenXML charts), PDF (ChartBlock). **Phone:** no.
+- **Data source:** analytics selectors `domain/analytics/*.ts` (prototype) and `Hcc.Reporting/Analytics/*` (server) over stays, bills, receipts, lgc history, rooms master.
+- **Legacy equivalents:** the workbook named in the Notes.
+- **Notes:** Unsold room-nights and their value at ADR.
+
+#### rpt.study.channel-economics - Channel economics and net ADR
+- **Purpose:** Ports the workbook sheets of `E:\Projects\HCC\Existing Software\Reports` to HCC, running on legacy plus live data as one series (plan section 7A).
+- **Status:** planned (MEAS). **Priority:** P2. **Money flag:** y. **Switch:** `meas.study.rm-channel`. **Lane:** meas-study-b.
+- **Parameters:** Date class D-FY (financial year; default current FY; any FY with data incl. legacy FYs); report-specific parameters in the lane. Legacy FYs 2017-18 to 2026-27 allowed.
+- **Columns in order:** one table block per workbook sheet: Revenue Management: Net ADR after Commission; Sales & Marketing: Direct Share by Month, OTA Dependence.
+- **Exception rule (red row):** none unless the workbook sheet defines a flag; the golden totals (plan 7A.1 rule 4) are the acceptance rule.
+- **Who may see it:** PERM-RPT-002 (money-free variants PERM-RPT-001; names and mobiles rule V). Legacy rows carry the `legacy` marker (rule 1.10).
+- **Formats:** Screen, Excel (native OpenXML charts), PDF (ChartBlock). **Phone:** no.
+- **Data source:** analytics selectors `domain/analytics/*.ts` (prototype) and `Hcc.Reporting/Analytics/*` (server) over stays, bills, receipts, lgc history, rooms master.
+- **Legacy equivalents:** the workbook named in the Notes.
+- **Notes:** Commission % from the channel master (replaces the 15 % scenario).
+
+#### rpt.study.pricing-shape - Day-of-week, length-of-stay, segment mix, rate ladder, upgrades
+- **Purpose:** Ports the workbook sheets of `E:\Projects\HCC\Existing Software\Reports` to HCC, running on legacy plus live data as one series (plan section 7A).
+- **Status:** planned (MEAS). **Priority:** P2. **Money flag:** y. **Switch:** `meas.study.rm-pricing`. **Lane:** meas-study-b.
+- **Parameters:** Date class D-FY (financial year; default current FY; any FY with data incl. legacy FYs); report-specific parameters in the lane. Legacy FYs 2017-18 to 2026-27 allowed.
+- **Columns in order:** one table block per workbook sheet: Revenue Management: DOW & LOS Pricing, Segment Mix, Rate Ladder, Upgrades & Shifts, Booking Window.
+- **Exception rule (red row):** none unless the workbook sheet defines a flag; the golden totals (plan 7A.1 rule 4) are the acceptance rule.
+- **Who may see it:** PERM-RPT-002 (money-free variants PERM-RPT-001; names and mobiles rule V). Legacy rows carry the `legacy` marker (rule 1.10).
+- **Formats:** Screen, Excel (native OpenXML charts), PDF (ChartBlock). **Phone:** no.
+- **Data source:** analytics selectors `domain/analytics/*.ts` (prototype) and `Hcc.Reporting/Analytics/*` (server) over stays, bills, receipts, lgc history, rooms master.
+- **Legacy equivalents:** the workbook named in the Notes.
+- **Notes:** Rack from the tariff card (replaces the modal-rate proxy).
+
+#### rpt.study.guest-repeat-value - Repeat guests, frequency, lifetime value, repeat customer list
+- **Purpose:** Ports the workbook sheets of `E:\Projects\HCC\Existing Software\Reports` to HCC, running on legacy plus live data as one series (plan section 7A).
+- **Status:** planned (MEAS). **Priority:** P2. **Money flag:** y. **Switch:** `meas.study.guest-repeat`. **Lane:** meas-study-b.
+- **Parameters:** Date class D-FY (financial year; default current FY; any FY with data incl. legacy FYs); report-specific parameters in the lane. Legacy FYs 2017-18 to 2026-27 allowed.
+- **Columns in order:** one table block per workbook sheet: Guest: Repeat Guests by FY, Guest Frequency & Value, Repeat Customer List.
+- **Exception rule (red row):** none unless the workbook sheet defines a flag; the golden totals (plan 7A.1 rule 4) are the acceptance rule.
+- **Who may see it:** PERM-RPT-002 (money-free variants PERM-RPT-001; names and mobiles rule V). Legacy rows carry the `legacy` marker (rule 1.10).
+- **Formats:** Screen, Excel (native OpenXML charts), PDF (ChartBlock). **Phone:** no.
+- **Data source:** analytics selectors `domain/analytics/*.ts` (prototype) and `Hcc.Reporting/Analytics/*` (server) over stays, bills, receipts, lgc history, rooms master.
+- **Legacy equivalents:** the workbook named in the Notes.
+- **Notes:** Customer = HCC customer id (phone key for legacy rows); overlaps 3.7 for the monthly view; list Owner and Manager (M-11).
+
+#### rpt.study.guest-origin-plan - Guest origin, nationality, meal plan, company guests
+- **Purpose:** Ports the workbook sheets of `E:\Projects\HCC\Existing Software\Reports` to HCC, running on legacy plus live data as one series (plan section 7A).
+- **Status:** planned (MEAS). **Priority:** P2. **Money flag:** n. **Switch:** `meas.study.guest-origin`. **Lane:** meas-study-b.
+- **Parameters:** Date class D-FY (financial year; default current FY; any FY with data incl. legacy FYs); report-specific parameters in the lane. Legacy FYs 2017-18 to 2026-27 allowed.
+- **Columns in order:** one table block per workbook sheet: Guest: Guest Origin, Nationality & Form C, Meal Plan Mix, Company Guests.
+- **Exception rule (red row):** none unless the workbook sheet defines a flag; the golden totals (plan 7A.1 rule 4) are the acceptance rule.
+- **Who may see it:** PERM-RPT-002 (money-free variants PERM-RPT-001; names and mobiles rule V). Legacy rows carry the `legacy` marker (rule 1.10).
+- **Formats:** Screen, Excel (native OpenXML charts), PDF (ChartBlock). **Phone:** no.
+- **Data source:** analytics selectors `domain/analytics/*.ts` (prototype) and `Hcc.Reporting/Analytics/*` (server) over stays, bills, receipts, lgc history, rooms master.
+- **Legacy equivalents:** the workbook named in the Notes.
+- **Notes:** City / state from structured fields in HCC; token parse only for legacy rows.
+
+#### rpt.study.housekeeping-operations - Turnaround, idle streaks, check-in/out vs standard, daily load
+- **Purpose:** Ports the workbook sheets of `E:\Projects\HCC\Existing Software\Reports` to HCC, running on legacy plus live data as one series (plan section 7A).
+- **Status:** planned (MEAS). **Priority:** P2. **Money flag:** n. **Switch:** `meas.study.hk-ops`. **Lane:** meas-study-b.
+- **Parameters:** Date class D-FY (financial year; default current FY; any FY with data incl. legacy FYs); report-specific parameters in the lane. Legacy FYs 2017-18 to 2026-27 allowed.
+- **Columns in order:** one table block per workbook sheet: Operations & Housekeeping: Turnaround, Idle Streaks, Check-in-out vs Standard, Daily Load.
+- **Exception rule (red row):** none unless the workbook sheet defines a flag; the golden totals (plan 7A.1 rule 4) are the acceptance rule.
+- **Who may see it:** PERM-RPT-002 (money-free variants PERM-RPT-001; names and mobiles rule V). Legacy rows carry the `legacy` marker (rule 1.10).
+- **Formats:** Screen, Excel (native OpenXML charts), PDF (ChartBlock). **Phone:** no.
+- **Data source:** analytics selectors `domain/analytics/*.ts` (prototype) and `Hcc.Reporting/Analytics/*` (server) over stays, bills, receipts, lgc history, rooms master.
+- **Legacy equivalents:** the workbook named in the Notes.
+- **Notes:** Live rows use the task timestamps (4.1) and room-status log (4.2); standard times from settings.
+
+#### rpt.study.fnb-halls-ancillary - F&B on bills, breakfast covers, hall utilisation, ancillary
+- **Purpose:** Ports the workbook sheets of `E:\Projects\HCC\Existing Software\Reports` to HCC, running on legacy plus live data as one series (plan section 7A).
+- **Status:** planned (MEAS). **Priority:** P2. **Money flag:** y. **Switch:** `meas.study.fnb-halls`. **Lane:** meas-study-b.
+- **Parameters:** Date class D-FY (financial year; default current FY; any FY with data incl. legacy FYs); report-specific parameters in the lane. Legacy FYs 2017-18 to 2026-27 allowed.
+- **Columns in order:** one table block per workbook sheet: F&B, Halls & Ancillary: all analysis sheets.
+- **Exception rule (red row):** none unless the workbook sheet defines a flag; the golden totals (plan 7A.1 rule 4) are the acceptance rule.
+- **Who may see it:** PERM-RPT-002 (money-free variants PERM-RPT-001; names and mobiles rule V). Legacy rows carry the `legacy` marker (rule 1.10).
+- **Formats:** Screen, Excel (native OpenXML charts), PDF (ChartBlock). **Phone:** no.
+- **Data source:** analytics selectors `domain/analytics/*.ts` (prototype) and `Hcc.Reporting/Analytics/*` (server) over stays, bills, receipts, lgc history, rooms master.
+- **Legacy equivalents:** the workbook named in the Notes.
+- **Notes:** Live hall rows from the HB module (F6); covers from POS once outlet sales exist.
+
+#### rpt.study.finance-cost - USALI P&L, break-even, paid-outs, cash & bank, GST by slab
+- **Purpose:** Ports the workbook sheets of `E:\Projects\HCC\Existing Software\Reports` to HCC, running on legacy plus live data as one series (plan section 7A).
+- **Status:** planned (MEAS). **Priority:** P2. **Money flag:** y. **Switch:** `meas.study.finance`. **Lane:** meas-study-b.
+- **Parameters:** Date class D-FY (financial year; default current FY; any FY with data incl. legacy FYs); report-specific parameters in the lane. Legacy FYs 2017-18 to 2026-27 allowed.
+- **Columns in order:** one table block per workbook sheet: Finance & Cost: USALI P&L, Break-even, Paid-outs, Cash & Bank, GST Reconciliation.
+- **Exception rule (red row):** none unless the workbook sheet defines a flag; the golden totals (plan 7A.1 rule 4) are the acceptance rule.
+- **Who may see it:** PERM-RPT-002 (money-free variants PERM-RPT-001; names and mobiles rule V). Legacy rows carry the `legacy` marker (rule 1.10).
+- **Formats:** Screen, Excel (native OpenXML charts), PDF (ChartBlock). **Phone:** no.
+- **Data source:** analytics selectors `domain/analytics/*.ts` (prototype) and `Hcc.Reporting/Analytics/*` (server) over stays, bills, receipts, lgc history, rooms master.
+- **Legacy equivalents:** the workbook named in the Notes.
+- **Notes:** Cost lines from ACC expenses by department once posted; break-even inputs = settings; GST slabs from the dated GST master.
+
+#### rpt.study.corporate-accounts - Corporate accounts, win-back list, account base
+- **Purpose:** Ports the workbook sheets of `E:\Projects\HCC\Existing Software\Reports` to HCC, running on legacy plus live data as one series (plan section 7A).
+- **Status:** planned (MEAS). **Priority:** P2. **Money flag:** y. **Switch:** `meas.study.sales`. **Lane:** meas-study-b.
+- **Parameters:** Date class D-FY (financial year; default current FY; any FY with data incl. legacy FYs); report-specific parameters in the lane. Legacy FYs 2017-18 to 2026-27 allowed.
+- **Columns in order:** one table block per workbook sheet: Sales & Marketing: Corporate Accounts (incl. win-back).
+- **Exception rule (red row):** none unless the workbook sheet defines a flag; the golden totals (plan 7A.1 rule 4) are the acceptance rule.
+- **Who may see it:** PERM-RPT-002 (money-free variants PERM-RPT-001; names and mobiles rule V). Legacy rows carry the `legacy` marker (rule 1.10).
+- **Formats:** Screen, Excel (native OpenXML charts), PDF (ChartBlock). **Phone:** no.
+- **Data source:** analytics selectors `domain/analytics/*.ts` (prototype) and `Hcc.Reporting/Analytics/*` (server) over stays, bills, receipts, lgc history, rooms master.
+- **Legacy equivalents:** the workbook named in the Notes.
+- **Notes:** Company master names; contact = the company contact, then the first guest; Owner and Manager (M-11).
+
+#### rpt.study.compliance-risk - Capture rates, audit-trail counts, risk register, licence calendar
+- **Purpose:** Ports the workbook sheets of `E:\Projects\HCC\Existing Software\Reports` to HCC, running on legacy plus live data as one series (plan section 7A).
+- **Status:** planned (MEAS). **Priority:** P2. **Money flag:** n. **Switch:** `meas.study.compliance`. **Lane:** meas-study-b.
+- **Parameters:** Date class D-FY (financial year; default current FY; any FY with data incl. legacy FYs); report-specific parameters in the lane. Legacy FYs 2017-18 to 2026-27 allowed.
+- **Columns in order:** one table block per workbook sheet: Compliance & Risk: Capture Rates, Audit Trail, Risk Register, Licence Calendar.
+- **Exception rule (red row):** none unless the workbook sheet defines a flag; the golden totals (plan 7A.1 rule 4) are the acceptance rule.
+- **Who may see it:** PERM-RPT-002 (money-free variants PERM-RPT-001; names and mobiles rule V). Legacy rows carry the `legacy` marker (rule 1.10).
+- **Formats:** Screen, Excel (native OpenXML charts), PDF (ChartBlock). **Phone:** no.
+- **Data source:** analytics selectors `domain/analytics/*.ts` (prototype) and `Hcc.Reporting/Analytics/*` (server) over stays, bills, receipts, lgc history, rooms master.
+- **Legacy equivalents:** the workbook named in the Notes.
+- **Notes:** Risk register editable (Owner); audit counts from the HCC audit log for live rows; licence cards from the compliance module.
+
+#### rpt.study.forecast-scenarios - Seasonality indices, forecast (three methods), scenarios, budget vs actual, comp-set index
+- **Purpose:** Ports the workbook sheets of `E:\Projects\HCC\Existing Software\Reports` to HCC, running on legacy plus live data as one series (plan section 7A).
+- **Status:** planned (MEAS). **Priority:** P2. **Money flag:** y. **Switch:** `meas.study.forecast`. **Lane:** meas-study-b.
+- **Parameters:** Date class D-FY (financial year; default current FY; any FY with data incl. legacy FYs); report-specific parameters in the lane. Legacy FYs 2017-18 to 2026-27 allowed.
+- **Columns in order:** one table block per workbook sheet: Forecast & Benchmark: Seasonality Indices, Forecast, Scenarios, Budget vs Actual, Comp Set Index.
+- **Exception rule (red row):** none unless the workbook sheet defines a flag; the golden totals (plan 7A.1 rule 4) are the acceptance rule.
+- **Who may see it:** PERM-RPT-002 (money-free variants PERM-RPT-001; names and mobiles rule V). Legacy rows carry the `legacy` marker (rule 1.10).
+- **Formats:** Screen, Excel (native OpenXML charts), PDF (ChartBlock). **Phone:** no.
+- **Data source:** analytics selectors `domain/analytics/*.ts` (prototype) and `Hcc.Reporting/Analytics/*` (server) over stays, bills, receipts, lgc history, rooms master.
+- **Legacy equivalents:** the workbook named in the Notes.
+- **Notes:** Inputs editable on screen (scenario rows, comp-set rows, budget); uses the 2.2 curve when on.
+
+#### rpt.study.owner-dashboard - Owner 12-KPI monthly dashboard
+- **Purpose:** Ports the workbook sheets of `E:\Projects\HCC\Existing Software\Reports` to HCC, running on legacy plus live data as one series (plan section 7A).
+- **Status:** planned (MEAS). **Priority:** P1. **Money flag:** y. **Switch:** `meas.study.dashboard`. **Lane:** meas-study-b.
+- **Parameters:** Date class D-M (month; default current month; any month with data); report-specific parameters in the lane. Legacy FYs 2017-18 to 2026-27 allowed.
+- **Columns in order:** one table block per workbook sheet: Forecast & Benchmark: Owner Dashboard.
+- **Exception rule (red row):** none unless the workbook sheet defines a flag; the golden totals (plan 7A.1 rule 4) are the acceptance rule.
+- **Who may see it:** PERM-RPT-002 (money-free variants PERM-RPT-001; names and mobiles rule V). Legacy rows carry the `legacy` marker (rule 1.10).
+- **Formats:** Screen, Excel (native OpenXML charts), PDF (ChartBlock). **Phone:** yes.
+- **Data source:** analytics selectors `domain/analytics/*.ts` (prototype) and `Hcc.Reporting/Analytics/*` (server) over stays, bills, receipts, lgc history, rooms master.
+- **Legacy equivalents:** the workbook named in the Notes.
+- **Notes:** The monthly page the plan section 10 names; phone yes.
+
+#### rpt.study.management-pack - Management study pack (PDF + Excel)
+- **Purpose:** Ports the workbook sheets of `E:\Projects\HCC\Existing Software\Reports` to HCC, running on legacy plus live data as one series (plan section 7A).
+- **Status:** planned (MEAS). **Priority:** P1. **Money flag:** y. **Switch:** `meas.study.management-pack`. **Lane:** meas-study-pack.
+- **Parameters:** Date class D-FY (financial year; default current FY; any FY with data incl. legacy FYs); report-specific parameters in the lane. Legacy FYs 2017-18 to 2026-27 allowed.
+- **Columns in order:** one table block per workbook sheet: The whole HCC_Management_Study_Report.pdf: cover, contents, executive summary with KPI tiles and scorecard, sections 1-18 from 6.1-6.21, appendices A (report index) and C (alphabetical index with page numbers), bookmarks.
+- **Exception rule (red row):** none unless the workbook sheet defines a flag; the golden totals (plan 7A.1 rule 4) are the acceptance rule.
+- **Who may see it:** PERM-RPT-002 (money-free variants PERM-RPT-001; names and mobiles rule V). Legacy rows carry the `legacy` marker (rule 1.10).
+- **Formats:** Screen, Excel (native OpenXML charts), PDF (ChartBlock). **Phone:** no.
+- **Data source:** analytics selectors `domain/analytics/*.ts` (prototype) and `Hcc.Reporting/Analytics/*` (server) over stays, bills, receipts, lgc history, rooms master.
+- **Legacy equivalents:** the workbook named in the Notes.
+- **Notes:** Scheduled monthly (meas.study.packSchedule); one Excel with one sheet per entry; ChartBlock; footer "Legacy to 30 Oct 2026 / HCC live".
+
+
 ## 4. Not carried over
 
 Legacy reports with used = no, and every dormant file of Part B. One line each. The Bill Finalize and Bill Updation reports are replaced by `rpt.tax.bill-corrections` (LF A2). The HR, laundry and store reports are covered by HCC's own modules.
@@ -4346,3 +5021,7 @@ Only business choices. Each has a recommendation.
 <!-- F7-R6 --> rpt.acc.trial-balance, rpt.acc.statement, rpt.acc.day-book: built on the engine (prototype + server), PERM-ACC-001 (Owner, Manager, Accountant).
 <!-- F7-R6 --> rpt.acc.ageing: ACC-3, wired on the engine, PERM-ACC-001. rpt.acc.pl, rpt.acc.balance-sheet, rpt.acc.cash-ratio: ACC-3, wired on the engine, PERM-ACC-013 (Owner, Accountant).
 <!-- F7-R6 --> rpt.acc.tally-xml: ACC-3, summary report on the engine (formats screen + xml), PERM-ACC-006; the XML download stays the ACC-3 endpoints.
+
+<!-- F12 counts -->
+**MEAS addendum (5 Nov 2026, section 3.10):** 54 planned entries added (32 measurement + 22 study); catalogue total 184. By area: Guests and stays +10, Rooms and housekeeping +6, Money and cash +3, Accounting +1, People +5, Stock +1, Revenue management +6 (new), Analytics and study +22 (new). Money flag y: 33; n: 21. Priority: P1 13, P2 40, P3 1.
+<!-- F12 counts end -->

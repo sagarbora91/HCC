@@ -92,6 +92,18 @@ import {catalogue} from './catalogue';
 // F6-H3
 import {hall} from './hall'; // F6 hall booking: enquiries, halls master, accept, advances, event bill, cancel, refund, credit note
 // F6-H3 end
+// F12-SETTINGS
+// F12-SETTINGS end
+// F12-CAP-DESK
+// F12-CAP-DESK end
+// F12-CAP-HK
+// F12-CAP-HK end
+// F12-CAP-GUEST
+// F12-CAP-GUEST end
+// F12-CAP-PEOPLE
+// F12-CAP-PEOPLE end
+// F12-FORECAST
+// F12-FORECAST end
 // AF-SYNC-OPS
 import {keys} from './keys'; // OPS-01 room keys
 import {tariffcard} from './tariffcard'; // OPS-02 tariff card
@@ -171,6 +183,18 @@ export const AREAS:SyncArea[]=[
   // F6-H3
   hall,
   // F6-H3 end
+  // F12-SETTINGS
+  // F12-SETTINGS end
+  // F12-CAP-DESK
+  // F12-CAP-DESK end
+  // F12-CAP-HK
+  // F12-CAP-HK end
+  // F12-CAP-GUEST
+  // F12-CAP-GUEST end
+  // F12-CAP-PEOPLE
+  // F12-CAP-PEOPLE end
+  // F12-FORECAST
+  // F12-FORECAST end
   // AF-SYNC-OPS
   keys,
   tariffcard,

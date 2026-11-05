@@ -82,6 +82,18 @@ import {handlers as hallQuote} from './hall-quote'; // F6 quotations + T&C: QUO_
 // F6-H2 end
 // F6-H3
 // F6-H3 end
+// F12-SETTINGS
+// F12-SETTINGS end
+// F12-CAP-DESK
+// F12-CAP-DESK end
+// F12-CAP-HK
+// F12-CAP-HK end
+// F12-CAP-GUEST
+// F12-CAP-GUEST end
+// F12-CAP-PEOPLE
+// F12-CAP-PEOPLE end
+// F12-FORECAST
+// F12-FORECAST end
 // F4-T1
 import {handlers as tariffCard} from './tariffcard';
 // F4-T1 end
@@ -132,7 +144,21 @@ const F6:Record<string,Handler>={ // F6 lanes: spread your handlers inside your 
   // F6-H3
   // F6-H3 end
 };
-const registry0:Record<string,Handler>={...ACC1,...ACC2,...reservations,...guests,...folio,...housekeeping,...admin,...closing,...expenses,...yieldMod,...groups,...channels,...maintenance,...inventory,...handover,...services,...messaging,...pos,...staff,...accounting,...assistant,...compliance,...cashbook,...cashout,...masters,...credentials,...syshealth,...roommasters,...keys,...roles,...LF,...F4,...egress /* F5-E1 */,...catalogue,...accountingYear,...accountingBank /* F5-A1 */,...F6};
+const F12:Record<string,Handler>={ // F12 lanes (MEAS-CONTRACT §6): spread your handlers inside your own block
+  // F12-SETTINGS
+  // F12-SETTINGS end
+  // F12-CAP-DESK
+  // F12-CAP-DESK end
+  // F12-CAP-HK
+  // F12-CAP-HK end
+  // F12-CAP-GUEST
+  // F12-CAP-GUEST end
+  // F12-CAP-PEOPLE
+  // F12-CAP-PEOPLE end
+  // F12-FORECAST
+  // F12-FORECAST end
+};
+const registry0:Record<string,Handler>={...ACC1,...ACC2,...reservations,...guests,...folio,...housekeeping,...admin,...closing,...expenses,...yieldMod,...groups,...channels,...maintenance,...inventory,...handover,...services,...messaging,...pos,...staff,...accounting,...assistant,...compliance,...cashbook,...cashout,...masters,...credentials,...syshealth,...roommasters,...keys,...roles,...LF,...F4,...egress /* F5-E1 */,...catalogue,...accountingYear,...accountingBank /* F5-A1 */,...F6,...F12};
 // F5-A1 — ACC-4 §1.2: after the year lock every post / edit / void dated in the year is refused ACC_YEAR_LOCKED (day reopen and month unlock
 // included); the year / bank commands and exports check for themselves. A correction is a journal in the new year: ACC_MANUAL_SAVE takes
 // `refersToFy` (G4), kept on the saved voucher.

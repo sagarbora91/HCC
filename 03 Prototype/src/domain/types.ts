@@ -392,6 +392,10 @@ export type State={
   /** F7 report module (F7-CONTRACT §1): favourites, schedules, runs, print / export log. Optional, no SCHEMA bump. */
   rptX?:import('./reports/types').RptState;
   // F7 end
+  // F12
+  /** F12 MEAS measurement slice (MEAS-CONTRACT §2): captures + side tables keyed by existing ids. Optional; SCHEMA stays 15 (no existing persisted shape changes). */
+  measX?:import('./streams/measure-types').MeasState;
+  // F12 end
   // ── State · F4 slices (optional, SCHEMA stays 13 — F4-CONTRACT.md header) ──
   tariffCardX?:TRCState;
   digestX?:DGSState;

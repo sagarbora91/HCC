@@ -164,6 +164,8 @@ export const PAGE_KEYWORDS:Record<string,string[]>={
   // F6-H3
   'hall-booking':['hall','banquet','lawn','wedding','function','event','quotation','quote','enquiry','beo','function sheet','catering','plates','marriage','party','t&c','terms'],
   // F6-H3 end
+  // F12-KEYWORDS
+  // F12-KEYWORDS end
   'desk-alerts':['reminder','reminders','alert','alerts','wake up','wake-up','wakeup','alarm','alert days','due date'], // LF-ALERTS
   roadmap:['roadmap','future','planned','modules','phases'],
   prefs:['appearance','display','text size','font','font size','bigger text','larger text','zoom','motion','animation','density','compact','start page','home page','page size','rows','toast','messages','preferences','my settings','theme'],
