@@ -98,6 +98,7 @@ import {handlers as measGuest} from './meas-guest'; // F12 MEAS guest captures
 import {handlers as measPeople} from './meas-people';
 // F12-CAP-PEOPLE end
 // F12-FORECAST
+import {handlers as measForecast} from './meas-forecast'; // F12 meas-forecast: MEAS_EVENT_*, MEAS_OTB_SNAPSHOT, MEAS_COMPETITOR_SAVE, MEAS_RATESHOP_ADD
 // F12-FORECAST end
 // F4-T1
 import {handlers as tariffCard} from './tariffcard';
@@ -166,6 +167,7 @@ const F12:Record<string,Handler>={ // F12 lanes (MEAS-CONTRACT §6): spread your
   ...measPeople,
   // F12-CAP-PEOPLE end
   // F12-FORECAST
+  ...measForecast,
   // F12-FORECAST end
 };
 const registry0:Record<string,Handler>={...ACC1,...ACC2,...reservations,...guests,...folio,...housekeeping,...admin,...closing,...expenses,...yieldMod,...groups,...channels,...maintenance,...inventory,...handover,...services,...messaging,...pos,...staff,...accounting,...assistant,...compliance,...cashbook,...cashout,...masters,...credentials,...syshealth,...roommasters,...keys,...roles,...LF,...F4,...egress /* F5-E1 */,...catalogue,...accountingYear,...accountingBank /* F5-A1 */,...F6,...F12};

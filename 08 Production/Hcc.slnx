@@ -331,6 +331,7 @@
     <File Path="database/migrations/4826_meas_people_exit_pulse.sql" />
     <!-- F12-CAP-PEOPLE end -->
     <!-- F12-FORECAST -->
+    <File Path="database/migrations/4830_meas_forecast_tables.sql" /> <!-- F12-FORECAST -->
     <!-- F12-FORECAST end -->
     <!-- F12-RPT-DAILY -->
     <!-- F12-RPT-DAILY end -->

@@ -155,6 +155,9 @@ export {measOn,measTarget} from '../../domain/streams/measure'; // F12 switches 
 export {measPeopleDemoTraining,measPeopleDemoPulse} from '../../fixtures/ext/meas-people';
 // F12-CAP-PEOPLE end
 // F12-FORECAST
+export * from '../../domain/forecast'; // F12 meas-forecast: real forecast curve, back-test, OTB rows, displacement (fc*)
+export {MEAS_FC_EVENT_KINDS,MEAS_FC_OTB_NIGHTS,MEAS_FC_OTB_KEEP} from './handlers/meas-forecast';
+export {measFcEventsSeed,measFcCompetitorsSeed,measFcRateShopSeed,measFcLegacySample} from '../../fixtures/ext/meas-forecast';
 // F12-FORECAST end
 // F4-T1
 export * from '../../domain/streams/tariffcard';
