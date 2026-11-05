@@ -191,3 +191,99 @@ export function gsvItemReport(s:State):GSVItemCategoryRow[]{
   for(const i of xs){const k=lfcKeyOf(i);if(!rows.some(r=>r.key===k))rows.push({key:k,label:i.category,valuable:i.valuable});}
   return rows.map(r=>{const m=xs.filter(i=>lfcKeyOf(i)===r.key);return {category:r.label,code:r.key,...(r.dept?{dept:r.dept}:{}),...(r.hours?{slaHours:r.hours}:{}),valuable:r.valuable,held:m.filter(i=>i.status==='Stored'||i.status==='Claimed').length,total:m.length};}).filter(r=>r.total>0);
 }
+
+// F12-CAP-GUEST
+// MEAS guest captures (MEAS-CONTRACT §2): survey, monthly review figures, root causes, loyalty tag. All data lives in s.measX (side tables); SCHEMA stays 15.
+import {HccError} from '../errors';
+import type {ErrorCode} from '../errors';
+import type {MeasSurvey,MeasReviewMonth,MeasRootCause} from './measure-types';
+import {measOn} from './measure';
+import {cfgModuleOn} from './config';
+import {guestLooksLikeIdNumber} from './guests';
+
+/** Item switches this lane's captures answer to (contract §1.2). */
+export const GSV_MEAS_KEYS={survey:'meas.guest.survey',reputation:'meas.guest.reputation',recovery:'meas.guest.recovery',repeat:'meas.guest.repeat'} as const;
+export const GSV_MEAS_REASONS=['MEAS_OFF','MEAS_VALIDATION','MEAS_RATE_LIMIT','MEAS_NO_CONSENT','MEAS_ID_DATA'] as const;
+export type GsvMeasReason=typeof GSV_MEAS_REASONS[number];
+/** Typed refusal: shared code plus the MEAS reason (the server sends the same pair). MEAS_OFF is a VALIDATION-class refusal until errors.ts lists it (integrator). */
+export class GsvMeasError extends HccError{constructor(public readonly reason:GsvMeasReason,message:string,code:ErrorCode='VALIDATION'){super(code,message);this.name='GsvMeasError';}}
+export const gsvMeasReasonOf=(e:unknown):GsvMeasReason|undefined=>{const r=(e as {reason?:unknown}|null)?.reason;return GSV_MEAS_REASONS.includes(r as GsvMeasReason)?r as GsvMeasReason:undefined;};
+export const gsvMeasFail=(reason:GsvMeasReason,message:string,code?:ErrorCode):never=>{throw new GsvMeasError(reason,message,code);};
+
+/** Capture gate: every command first checks the switch and refuses MEAS_OFF (data is kept). */
+export function gsvMeasGuard(s:State,key:string):void{
+  if(!measOn(s,key))gsvMeasFail('MEAS_OFF',`This measurement (${key}) is switched off in Measurement reports settings.`);
+}
+/** Survey channels: the QR page is a page of the Direct booking site module, so it also follows that module's switch. */
+export const gsvSurveyChannelOn=(s:State,via:'qr'|'desk'|'link')=>via==='desk'||cfgModuleOn(s,'website');
+
+/** PERM-MEAS-002 in the prototype = by role: desk entry on behalf of a guest (Owner, Manager, Reception). */
+export const GSV_MEAS_DESK_ROLES:Role[]=['Owner','Manager','Reception'];
+export const GSV_MEAS_MANAGER_ROLES:Role[]=['Owner','Manager'];
+export const gsvMeasRoleOk=(s:State,uid:string,roles:Role[])=>{const u=s.users.find(x=>x.id===uid);return !!u?.enabled&&roles.includes(u.role);};
+
+/** Fields a survey may carry. Anything identifying (idNumber, idType, photo, name, phone …) is refused, never stored (DEC-068; DoD: a survey cannot store ID data). */
+export const GSV_SURVEY_FIELDS=['type','id','key','via','booking','overall','cleanliness','staff','value','breakfast','recommend','comment','consent'] as const;
+const FORBIDDEN_SURVEY_FIELDS=/^(id(Number|Type|Photo|Image|Last4|Proof)|photo|image|selfie|aadhaar|passport|pan|licen[cs]e|name|guest|phone|email|address)$/i;
+export const GSV_SURVEY_COMMENT_MAX=500;
+export const GSV_QR_LIMIT={windowMinutes:10,max:10};
+
+const score=(v:unknown,lo:number,hi:number)=>typeof v==='number'&&Number.isInteger(v)&&v>=lo&&v<=hi;
+/** First problem of a survey command (undefined = valid). Pure; the handler turns it into the typed refusal. */
+export function gsvSurveyProblem(cmd:Record<string,unknown>):{reason:GsvMeasReason;message:string}|undefined{
+  for(const k of Object.keys(cmd))if(FORBIDDEN_SURVEY_FIELDS.test(k)&&cmd[k]!==undefined&&cmd[k]!=='')
+    return {reason:'MEAS_ID_DATA',message:`A survey never stores ID data or guest identity (${k}). Leave it out.`};
+  if(cmd.via!=='qr'&&cmd.via!=='desk'&&cmd.via!=='link')return {reason:'MEAS_VALIDATION',message:'Channel must be qr, desk or link.'};
+  if(cmd.consent!==true)return {reason:'MEAS_NO_CONSENT',message:'The guest must agree to the answers being kept (consent) before they are saved.'};
+  for(const k of ['overall','cleanliness','staff','value'])if(!score(cmd[k],1,5))return {reason:'MEAS_VALIDATION',message:`${k}: a whole score from 1 to 5.`};
+  if(cmd.breakfast!==undefined&&!score(cmd.breakfast,1,5))return {reason:'MEAS_VALIDATION',message:'breakfast: a whole score from 1 to 5.'};
+  if(!score(cmd.recommend,0,10))return {reason:'MEAS_VALIDATION',message:'recommend: a whole score from 0 to 10.'};
+  if(cmd.comment!==undefined){
+    if(typeof cmd.comment!=='string')return {reason:'MEAS_VALIDATION',message:'The comment must be text.'};
+    if(cmd.comment.length>GSV_SURVEY_COMMENT_MAX)return {reason:'MEAS_VALIDATION',message:`The comment is at most ${GSV_SURVEY_COMMENT_MAX} characters.`};
+    if(guestLooksLikeIdNumber(cmd.comment))return {reason:'MEAS_ID_DATA',message:'The comment looks like an ID number. A survey never stores ID data.'};
+  }
+  return undefined;
+}
+/** Public-page rate limit: at most GSV_QR_LIMIT.max QR answers in the last windowMinutes of the simulated clock. */
+export function gsvSurveyRateLimited(surveys:MeasSurvey[],clock:string):boolean{
+  const from=addMinutes(clock,-GSV_QR_LIMIT.windowMinutes);
+  return surveys.filter(x=>x.via==='qr'&&x.at>from).length>=GSV_QR_LIMIT.max;
+}
+/** Net promoter score of a survey list: % promoters (9-10) minus % detractors (0-6), whole points; undefined for an empty list. */
+export function gsvSurveyNps(list:Pick<MeasSurvey,'recommend'>[]):number|undefined{
+  if(!list.length)return undefined;
+  const p=list.filter(x=>x.recommend>=9).length,d=list.filter(x=>x.recommend<=6).length;
+  return Math.round((p-d)*100/list.length);
+}
+
+export const GSV_REVIEW_PLATFORMS:MeasReviewMonth['platform'][]=['google','agoda','makemytrip','booking','other'];
+export const gsvReviewId=(month:string,platform:string)=>`${month}-${platform}`;
+export function gsvReviewProblem(c:Record<string,unknown>):string|undefined{
+  if(typeof c.month!=='string'||!/^\d{4}-(0[1-9]|1[0-2])$/.test(c.month))return 'Month must be yyyy-MM.';
+  if(!GSV_REVIEW_PLATFORMS.includes(c.platform as MeasReviewMonth['platform']))return 'Choose a platform: Google, Agoda, MakeMyTrip, Booking.com or other.';
+  if(!Number.isInteger(c.count)||(c.count as number)<0||(c.count as number)>100000)return 'Review count is a whole number.';
+  if(typeof c.avgScore!=='number'||c.avgScore<0||c.avgScore>5)return 'Average score is 0 to 5.';
+  if(c.score12m!==undefined&&(typeof c.score12m!=='number'||c.score12m<0||c.score12m>5))return '12-month score is 0 to 5.';
+  if(!Number.isInteger(c.responded)||(c.responded as number)<0||(c.responded as number)>(c.count as number))return 'Responded is a whole number, not above the review count.';
+  if(c.themes!==undefined&&(typeof c.themes!=='string'||c.themes.length>200||guestLooksLikeIdNumber(c.themes)))return 'Themes: short text (200 characters), no ID numbers.';
+  return undefined;
+}
+
+export const GSV_ROOTCAUSE_SEED:MeasRootCause[]=[
+  {code:'STAFF',label:'Staff attitude / training',active:true},{code:'PROCESS',label:'Process gap',active:true},{code:'MAINT',label:'Maintenance / equipment',active:true},
+  {code:'SUPPLY',label:'Supplies / stock',active:true},{code:'EXPECT',label:'Guest expectation',active:true},{code:'THIRD',label:'Third party / OTA',active:true}];
+export const gsvRootCauses=(s:State):MeasRootCause[]=>s.measX?.rootCauseList??GSV_ROOTCAUSE_SEED;
+export function gsvRootCauseListProblem(rows:unknown):string|undefined{
+  if(!Array.isArray(rows)||!rows.length||rows.length>30)return 'Give 1 to 30 root causes.';
+  const seen=new Set<string>();
+  for(const r of rows as Record<string,unknown>[]){
+    if(typeof r?.code!=='string'||!/^[A-Z0-9_-]{1,12}$/.test(r.code))return 'A code is 1 to 12 capital letters or digits.';
+    if(seen.has(r.code))return `Code ${r.code} is repeated.`;seen.add(r.code);
+    if(typeof r.label!=='string'||!r.label.trim()||r.label.length>40)return `${r.code}: a label of up to 40 characters.`;
+    if(typeof r.active!=='boolean')return `${r.code}: active is yes or no.`;
+  }
+  return undefined;
+}
+export const GSV_LOYALTY_TAG_MAX=20;
+// F12-CAP-GUEST end

@@ -324,6 +324,7 @@
     <File Path="database/migrations/4815_meas_hk_schema.sql" />
     <!-- F12-CAP-HK end -->
     <!-- F12-CAP-GUEST -->
+    <File Path="database/migrations/4820_meas_guest_schema.sql" />
     <!-- F12-CAP-GUEST end -->
     <!-- F12-CAP-PEOPLE -->
     <!-- F12-CAP-PEOPLE end -->

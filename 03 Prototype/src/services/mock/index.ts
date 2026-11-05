@@ -149,6 +149,7 @@ export {MEAS_ALLOWANCE_DEFAULTS,MEAS_TURNAWAY_DEMO} from '../../fixtures/ext/mea
 export {measHkDemoReadings,measHkDemoState} from '../../fixtures/ext/meas-hk';
 // F12-CAP-HK end
 // F12-CAP-GUEST
+export {measOn,measTarget} from '../../domain/streams/measure'; // F12 switches (settings lane replaces the bodies)
 // F12-CAP-GUEST end
 // F12-CAP-PEOPLE
 // F12-CAP-PEOPLE end

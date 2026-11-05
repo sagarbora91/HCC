@@ -92,6 +92,7 @@ import {handlers as measDesk} from './meas-desk'; // F12 desk captures: turn-awa
 import {handlers as measHk} from './meas-hk'; // F12 meas-cap-hk: offline reasons, meters, readings, asset life, discards, task-time recording (wraps TASK)
 // F12-CAP-HK end
 // F12-CAP-GUEST
+import {handlers as measGuest} from './meas-guest'; // F12 MEAS guest captures
 // F12-CAP-GUEST end
 // F12-CAP-PEOPLE
 // F12-CAP-PEOPLE end
@@ -158,6 +159,7 @@ const F12:Record<string,Handler>={ // F12 lanes (MEAS-CONTRACT §6): spread your
   ...measHk,
   // F12-CAP-HK end
   // F12-CAP-GUEST
+  ...measGuest,
   // F12-CAP-GUEST end
   // F12-CAP-PEOPLE
   // F12-CAP-PEOPLE end
