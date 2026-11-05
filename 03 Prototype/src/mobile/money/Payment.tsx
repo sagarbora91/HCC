@@ -3,7 +3,7 @@
 import React,{useEffect,useState} from 'react';
 import {bookingRef} from '../../domain/bookingRef';
 import {Plus,Trash2,ArrowRight,Check,AlertTriangle,RefreshCw,Info} from 'lucide-react';
-import {money,totals,mnyIsDrawer} from '../../services/mock';
+import {money,totals,mnyIsDrawer,mnyMethod} from '../../services/mock';
 import {recentEqualReceipt,onFolioDuplicate} from '../../domain/streams/folio'; // AF-PAY08
 import {useHcc} from '../../app/context';
 import {Empty} from '../../components/ui';
@@ -73,7 +73,8 @@ export function MmPayment({id}:{id?:string}){
           {!single&&<div className="mm-tender-head"><strong>Tender {i+1}</strong><button type="button" className="m-icon mm-del" aria-label={`Remove tender ${i+1}`} onClick={()=>setRows(rows.filter((_,j)=>j!==i))}><Trash2 size={18}/></button></div>}
           <TenderChips label={`Tender ${i+1} method`} value={r.method} noCash={!!cashBlock} onChange={m=>setRow(i,{method:m})}/>
           {!single&&<label>Amount (₹)<input inputMode="decimal" enterKeyHint="next" value={r.amount} onChange={e=>setRow(i,{amount:e.target.value})} aria-label={`Tender ${i+1} amount`}/></label>}
-          {!mnyIsDrawer(s,r.method)?<label>Reference<input enterKeyHint="next" maxLength={100} value={r.reference} placeholder="Demo transaction reference, e.g. DEMO-UPI-0002" onChange={e=>setRow(i,{reference:e.target.value})} aria-label={`Tender ${i+1} reference`}/></label>
+          {/* AF2-PAYMETHODS (O8): the reference follows the master row ("needs reference"), not the drawer test */}
+          {!mnyIsDrawer(s,r.method)||mnyMethod(s,r.method)?.needsReference?<label>Reference{mnyMethod(s,r.method)?.needsReference?'':' (optional)'}<input enterKeyHint="next" maxLength={100} value={r.reference} placeholder="Demo transaction reference, e.g. DEMO-UPI-0002" onChange={e=>setRow(i,{reference:e.target.value})} aria-label={`Tender ${i+1} reference`}/></label>
             :<small className="mm-help">Cash goes into the drawer. Reference optional.</small>}
         </div>)}
         {kind!=='deposit-return'&&rows.length<4&&<button type="button" className="btn mm-split" onClick={addSplit}><Plus size={18}/> Split</button>}

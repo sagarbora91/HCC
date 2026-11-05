@@ -112,6 +112,26 @@ export const mnyNames=(s:State,place:MnyPlace)=>mnyMethodIndex(s).names[place];
 export function mnyMethodFor(s:State,v:unknown,place:MnyPlace):MnyMethod|undefined{
   const r=typeof v==='string'?mnyMethod(s,v):undefined;return r&&r.active&&(r.usableAt??[]).includes(place)?r:undefined;
 }
+/** AF2-PAYMETHODS: the refusal listing what may be chosen — the same words as the server's PaymentMethodBook.Choose. */
+export function mnyChooseText(s:State,place:MnyPlace):string{
+  if(place==='expenses')return 'Choose a funding source.';
+  const n=mnyNames(s,place);
+  if(!n.length)return 'No payment method is usable here. The Owner adds one in Master configuration › Money › Payment methods.';
+  const or=n.length===1?n[0]:n.slice(0,-1).join(', ')+' or '+n[n.length-1];
+  return place==='pos'?`Select ${or}.`:`Select a payment method (${or}).`;
+}
+export type MnyPick={method:MnyMethod;problem?:undefined}|{method?:undefined;problem:string;retired?:boolean};
+/** AF2-PAYMETHODS: client mirror of the server's PaymentMethodBook.Pick (folio receipts, refunds; the counter bill uses the same rules):
+ *  the value (name, code or an earlier name) must be a row usable at the place, active (a refund back by the original receipt's method
+ *  passes `allowRetired`), with a reference when the row needs one and `requireReference` is not false. Same refusal texts as the server. */
+export function mnyPick(s:State,value:unknown,place:MnyPlace,reference?:unknown,o:{requireReference?:boolean;allowRetired?:boolean}={}):MnyPick{
+  const t=typeof value==='string'?value.trim():'';
+  const r=t?mnyMethod(s,t):undefined;
+  if(!r||!(r.usableAt??[]).includes(place))return {problem:mnyChooseText(s,place)};
+  if(!r.active&&!o.allowRetired)return {problem:`${r.name} is retired — choose another payment method.`,retired:true};
+  if(o.requireReference!==false&&r.needsReference&&!String(reference??'').trim())return {problem:'Enter the transaction reference for a non-cash payment.'};
+  return {method:r};
+}
 /** Short label for phone chips / expense funding (old labels kept: Bank transfer → Bank; Cash → Drawer cash for expenses). */
 export function mnyShortLabel(s:State,name:string,place?:MnyPlace):string{
   const r=mnyMethod(s,name);if(!r)return name;

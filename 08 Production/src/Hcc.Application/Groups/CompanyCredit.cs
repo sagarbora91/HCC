@@ -69,7 +69,7 @@ public interface ICompanyCreditGuard
 /// <see cref="ICommandRunner"/> (Idempotency-Key, audit, outbox: <c>CompanyPaymentRecorded</c>, booked by accounting as Dr tender · Cr company receivables).
 /// </summary>
 public sealed class CompanyCredit(ICommandRunner runner, ICompanyStore companies, ICompanyCreditStore store, IGroupStore groups, IAccessPolicy policy,
-    TimeProvider clock, IBusinessDayGuard? days = null) : ICompanyCreditGuard
+    TimeProvider clock, IBusinessDayGuard? days = null, MoneyMasters.IPaymentMethodSource? methods = null) : ICompanyCreditGuard
 {
     public const string OpPayment = "RecordCompanyPayment";
 
@@ -133,8 +133,12 @@ public sealed class CompanyCredit(ICommandRunner runner, ICompanyStore companies
         ArgumentNullException.ThrowIfNull(req);
         var amount = Paise.FromWire(req.AmountPaise).EnsureReceiptAmount();
         var reference = GroupText.Optional(req.Reference, 120) ?? string.Empty;
-        var tender = Tenders.Validate(req.Tender, reference);
-        if (tender == Tenders.Cash)
+        // AF2-PAYMETHODS: the method comes from the Payment methods master (front desk; defaults without one): unknown, retired (MASTER_RETIRED) and
+        // reference-less methods are refused; a method that settles to a till (drawer cash, whatever its name) is not a company payment.
+        var picked = Hcc.Domain.MoneyMasters.PaymentMethodBook.Pick(methods is null ? null : await methods.MethodsAsync(null, ctx.PropertyId, ct).ConfigureAwait(false),
+            req.Tender, Hcc.Contracts.MoneyMasters.MoneyMasterValues.FrontDesk, reference);
+        var tender = picked.Name;
+        if (picked.SettlesToTill)
             throw HccException.Validation("A company pays by UPI, card or bank transfer (a cheque is recorded as a bank transfer). Take cash on a guest folio in a cashier shift.");
         var invoiceNo = GroupText.Optional(req.InvoiceNo, 16)?.ToUpperInvariant();
         await policy.RequireAsync(ctx.PropertyId, ctx.PrincipalId, GroupPermissions.Payment, AccessScopes.Any, ct: ct).ConfigureAwait(false);

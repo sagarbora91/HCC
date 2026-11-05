@@ -171,12 +171,10 @@ public static class Tenders
 
     public static readonly IReadOnlyList<string> All = [Cash, Upi, Card, BankTransfer];
 
-    public static string Validate(string? tender, string? reference)
-    {
-        if (tender is null || !All.Contains(tender, StringComparer.Ordinal)) throw HccException.Validation("Select a payment method (Cash, UPI, Card or Bank transfer).");
-        if (tender != Cash && string.IsNullOrWhiteSpace(reference)) throw HccException.Validation("Enter the transaction reference for a non-cash payment.");
-        return tender;
-    }
+    /// <summary>AF2-PAYMETHODS: the default list only (no master). Commands that take money resolve the method with
+    /// <see cref="MoneyMasters.PaymentMethodBook.Pick"/> against the property's Payment methods master instead.</summary>
+    public static string Validate(string? tender, string? reference) =>
+        MoneyMasters.PaymentMethodBook.Pick(null, tender, Hcc.Contracts.MoneyMasters.MoneyMasterValues.FrontDesk, reference).Name;
 }
 
 /// <summary>A receipt recorded on a folio recently (id, kind, tender as stored, amount, server time), read for the PAY-08 duplicate guard.</summary>

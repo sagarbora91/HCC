@@ -7,7 +7,7 @@ import {FeedbackSheet,FeedbackBillLine} from '../guest-services/Feedback'; // F4
 import {bookingRef} from '../../domain/bookingRef';
 import React,{useState,useEffect} from 'react';
 import {Receipt,Printer,Info,ShieldCheck,Check,ArrowRight,Hotel,Plus,Trash2,RotateCcw,Building2,AlertTriangle} from 'lucide-react';
-import {resStatus,Approval,money,nights,totals,folioNights,folioRefundable,folioRefunded,folioLineReversed,folioLineCorrectable,folioApprovalsFor,folioApprovalStatus,folioKind,folioKindLabel,folioReceiptLabel,folioCompanyCreditState,folioCheckoutBlockers,FOLIO_MANAGER_CREDIT_LIMIT,mnyNames,mnyMethod,mnyIsDrawer,plural,rbacCanViewFolios,rbacCanDiscount,rbacCanRequestCorrection,rbacDiscountLimit,rbacApprovalLimit,RBAC_OWNER_DECIDES} from '../../services/mock';
+import {resStatus,Approval,money,nights,totals,folioNights,folioRefundable,folioRefunded,folioLineReversed,folioLineCorrectable,folioApprovalsFor,folioApprovalStatus,folioKind,folioKindLabel,folioReceiptLabel,folioCompanyCreditState,folioCheckoutBlockers,FOLIO_MANAGER_CREDIT_LIMIT,mnyNames,mnyMethod,mnyIsDrawer,mnyPick,plural,rbacCanViewFolios,rbacCanDiscount,rbacCanRequestCorrection,rbacDiscountLimit,rbacApprovalLimit,RBAC_OWNER_DECIDES} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {cbIsLocked,cbLockedMessage,lineTax,gstLineSplit,gstSplitLines,gstPct,gstHalfPct,gstForFolioAdjustment,GST_CHARGE_CATEGORIES} from '../../services/mock';
 import {Pill,Empty,field,amount,submit,shortDate} from '../../components/ui';
@@ -119,6 +119,8 @@ export function PaymentModal({id}:{id:string}){
     if(!(target>0))return 'Enter an amount greater than zero.';
     if(effective.some(r=>!(paise(r.amount)>0)))return 'Every tender row needs an amount greater than zero.';
     if(sum!==target)return `Tender rows total ${money(sum)} but the amount is ${money(target)}. They must be equal.`;
+    // AF2-PAYMETHODS (O8): a method the master no longer offers at the front desk (retired while the dialog was open, unknown) is refused with the server's words.
+    for(const r of effective){const p=mnyPick(s,r.method,'frontdesk',r.reference,{requireReference:false});if(p.problem!==undefined)return p.problem;}
     if(effective.some(r=>needsRef(r.method)&&!r.reference.trim()))return 'Enter a demonstration transaction reference for each non-cash tender.';
     if(kind==='deposit-return'&&target>t.deposit)return 'Return cannot exceed the deposit held.';
     return '';

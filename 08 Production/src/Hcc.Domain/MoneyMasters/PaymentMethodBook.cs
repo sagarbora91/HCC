@@ -9,9 +9,11 @@ namespace Hcc.Domain.MoneyMasters;
 /// A payment method as the money-taking commands see it (MA-11): one row of <c>mst.payment_method</c> with the kind of the account it
 /// settles to. <see cref="SettlesToTill"/> replaces the old literal "Cash" test: a method that settles to a till moves the shared drawer
 /// (pay.cash_movement, DEC-052) and needs an open shift; every other method does not.
+/// <see cref="FormerNames"/> (AF2-PAYMETHODS): earlier names of the row from the master history (field "name"), so a value written or sent
+/// under an earlier name still resolves to the row (its current name is what new records store).
 /// </summary>
 public sealed record TenderMethod(string Code, string Name, string Kind, bool SettlesToTill, bool NeedsReference, bool FrontDesk, bool Pos, bool Expenses,
-    bool Active = true, string? Ledger = null)
+    bool Active = true, string? Ledger = null, IReadOnlyList<string>? FormerNames = null)
 {
     public bool UsableAt(string place) => place switch
     {
@@ -48,7 +50,7 @@ public static class PaymentMethodBook
     /// <summary>The stored list, or the defaults when the property has none.</summary>
     public static IReadOnlyList<TenderMethod> Effective(IReadOnlyList<TenderMethod>? stored) => stored is { Count: > 0 } ? stored : Defaults;
 
-    /// <summary>Row of a value: its name, its code, or its name ignoring case (retired rows resolve).</summary>
+    /// <summary>Row of a value: its name, its code, an earlier name of the row (rename history), or its name ignoring case (retired rows resolve).</summary>
     public static TenderMethod? Find(IReadOnlyList<TenderMethod> methods, string? value)
     {
         ArgumentNullException.ThrowIfNull(methods);
@@ -56,7 +58,16 @@ public static class PaymentMethodBook
         if (t.Length == 0) return null;
         return methods.FirstOrDefault(m => string.Equals(m.Name, t, StringComparison.Ordinal))
             ?? methods.FirstOrDefault(m => string.Equals(m.Code, t.ToUpperInvariant(), StringComparison.Ordinal))
+            ?? methods.FirstOrDefault(m => m.FormerNames is { Count: > 0 } f && f.Contains(t, StringComparer.Ordinal))
             ?? methods.FirstOrDefault(m => string.Equals(m.Name, t, StringComparison.OrdinalIgnoreCase));
+    }
+
+    /// <summary>AF2-PAYMETHODS: do two values (e.g. a refund's method and the original receipt's stored method) name the same row?</summary>
+    public static bool SameRow(IReadOnlyList<TenderMethod>? stored, string? a, string? b)
+    {
+        var list = Effective(stored);
+        var x = Find(list, a);
+        return x is not null && ReferenceEquals(x, Find(list, b));
     }
 
     /// <summary>Active method names usable at a place, in list order.</summary>

@@ -24,6 +24,7 @@
 import type {Booking,Approval,Command,State} from '../../services/mock';
 import {totals,addDays,cxSlice,grpAccountOf} from '../../services/mock';
 import {GRP_BLOCKS_REFUSAL,grpBlocksOnServer,type GRPState} from '../../domain/streams/groups';
+import {mnyMethod,mnyIsDrawer,mnyPick} from '../../domain/streams/money-master'; // AF2-PAYMETHODS (O8)
 import {HccClientError} from '../errors';
 import type {SrvAvailability} from '../server';
 import type {SyncArea,LoaderCtx,CommandCtx,SliceKey,SyncMe} from './types';
@@ -178,9 +179,14 @@ function folioOf(c:CommandCtx,bookingId:string){
 function approvalVersion(c:CommandCtx,id:string){
   const v=c.ids.version('approval',id);if(!v)throw new HccClientError('NOT_FOUND','This request is no longer pending. Refresh and try again.');return v;
 }
-/** The shared till for cash (DEC-052); null for other tenders. */
+/** AF2-PAYMETHODS: the method as the payment-methods master names it now (code, earlier name or other case → the row's name), else the text. */
+export const folioTender=(s:State,v:unknown)=>{const t=text(v);return t?(mnyMethod(s,t)?.name??t):'';};
+/** AF2-PAYMETHODS: does this method go into the shared drawer? A row that settles to a till (master); a value no row knows is drawer cash only
+ *  when it is the literal "Cash" (the server's PaymentMethodBook.SettlesToTill fallback for records written before the masters). */
+export const folioIsDrawer=(s:State,v:unknown)=>{const t=text(v),r=t?mnyMethod(s,t):undefined;return r?mnyIsDrawer(s,r.name):t==='Cash';};
+/** The shared till for a drawer method (DEC-052; any master row that settles to a till, whatever its name); null for other tenders. */
 function tillFor(c:CommandCtx,method:unknown){
-  if(method!=='Cash')return null;
+  if(!folioIsDrawer(c.state,method))return null;
   const t=c.ids.server('till','desk');if(t===undefined)throw invalid(shiftClosedText(c.state));return t;
 }
 /** The tender of the receipt an approved refund request refunds (the server's default tender for ExecuteAdjustment). */
@@ -203,9 +209,11 @@ function paymentPrecheck(cmd:Command,s:State,me?:SyncMe){
   if(tenders.length>1&&kind==='deposit-return')return 'Return a deposit with a single tender.';
   for(const t of tenders){
     if(!positive(t.amount))return 'Enter an amount greater than zero.';
-    if(!['Cash','UPI','Card','Bank transfer'].includes(t.method))return 'Select a payment method.';
-    if(t.method!=='Cash'&&!t.reference)return 'Enter the transaction reference.';
-    if(t.method==='Cash'){const b=cashBlockedReason(me,s.shiftOpen,cxSlice(s).opener?.by);if(b)return b;if(!s.shiftOpen)return shiftClosedText(s);}
+    // AF2-PAYMETHODS (O8): the method comes from the payment-methods master (front desk), as on the server (PaymentMethodBook.Pick): unknown or
+    // retired methods are refused, a row that needs a reference asks for one, a row that settles to a till needs the open shift (and own shift).
+    const p=mnyPick(s,t.method,'frontdesk',t.reference);
+    if(p.problem!==undefined)return p.problem;
+    if(mnyIsDrawer(s,p.method.name)){const b=cashBlockedReason(me,s.shiftOpen,cxSlice(s).opener?.by);if(b)return b;if(!s.shiftOpen)return shiftClosedText(s);}
   }
   if(tenders.reduce((a,t)=>a+t.amount,0)!==cmd.amount)return 'Tender rows must add up to the payment amount.';
   return undefined;
@@ -289,7 +297,7 @@ export const money:SyncArea={
         const split=tenders.length>1;
         const isDup=(e:unknown):e is HccClientError=>e instanceof HccClientError&&e.details?.reason==='DUPLICATE_SUSPECTED';
         for(const [i,t] of tenders.entries()){
-          const body=(conf:boolean)=>({...target,kind,tender:t.method,amountPaise:t.amount,reference:t.reference||null,tillId:tillFor(c,t.method),confirmDuplicate:conf});
+          const body=(conf:boolean)=>({...target,kind,tender:folioTender(c.state,t.method),amountPaise:t.amount,reference:t.reference||null,tillId:tillFor(c,t.method),confirmDuplicate:conf});
           try{
             if(split&&confirm){
               // AF-FIX2 F1: a confirmed resend of a split first replays each row under its ORIGINAL key and payload (key tN, confirmDuplicate false):
@@ -341,12 +349,17 @@ export const money:SyncArea={
     {type:'REFUND_EXECUTE',reload:[...FOLIO,'shiftOpen','openingCash','shift','shiftClose'],
       // S3 / N10 (prototype validMethod, DEC-052): a CASH refund leaves the shared drawer, so it needs the till's shift open today. The
       // tender defaults to the original receipt's (as on the server), so a dialog without a method is checked too. Non-cash: no shift.
-      precheck:(cmd,s)=>{const method=cmd.method||refundReceiptMethod(s,cmd.approvalId);
-        return method==='Cash'&&!s.shiftOpen?shiftClosedText(s):cmd.method&&cmd.method!=='Cash'&&!text(cmd.reference)?'Enter the transaction reference.':undefined;},
+      // AF2-PAYMETHODS (O8): methods from the master. The original receipt's method may be retired (the server allows it); another method must be
+      // active and usable at the front desk, with a reference when its row needs one. An original method the client cannot resolve is left to the server.
+      precheck:(cmd,s)=>{const original=refundReceiptMethod(s,cmd.approvalId),method=cmd.method||original;
+        const same=!cmd.method||(!!original&&!!mnyMethod(s,text(original))&&mnyMethod(s,text(cmd.method))?.id===mnyMethod(s,text(original))?.id);
+        const p=mnyPick(s,method,'frontdesk',cmd.reference,{requireReference:!!cmd.method,allowRetired:same});
+        if(p.problem!==undefined&&!(!cmd.method&&!mnyMethod(s,text(method))))return p.problem;
+        return folioIsDrawer(s,method)&&!s.shiftOpen?shiftClosedText(s):undefined;},
       async send(c){const id=String(c.cmd.approvalId??'');const a=c.state.approvals.find(x=>x.id===id&&x.kind==='refund');
         if(!a)throw new HccClientError('NOT_FOUND','Refund request not found.');
         const b=c.state.bookings.find(x=>x.id===a.booking),r=b?.receipts.find(x=>x.id===a.target);
-        const method=c.cmd.method||r?.method;
+        const method=c.cmd.method?folioTender(c.state,c.cmd.method):r?.method;
         return {result:await c.api.command('ExecuteAdjustment',{approvalId:serverId(id,'Approval'),tender:method,reference:text(c.cmd.reference)||(r?'Refund of '+r.id:null),tillId:tillFor(c,method)},
           {expectedVersion:approvalVersion(c,id)})};}},
     {type:'APPROVAL',reload:FOLIO,
@@ -426,10 +439,11 @@ export const money:SyncArea={
         return {result:await c.api.command('DecideCompanyLimit',{requestId:serverId(m.id,'Limit request'),approve:!!m.approve,note:text(m.note)||null})};}},
     // DEC-076: money received from a company (PERM-GRP-005; UPI, card or bank transfer; at most what it owes on company credit — the server checks).
     {type:'GRP_COMPANY_PAYMENT',reload:['groupsX'],
-      precheck:cmd=>!positive(cmd.amount)?'Enter an amount greater than zero.':cmd.method==='Cash'?'A company pays by bank transfer, UPI or card (a cheque is recorded as a bank transfer). Take cash on a guest folio in a cashier shift.'
-        :!text(cmd.reference)?'Enter the transaction reference for a non-cash payment.':undefined,
+      // AF2-PAYMETHODS: the method from the payment-methods master (front desk), as on the server; a method that settles to a till is refused here.
+      precheck:(cmd,s)=>!positive(cmd.amount)?'Enter an amount greater than zero.':folioIsDrawer(s,cmd.method)?'A company pays by bank transfer, UPI or card (a cheque is recorded as a bank transfer). Take cash on a guest folio in a cashier shift.'
+        :mnyPick(s,cmd.method,'frontdesk',cmd.reference).problem,
       async send(c){const m=c.cmd;
-        return {result:await c.api.command('RecordCompanyPayment',{companyId:serverId(m.company,'Company'),tender:m.method,amountPaise:m.amount,reference:text(m.reference),invoiceNo:text(m.invoice)||null,
+        return {result:await c.api.command('RecordCompanyPayment',{companyId:serverId(m.company,'Company'),tender:folioTender(c.state,m.method),amountPaise:m.amount,reference:text(m.reference),invoiceNo:text(m.invoice)||null,
           ...(Number(m.tds)>0?{tdsPaise:Number(m.tds)}:{})})};}}, // ACC-2 tds: TDS the company deducted
   ],
   unmapped:{
