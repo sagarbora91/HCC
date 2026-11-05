@@ -142,6 +142,7 @@ export {hallTncSeed,HALL_TNC_HEADINGS} from '../../fixtures/ext/hall-seed';
 // F12-CAP-DESK
 // F12-CAP-DESK end
 // F12-CAP-HK
+export {measHkDemoReadings,measHkDemoState} from '../../fixtures/ext/meas-hk';
 // F12-CAP-HK end
 // F12-CAP-GUEST
 // F12-CAP-GUEST end

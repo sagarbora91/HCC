@@ -108,3 +108,32 @@ export const HK_ROADMAP:{no:string;area:string;phase:string;disposition:string;c
   {no:'25',area:'OCR / document capture',phase:'Phase 3',disposition:'Prototype screen: Document capture — simulated OCR on fictional documents',current:'Built in prototype (simulated integrations where external)'},
   {no:'26',area:'AI management assistant',phase:'Phase 3',disposition:'Prototype screen: Management assistant — simulated AI over prototype data',current:'Built in prototype (simulated integrations where external)'},
 ];
+// F12-CAP-HK
+// F12 MEAS · housekeeping captures (MEAS-CONTRACT §2): task times and room offline reasons, kept in the side tables s.measX.taskTimes / offline
+// (keyed by the existing task / room id, so SCHEMA stays 15). Pure helpers; the handlers in services/mock/handlers/meas-hk.ts call them.
+import type {MeasTaskTimes,MeasOffline,MeasOfflineReason} from './measure-types';
+
+export const MEAS_OFFLINE_REASONS:MeasOfflineReason[]=['OOO','OOS','house-use','renovation'];
+export const MEAS_OFFLINE_LABEL:Record<MeasOfflineReason,string>={OOO:'Out of order',OOS:'Out of service','house-use':'House use',renovation:'Renovation'};
+/** Records one housekeeping event in measX.taskTimes[taskId] from the simulated clock. Mutates `s` (call inside a command draft only). */
+export function measRecordTaskTime(s:State,taskId:string,ev:'start'|'finish'|'inspect'|'reject',arg:{reason?:string}={}):void{
+  const t=s.tasks.find(x=>x.id===taskId);if(!t)return;
+  const cur:MeasTaskTimes={...(s.measX?.taskTimes?.[taskId]??{})};
+  cur.attendant=t.assignee;
+  if(ev==='start'){cur.startedAt=s.clock;cur.finishedAt=undefined;cur.inspectedAt=undefined;cur.inspectResult=undefined;}
+  else if(ev==='finish'){cur.finishedAt=s.clock;cur.inspectedAt=undefined;cur.inspectResult=undefined;}
+  else if(ev==='inspect'){cur.inspectedAt=s.clock;cur.inspectResult='pass';}
+  else{cur.inspectedAt=s.clock;cur.inspectResult='fail';cur.rejectReason=arg.reason??t.rejectReason;cur.finishedAt=undefined;}
+  for(const k of Object.keys(cur) as (keyof MeasTaskTimes)[])if(cur[k]===undefined)delete cur[k];
+  s.measX={...(s.measX??{}),taskTimes:{...(s.measX?.taskTimes??{}),[taskId]:cur}};
+}
+const measMinutesBetween=(a:string,b:string)=>Math.round((Date.parse(b)-Date.parse(a))/60000);
+/** Minutes from start to finish for one task, or null when it has not finished (or the clock went backwards). */
+export function measTaskMinutes(t:MeasTaskTimes|undefined):number|null{
+  if(!t?.startedAt||!t.finishedAt)return null;const m=measMinutesBetween(t.startedAt,t.finishedAt);return m>=0?m:null;
+}
+/** Rooms offline with a captured reason (a room whose expected return has passed still lists, flagged overdue). */
+export function measOfflineList(s:State):{room:string;reason:MeasOffline;overdue:boolean}[]{
+  return Object.entries(s.measX?.offline??{}).map(([room,reason])=>({room,reason,overdue:!!reason.expectedReturn&&reason.expectedReturn<s.date})).sort((a,b)=>a.room.localeCompare(b.room));
+}
+// F12-CAP-HK end

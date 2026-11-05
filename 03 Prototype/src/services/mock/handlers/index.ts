@@ -87,6 +87,7 @@ import {handlers as hallQuote} from './hall-quote'; // F6 quotations + T&C: QUO_
 // F12-CAP-DESK
 // F12-CAP-DESK end
 // F12-CAP-HK
+import {handlers as measHk} from './meas-hk'; // F12 meas-cap-hk: offline reasons, meters, readings, asset life, discards, task-time recording (wraps TASK)
 // F12-CAP-HK end
 // F12-CAP-GUEST
 // F12-CAP-GUEST end
@@ -150,6 +151,7 @@ const F12:Record<string,Handler>={ // F12 lanes (MEAS-CONTRACT §6): spread your
   // F12-CAP-DESK
   // F12-CAP-DESK end
   // F12-CAP-HK
+  ...measHk,
   // F12-CAP-HK end
   // F12-CAP-GUEST
   // F12-CAP-GUEST end

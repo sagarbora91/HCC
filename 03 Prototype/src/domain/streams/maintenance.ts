@@ -187,3 +187,54 @@ export function mntSort<T extends MNTWorkOrderView>(orders:T[]){
   const rank=(w:MNTWorkOrderView)=>w.status==='In progress'?0:w.status==='Open'?1:w.status==='On hold'?2:w.status==='Done'?3:4;
   return [...orders].sort((a,b)=>rank(a)-rank(b)||(rank(a)<4?a.priority.localeCompare(b.priority)||a.createdAt.localeCompare(b.createdAt):b.createdAt.localeCompare(a.createdAt)));
 }
+// F12-CAP-HK
+// F12 MEAS · utilities meters, readings, asset life and linen discards (MEAS-CONTRACT §2). Side tables in s.measX; money = integer paise.
+// DEC-061: Housekeeping and Maintenance never see money; the replacement cost is removed (not blanked) for them by measAssetLifeView.
+import type {MeasMeter,MeasMeterReading,MeasAssetLife,MeasDiscard} from './measure-types';
+
+/** Meters shipped with the master (owner default M-4); further meters are added with MEAS_METER_SAVE. */
+export const MEAS_HK_DEFAULT_METERS:MeasMeter[]=[
+  {id:'MTR-ELEC',name:'Electricity main',kind:'electricity',unit:'kWh',active:true},
+  {id:'MTR-WATER',name:'Water',kind:'water',unit:'kL',active:true},
+  {id:'MTR-LPG',name:'LPG cylinders (count)',kind:'lpg',unit:'cylinders',active:true},
+  {id:'MTR-DG',name:'Diesel generator hours',kind:'dg-hours',unit:'hours',active:true},
+];
+export const MEAS_METER_KINDS:MeasMeter['kind'][]=['electricity','water','lpg','diesel','dg-hours'];
+export const MEAS_METER_UNIT:Record<MeasMeter['kind'],string>={electricity:'kWh',water:'kL',lpg:'cylinders',diesel:'litres','dg-hours':'hours'};
+export const MEAS_CONDITION_GRADES:NonNullable<MeasAssetLife['conditionGrade']>[]=['A','B','C','D'];
+export const MEAS_DISCARD_REASONS=['Stained','Torn','Worn out','Lost','Damaged by guest','Other'] as const;
+
+/** The meter master: the saved list, or the defaults until the first MEAS_METER_SAVE. */
+export const measMeters=(s:State):MeasMeter[]=>s.measX?.meters??MEAS_HK_DEFAULT_METERS;
+/** Readings of one meter, oldest first (same date: entry order). */
+export const measReadingsOf=(s:State,meter:string):MeasMeterReading[]=>(s.measX?.readings??[]).filter(r=>r.meter===meter).map((r,i)=>({r,i})).sort((a,b)=>a.r.date.localeCompare(b.r.date)||a.i-b.i).map(x=>x.r);
+/** Why a new reading cannot be stored, or null. Monotonic: not below the latest reading on or before its date, not above the earliest after it. */
+export function measReadingError(s:State,meter:string,date:string,value:number):{code:'VALIDATION'|'MEAS_READING_NOT_MONOTONIC';message:string}|null{
+  const m=measMeters(s).find(x=>x.id===meter);
+  if(!m)return {code:'VALIDATION',message:'Choose a meter.'};
+  if(!m.active)return {code:'VALIDATION',message:'This meter is switched off.'};
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(date))return {code:'VALIDATION',message:'Enter a valid reading date.'};
+  if(date>s.date)return {code:'VALIDATION',message:'A reading cannot be dated in the future.'};
+  if(typeof value!=='number'||!Number.isFinite(value)||value<0||Math.round(value*100)!==value*100)return {code:'VALIDATION',message:'Enter the meter reading (zero or more, at most two decimals).'};
+  const list=measReadingsOf(s,meter);
+  const before=[...list].reverse().find(r=>r.date<=date),after=list.find(r=>r.date>date);
+  if(before&&value<before.value)return {code:'MEAS_READING_NOT_MONOTONIC',message:`The reading is below the last one (${before.value} on ${before.date}). Meter readings only go up.`};
+  if(after&&value>after.value)return {code:'MEAS_READING_NOT_MONOTONIC',message:`The reading is above a later one (${after.value} on ${after.date}). Meter readings only go up.`};
+  return null;
+}
+/** Consumption between consecutive readings: one row per reading after the first (dated like the later reading). */
+export function measConsumption(s:State,meter:string):{date:string;used:number}[]{
+  const l=measReadingsOf(s,meter);return l.slice(1).map((r,i)=>({date:r.date,used:Math.round((r.value-l[i].value)*100)/100}));
+}
+/** Active meters with no reading dated today: the daily 08:00 checklist line for the handover module (module 19). */
+export const measMetersDue=(s:State):MeasMeter[]=>measMeters(s).filter(m=>m.active&&!(s.measX?.readings??[]).some(r=>r.meter===m.id&&r.date===s.date));
+/** May this user see hotel money on the asset-life table (DEC-061: not Housekeeping, not Maintenance)? Same rule as mntCanSeeCost. */
+export const measCanSeeAssetCost=(s:State,uid:string)=>mntCanSeeCost(s,uid);
+/** Asset-life rows for a user: the replacement cost is dropped entirely for roles without money access. */
+export function measAssetLifeView(s:State,uid:string):Record<string,MeasAssetLife>{
+  const all=s.measX?.assetLife??{},money=measCanSeeAssetCost(s,uid);
+  return Object.fromEntries(Object.entries(all).map(([id,v])=>{const {replacementCostPaise:_cost,...rest}=v;return [id,money?v:rest];}));
+}
+/** Linen discards tallied by reason (quantity), for the loss-rate report lane. */
+export const measDiscardTally=(list:MeasDiscard[]):Record<string,number>=>list.reduce((a,d)=>{a[d.reason]=(a[d.reason]??0)+d.qty;return a;},{} as Record<string,number>);
+// F12-CAP-HK end
