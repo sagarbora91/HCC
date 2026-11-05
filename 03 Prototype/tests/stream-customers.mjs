@@ -81,4 +81,17 @@ export function register({test,M,assert}){
       assert.equal(idx.length,1);assert.equal(idx[0].key,'n:'+exp,n);
     }
   });
+  // AF2 phone digits: the mock audit trail (the prototype has no CRM merge or outbox) never carries a customer's raw mobile number, even for Devanagari names
+  test('[AF2-PHONE] mock audit rows of a Devanagari-named customer with a mobile number hold no raw phone digits',()=>{
+    let s=M.baseFixture();
+    s=M.execute(s,'reception',{type:'BOOK',guest:'राम पाटील',phone:'+91 98200 77777',room:'105',arrival:s.date,departure:'2026-10-26',people:1,source:'Direct'});
+    const bk=s.bookings.at(-1);
+    s=M.execute(s,'reception',{type:'CANCEL',id:bk.id});
+    const rows=s.audit.filter(a=>/राम|BOOK|CANCEL/i.test(a.action+a.detail));
+    assert.ok(rows.length>=1,'the booking was audited');
+    for(const a of rows){const txt=a.action+' '+a.detail;assert.ok(!/\d{10}/.test(txt)&&!txt.includes('98200'),'audit row has raw phone digits: '+txt);}
+    const idx=C.customerIndex(s);
+    const c=idx.find(x=>x.name==='राम पाटील');assert.ok(c);
+    assert.ok(!JSON.stringify(s.audit).includes('9820077777'));
+  });
 }

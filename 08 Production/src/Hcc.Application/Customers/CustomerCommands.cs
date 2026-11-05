@@ -28,7 +28,13 @@ public sealed class CustomerCommands(ICommandRunner runner, IAccessPolicy policy
 
     private DateTime UtcNow => clock.GetUtcNow().UtcDateTime;
 
-    private static string Target(string key) => "crm:" + key;
+    /// <summary>AF2 (phone digits): the audit target is the opaque ck_ token, never the raw key (a mobile number for walk-in customers).</summary>
+    private static string Target(CustomerKeySpace keys, string rawKey) => "crm:" + keys.TokenOf(rawKey);
+
+    private static readonly System.Text.RegularExpressions.Regex DigitRun = new(@"\d{8,}", System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+
+    /// <summary>A customer name goes into audit text; a name that is itself a phone number (or holds one) is masked so no raw number reaches the audit trail.</summary>
+    internal static string SafeName(string? name) => DigitRun.Replace(name ?? string.Empty, "***");
 
     /// <summary>
     /// Resolves a (possibly merged-away) key to the live customer or NOT_FOUND. AF-CRM (PR-01): the key arrives as a ck_ token or a raw n: key; a raw
@@ -57,7 +63,7 @@ public sealed class CustomerCommands(ICommandRunner runner, IAccessPolicy policy
         {
             var id = await store.InsertMergeAsync(tx, ctx.PropertyId, source.Key, target.Key, source.Name, target.Name, reason, ctx.PrincipalId, UtcNow, c).ConfigureAwait(false)
                 ?? throw new HccException(HccErrorCode.INVALID_TRANSITION, "This customer already has a pending merge, or one of the two was merged already.");
-            await tx.AuditAsync("CRM_MERGE_PROPOSE", Target(source.Key), $"merge {source.Name} ({source.Stays.Count} stays) into {target.Name} ({target.Stays.Count} stays) · {reason}", c).ConfigureAwait(false);
+            await tx.AuditAsync("CRM_MERGE_PROPOSE", Target(keys, source.Key), $"merge {SafeName(source.Name)} ({source.Stays.Count} stays) into {SafeName(target.Name)} ({target.Stays.Count} stays) · {reason}", c).ConfigureAwait(false);
             var m = (await store.LockMergeAsync(tx, ctx.PropertyId, id, c).ConfigureAwait(false))!;
             return CustomerViews.Merge(m, keys);
         }, ct).ConfigureAwait(false);
@@ -79,18 +85,18 @@ public sealed class CustomerCommands(ICommandRunner runner, IAccessPolicy policy
             VersionToken.EnsureMatches(m.RowVer, expected, "This merge proposal");
             if (m.Status != "Pending") throw new HccException(HccErrorCode.INVALID_TRANSITION, $"This merge was already {m.Status.ToLowerInvariant()}.");
             CustomerRules.EnsureChecker(m.ProposedBy, ctx.PrincipalId);
-            string Name(string k) => k == m.SourceKey ? m.SourceName : m.TargetName;
+            string Name(string k) => SafeName(k == m.SourceKey ? m.SourceName : m.TargetName);
             if (req.Approve)
             {
                 if (!await store.ApproveMergeAsync(tx, m, ctx.PrincipalId, UtcNow, note, c).ConfigureAwait(false))
                     throw new HccException(HccErrorCode.INVALID_TRANSITION, "One of the two customers was merged in the meantime. Reject this proposal and propose again.");
-                await tx.AuditAsync("CRM_MERGE_APPROVE", Target(m.SourceKey), $"{Name(m.SourceKey)} merged into {Name(m.TargetKey)} · history kept{(note is null ? string.Empty : " · " + note)}", c).ConfigureAwait(false);
-                await tx.PublishAsync("CustomerMerged", m.MergeId, new { m.MergeId, m.SourceKey, m.TargetKey }, c).ConfigureAwait(false);
+                await tx.AuditAsync("CRM_MERGE_APPROVE", Target(keys, m.SourceKey), $"{Name(m.SourceKey)} merged into {Name(m.TargetKey)} · history kept{(note is null ? string.Empty : " · " + note)}", c).ConfigureAwait(false);
+                await tx.PublishAsync("CustomerMerged", m.MergeId, new { m.MergeId, SourceKey = keys.TokenOf(m.SourceKey), TargetKey = keys.TokenOf(m.TargetKey) }, c).ConfigureAwait(false);
             }
             else
             {
                 await store.RejectMergeAsync(tx, m.MergeId, ctx.PrincipalId, UtcNow, note, c).ConfigureAwait(false);
-                await tx.AuditAsync("CRM_MERGE_REJECT", Target(m.SourceKey), $"merge of {Name(m.SourceKey)} into {Name(m.TargetKey)} rejected{(note is null ? string.Empty : " · " + note)}", c).ConfigureAwait(false);
+                await tx.AuditAsync("CRM_MERGE_REJECT", Target(keys, m.SourceKey), $"merge of {Name(m.SourceKey)} into {Name(m.TargetKey)} rejected{(note is null ? string.Empty : " · " + note)}", c).ConfigureAwait(false);
             }
 
             var fresh = (await store.LockMergeAsync(tx, ctx.PropertyId, req.MergeId, c).ConfigureAwait(false))!;
@@ -117,7 +123,7 @@ public sealed class CustomerCommands(ICommandRunner runner, IAccessPolicy policy
         {
             if (await store.TagCountAsync(tx, ctx.PropertyId, cust.Key, c).ConfigureAwait(false) >= CustomerRules.TagsMax) throw HccException.Validation($"A customer can have at most {CustomerRules.TagsMax} tags.");
             var added = await store.AddTagAsync(tx, ctx.PropertyId, cust.Key, tag, ctx.PrincipalId, UtcNow, c).ConfigureAwait(false);
-            await tx.AuditAsync("CRM_TAG", Target(cust.Key), $"{cust.Name} · tag {tag}{(added ? " added" : " already set")}", c).ConfigureAwait(false);
+            await tx.AuditAsync("CRM_TAG", Target(keys, cust.Key), $"{SafeName(cust.Name)} · tag {tag}{(added ? " added" : " already set")}", c).ConfigureAwait(false);
             return new CustomerChangeResult(keys.TokenOf(cust.Key), added ? $"tag {tag} added" : $"tag {tag} was already set");
         }, ct).ConfigureAwait(false);
     }
@@ -131,7 +137,7 @@ public sealed class CustomerCommands(ICommandRunner runner, IAccessPolicy policy
         return await runner.RunAsync(ctx with { Operation = OpRemoveTag }, req, async (tx, c) =>
         {
             if (!await store.RemoveTagAsync(tx, ctx.PropertyId, cust.Key, tag, c).ConfigureAwait(false)) throw new HccException(HccErrorCode.NOT_FOUND, "Tag not found.");
-            await tx.AuditAsync("CRM_TAG", Target(cust.Key), $"{cust.Name} · tag {tag} removed", c).ConfigureAwait(false);
+            await tx.AuditAsync("CRM_TAG", Target(keys, cust.Key), $"{SafeName(cust.Name)} · tag {tag} removed", c).ConfigureAwait(false);
             return new CustomerChangeResult(keys.TokenOf(cust.Key), $"tag {tag} removed");
         }, ct).ConfigureAwait(false);
     }
@@ -145,7 +151,7 @@ public sealed class CustomerCommands(ICommandRunner runner, IAccessPolicy policy
         return await runner.RunAsync(ctx with { Operation = OpAddNote }, req, async (tx, c) =>
         {
             var id = await store.AddNoteAsync(tx, ctx.PropertyId, cust.Key, body, ctx.PrincipalId, UtcNow, c).ConfigureAwait(false);
-            await tx.AuditAsync("CRM_NOTE", Target(cust.Key), $"{cust.Name} · note {id.ToString(CultureInfo.InvariantCulture)} added", c).ConfigureAwait(false);
+            await tx.AuditAsync("CRM_NOTE", Target(keys, cust.Key), $"{SafeName(cust.Name)} · note {id.ToString(CultureInfo.InvariantCulture)} added", c).ConfigureAwait(false);
             return new CustomerChangeResult(keys.TokenOf(cust.Key), "note added");
         }, ct).ConfigureAwait(false);
     }
@@ -168,7 +174,7 @@ public sealed class CustomerCommands(ICommandRunner runner, IAccessPolicy policy
             else if (expected is not null) throw new HccException(HccErrorCode.STALE_VERSION, "These preferences were removed. Reload and try again.");
 
             await store.SetPrefAsync(tx, ctx.PropertyId, cust.Key, text, ctx.PrincipalId, UtcNow, c).ConfigureAwait(false);
-            await tx.AuditAsync("CRM_PREFERENCES", Target(cust.Key), $"{cust.Name} · preferences {(text.Length == 0 ? "cleared" : "updated")}", c).ConfigureAwait(false);
+            await tx.AuditAsync("CRM_PREFERENCES", Target(keys, cust.Key), $"{SafeName(cust.Name)} · preferences {(text.Length == 0 ? "cleared" : "updated")}", c).ConfigureAwait(false);
             return new CustomerChangeResult(keys.TokenOf(cust.Key), text.Length == 0 ? "preferences cleared" : "preferences saved");
         }, ct).ConfigureAwait(false);
     }
@@ -201,7 +207,7 @@ public sealed class CustomerCommands(ICommandRunner runner, IAccessPolicy policy
             }
 
             var summary = last.OptOut ? "opted out of marketing" : $"WhatsApp {Yn(last.WhatsApp)} · SMS {Yn(last.Sms)} · Email {Yn(last.Email)}";
-            await tx.AuditAsync("CRM_CONSENT", Target(cust.Key), $"{cust.Name} · {summary}{(stopped > 0 ? $" · {stopped} queued stopped" : string.Empty)}", c).ConfigureAwait(false);
+            await tx.AuditAsync("CRM_CONSENT", Target(keys, cust.Key), $"{SafeName(cust.Name)} · {summary}{(stopped > 0 ? $" · {stopped} queued stopped" : string.Empty)}", c).ConfigureAwait(false);
             return new CustomerChangeResult(keys.TokenOf(cust.Key), summary);
         }, ct).ConfigureAwait(false);
     }
