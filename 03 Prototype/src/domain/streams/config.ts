@@ -37,6 +37,7 @@ import {cmpSettingDefs,type CMPSettingDef} from './compliance';
 import {NET_SETTING_DEFS,netState} from './egress'; // F5-U1: the Internet group's switches (changed only by CFG_NET_SET, Owner, with a reason)
 import {GST_SEED,gstSeedDef,gstSeedOn,gstSpecifiedPremises,gstPct,GST_ILLUSTRATIVE,type GstKey} from '../gst';
 import {rolPageLevel} from './roles'; // ADM-2
+import {measRegisterSettings} from './measure'; // F12-SETTINGS: called from builtins() (lazy; measure.ts imports this file)
 import {featureAll,featureById,featureOfPage,featureOfCommand,featureClosure,featureExempt,featureKey,type FeatureRef} from '../feature-catalogue'; // ADM-1
 
 // ───────────────────────────── Groups (fixed names — a test pins them) ─────────────────────────────
@@ -484,6 +485,7 @@ function legacyDefs():CfgProviderDef[]{
 const pct=(v:unknown)=>yldPct(Number(v));
 function builtins(){
   if(builtinsDone)return;builtinsDone=true;
+  measRegisterSettings(); // F12-SETTINGS
   // Legacy BL-027 settings (Stream E) — same keys, same stores, so every existing screen and test keeps working.
   for(const g of CFG_GROUPS)registerSettingsGroup({id:'core-'+g.id,group:g.id,defs:()=>legacyDefs().filter(d=>GROUP_OF_LEGACY[d.key]===g.id)});
   registerSettingsGroup({id:'property',group:'property',defs:[

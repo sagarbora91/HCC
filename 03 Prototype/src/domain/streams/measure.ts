@@ -189,6 +189,7 @@ export function measSettingDefs(s:State):CfgProviderDef[]{
   ];
   return [...packs,...items,...targets,...other];
 }
-registerSettingsGroup({id:'measure',group:'measure',defs:measSettingDefs,summary:s=>{
+/** Registered lazily from config.ts builtins() (not at import): yield / services / staff import this file while config.ts is still loading. */
+export function measRegisterSettings(){registerSettingsGroup({id:'measure',group:'measure',defs:measSettingDefs,summary:s=>{
   const on=MEAS_ITEMS.filter(i=>measOn(s,i.key)).length;const packs=MEAS_PACKS.filter(p=>measPackOn(s,p.pack)).length;
-  return `${on} of ${MEAS_ITEMS.length} on · ${packs} of ${MEAS_PACKS.length} packs on · core always on`;}});
+  return `${on} of ${MEAS_ITEMS.length} on · ${packs} of ${MEAS_PACKS.length} packs on · core always on`;}});}

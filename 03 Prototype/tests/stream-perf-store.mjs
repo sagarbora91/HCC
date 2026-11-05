@@ -71,7 +71,7 @@ async function prepare(M){
   const loaded=await b.load();out.loaded=loaded;out.fyJson=JSON.stringify(fy);
   const task=loaded.state.tasks.find(t=>t.assignee==='housekeeper'&&t.status==='To do');
   const next=execute(loaded.state,'housekeeper',{type:'TASK',id:task.id,action:'start'});
-  out.changed=changedSlices(loaded.state,next);
+  out.changed=changedSlices(loaded.state,next);out.nextObj=Object.fromEntries(out.changed.map(k=>[k,typeof next[k]==='object']));
   const before=new Map(idb.data);
   b.save(next);await b.flush();
   out.secondSave=b.lastSave();out.secondTx=idb.log.at(-1);
@@ -122,7 +122,7 @@ export function register({test,M,assert}){
     assert.ok(P.firstKeys.includes('slice:bookings')&&P.firstKeys.includes('slice:accountingX'));});
   test('[PERF] after a command only the changed slices (+ manifest) are written, in one transaction',()=>{
     const s=P.secondSave;assert.equal(s.full,false);
-    assert.deepEqual([...s.slices].sort(),P.changed.filter(k=>typeof P.loaded.state[k]==='object').sort());
+    assert.deepEqual([...s.slices].sort(),P.changed.filter(k=>P.nextObj[k]).sort());
     assert.ok(!s.slices.includes('bookings')&&!s.slices.includes('accountingX')&&!s.slices.includes('posX'));assert.ok(s.slices.includes('tasks'));
     assert.ok(s.bytes<P.fyJson.length/20,`wrote ${s.bytes} of ${P.fyJson.length} bytes`);
     assert.deepEqual([...P.secondTx].sort(),[...s.slices.map(k=>'slice:'+k),'manifest'].sort());

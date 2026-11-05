@@ -98,6 +98,13 @@ const C=(roles,src)=>[roles,src];
 const CMDS={
   BOOK:C('OWN MGR REC','RES-002'),CONFIRM:C('OWN MGR REC','RES-002'),CHANGE_DATES:C('OWN MGR REC','RES-003'),MOVE:C('OWN MGR REC','RES-003/STY-002'),STAY_EARLY_DEPARTURE:C('OWN MGR REC','STY-002 (EarlyDeparture)'),CANCEL:C('OWN MGR REC','RES-004'),
   DIGEST_REDRAFT:C('OWN','PERM-DGS-001 (F4-T2)'),
+  // F12 MEAS capture lanes (contract §2): roles as in each lane's DONE file
+  ...Object.fromEntries(['MEAS_TURNAWAY_LOG','MEAS_BOOKING_EXTRA_SET','MEAS_PREFERENCE_SET','MEAS_LOYALTY_SET'].map(c=>[c,C('OWN MGR REC','F12 cap-desk / cap-guest')])),MEAS_WALKED_LOG:C('OWN MGR','F12 cap-desk'),MEAS_ALLOWANCE_REASON_SAVE:C('OWN','F12 cap-desk (DEC-058)'),
+  MEAS_OFFLINE_SET:C('OWN MGR SUP','F12 cap-hk'),MEAS_METER_SAVE:C('OWN MGR','F12 cap-hk'),MEAS_READING_ADD:C('OWN MGR MNT','F12 cap-hk PERM-MEAS-002'),MEAS_ASSETLIFE_SET:C('OWN ACC','F12 cap-hk'),MEAS_DISCARD_ADD:C('OWN MGR SUP','F12 cap-hk'),
+  MEAS_SURVEY_ADD:C('OWN MGR REC CSH SUP HKP ACC MNT TAD','F12 cap-guest: the QR path is open to any signed-in user; the desk path needs PERM-MEAS-002 inside the handler'),MEAS_REVIEW_SAVE:C('OWN MGR','F12 cap-guest'),MEAS_ROOTCAUSE_LIST_SAVE:C('OWN MGR','F12 cap-guest'),MEAS_ROOTCAUSE_SET:C('OWN MGR','F12 cap-guest'),
+  MEAS_TRAINING_SAVE:C('OWN MGR','F12 cap-people HR-001 (approve)'),MEAS_EXIT_SET:C('OWN MGR','F12 cap-people HR-001 (approve)'),MEAS_PULSE_ADD:C('OWN MGR REC CSH SUP HKP ACC MNT TAD','F12 cap-people: any signed-in user, anonymous'),
+  ...Object.fromEntries(['MEAS_EVENT_SAVE','MEAS_EVENT_DELETE','MEAS_OTB_SNAPSHOT','MEAS_COMPETITOR_SAVE','MEAS_RATESHOP_ADD'].map(c=>[c,C('OWN MGR','F12 meas-forecast (approve)')])),
+  // F12 end
   // F6-H1 hall booking (F6-CONTRACT §4)
   HALL_VENUE_UPSERT:C('OWN','PERM-HAL-006'),HALL_MENU_UPSERT:C('OWN MGR','PERM-HAL-006'),HALL_ENQUIRY_ADD:C('OWN MGR REC','PERM-HAL-001'),HALL_ENQUIRY_UPDATE:C('OWN MGR REC','PERM-HAL-001'),
   HALL_ENQUIRY_LOST:C('OWN MGR REC','PERM-HAL-001'),HALL_ENQUIRY_SOFT_HOLD:C('OWN MGR','PERM-HAL-001 (Manager+)'),HALL_NIGHT_RUN:C('OWN MGR','hall night run'),
