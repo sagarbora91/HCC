@@ -152,6 +152,7 @@ export {measHkDemoReadings,measHkDemoState} from '../../fixtures/ext/meas-hk';
 export {measOn,measTarget} from '../../domain/streams/measure'; // F12 switches (settings lane replaces the bodies)
 // F12-CAP-GUEST end
 // F12-CAP-PEOPLE
+export {measPeopleDemoTraining,measPeopleDemoPulse} from '../../fixtures/ext/meas-people';
 // F12-CAP-PEOPLE end
 // F12-FORECAST
 // F12-FORECAST end

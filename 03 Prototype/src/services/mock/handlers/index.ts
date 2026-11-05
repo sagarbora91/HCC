@@ -95,6 +95,7 @@ import {handlers as measHk} from './meas-hk'; // F12 meas-cap-hk: offline reason
 import {handlers as measGuest} from './meas-guest'; // F12 MEAS guest captures
 // F12-CAP-GUEST end
 // F12-CAP-PEOPLE
+import {handlers as measPeople} from './meas-people';
 // F12-CAP-PEOPLE end
 // F12-FORECAST
 // F12-FORECAST end
@@ -162,6 +163,7 @@ const F12:Record<string,Handler>={ // F12 lanes (MEAS-CONTRACT §6): spread your
   ...measGuest,
   // F12-CAP-GUEST end
   // F12-CAP-PEOPLE
+  ...measPeople,
   // F12-CAP-PEOPLE end
   // F12-FORECAST
   // F12-FORECAST end

@@ -116,6 +116,7 @@ import {measHk} from './meas-hk'; // F12 meas-cap-hk
 import {measGuest} from './meas-guest'; // F12 MEAS guest captures
 // F12-CAP-GUEST end
 // F12-CAP-PEOPLE
+import {measPeople} from './meas-people';
 // F12-CAP-PEOPLE end
 // F12-FORECAST
 // F12-FORECAST end
@@ -210,6 +211,7 @@ export const AREAS:SyncArea[]=[
   measGuest,
   // F12-CAP-GUEST end
   // F12-CAP-PEOPLE
+  measPeople,
   // F12-CAP-PEOPLE end
   // F12-FORECAST
   // F12-FORECAST end
