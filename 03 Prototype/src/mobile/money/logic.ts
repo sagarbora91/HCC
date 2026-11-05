@@ -2,7 +2,7 @@
 // The command builders here produce EXACTLY the commands the phone screens send, using the same command types and
 // fields as the desktop dialogs (PaymentModal, CheckoutModal, ShiftCountForm, ExpenseModal). No React imports.
 import type {State,Booking,Command} from '../../services/mock';
-import {totals,folioNights,folioCheckoutBlockers,folioCompanyCreditState,folioApprovalExpired,shiftDenominationTotal,SHIFT_DENOMINATIONS,addDays,mnyNames,mnyShortLabel,mnyMethod} from '../../services/mock';
+import {totals,folioNights,folioCheckoutBlockers,folioCompanyCreditState,folioApprovalExpired,shiftDenominationTotal,SHIFT_DENOMINATIONS,addDays,mnyNames,mnyShortLabel,mnyMethod,mnyPick} from '../../services/mock';
 
 /** LEGACY (MA-3): the old fixed chips; the screens use mmTenders(s) (payment-methods master, front desk). */
 export const MM_TENDERS:{id:string;label:string}[]=[{id:'Cash',label:'Cash'},{id:'UPI',label:'UPI'},{id:'Card',label:'Card'},{id:'Bank transfer',label:'Bank'}];
@@ -35,6 +35,8 @@ export function mmPaymentProblem(kind:string,total:string,rows:MmTenderRow[],dep
   if(eff.some(r=>!(mmPaise(r.amount)>0)))return 'Every tender row needs an amount greater than zero.';
   const sum=eff.reduce((a,r)=>a+mmPaise(r.amount),0);
   if(sum!==target)return `Tender rows total ₹${(sum/100).toLocaleString('en-IN')} but the amount is ₹${(target/100).toLocaleString('en-IN')}. They must be equal.`;
+  // AF2-PAYMETHODS (O8): a method the master no longer offers at the front desk (retired, moved, unknown) is refused with the server's words.
+  if(s)for(const r of eff){const p=mnyPick(s,r.method,'frontdesk',r.reference,{requireReference:false});if(p.problem!==undefined)return p.problem;}
   if(eff.some(r=>needsRef(r.method)&&!r.reference.trim()))return 'Enter a demonstration transaction reference for each non-cash tender.';
   if(kind==='deposit-return'&&rows.length>1)return 'Return a deposit with a single tender.';
   if(kind==='deposit-return'&&target>deposit)return 'Return cannot exceed the deposit held.';

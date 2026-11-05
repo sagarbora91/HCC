@@ -28,7 +28,7 @@ namespace Hcc.Application.Groups;
 /// TransferGroupMember) is refused when it raises the exposure beyond the company's credit limit.
 /// </summary>
 public sealed class GroupCommands(ICommandRunner runner, IGroupStore store, IAccessPolicy policy, IGroupFolioPort folios, IGstRateResolver gst,
-    TimeProvider clock, IBusinessDayGuard? days = null, ICompanyCreditGuard? credit = null)
+    TimeProvider clock, IBusinessDayGuard? days = null, ICompanyCreditGuard? credit = null, MoneyMasters.IPaymentMethodSource? methods = null)
 {
     public const string OpCreate = "CreateGroup";
     public const string OpUpdate = "UpdateGroup";
@@ -311,8 +311,12 @@ public sealed class GroupCommands(ICommandRunner runner, IGroupStore store, IAcc
         if (req.Kind is not ("payment" or "deposit" or "refund")) throw HccException.Validation("Receipt type must be payment, deposit or refund.");
         var amount = Paise.FromWire(req.AmountPaise).EnsureReceiptAmount();
         var reference = GroupText.Optional(req.Reference, 120) ?? string.Empty;
-        var tender = Tenders.Validate(req.Tender, reference);
-        if (tender == Tenders.Cash)
+        // AF2-PAYMETHODS: the method comes from the Payment methods master (front desk; defaults without one): unknown, retired (MASTER_RETIRED; a refund
+        // may go back by a retired method) and reference-less methods are refused; a method that settles to a till is not taken on the master folio.
+        var picked = Hcc.Domain.MoneyMasters.PaymentMethodBook.Pick(methods is null ? null : await methods.MethodsAsync(null, ctx.PropertyId, ct).ConfigureAwait(false),
+            req.Tender, Hcc.Contracts.MoneyMasters.MoneyMasterValues.FrontDesk, reference, allowRetired: req.Kind == "refund");
+        var tender = picked.Name;
+        if (picked.SettlesToTill)
             throw HccException.Validation("The master folio takes UPI, card or bank transfer. Take cash on a member folio (the shared till), or ask for the Billing group-cash port.");
         if (req.Kind == "refund")
         {

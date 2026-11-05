@@ -504,8 +504,11 @@ public sealed class BillingService(ICommandRunner runner, IBillingStore store, I
             var reference = BillingText.Optional(req.Reference, 120);
             if (reference.Length == 0) reference = $"Refund of receipt {parent.Receipt.ReceiptId}";
             // MA-11: a refund goes back by the original receipt's method even when it has been retired since; another method must be active.
-            var method = PaymentMethodBook.Pick(await MethodsAsync(tx, caller.PropertyId, ct2).ConfigureAwait(false), req.Tender ?? parent.Receipt.Tender,
-                MoneyMasterValues.FrontDesk, reference, allowRetired: req.Tender is null || string.Equals(req.Tender.Trim(), parent.Receipt.Tender, StringComparison.Ordinal));
+            // AF2-PAYMETHODS: the original method named under its current (renamed) name or its code counts as the original too.
+            var methodList = await MethodsAsync(tx, caller.PropertyId, ct2).ConfigureAwait(false);
+            var method = PaymentMethodBook.Pick(methodList, req.Tender ?? parent.Receipt.Tender,
+                MoneyMasterValues.FrontDesk, reference, allowRetired: req.Tender is null || string.Equals(req.Tender.Trim(), parent.Receipt.Tender, StringComparison.Ordinal)
+                    || PaymentMethodBook.SameRow(methodList, req.Tender, parent.Receipt.Tender));
             var tender = method.Name;
             int? tillId = null;
             long? shiftId = null;

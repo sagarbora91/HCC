@@ -77,4 +77,51 @@ public class PaymentMethodBookTests
         Assert.Equal("1000", m["method:Cash"]);                // defaults unchanged
         Assert.Equal(ChartOfAccounts.DefaultMapping.Count, ChartOfAccounts.Effective(null).Count);
     }
+
+    // AF2-PAYMETHODS (O8): renamed rows resolve by their earlier names; the folio refund's "same method" test is by row, not by text.
+    private static readonly IReadOnlyList<TenderMethod> Renamed =
+    [
+        new("CASH", "Front till", "cash", true, false, true, true, true, true, "1000", ["Cash"]),
+        new("UPI", "PhonePe UPI", "upi", false, true, true, true, true, false, "1010", ["UPI", "BHIM"]),
+        new("WALLET", "Paytm", "wallet", false, true, true, false, false, true, "1010", ["Paytm wallet"]),
+        new("BANK", "Bank transfer", "bank", false, true, true, false, true, true, "1030"),
+    ];
+
+    [Fact]
+    public void A_renamed_method_resolves_by_its_earlier_name_and_new_records_take_its_current_name()
+    {
+        Assert.Equal("Paytm", PaymentMethodBook.Pick(Renamed, "Paytm wallet", MoneyMasterValues.FrontDesk, "P-1").Name);
+        Assert.Equal("Paytm", PaymentMethodBook.Pick(Renamed, " WALLET ", MoneyMasterValues.FrontDesk, "P-1").Name);
+        Assert.True(PaymentMethodBook.SettlesToTill(Renamed, "Cash"));
+        Assert.Equal("Front till", PaymentMethodBook.Pick(Renamed, "Cash", MoneyMasterValues.FrontDesk, null).Name);
+        // A retired renamed row is refused under its earlier name too; a refund back by it passes allowRetired.
+        var ex = Assert.Throws<HccException>(() => PaymentMethodBook.Pick(Renamed, "BHIM", MoneyMasterValues.FrontDesk, "U-1"));
+        Assert.Equal((HccErrorCode.INVALID_TRANSITION, "PhonePe UPI is retired — choose another payment method."), (ex.Code, ex.Message));
+        Assert.Equal("PhonePe UPI", PaymentMethodBook.Pick(Renamed, "UPI", MoneyMasterValues.FrontDesk, "U-1", allowRetired: true).Name);
+        // A current name wins over another row's earlier name.
+        IReadOnlyList<TenderMethod> clash = [.. Renamed, new("NEWCASH", "Cash", "cash", true, false, true, false, false, true, "1000")];
+        Assert.Equal("NEWCASH", PaymentMethodBook.Find(clash, "Cash")!.Code);
+        Assert.Equal("Select a payment method (Front till, Paytm or Bank transfer).",
+            Assert.Throws<HccException>(() => PaymentMethodBook.Pick(Renamed, "Cheque", MoneyMasterValues.FrontDesk, "x")).Message);
+    }
+
+    [Fact]
+    public void SameRow_compares_rows_not_text()
+    {
+        Assert.True(PaymentMethodBook.SameRow(Renamed, "PhonePe UPI", "UPI"));
+        Assert.True(PaymentMethodBook.SameRow(Renamed, "upi", "BHIM"));
+        Assert.False(PaymentMethodBook.SameRow(Renamed, "Paytm", "UPI"));
+        Assert.False(PaymentMethodBook.SameRow(Renamed, "Cheque", "Cheque"));
+        Assert.True(PaymentMethodBook.SameRow(null, "cash", "Cash"));
+    }
+
+    [Fact]
+    public void Tenders_Validate_keeps_the_default_list_and_its_words()
+    {
+        Assert.Equal("Cash", Hcc.Domain.Billing.Tenders.Validate("Cash", null));
+        Assert.Equal("UPI", Hcc.Domain.Billing.Tenders.Validate("upi", "U-1"));
+        Assert.Equal("Select a payment method (Cash, UPI, Card or Bank transfer).", Assert.Throws<HccException>(() => Hcc.Domain.Billing.Tenders.Validate("Cheque", "x")).Message);
+        Assert.Equal("Enter the transaction reference for a non-cash payment.", Assert.Throws<HccException>(() => Hcc.Domain.Billing.Tenders.Validate("Card", " ")).Message);
+        Assert.Throws<HccException>(() => Hcc.Domain.Billing.Tenders.Validate("Company credit", "x"));
+    }
 }
