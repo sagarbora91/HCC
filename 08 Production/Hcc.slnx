@@ -313,6 +313,9 @@
     <!-- F12-SETTINGS -->
     <!-- F12-SETTINGS end -->
     <!-- F12-CAP-DESK -->
+    <File Path="database/migrations/4810_meas_desk_turnaway.sql" />
+    <File Path="database/migrations/4811_meas_desk_allowance_extra.sql" />
+    <File Path="database/migrations/4812_meas_desk_preference.sql" />
     <!-- F12-CAP-DESK end -->
     <!-- F12-CAP-HK -->
     <!-- F12-CAP-HK end -->
