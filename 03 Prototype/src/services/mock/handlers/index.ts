@@ -85,6 +85,7 @@ import {handlers as hallQuote} from './hall-quote'; // F6 quotations + T&C: QUO_
 // F12-SETTINGS
 // F12-SETTINGS end
 // F12-CAP-DESK
+import {handlers as measDesk} from './meas-desk'; // F12 desk captures: turn-away, walked, allowance reasons, booking extras, preferences
 // F12-CAP-DESK end
 // F12-CAP-HK
 // F12-CAP-HK end
@@ -148,6 +149,7 @@ const F12:Record<string,Handler>={ // F12 lanes (MEAS-CONTRACT §6): spread your
   // F12-SETTINGS
   // F12-SETTINGS end
   // F12-CAP-DESK
+  ...measDesk,
   // F12-CAP-DESK end
   // F12-CAP-HK
   // F12-CAP-HK end
