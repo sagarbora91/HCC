@@ -44,7 +44,7 @@ export function render(name:string,props:any,s:any,uid:string,mobile=false){
   test(T+'the group list (search palette side of the hub) hides the group from every role but Owner and Manager; searching the group finds the switches',()=>{
     const s=M.seed();
     for(const u of ALL){const has=X.cfgListRows(s,u,'').some(r=>r.id==='internet');assert.equal(has,u==='owner'||u==='manager',u);}
-    assert.equal(M.cfgSearch(s,'').length,13);assert.ok(M.cfgSearch(s,'ocr').some(h=>h.group.id==='internet'));
+    assert.equal(M.cfgSearch(s,'').length,14);/* F12-SETTINGS: + measure */assert.ok(M.cfgSearch(s,'ocr').some(h=>h.group.id==='internet'));
     assert.equal(M.cfgGroupAccess(s,'owner','internet').readOnly,false);assert.equal(M.cfgGroupAccess(s,'manager','internet').readOnly,true);
     for(const d of M.cfgDefs(s).filter(d=>d.group==='internet'))assert.equal(d.editable,false,d.key);
   });
