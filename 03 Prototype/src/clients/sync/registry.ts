@@ -99,6 +99,7 @@ import {hall} from './hall'; // F6 hall booking: enquiries, halls master, accept
 // F12-CAP-HK
 // F12-CAP-HK end
 // F12-CAP-GUEST
+import {measGuest} from './meas-guest'; // F12 MEAS guest captures
 // F12-CAP-GUEST end
 // F12-CAP-PEOPLE
 // F12-CAP-PEOPLE end
@@ -190,6 +191,7 @@ export const AREAS:SyncArea[]=[
   // F12-CAP-HK
   // F12-CAP-HK end
   // F12-CAP-GUEST
+  measGuest,
   // F12-CAP-GUEST end
   // F12-CAP-PEOPLE
   // F12-CAP-PEOPLE end

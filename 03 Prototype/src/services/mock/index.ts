@@ -144,6 +144,7 @@ export {hallTncSeed,HALL_TNC_HEADINGS} from '../../fixtures/ext/hall-seed';
 // F12-CAP-HK
 // F12-CAP-HK end
 // F12-CAP-GUEST
+export {measOn,measTarget} from '../../domain/streams/measure'; // F12 switches (settings lane replaces the bodies)
 // F12-CAP-GUEST end
 // F12-CAP-PEOPLE
 // F12-CAP-PEOPLE end
