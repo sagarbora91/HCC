@@ -57,6 +57,31 @@ public static class StayRateRules
     public static bool CanApprove(bool owner, bool manager, Paise tariff, int managerLimitBps, Paise newRate) =>
         owner || (manager && (newRate >= tariff || newRate >= ManagerFloor(tariff, managerLimitBps)));
 
+    // ── CTL-01 (audit; AUDITFIX-PLAN §2 Q4 default (a)): a reduction is judged against the AGREED rate as well as the tariff — the stricter wins. ──
+
+    /// <summary>The lowest rate a Manager sets or approves against the agreed rate: agreed × (10000 − thresholdBps) / 10000, rounded up.
+    /// A rate AT the floor passes; one paisa below it needs the Owner.</summary>
+    public static Paise AgreedFloor(Paise agreed, int thresholdBps) => ManagerFloor(agreed, Math.Clamp(thresholdBps, 0, 10_000));
+
+    /// <summary>The agreed rate of a stay: the agreed rate recorded after the latest change (an Owner-set or Owner-approved rate becomes the new
+    /// agreed rate; a Manager's change does not, so a stay cannot be walked down in steps), else the rate before the first change, else the current rate.</summary>
+    public static Paise AgreedBase(long? latestAgreedAfter, long? firstOldRate, long currentRate) => new(latestAgreedAfter ?? firstOldRate ?? currentRate);
+
+    /// <summary>True when the new rate is more than <paramref name="thresholdBps"/> below the agreed rate (below <see cref="AgreedFloor"/>).</summary>
+    public static bool OverThreshold(Paise agreed, int thresholdBps, Paise newRate) => newRate < AgreedFloor(agreed, thresholdBps);
+
+    /// <summary>How far below the agreed rate the new rate is, in basis points (0 for a raise), rounded down.</summary>
+    public static int ReductionBps(Paise agreed, Paise newRate) =>
+        agreed.Value <= 0 || newRate >= agreed ? 0 : (int)((agreed.Value - newRate.Value) * 10_000 / agreed.Value);
+
+    /// <summary>CTL-01 direct rule: the tariff rule above AND, for a Manager, not more than the threshold below the agreed rate. The Owner: always.</summary>
+    public static bool CanApplyDirectly(bool owner, bool manager, Paise tariff, int managerLimitBps, Paise agreed, int thresholdBps, Paise newRate, bool guestsRise, bool extraPersonCharge) =>
+        owner || (CanApplyDirectly(false, manager, tariff, managerLimitBps, newRate, guestsRise, extraPersonCharge) && !OverThreshold(agreed, thresholdBps, newRate));
+
+    /// <summary>CTL-01 approval rule: the Owner anything; a Manager within the tariff limit AND the agreed-rate threshold.</summary>
+    public static bool CanApprove(bool owner, bool manager, Paise tariff, int managerLimitBps, Paise agreed, int thresholdBps, Paise newRate) =>
+        owner || (CanApprove(false, manager, tariff, managerLimitBps, newRate) && !OverThreshold(agreed, thresholdBps, newRate));
+
     /// <summary>First night at the new rate. <paramref name="closed"/> = a night on a closed business date (not reopened).</summary>
     public static DateOnly EffectiveFrom(string scope, DateOnly businessDate, DateOnly arrival, DateOnly departure, Func<DateOnly, bool> closed)
     {

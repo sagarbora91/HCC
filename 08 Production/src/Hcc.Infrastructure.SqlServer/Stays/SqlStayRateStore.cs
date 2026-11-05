@@ -102,9 +102,10 @@ public sealed class SqlStayRateStore : IStayRateStore
         ArgumentNullException.ThrowIfNull(r);
         await using var cmd = P3Sql.Sql(tx).Command("""
             INSERT gst.stay_rate_change(property_id, stay_id, reservation_id, room_id, business_date, changed_utc, changed_by, approval_id, approved_by, scope, reason,
-              old_rate_paise, new_rate_paise, old_people, new_people, old_children, new_children, effective_from, reposted_json)
+              old_rate_paise, new_rate_paise, old_people, new_people, old_children, new_children, effective_from, reposted_json,
+              tariff_paise, agreed_rate_paise, agreed_after_paise, threshold_bps, over_threshold)
             OUTPUT INSERTED.change_id
-            VALUES (@p, @s, @r, @room, @bd, @u, @by, @a, @ab, @sc, @why, @or, @nr, @op, @np, @oc, @nc, @from, @json);
+            VALUES (@p, @s, @r, @room, @bd, @u, @by, @a, @ab, @sc, @why, @or, @nr, @op, @np, @oc, @nc, @from, @json, @tf, @ag, @aga, @th, @ov);
             """);
         cmd.Add("@p", SqlDbType.Int, r.PropertyId);
         cmd.Add("@s", SqlDbType.BigInt, r.StayId);
@@ -125,6 +126,23 @@ public sealed class SqlStayRateStore : IStayRateStore
         cmd.Add("@nc", SqlDbType.TinyInt, (byte)r.NewChildren);
         cmd.Add("@from", SqlDbType.Date, D(r.EffectiveFrom));
         cmd.Add("@json", SqlDbType.NVarChar, r.RepostedJson, 2000);
+        cmd.Add("@tf", SqlDbType.BigInt, r.TariffPaise);
+        cmd.Add("@ag", SqlDbType.BigInt, r.AgreedRatePaise);
+        cmd.Add("@aga", SqlDbType.BigInt, r.AgreedAfterPaise);
+        cmd.Add("@th", SqlDbType.Int, r.ThresholdBps);
+        cmd.Add("@ov", SqlDbType.Bit, r.OverThreshold);
         return (long)(await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false))!;
+    }
+
+    public async Task<(long? LatestAgreedAfter, long? FirstOldRate)> AgreedHistoryAsync(ICommandTransaction tx, long stayId, CancellationToken ct)
+    {
+        await using var cmd = P3Sql.Sql(tx).Command("""
+            SELECT (SELECT TOP (1) agreed_after_paise FROM gst.stay_rate_change WHERE stay_id = @s AND agreed_after_paise IS NOT NULL ORDER BY change_id DESC),
+                   (SELECT TOP (1) old_rate_paise FROM gst.stay_rate_change WHERE stay_id = @s ORDER BY change_id);
+            """);
+        cmd.Add("@s", SqlDbType.BigInt, stayId);
+        await using var rd = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+        if (!await rd.ReadAsync(ct).ConfigureAwait(false)) return (null, null);
+        return (rd.IsDBNull(0) ? null : rd.GetInt64(0), rd.IsDBNull(1) ? null : rd.GetInt64(1));
     }
 }

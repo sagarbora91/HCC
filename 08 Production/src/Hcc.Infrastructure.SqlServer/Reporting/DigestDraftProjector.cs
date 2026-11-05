@@ -39,7 +39,8 @@ public sealed class DigestDraftProjector(OutboxConsumer outbox, SqlConnectionFac
             await CountAsync(connection, transaction,
                 "SELECT COUNT(*) FROM bill.approval a JOIN bill.folio f ON f.folio_id = a.folio_id JOIN inv.reservation r ON r.reservation_id = f.reservation_id WHERE r.property_id = @p AND a.status = 'Pending'", propertyId, date, ct).ConfigureAwait(false),
             await CountAsync(connection, transaction,
-                "SELECT COUNT(*) FROM inv.reservation WHERE property_id = @p AND status = 'Confirmed' AND arrival = DATEADD(DAY, 1, @d)", propertyId, date, ct).ConfigureAwait(false));
+                "SELECT COUNT(*) FROM inv.reservation WHERE property_id = @p AND status = 'Confirmed' AND arrival = DATEADD(DAY, 1, @d)", propertyId, date, ct).ConfigureAwait(false),
+            RateReductions: await SqlRateReductionDigest.LinesAsync(connections, connection, transaction, propertyId, date, ct).ConfigureAwait(false)); // CTL-01
         var now = clock.GetUtcNow().UtcDateTime;
         await UpsertAsync(connection, transaction, propertyId, date, "Email", false, DigestBodies.Email(facts), now, ct).ConfigureAwait(false);
         await UpsertAsync(connection, transaction, propertyId, date, "WhatsApp", true, DigestBodies.WhatsApp(facts), now, ct).ConfigureAwait(false);

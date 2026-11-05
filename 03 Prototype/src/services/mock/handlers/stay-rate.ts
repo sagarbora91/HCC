@@ -5,7 +5,7 @@ import type {Approval,Booking,GuestAgreedRate,STRRateChange} from '../../../doma
 import {money} from '../../../domain/money';
 import {gstForRoomNight} from '../../../domain/gst';
 import {folioExpiresAt,folioKind,folioApprovalExpired} from '../../../domain/streams/folio';
-import {strRefusal,strCanDirect,strPlan,strEffectiveFrom,strNightClosed,strState,type STRScope} from '../../../domain/streams/stay-rate';
+import {strRefusal,strCanDirect,strPlan,strEffectiveFrom,strNightClosed,strState,strAgreedRate,strThresholdBps,strTariff,strOverThreshold,strReductionBps,strJudgedText,type STRScope} from '../../../domain/streams/stay-rate';
 
 export type STRInput={rate:number;people:number;children:number;scope:STRScope;reason:string};
 
@@ -13,6 +13,9 @@ export type STRInput={rate:number;people:number;children:number;scope:STRScope;r
 export function strApply(k:Kit,x:Booking,c:STRInput,approval?:Approval):STRRateChange{
   const {s,id,uid}=k;
   const old={rate:x.rate,people:x.people,children:x.children??0};
+  // CTL-01: what the change is judged against, read BEFORE the booking moves. An Owner-set (or Owner-approved) rate becomes the new agreed rate.
+  const moves=c.rate!==old.rate,agreed=strAgreedRate(s,x),bps=strThresholdBps(s),tariff=strTariff(s,x);
+  const over=moves&&strOverThreshold(s,x,c.rate),ownerSet=s.users.find(u=>u.id===uid)?.role==='Owner';
   // `next`: tonight keeps the old rate — post tonight's night now (as the night audit would) before the rate changes.
   if(c.scope==='next'&&x.arrival<=s.date&&s.date<x.departure&&!strNightClosed(s,s.date))k.addNight(x,s.date);
   const reposted:STRRateChange['reposted']=[];
@@ -31,13 +34,23 @@ export function strApply(k:Kit,x:Booking,c:STRInput,approval?:Approval):STRRateC
   const st=s.stayRateX??(s.stayRateX={changes:[]});
   const ch:STRRateChange={id:id('STR'),booking:x.id,room:x.room,date:s.date,at:s.clock,by:approval?approval.actor:uid,scope:c.scope,reason:c.reason,
     oldRate:old.rate,newRate:c.rate,oldPeople:old.people,newPeople:c.people,oldChildren:old.children,newChildren:c.children,
-    effectiveFrom:strEffectiveFrom(s,{...x,lines:[]},c.scope),reposted};
+    effectiveFrom:strEffectiveFrom(s,{...x,lines:[]},c.scope),reposted,
+    tariff,agreedRate:agreed,agreedAfter:ownerSet&&moves?c.rate:agreed,thresholdBps:bps,overThreshold:over};
   if(approval){ch.approvalId=approval.id;ch.approvedBy=uid;}
   st.changes.push(ch);void strState;
+  // CTL-01: a separate audit line the owner review can find (who changed, who approved, how far below the agreed rate).
+  if(over){const name=(id_:string)=>s.users.find(u=>u.id===id_)?.name??id_;
+    s.audit.unshift({id:id('audit'),at:s.clock,actor:k.user.name,action:'RATE REDUCTION OVER THRESHOLD',
+      detail:`${x.id} · ${ch.id} · agreed ${money(agreed)} → ${money(c.rate)} · ${strReductionBps(agreed,c.rate)} bps below the agreed rate (threshold ${bps} bps) · changed by ${name(ch.by)}`
+        +(approval?` · approved by ${name(uid)}`:' · applied directly')+` · ${c.reason}`});}
   return ch;
 }
 
-const describe=(c:STRRateChange)=>`rate ${money(c.oldRate)} → ${money(c.newRate)} · guests ${c.oldPeople}+${c.oldChildren} → ${c.newPeople}+${c.newChildren} · ${c.scope} from ${c.effectiveFrom}`+(c.reposted.length?` · ${c.reposted.length} night(s) re-posted`:'');
+/** The CTL-01 audit suffix from the recorded change: what it was judged against. */
+export const strJudgedOf=(c:STRRateChange)=>c.oldRate===c.newRate||c.agreedRate===undefined?'':
+  `tariff ${money(c.tariff??0)} · agreed ${money(c.agreedRate)} · ${strReductionBps(c.agreedRate,c.newRate)} bps below agreed`+(c.overThreshold?` · over the ${c.thresholdBps} bps threshold (Owner)`:'');
+const describe=(c:STRRateChange)=>`rate ${money(c.oldRate)} → ${money(c.newRate)} · guests ${c.oldPeople}+${c.oldChildren} → ${c.newPeople}+${c.newChildren} · ${c.scope} from ${c.effectiveFrom}`+(c.reposted.length?` · ${c.reposted.length} night(s) re-posted`:'')
+  +(strJudgedOf(c)?` · ${strJudgedOf(c)}`:'');
 
 const STAY_RATE_CHANGE:Handler=k=>{
   // PERM-STY-010 stay.rateChange.request (Owner, Manager, Reception); direct for the Owner and a Manager within PERM-RATE-001.
@@ -53,9 +66,10 @@ const STAY_RATE_CHANGE:Handler=k=>{
   if(strCanDirect(s,uid,x!,c)){const ch=strApply(k,x!,c);return `${x!.id} · ${describe(ch)}`;}
   assert(!s.approvals.some(a=>a.booking===x!.id&&folioKind(a)==='rate-change'&&a.status==='Pending'&&!folioApprovalExpired(s,a)),'A rate-change request is already pending on this stay.','INVALID_TRANSITION');
   const a:Approval={id:k.id('APR'),booking:x!.id,actor:uid,version:x!.version,status:'Pending',expiresAt:folioExpiresAt(s.clock),amount:c.rate,reason:c.reason,kind:'rate-change',
-    meta:{command:'APPROVAL',rate:c.rate,people:c.people,children:c.children,scope:c.scope,oldRate:x!.rate,oldPeople:x!.people,oldChildren:x!.children??0}};
+    meta:{command:'APPROVAL',rate:c.rate,people:c.people,children:c.children,scope:c.scope,oldRate:x!.rate,oldPeople:x!.people,oldChildren:x!.children??0,
+      agreedRate:strAgreedRate(s,x!),overThreshold:c.rate!==x!.rate&&strOverThreshold(s,x!,c.rate)}}; // CTL-01: shown to the approver
   s.approvals.push(a);
-  return `${x!.id} · rate change ${money(x!.rate)} → ${money(c.rate)} (guests ${c.people}+${c.children}, ${c.scope}) requested · ${a.id}`;
+  return `${x!.id} · rate change ${money(x!.rate)} → ${money(c.rate)} (guests ${c.people}+${c.children}, ${c.scope}) requested · ${a.id}`+(c.rate!==x!.rate?` · ${strJudgedText(s,x!,c.rate)}`:'');
 };
 
 /** The room types a guest rate may name (room-type keys of the hotel's rooms). */

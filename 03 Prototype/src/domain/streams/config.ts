@@ -513,6 +513,12 @@ function builtins(){
     {key:'yld.roundTo',label:'Rate rounding',type:'choice',options:YLD_ROUND_OPTIONS,unit:'₹ step',help:'Suggested rates are rounded to this step.',show:v=>money(Number(v)),
       read:s=>yldSlice(s).guard.roundTo,command:(s,v)=>({type:'YLD_GUARD_SET',...yldSlice(s).guard,roundTo:v}),affects:'Suggested rates from now on.'},
   ]});
+  // AF2-CTL01 (audit CTL-01): reductions judged against the stay's agreed rate as well as the tariff (stay-rate.ts STR_THRESHOLD_KEY; server RateControlSettings).
+  registerSettingsGroup({id:'rate-control',group:'rooms',defs:[
+    {key:'rate.agreedReductionBps',label:'Rate reduction below the agreed rate that needs the Owner',type:'percent',min:0,max:10000,default:1500,money:true,unit:'% below the agreed rate',
+      help:'A Manager may lower an in-house stay’s rate by at most this much below the rate agreed on the booking (and never below the PERM-RATE-001 limit under the tariff). Beyond it the Owner decides; every such change is listed in the owner digest.',
+      affects:'Rate changes requested or decided from now on; applied changes and pending requests are not re-evaluated.'},
+  ]});
   registerSettingsGroup({id:'frontdesk',group:'frontdesk',defs:[
     {key:'fd.holdHours',label:'Unconfirmed hold expiry',type:'integer',min:1,max:72,default:6,suffix:'h',unit:'simulated hours',effective:'nextDay',help:'Holds without an advance are released after this long.',affects:'Holds created from the next business day.'},
     {key:'fd.deposit',label:'Refundable deposit at check-in',type:'money',money:true,min:0,max:2000000,default:100000,unit:'₹ per stay',effective:'nextDay',dated:true,help:'Suggested deposit shown at check-in.',affects:'Check-ins from the next business day; deposits already held are unchanged.'},

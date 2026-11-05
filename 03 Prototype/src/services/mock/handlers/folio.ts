@@ -27,7 +27,7 @@ function companyCreditCheck(k:Kit,x:Booking,amount:number){
   const refusal=grpCreditRefusal(c!,grpExposure(k.s,c!)-grpBookingExposure(k.s,x),amount,'stay on company credit');
   if(refusal)k.fail('INVALID_TRANSITION',refusal);
 }
-import {strCanApprove,strRefusal} from '../../../domain/streams/stay-rate'; // LF-RATE
+import {strCanApprove,strRefusal,strOverThreshold,strThresholdBps,strAgreedRate} from '../../../domain/streams/stay-rate'; // LF-RATE (+ AF2-CTL01)
 import {strApply} from './stay-rate'; // LF-RATE
 import {blcExecute} from './bill-correction'; // LF-BILL
 import {blcCorrections} from '../../../domain/streams/bill-correction'; // LF-BILL
@@ -296,7 +296,9 @@ const APPROVAL:Handler=k=>{
     if(kind==='rate-change'){
       assert(x&&x.status==='In house','A rate change applies to an in-house stay only.','INVALID_TRANSITION');stale();
       const m=a!.meta as Record<string,any>;
-      assert(strCanApprove(s,uid,x!,Number(m.rate)),'This rate is below what a Manager may allow (PERM-RATE-001). An Owner must approve it.','FORBIDDEN');
+      assert(strCanApprove(s,uid,x!,Number(m.rate)),Number(m.rate)!==x!.rate&&strOverThreshold(s,x!,Number(m.rate))
+        ?`This rate is more than ${strThresholdBps(s)/100} % below the agreed rate ${money(strAgreedRate(s,x!))} (CTL-01). An Owner must approve it.`
+        :'This rate is below what a Manager may allow (PERM-RATE-001). An Owner must approve it.','FORBIDDEN');
       const refusal=strRefusal(s,x,{rate:m.rate,people:m.people,children:m.children,scope:m.scope,reason:a!.reason});if(refusal)fail('INVALID_TRANSITION',refusal);
       const ch=strApply(k,x!,{rate:Number(m.rate),people:Number(m.people),children:Number(m.children),scope:m.scope,reason:a!.reason},a!);
       a!.status='Executed';a!.meta={...a!.meta,change:ch.id};extra=` · rate ${money(ch.oldRate)} → ${money(ch.newRate)} applied`+(ch.reposted.length?` · ${ch.reposted.length} night(s) re-posted`:'');

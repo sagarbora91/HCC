@@ -8,6 +8,7 @@ using Hcc.Application.Tax;
 using Hcc.Contracts;
 using Hcc.Contracts.Billing;
 using Hcc.Domain.Billing;
+using Hcc.Domain.Configuration;
 using Hcc.Domain.Errors;
 using Hcc.Domain.Money;
 using Hcc.Domain.Stays;
@@ -29,9 +30,14 @@ public sealed record RateAuthority(bool Owner, bool Manager, int LimitBps);
 /// <summary>The meta of a pending 'rate-change' approval (gst.stay_rate_request, migration 4690).</summary>
 public sealed record StayRateRequestMeta(long ApprovalId, long StayId, string Scope, long NewRatePaise, int NewPeople, int NewChildren, long OldRatePaise, int OldPeople, int OldChildren);
 
-/// <summary>One applied change (gst.stay_rate_change, 4675).</summary>
+/// <summary>One applied change (gst.stay_rate_change, 4675). CTL-01 (4920): the tariff and the agreed rate it was judged against, the agreed rate after it
+/// (an Owner-set rate becomes the new agreed rate), the threshold in force and whether the change went beyond it (the owner digest lists those).</summary>
 public sealed record StayRateChangeRow(int PropertyId, long StayId, long ReservationId, int RoomId, DateOnly BusinessDate, DateTime Utc, int ChangedBy, long? ApprovalId,
-    int? ApprovedBy, string Scope, string Reason, long OldRate, long NewRate, int OldPeople, int NewPeople, int OldChildren, int NewChildren, DateOnly EffectiveFrom, string RepostedJson);
+    int? ApprovedBy, string Scope, string Reason, long OldRate, long NewRate, int OldPeople, int NewPeople, int OldChildren, int NewChildren, DateOnly EffectiveFrom, string RepostedJson,
+    long? TariffPaise = null, long? AgreedRatePaise = null, long? AgreedAfterPaise = null, int? ThresholdBps = null, bool OverThreshold = false);
+
+/// <summary>CTL-01: what a change is judged against — the tariff, the stay's agreed rate, the Owner's threshold — and whether the Owner set it.</summary>
+public sealed record RateControl(Paise Tariff, Paise Agreed, int ThresholdBps, bool OwnerSet);
 
 /// <summary>Persistence of the rate change (SQL adapter Infrastructure/Stays/SqlStayRateStore). Everything inside the command transaction.</summary>
 public interface IStayRateStore
@@ -52,6 +58,9 @@ public interface IStayRateStore
     Task SetReservationAsync(ICommandTransaction tx, long reservationId, long ratePaise, int adults, int children, CancellationToken ct);
 
     Task<long> InsertChangeAsync(ICommandTransaction tx, StayRateChangeRow row, CancellationToken ct);
+
+    /// <summary>CTL-01: the agreed rate recorded after the stay's latest change (null for rows before 4920 or no change) and the rate before its first change.</summary>
+    Task<(long? LatestAgreedAfter, long? FirstOldRate)> AgreedHistoryAsync(ICommandTransaction tx, long stayId, CancellationToken ct);
 }
 
 /// <summary>
@@ -65,7 +74,8 @@ public interface IStayRateStore
 /// <c>StayRateChanged</c> (no accounting entry of its own: the re-posted lines publish <c>ChargePosted</c>, every one balanced).
 /// </summary>
 public sealed class StayRateCommands(ICommandRunner runner, IAccessPolicy policy, IStayRateStore rates, IStayChangeStore stays, IBillingStore billing,
-    IGstRateResolver gst, IStayNightPricer pricer, TimeProvider clock, IGstChargeSnapshots? gstSnapshots = null, IBusinessDayGuard? days = null)
+    IGstRateResolver gst, IStayNightPricer pricer, TimeProvider clock, IGstChargeSnapshots? gstSnapshots = null, IBusinessDayGuard? days = null,
+    Hcc.Application.Configuration.ISettingsReader? settings = null)
 {
     public const string OpChangeStayRate = "ChangeStayRate";
     public const string Permission = "PERM-STY-010";
@@ -102,8 +112,10 @@ public sealed class StayRateCommands(ICommandRunner runner, IAccessPolicy policy
             var auth = await rates.AuthorityAsync(tx, ctx.PrincipalId, c).ConfigureAwait(false);
             var tariff = new Paise(await rates.TariffAsync(tx, s.RoomTypeId, bd, c).ConfigureAwait(false));
             var guestsRise = input.People + input.Children > s.Adults + s.Children;
-            if (StayRateRules.CanApplyDirectly(auth.Owner, auth.Manager, tariff, auth.LimitBps, input.Rate, guestsRise, extra))
-                return await ApplyAsync(tx, ctx.PropertyId, ctx.PrincipalId, s, bd, oldRate, input, null, null, c).ConfigureAwait(false);
+            var threshold = await ThresholdAsync(tx, ctx.PropertyId, c).ConfigureAwait(false);
+            var agreed = await AgreedAsync(tx, s.StayId, oldRate, c).ConfigureAwait(false);
+            if (StayRateRules.CanApplyDirectly(auth.Owner, auth.Manager, tariff, auth.LimitBps, agreed, threshold, input.Rate, guestsRise, extra))
+                return await ApplyAsync(tx, ctx.PropertyId, ctx.PrincipalId, s, bd, oldRate, input, null, null, new RateControl(tariff, agreed, threshold, auth.Owner), c).ConfigureAwait(false);
 
             var f = await billing.LockFolioAsync(tx, s.FolioId, c).ConfigureAwait(false) ?? throw new HccException(HccErrorCode.NOT_FOUND, "Folio not found.");
             var now = Now;
@@ -115,7 +127,8 @@ public sealed class StayRateCommands(ICommandRunner runner, IAccessPolicy policy
                 amount, f.Version, null, null, reason, ctx.PrincipalId, now, now + ApprovalRules.TimeToLive), c).ConfigureAwait(false);
             await rates.InsertRequestAsync(tx, new StayRateRequestMeta(approvalId, s.StayId, input.Scope, input.Rate.Value, input.People, input.Children, oldRate, s.Adults, s.Children), c).ConfigureAwait(false);
             await tx.AuditAsync("STAY_RATE_CHANGE_REQUESTED", Target(s.StayId),
-                $"rate {oldRate} → {input.Rate.Value} paise · guests {s.Adults}+{s.Children} → {input.People}+{input.Children} · {input.Scope} · {reason} · approval {approvalId}", c).ConfigureAwait(false);
+                $"rate {oldRate} → {input.Rate.Value} paise · guests {s.Adults}+{s.Children} → {input.People}+{input.Children} · {input.Scope} · {reason} · approval {approvalId}"
+                + Judged(tariff, agreed, threshold, input.Rate, input.Rate.Value != oldRate), c).ConfigureAwait(false);
             await tx.PublishAsync("ApprovalRequested", approvalId, new { approvalId, action = "rate-change", folioId = s.FolioId, amountPaise = amount.Value }, c).ConfigureAwait(false);
             return new StayRateChangeResult("PendingApproval", null, approvalId, null, []);
         }, ct).ConfigureAwait(false);
@@ -149,9 +162,14 @@ public sealed class StayRateCommands(ICommandRunner runner, IAccessPolicy policy
         var (s, bd) = await LoadAsync(tx, caller.PropertyId, meta.StayId, ct).ConfigureAwait(false);
         var auth = await rates.AuthorityAsync(tx, caller.PrincipalId, ct).ConfigureAwait(false);
         var tariff = new Paise(await rates.TariffAsync(tx, s.RoomTypeId, bd, ct).ConfigureAwait(false));
-        if (!StayRateRules.CanApprove(auth.Owner, auth.Manager, tariff, auth.LimitBps, new Paise(meta.NewRatePaise)))
-            throw new HccException(HccErrorCode.FORBIDDEN, "This rate is beyond your limit below the tariff: the Owner decides it.");
         var current = s.NightlyRatePaise ?? await stays.LastNightRateAsync(tx, s.ReservationId, ct).ConfigureAwait(false) ?? 0;
+        var threshold = await ThresholdAsync(tx, caller.PropertyId, ct).ConfigureAwait(false);
+        var agreed = await AgreedAsync(tx, s.StayId, current, ct).ConfigureAwait(false);
+        var newRate = new Paise(meta.NewRatePaise);
+        if (!StayRateRules.CanApprove(auth.Owner, auth.Manager, tariff, auth.LimitBps, agreed, threshold, newRate))
+            throw new HccException(HccErrorCode.FORBIDDEN, StayRateRules.CanApprove(auth.Owner, auth.Manager, tariff, auth.LimitBps, newRate)
+                ? $"This rate is more than {SettingRules.Percent(threshold)} below the agreed rate {agreed}: the Owner decides it (CTL-01)."
+                : "This rate is beyond your limit below the tariff: the Owner decides it.");
         if (current != meta.OldRatePaise || s.Adults != meta.OldPeople || s.Children != meta.OldChildren)
             throw new HccException(HccErrorCode.STALE_VERSION, "The stay changed after this request. Reject it and request again.");
         var (capacity, _) = await rates.RoomTypeAsync(tx, s.RoomTypeId, ct).ConfigureAwait(false);
@@ -159,7 +177,7 @@ public sealed class StayRateCommands(ICommandRunner runner, IAccessPolicy policy
         var refusal = StayRateRules.Refusal(s.StayStatus == "InHouse", bd, s.Departure, new Paise(current), s.Adults, s.Children, input, capacity);
         if (refusal is not null) throw HccException.Validation(refusal);
 
-        var applied = await ApplyAsync(tx, caller.PropertyId, a.RequestedBy, s, bd, current, input, a.ApprovalId, caller.PrincipalId, ct).ConfigureAwait(false);
+        var applied = await ApplyAsync(tx, caller.PropertyId, a.RequestedBy, s, bd, current, input, a.ApprovalId, caller.PrincipalId, new RateControl(tariff, agreed, threshold, auth.Owner), ct).ConfigureAwait(false);
         var newVersion = await billing.UpdateApprovalAsync(tx, a.ApprovalId, a.Version,
             new ApprovalChange(ApprovalStatus.Executed, caller.PrincipalId, now, reason, caller.PrincipalId, now, applied.ChangeId), ct).ConfigureAwait(false);
         await tx.AuditAsync("APPROVAL_DECIDED", "approval-" + N(a.ApprovalId), $"rate-change · approved · change {applied.ChangeId}", ct).ConfigureAwait(false);
@@ -169,8 +187,11 @@ public sealed class StayRateCommands(ICommandRunner runner, IAccessPolicy policy
     }
 
     private async Task<StayRateChangeResult> ApplyAsync(ICommandTransaction tx, int propertyId, int changedBy, StayChangeContext s, DateOnly bd, long oldRate,
-        StayRateChangeInput input, long? approvalId, int? approvedBy, CancellationToken c)
+        StayRateChangeInput input, long? approvalId, int? approvedBy, RateControl rc, CancellationToken c)
     {
+        var rateMoves = input.Rate.Value != oldRate;
+        var over = rateMoves && StayRateRules.OverThreshold(rc.Agreed, rc.ThresholdBps, input.Rate);
+        var agreedAfter = rc.OwnerSet && rateMoves ? input.Rate : rc.Agreed;
         bool Closed(DateOnly d) => d < bd;
         var lines = await billing.LinesAsync(tx, s.FolioId, c).ConfigureAwait(false);
         var reversed = lines.Where(l => l.ReversesChargeId is not null).Select(l => l.ReversesChargeId!.Value).ToHashSet();
@@ -210,12 +231,18 @@ public sealed class StayRateCommands(ICommandRunner runner, IAccessPolicy policy
 
         var json = JsonSerializer.Serialize(reposted.Select(r => new { reversal = N(r.ReversalChargeId), line = N(r.NewChargeId), night = r.Night.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) }));
         var changeId = await rates.InsertChangeAsync(tx, new StayRateChangeRow(propertyId, s.StayId, s.ReservationId, s.CurrentRoomId, bd, now, changedBy, approvalId, approvedBy,
-            input.Scope, input.Reason, oldRate, input.Rate.Value, s.Adults, input.People, s.Children, input.Children, from, json), c).ConfigureAwait(false);
+            input.Scope, input.Reason, oldRate, input.Rate.Value, s.Adults, input.People, s.Children, input.Children, from, json,
+            rc.Tariff.Value, rc.Agreed.Value, agreedAfter.Value, rc.ThresholdBps, over), c).ConfigureAwait(false);
         await tx.AuditAsync("STAY_RATE_CHANGE", Target(s.StayId),
             $"rate {oldRate} → {input.Rate.Value} paise · guests {s.Adults}+{s.Children} → {input.People}+{input.Children} · {input.Scope} from {from:yyyy-MM-dd} · re-posted {reposted.Count} night(s) · {input.Reason}"
-            + (approvalId is { } ap ? $" · approval {ap}" : ""), c).ConfigureAwait(false);
+            + (approvalId is { } ap ? $" · approval {ap}" : "") + Judged(rc.Tariff, rc.Agreed, rc.ThresholdBps, input.Rate, rateMoves), c).ConfigureAwait(false);
+        if (over)
+            // CTL-01: a separate audit line the owner review can find by action (who changed, who approved, how far below the agreed rate).
+            await tx.AuditAsync("RATE_REDUCTION_OVER_THRESHOLD", Target(s.StayId),
+                $"change {N(changeId)} · agreed {rc.Agreed.Value} → {input.Rate.Value} paise · {StayRateRules.ReductionBps(rc.Agreed, input.Rate)} bps below the agreed rate (threshold {rc.ThresholdBps} bps)"
+                + $" · changed by {changedBy}" + (approvedBy is { } ab ? $" · approved by {ab}" : " · applied directly") + $" · {input.Reason}", c).ConfigureAwait(false);
         await tx.PublishAsync(EventStayRateChanged, s.StayId, new { changeId, stayId = s.StayId, reservationId = s.ReservationId, oldRatePaise = oldRate, newRatePaise = input.Rate.Value,
-            effectiveFrom = from, reposted = reposted.Count, approvalId }, c).ConfigureAwait(false);
+            effectiveFrom = from, reposted = reposted.Count, approvalId, agreedRatePaise = rc.Agreed.Value, overThreshold = over }, c).ConfigureAwait(false);
         return new StayRateChangeResult("Applied", changeId, approvalId, from, reposted);
     }
 
@@ -235,6 +262,22 @@ public sealed class StayRateCommands(ICommandRunner runner, IAccessPolicy policy
         if (days is not null) await days.EnsureOpenAsync(tx, propertyId, bd, c).ConfigureAwait(false);
         return (s, bd);
     }
+
+    /// <summary>CTL-01 threshold in force (Master configuration, Owner-only); the default 15 % when no reader is wired.</summary>
+    private async Task<int> ThresholdAsync(ICommandTransaction tx, int propertyId, CancellationToken c) =>
+        settings is null ? RateControlSettings.DefaultThresholdBps
+            : RateControlSettings.Read(await settings.GetAsync(tx, propertyId, RateControlSettings.ThresholdKey, null, c).ConfigureAwait(false));
+
+    private async Task<Paise> AgreedAsync(ICommandTransaction tx, long stayId, long currentRate, CancellationToken c)
+    {
+        var (latest, first) = await rates.AgreedHistoryAsync(tx, stayId, c).ConfigureAwait(false);
+        return StayRateRules.AgreedBase(latest, first, currentRate);
+    }
+
+    /// <summary>The audit suffix: what the change was judged against (CTL-01).</summary>
+    private static string Judged(Paise tariff, Paise agreed, int thresholdBps, Paise newRate, bool rateMoves) =>
+        !rateMoves ? "" : $" · tariff {tariff.Value} · agreed {agreed.Value} paise · {StayRateRules.ReductionBps(agreed, newRate)} bps below agreed"
+            + (StayRateRules.OverThreshold(agreed, thresholdBps, newRate) ? $" · over the {thresholdBps} bps threshold (Owner)" : "");
 
     private static string Clip(string s) => s.Length <= 200 ? s : s[..200];
 

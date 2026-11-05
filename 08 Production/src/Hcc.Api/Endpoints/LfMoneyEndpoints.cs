@@ -19,6 +19,7 @@ public static class LfMoneyEndpoints
         // LF A1 rate change + the LF-money approval decisions (DecideApproval delegates 'rate-change' / 'bill-correction' / 'guest-credit' / 'counter-credit')
         services.AddSingleton<IStayRateStore, Hcc.Infrastructure.SqlServer.Stays.SqlStayRateStore>();
         services.AddSingleton<StayRateCommands>();
+        services.AddSingleton<Hcc.Application.Configuration.ISettingsProvider>(RateControlSettings.Provider); // CTL-01 rate.agreedReductionBps (Rooms and rate plans, Owner only)
         services.AddSingleton<Hcc.Application.Billing.ILfApprovalHandler, StayRateApprovalHandler>();
         services.AddSingleton<Hcc.Application.Billing.ILfApprovalDecisions, Hcc.Application.Billing.LfApprovalDecisions>();
         // LF B2 guest credit at check-out

@@ -41,6 +41,55 @@ public class StayRateTests
         Assert.True(StayRateRules.CanApprove(true, false, Tariff, 1500, new Paise(1)));
     }
 
+    // ── CTL-01: the agreed rate as well as the tariff; the stricter wins (same cases as tests/stream-af2-ctl01.mjs) ──
+
+    [Fact]
+    public void Ctl01_at_the_threshold_passes_one_paisa_below_needs_the_owner()
+    {
+        var agreed = new Paise(250_000);
+        Assert.Equal(new Paise(212_500), StayRateRules.AgreedFloor(agreed, 1500));
+        Assert.False(StayRateRules.OverThreshold(agreed, 1500, new Paise(212_500)));
+        Assert.True(StayRateRules.OverThreshold(agreed, 1500, new Paise(212_499)));
+        Assert.True(StayRateRules.CanApplyDirectly(false, true, Tariff, 1500, agreed, 1500, new Paise(212_500), false, false));
+        Assert.False(StayRateRules.CanApplyDirectly(false, true, Tariff, 1500, agreed, 1500, new Paise(212_499), false, false));
+        Assert.True(StayRateRules.CanApprove(false, true, Tariff, 1500, agreed, 1500, new Paise(212_500)));
+        Assert.False(StayRateRules.CanApprove(false, true, Tariff, 1500, agreed, 1500, new Paise(212_499)));
+        Assert.True(StayRateRules.CanApprove(true, false, Tariff, 1500, agreed, 1500, new Paise(1)), "the Owner decides anything");
+    }
+
+    [Fact]
+    public void Ctl01_the_audit_case_2500_to_1900_against_a_2000_tariff_needs_the_owner()
+    {
+        // Within 15 % of the tariff (₹1,700 floor) but 24 % below the agreed ₹2,500.
+        Assert.True(StayRateRules.CanApplyDirectly(false, true, Tariff, 1500, new Paise(190_000), false, false), "tariff-only rule (before CTL-01)");
+        Assert.False(StayRateRules.CanApplyDirectly(false, true, Tariff, 1500, new Paise(250_000), 1500, new Paise(190_000), false, false));
+        Assert.Equal(2400, StayRateRules.ReductionBps(new Paise(250_000), new Paise(190_000)));
+        Assert.Equal(0, StayRateRules.ReductionBps(new Paise(250_000), new Paise(260_000)));
+        // Raising the threshold to 25 % lets the Manager do it.
+        Assert.True(StayRateRules.CanApplyDirectly(false, true, Tariff, 1500, new Paise(250_000), 2500, new Paise(190_000), false, false));
+    }
+
+    [Fact]
+    public void Ctl01_agreed_rate_below_the_tariff_keeps_the_tariff_limit()
+    {
+        var agreed = new Paise(180_000); // a regular guest's agreed rate under the ₹2,000 master tariff
+        Assert.True(StayRateRules.CanApplyDirectly(false, true, Tariff, 1500, agreed, 1500, new Paise(170_000), false, false));
+        Assert.False(StayRateRules.CanApplyDirectly(false, true, Tariff, 1500, agreed, 1500, new Paise(169_999), false, false), "the tariff floor is the stricter one here");
+        Assert.False(StayRateRules.OverThreshold(agreed, 1500, new Paise(169_999)));
+        Assert.True(StayRateRules.CanApplyDirectly(false, true, Tariff, 1500, agreed, 1500, new Paise(200_000), false, false));
+    }
+
+    [Fact]
+    public void Ctl01_agreed_base_survives_manager_steps_and_moves_with_the_owner()
+    {
+        Assert.Equal(new Paise(220_000), StayRateRules.AgreedBase(null, null, 220_000));
+        Assert.Equal(new Paise(250_000), StayRateRules.AgreedBase(null, 250_000, 220_000));
+        Assert.Equal(new Paise(200_000), StayRateRules.AgreedBase(200_000, 250_000, 200_000));
+        // Mid-stay: 2,500 → 2,200 by the Manager; the next step to 2,100 is 16 % below the agreed 2,500 although only 4.5 % below 2,200.
+        Assert.False(StayRateRules.CanApplyDirectly(false, true, Tariff, 1500, StayRateRules.AgreedBase(250_000, 250_000, 220_000), 1500, new Paise(210_000), false, false));
+        Assert.Equal(new Paise(0), StayRateRules.AgreedFloor(new Paise(250_000), 10_000));
+    }
+
     [Fact]
     public void Scope_picks_the_nights_never_a_closed_one()
     {
