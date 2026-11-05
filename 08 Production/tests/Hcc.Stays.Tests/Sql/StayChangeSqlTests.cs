@@ -122,10 +122,15 @@ public class StayChangeSqlTests : IAsyncLifetime
         Assert.Equal("400000,395000,395000", await Q($"SELECT STRING_AGG(CAST(rate_paise AS varchar(12)), ',') WITHIN GROUP (ORDER BY night) FROM inv.reservation_night WHERE reservation_id = {Res("HCC-1041")};"));
         Assert.Equal("395000", await Q($"SELECT CAST(nightly_rate_paise AS varchar(12)) FROM inv.reservation WHERE reservation_id = {Res("HCC-1041")};"));
         Assert.Equal(1, await _w.Db.CountAsync($"SELECT COUNT(*) FROM gst.stay_change WHERE stay_id = {_w.Stay("HCC-1041")} AND rate_decision = 'change' AND old_rate_paise = 400000 AND new_rate_paise = 395000 AND rate_loss_paise = 10000;", Ct));
+        // CTL-01 (af2-fix): the rate change is recorded against the agreed rate; a Manager's rate does not become the agreed rate.
+        Assert.Equal(1, await _w.Db.CountAsync($"SELECT COUNT(*) FROM gst.stay_rate_change WHERE stay_id = {_w.Stay("HCC-1041")} AND old_rate_paise = 400000 AND new_rate_paise = 395000 AND agreed_rate_paise = 400000 AND agreed_after_paise = 400000 AND over_threshold = 0 AND scope = 'today-next';", Ct));
         var up = await MoveAsync(_w.Reception, "HCC-1042", "107", "d4", "change", 450_000); // a raise needs no approval
         Assert.Equal(0, up.RateLossPaise);
         var owner = await MoveAsync(_w.Owner, "HCC-1043", "203", "d5", "change", 300_000);
         Assert.Equal(200_000, owner.RateLossPaise);
+        // 25 % below the agreed ₹4,000 by the Owner: flagged, audited, and ₹3,000 becomes the agreed rate.
+        Assert.Equal(1, await _w.Db.CountAsync($"SELECT COUNT(*) FROM gst.stay_rate_change WHERE stay_id = {_w.Stay("HCC-1043")} AND over_threshold = 1 AND agreed_rate_paise = 400000 AND agreed_after_paise = 300000;", Ct));
+        Assert.Equal(1, await _w.Db.CountAsync($"SELECT COUNT(*) FROM plat.audit_event WHERE action = 'RATE_REDUCTION_OVER_THRESHOLD' AND target = 'stay-{_w.Stay("HCC-1043")}';", Ct));
         Assert.Equal(0, await _w.CountDriftAsync(Ct));
     }
 

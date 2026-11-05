@@ -190,13 +190,19 @@ public sealed class SqlReportStores(SqlConnectionFactory connections) : IReportP
     }
 
     /// <summary>Rows of the export log (newest first) — read by the rpt.admin.export-log report (R8) and the tests.</summary>
-    public async Task<IReadOnlyList<ReportExportLogRecord>> ExportLogAsync(int propertyId, int take, CancellationToken ct = default)
+    public Task<IReadOnlyList<ReportExportLogRecord>> ExportLogAsync(int propertyId, int take, CancellationToken ct = default) => ExportLogAsync(propertyId, take, null, ct);
+
+    /// <summary>af2-fix finding 3: <paramref name="principalId"/> (null = every user) is filtered in SQL BEFORE the row limit, so a user whose own rows are
+    /// older than the newest <paramref name="take"/> rows of the property still sees them.</summary>
+    public async Task<IReadOnlyList<ReportExportLogRecord>> ExportLogAsync(int propertyId, int take, int? principalId, CancellationToken ct = default)
     {
         await using var conn = await connections.OpenAsync(ct).ConfigureAwait(false);
         await using var cmd = connections.Command("""
-            SELECT TOP (@n) log_id, at_utc, principal_id, report_id, params, format, row_count, file_name, provisional FROM rpt.export_log WHERE property_id = @p ORDER BY log_id DESC;
+            SELECT TOP (@n) log_id, at_utc, principal_id, report_id, params, format, row_count, file_name, provisional FROM rpt.export_log
+             WHERE property_id = @p AND (@u IS NULL OR principal_id = @u) ORDER BY log_id DESC;
             """, conn);
         Add(cmd, "@p", SqlDbType.Int, propertyId); Add(cmd, "@n", SqlDbType.Int, Math.Clamp(take, 1, 1000));
+        cmd.Parameters.Add("@u", SqlDbType.Int).Value = principalId is { } u ? u : (object)DBNull.Value;
         var list = new List<ReportExportLogRecord>();
         await using var rd = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
         while (await rd.ReadAsync(ct).ConfigureAwait(false))

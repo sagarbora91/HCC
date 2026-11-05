@@ -3,7 +3,9 @@
 import type {Handler,Kit} from '../commands';
 import type {Booking} from '../../../domain/types';
 import {blockedTonight,available,occupant} from '../../../domain/selectors';
-import {nights} from '../../../domain/money';
+import {nights,money} from '../../../domain/money';
+import {strStayChangeRateRefusal} from '../../../domain/streams/stay-rate'; // af2-fix CTL-01 on a move / extension rate
+import {strRecordStayChange} from './stay-rate';
 import {Guest,GuestDraft,guestValidate,guestClean,guestFieldLabels,staySegments,guestIdNumberError,guestDobCleared,guestPartyIdMessage,guestIdKind} from '../../../domain/streams/guests';
 import type {GuestParty} from '../../../domain/streams/guests';
 import {deskCheckin} from './desk'; // LF-DESK
@@ -129,6 +131,17 @@ export const handlers:Record<string,Handler>={
     if(moving)k.assert(r!.hk==='Ready'&&!occupant(s,r!.id),'Target room must be vacant and ready.','NOT_AVAILABLE');
     if(inHouse&&cmd.departure<x.departure)
       k.assert(!x.lines.some(l=>l.kind==='room'&&l.date>=cmd.departure),'Room nights are already posted on or after the new departure date. Reverse them before shortening.','INVALID_TRANSITION');
+    // af2-fix finding 1 (server MoveRoom / ExtendStay rateDecision 'change'): an optional new rate for an in-house stay is judged like the server —
+    // PERM-APR-001 for the revenue given up, then CTL-01 against the agreed rate (stricter wins); beyond either only the Owner sets it.
+    const newRate=cmd.rate===undefined||cmd.rate===null?undefined:Number(cmd.rate);
+    const rateReason=String(cmd.reason??'').trim();
+    if(newRate!==undefined){
+      k.assert(inHouse,'A new rate on a move or an extension applies to an in-house stay only. Amend the reservation instead.','INVALID_TRANSITION');
+      k.assert(Number.isInteger(newRate)&&newRate>=0,'Enter the new rate in whole paise (0 or more).');
+      k.assert(rateReason.length>=3,'Enter the reason for the change.');k.assert(rateReason.length<=200,'The reason is too long (maximum 200 characters).');
+      const refusal=strStayChangeRateRefusal(s,k.uid,x,newRate,cmd.departure);
+      if(refusal)k.fail('FORBIDDEN',refusal);
+    }
     // All checks passed — the target is now reserved for [arrival, departure); release the old room.
     if(moving){
       const segs=staySegments(x).map(g=>({...g}));const cur=segs.find(g=>!g.to);
@@ -136,8 +149,10 @@ export const handlers:Record<string,Handler>={
       const old=s.rooms.find(o=>o.id===x.room)!;old.hk='Dirty';
       s.tasks.push({id:k.id('task'),room:old.id,assignee:'housekeeper',status:'To do',checked:[false,false,false]});
     }else if(inHouse&&!x.segments?.length)x.segments=staySegments(x).map(g=>({...g}));
-    const detail=`${x.id} · room ${x.room} → ${cmd.room}; departure ${cmd.departure}; agreed tariff preserved`;
-    x.room=cmd.room;x.departure=cmd.departure;x.version++;return detail;
+    const from=x.room;
+    x.room=cmd.room;x.departure=cmd.departure;x.version++;
+    const ch=newRate!==undefined?strRecordStayChange(k,x,newRate,moving?'Room move':'Stay extended',rateReason):undefined;
+    return `${x.id} · room ${from} → ${cmd.room}; departure ${cmd.departure}; `+(ch?`rate ${money(ch.oldRate)} → ${money(ch.newRate)} (agreed ${money(ch.agreedRate??ch.oldRate)})`+(ch.overThreshold?' · over the agreed-rate threshold (Owner)':''):'agreed tariff preserved');
   },
   /** Early departure (A02b-02, server EarlyDeparture): the in-house guest leaves today; nights [business date, departure) are released so checkout can follow.
    *  Same rules as the server: a reason, at least one night already stayed, nothing posted on or after today. Intended PERM-STY-002. {id, reason}.

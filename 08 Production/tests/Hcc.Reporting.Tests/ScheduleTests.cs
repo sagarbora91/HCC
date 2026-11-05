@@ -8,8 +8,8 @@ namespace Hcc.Reporting.Tests;
 
 public sealed class MemoryStores : IReportScheduleStore, IReportRunStore, IReportExportLog, IReportFavourites, IReportPrincipalRoles, IReportExportLogReader
 {
-    public Task<IReadOnlyList<ReportExportLogRecord>> ExportLogAsync(int propertyId, int take, CancellationToken ct = default) =>
-        Task.FromResult<IReadOnlyList<ReportExportLogRecord>>(Log.AsEnumerable().Reverse().Take(take).ToList());
+    public Task<IReadOnlyList<ReportExportLogRecord>> ExportLogAsync(int propertyId, int take, int? principalId, CancellationToken ct = default) =>
+        Task.FromResult<IReadOnlyList<ReportExportLogRecord>>(Log.AsEnumerable().Reverse().Where(r => principalId is null || r.PrincipalId == principalId).Take(take).ToList());
 
     public readonly List<ReportScheduleRecord> Schedules = [];
     public readonly List<ReportRunRecord> Runs = [];

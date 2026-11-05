@@ -81,4 +81,54 @@ export function register({test,M,assert}){
     assert.ok(email.includes(`by ${name('manager')} · approved by ${name('owner')}`));
     const wa=M.dgsWhatsAppBody(card);assert.match(wa,/Rate cuts beyond threshold 1/);assert.ok(!wa.includes('₹'));assert.ok(!wa.includes(name('manager')));
   });
+
+  // ── af2-fix finding 1: a new rate on a room move / stay extension (MOVE with `rate`, server MoveRoom / ExtendStay rateDecision 'change') ──
+  const addD=(d,n)=>{const t=new Date(d+'T00:00:00Z');t.setUTCDate(t.getUTCDate()+n);return t.toISOString().slice(0,10);};
+  /** One night (tonight) agreed at ₹2,500 on a ₹2,000 tariff: an extension by one night re-prices two un-posted nights. */
+  function short2500(room){
+    let s=seed();s=execute(s,'owner',{type:'BOOK',guest:'Threshold Move',room,arrival:s.date,departure:addD(s.date,1),people:2});const id=s.bookings.at(-1).id;
+    s=execute(s,'owner',{type:'REGISTER',id});s=execute(s,'owner',{type:'CHECKIN',id});s=rate(s,'owner',id,250000,'Agreed corporate rate');return [s,id];
+  }
+  const move=(s,who,id,room,departure,r,reason='Corporate rate')=>execute(s,who,{type:'MOVE',id,room,departure,rate:r,reason});
+  test(T+'move / extend with a new rate: beyond the agreed-rate threshold the Owner decides even inside the rupee limit; a Manager rate never becomes the agreed rate',()=>{
+    let [s,id]=short2500('105');const d1=bk(s,id).departure,d2=addD(d1,1);
+    // 2 nights × ₹400 = ₹800 given up (inside the Manager's ₹1,000 PERM-APR-001 limit) but 16 % below the agreed ₹2,500.
+    assert.throws(()=>move(s,'manager',id,'105',d2,210000),e=>e.code==='FORBIDDEN'&&e.message===M.strOwnerDecidesText(s,bk(s,id)));
+    assert.throws(()=>move(s,'manager',id,'106',d1,210000),e=>e.code==='FORBIDDEN'&&/below the agreed rate/.test(e.message));
+    assert.equal(bk(s,id).rate,250000);
+    s=move(s,'manager',id,'105',d2,215000);const b=bk(s,id);assert.equal(b.rate,215000);assert.equal(b.departure,d2);
+    const c=s.stayRateX.changes.at(-1);
+    assert.deepEqual([c.scope,c.oldRate,c.newRate,c.agreedRate,c.agreedAfter,c.overThreshold,c.tariff,c.thresholdBps,c.reposted.length],['today-next',250000,215000,250000,250000,false,200000,1500,0]);
+    assert.equal(M.strAgreedRate(s,b),250000,'the Manager rate is not the agreed rate');
+    // 1.2 % below the current ₹2,150 but more than 15 % below the agreed ₹2,500: refused on a move, an approval on STAY_RATE_CHANGE.
+    assert.throws(()=>move(s,'manager',id,'106',d2,212499),e=>e.code==='FORBIDDEN'&&/below the agreed rate/.test(e.message));
+    s=rate(s,'manager',id,212499);assert.equal(bk(s,id).rate,215000);assert.equal(s.approvals.at(-1).meta.overThreshold,true);
+    assert.ok(!s.audit.some(x=>x.action==='RATE REDUCTION OVER THRESHOLD'&&x.detail.includes(id)));
+    // Reception cannot give revenue up on a move; a raise needs no approval.
+    let [t,id2]=short2500('106');
+    assert.throws(()=>move(t,'reception',id2,'106',addD(bk(t,id2).departure,1),245000),e=>e.code==='FORBIDDEN'&&/Access denied/.test(e.message));
+    t=move(t,'reception',id2,'106',addD(bk(t,id2).departure,1),260000);assert.equal(bk(t,id2).rate,260000);assert.equal(t.stayRateX.changes.at(-1).agreedAfter,250000);
+  });
+  test(T+'the Owner moves beyond the threshold: flagged, audited, listed in the digest, and it becomes the agreed rate',()=>{
+    let [s,id]=short2500('105');const d1=bk(s,id).departure;
+    s=move(s,'owner',id,'106',d1,190000,'Owner corporate rate');const c=s.stayRateX.changes.at(-1);
+    assert.deepEqual([c.room,c.overThreshold,c.agreedRate,c.agreedAfter],['106',true,250000,190000]);
+    assert.ok(s.audit.some(x=>x.action==='RATE REDUCTION OVER THRESHOLD'&&x.detail.includes(id)&&/2400 bps below/.test(x.detail)));
+    const cuts=M.dgsRateCuts(s,s.date);assert.equal(cuts.length,1);assert.deepEqual([cuts[0].room,cuts[0].agreed,cuts[0].rate,cuts[0].reductionBps],['106',250000,190000,2400]);
+    s=move(s,'manager',id,'106',addD(d1,1),170000);assert.equal(bk(s,id).rate,170000,'15 % below the Owner’s ₹1,900 is within the Manager’s limit');
+    assert.equal(s.stayRateX.changes.at(-1).agreedRate,190000);
+  });
+
+  // ── af2-fix finding 2: a change that does not move the rate is not blocked by the agreed-rate threshold (server StayRateRules.NeedsOwner) ──
+  test(T+'a guest-count-only change on a stay already below the agreed floor is applied by a Manager; a rate that moves is still judged',()=>{
+    let [s,id]=agreed2500('105');
+    s=rate(s,'manager',id,215000);assert.equal(bk(s,id).rate,215000); // 14 % below the agreed ₹2,500
+    s=execute(s,'owner',{type:'SETTING_SET',setting:'rate.agreedReductionBps',value:1000,reason:'CTL-01 test'}); // floor now ₹2,250
+    const b=bk(s,id);assert.equal(M.strOverThreshold(s,b,b.rate),true);assert.equal(M.strNeedsOwner(s,b,b.rate),false);
+    assert.equal(M.strCanDirect(s,'manager',b,{rate:b.rate,people:1,children:0}),true);assert.equal(M.strCanApprove(s,'manager',b,b.rate),true);
+    const n=s.approvals.length;
+    s=execute(s,'manager',{type:'STAY_RATE_CHANGE',booking:id,people:1,scope:'today-next',reason:'One guest left'});
+    assert.equal(bk(s,id).people,1);assert.equal(bk(s,id).rate,215000);assert.equal(s.approvals.length,n);assert.equal(s.stayRateX.changes.at(-1).overThreshold,false);
+    s=rate(s,'manager',id,214000);assert.equal(bk(s,id).rate,215000,'a rate that moves below the ₹2,250 floor needs the Owner');assert.equal(s.approvals.length,n+1);
+  });
 }

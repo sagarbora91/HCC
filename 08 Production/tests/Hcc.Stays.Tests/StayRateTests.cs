@@ -91,6 +91,24 @@ public class StayRateTests
     }
 
     [Fact]
+    public void Ctl01_a_change_that_does_not_move_the_rate_is_not_blocked_by_the_agreed_threshold()
+    {
+        // af2-fix finding 2 (same case as tests/stream-af2-ctl01.mjs): the stay is already at ₹2,000, below the agreed floor ₹2,125 of ₹2,500.
+        var agreed = new Paise(250_000);
+        var current = new Paise(200_000);
+        Assert.False(StayRateRules.NeedsOwner(agreed, 1500, current, current), "guest-count / scope-only change");
+        Assert.True(StayRateRules.NeedsOwner(agreed, 1500, current, new Paise(199_999)), "a rate that moves is still judged");
+        Assert.True(StayRateRules.NeedsOwner(agreed, 1500, null, current), "no current rate given = treated as moving");
+        Assert.True(StayRateRules.CanApplyDirectly(false, true, Tariff, 1500, agreed, 1500, current, false, false, current));
+        Assert.False(StayRateRules.CanApplyDirectly(false, true, Tariff, 1500, agreed, 1500, current, false, false));
+        Assert.True(StayRateRules.CanApprove(false, true, Tariff, 1500, agreed, 1500, current, current));
+        Assert.False(StayRateRules.CanApprove(false, true, Tariff, 1500, agreed, 1500, new Paise(205_000), current), "a raise still below the agreed floor moves the rate");
+        // The tariff limit (DEC-063 / PERM-RATE-001) is unchanged: below the tariff floor a guest-only change still needs an approval.
+        Assert.False(StayRateRules.CanApplyDirectly(false, true, Tariff, 1500, agreed, 1500, new Paise(160_000), false, false, new Paise(160_000)));
+        Assert.Equal("This rate is more than 15% below the agreed rate " + agreed + ": the Owner decides it (CTL-01).", StayRateRules.OwnerDecidesText(agreed, 1500));
+    }
+
+    [Fact]
     public void Scope_picks_the_nights_never_a_closed_one()
     {
         var arrival = Today.AddDays(-1);

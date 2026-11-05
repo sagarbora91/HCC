@@ -100,6 +100,12 @@ public sealed class ReportSqlTests(ReportDatabase db) : IClassFixture<ReportData
         await s.AppendAsync(p, new ReportExportLogRecord(0, DateTimeOffset.UtcNow, 5, "rpt.money.x", "{\"from\":\"2026-10-20\"}", ReportFormat.Pdf, 7, "a.pdf", true), Ct);
         var log = Assert.Single(await s.ExportLogAsync(p, 10, Ct));
         Assert.Equal((ReportFormat.Pdf, 7, true), (log.Format, log.Rows, log.Provisional));
+        // af2-fix finding 3: the principal filter runs before TOP (n) — user 5's row survives 12 newer rows by user 1.
+        for (var i = 0; i < 12; i++)
+            await s.AppendAsync(p, new ReportExportLogRecord(0, DateTimeOffset.UtcNow, 1, "rpt.money.x", "{}", ReportFormat.Print, 1, null, false), Ct);
+        Assert.DoesNotContain(await s.ExportLogAsync(p, 10, Ct), e => e.PrincipalId == 5);
+        Assert.Equal(log.Id, Assert.Single(await s.ExportLogAsync(p, 10, 5, Ct)).Id);
+        Assert.Equal(10, (await s.ExportLogAsync(p, 10, 1, Ct)).Count);
         Assert.Equal(1, Convert.ToInt32(await db.ScalarAsync("SELECT COUNT(*) FROM plat.role_grant WHERE permission_id = 'PERM-RPT-004' AND role_code = 'ACC';"), CultureInfo.InvariantCulture));
         Assert.Equal(0, Convert.ToInt32(await db.ScalarAsync("SELECT COUNT(*) FROM plat.role_grant WHERE permission_id LIKE 'PERM-RPT-%' AND role_code IN ('SUP','HKP','MNT');"), CultureInfo.InvariantCulture));
     }

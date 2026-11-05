@@ -9,6 +9,7 @@ using Hcc.Domain.Dates;
 using Hcc.Domain.Errors;
 using Hcc.Domain.Housekeeping;
 using Hcc.Domain.Inventory;
+using Hcc.Domain.Money;
 using Hcc.Domain.Stays;
 
 namespace Hcc.Application.Stays;
@@ -27,9 +28,15 @@ public static class StayChangePermissions
 /// only through <see cref="IInventoryAllocator"/>, nightly price snapshots rewritten for un-posted nights only (posted nights are never
 /// touched), audit + outbox in the same transaction. A rate change below the agreed tariff gives revenue up and also needs PERM-APR-001
 /// for that amount (Manager within its limit, Owner). DEC-082: no early-departure fee is charged, only the nights stayed; a Manager may add a charge by hand.
+/// CTL-01 (af2-fix finding 1): a new rate on a move or an extension is ALSO judged against the stay's agreed rate with the Owner's threshold
+/// <c>rate.agreedReductionBps</c> (same <see cref="StayRateRules"/> helpers as ChangeStayRate; the stricter wins): beyond it only the Owner may set it
+/// (there is no approval path here, so anyone else is refused with the ChangeStayRate wording). A rate that actually moves writes a
+/// gst.stay_rate_change row (tariff, agreed rate, agreed rate after — only the Owner moves it — threshold, over_threshold), so the agreed baseline
+/// survives the change and the owner digest lists a change beyond the threshold; RATE_REDUCTION_OVER_THRESHOLD is audited as for ChangeStayRate.
 /// </summary>
 public sealed class StayChangeCommands(ICommandRunner runner, IAccessPolicy policy, IStayChangeStore store, IInventoryAllocator allocator,
-    IStayNightPricer pricer, TimeProvider clock, IBusinessDayGuard? days = null)
+    IStayNightPricer pricer, TimeProvider clock, IBusinessDayGuard? days = null, IStayRateStore? rates = null,
+    Hcc.Application.Configuration.ISettingsReader? settings = null)
 {
     public const string OpMoveRoom = "MoveRoom";
     public const string OpExtendStay = "ExtendStay";
@@ -63,6 +70,7 @@ public sealed class StayChangeCommands(ICommandRunner runner, IAccessPolicy poli
             var posted = await store.PostedNightsAsync(tx, s.FolioId, c).ConfigureAwait(false);
             var agreed = await AgreedRateAsync(tx, s, c).ConfigureAwait(false);
             var loss = await RateLossAsync(tx, ctx, rate, agreed, Unposted(bd, s.Departure, posted), c).ConfigureAwait(false);
+            var ctl = await RateControlAsync(tx, ctx, s, rate, agreed, to.RoomTypeId, bd, c).ConfigureAwait(false);
 
             // Inventory: nights before the business date stay in the old room, the rest move (release + re-add through the allocator).
             var current = await store.RoomNightsAsync(tx, s.ReservationId, c).ConfigureAwait(false);
@@ -76,6 +84,7 @@ public sealed class StayChangeCommands(ICommandRunner runner, IAccessPolicy poli
                 $"Guest moved to room {to.RoomNo}", bd, UtcNow, c).ConfigureAwait(false);
             await store.InsertChangeAsync(tx, ctx.PropertyId, new StayChangeLog(s.StayId, "move", bd, from.RoomId, to.RoomId, s.Departure, s.Departure,
                 rate.Change ? RateDecisions.Change : RateDecisions.Keep, agreed, rate.NewRatePaise, loss, reason), ctx.PrincipalId, UtcNow, c).ConfigureAwait(false);
+            if (ctl is not null) await RecordRateAsync(tx, ctx, s, to.RoomId, bd, agreed, rate.NewRatePaise!.Value, "Room move", reason, ctl, c).ConfigureAwait(false);
 
             await tx.AuditAsync("MOVE_ROOM", Target(s.StayId),
                 $"reservation {s.ReservationId} · room {from.RoomNo} → {to.RoomNo} (" + (to.RoomTypeId == from.RoomTypeId ? "same type" : "type changed") + ") · " +
@@ -111,6 +120,7 @@ public sealed class StayChangeCommands(ICommandRunner runner, IAccessPolicy poli
             var posted = await store.PostedNightsAsync(tx, s.FolioId, c).ConfigureAwait(false);
             var agreed = await AgreedRateAsync(tx, s, c).ConfigureAwait(false);
             var loss = await RateLossAsync(tx, ctx, rate, agreed, Unposted(bd, newDeparture, posted), c).ConfigureAwait(false);
+            var ctl = await RateControlAsync(tx, ctx, s, rate, agreed, room.RoomTypeId, bd, c).ConfigureAwait(false);
 
             var current = await store.RoomNightsAsync(tx, s.ReservationId, c).ConfigureAwait(false);
             var desired = current.Concat(Range(room.RoomId, room.RoomTypeId, s.Departure, newDeparture)).ToList();
@@ -121,6 +131,7 @@ public sealed class StayChangeCommands(ICommandRunner runner, IAccessPolicy poli
             var version = await store.ApplyDeparturesAsync(tx, s, newDeparture, rate.NewRatePaise, c).ConfigureAwait(false);
             await store.InsertChangeAsync(tx, ctx.PropertyId, new StayChangeLog(s.StayId, "extend", bd, room.RoomId, room.RoomId, s.Departure, newDeparture,
                 rate.Change ? RateDecisions.Change : RateDecisions.Keep, agreed, rate.NewRatePaise, loss, reason), ctx.PrincipalId, UtcNow, c).ConfigureAwait(false);
+            if (ctl is not null) await RecordRateAsync(tx, ctx, s, room.RoomId, bd, agreed, rate.NewRatePaise!.Value, "Stay extended", reason, ctl, c).ConfigureAwait(false);
             return await FinishAsync(tx, ctx, s, room, "extend", StayChangeEvents.StayExtended, "EXTEND_STAY", newDeparture, bd, newDeparture.DayNumber - s.Departure.DayNumber,
                 rate.NewRatePaise ?? agreed, loss, version, reason, c).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
@@ -223,6 +234,46 @@ public sealed class StayChangeCommands(ICommandRunner runner, IAccessPolicy poli
         var loss = StayChangeRules.DowngradeLoss(agreed, rate.NewRatePaise!.Value, unpostedNights);
         if (loss > 0) await policy.RequireAsync(ctx.PropertyId, ctx.PrincipalId, StayChangePermissions.ApproveRate, null, loss, c).ConfigureAwait(false);
         return loss;
+    }
+
+    /// <summary>CTL-01 judgement of a move / extension rate: tariff and agreed rate it was judged against, the threshold, the Owner flag, beyond the threshold.</summary>
+    private sealed record RateControlResult(Paise Tariff, Paise Agreed, int ThresholdBps, bool Owner, bool Over);
+
+    /// <summary>
+    /// CTL-01 for a rate that actually moves on a move / extension (null when it does not, or when no rate store is wired — production always wires
+    /// SqlStayRateStore through the LF-money module). Over the agreed-rate threshold: the Owner only; anyone else is refused with the ChangeStayRate text.
+    /// </summary>
+    private async Task<RateControlResult?> RateControlAsync(ICommandTransaction tx, CommandContext ctx, StayChangeContext s, RateChoice rate, long current, int roomTypeId,
+        DateOnly bd, CancellationToken c)
+    {
+        if (rates is null || !rate.Change || rate.NewRatePaise is not { } nr || nr == current) return null;
+        var newRate = new Paise(nr);
+        var auth = await rates.AuthorityAsync(tx, ctx.PrincipalId, c).ConfigureAwait(false);
+        var threshold = settings is null ? RateControlSettings.DefaultThresholdBps
+            : RateControlSettings.Read(await settings.GetAsync(tx, ctx.PropertyId, RateControlSettings.ThresholdKey, null, c).ConfigureAwait(false));
+        var (latest, first) = await rates.AgreedHistoryAsync(tx, s.StayId, c).ConfigureAwait(false);
+        var agreed = StayRateRules.AgreedBase(latest, first, current);
+        var over = StayRateRules.NeedsOwner(agreed, threshold, new Paise(current), newRate);
+        if (over && !auth.Owner) throw new HccException(HccErrorCode.FORBIDDEN, StayRateRules.OwnerDecidesText(agreed, threshold));
+        var tariff = new Paise(await rates.TariffAsync(tx, roomTypeId, bd, c).ConfigureAwait(false));
+        return new RateControlResult(tariff, agreed, threshold, auth.Owner, over);
+    }
+
+    /// <summary>The gst.stay_rate_change row of a move / extension rate (scope today-next: un-posted nights from the business date; posted nights untouched),
+    /// the agreed rate after it (only an Owner-set rate moves it) and, beyond the threshold, the RATE_REDUCTION_OVER_THRESHOLD audit line.</summary>
+    private async Task RecordRateAsync(ICommandTransaction tx, CommandContext ctx, StayChangeContext s, int roomId, DateOnly bd, long oldRate, long newRate, string what,
+        string reason, RateControlResult rc, CancellationToken c)
+    {
+        var why = $"{what} · {reason}";
+        if (why.Length > 200) why = why[..200];
+        var agreedAfter = rc.Owner ? newRate : rc.Agreed.Value;
+        var changeId = await rates!.InsertChangeAsync(tx, new StayRateChangeRow(ctx.PropertyId, s.StayId, s.ReservationId, roomId, bd, UtcNow, ctx.PrincipalId, null, null,
+            StayRateScopes.TodayNext, why, oldRate, newRate, s.Adults, s.Adults, s.Children, s.Children, bd, "[]",
+            rc.Tariff.Value, rc.Agreed.Value, agreedAfter, rc.ThresholdBps, rc.Over), c).ConfigureAwait(false);
+        if (rc.Over)
+            await tx.AuditAsync("RATE_REDUCTION_OVER_THRESHOLD", Target(s.StayId),
+                $"change {changeId.ToString(CultureInfo.InvariantCulture)} · agreed {rc.Agreed.Value} → {newRate} paise · {StayRateRules.ReductionBps(rc.Agreed, new Paise(newRate))} bps below the agreed rate (threshold {rc.ThresholdBps} bps)"
+                + $" · changed by {ctx.PrincipalId.ToString(CultureInfo.InvariantCulture)} · applied directly · {why}", c).ConfigureAwait(false);
     }
 
     /// <summary>Un-posted nights on or after the business date up to (excluding) <paramref name="to"/>.</summary>
