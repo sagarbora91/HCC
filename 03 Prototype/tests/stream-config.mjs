@@ -24,9 +24,9 @@ export function register({test,M,assert}){
   }
 
   // ── Registry and groups ──
-  test('[CFG] 13 fixed groups in 3 sections, names pinned (one name: Master configuration)',()=>{
+  test('[CFG] 14 fixed groups in 3 sections, names pinned (one name: Master configuration)',()=>{
     assert.deepEqual(CFG_GROUPS.map(g=>g.label),['Property and branding','Rooms and rate plans','Front-desk policies','Money and tax','Restaurant and POS',
-      'Housekeeping and maintenance','People, payroll and leave','Compliance obligations','Modules on/off','Users, roles and PINs','Messages and documents','Internet access','Data and system']);
+      'Housekeeping and maintenance','People, payroll and leave','Compliance obligations','Modules on/off','Users, roles and PINs','Messages and documents','Internet access','Data and system','Measurement reports']); // F12-SETTINGS: + measure
     assert.deepEqual([...CFG_SECTIONS],['Business setup','Operations and people','Software and security']);
     assert.deepEqual(CFG_GROUPS.filter(g=>g.money).map(g=>g.id),['rooms','money','pos','people','compliance']);
     const settings=N.navItems.find(n=>n.id==='settings');assert.equal(settings.label,'Master configuration');assert.equal(N.PAGE_CATEGORY.settings,'admin');
@@ -217,7 +217,7 @@ export function register({test,M,assert}){
     s=set(s,'owner','fd.noShowTime','21:00');assert.match(cfgGroupSummary(s,'frontdesk'),/1 change pending/);
     const g=cfgSearch(s,'gstin');assert.equal(g.length,1);assert.equal(g[0].group.id,'property');assert.deepEqual(g[0].defs.map(d=>d.key),['brand.gstin']);
     assert.ok(cfgSearch(s,'pf').some(h=>h.group.id==='people'));assert.ok(cfgSearch(s,'taxi sla').some(h=>h.defs.some(d=>d.key==='gsv.sla.Taxi')));
-    assert.equal(cfgSearch(s,'zzzz').length,0);assert.equal(cfgSearch(s,'').length,13);
+    assert.equal(cfgSearch(s,'zzzz').length,0);assert.equal(cfgSearch(s,'').length,14); // F12-SETTINGS: + measure
     s=set(s,'owner','msg.gatewayKey','sk-demo-123');
     assert.equal(cfgDisplay(s,'owner',cfgDef(s,'msg.gatewayKey')),'Set (hidden)');assert.equal(cfgDisplay(s,'techadmin',cfgDef(s,'msg.gatewayKey')),'Set (hidden)');
     assert.ok(!JSON.stringify(s.configHistory[0]).includes('sk-demo-123'),'secret never in history text');});
