@@ -6,4 +6,8 @@
   <ItemGroup>
     <ProjectReference Include="..\Hcc.Domain\Hcc.Domain.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <!-- PER-01: the customer read equivalence tests run the pre-rewrite query (kept in the test project) against the same internal views. -->
+    <InternalsVisibleTo Include="Hcc.Customers.Tests" />
+  </ItemGroup>
 </Project>

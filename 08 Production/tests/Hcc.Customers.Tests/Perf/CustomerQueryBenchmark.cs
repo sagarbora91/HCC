@@ -6,11 +6,15 @@ using Hcc.Customers.Tests.Harness;
 namespace Hcc.Customers.Tests.Perf;
 
 /// <summary>
-/// AF-CTL02 (PER-01): measurement only, no production code. Runs only with HCC_PERF=1 (otherwise returns at once). For each N (env HCC_PERF_N, default
-/// "1000,10000,30000") it builds a disposable HccTest_* hotel, bulk-inserts N fictional guests (phone 9000000000 + i) each with one departed reservation,
-/// a folio and two room charges, then times CustomerQueries.ListAsync (page 1 and 20; q = null / "rao" / "900012") and ProfileAsync (5 warm-up + 20
-/// measured runs each): p50 / p95 ms and bytes allocated per call (GC.GetTotalAllocatedBytes, precise). Results append to HCC_PERF_OUT
-/// (default %TEMP%\hcc-per01.md). Each world is disposed (database dropped) before the next N.
+/// AF-CTL02 / PER-01. Runs only with HCC_PERF=1 (otherwise returns at once). For each N (env HCC_PERF_N, default "1000,10000,30000") it builds a
+/// disposable HccTest_* hotel, bulk-inserts N fictional guests (phone 9000000000 + i) each with one departed reservation, a folio and two room charges,
+/// then times CustomerQueries.ListAsync (page 1 and 20; q = null / "rao" / "900012" / "0001234") and ProfileAsync (5 warm-up + 20 measured runs each):
+/// p50 / p95 ms and bytes allocated per call (GC.GetTotalAllocatedBytes, precise). With HCC_PERF_OLD=1 the pre-rewrite query
+/// (<see cref="Sql.PreRewriteCustomerQueries"/>) is timed too, rows marked "(before)". Results append to HCC_PERF_OUT (default %TEMP%\hcc-per01.md).
+/// Each world is disposed (database dropped) before the next N.
+/// PER-01 pass threshold (rewritten query only): every call's p95 must stay under <see cref="MaxP95Ms"/> and its median allocation under
+/// <see cref="MaxMegabytes"/> for its N. The limits are about 1.5x (allocation, deterministic) and 2-3x (time) what this PC measured (Debug build), so they do not flake, and well under the
+/// pre-rewrite cost (about 29 ms and 4.3 MB per 1,000 guests), so a return to whole-property loading fails.
 /// </summary>
 [Trait("Category", "Perf")]
 public class CustomerQueryBenchmark
@@ -20,13 +24,21 @@ public class CustomerQueryBenchmark
     private static readonly string[] First = ["Asha", "Vikram", "Meera", "Rohan", "Sunita", "Kiran", "Anil", "Pooja", "Nikhil", "Divya"];
     private static readonly string[] Last = ["Rao", "Shah", "Patil", "Kulkarni", "Deshmukh", "Joshi", "Naik", "Pawar", "Jadhav", "More"];
 
+    /// <summary>PER-01 pass limit: p95 wall time of one call at N guests (ms).</summary>
+    public static double MaxP95Ms(int n) => 120 + 8.0 * n / 1000;
+
+    /// <summary>PER-01 pass limit: median bytes allocated by one call at N guests (MB).</summary>
+    public static double MaxMegabytes(int n) => 2 + 1.0 * n / 1000;
+
     [Fact]
     public async Task Customer_list_and_profile_timings()
     {
         if (Environment.GetEnvironmentVariable("HCC_PERF") != "1") return;
         var sizes = (Environment.GetEnvironmentVariable("HCC_PERF_N") ?? "1000,10000,30000").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .Select(x => int.Parse(x, CultureInfo.InvariantCulture)).ToArray();
+        var withOld = Environment.GetEnvironmentVariable("HCC_PERF_OLD") == "1";
         var outPath = Environment.GetEnvironmentVariable("HCC_PERF_OUT") is { Length: > 0 } o ? o : Path.Combine(Path.GetTempPath(), "hcc-per01.md");
+        var failures = new List<string>();
         foreach (var n in sizes)
         {
             await using var w = await CrmWorld.CreateAsync(Ct);
@@ -34,13 +46,14 @@ public class CustomerQueryBenchmark
             await SeedAsync(w, n);
             var seedSeconds = sw.Elapsed.TotalSeconds;
             var owner = w.Users["owner"];
+            var old = new Sql.PreRewriteCustomerQueries(w.Policy, new Hcc.Infrastructure.SqlServer.Customers.SqlCustomerReadStore(w.Platform.Connections), w.Messaging);
             var key = (await w.Queries.ListAsync(w.PropertyId, owner, "900012", null, 1, 1, Ct)).Customers.FirstOrDefault()?.Key
                 ?? (await w.Queries.ListAsync(w.PropertyId, owner, null, null, 1, 1, Ct)).Customers[0].Key;
             var md = new StringBuilder();
-            md.AppendLine(CultureInfo.InvariantCulture, $"### N = {n:N0} guests (seeded in {seedSeconds:F1} s)");
+            md.AppendLine(CultureInfo.InvariantCulture, $"### N = {n:N0} guests (seeded in {seedSeconds:F1} s; limit p95 {MaxP95Ms(n):F0} ms, {MaxMegabytes(n):F1} MB)");
             md.AppendLine("| call | total rows | p50 ms | p95 ms | allocated MB / call |");
             md.AppendLine("|---|---|---|---|---|");
-            async Task Row(string label, Func<Task<int>> call)
+            async Task Row(string label, Func<Task<int>> call, bool before = false)
             {
                 var total = 0;
                 for (var i = 0; i < 5; i++) total = await call();
@@ -57,16 +70,27 @@ public class CustomerQueryBenchmark
 
                 ms.Sort();
                 bytes.Sort();
-                md.AppendLine(CultureInfo.InvariantCulture, $"| {label} | {total} | {ms[9]:F0} | {ms[18]:F0} | {bytes[9] / 1048576.0:F1} |");
+                var mb = bytes[9] / 1048576.0;
+                md.AppendLine(CultureInfo.InvariantCulture, $"| {label}{(before ? " (before)" : string.Empty)} | {total} | {ms[9]:F0} | {ms[18]:F0} | {mb:F1} |");
+                if (!before && (ms[18] > MaxP95Ms(n) || mb > MaxMegabytes(n)))
+                    failures.Add(string.Create(CultureInfo.InvariantCulture, $"N={n} {label}: p95 {ms[18]:F0} ms (limit {MaxP95Ms(n):F0}), {mb:F1} MB (limit {MaxMegabytes(n):F1})"));
             }
 
-            foreach (var q in new string?[] { null, "rao", "900012" })
+            foreach (var q in new string?[] { null, "rao", "900012", "0001234" })
                 foreach (var page in new[] { 1, 20 })
-                    await Row($"ListAsync q={(q is null ? "null" : q)} page {page}", async () => (await w.Queries.ListAsync(w.PropertyId, owner, q, null, page, 50, Ct)).Total);
+                {
+                    var label = $"ListAsync q={(q is null ? "null" : q)} page {page}";
+                    await Row(label, async () => (await w.Queries.ListAsync(w.PropertyId, owner, q, null, page, 50, Ct)).Total);
+                    if (withOld) await Row(label, async () => (await old.ListAsync(w.PropertyId, owner, q, null, page, 50, Ct)).Total, before: true);
+                }
+
             await Row("ProfileAsync one key", async () => (await w.Queries.ProfileAsync(w.PropertyId, owner, key, Ct)).Stays.Count);
+            if (withOld) await Row("ProfileAsync one key", async () => (await old.ProfileAsync(w.PropertyId, owner, key, Ct)).Stays.Count, before: true);
             md.AppendLine();
             await File.AppendAllTextAsync(outPath, md.ToString(), Ct);
         }
+
+        Assert.True(failures.Count == 0, "PER-01 threshold exceeded:\n" + string.Join('\n', failures));
     }
 
     private static async Task SeedAsync(CrmWorld w, int n)

@@ -43,16 +43,23 @@ internal static class CustomerViews
 internal sealed class CustomerKeySpace
 {
     private readonly byte[] _secret;
-    private readonly Dictionary<string, string> _byToken = new(StringComparer.Ordinal);
+    private readonly IEnumerable<string> _rawKeys;
 
-    private CustomerKeySpace(byte[] secret) => _secret = secret;
-
-    public static async Task<CustomerKeySpace> ForAsync(ICustomerReadStore reads, int propertyId, CrmSource src, IReadOnlyList<Customer> index, CancellationToken ct)
+    private CustomerKeySpace(byte[] secret, IEnumerable<string> rawKeys)
     {
-        var ks = new CustomerKeySpace(await reads.KeySecretAsync(propertyId, ct).ConfigureAwait(false));
-        foreach (var raw in index.Select(c => c.Key).Concat(src.Aliases.Keys)) ks._byToken[ks.TokenOf(raw)] = raw;
-        return ks;
+        _secret = secret;
+        _rawKeys = rawKeys;
     }
+
+    public static Task<CustomerKeySpace> ForAsync(ICustomerReadStore reads, int propertyId, CrmSource src, IReadOnlyList<Customer> index, CancellationToken ct) =>
+        ForAsync(reads, propertyId, index.Select(c => c.Key).Concat(src.Aliases.Keys), ct);
+
+    /// <summary>
+    /// PER-01: the raw keys (live customers, then merged-away aliases) are only hashed when an inbound token has to be resolved, and only until it matches;
+    /// a list read only hashes its page rows.
+    /// </summary>
+    public static async Task<CustomerKeySpace> ForAsync(ICustomerReadStore reads, int propertyId, IEnumerable<string> rawKeys, CancellationToken ct) =>
+        new(await reads.KeySecretAsync(propertyId, ct).ConfigureAwait(false), rawKeys);
 
     public string TokenOf(string rawKey) => CustomerKeyToken.Make(_secret, rawKey);
 
@@ -60,7 +67,7 @@ internal sealed class CustomerKeySpace
     public string ResolveInbound(string? value, bool contact)
     {
         var v = (value ?? string.Empty).Trim();
-        if (CustomerKeyToken.IsToken(v)) return _byToken.TryGetValue(v, out var raw) ? raw : throw NotFound();
+        if (CustomerKeyToken.IsToken(v)) return _rawKeys.FirstOrDefault(raw => string.Equals(TokenOf(raw), v, StringComparison.Ordinal)) ?? throw NotFound();
         if (v.Length > 0 && v.All(char.IsAsciiDigit) && !contact) throw NotFound();
         return v;
     }
@@ -110,18 +117,22 @@ public sealed class CustomerQueries(IAccessPolicy policy, ICustomerReadStore rea
         var (contact, money) = await ViewerAsync(propertyId, principalId, ct).ConfigureAwait(false);
         if (page < 1) page = 1;
         pageSize = Math.Clamp(pageSize, 1, MaxPageSize);
-        var src = await reads.LoadAsync(propertyId, ct).ConfigureAwait(false);
+        // PER-01: key pass on narrow rows (search, tag filter, count, order), then the full customer only for the page rows.
+        var src = await reads.HeadsAsync(propertyId, ct).ConfigureAwait(false);
         var tags = await reads.TagsAsync(propertyId, ct).ConfigureAwait(false);
-        var index = src.Index();
-        var keys = await CustomerKeySpace.ForAsync(reads, propertyId, src, index, ct).ConfigureAwait(false);
-        var found = CustomerRules.Search(index, q, contact);
+        var index = src.Heads();
+        var heads = index.Heads;
+        var keys = await CustomerKeySpace.ForAsync(reads, propertyId, heads.Select(h => h.Key).Concat(src.Aliases.Keys), ct).ConfigureAwait(false);
+        var found = CustomerRules.SearchHeads(heads, q, contact);
         if (!string.IsNullOrWhiteSpace(tag))
         {
             var t = CustomerRules.CleanTag(tag);
             found = found.Where(c => tags.TryGetValue(c.Key, out var ts) && ts.Contains(t)).ToList();
         }
 
-        var pageRows = found.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+        var pageHeads = found.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+        var (full, _) = await src.CustomersAsync(reads, propertyId, index, pageHeads, ct).ConfigureAwait(false);
+        var pageRows = pageHeads.Select(h => full[h.Key]).ToList();
         var legacy = await LegacyRoll.ForAsync(reads, propertyId, pageRows.Select(c => c.Key).ToList(), src.Aliases, ct).ConfigureAwait(false);
         var rows = pageRows.Select(c => CustomerViews.Summary(c, contact, money, tags.GetValueOrDefault(c.Key) ?? [], keys, legacy.GetValueOrDefault(c.Key))).ToList();
         return new CustomerList(rows, found.Count, page, pageSize);
@@ -130,13 +141,16 @@ public sealed class CustomerQueries(IAccessPolicy policy, ICustomerReadStore rea
     public async Task<CustomerProfile> ProfileAsync(int propertyId, int principalId, string? key, CancellationToken ct = default)
     {
         var (contact, money) = await ViewerAsync(propertyId, principalId, ct).ConfigureAwait(false);
-        var src = await reads.LoadAsync(propertyId, ct).ConfigureAwait(false);
-        var index = src.Index();
-        var keys = await CustomerKeySpace.ForAsync(reads, propertyId, src, index, ct).ConfigureAwait(false);
+        // PER-01: key pass to resolve the key, then the bookings and profiles of this one customer.
+        var src = await reads.HeadsAsync(propertyId, ct).ConfigureAwait(false);
+        var index = src.Heads();
+        var keys = await CustomerKeySpace.ForAsync(reads, propertyId, index.Heads.Select(h => h.Key).Concat(src.Aliases.Keys), ct).ConfigureAwait(false);
         var k = CustomerRules.Resolve(keys.ResolveInbound(key, contact), src.Aliases);
-        var c = index.FirstOrDefault(x => x.Key == k) ?? throw new HccException(HccErrorCode.NOT_FOUND, "Customer not found.");
+        var head = index.Heads.FirstOrDefault(x => x.Key == k) ?? throw new HccException(HccErrorCode.NOT_FOUND, "Customer not found.");
+        var (one, guests) = await src.CustomersAsync(reads, propertyId, index, [head], ct).ConfigureAwait(false);
+        var c = one[k];
         var o = await reads.OverlayAsync(propertyId, c.Key, ct).ConfigureAwait(false);
-        var prefs = o.Pref?.Preferences ?? string.Join(" | ", src.Guests.Where(g => c.GuestIds.Contains(g.GuestId) && !string.IsNullOrWhiteSpace(g.Preferences)).Select(g => g.Preferences!.Trim()).Distinct());
+        var prefs = o.Pref?.Preferences ?? string.Join(" | ", guests.Where(g => c.GuestIds.Contains(g.GuestId) && !string.IsNullOrWhiteSpace(g.Preferences)).Select(g => g.Preferences!.Trim()).Distinct());
         var consent = await messaging.ReadAsync(async (d, t) =>
         {
             bool wa = true, sms = true, em = true, opt = false;
@@ -197,8 +211,8 @@ public sealed class CustomerQueries(IAccessPolicy policy, ICustomerReadStore rea
     {
         await MergeAccessAsync(propertyId, principalId, ct).ConfigureAwait(false);
         if (status is not null and not ("Pending" or "Approved" or "Rejected")) throw HccException.Validation("status must be Pending, Approved or Rejected.");
-        var src = await reads.LoadAsync(propertyId, ct).ConfigureAwait(false);
-        var keys = await CustomerKeySpace.ForAsync(reads, propertyId, src, src.Index(), ct).ConfigureAwait(false);
+        // PER-01: the merge list only turns stored keys into wire tokens (outbound), so it needs no customer read at all.
+        var keys = await CustomerKeySpace.ForAsync(reads, propertyId, [], ct).ConfigureAwait(false);
         return new MergeList((await reads.MergesAsync(propertyId, status, ct).ConfigureAwait(false)).Select(m => CustomerViews.Merge(m, keys)).ToList());
     }
 

@@ -28,6 +28,65 @@ public sealed record Customer(
 
 public sealed record DuplicateGroup(string Reason, IReadOnlyList<string> Keys);
 
+/// <summary>PER-01: the narrow guest row the customer key pass needs (no e-mail, preferences or notes).</summary>
+public sealed record CrmGuestHead(long GuestId, string Name, string Phone);
+
+/// <summary>
+/// PER-01: the narrow booking row the customer key pass needs (no departure, room or folio). Expired holds are not passed in (they are not bookings).
+/// <c>GuestName</c> may be null when <c>GuestId</c> is a profile of the property: the booking name is then never used (the profile's name wins).
+/// </summary>
+public sealed record CrmStayHead(long ReservationId, string PublicNo, long? GuestId, string? GuestName, DateOnly Arrival);
+
+/// <summary>
+/// PER-01: one customer as the key pass sees it - the same key, display name, mobile and newest arrival as <see cref="CustomerRules.Index"/> gives,
+/// <c>Slot</c> identifies it in its <see cref="CustomerHeadIndex"/> (to load the full customer for a page or a profile only).
+/// </summary>
+public sealed record CustomerHead(string Key, string Name, string Phone, DateOnly LatestArrival, int Slot);
+
+/// <summary>PER-01: the heads of <see cref="CustomerRules.Heads"/> in Index order, and the rows that make up any chosen heads.</summary>
+public sealed class CustomerHeadIndex
+{
+    private readonly IReadOnlyList<CrmStayHead> _stays;
+    private readonly int[] _staySlot;
+    private readonly long[] _stayGuest;
+    private readonly long[] _fallback;
+
+    internal CustomerHeadIndex(IReadOnlyList<CustomerHead> heads, IReadOnlyList<CrmStayHead> stays, int[] staySlot, long[] stayGuest, long[] fallback)
+    {
+        Heads = heads;
+        _stays = stays;
+        _staySlot = staySlot;
+        _stayGuest = stayGuest;
+        _fallback = fallback;
+    }
+
+    public IReadOnlyList<CustomerHead> Heads { get; }
+
+    /// <summary>The booking ids (in row order) and guest profile ids (ascending, distinct) that make up <paramref name="heads"/>.</summary>
+    public (IReadOnlyList<long> ReservationIds, IReadOnlyList<long> GuestIds) RowsOf(IEnumerable<CustomerHead> heads)
+    {
+        ArgumentNullException.ThrowIfNull(heads);
+        var want = new HashSet<int>();
+        var guests = new SortedSet<long>();
+        foreach (var h in heads)
+        {
+            want.Add(h.Slot);
+            if (_fallback[h.Slot] != 0) guests.Add(_fallback[h.Slot]);
+        }
+
+        var res = new List<long>();
+        if (want.Count == 0) return (res, []);
+        for (var i = 0; i < _stays.Count; i++)
+        {
+            if (!want.Contains(_staySlot[i])) continue;
+            res.Add(_stays[i].ReservationId);
+            if (_stayGuest[i] != 0) guests.Add(_stayGuest[i]);
+        }
+
+        return (res, guests.ToList());
+    }
+}
+
 /// <summary>
 /// Customer 360 rules, ported from the prototype's pure selectors (<c>customerIndex</c>, <c>customerSearch</c>) plus the production additions:
 /// duplicate detection (phone/e-mail/name normalisation), merge validation and the maker-checker decision rules. No I/O.
@@ -46,9 +105,17 @@ public static class CustomerRules
 
     public static string Digits(string? s)
     {
-        var sb = new StringBuilder();
-        foreach (var c in s ?? string.Empty) if (char.IsAsciiDigit(c)) sb.Append(c);
-        return sb.ToString();
+        // PER-01: no StringBuilder per call (the key pass runs this for every guest); same result.
+        if (string.IsNullOrEmpty(s)) return string.Empty;
+        var n = 0;
+        foreach (var c in s) if (char.IsAsciiDigit(c)) n++;
+        if (n == s.Length) return s;
+        if (n == 0) return string.Empty;
+        return string.Create(n, s, static (span, src) =>
+        {
+            var i = 0;
+            foreach (var c in src) if (char.IsAsciiDigit(c)) span[i++] = c;
+        });
     }
 
     /// <summary>
@@ -57,7 +124,10 @@ public static class CustomerRules
     /// </summary>
     public static string NormName(string? name)
     {
-        var s = (name ?? string.Empty).Replace("(fictional)", " ", StringComparison.OrdinalIgnoreCase).Trim().Normalize(NormalizationForm.FormKC).ToLowerInvariant();
+        var raw = name ?? string.Empty;
+        // PER-01: plain ASCII without the marker (most names) gives the same result in one pass and one allocation.
+        if (System.Text.Ascii.IsValid(raw) && raw.IndexOf("(fictional)", StringComparison.OrdinalIgnoreCase) < 0) return NormAscii(raw);
+        var s = raw.Replace("(fictional)", " ", StringComparison.OrdinalIgnoreCase).Trim().Normalize(NormalizationForm.FormKC).ToLowerInvariant();
         var sb = new StringBuilder();
         var space = true;
         foreach (var r in s.EnumerateRunes())
@@ -68,6 +138,30 @@ public static class CustomerRules
         }
 
         return sb.ToString().Trim();
+    }
+
+    // ASCII form of NormName: NFKC and lower-casing are plain a-z there, letters / digits are [a-z0-9], everything else is one separating space.
+    private static string NormAscii(string s)
+    {
+        Span<char> buf = s.Length <= 256 ? stackalloc char[s.Length] : new char[s.Length];
+        var n = 0;
+        var space = true;
+        foreach (var ch in s)
+        {
+            if (char.IsAsciiLetterOrDigit(ch))
+            {
+                buf[n++] = char.ToLowerInvariant(ch);
+                space = false;
+            }
+            else if (!space)
+            {
+                buf[n++] = ' ';
+                space = true;
+            }
+        }
+
+        if (n > 0 && buf[n - 1] == ' ') n--;
+        return buf[..n].SequenceEqual(s) ? s : new string(buf[..n]);
     }
 
     /// <summary>Lower-cased e-mail; for gmail.com / googlemail.com the dots and a +tag of the local part are ignored. "" when not an address.</summary>
@@ -103,6 +197,7 @@ public static class CustomerRules
     public static string Resolve(string key, IReadOnlyDictionary<string, string> aliases)
     {
         ArgumentNullException.ThrowIfNull(aliases);
+        if (aliases.Count == 0 || !aliases.ContainsKey(key)) return key; // PER-01: the common case needs no cycle guard
         var seen = new HashSet<string>(StringComparer.Ordinal) { key };
         var cur = key;
         while (aliases.TryGetValue(cur, out var next) && seen.Add(next)) cur = next;
@@ -166,8 +261,105 @@ public static class CustomerRules
         return all.OrderByDescending(c => c.Stays[0].Arrival).ThenBy(c => c.Name, StringComparer.Ordinal).ToList();
     }
 
+    private sealed class HeadAcc(string key)
+    {
+        public string Key { get; } = key;
+        public CrmStayHead? Latest { get; set; }
+        public CrmStayHead? ProfileStay { get; set; }
+        public CrmGuestHead? Profile { get; set; }
+    }
+
+    // Index orders a customer's bookings by arrival, then booking number (ordinal), both descending; the first of that order wins.
+    private static bool Newer(CrmStayHead a, CrmStayHead b) => a.Arrival > b.Arrival || (a.Arrival == b.Arrival && string.CompareOrdinal(a.PublicNo, b.PublicNo) > 0);
+
+    /// <summary>
+    /// PER-01: the key pass of <see cref="Index"/> on narrow rows (no folio, room or contact columns). Same keys (KeyOf + merge aliases), display names, mobiles
+    /// and order as Index. <see cref="CustomerHeadIndex.RowsOf"/> gives the bookings and guest profiles Index uses for chosen heads (the profiles of their
+    /// bookings and, for a mobile key without one, the first profile with that mobile), so <c>Index(those guests, those bookings)</c> rebuilds exactly the
+    /// customers Index gives on the whole property. Per customer it keeps only the head (no id lists), so a page costs one pass over the rows.
+    /// </summary>
+    public static CustomerHeadIndex Heads(IReadOnlyList<CrmGuestHead> guests, IReadOnlyList<CrmStayHead> stays, IReadOnlyDictionary<string, string> aliases)
+    {
+        ArgumentNullException.ThrowIfNull(guests);
+        ArgumentNullException.ThrowIfNull(stays);
+        ArgumentNullException.ThrowIfNull(aliases);
+        var byGuest = new Dictionary<long, int>(guests.Count);
+        for (var i = 0; i < guests.Count; i++) byGuest.Add(guests[i].GuestId, i);
+        var guestKey = new string?[guests.Count];
+        var nameKey = new Dictionary<string, string>(StringComparer.Ordinal);
+        var acc = new Dictionary<string, int>(StringComparer.Ordinal);
+        var order = new List<HeadAcc>();
+        var staySlot = new int[stays.Count];
+        var stayGuest = new long[stays.Count]; // the property profile of the booking, 0 = none
+        for (var si = 0; si < stays.Count; si++)
+        {
+            var s = stays[si];
+            CrmGuestHead? g = null;
+            string? key;
+            if (s.GuestId is { } id && byGuest.TryGetValue(id, out var gi))
+            {
+                g = guests[gi];
+                key = guestKey[gi] ??= Resolve(KeyOf(g.Phone, g.Name), aliases);
+                stayGuest[si] = g.GuestId;
+            }
+            else
+            {
+                var bookingName = s.GuestName ?? string.Empty;
+                if (!nameKey.TryGetValue(bookingName, out key)) nameKey[bookingName] = key = Resolve(KeyOf(null, bookingName), aliases);
+            }
+
+            if (!acc.TryGetValue(key, out var slot))
+            {
+                acc[key] = slot = order.Count;
+                order.Add(new HeadAcc(key));
+            }
+
+            staySlot[si] = slot;
+            var a = order[slot];
+            if (a.Latest is null || Newer(s, a.Latest)) a.Latest = s;
+            if (g is not null && (a.ProfileStay is null || Newer(s, a.ProfileStay)))
+            {
+                a.ProfileStay = s;
+                a.Profile = g;
+            }
+        }
+
+        // The first profile (lowest id) per mobile key, only needed for a mobile key none of whose bookings has a profile (a merge target).
+        Dictionary<string, CrmGuestHead>? byPhone = null;
+        var fallback = new long[order.Count];
+        var all = new List<CustomerHead>(order.Count);
+        for (var slot = 0; slot < order.Count; slot++)
+        {
+            var a = order[slot];
+            var guest = a.Profile;
+            if (guest is null && !IsNameKey(a.Key))
+            {
+                if (byPhone is null)
+                {
+                    byPhone = new Dictionary<string, CrmGuestHead>(StringComparer.Ordinal);
+                    foreach (var pg in guests.OrderBy(x => x.GuestId))
+                    {
+                        var k = PhoneKey(pg.Phone);
+                        if (k.Length > 0) byPhone.TryAdd(k, pg);
+                    }
+                }
+
+                guest = byPhone.GetValueOrDefault(a.Key);
+                if (guest is not null) fallback[slot] = guest.GuestId;
+            }
+
+            all.Add(new CustomerHead(a.Key, Clean(guest?.Name ?? a.Latest!.GuestName), guest?.Phone ?? string.Empty, a.Latest!.Arrival, slot));
+        }
+
+        return new CustomerHeadIndex(all.OrderByDescending(c => c.LatestArrival).ThenBy(c => c.Name, StringComparer.Ordinal).ToList(), stays, staySlot, stayGuest, fallback);
+    }
     /// <summary>Search by name (every typed word) or mobile digits (3+; never for roles that only see masked numbers). No booking-ID matching.</summary>
-    public static IReadOnlyList<Customer> Search(IReadOnlyList<Customer> list, string? q, bool phoneOk = true)
+    public static IReadOnlyList<Customer> Search(IReadOnlyList<Customer> list, string? q, bool phoneOk = true) => Match(list, q, phoneOk, c => c.Name, c => c.Phone);
+
+    /// <summary>PER-01: <see cref="Search(IReadOnlyList{Customer}, string?, bool)"/> on the key-pass heads (same rule, same order).</summary>
+    public static IReadOnlyList<CustomerHead> SearchHeads(IReadOnlyList<CustomerHead> list, string? q, bool phoneOk = true) => Match(list, q, phoneOk, c => c.Name, c => c.Phone);
+
+    private static IReadOnlyList<T> Match<T>(IReadOnlyList<T> list, string? q, bool phoneOk, Func<T, string> name, Func<T, string> phone)
     {
         ArgumentNullException.ThrowIfNull(list);
         var text = (q ?? string.Empty).Trim();
@@ -175,12 +367,16 @@ public static class CustomerRules
         if (text.Any(char.IsLetter))
         {
             var words = NormName(text).Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            return list.Where(c => words.All(w => NormName(c.Name).Contains(w, StringComparison.Ordinal))).ToList();
+            return list.Where(c =>
+            {
+                var n = NormName(name(c));
+                return words.All(w => n.Contains(w, StringComparison.Ordinal));
+            }).ToList();
         }
 
         var digits = Digits(text);
         if (!phoneOk || digits.Length < 3) return [];
-        return list.Where(c => Digits(c.Phone).Contains(digits, StringComparison.Ordinal)).ToList();
+        return list.Where(c => Digits(phone(c)).Contains(digits, StringComparison.Ordinal)).ToList();
     }
 
     /// <summary>
