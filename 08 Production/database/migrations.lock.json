@@ -110,7 +110,10 @@
     {"version": 4404, "file": "4404_rpt_export_log.sql", "reason": "F7 RPT 4400-4405 reserved by Wave Plan §1.4; parallel wave merged with F6 (4740)"},
     {"version": 4405, "file": "4405_rpt_rbac_seed.sql", "reason": "F7 RPT 4400-4405 reserved by Wave Plan §1.4; parallel wave merged with F6 (4740)"},
     {"version": 4802, "file": "4802_meas_rbac_seed.sql", "reason": "F12 MEAS block 4802-4869 decided by the MEAS setup commit (MEAS-CONTRACT deviation 2); meas-settings 4802/4803"},
-    {"version": 4803, "file": "4803_meas_settings_seed.sql", "reason": "F12 MEAS block 4802-4869 decided by the MEAS setup commit (MEAS-CONTRACT deviation 2); meas-settings 4802/4803"}
+    {"version": 4803, "file": "4803_meas_settings_seed.sql", "reason": "F12 MEAS block 4802-4869 decided by the MEAS setup commit (MEAS-CONTRACT deviation 2); meas-settings 4802/4803"},
+    {"version": 4810, "file": "4810_meas_desk_turnaway.sql", "reason": "F12 MEAS cap-desk 4810-4812 (parallel lane block 4802-4869 below the highest locked 4920)"},
+    {"version": 4811, "file": "4811_meas_desk_allowance_extra.sql", "reason": "F12 MEAS cap-desk 4810-4812 (parallel lane block 4802-4869 below the highest locked 4920)"},
+    {"version": 4812, "file": "4812_meas_desk_preference.sql", "reason": "F12 MEAS cap-desk 4810-4812 (parallel lane block 4802-4869 below the highest locked 4920)"}
   ],
   "migrations": [
     {"version": 1, "file": "0001_platform.sql", "sha256": "2CB8FB349156F501295E1148366BDFE406EC097C136093F09C6F0817542F46CC"},
@@ -336,6 +339,9 @@
     {"version": 4910, "file": "4910_crm_customer_list_indexes.sql", "sha256": "45C6602B4F93FC1F49328CC9AA0284823973A9DEEDE4EE7DDBBED3AE27F147F3"},
     {"version": 4920, "file": "4920_rate_change_agreed_threshold.sql", "sha256": "5B675FF7771F194315EFDBA12577ADB774073486E83F39037B8DAE647B746F53"},
     {"version": 4802, "file": "4802_meas_rbac_seed.sql", "sha256": "7BC50768125A298B410D677BF5A9EC3682432DD881042B20042D5456A2B86B1B"},
-    {"version": 4803, "file": "4803_meas_settings_seed.sql", "sha256": "57902A9375A4C23F0C6161453332F8CA4D953637F4905AD8B6FFE24BDA512ECA"}
+    {"version": 4803, "file": "4803_meas_settings_seed.sql", "sha256": "57902A9375A4C23F0C6161453332F8CA4D953637F4905AD8B6FFE24BDA512ECA"},
+    {"version": 4810, "file": "4810_meas_desk_turnaway.sql", "sha256": "D20A3D2BC3D7AC376FBB514D55BB74B3C7D1697D5F7F62BDA57DC7F8768DEC66"},
+    {"version": 4811, "file": "4811_meas_desk_allowance_extra.sql", "sha256": "6BAD7F66CAA66884FC754ACA19945347B5C83BCAABC59B3C834063BEFDC1A684"},
+    {"version": 4812, "file": "4812_meas_desk_preference.sql", "sha256": "61913399549DB459B7790117E95D1E0ADB72C2B78B030F59A79CA0D886528E70"}
   ]
 }

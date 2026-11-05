@@ -141,6 +141,9 @@ export {hallTncSeed,HALL_TNC_HEADINGS} from '../../fixtures/ext/hall-seed';
 export * from '../../domain/streams/measure'; // MEAS_ITEMS, measOn, measTarget, measGuard, registerMeasReport, MEAS_REPORT_KEY
 // F12-SETTINGS end
 // F12-CAP-DESK
+export * from '../../domain/streams/turnaway'; // F12 desk captures rules
+export {customerIndex} from '../../domain/streams/customers'; // Customer 360 index (preferences keyed by its key)
+export {MEAS_ALLOWANCE_DEFAULTS,MEAS_TURNAWAY_DEMO} from '../../fixtures/ext/meas-desk';
 // F12-CAP-DESK end
 // F12-CAP-HK
 // F12-CAP-HK end

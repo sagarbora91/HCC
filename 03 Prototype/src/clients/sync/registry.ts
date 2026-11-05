@@ -95,6 +95,19 @@ import {hall} from './hall'; // F6 hall booking: enquiries, halls master, accept
 // F12-SETTINGS
 // F12-SETTINGS end
 // F12-CAP-DESK
+// Desk captures (turn-away, walked, allowance reasons, booking extras, preferences): commands only. The shared measX slice loader belongs to the integrator
+// (five capture lanes write the same slice); until then the screens read their own writes through the command reply.
+import {serverId as mdServerId} from './map';
+const mdText=(v:unknown)=>String(v??'').trim()||undefined;
+const measDesk:SyncArea={id:'meas-desk',loaders:[],commands:[
+  {type:'MEAS_TURNAWAY_LOG',reload:[],async send(c){const k=c.cmd;await c.api.command('LogTurnaway',{reason:k.reason,arrival:k.arrival,nights:k.nights,roomType:k.roomType,rooms:k.rooms??1,quotedRatePaise:k.quotedRate,channel:k.channel,note:mdText(k.note)});}},
+  {type:'MEAS_WALKED_LOG',reload:[],async send(c){const k=c.cmd;await c.api.command('LogWalkedGuest',{reservationId:mdServerId(k.booking,'Booking'),night:k.night,reason:k.reason,costPaise:k.costPaise});}},
+  {type:'MEAS_ALLOWANCE_REASON_SAVE',reload:[],async send(c){const k=c.cmd;await c.api.command('SaveAllowanceReason',{code:k.code,label:k.label,active:k.active!==false});}},
+  {type:'MEAS_BOOKING_EXTRA_SET',reload:['bookings'],async send(c){const k=c.cmd;await c.api.command('SetBookingExtra',{reservationId:mdServerId(k.id,'Booking'),bookedType:mdText(k.bookedType),item:mdText(k.item),upgrade:mdText(k.upgrade),
+    amountPaise:k.amount,time:mdText(k.time),waive:k.waive===true?true:undefined,reason:mdText(k.reason),approver:mdText(k.approver)});}},
+  {type:'MEAS_PREFERENCE_SET',reload:[],async send(c){const k=c.cmd;await c.api.command('SetCustomerPreference',{customerKey:k.customer,floor:k.floor,roomKind:k.roomKind,meal:k.meal,pillow:k.pillow,billToCompany:k.billToCompany,
+    doNotDisturb:k.doNotDisturb,note:k.note,blacklistReason:typeof k.blacklist==='string'?k.blacklist:undefined,clearBlacklist:k.blacklist===null||k.blacklist===false?true:undefined,approvedBy:mdText(k.approvedBy),reason:mdText(k.reason)});}},
+]};
 // F12-CAP-DESK end
 // F12-CAP-HK
 // F12-CAP-HK end
@@ -186,6 +199,7 @@ export const AREAS:SyncArea[]=[
   // F12-SETTINGS
   // F12-SETTINGS end
   // F12-CAP-DESK
+  measDesk,
   // F12-CAP-DESK end
   // F12-CAP-HK
   // F12-CAP-HK end
