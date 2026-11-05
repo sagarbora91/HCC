@@ -103,6 +103,8 @@ import {hall} from './hall'; // F6 hall booking: enquiries, halls master, accept
 // F12-CAP-PEOPLE
 // F12-CAP-PEOPLE end
 // F12-FORECAST
+/** F12 meas-forecast: the server tables (migration 4830) have no endpoints yet (DONE, open items), so the commands are listed as unmapped. */
+const measForecast:SyncArea={id:'meas-forecast',loaders:[],commands:[],unmapped:{MEAS_EVENT_SAVE:'F12 meas-forecast: server endpoint not built yet (tables in 4830)',MEAS_EVENT_DELETE:'F12 meas-forecast: server endpoint not built yet',MEAS_OTB_SNAPSHOT:'F12 meas-forecast: server Monday 06:00 schedule job not built yet',MEAS_COMPETITOR_SAVE:'F12 meas-forecast: server endpoint not built yet',MEAS_RATESHOP_ADD:'F12 meas-forecast: server endpoint not built yet'}};
 // F12-FORECAST end
 // AF-SYNC-OPS
 import {keys} from './keys'; // OPS-01 room keys
@@ -194,6 +196,7 @@ export const AREAS:SyncArea[]=[
   // F12-CAP-PEOPLE
   // F12-CAP-PEOPLE end
   // F12-FORECAST
+  measForecast,
   // F12-FORECAST end
   // AF-SYNC-OPS
   keys,

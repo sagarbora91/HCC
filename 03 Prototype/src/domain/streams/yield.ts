@@ -211,3 +211,63 @@ export function yldSummary(s:State){
   const high=yldWindow(s).filter(d=>yldOcc(s,d).pct>=80).length;
   return {avgBar7:avg,highDemand:high,pending:yldPendingNights(s).length,proposals:yldPendingProposals(s).length};
 }
+
+// F12-FORECAST
+// MEAS-CONTRACT §1.2 / §2, plan §4 (2.2, 2.5, 2.6). Read-only additions: nothing above this block changes, so the yield guards behave exactly
+// as before while the new settings sit at their defaults (yld.overbook.<type> = 0, yld.restrictionsEnforce = off). The settings are declared
+// by meas-settings (config.ts `measure` group); until then a missing value reads as the default.
+import {measOn} from './measure';
+import {fcCurve,fcForecastNight,fcInputOf,type FCNight,type FCStay} from '../forecast';
+import type {MeasRestrictionCounter,MeasState} from './measure-types';
+const yldCfg=(s:State,k:string):unknown=>(s.configX as {values?:Record<string,unknown>}|undefined)?.values?.[k];
+/** Rooms of a type that may be sold beyond the sellable count (M-6 default 0; integer 0 … 10). */
+export function yldOverbookAllowed(s:State,type:string):number{const v=Number(yldCfg(s,'yld.overbook.'+type));return Number.isInteger(v)&&v>0?Math.min(v,10):0;}
+/** yld.restrictionsEnforce (M-7 default off = advisory). */
+export const yldRestrictionsEnforced=(s:State)=>yldCfg(s,'yld.restrictionsEnforce')===true;
+/** True when the MEAS real forecast curve is switched on (meas.rev.forecast). */
+export const yldRealForecastOn=(s:State)=>measOn(s,'meas.rev.forecast');
+/** Real forecast occupancy for a night (2.2), or the module's simulated yldOcc when meas.rev.forecast is off. `legacy` = lgc stays (server /
+ *  production loader); the prototype passes none and the curve falls back to the trailing weekday mean of the FY26 bookings. */
+export function yldOccReal(s:State,date:string,legacy:FCStay[]=[]):YLDOcc&{real?:FCNight}{
+  const base=yldOcc(s,date);
+  if(!yldRealForecastOn(s))return base;
+  const f=fcForecastNight({...fcInputOf(s,legacy),rooms:base.sellable},date);
+  const sold=Math.max(base.onBooks,f.rooms);
+  return {...base,forecast:f.rooms,pct:base.sellable?Math.min(100,Math.round(sold/base.sellable*100)):0,simulated:false,real:f};
+}
+/** Real forecast curve for the demand calendar (2.1, 90 nights). Empty when meas.rev.forecast is off. */
+export function yldRealCurve(s:State,n=90,legacy:FCStay[]=[]):FCNight[]{
+  if(!yldRealForecastOn(s))return [];
+  const sellable=s.rooms.filter(r=>!r.blocked).length;
+  return fcCurve({...fcInputOf(s,legacy),rooms:sellable},s.date,n);
+}
+/** Rooms of a type sold on a night beyond its sellable rooms (2.5 "oversold"); red when above yldOverbookAllowed. */
+export function yldOversold(s:State,type:string,date:string){
+  const next=addDays(date,1);
+  const rooms=s.rooms.filter(r=>r.type===type);
+  const sellable=rooms.filter(r=>!blockedDuring(r,date,next)&&!rmsOffline(r,date,next)).length;
+  const sold=s.bookings.filter(b=>(b.status==='Confirmed'||b.status==='In house')&&b.arrival<=date&&b.departure>date&&rooms.some(r=>r.id===b.room)).length;
+  const over=Math.max(0,sold-sellable),allowed=yldOverbookAllowed(s,type);
+  return {type,date,sellable,sold,over,allowed,red:over>allowed};
+}
+/** 2.6 counter: returns a new restrictions list with one refusal / re-shape added for the night and kind (pure; the guard caller stores it in
+ *  s.measX.restrictions). */
+export function yldRestrictionCount(m:MeasState|undefined,night:string,kind:'MIN_STAY'|'CTA',what:'refused'|'reshaped'):MeasRestrictionCounter[]{
+  const list=(m?.restrictions??[]).map(x=>({...x}));
+  let row=list.find(x=>x.night===night&&x.kind===kind);
+  if(!row){row={night,kind,refused:0,reshaped:0};list.push(row);}
+  row[what]++;
+  return list.sort((a,b)=>a.night<b.night?-1:a.night>b.night?1:a.kind<b.kind?-1:1);
+}
+/** Nights that carry a MIN_STAY / CTA restriction in a window, with the counters (2.6 report input). */
+export function yldRestrictionNights(s:State,from:string,to:string){
+  const out:{night:string;kinds:('MIN_STAY'|'CTA')[];refused:number;reshaped:number}[]=[];
+  for(let d=from;d<=to;d=addDays(d,1)){
+    const rs=yldSlice(s).restrictions.filter(r=>r.from<=d&&r.to>=d);if(!rs.length)continue;
+    const kinds=[...new Set(rs.flatMap(r=>[...(r.minStay>1?['MIN_STAY' as const]:[]),...(r.cta?['CTA' as const]:[])]))];
+    const c=(s.measX?.restrictions??[]).filter(x=>x.night===d);
+    out.push({night:d,kinds,refused:c.reduce((a,x)=>a+x.refused,0),reshaped:c.reduce((a,x)=>a+x.reshaped,0)});
+  }
+  return out;
+}
+// F12-FORECAST end

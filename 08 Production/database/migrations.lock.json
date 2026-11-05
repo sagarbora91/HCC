@@ -108,7 +108,8 @@
     {"version": 4402, "file": "4402_rpt_schedule.sql", "reason": "F7 RPT 4400-4405 reserved by Wave Plan §1.4; parallel wave merged with F6 (4740)"},
     {"version": 4403, "file": "4403_rpt_run.sql", "reason": "F7 RPT 4400-4405 reserved by Wave Plan §1.4; parallel wave merged with F6 (4740)"},
     {"version": 4404, "file": "4404_rpt_export_log.sql", "reason": "F7 RPT 4400-4405 reserved by Wave Plan §1.4; parallel wave merged with F6 (4740)"},
-    {"version": 4405, "file": "4405_rpt_rbac_seed.sql", "reason": "F7 RPT 4400-4405 reserved by Wave Plan §1.4; parallel wave merged with F6 (4740)"}
+    {"version": 4405, "file": "4405_rpt_rbac_seed.sql", "reason": "F7 RPT 4400-4405 reserved by Wave Plan §1.4; parallel wave merged with F6 (4740)"},
+    {"version": 4830, "file": "4830_meas_forecast_tables.sql", "reason": "F12 MEAS meas-forecast block 4830-4834 (MEAS-CONTRACT 5)"}
   ],
   "migrations": [
     {"version": 1, "file": "0001_platform.sql", "sha256": "2CB8FB349156F501295E1148366BDFE406EC097C136093F09C6F0817542F46CC"},
@@ -332,6 +333,7 @@
     {"version": 4801, "file": "4801_cfg_change_source_cascade.sql", "sha256": "7D6F518BD57E5CE0D74B4576FD6FFB0FE89F5A7175E752DA471F0748DD246DB3"},
     {"version": 4900, "file": "4900_crm_customer_key_secret.sql", "sha256": "C5D37954D5092E6073927C8E16E7FF116E82E7FB017CF5CA63C5D97B87ADC7F0"},
     {"version": 4910, "file": "4910_crm_customer_list_indexes.sql", "sha256": "45C6602B4F93FC1F49328CC9AA0284823973A9DEEDE4EE7DDBBED3AE27F147F3"},
-    {"version": 4920, "file": "4920_rate_change_agreed_threshold.sql", "sha256": "5B675FF7771F194315EFDBA12577ADB774073486E83F39037B8DAE647B746F53"}
+    {"version": 4920, "file": "4920_rate_change_agreed_threshold.sql", "sha256": "5B675FF7771F194315EFDBA12577ADB774073486E83F39037B8DAE647B746F53"},
+    {"version": 4830, "file": "4830_meas_forecast_tables.sql", "sha256": "B7E9F99FBC9ECA7341852FABAF1202F0ABF2AE43624D5EFA24B580998B219AEF"}
   ]
 }
