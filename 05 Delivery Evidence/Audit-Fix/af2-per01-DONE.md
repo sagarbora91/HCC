@@ -43,5 +43,8 @@ Line endings: `git diff --stat` and `--ignore-cr-at-eol` give identical counts.
 - Benchmark `HCC_PERF=1 HCC_PERF_N=1000,10000,15000,30000 HCC_PERF_OLD=1`: pass (7 min 16 s); all `HccTest_*` databases dropped.
 - Prototype (`03 Prototype`): nothing changed there, so `npm test` was not re-run (2,840 on main).
 
+## Secret scan
+Invoke-SecretScan (base e949a9e5): ok, 0 findings, 1,055 added lines in 13 files.
+
 ## HANDOFF bullet
 af2-per01 (5 Nov): PER-01 rewrite done (owner Q7). Customer list / search / profile = narrow index-backed key pass + full rows for the page only (migration 4910); identical results proved against the old query (1,152 list calls + every profile, 4 roles). 30k guests: 799 -> 112 ms, 110 -> 20 MB per call; legacy size (15k): about 60 ms / 10 MB. Benchmark has a pass threshold. Follow-up: `CustomerCommands` key lookup still loads the whole property.
