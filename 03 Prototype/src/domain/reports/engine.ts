@@ -12,6 +12,7 @@ import {computeColumns} from './computed';
 import {cellText} from './print';
 import {rptTables} from './tables';
 import './register';
+import {measReportOn,measReportGuard} from '../streams/measure'; // F12-SETTINGS (MEAS-CONTRACT §1.5)
 export {registerReport,reportDef,allReports,catalogueRecord} from './catalogue';
 export {bindParams,paramsText,rptFyOf,RPT_LEGACY_BEFORE} from './params';
 export {canViewReport,canExportReport,holdsMoneyGate,maskValue,rptHolds,RPT_NO_MONEY_ROLES} from './mask';
@@ -27,7 +28,7 @@ export class RptTooLarge extends HccError{readonly rptCode='RPT_TOO_LARGE';const
 const userName=(s:State,uid:string)=>s.users.find(u=>u.id===uid)?.name.split(' · ')[0]??uid;
 /** Catalogue for the caller: definitions they may view, with whether they may export and whether money columns will show. */
 export function reportCatalogue(s:State,uid:string){
-  return allReports().filter(d=>canViewReport(s,uid,d)).map(d=>({id:d.id,title:d.title,area:d.area,priority:d.priority,status:d.status,
+  return allReports().filter(d=>measReportOn(s,d.id)&&canViewReport(s,uid,d)).map(d=>({id:d.id,title:d.title,area:d.area,priority:d.priority,status:d.status,
     formats:d.formats,phone:d.phone,params:d.params,dateClass:d.dateClass,canExport:canExportReport(s,uid,d),money:holdsMoneyGate(s,uid,d)}));
 }
 export type RunOpts={/** Screen page (0-based); omitted with `all` for files. */page?:number;pageSize?:number;/** Files: every row (≤ 50,000). */all?:boolean;/** Export / print check (rule V). */purpose?:'screen'|'print'|'export'};
@@ -37,6 +38,7 @@ export function runReport(s:State,uid:string,id:string,raw:Record<string,unknown
   return runDef(s,uid,def,raw,o);
 }
 export function runDef(s:State,uid:string,def:RptDefinition,raw:Record<string,unknown>={},o:RunOpts={}):RptResult{
+  measReportGuard(s,def.id); // F12-SETTINGS: a switched-off measurement report refuses with MEAS_OFF
   if(!canViewReport(s,uid,def))throw new HccError('FORBIDDEN',`You cannot open ${def.title}.`);
   if(o.purpose==='export'&&!canExportReport(s,uid,def))throw new HccError('FORBIDDEN',`Exporting ${def.title} needs ${def.exportPerm??'PERM-RPT-003'}.`);
   const bound=bindParams(def,raw,s);const {legacy,...p}=bound;

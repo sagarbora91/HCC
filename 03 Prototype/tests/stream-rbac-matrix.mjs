@@ -110,6 +110,7 @@ const CMDS={
   // F6-H1 end
   GSV_WAKE_SNOOZE:C('OWN MGR REC','LF B3 (reservations)'),RMD_SAVE:C('OWN MGR REC ACC','PERM-RMD-001'),RMD_DONE:C('OWN MGR REC ACC','PERM-RMD-001'),RMD_DISMISS:C('OWN MGR REC ACC','PERM-RMD-001'), // LF-ALERTS
   CFG_NET_SET:C('OWN','PERM-NET-001 (F5-E1)'),NET_TICK:C('OWN','PERM-NET-001 worker tick stand-in (F5-E1)'), // F5-E1
+  MEAS_PACK_SET:C('OWN','PERM-MEAS-001 (F12-SETTINGS)'),MEAS_ITEM_SET:C('OWN','PERM-MEAS-001 (F12-SETTINGS)'), // F12-SETTINGS
   // F7-R1 report engine commands (F7-CONTRACT §2): view / export of the report (rule V); schedules by their owner or the Owner
   RPT_FAV_TOGGLE:C('OWN MGR ACC','report view (rule V)'),RPT_SCHEDULE_SAVE:C('OWN MGR ACC','view + PERM-RPT-003 (a schedule sends a file)'),
   RPT_SCHEDULE_DELETE:C('OWN MGR ACC','schedule owner or the Owner'),RPT_RUN_DUE:C('OWN MGR ACC','report outbox tick stand-in'),RPT_LOG:C('OWN MGR ACC','print = view; file = view + export (rule V.4)'),
