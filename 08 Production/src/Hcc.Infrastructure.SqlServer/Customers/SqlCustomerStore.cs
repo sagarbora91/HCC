@@ -59,22 +59,42 @@ internal static class CrmSql
 /// <summary>Read side. The customer sources are read-only queries on inv.reservation, gst.guest/registration/stay and bill.charge/folio (never written; no ID columns selected, DEC-068).</summary>
 public sealed partial class SqlCustomerReadStore(SqlConnectionFactory connections) : ICustomerReadStore
 {
+    // The booking columns of the full customer read: the room is the last stay segment's room, else the last reserved night's room.
+    private const string StayColumns = """
+        r.reservation_id, r.public_no, reg.guest_id, r.guest_name, r.arrival, r.departure, r.status, COALESCE(a.room_no, b.room_no)
+        """;
+
+    private const string StayJoins = """
+          LEFT JOIN gst.registration reg ON reg.reservation_id = r.reservation_id
+          OUTER APPLY (SELECT TOP 1 rm.room_no FROM gst.stay s2 JOIN gst.stay_segment sg ON sg.stay_id = s2.stay_id JOIN inv.room rm ON rm.room_id = sg.room_id
+                        WHERE s2.reservation_id = r.reservation_id ORDER BY sg.seq DESC) a
+          OUTER APPLY (SELECT TOP 1 rm.room_no FROM inv.room_night rn JOIN inv.room rm ON rm.room_id = rn.room_id
+                        WHERE rn.reservation_id = r.reservation_id ORDER BY rn.night DESC) b
+        """;
+
+    // Folio lines of in-house / departed bookings; the last column marks a live (not reversed, not a reversal) room night for the average rate.
+    // PER-01: "x.reverses_charge_id IS NOT NULL" is implied by the equality; spelling it out lets the filtered IX_charge_reverses (3951) be used.
+    private const string ChargeColumns = """
+        f.reservation_id, c.kind, c.amount_paise, c.tax_bps,
+               CASE WHEN c.kind = 'room' AND c.reverses_charge_id IS NULL
+                     AND NOT EXISTS (SELECT 1 FROM bill.charge x WHERE x.reverses_charge_id = c.charge_id AND x.reverses_charge_id IS NOT NULL) THEN 1 ELSE 0 END
+        """;
+
+    private const string GuestColumns = "guest_id, full_name, phone, email, preferences, notes";
+
     public async Task<CrmSource> LoadAsync(int propertyId, CancellationToken ct = default)
     {
         await using var conn = await connections.OpenAsync(ct).ConfigureAwait(false);
-        await using var cmd = connections.Command("""
+        // PER-01: ORDER BY makes the row order (and so the tie order of customers with the same newest arrival and name) explicit; it was the scan order.
+        await using var cmd = connections.Command($"""
             SELECT business_date FROM inv.property WHERE property_id = @p;
-            SELECT guest_id, full_name, phone, email, preferences, notes FROM gst.guest WHERE property_id = @p;
-            SELECT r.reservation_id, r.public_no, reg.guest_id, r.guest_name, r.arrival, r.departure, r.status, COALESCE(a.room_no, b.room_no)
+            SELECT {GuestColumns} FROM gst.guest WHERE property_id = @p ORDER BY guest_id;
+            SELECT {StayColumns}
               FROM inv.reservation r
-              LEFT JOIN gst.registration reg ON reg.reservation_id = r.reservation_id
-              OUTER APPLY (SELECT TOP 1 rm.room_no FROM gst.stay s2 JOIN gst.stay_segment sg ON sg.stay_id = s2.stay_id JOIN inv.room rm ON rm.room_id = sg.room_id
-                            WHERE s2.reservation_id = r.reservation_id ORDER BY sg.seq DESC) a
-              OUTER APPLY (SELECT TOP 1 rm.room_no FROM inv.room_night rn JOIN inv.room rm ON rm.room_id = rn.room_id
-                            WHERE rn.reservation_id = r.reservation_id ORDER BY rn.night DESC) b
-             WHERE r.property_id = @p;
-            SELECT f.reservation_id, c.kind, c.amount_paise, c.tax_bps,
-                   CASE WHEN c.kind = 'room' AND c.reverses_charge_id IS NULL AND NOT EXISTS (SELECT 1 FROM bill.charge x WHERE x.reverses_charge_id = c.charge_id) THEN 1 ELSE 0 END
+            {StayJoins}
+             WHERE r.property_id = @p
+             ORDER BY r.reservation_id;
+            SELECT {ChargeColumns}
               FROM bill.charge c JOIN bill.folio f ON f.folio_id = c.folio_id JOIN inv.reservation r ON r.reservation_id = f.reservation_id
              WHERE r.property_id = @p AND r.status IN ('InHouse','Departed');
             SELECT alias_key, target_key FROM crm.customer_alias WHERE property_id = @p;
@@ -84,10 +104,100 @@ public sealed partial class SqlCustomerReadStore(SqlConnectionFactory connection
         if (!await rd.ReadAsync(ct).ConfigureAwait(false)) throw new HccException(HccErrorCode.NOT_FOUND, "Property not found.");
         var today = DateOnly.FromDateTime(rd.GetDateTime(0));
         await rd.NextResultAsync(ct).ConfigureAwait(false);
+        var guests = await ReadGuestsAsync(rd, ct).ConfigureAwait(false);
+        await rd.NextResultAsync(ct).ConfigureAwait(false);
+        var stays = await ReadStaysAsync(rd, ct).ConfigureAwait(false);
+        await rd.NextResultAsync(ct).ConfigureAwait(false);
+        var aliases = await ReadAliasesAsync(rd, ct).ConfigureAwait(false);
+        return new CrmSource(guests, stays, aliases, today);
+    }
+
+    /// <summary>
+    /// PER-01: the key pass. Every guest (id, name, mobile) and every booking that is not an expired hold (id, number, registered guest of this property, arrival; the booking name only when there is no such guest)
+    /// of the property, both in id order from the covering indexes of migration 4910; no folio, room or contact columns.
+    /// </summary>
+    public async Task<CrmHeadSource> HeadsAsync(int propertyId, CancellationToken ct = default)
+    {
+        await using var conn = await connections.OpenAsync(ct).ConfigureAwait(false);
+        await using var cmd = connections.Command("""
+            SELECT business_date FROM inv.property WHERE property_id = @p;
+            SELECT guest_id, full_name, phone FROM gst.guest WHERE property_id = @p ORDER BY guest_id;
+            SELECT r.reservation_id, r.public_no, g.guest_id, CASE WHEN g.guest_id IS NULL THEN r.guest_name END, r.arrival
+              FROM inv.reservation r
+              LEFT JOIN gst.registration reg ON reg.reservation_id = r.reservation_id
+              LEFT JOIN gst.guest g ON g.guest_id = reg.guest_id AND g.property_id = @p
+             WHERE r.property_id = @p AND r.status <> 'Expired'
+             ORDER BY r.reservation_id;
+            SELECT alias_key, target_key FROM crm.customer_alias WHERE property_id = @p;
+            """, conn);
+        cmd.P("@p", SqlDbType.Int, propertyId);
+        await using var rd = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+        if (!await rd.ReadAsync(ct).ConfigureAwait(false)) throw new HccException(HccErrorCode.NOT_FOUND, "Property not found.");
+        var today = DateOnly.FromDateTime(rd.GetDateTime(0));
+        await rd.NextResultAsync(ct).ConfigureAwait(false);
+        var guests = new List<CrmGuestHead>();
+        while (await rd.ReadAsync(ct).ConfigureAwait(false)) guests.Add(new CrmGuestHead(rd.GetInt64(0), rd.GetString(1), rd.GetString(2)));
+        await rd.NextResultAsync(ct).ConfigureAwait(false);
+        var stays = new List<CrmStayHead>();
+        while (await rd.ReadAsync(ct).ConfigureAwait(false))
+            stays.Add(new CrmStayHead(rd.GetInt64(0), rd.GetString(1), rd.IsDBNull(2) ? null : rd.GetInt64(2), rd.IsDBNull(3) ? null : rd.GetString(3), DateOnly.FromDateTime(rd.GetDateTime(4))));
+        await rd.NextResultAsync(ct).ConfigureAwait(false);
+        var aliases = await ReadAliasesAsync(rd, ct).ConfigureAwait(false);
+        return new CrmHeadSource(guests, stays, aliases, today);
+    }
+
+    /// <summary>PER-01: the full rows of the given bookings and guest profiles only (id sets in table variables, then seeks); other properties' ids are ignored.</summary>
+    public async Task<CrmDetail> LoadSomeAsync(int propertyId, IReadOnlyCollection<long> reservationIds, IReadOnlyCollection<long> guestIds, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(reservationIds);
+        ArgumentNullException.ThrowIfNull(guestIds);
+        if (reservationIds.Count == 0 && guestIds.Count == 0) return new CrmDetail([], []);
+        static string Ids(IEnumerable<long> ids) => string.Join(',', ids.Select(i => i.ToString(System.Globalization.CultureInfo.InvariantCulture)));
+        await using var conn = await connections.OpenAsync(ct).ConfigureAwait(false);
+        await using var cmd = connections.Command($"""
+            SET NOCOUNT ON;
+            DECLARE @r TABLE(id BIGINT PRIMARY KEY);
+            DECLARE @g TABLE(id BIGINT PRIMARY KEY);
+            INSERT @r(id) SELECT DISTINCT CAST(value AS BIGINT) FROM STRING_SPLIT(@rids, ',') WHERE value <> '';
+            INSERT @g(id) SELECT DISTINCT CAST(value AS BIGINT) FROM STRING_SPLIT(@gids, ',') WHERE value <> '';
+            SELECT {GuestColumns} FROM gst.guest WHERE property_id = @p AND guest_id IN (SELECT id FROM @g) ORDER BY guest_id;
+            SELECT {StayColumns}
+              FROM @r x JOIN inv.reservation r ON r.reservation_id = x.id
+            {StayJoins}
+             WHERE r.property_id = @p
+             ORDER BY r.reservation_id;
+            SELECT {ChargeColumns}
+              FROM @r x JOIN inv.reservation r ON r.reservation_id = x.id JOIN bill.folio f ON f.reservation_id = r.reservation_id JOIN bill.charge c ON c.folio_id = f.folio_id
+             WHERE r.property_id = @p AND r.status IN ('InHouse','Departed');
+            """, conn);
+        cmd.P("@p", SqlDbType.Int, propertyId);
+        cmd.P("@rids", SqlDbType.VarChar, Ids(reservationIds), -1);
+        cmd.P("@gids", SqlDbType.VarChar, Ids(guestIds), -1);
+        await using var rd = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+        var guests = await ReadGuestsAsync(rd, ct).ConfigureAwait(false);
+        await rd.NextResultAsync(ct).ConfigureAwait(false);
+        var stays = await ReadStaysAsync(rd, ct).ConfigureAwait(false);
+        return new CrmDetail(guests, stays);
+    }
+
+    private static async Task<List<CrmGuest>> ReadGuestsAsync(SqlDataReader rd, CancellationToken ct)
+    {
         var guests = new List<CrmGuest>();
         while (await rd.ReadAsync(ct).ConfigureAwait(false))
             guests.Add(new CrmGuest(rd.GetInt64(0), rd.GetString(1), rd.GetString(2), rd.IsDBNull(3) ? null : rd.GetString(3), rd.IsDBNull(4) ? null : rd.GetString(4), rd.IsDBNull(5) ? null : rd.GetString(5)));
-        await rd.NextResultAsync(ct).ConfigureAwait(false);
+        return guests;
+    }
+
+    private static async Task<Dictionary<string, string>> ReadAliasesAsync(SqlDataReader rd, CancellationToken ct)
+    {
+        var aliases = new Dictionary<string, string>(StringComparer.Ordinal);
+        while (await rd.ReadAsync(ct).ConfigureAwait(false)) aliases[rd.GetString(0)] = rd.GetString(1);
+        return aliases;
+    }
+
+    /// <summary>Reads the booking result set, moves to the folio-line result set and builds the stays (folio total and average room rate in paise).</summary>
+    private static async Task<List<CrmStay>> ReadStaysAsync(SqlDataReader rd, CancellationToken ct)
+    {
         var res = new List<(long Id, string No, long? Guest, string Name, DateOnly Arr, DateOnly Dep, string Status, string? Room)>();
         while (await rd.ReadAsync(ct).ConfigureAwait(false))
             res.Add((rd.GetInt64(0), rd.GetString(1), rd.IsDBNull(2) ? null : rd.GetInt64(2), rd.GetString(3), DateOnly.FromDateTime(rd.GetDateTime(4)), DateOnly.FromDateTime(rd.GetDateTime(5)), rd.GetString(6), rd.IsDBNull(7) ? null : rd.GetString(7)));
@@ -107,13 +217,9 @@ public sealed partial class SqlCustomerReadStore(SqlConnectionFactory connection
             }
         }
 
-        await rd.NextResultAsync(ct).ConfigureAwait(false);
-        var aliases = new Dictionary<string, string>(StringComparer.Ordinal);
-        while (await rd.ReadAsync(ct).ConfigureAwait(false)) aliases[rd.GetString(0)] = rd.GetString(1);
-        var stays = res.Select(x => new CrmStay(x.Id, x.No, x.Guest, x.Name, x.Arr, x.Dep, x.Status, x.Room,
+        return res.Select(x => new CrmStay(x.Id, x.No, x.Guest, x.Name, x.Arr, x.Dep, x.Status, x.Room,
             lines.TryGetValue(x.Id, out var ls) ? FolioTotals.Compute(ls, []).Total.Value : 0,
             rooms.TryGetValue(x.Id, out var rr) && rr.Count > 0 ? (long)Math.Round((decimal)rr.Sum() / rr.Count, MidpointRounding.AwayFromZero) : 0)).ToList();
-        return new CrmSource(guests, stays, aliases, today);
     }
 
     public async Task<CrmOverlay> OverlayAsync(int propertyId, string customerKey, CancellationToken ct = default)

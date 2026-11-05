@@ -23,6 +23,30 @@ public sealed record CrmSource(IReadOnlyList<CrmGuest> Guests, IReadOnlyList<Crm
     public IReadOnlyList<Customer> Index() => CustomerRules.Index(Guests, Stays, Aliases, Today);
 }
 
+/// <summary>PER-01: the narrow rows of the customer key pass (every guest and booking of the property, a few columns each) plus aliases and the business date.</summary>
+public sealed record CrmHeadSource(IReadOnlyList<CrmGuestHead> Guests, IReadOnlyList<CrmStayHead> Stays, IReadOnlyDictionary<string, string> Aliases, DateOnly Today)
+{
+    public CustomerHeadIndex Heads() => CustomerRules.Heads(Guests, Stays, Aliases);
+
+    /// <summary>
+    /// The full customers of <paramref name="heads"/>, from their own bookings and profiles only (<see cref="ICustomerReadStore.LoadSomeAsync"/>), and the
+    /// guest rows read (for the profile's preferences).
+    /// </summary>
+    public async Task<(IReadOnlyDictionary<string, Customer> Customers, IReadOnlyList<CrmGuest> Guests)> CustomersAsync(ICustomerReadStore reads, int propertyId, CustomerHeadIndex index, IReadOnlyCollection<CustomerHead> heads, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(reads);
+        ArgumentNullException.ThrowIfNull(index);
+        ArgumentNullException.ThrowIfNull(heads);
+        if (heads.Count == 0) return (new Dictionary<string, Customer>(StringComparer.Ordinal), []);
+        var (res, guests) = index.RowsOf(heads);
+        var detail = await reads.LoadSomeAsync(propertyId, res, guests, ct).ConfigureAwait(false);
+        return (CustomerRules.Index(detail.Guests, detail.Stays, Aliases, Today).ToDictionary(c => c.Key, StringComparer.Ordinal), detail.Guests);
+    }
+}
+
+/// <summary>PER-01: the full guest and booking rows of a chosen set of bookings and profiles (same shapes as <see cref="CrmSource"/>).</summary>
+public sealed record CrmDetail(IReadOnlyList<CrmGuest> Guests, IReadOnlyList<CrmStay> Stays);
+
 public sealed record CrmNote(long NoteId, string Body, int AuthorId, DateTime CreatedUtc);
 
 public sealed record CrmPref(string Preferences, byte[] RowVer);
@@ -37,7 +61,14 @@ public sealed record CrmLegacyStay(long StayId, string LegacyFy, long LegacyBook
 
 public interface ICustomerReadStore
 {
+    /// <summary>Everything (every guest, booking, folio charge and alias of the property). Used by the duplicate finder and the merge / edit commands.</summary>
     Task<CrmSource> LoadAsync(int propertyId, CancellationToken ct = default);
+
+    /// <summary>PER-01: the narrow key-pass rows (list, search, profile and merge-list reads); index-backed (migration 4910).</summary>
+    Task<CrmHeadSource> HeadsAsync(int propertyId, CancellationToken ct = default);
+
+    /// <summary>PER-01: full rows of these bookings (room, folio total, average room rate) and these guest profiles only; ids of other properties are ignored.</summary>
+    Task<CrmDetail> LoadSomeAsync(int propertyId, IReadOnlyCollection<long> reservationIds, IReadOnlyCollection<long> guestIds, CancellationToken ct = default);
 
     Task<CrmOverlay> OverlayAsync(int propertyId, string customerKey, CancellationToken ct = default);
 

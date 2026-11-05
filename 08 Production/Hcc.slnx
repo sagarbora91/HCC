@@ -312,6 +312,7 @@
     <!-- F6-H3 end -->
     <!-- AF-CRM -->
     <File Path="database/migrations/4900_crm_customer_key_secret.sql" />
+    <File Path="database/migrations/4910_crm_customer_list_indexes.sql" />
     <!-- AF-CRM end -->
   </Folder>
 </Solution>
