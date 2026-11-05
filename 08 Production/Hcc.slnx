@@ -321,6 +321,7 @@
     <File Path="database/migrations/4812_meas_desk_preference.sql" />
     <!-- F12-CAP-DESK end -->
     <!-- F12-CAP-HK -->
+    <File Path="database/migrations/4815_meas_hk_schema.sql" />
     <!-- F12-CAP-HK end -->
     <!-- F12-CAP-GUEST -->
     <!-- F12-CAP-GUEST end -->

@@ -146,6 +146,7 @@ export {customerIndex} from '../../domain/streams/customers'; // Customer 360 in
 export {MEAS_ALLOWANCE_DEFAULTS,MEAS_TURNAWAY_DEMO} from '../../fixtures/ext/meas-desk';
 // F12-CAP-DESK end
 // F12-CAP-HK
+export {measHkDemoReadings,measHkDemoState} from '../../fixtures/ext/meas-hk';
 // F12-CAP-HK end
 // F12-CAP-GUEST
 // F12-CAP-GUEST end

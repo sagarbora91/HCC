@@ -110,6 +110,7 @@ const measDesk:SyncArea={id:'meas-desk',loaders:[],commands:[
 ]};
 // F12-CAP-DESK end
 // F12-CAP-HK
+import {measHk} from './meas-hk'; // F12 meas-cap-hk
 // F12-CAP-HK end
 // F12-CAP-GUEST
 // F12-CAP-GUEST end
@@ -202,6 +203,7 @@ export const AREAS:SyncArea[]=[
   measDesk,
   // F12-CAP-DESK end
   // F12-CAP-HK
+  measHk,
   // F12-CAP-HK end
   // F12-CAP-GUEST
   // F12-CAP-GUEST end

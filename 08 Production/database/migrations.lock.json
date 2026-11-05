@@ -113,7 +113,8 @@
     {"version": 4803, "file": "4803_meas_settings_seed.sql", "reason": "F12 MEAS block 4802-4869 decided by the MEAS setup commit (MEAS-CONTRACT deviation 2); meas-settings 4802/4803"},
     {"version": 4810, "file": "4810_meas_desk_turnaway.sql", "reason": "F12 MEAS cap-desk 4810-4812 (parallel lane block 4802-4869 below the highest locked 4920)"},
     {"version": 4811, "file": "4811_meas_desk_allowance_extra.sql", "reason": "F12 MEAS cap-desk 4810-4812 (parallel lane block 4802-4869 below the highest locked 4920)"},
-    {"version": 4812, "file": "4812_meas_desk_preference.sql", "reason": "F12 MEAS cap-desk 4810-4812 (parallel lane block 4802-4869 below the highest locked 4920)"}
+    {"version": 4812, "file": "4812_meas_desk_preference.sql", "reason": "F12 MEAS cap-desk 4810-4812 (parallel lane block 4802-4869 below the highest locked 4920)"},
+    {"version": 4815, "file": "4815_meas_hk_schema.sql", "reason": "F12 MEAS meas-cap-hk block 4815-4819 (parallel lane, below AF2 4920)"}
   ],
   "migrations": [
     {"version": 1, "file": "0001_platform.sql", "sha256": "2CB8FB349156F501295E1148366BDFE406EC097C136093F09C6F0817542F46CC"},
@@ -342,6 +343,7 @@
     {"version": 4803, "file": "4803_meas_settings_seed.sql", "sha256": "57902A9375A4C23F0C6161453332F8CA4D953637F4905AD8B6FFE24BDA512ECA"},
     {"version": 4810, "file": "4810_meas_desk_turnaway.sql", "sha256": "D20A3D2BC3D7AC376FBB514D55BB74B3C7D1697D5F7F62BDA57DC7F8768DEC66"},
     {"version": 4811, "file": "4811_meas_desk_allowance_extra.sql", "sha256": "6BAD7F66CAA66884FC754ACA19945347B5C83BCAABC59B3C834063BEFDC1A684"},
-    {"version": 4812, "file": "4812_meas_desk_preference.sql", "sha256": "61913399549DB459B7790117E95D1E0ADB72C2B78B030F59A79CA0D886528E70"}
+    {"version": 4812, "file": "4812_meas_desk_preference.sql", "sha256": "61913399549DB459B7790117E95D1E0ADB72C2B78B030F59A79CA0D886528E70"},
+    {"version": 4815, "file": "4815_meas_hk_schema.sql", "sha256": "553ED846282AD2E7FD083FA44ADD7C647AE0E8B810E0BCFF70693D71A6D8DE8B"}
   ]
 }
