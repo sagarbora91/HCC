@@ -6,8 +6,11 @@ using Hcc.Domain.Errors;
 
 namespace Hcc.Reporting.Tests;
 
-public sealed class MemoryStores : IReportScheduleStore, IReportRunStore, IReportExportLog, IReportFavourites, IReportPrincipalRoles
+public sealed class MemoryStores : IReportScheduleStore, IReportRunStore, IReportExportLog, IReportFavourites, IReportPrincipalRoles, IReportExportLogReader
 {
+    public Task<IReadOnlyList<ReportExportLogRecord>> ExportLogAsync(int propertyId, int take, CancellationToken ct = default) =>
+        Task.FromResult<IReadOnlyList<ReportExportLogRecord>>(Log.AsEnumerable().Reverse().Take(take).ToList());
+
     public readonly List<ReportScheduleRecord> Schedules = [];
     public readonly List<ReportRunRecord> Runs = [];
     public readonly List<ReportExportLogRecord> Log = [];
@@ -69,7 +72,7 @@ public sealed class ScheduleTests
         var runner = new ReportRunner(cat, p, prop, [new FixedCodeEngine()], clock);
         var m = new MemoryStores();
         var d = new FakeDelivery();
-        var s = new ReportService(runner, cat, [new XlsxRenderer(), new PdfRenderer(), new CsvRenderer(), new PrintHtmlRenderer()], prop, m, m, m, m, m, p, new ReferenceOnlyFileStore(), d, clock);
+        var s = new ReportService(runner, cat, [new XlsxRenderer(), new PdfRenderer(), new CsvRenderer(), new PrintHtmlRenderer()], prop, m, m, m, m, m, p, new ReferenceOnlyFileStore(), d, clock, m);
         return (s, m, d, p, clock);
     }
 
@@ -139,5 +142,73 @@ public sealed class ScheduleTests
         Assert.True(await s.SetFavouriteAsync(Rig.C(1), "rpt.admin.engine-test", true, Ct));
         Assert.False(await s.SetFavouriteAsync(Rig.C(1), "rpt.admin.engine-test", false, Ct));
         Assert.False(await s.SetFavouriteAsync(Rig.C(1), "rpt.admin.engine-test", false, Ct));
+    }
+
+    /// <summary>A no-money report with one money column (amt) and a computed column over it (avg); everything else as the demo report.</summary>
+    private static readonly ReportDefinition PlainDef = new DemoSelector().Definition with { Id = "rpt.admin.plain-test", MoneyFlag = false, MoneyGate = null };
+
+    private static (ReportService S, MemoryStores M, FakePolicy P) HubRig()
+    {
+        var p = new FakePolicy();
+        var clock = new FixedClock(new DateTimeOffset(2026, 10, 24, 2, 0, 0, TimeSpan.Zero));
+        var prop = new FakeProperty(new DateOnly(2026, 10, 24));
+        var cat = new ReportCatalogue([new DemoSelector(), new DemoSelector(def: PlainDef)]);
+        var m = new MemoryStores();
+        var s = new ReportService(new ReportRunner(cat, p, prop, [new FixedCodeEngine()], clock), cat, [new XlsxRenderer(), new PdfRenderer(), new CsvRenderer(), new PrintHtmlRenderer()],
+            prop, m, m, m, m, m, p, new ReferenceOnlyFileStore(), new FakeDelivery(), clock, m);
+        return (s, m, p);
+    }
+
+    [Fact]
+    public async Task AF2_DEC061_housekeeping_never_gets_a_money_report_or_column_even_with_a_mis_seeded_grant()
+    {
+        var (s, m, p) = HubRig();
+        foreach (var perm in new[] { "PERM-RPT-001", "PERM-RPT-002", "PERM-RPT-003" }) p.Grants[perm].Add("HKP"); // mis-seeded: view, money gate, export
+        var owner = await s.CatalogueAsync(Rig.C(1), Ct);
+        Assert.Equal(["rpt.admin.engine-test", "rpt.admin.plain-test"], owner.Select(e => e.Definition.Id));
+        Assert.True(owner[0].Money);
+        var hk = await s.CatalogueAsync(Rig.C(7), Ct);
+        Assert.Equal(["rpt.admin.plain-test"], hk.Select(e => e.Definition.Id));
+        Assert.False(hk[0].Money);
+        Assert.Equal(HccErrorCode.FORBIDDEN, (await Assert.ThrowsAsync<HccException>(() => s.RunAsync(Rig.C(7), "rpt.admin.engine-test", Rig.NoParams, null, 100, Ct))).Code);
+        Assert.Equal(HccErrorCode.FORBIDDEN, (await Assert.ThrowsAsync<HccException>(() => s.ExportAsync(Rig.C(7), "rpt.admin.engine-test", "csv", Rig.NoParams, Ct))).Code);
+        Assert.Equal(HccErrorCode.FORBIDDEN, (await Assert.ThrowsAsync<HccException>(() => s.PrintLogAsync(Rig.C(7), "rpt.admin.engine-test", new PrintLogRequest(null, 1), Ct))).Code);
+        Assert.Equal(HccErrorCode.FORBIDDEN, (await Assert.ThrowsAsync<HccException>(() => s.SetFavouriteAsync(Rig.C(7), "rpt.admin.engine-test", true, Ct))).Code);
+        // The plain report runs, but its money column and the computed column over it are removed (not blanked), for screen and file alike.
+        var r = await s.RunAsync(Rig.C(7), "rpt.admin.plain-test", Rig.NoParams, null, 100, true, Ct);
+        Assert.DoesNotContain(r.Columns, c => c.Key is "amt" or "avg");
+        Assert.All(r.Rows, row => Assert.False(row.Cells.ContainsKey("amt")));
+        Assert.Equal(["amt", "avg"], r.Removed!.Order(StringComparer.Ordinal));
+        var f = await s.ExportAsync(Rig.C(7), "rpt.admin.plain-test", "csv", Rig.NoParams, Ct);
+        var csv = System.Text.Encoding.UTF8.GetString(f.Bytes);
+        Assert.Contains("Nights", csv, StringComparison.Ordinal);
+        Assert.DoesNotContain("Amount", csv, StringComparison.Ordinal);
+        Assert.DoesNotContain("Per night", csv, StringComparison.Ordinal);
+        Assert.Equal(7, m.Log.Single().PrincipalId);
+        // The Owner keeps the money column on the same report.
+        Assert.Contains((await s.RunAsync(Rig.C(1), "rpt.admin.plain-test", Rig.NoParams, null, 100, true, Ct)).Columns, c => c.Key == "amt");
+    }
+
+    [Fact]
+    public async Task AF2_all_rows_print_log_file_formats_need_export_and_export_log_is_own_rows_unless_owner_manager_accountant()
+    {
+        var (s, m, _) = HubRig();
+        var all = await s.RunAsync(Rig.C(1), "rpt.admin.engine-test", Rig.NoParams, null, 100, true, Ct);
+        Assert.Equal((0, 2), (all.PageSize, all.Rows.Count));
+        Assert.Empty(m.Log); // a screen run writes nothing
+        // A device-built Excel file logged by the Accountant (view + export); a Manager denied export may log a print but not a file.
+        await s.PrintLogAsync(Rig.C(5), "rpt.admin.engine-test", new PrintLogRequest(null, 2, false, "xlsx"), Ct);
+        var (s2, m2, p2) = HubRig();
+        p2.Denied.Add((2, "PERM-RPT-003"));
+        await s2.PrintLogAsync(Rig.C(2), "rpt.admin.engine-test", new PrintLogRequest(null, 2), Ct); // print: view is enough
+        Assert.Equal(HccErrorCode.FORBIDDEN, (await Assert.ThrowsAsync<HccException>(() => s2.PrintLogAsync(Rig.C(2), "rpt.admin.engine-test", new PrintLogRequest(null, 2, false, "xlsx"), Ct))).Code);
+        Assert.Single(m2.Log);
+        await s.ExportAsync(Rig.C(2), "rpt.admin.engine-test", "csv", Rig.NoParams, Ct);
+        await s.PrintLogAsync(Rig.C(1), "rpt.admin.engine-test", new PrintLogRequest(null, 2), Ct);
+        Assert.Equal(3, (await s.ExportLogAsync(Rig.C(1), 200, Ct)).Count);
+        Assert.Equal([ReportFormat.Print, ReportFormat.Csv, ReportFormat.Xlsx], (await s.ExportLogAsync(Rig.C(5), 200, Ct)).Select(e => e.Format)); // accountant: all, newest first
+        var mine = await s.ExportLogAsync(Rig.C(2), 200, Ct); // Manager: all as well
+        Assert.Equal(3, mine.Count);
+        Assert.Empty(await s.ExportLogAsync(Rig.C(3), 200, Ct)); // Reception: only its own rows (none)
     }
 }

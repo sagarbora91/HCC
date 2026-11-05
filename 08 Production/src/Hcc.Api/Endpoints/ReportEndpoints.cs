@@ -5,6 +5,8 @@
 //   POST /reports/{id}/print-log               a print from the screen: one rpt.export_log row (view permission)
 //   GET|POST /reports/schedules · PUT|DELETE /reports/schedules/{sid} · GET /reports/runs (PERM-RPT-004)
 //   POST /reports/favourites/{id}              set {favourite} or toggle (no body) · GET /reports/favourites
+//   AF2-HUB-SERVER: GET /reports/{id}?all=true (every row, ≤ FileMax) · /export?…&encoding=base64 (file as base64 text) · GET /reports/export-log
+//   DEC-061: housekeeping / maintenance never get a money report or a money column (ReportService.NoMoneyAsync), whatever the grants say.
 using Hcc.Reporting;
 using Hcc.Reporting.Sql;
 
@@ -12,7 +14,7 @@ namespace Hcc.Api.Endpoints;
 
 public static class ReportEndpoints
 {
-    private static readonly HashSet<string> Reserved = new(StringComparer.OrdinalIgnoreCase) { "page", "pageSize", "format" };
+    private static readonly HashSet<string> Reserved = new(StringComparer.OrdinalIgnoreCase) { "page", "pageSize", "format", "all", "encoding" };
 
     private static Dictionary<string, string?> Raw(HttpContext http) =>
         http.Request.Query.Where(q => !Reserved.Contains(q.Key)).ToDictionary(q => q.Key, q => (string?)q.Value.ToString(), StringComparer.Ordinal);
@@ -38,12 +40,20 @@ public static class ReportEndpoints
             return Results.NoContent();
         });
         g.MapGet("/reports/runs", async (HttpContext http, ReportService s, int? take, CancellationToken ct) => Results.Ok(await s.RunsAsync(http.HccCaller(), take ?? 100, ct).ConfigureAwait(false)));
-        g.MapGet("/reports/{id}", async (HttpContext http, ReportService s, string id, int? page, int? pageSize, CancellationToken ct) =>
-            Results.Ok(await s.RunAsync(http.HccCaller(), id, Raw(http), page, pageSize ?? ReportRunner.PageDesktop, ct).ConfigureAwait(false)));
-        g.MapGet("/reports/{id}/export", async (HttpContext http, ReportService s, string id, string? format, CancellationToken ct) =>
+        // AF2-HUB-SERVER: the hub's export log tab (Owner / Manager / Accountant: every row; others: their own).
+        g.MapGet("/reports/export-log", async (HttpContext http, ReportService s, int? take, CancellationToken ct) =>
+            Results.Ok(await s.ExportLogAsync(http.HccCaller(), take ?? 200, ct).ConfigureAwait(false)));
+        // AF2-HUB-SERVER: all=true answers every row at once (the production hub's viewer and print; at most ReportRunner.FileMax rows).
+        g.MapGet("/reports/{id}", async (HttpContext http, ReportService s, string id, int? page, int? pageSize, bool? all, CancellationToken ct) =>
+            Results.Ok(await s.RunAsync(http.HccCaller(), id, Raw(http), page, pageSize ?? ReportRunner.PageDesktop, all == true, ct).ConfigureAwait(false)));
+        // AF2-HUB-SERVER: encoding=base64 answers the file as base64 text (the web / APK transport reads text only); same permission and log row.
+        g.MapGet("/reports/{id}/export", async (HttpContext http, ReportService s, string id, string? format, string? encoding, CancellationToken ct) =>
         {
             var f = await s.ExportAsync(http.HccCaller(), id, format, Raw(http), ct).ConfigureAwait(false);
-            return Results.File(f.Bytes, f.ContentType, f.FileName);
+            if (!string.Equals(encoding, "base64", StringComparison.OrdinalIgnoreCase)) return Results.File(f.Bytes, f.ContentType, f.FileName);
+            http.Response.Headers.ContentDisposition = new System.Net.Mime.ContentDisposition { FileName = f.FileName }.ToString();
+            http.Response.Headers["X-Hcc-Content-Type"] = f.ContentType;
+            return Results.Text(Convert.ToBase64String(f.Bytes), "text/plain");
         });
         g.MapPost("/reports/{id}/print-log", async (HttpContext http, ReportService s, string id, PrintLogRequest body, CancellationToken ct) =>
             Results.Ok(new { id = await s.PrintLogAsync(http.HccCaller(), id, body, ct).ConfigureAwait(false) }));
