@@ -6,6 +6,7 @@ import {Empty,Pill,dateLabel} from '../../components/ui';
 import {ScrollPanel} from '../../components/fit';
 import type {RptDefinition,RptSchedule,RptFormat} from '../../domain/reports/types';
 import {canExportReport} from './hub-engine';
+import {useServerExportLog,type HubDef} from './hubServer'; // AF2-HUB-SERVER: production branches only
 import {visibleSchedules,visibleRuns,visibleExportLog,cadenceText,runTone,runText,recipientChoices,defaultParams,rptState} from './hub-logic';
 
 type SchedFormat=Exclude<RptFormat,'screen'>;
@@ -13,7 +14,8 @@ const FORMATS:SchedFormat[]=['xlsx','pdf','csv'];
 
 export function ScheduleEditor({defs,existing,onDone}:{defs:RptDefinition[];existing?:RptSchedule;onDone:()=>void}){
   const {s,uid,run,toast}=useHcc();
-  const eligible=defs.filter(d=>canExportReport(s,uid,d)&&d.formats.some(f=>f!=='screen'));
+  // AF2-HUB-SERVER: in production the export right is the server catalogue's (the schedule save re-checks it on the server).
+  const eligible=defs.filter(d=>(process.env.HCC_BUILD==='production'?(d as HubDef).canExport===true:canExportReport(s,uid,d))&&d.formats.some(f=>f!=='screen'));
   const [reportId,setReportId]=useState(existing?.reportId??eligible[0]?.id??'');
   const def=eligible.find(d=>d.id===reportId);
   const [format,setFormat]=useState<SchedFormat>(existing?.format??'xlsx');
@@ -63,7 +65,9 @@ export function ScheduledTab({defs}:{defs:RptDefinition[]}){
 }
 
 export function ExportLogTab({defs}:{defs:RptDefinition[]}){
-  const {s,uid}=useHcc();const log=visibleExportLog(s,uid);
+  const {s,uid}=useHcc();
+  // AF2-HUB-SERVER: in production the log is the server's (GET /reports/export-log; every row for Owner / Manager / Accountant, own rows otherwise).
+  const log=process.env.HCC_BUILD==='production'?useServerExportLog():visibleExportLog(s,uid); // eslint-disable-line react-hooks/rules-of-hooks
   const title=(id:string)=>defs.find(d=>d.id===id)?.title??id;
   void rptState;
   return <ScrollPanel title="Export log" label="Export and print log" actions={<span className="muted">{log.length} entries</span>}>

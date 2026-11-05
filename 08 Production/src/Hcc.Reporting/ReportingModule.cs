@@ -26,6 +26,7 @@ public static class ReportingModule
         services.AddSingleton<IReportRunStore>(sp => sp.GetRequiredService<SqlReportStores>());
         services.AddSingleton<IReportExportLog>(sp => sp.GetRequiredService<SqlReportStores>());
         services.AddSingleton<IReportFavourites>(sp => sp.GetRequiredService<SqlReportStores>());
+        services.AddSingleton<IReportExportLogReader>(sp => sp.GetRequiredService<SqlReportStores>()); // AF2-HUB-SERVER: GET /reports/export-log
         services.AddSingleton<IReportPrincipalRoles>(sp => new SqlReportPrincipalRoles(sp.GetRequiredService<SqlPlatform>().Connections, sp.GetRequiredService<TimeProvider>()));
         services.TryAddSingleton<IReportFileStore, ReferenceOnlyFileStore>();
         services.TryAddSingleton<IReportDelivery, EgressReportDelivery>();

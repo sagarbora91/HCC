@@ -13,7 +13,7 @@ using Microsoft.Data.SqlClient;
 
 namespace Hcc.Reporting.Sql;
 
-public sealed class SqlReportStores(SqlConnectionFactory connections) : IReportPropertyInfo, IReportScheduleStore, IReportRunStore, IReportExportLog, IReportFavourites
+public sealed class SqlReportStores(SqlConnectionFactory connections) : IReportPropertyInfo, IReportScheduleStore, IReportRunStore, IReportExportLog, IReportFavourites, IReportExportLogReader
 {
     private static void Add(SqlCommand c, string n, SqlDbType t, object? v) => c.Parameters.Add(n, t).Value = v ?? DBNull.Value;
 

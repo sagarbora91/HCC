@@ -10,6 +10,7 @@ import {XLSX_MIME,buildXlsx} from '../../app/xlsx';
 import type {RptDefinition,RptColumn,RptRow,RptCell,RptParam,RptResult,RptFormat} from '../../domain/reports/types';
 import {runReport,toXlsx,toCsv,toPrintModel,printHtml,canExportReport} from './hub-engine';
 import {defaultParams,exportFileName,favsOf,AREA_LABEL,STATUS_LABEL} from './hub-logic';
+import {useServerReportRun,ServerRunNote,fetchHubFile,isOnServer,NOT_ON_SERVER,NOT_ON_SERVER_TEXT,type HubDef} from './hubServer'; // AF2-HUB-SERVER: production branches only
 
 export function fmtCell(c:RptColumn,v:RptCell):string{
   if(v===null||v===undefined||v==='')return '';
@@ -40,20 +41,28 @@ export function useReportRun(def:RptDefinition){
   const {s,uid}=useHcc();
   const [raw,setRaw]=useState(()=>defaultParams(def.params,s.date));
   const set=(k:string,v:string)=>setRaw(r=>({...r,[k]:v}));
+  // AF2-HUB-SERVER: in production the report runs on the hotel server (GET /reports/{id}?all=true), never on this device's synced slices.
+  if(process.env.HCC_BUILD==='production'){const out=useServerReportRun(def,raw);return {raw,set,...out};} // eslint-disable-line react-hooks/rules-of-hooks
   const out=useMemo(()=>{try{return {result:runReport(s,uid,def.id,raw) as RptResult,error:''};}catch(e){return {result:null as RptResult|null,error:(e as Error).message||'The report could not be run.'};}},
     [s,uid,def.id,JSON.stringify(raw)]); // eslint-disable-line react-hooks/exhaustive-deps
-  return {raw,set,...out};
+  return {raw,set,...out,loading:false};
 }
 
 export function ExportBar({def,result,raw,phone}:{def:RptDefinition;result:RptResult|null;raw:Record<string,string>;phone?:boolean}){
   const {s,uid,toast,run}=useHcc();
-  const canExport=canExportReport(s,uid,def);
+  // AF2-HUB-SERVER: in production the export right is the server catalogue's (rule V + export), and the server builds and logs the file.
+  const canExport=process.env.HCC_BUILD==='production'?(def as HubDef).canExport===true:canExportReport(s,uid,def);
   const has=(f:RptFormat)=>def.formats.includes(f);
   const code=(s.settings.hotel||'HCC').replace(/[^A-Za-z]/g,'').slice(0,4).toUpperCase()||'HCC';
   const log=(format:'print'|'xlsx'|'csv')=>{if(result)void run({type:'RPT_LOG',reportId:def.id,params:raw,format,rows:result.rows.length,provisional:result.about.provisional});};
-  const xl=()=>{if(!result)return;const name=exportFileName(code,def.id,raw,'xlsx');
+  // Declared only in the production build (a const that merely goes unused would keep the sync layer in the prototype bundle).
+  const serverFile=process.env.HCC_BUILD==='production'?(format:'xlsx'|'csv',what:string)=>{const fallback=exportFileName(code,def.id,raw,format);
+    void saveAndReport(fetchHubFile(def.id,format,raw,fallback).then(f=>saveBinaryFile(f.fileName,f.bytes,f.mime)),toast,what+' saved · '+def.title,'the '+what.toLowerCase());}:undefined;
+  const xl=()=>{if(!result)return;if(serverFile){serverFile('xlsx','Excel workbook');return;}
+    const name=exportFileName(code,def.id,raw,'xlsx');
     void saveAndReport(saveBinaryFile(name,buildXlsx(toXlsx(result,s)),XLSX_MIME),toast,'Excel workbook saved · '+def.title,'the Excel workbook');log('xlsx');};
-  const csv=()=>{if(!result)return;void saveCsv(exportFileName(code,def.id,raw,'csv'),toCsv(result));toast('CSV saved · '+def.title);log('csv');};
+  const csv=()=>{if(!result)return;if(serverFile){serverFile('csv','CSV file');return;}
+    void saveCsv(exportFileName(code,def.id,raw,'csv'),toCsv(result));toast('CSV saved · '+def.title);log('csv');};
   const print=()=>{if(!result)return;void printPage(def.title,printHtml(toPrintModel(result,s)));log('print');};
   const dis=!result;
   return <div className={'rpt-export'+(phone?' rpt-export-m':'')}>
@@ -87,15 +96,19 @@ export function ResultNotes({result,def}:{result:RptResult;def:RptDefinition}){
 
 export function ReportView({def,phone}:{def:RptDefinition;phone?:boolean}){
   const {s,uid,run}=useHcc();
-  const {raw,set,result,error}=useReportRun(def);
+  const {raw,set,result,error,loading}=useReportRun(def);
   const fav=favsOf(s,uid).includes(def.id);
+  // AF2-HUB-SERVER: a prototype-only report is listed in production but never run on the device.
+  const off=process.env.HCC_BUILD==='production'&&!isOnServer(def);
   return <div className="rpt-view" data-report={def.id}>
-    <div className="rpt-view-head"><div><h2>{def.title}</h2><p className="muted">{AREA_LABEL[def.area]} · {STATUS_LABEL[def.status]??def.status}{def.moneyFlag?' · money':''}</p></div>
-      <button type="button" className={'btn'+(fav?' on':'')} aria-pressed={fav} onClick={()=>void run({type:'RPT_FAV_TOGGLE',reportId:def.id})}><Star size={16} fill={fav?'currentColor':'none'}/> {fav?'Favourite':'Add to favourites'}</button></div>
+    <div className="rpt-view-head"><div><h2>{def.title}</h2><p className="muted">{AREA_LABEL[def.area]} · {off?NOT_ON_SERVER:STATUS_LABEL[def.status]??def.status}{def.moneyFlag?' · money':''}</p></div>
+      {!off&&<button type="button" className={'btn'+(fav?' on':'')} aria-pressed={fav} onClick={()=>void run({type:'RPT_FAV_TOGGLE',reportId:def.id})}><Star size={16} fill={fav?'currentColor':'none'}/> {fav?'Favourite':'Add to favourites'}</button>}</div>
+    {off?<Empty title={NOT_ON_SERVER} body={NOT_ON_SERVER_TEXT}/>:<>
     <ParamsPanel params={def.params} raw={raw} set={set} max={s.date}/>
     <ExportBar def={def} result={result} raw={raw} phone={phone}/>
+    {process.env.HCC_BUILD==='production'&&!error&&<ServerRunNote result={result} loading={loading}/>}
     {error?<Empty title="Cannot show this report" body={error}/>:!result?null:<>
       <ResultNotes result={result} def={def}/>
-      {result.rows.length===0?<Empty title="No rows" body="Nothing matches these parameters."/>:phone?<ResultCards result={result}/>:<ResultTable result={result}/>}</>}
+      {result.rows.length===0?<Empty title="No rows" body="Nothing matches these parameters."/>:phone?<ResultCards result={result}/>:<ResultTable result={result}/>}</>}</>}
   </div>;
 }
