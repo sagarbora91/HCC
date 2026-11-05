@@ -13,7 +13,7 @@ import {accCashEnforce} from '../../../domain/streams/accounting-guards';
 import {adminLimitFor} from '../../../domain/streams/admin';
 import {RES_GSTIN} from '../../../domain/streams/reservations';
 import {EXP_UD_DUE_DAYS,expUdPaid,type ExpUdReceivable} from '../../../domain/streams/expenses-scc';
-import {ctrLineFrom,ctrTotals,ctrDiscountRefusal,ctrCompanyRefusal,ctrUdKind,ctrDominant,ctrState,gcrRefusal,gcrCustomerKey,CTR_SETTLEMENTS,type CTRLineInput} from '../../../domain/streams/counter';
+import {ctrLineFrom,ctrBillRefusal,ctrTotals,ctrDiscountRefusal,ctrCompanyRefusal,ctrUdKind,ctrDominant,ctrState,gcrRefusal,gcrCustomerKey,CTR_SETTLEMENTS,type CTRLineInput} from '../../../domain/streams/counter';
 
 /** Approval kind of a counter-bill void (a credit note on a counter bill; the folio `credit-note` kind is booking-bound). Owner decides. */
 export const CTR_VOID_KIND='counter-credit-note';
@@ -43,6 +43,7 @@ const CTR_BILL_ISSUE:Handler=k=>{
   assert(inputs.length>=1,'Add at least one item.');assert(inputs.length<=30,'Use at most 30 lines on one counter bill.');
   const lines:CTRLine[]=[];
   for(const [i,inp] of inputs.entries()){const l=ctrLineFrom(s,inp??{},s.date,`L${i+1}`);if('error' in l)fail('VALIDATION',`Line ${i+1}: ${l.error}`);lines.push(l as CTRLine);}
+  const tooBig=ctrBillRefusal(lines);if(tooBig)fail('VALIDATION',tooBig); // AF2: the cap is checked on the bill before any discount, as on the server
   const disc=cmd.discount?.amount?Number(cmd.discount.amount):0;
   if(disc){assert(Number.isInteger(disc)&&disc>0,'Enter the discount in whole paise.');assert(txt(cmd.discount.reason),'A discount reason is required.');
     const net=lines.reduce((a,l)=>a+l.amount,0);assert(disc<=net,'The discount cannot exceed the bill.');

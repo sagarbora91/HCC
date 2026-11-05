@@ -2,7 +2,7 @@
 import React,{useState} from 'react';
 import {Plus,Trash2} from 'lucide-react';
 import {useHcc} from '../../app/context';
-import {money,ctrState,ctrTotals,ctrLineFrom,CTR_SETTLEMENTS,mnyMethod,mnyIsDrawer,mnySettlesTo,grpActiveCompanies,type CTRLine,type CTRBill} from '../../services/mock';
+import {money,ctrState,ctrTotals,ctrLineFrom,ctrBillRefusal,CTR_SETTLEMENTS,mnyMethod,mnyIsDrawer,mnySettlesTo,grpActiveCompanies,type CTRLine,type CTRBill} from '../../services/mock';
 import {useCounterBillLookup} from '../../clients/sync/counterHooks';
 import {ctrLookupLocal,counterLookupActive,ctrCatalogueOptions,ctrMethods,ctrDefaultMethod,type CounterLookupQuery} from './counterLocal';
 import type {Fetched} from '../../clients/sync/reportsHooks';
@@ -27,8 +27,10 @@ function NewBillPhone({onDone}:{onDone:()=>void}){
     set(i,k?{pick:key,label:k.label.replace(/ \(menu\)$/,''),unit:k.unit===undefined?'':String(k.unit/100),gstCategory:k.gst}:{pick:'',label:'',unit:''});};
   const drawer=mode==='paid'&&mnyIsDrawer(s,method),noShift=drawer&&!s.shiftOpen,needsRef=mode==='paid'&&!!mnyMethod(s,method)?.needsReference;
   const built=inputs.map((x,i)=>ctrLineFrom(s,x,s.date,'L'+(i+1)));
-  const err=built.find(l=>'error' in l) as {error:string}|undefined;
+  const lineErr=built.find(l=>'error' in l) as {error:string}|undefined;
   const good=built.filter(l=>!('error' in l)) as CTRLine[];
+  const billErr=lineErr?'':ctrBillRefusal(good); // AF2: same caps and wording as the server; nothing is sent while it shows
+  const err=lineErr??(billErr?{error:billErr}:undefined);
   const d=Math.round(Number(disc.amount||0)*100);const t=ctrTotals(good,d>0&&d<=good.reduce((a,l)=>a+l.amount,0)?d:0);
   const set=(i:number,x:Partial<Row>)=>setRows(r=>r.map((y,j)=>j===i?{...y,...x}:y));
   return <form id="ctr-new-bill-m" className="form padded" onSubmit={e=>{e.preventDefault();void run({type:'CTR_BILL_ISSUE',party:p,lines:inputs,...(d>0?{discount:{amount:d,reason:disc.reason}}:{}),

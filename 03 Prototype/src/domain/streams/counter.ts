@@ -17,6 +17,17 @@ import {customerKeyForCredit} from './customers';
 export type {CTRBill,CTRLine,CTRState,GuestCreditAccount};
 export const ctrState=(s:State):CTRState=>s.counterX??{bills:[]};
 export const CTR_QTY_MAX=99;
+/** AF2 counter caps (parity with the server's CounterBillRules.MaxUnitPaise / MaxBillPaise, AF-FIX2 F2): a unit price at most ₹1 crore, one bill
+ *  (before discount) at most ₹10 crore. Integer paise; 30 lines × 99 × the unit cap is far below Number.MAX_SAFE_INTEGER, and sums are guarded anyway. */
+export const CTR_UNIT_MAX_PAISE=1_000_000_000,CTR_BILL_MAX_PAISE=10_000_000_000;
+export const CTR_UNIT_CAP_TEXT='The unit price can be at most ₹1,00,00,000.00. Check the amount (it is in paise).';
+export const CTR_BILL_CAP_TEXT='One counter bill can be at most ₹10,00,00,000.00. Check the quantities and prices, or split the bill.';
+/** Refusal ('' = fine) when the bill before discount is above the cap (or not a safe integer). Same wording as the server's BillRefusal. */
+export function ctrBillRefusal(lines:readonly Pick<CTRLine,'qty'|'unit'>[]):string{
+  let gross=0;
+  for(const l of lines){const a=l.unit*l.qty;if(!Number.isSafeInteger(a))return CTR_BILL_CAP_TEXT;gross+=a;if(!Number.isSafeInteger(gross)||gross>CTR_BILL_MAX_PAISE)return CTR_BILL_CAP_TEXT;}
+  return '';
+}
 export const CTR_SETTLEMENTS=['paid','udhaar','company'] as const;
 export type CTRLineInput={extraId?:string;menuItemId?:string;label?:string;qty?:number;unit?:number;gstCategory?:string};
 
@@ -26,11 +37,13 @@ export function ctrLineFrom(s:State,input:CTRLineInput,date:string,id:string):CT
   if(!Number.isInteger(qty)||qty<1||qty>CTR_QTY_MAX)return {error:`Quantity: a whole number from 1 to ${CTR_QTY_MAX}.`};
   const given=input.unit===undefined||input.unit===null||(input.unit as unknown)===''?undefined:Number(input.unit);
   if(given!==undefined&&(!Number.isInteger(given)||given<=0))return {error:'Enter the unit price in whole paise (more than 0).'};
+  if(given!==undefined&&given>CTR_UNIT_MAX_PAISE)return {error:CTR_UNIT_CAP_TEXT};
   const cat=(c:unknown)=>GST_CHARGE_CATEGORIES.some(x=>x.id===c)?c as 'food'|'laundry'|'banquet'|'other':undefined;
   if(input.extraId){
     const x=catExtra(s,String(input.extraId));if(!x)return {error:'Choose an item from the catalogue.'};
     if(!x.active)return {error:`${x.name} is retired — choose another item.`};
     const unit=given??catExtraPrice(x,date);if(unit===undefined)return {error:`${x.name} has no price on ${date} — enter the unit price.`};
+    if(unit>CTR_UNIT_MAX_PAISE)return {error:CTR_UNIT_CAP_TEXT};
     const c=cat(input.gstCategory)??x.gst??'other';
     const label=String(input.label??'').trim()||x.name;
     return {id,label,extraId:x.id,qty,unit,amount:unit*qty,gstCategory:c,taxBps:gstForCharge(s,date,c).bps,sac:GSTR1_SAC[c]!};
@@ -39,6 +52,7 @@ export function ctrLineFrom(s:State,input:CTRLineInput,date:string,id:string):CT
     const m=(s.posX?.menu??[]).find(m=>m.id===input.menuItemId);if(!m)return {error:'Choose an item from the menu.'};
     if(m.active===false)return {error:`${m.name} is retired — choose another item.`};
     const unit=given??posItemPrice(s,m,date);if(unit===undefined)return {error:`${m.name} has no price on ${date}.`};
+    if(unit>CTR_UNIT_MAX_PAISE)return {error:CTR_UNIT_CAP_TEXT};
     const bps=m.outlets[0]?posRateFor(s,m.outlets[0],posItemClass(m),date).bps:gstForCharge(s,date,'food').bps;
     return {id,label:String(input.label??'').trim()||m.name,menuItemId:m.id,qty,unit,amount:unit*qty,gstCategory:'food',taxBps:bps,sac:GSTR1_SAC.food!};
   }
