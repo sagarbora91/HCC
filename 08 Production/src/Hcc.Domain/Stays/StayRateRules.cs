@@ -74,13 +74,25 @@ public static class StayRateRules
     public static int ReductionBps(Paise agreed, Paise newRate) =>
         agreed.Value <= 0 || newRate >= agreed ? 0 : (int)((agreed.Value - newRate.Value) * 10_000 / agreed.Value);
 
-    /// <summary>CTL-01 direct rule: the tariff rule above AND, for a Manager, not more than the threshold below the agreed rate. The Owner: always.</summary>
-    public static bool CanApplyDirectly(bool owner, bool manager, Paise tariff, int managerLimitBps, Paise agreed, int thresholdBps, Paise newRate, bool guestsRise, bool extraPersonCharge) =>
-        owner || (CanApplyDirectly(false, manager, tariff, managerLimitBps, newRate, guestsRise, extraPersonCharge) && !OverThreshold(agreed, thresholdBps, newRate));
+    /// <summary>CTL-01 (af2-fix finding 2): the agreed-rate threshold binds only a change that MOVES the rate — a guest-count or scope-only change
+    /// (new rate = current rate) is never blocked by it, even on a stay already below the agreed floor. Same rule as the prototype's
+    /// <c>change.rate!==b.rate&amp;&amp;strOverThreshold(…)</c>. <paramref name="currentRate"/> null = treat the rate as moving.</summary>
+    public static bool NeedsOwner(Paise agreed, int thresholdBps, Paise? currentRate, Paise newRate) =>
+        (currentRate is null || newRate != currentRate.Value) && OverThreshold(agreed, thresholdBps, newRate);
 
-    /// <summary>CTL-01 approval rule: the Owner anything; a Manager within the tariff limit AND the agreed-rate threshold.</summary>
-    public static bool CanApprove(bool owner, bool manager, Paise tariff, int managerLimitBps, Paise agreed, int thresholdBps, Paise newRate) =>
-        owner || (CanApprove(false, manager, tariff, managerLimitBps, newRate) && !OverThreshold(agreed, thresholdBps, newRate));
+    /// <summary>The CTL-01 refusal / approval text when only the Owner may set the rate (ChangeStayRate decide, move room, extend stay).</summary>
+    public static string OwnerDecidesText(Paise agreed, int thresholdBps) =>
+        $"This rate is more than {Hcc.Domain.Configuration.SettingRules.Percent(thresholdBps)} below the agreed rate {agreed}: the Owner decides it (CTL-01).";
+
+    /// <summary>CTL-01 direct rule: the tariff rule above AND, for a Manager, not more than the threshold below the agreed rate when the rate moves
+    /// (<see cref="NeedsOwner"/>). The Owner: always.</summary>
+    public static bool CanApplyDirectly(bool owner, bool manager, Paise tariff, int managerLimitBps, Paise agreed, int thresholdBps, Paise newRate, bool guestsRise, bool extraPersonCharge,
+        Paise? currentRate = null) =>
+        owner || (CanApplyDirectly(false, manager, tariff, managerLimitBps, newRate, guestsRise, extraPersonCharge) && !NeedsOwner(agreed, thresholdBps, currentRate, newRate));
+
+    /// <summary>CTL-01 approval rule: the Owner anything; a Manager within the tariff limit AND (when the rate moves) the agreed-rate threshold.</summary>
+    public static bool CanApprove(bool owner, bool manager, Paise tariff, int managerLimitBps, Paise agreed, int thresholdBps, Paise newRate, Paise? currentRate = null) =>
+        owner || (CanApprove(false, manager, tariff, managerLimitBps, newRate) && !NeedsOwner(agreed, thresholdBps, currentRate, newRate));
 
     /// <summary>First night at the new rate. <paramref name="closed"/> = a night on a closed business date (not reopened).</summary>
     public static DateOnly EffectiveFrom(string scope, DateOnly businessDate, DateOnly arrival, DateOnly departure, Func<DateOnly, bool> closed)

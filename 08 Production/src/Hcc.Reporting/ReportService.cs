@@ -69,7 +69,8 @@ public sealed record PrintLogRequest(IReadOnlyDictionary<string, string>? Params
 /// <summary>AF2-HUB-SERVER: reads the print / export log (SqlReportStores.ExportLogAsync) for the hub's Export log tab.</summary>
 public interface IReportExportLogReader
 {
-    Task<IReadOnlyList<ReportExportLogRecord>> ExportLogAsync(int propertyId, int take, CancellationToken ct = default);
+    /// <summary>Newest first; <paramref name="principalId"/> null = every user's rows, else only that user's — filtered before the row limit (af2-fix finding 3).</summary>
+    Task<IReadOnlyList<ReportExportLogRecord>> ExportLogAsync(int propertyId, int take, int? principalId, CancellationToken ct = default);
 }
 
 public sealed class ReportService(ReportRunner runner, IReportCatalogue catalogue, IEnumerable<IReportRenderer> renderers, IReportPropertyInfo property,
@@ -140,9 +141,9 @@ public sealed class ReportService(ReportRunner runner, IReportCatalogue catalogu
     {
         ArgumentNullException.ThrowIfNull(c);
         if (logReader is null) return [];
-        var rows = await logReader.ExportLogAsync(c.PropertyId, Math.Clamp(take, 1, 1000), ct).ConfigureAwait(false);
         var all = (await roles.RolesAsync(c.PrincipalId, ct).ConfigureAwait(false)).Any(ExportLogAllRoles.Contains);
-        return all ? rows : rows.Where(r => r.PrincipalId == c.PrincipalId).ToList();
+        // af2-fix finding 3: the caller filter goes to the store (SQL) so the row limit applies AFTER it.
+        return await logReader.ExportLogAsync(c.PropertyId, Math.Clamp(take, 1, 1000), all ? null : c.PrincipalId, ct).ConfigureAwait(false);
     }
 
     public static ReportFormat ParseFormat(string? f) => f?.ToLowerInvariant() switch

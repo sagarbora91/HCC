@@ -85,7 +85,7 @@ public sealed class StayChangeWorld : IAsyncDisposable
         Housekeeper = await UserAsync("housekeeper", "HKP", ct);
         Policy = new SqlAccessPolicy(conns, Clock, W.Scope);
         IBusinessDayGuard? g = guard ? new SqlBusinessDayGuard() : null;
-        Changes = new StayChangeCommands(Db.Platform.Commands, Policy, new SqlStayChangeStore(), new SqlInventoryAllocator(conns), new FlatPricer(), Clock, g);
+        Changes = new StayChangeCommands(Db.Platform.Commands, Policy, new SqlStayChangeStore(), new SqlInventoryAllocator(conns), new FlatPricer(), Clock, g, new SqlStayRateStore()); // CTL-01 (af2-fix): default 15 % threshold
         Hk = new HousekeepingCommands(Db.Platform.Commands, Policy, new SqlHousekeepingStore(), W.HkReads, new PolicyTaskAssigneeEligibility(Policy), new SqlRoomBlockPort(conns), new HousekeepingOptions(), Clock);
         Stayover = new StayoverCommands(Db.Platform.Commands, Policy, new SqlStayoverStore(), Clock, g);
     }

@@ -8,7 +8,6 @@ using Hcc.Application.Tax;
 using Hcc.Contracts;
 using Hcc.Contracts.Billing;
 using Hcc.Domain.Billing;
-using Hcc.Domain.Configuration;
 using Hcc.Domain.Errors;
 using Hcc.Domain.Money;
 using Hcc.Domain.Stays;
@@ -114,7 +113,7 @@ public sealed class StayRateCommands(ICommandRunner runner, IAccessPolicy policy
             var guestsRise = input.People + input.Children > s.Adults + s.Children;
             var threshold = await ThresholdAsync(tx, ctx.PropertyId, c).ConfigureAwait(false);
             var agreed = await AgreedAsync(tx, s.StayId, oldRate, c).ConfigureAwait(false);
-            if (StayRateRules.CanApplyDirectly(auth.Owner, auth.Manager, tariff, auth.LimitBps, agreed, threshold, input.Rate, guestsRise, extra))
+            if (StayRateRules.CanApplyDirectly(auth.Owner, auth.Manager, tariff, auth.LimitBps, agreed, threshold, input.Rate, guestsRise, extra, new Paise(oldRate)))
                 return await ApplyAsync(tx, ctx.PropertyId, ctx.PrincipalId, s, bd, oldRate, input, null, null, new RateControl(tariff, agreed, threshold, auth.Owner), c).ConfigureAwait(false);
 
             var f = await billing.LockFolioAsync(tx, s.FolioId, c).ConfigureAwait(false) ?? throw new HccException(HccErrorCode.NOT_FOUND, "Folio not found.");
@@ -166,9 +165,9 @@ public sealed class StayRateCommands(ICommandRunner runner, IAccessPolicy policy
         var threshold = await ThresholdAsync(tx, caller.PropertyId, ct).ConfigureAwait(false);
         var agreed = await AgreedAsync(tx, s.StayId, current, ct).ConfigureAwait(false);
         var newRate = new Paise(meta.NewRatePaise);
-        if (!StayRateRules.CanApprove(auth.Owner, auth.Manager, tariff, auth.LimitBps, agreed, threshold, newRate))
+        if (!StayRateRules.CanApprove(auth.Owner, auth.Manager, tariff, auth.LimitBps, agreed, threshold, newRate, new Paise(current)))
             throw new HccException(HccErrorCode.FORBIDDEN, StayRateRules.CanApprove(auth.Owner, auth.Manager, tariff, auth.LimitBps, newRate)
-                ? $"This rate is more than {SettingRules.Percent(threshold)} below the agreed rate {agreed}: the Owner decides it (CTL-01)."
+                ? StayRateRules.OwnerDecidesText(agreed, threshold)
                 : "This rate is beyond your limit below the tariff: the Owner decides it.");
         if (current != meta.OldRatePaise || s.Adults != meta.OldPeople || s.Children != meta.OldChildren)
             throw new HccException(HccErrorCode.STALE_VERSION, "The stay changed after this request. Reject it and request again.");

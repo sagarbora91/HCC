@@ -119,4 +119,30 @@ public sealed class ReportHubHttpTests
         Assert.Equal("rpt.money.shift-report", row!["reportId"]!.GetValue<string>());
         Assert.Empty(JsonNode.Parse((await GetAsync(housekeeper, "/reports/export-log")).Body)!.AsArray());
     }
+
+    [Fact]
+    public async Task Export_log_of_a_cashier_older_than_the_newest_200_property_rows_is_still_shown()
+    {
+        // af2-fix finding 3: the caller filter runs in SQL before TOP (n), not after it.
+        await using var s = await HccServer.StartAsync(Seed, Ct);
+        using var owner = s.CookieClient();
+        using (var boot = await Wire.PostAsync(owner, "/auth/bootstrap-owner", new BootstrapOwnerRequest(s.PropertyId, OwnerLogin, "Hub Owner", Password), null, Ct))
+            await Wire.OkAsync<UserVersionResult>(boot, "bootstrap-owner", Ct);
+        using (var signIn = await Wire.PostAsync(owner, "/auth/sign-in", new SignInRequest(OwnerLogin, Password: Password), null, Ct))
+            await Wire.OkAsync<SignInResult>(signIn, "owner sign-in", Ct);
+        var device = await Wire.CommandAsync<RegisterDeviceResult>(owner, "RegisterDevice", new RegisterDeviceRequest("Hub tablet"), Ct);
+        using var cashier = await PinUserAsync(s, owner, device.DeviceToken!, "CSH", "730582");
+
+        Assert.Equal(HttpStatusCode.OK, await PrintLogAsync(cashier, "rpt.money.shift-report", "print"));
+        // 250 newer rows by the Owner (more than the default 200 of the tab).
+        await s.ScalarAsync($"""
+            DECLARE @o INT = (SELECT user_id FROM plat.app_user WHERE login_name = '{OwnerLogin}');
+            INSERT rpt.export_log(property_id, at_utc, principal_id, report_id, params_hash, params, format, row_count, file_name, provisional)
+            SELECT TOP (250) {s.PropertyId}, SYSUTCDATETIME(), @o, 'rpt.money.shift-report', REPLICATE('0', 64), N'[]', 'print', 1, NULL, 0 FROM sys.all_objects;
+            """, Ct);
+
+        var mine = JsonNode.Parse((await GetAsync(cashier, "/reports/export-log")).Body)!.AsArray();
+        Assert.Equal("rpt.money.shift-report", Assert.Single(mine)!["reportId"]!.GetValue<string>());
+        Assert.Equal(200, JsonNode.Parse((await GetAsync(owner, "/reports/export-log")).Body)!.AsArray().Count); // the Owner: the newest 200 of everyone's
+    }
 }

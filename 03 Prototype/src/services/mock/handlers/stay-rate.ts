@@ -46,6 +46,24 @@ export function strApply(k:Kit,x:Booking,c:STRInput,approval?:Approval):STRRateC
   return ch;
 }
 
+/** af2-fix finding 1 · a rate set on a room move / stay extension (server StayChangeCommands.RecordRateAsync): call AFTER the room / departure moved and
+ *  BEFORE anything else changes the rate. Records the change against the agreed rate (scope today-next, posted nights untouched; only an Owner-set
+ *  rate becomes the agreed rate), audits RATE REDUCTION OVER THRESHOLD and sets the booking's rate. undefined when the rate does not move. */
+export function strRecordStayChange(k:Kit,x:Booking,rate:number,what:string,reason:string):STRRateChange|undefined{
+  const {s,id,uid}=k;
+  if(rate===x.rate)return undefined;
+  const agreed=strAgreedRate(s,x),bps=strThresholdBps(s),tariff=strTariff(s,x),over=strOverThreshold(s,x,rate);
+  const owner=s.users.find(u=>u.id===uid)?.role==='Owner',why=`${what} · ${reason}`.slice(0,200);
+  const ch:STRRateChange={id:id('STR'),booking:x.id,room:x.room,date:s.date,at:s.clock,by:uid,scope:'today-next',reason:why,
+    oldRate:x.rate,newRate:rate,oldPeople:x.people,newPeople:x.people,oldChildren:x.children??0,newChildren:x.children??0,effectiveFrom:s.date,reposted:[],
+    tariff,agreedRate:agreed,agreedAfter:owner?rate:agreed,thresholdBps:bps,overThreshold:over};
+  (s.stayRateX??(s.stayRateX={changes:[]})).changes.push(ch);
+  if(over)s.audit.unshift({id:id('audit'),at:s.clock,actor:k.user.name,action:'RATE REDUCTION OVER THRESHOLD',
+    detail:`${x.id} · ${ch.id} · agreed ${money(agreed)} → ${money(rate)} · ${strReductionBps(agreed,rate)} bps below the agreed rate (threshold ${bps} bps) · changed by ${k.user.name} · applied directly · ${why}`});
+  x.rate=rate;
+  return ch;
+}
+
 /** The CTL-01 audit suffix from the recorded change: what it was judged against. */
 export const strJudgedOf=(c:STRRateChange)=>c.oldRate===c.newRate||c.agreedRate===undefined?'':
   `tariff ${money(c.tariff??0)} · agreed ${money(c.agreedRate)} · ${strReductionBps(c.agreedRate,c.newRate)} bps below agreed`+(c.overThreshold?` · over the ${c.thresholdBps} bps threshold (Owner)`:'');

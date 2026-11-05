@@ -75,6 +75,33 @@ export function strJudgedText(s:State,b:Booking,rate:number):string{
   const agreed=strAgreedRate(s,b),bps=strThresholdBps(s),pct=(v:number)=>`${(v/100).toLocaleString('en-IN',{maximumFractionDigits:2})} %`;
   return `agreed ${money(agreed)} · ${pct(strReductionBps(agreed,rate))} below`+(strOverThreshold(s,b,rate)?` · over the ${pct(bps)} threshold (Owner)`:'');
 }
+/** CTL-01: the refusal / approval text when only the Owner may set the rate (server StayRateRules.OwnerDecidesText). */
+export function strOwnerDecidesText(s:State,b:Booking):string{
+  return `This rate is more than ${(strThresholdBps(s)/100).toLocaleString('en-IN',{maximumFractionDigits:2})}% below the agreed rate ${money(strAgreedRate(s,b))}: the Owner decides it (CTL-01).`;
+}
+/** af2-fix finding 2: the agreed-rate threshold binds only a change that MOVES the rate (server StayRateRules.NeedsOwner); a guest-count or
+ *  scope-only change is never blocked by it, even on a stay already below the agreed floor. */
+export const strNeedsOwner=(s:State,b:Booking,rate:number)=>rate!==b.rate&&strOverThreshold(s,b,rate);
+/** Room nights from the business date to `departure` (exclusive) that are not posted yet — the nights a move / extension rate re-prices. */
+export function strUnpostedNights(s:State,b:Booking,departure:string):number{
+  let n=0;for(let d=s.date;d<departure;d=addDays(d,1))if(!b.lines.some(l=>l.kind==='room'&&!l.reversalOf&&l.amount>0&&l.date===d))n++;
+  return n;
+}
+/** af2-fix finding 1 · a new rate given on a room move or a stay extension (server StayChangeCommands: PERM-APR-001 for the revenue given up, then
+ *  CTL-01 against the stay's agreed rate — the stricter wins; there is no approval path, so beyond either only the Owner sets it). undefined = allowed. */
+export function strStayChangeRateRefusal(s:State,uid:string,b:Booking,rate:number,departure:string):string|undefined{
+  if(rate===b.rate)return undefined;
+  const u=s.users.find(x=>x.id===uid);if(!u)return 'Unknown demo user.';
+  if(u.role==='Owner')return undefined;
+  const loss=Math.max(0,b.rate-rate)*strUnpostedNights(s,b,departure);
+  if(loss>0){
+    if(u.role!=='Manager')return 'Access denied: a lower rate gives revenue up — a Manager (within the approval limit) or the Owner sets it.';
+    const lim=adminLimitFor(s,'Manager','PERM-APR-001')??0;
+    if(loss>lim)return `The revenue given up (${money(loss)}) is above your approval limit of ${money(lim)}: the Owner sets this rate.`;
+  }
+  if(strNeedsOwner(s,b,rate))return strOwnerDecidesText(s,b);
+  return undefined;
+}
 /** True when the stay's room type has an extra-person charge (MA-1 occupancy master), so a raise of guests changes money. */
 export function strExtraChargeApplies(s:State,b:Booking):boolean{
   const r=s.rooms.find(x=>x.id===b.room);const o=r?rmsOccFor(s,r.type):undefined;if(!o)return false;
@@ -87,7 +114,7 @@ export function strCanDirect(s:State,uid:string,b:Booking,change:{rate:number;pe
   if(u.role!=='Manager')return false;
   const raise=change.people+change.children>(b.people+(b.children??0));
   if(raise&&strExtraChargeApplies(s,b))return false;
-  if(change.rate!==b.rate&&strOverThreshold(s,b,change.rate))return false; // CTL-01: more than the threshold below the agreed rate → the Owner
+  if(strNeedsOwner(s,b,change.rate))return false; // CTL-01: a rate that moves more than the threshold below the agreed rate → the Owner
   if(change.rate>=strTariff(s,b))return true;          // at or above the tariff never loses money
   return change.rate>=strDirectFloor(s,uid,b);
 }
@@ -96,7 +123,7 @@ export function strCanApprove(s:State,uid:string,b:Booking,rate:number):boolean{
   const u=s.users.find(x=>x.id===uid);if(!u)return false;
   if(u.role==='Owner')return true;
   if(u.role!=='Manager')return false;
-  if(rate!==b.rate&&strOverThreshold(s,b,rate))return false;
+  if(strNeedsOwner(s,b,rate))return false;
   return rate>=strTariff(s,b)||rate>=strDirectFloor(s,uid,b);
 }
 /** Refusal text for a STAY_RATE_CHANGE input, or ''. */

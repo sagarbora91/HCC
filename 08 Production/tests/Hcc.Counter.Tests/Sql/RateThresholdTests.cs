@@ -6,8 +6,10 @@ using Hcc.Closing.Tests.Harness;
 using Hcc.Contracts;
 using Hcc.Contracts.Billing;
 using Hcc.Contracts.Configuration;
+using Hcc.Contracts.Stays;
 using Hcc.Domain.Errors;
 using Hcc.Domain.Reporting;
+using Hcc.Domain.Stays;
 using Hcc.Infrastructure.SqlServer.Reporting;
 
 namespace Hcc.Counter.Tests.Sql;
@@ -87,6 +89,83 @@ public sealed class RateThresholdTests
         // Now 15 % below the new agreed ₹2,000 (= the tariff floor ₹1,700) is within the Manager's limits.
         Assert.Equal("Applied", (await Change(h, h.Manager, stay, 170000, "Step three")).Value.Status);
         Assert.Equal(170000, await h.LongAsync($"SELECT nightly_rate_paise FROM inv.reservation WHERE reservation_id = {res}", Ct));
+    }
+
+    // ── af2-fix finding 1: move room / extend stay with a new rate go through the same agreed-rate threshold ──
+
+    private static async Task<CommandResult<ChangeStayDatesResult>> Extend(Hotel h, int who, long stay, string to, long rate) =>
+        await h.Get<StayChangeCommands>().ExtendStayAsync(h.Ctx(who, StayChangeCommands.OpExtendStay),
+            new ExtendStayRequest(stay, await h.VersionAsync($"SELECT row_ver FROM gst.stay WHERE stay_id = {stay}", Ct), to, "Corporate rate", "change", rate), Ct);
+
+    private static async Task<CommandResult<MoveRoomResult>> Move(Hotel h, int who, long stay, string room, long rate) =>
+        await h.Get<StayChangeCommands>().MoveRoomAsync(h.Ctx(who, StayChangeCommands.OpMoveRoom),
+            new MoveRoomRequest(stay, await h.VersionAsync($"SELECT row_ver FROM gst.stay WHERE stay_id = {stay}", Ct), h.Rooms[room], "Guest asked", "change", rate), Ct);
+
+    [Fact]
+    public async Task A_manager_cannot_extend_or_move_beyond_the_agreed_rate_threshold_inside_the_rupee_limit_and_cannot_lower_the_baseline()
+    {
+        await using var h = await Hotel.CreateAsync(Ct);
+        var (res, a, _) = await h.SeedInHouseAsync("101", "2026-10-24", "2026-10-25", 250000, Ct);
+
+        // 2 un-posted nights × ₹400 = ₹800 given up (inside the Manager's ₹1,000 PERM-APR-001 limit) but 16 % below the agreed ₹2,500: the Owner decides.
+        var over = await Assert.ThrowsAsync<HccException>(() => Extend(h, h.Manager, a, "2026-10-26", 210000));
+        Assert.Equal(HccErrorCode.FORBIDDEN, over.Code);
+        Assert.Equal(StayRateRules.OwnerDecidesText(new Hcc.Domain.Money.Paise(250000), 1500), over.Message);
+        Assert.Equal(250000, await h.LongAsync($"SELECT nightly_rate_paise FROM inv.reservation WHERE reservation_id = {res}", Ct));
+        Assert.Equal(0, await h.LongAsync($"SELECT COUNT(*) FROM gst.stay_rate_change WHERE stay_id = {a}", Ct));
+        var mv = await Assert.ThrowsAsync<HccException>(() => Move(h, h.Manager, a, "102", 210000));
+        Assert.Equal(HccErrorCode.FORBIDDEN, mv.Code);
+
+        // Within the threshold: applied and recorded, and the agreed rate stays ₹2,500 (a Manager's rate never becomes the baseline).
+        Assert.Equal(215000, (await Extend(h, h.Manager, a, "2026-10-26", 215000)).Value.NightlyRatePaise);
+        Assert.Equal(1, await h.LongAsync($"SELECT COUNT(*) FROM gst.stay_rate_change WHERE stay_id = {a} AND old_rate_paise = 250000 AND new_rate_paise = 215000 AND scope = 'today-next' AND over_threshold = 0 AND agreed_rate_paise = 250000 AND agreed_after_paise = 250000 AND tariff_paise = 200000 AND threshold_bps = 1500 AND changed_by = {h.Manager}", Ct));
+        Assert.Equal(215000, await h.LongAsync($"SELECT nightly_rate_paise FROM inv.reservation WHERE reservation_id = {res}", Ct));
+
+        // 212,499 is only 1.2 % below the current ₹2,150 but more than 15 % below the agreed ₹2,500: refused on a move, a request on ChangeStayRate.
+        var down = await Assert.ThrowsAsync<HccException>(() => Move(h, h.Manager, a, "102", 212499));
+        Assert.Equal(HccErrorCode.FORBIDDEN, down.Code);
+        Assert.Contains("below the agreed rate", down.Message, StringComparison.Ordinal);
+        Assert.Equal("PendingApproval", (await Change(h, h.Manager, a, 212499)).Value.Status);
+        Assert.Equal(0, await h.LongAsync($"SELECT COUNT(*) FROM plat.audit_event WHERE action = 'RATE_REDUCTION_OVER_THRESHOLD' AND target = 'stay-{a}'", Ct));
+    }
+
+    [Fact]
+    public async Task The_owner_moves_or_extends_beyond_the_threshold_it_is_flagged_audited_listed_and_becomes_the_agreed_rate()
+    {
+        await using var h = await Hotel.CreateAsync(Ct);
+        var (_, b, _) = await h.SeedInHouseAsync("103", "2026-10-24", "2026-10-25", 250000, Ct);
+        Assert.Equal(190000, (await Move(h, h.Owner, b, "104", 190000)).Value.NightlyRatePaise); // 24 % below the agreed ₹2,500
+        Assert.Equal(1, await h.LongAsync($"SELECT COUNT(*) FROM gst.stay_rate_change c JOIN inv.room r ON r.room_id = c.room_id WHERE c.stay_id = {b} AND r.room_no = '104' AND c.over_threshold = 1 AND c.agreed_rate_paise = 250000 AND c.agreed_after_paise = 190000 AND c.approved_by IS NULL", Ct));
+        Assert.Equal(1, await h.LongAsync($"SELECT COUNT(*) FROM plat.audit_event WHERE action = 'RATE_REDUCTION_OVER_THRESHOLD' AND target = 'stay-{b}' AND detail LIKE N'%2400 bps below the agreed rate%'", Ct));
+
+        await using (var conn = await h.Platform.Connections.OpenAsync(Ct))
+        {
+            var line = Assert.Single(await SqlRateReductionDigest.LinesAsync(h.Platform.Connections, conn, null, h.PropertyId, Hotel.Day1, Ct));
+            Assert.Equal(("104", 250000L, 190000L, 2400, "Sagar (Owner)", (string?)null), (line.RoomNo, line.AgreedPaise, line.NewPaise, line.ReductionBps, line.ChangedBy, line.ApprovedBy));
+        }
+
+        // The Owner's ₹1,900 is now the agreed rate: a Manager may go 15 % below it (₹1,615 floor) within the rupee limit.
+        Assert.Equal(170000, (await Extend(h, h.Manager, b, "2026-10-26", 170000)).Value.NightlyRatePaise);
+        Assert.Equal(1, await h.LongAsync($"SELECT COUNT(*) FROM gst.stay_rate_change WHERE stay_id = {b} AND new_rate_paise = 170000 AND over_threshold = 0 AND agreed_rate_paise = 190000 AND agreed_after_paise = 190000", Ct));
+    }
+
+    // ── af2-fix finding 2: a change that does not move the rate is not blocked by the agreed-rate threshold ──
+
+    [Fact]
+    public async Task A_guest_count_only_change_on_a_stay_already_below_the_agreed_floor_is_applied_by_a_manager()
+    {
+        await using var h = await Hotel.CreateAsync(Ct);
+        var (res, stay, _) = await h.SeedInHouseAsync("105", "2026-10-24", "2026-10-26", 250000, Ct);
+        Assert.Equal("Applied", (await Change(h, h.Manager, stay, 215000)).Value.Status); // 14 % below the agreed ₹2,500
+        // The Owner tightens the threshold to 10 %: ₹2,150 is now below the agreed floor ₹2,250.
+        await h.Get<ConfigurationService>().SetSettingAsync(h.Ctx(h.Owner, ConfigurationService.OpSet),
+            new SetSettingRequest(RateControlSettings.ThresholdKey, JsonSerializer.SerializeToElement(1000), null, "CTL-01 test"), Ct);
+        var guests = await h.Get<StayRateCommands>().ChangeAsync(h.Ctx(h.Manager, StayRateCommands.OpChangeStayRate), new(stay, null, 1, null, "today-next", "One guest left"), Ct);
+        Assert.Equal("Applied", guests.Value.Status);
+        Assert.Equal(1, await h.LongAsync($"SELECT COUNT(*) FROM gst.stay_rate_change WHERE stay_id = {stay} AND old_rate_paise = 215000 AND new_rate_paise = 215000 AND new_people = 1 AND over_threshold = 0", Ct));
+        Assert.Equal(215000, await h.LongAsync($"SELECT nightly_rate_paise FROM inv.reservation WHERE reservation_id = {res}", Ct));
+        // A rate that does move is still judged: ₹2,140 is below the ₹2,250 floor → a request.
+        Assert.Equal("PendingApproval", (await Change(h, h.Manager, stay, 214000)).Value.Status);
     }
 
     [Fact]
