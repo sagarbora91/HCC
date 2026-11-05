@@ -3,7 +3,9 @@
 Lane meas-forecast / Opus / branch `claude/meas-forecast` / worktree `E:\Projects\HCC\worktrees\meas-forecast` / base tag `meas-setup` (3040fa7f).
 
 ## Commits
-See `git log --oneline meas-setup..claude/meas-forecast` (listed at the end of this file).
+88dcd5cc F12 meas-forecast: server test expectation fix, DONE file
+75761531 F12 meas-forecast: real forecast curve, events / OTB / rate shop commands, displacement, yield F12 block, migration 4830, C# port + tests
+(plus the commit that adds this list)
 
 ## Files
 Prototype (`03 Prototype`):
