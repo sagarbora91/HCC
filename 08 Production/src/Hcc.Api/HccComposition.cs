@@ -198,6 +198,16 @@ public static class HccComposition
         // F12-RPT-PEOPLE
         // F12-RPT-PEOPLE end
         // F12-STUDY-A
+        Microsoft.Extensions.DependencyInjection.Extensions.ServiceCollectionDescriptorExtensions.TryAddSingleton<Hcc.Reporting.Analytics.IAnalyticsInputSource, Hcc.Reporting.Analytics.EmptyAnalyticsInputSource>(services); // until the SQL loader lands (MEAS-STUDY-A-DONE)
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.MeasStudyA.RevenueMonthlyReport>(services);
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.MeasStudyA.YearComparisonReport>(services);
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.MeasStudyA.IndexVsBaseReport>(services);
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.MeasStudyA.FyDeepDiveReport>(services);
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.MeasStudyA.OccupancyHistoryReport>(services);
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.MeasStudyA.OperationsPatternsReport>(services);
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.MeasStudyA.RoomsAndRatesReport>(services);
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.MeasStudyA.ZeroRateComplimentaryReport>(services);
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.MeasStudyA.ReceivablesBadDebtReport>(services);
         // F12-STUDY-A end
         // F12-STUDY-B
         // F12-STUDY-B end

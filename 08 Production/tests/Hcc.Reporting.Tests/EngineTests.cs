@@ -52,6 +52,17 @@ public sealed class EngineTests
         [new Hcc.Reporting.Reports.MeasGuest.SatisfactionReport(null!), new Hcc.Reporting.Reports.MeasGuest.ReputationIndexReport(null!), new Hcc.Reporting.Reports.MeasGuest.ServiceRecoveryReport(null!),
          new Hcc.Reporting.Reports.MeasGuest.DeskTimingReport(null!), new Hcc.Reporting.Reports.MeasGuest.UpsellReport(null!), new Hcc.Reporting.Reports.MeasGuest.RepeatLoyaltyReport(null!)];
     // F12-RPT-GUEST end
+        // F12-STUDY-A
+        .. MeasStudyAReports(),
+        // F12-STUDY-A end
+    ]).All;
+
+    // F12-STUDY-A
+    private static IEnumerable<IReportSelector> MeasStudyAReports() =>
+        [new Hcc.Reporting.Reports.MeasStudyA.RevenueMonthlyReport(null!, null!), new Hcc.Reporting.Reports.MeasStudyA.YearComparisonReport(null!, null!), new Hcc.Reporting.Reports.MeasStudyA.IndexVsBaseReport(null!, null!),
+         new Hcc.Reporting.Reports.MeasStudyA.FyDeepDiveReport(null!, null!), new Hcc.Reporting.Reports.MeasStudyA.OccupancyHistoryReport(null!, null!), new Hcc.Reporting.Reports.MeasStudyA.OperationsPatternsReport(null!, null!),
+         new Hcc.Reporting.Reports.MeasStudyA.RoomsAndRatesReport(null!, null!), new Hcc.Reporting.Reports.MeasStudyA.ZeroRateComplimentaryReport(null!, null!), new Hcc.Reporting.Reports.MeasStudyA.ReceivablesBadDebtReport(null!, null!)];
+    // F12-STUDY-A end
 
     // F7-R3
     private static IEnumerable<IReportSelector> F7R3Reports() =>

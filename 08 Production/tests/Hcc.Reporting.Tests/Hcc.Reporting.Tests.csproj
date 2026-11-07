@@ -19,6 +19,9 @@
     <None Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
     <None Include="catalogue.json" CopyToOutputDirectory="PreserveNewest" />
     <None Include="Goldens\*.*" CopyToOutputDirectory="PreserveNewest" LinkBase="Goldens" />
+    <!-- F12-STUDY-A -->
+    <None Include="MeasStudyA\*.json" CopyToOutputDirectory="PreserveNewest" LinkBase="MeasStudyA" />
+    <!-- F12-STUDY-A end -->
     <Using Include="Xunit" />
   </ItemGroup>
 </Project>
