@@ -10,7 +10,7 @@ const IDS={
   'rpt.guests.manager-flash':'meas.daily.flash','rpt.guests.regrets-denials':'meas.daily.regrets','rpt.guests.rate-variance':'meas.daily.rate-variance',
   'rpt.rooms.room-discrepancy':'meas.daily.discrepancy','rpt.money.high-balance':'meas.daily.high-balance','rpt.money.allowances-voids':'meas.daily.adjustments',
   'rpt.guests.no-show-cancel':'meas.daily.no-show','rpt.rooms.inventory-exceptions':'meas.daily.inventory','rpt.money.cashier-variance':'meas.daily.cashier'};
-const CORE=['meas.daily.flash','meas.daily.inventory'];
+const CORE=['meas.daily.flash','meas.daily.inventory','meas.daily.high-balance']; // high-balance is core while company credit (groups) is on, as in the seed
 
 export function register({test,M,assert}){
   const T='[F12-RPT-DAILY] ';
