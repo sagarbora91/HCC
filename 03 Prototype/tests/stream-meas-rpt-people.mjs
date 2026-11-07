@@ -88,16 +88,16 @@ export function register({test,assert}){
   });
   test(T+'training: a mandatory certificate expired is red; valid to today is not',()=>{
     let s=addTraining(fy(),{validTo:'2026-10-23'});
-    assert.equal(rows(run(s,'owner',TR,{asOf:'2026-10-24'})).find(x=>x.cells.course==='Fire safety').cells.exception,true,'valid to yesterday = expired');
+    assert.equal(rows(run(s,'owner',TR,{asOf:'2026-10-24'})).find(x=>x.cells.course==='Fire safety').cells.exception,1,'valid to yesterday = expired');
     s=addTraining(fy(),{validTo:'2026-10-24'});
     const x=rows(run(s,'owner',TR,{asOf:'2026-10-24'})).find(y=>y.cells.course==='Fire safety');
-    assert.equal(x.cells.exception,false,'valid to today is still valid');assert.equal(x.cells.daysToExpiry,0);
+    assert.equal(x.cells.exception,0,'valid to today is still valid');assert.equal(x.cells.daysToExpiry,0);
   });
   test(T+'training: renewed by a later valid record is not red; missing mandatory courses are listed red',()=>{
     let s=addTraining(fy(),{validTo:'2026-05-01',date:'2025-05-02'});addTraining(s,{validTo:'2027-09-01',date:'2026-09-01'});
     const r=run(s,'owner',TR,{asOf:'2026-10-24'});
-    const mine=rows(r).filter(x=>x.cells.course==='Fire safety');assert.equal(mine.length,2);assert.ok(mine.every(x=>x.cells.exception===false));
-    const missing=rows(r).filter(x=>/\(missing\)/.test(x.cells.course));assert.ok(missing.length>=3&&missing.every(x=>x.cells.exception===true));
+    const mine=rows(r).filter(x=>x.cells.course==='Fire safety');assert.equal(mine.length,2);assert.ok(mine.every(x=>x.cells.exception===0));
+    const missing=rows(r).filter(x=>/\(missing\)/.test(x.cells.course));assert.ok(missing.length>=3&&missing.every(x=>x.cells.exception===1));
     assert.ok(missing.some(x=>x.cells.course.startsWith('FSSAI')));assert.equal(M.MANDATORY_COURSES.length,4);
   });
   test(T+'training: quarter hours per head and department filter',()=>{
@@ -115,9 +115,9 @@ export function register({test,assert}){
     assert.equal(M.enps([9,9,6,6]),0);assert.equal(M.enps([9,6,6,7,8]),-20);assert.equal(M.enps([10,9,9,7,0]),40);assert.equal(M.enps([]),0);
     const s=fy(),d=M.hrSlice(s).depts[1].id;
     s.measX={pulse:[9,9,6,6,8].map(v=>pulse(d,v))};
-    assert.equal(run(s,'owner',PU,{fy:'2026-27'}).rows[0].cells.exception,false);assert.equal(run(s,'owner',PU,{fy:'2026-27'}).rows[0].cells.enps,0);
+    assert.equal(run(s,'owner',PU,{fy:'2026-27'}).rows[0].cells.exception,0);assert.equal(run(s,'owner',PU,{fy:'2026-27'}).rows[0].cells.enps,0);
     s.measX={pulse:[9,6,6,8,8].map(v=>pulse(d,v))};
-    assert.equal(run(s,'owner',PU,{fy:'2026-27'}).rows[0].cells.exception,true);
+    assert.equal(run(s,'owner',PU,{fy:'2026-27'}).rows[0].cells.exception,1);
   });
   test(T+'pulse: Owner and Manager only, quarter filter, no staff identity anywhere in the result',()=>{
     const s=fy(),d=M.hrSlice(s).depts[1].id;s.measX={pulse:[...[9,9,6,6,8].map(v=>pulse(d,v)),...[9,9,9,8,8].map(v=>pulse(d,v,'2026-27-Q1'))]};
