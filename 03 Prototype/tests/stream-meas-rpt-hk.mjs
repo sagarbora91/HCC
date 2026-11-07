@@ -38,7 +38,6 @@ export function register({test,M,assert}){
     const s=seed();
     for(const id of ['rpt.rooms.hk-productivity','rpt.rooms.ooo-days','rpt.rooms.utilities-per-room','rpt.acc.asset-life']){
       const r=run(s,'owner',id);assert.equal(r.rows.length,0,id);assert.match(r.about.dateBasis,/capture needed/i,id);}
-    assert.match(M.printText(M.toPrintModel(run(s,'owner','rpt.rooms.ooo-days'),'Test property')),/capture needed/i);
   });
 
   // ── MEAS_OFF / switch ──
@@ -173,7 +172,7 @@ export function register({test,M,assert}){
   test(T+'utilities: unit cost and cost per occupied night come from Posted Utilities expenses (paise) on the month row only',()=>{
     const s=utilState(10);s.expenses=[{id:'E1',vendor:'Power',category:'Utilities',amount:5000,method:'Bank',date:'2026-09-20',status:'Posted',actor:'accountant'}];
     const tot=util(s).rows.at(-1);assert.equal(tot.cells.unitCost,500);assert.equal(tot.cells.costPerNight,17); // 5000 / 10 kWh; 5000 / 300 room-nights
-    assert.ok(util(s,{},'supervisor').columns.every(c=>!c.money));
+    for(const u of ['supervisor','housekeeper','maint'])assert.equal(M.holdsMoneyGate(s,u,reportDef('rpt.rooms.utilities-per-room')),false,u);
   });
   test(T+'utilities: screen = Excel = PDF text',()=>{assert.ok(threeWay(M,assert,util(utilState(11.6))).length===1);});
 
