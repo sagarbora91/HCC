@@ -1,0 +1,240 @@
+{
+ "guest": {
+  "name": "Rahul Deshmukh",
+  "title": "Mr.",
+  "city": "Pune",
+  "mobile": "98XXXXXX01",
+  "aadhaar": "XXXX XXXX 4321",
+  "car": "MH 12 AB 1234",
+  "companion": "Mrs. Sneha Deshmukh",
+  "room": "203",
+  "type": "Deluxe",
+  "plan": "CP",
+  "rate": "3,000",
+  "arrival": "24 Oct 2026",
+  "departure": "26 Oct 2026",
+  "note": "fictional; same person as in the Manual System training. Business date 24 Oct 2026 (fixture); demo hotel 24 rooms 101-308."
+ },
+ "version": "2026-11-07",
+ "chapters": [
+  {
+   "id": 0,
+   "title": "Welcome: Modules Home and the Dashboard",
+   "goal": "Find your way around HCC: the Modules Home tiles, the top bar, search, the menu, Appearance & display and the Dashboard.",
+   "user": "Aarav (Reception)",
+   "uid": "reception",
+   "menu": "Modules Home",
+   "display": "",
+   "steps": [
+    {
+     "id": "0.1",
+     "say": "This is Modules Home, the first screen after you choose your name. Each tile is one module; the red number on a tile is the work waiting there.",
+     "why": "Everything in HCC starts from these tiles, and you only see the modules your role may use.",
+     "form": "",
+     "menu": "",
+     "key": "",
+     "target": "sel:.fit-home-grid",
+     "action": "read",
+     "value": "",
+     "expect": "Nine module tiles for Reception: Front Desk, Cash & Billing, Housekeeping & Maintenance, Guests & Services, Customers, Revenue & Sales, People & Payroll, Accounts & Reports, Admin & Setup.",
+     "check": "has('Welcome, Aarav')",
+     "auto": [],
+     "shot": "00_01.png",
+     "msg": null,
+     "msgText": null,
+     "msgwhy": "",
+     "hint_mr": ""
+    },
+    {
+     "id": "0.2",
+     "say": "Look at the top bar. It shows the business date, whether the day is Open, the hotel clock, and who is signed in: Aarav, Reception.",
+     "why": "Every entry you make carries this business date and your name, so check them before you start work.",
+     "form": "",
+     "menu": "",
+     "key": "",
+     "target": "sel:.topbar-right .today",
+     "action": "read",
+     "value": "",
+     "expect": "Business date 24 Oct 2026, Open, 08:00 IST, Aarav · Reception.",
+     "check": "",
+     "auto": [],
+     "shot": "00_02.png",
+     "msg": null,
+     "msgText": null,
+     "msgwhy": "",
+     "hint_mr": ""
+    },
+    {
+     "id": "0.3",
+     "say": "Click the Front Desk tile to open that module.",
+     "why": "A module page lists its screens as tiles; the number on the tile shows open work.",
+     "form": "",
+     "menu": "Front Desk",
+     "key": "",
+     "target": "menutop:Front Desk",
+     "action": "click",
+     "value": "",
+     "expect": "The Front Desk page opens with tiles such as Room board, Calendar, Reservations, Guests, Arrivals & check-in and Room keys.",
+     "check": "has('Arrivals & check-in')",
+     "auto": [
+      "click:menutop:Front Desk"
+     ],
+     "shot": "00_03.png",
+     "msg": null,
+     "msgText": null,
+     "msgwhy": "",
+     "hint_mr": ""
+    },
+    {
+     "id": "0.4",
+     "say": "Look at the breadcrumb at the top left, Modules Home then Front Desk. Click Modules Home to go back.",
+     "why": "The breadcrumb always shows where you are, and every earlier part of it is a link.",
+     "form": "",
+     "menu": "",
+     "key": "",
+     "target": "sel:.crumbs button",
+     "action": "click",
+     "value": "",
+     "expect": "You are back on Modules Home.",
+     "check": "has('Welcome, Aarav')",
+     "auto": [
+      "click:sel:.crumbs button"
+     ],
+     "shot": "00_04.png",
+     "msg": null,
+     "msgText": null,
+     "msgwhy": "",
+     "hint_mr": ""
+    },
+    {
+     "id": "0.5",
+     "say": "Press Control and K, or click the Search button in the top bar, to open the search box.",
+     "why": "Search is the quickest way to any screen, and it also offers quick actions: New reservation, Walk-in guest and Add expense.",
+     "form": "",
+     "menu": "",
+     "key": "ctrl+k",
+     "target": "sel:.search-box",
+     "action": "key",
+     "value": "",
+     "expect": "The search box opens with the three quick actions and the popular pages.",
+     "check": "!!q('.search-box')",
+     "auto": [
+      "key:ctrl+k"
+     ],
+     "shot": "00_05.png",
+     "msg": null,
+     "msgText": null,
+     "msgwhy": "",
+     "hint_mr": ""
+    },
+    {
+     "id": "0.6",
+     "say": "Type part of a name, for example rates. The list narrows as you type.",
+     "why": "You only see pages your role may open, so a search never leads to a screen you cannot use.",
+     "form": "",
+     "menu": "",
+     "key": "",
+     "target": "sel:.search-box input",
+     "action": "type",
+     "value": "rates",
+     "expect": "Pages and actions that match the word.",
+     "check": "",
+     "auto": [
+      "type:sel:.search-box input|rates"
+     ],
+     "shot": "00_06.png",
+     "msg": null,
+     "msgText": null,
+     "msgwhy": "",
+     "hint_mr": ""
+    },
+    {
+     "id": "0.7",
+     "say": "Press Escape to close the search box without choosing anything.",
+     "why": "Escape closes any dialog in HCC and leaves your work as it was.",
+     "form": "",
+     "menu": "",
+     "key": "Escape",
+     "target": "sel:.search-btn",
+     "action": "key",
+     "value": "",
+     "expect": "The search box is closed.",
+     "check": "!q('.search-box')",
+     "auto": [
+      "key:Escape"
+     ],
+     "shot": "00_07.png",
+     "msg": null,
+     "msgText": null,
+     "msgwhy": "",
+     "hint_mr": ""
+    },
+    {
+     "id": "0.8",
+     "say": "Click the menu button at the top left to open the side menu.",
+     "why": "The side menu lists every module and page in the same order as the tiles, and has Change my PIN and Sign out.",
+     "form": "",
+     "menu": "",
+     "key": "",
+     "target": "aria:Open menu",
+     "action": "click",
+     "value": "",
+     "expect": "The side menu opens with Modules Home, the module list, Demo & display, Change my PIN and Sign out.",
+     "check": "!!q('.drawer')",
+     "auto": [
+      "click:aria:Open menu"
+     ],
+     "shot": "00_08.png",
+     "msg": null,
+     "msgText": null,
+     "msgwhy": "",
+     "hint_mr": ""
+    },
+    {
+     "id": "0.9",
+     "say": "Close the menu, then open Admin & Setup, Appearance & display. Here each person sets text size, theme and start page for this device.",
+     "why": "These choices belong to this device only. They are not hotel data and they are not audited.",
+     "form": "",
+     "menu": "Admin & Setup > Appearance & display",
+     "key": "",
+     "target": "sel:.fit-page-head",
+     "action": "click",
+     "value": "",
+     "expect": "The Appearance & display page opens: text size, theme, density, motion, start page, list size and message time.",
+     "check": "has('Appearance') && !q('.drawer')",
+     "auto": [
+      "key:Escape",
+      "menu:Admin & Setup>Appearance & display"
+     ],
+     "shot": "00_09.png",
+     "msg": null,
+     "msgText": null,
+     "msgwhy": "",
+     "hint_mr": ""
+    },
+    {
+     "id": "0.10",
+     "say": "Meera, the Manager, also sees a Dashboard tile that Reception does not have. Click Dashboard to see the day at a glance.",
+     "why": "The Dashboard gives the manager the day's occupancy, arrivals, cash and open work on one screen.",
+     "form": "",
+     "menu": "Dashboard",
+     "key": "",
+     "target": "sel:.fit-page-head",
+     "action": "click",
+     "value": "",
+     "expect": "The Dashboard page opens for Meera (Manager).",
+     "check": "ctx.page==='overview'",
+     "auto": [
+      "user:manager",
+      "click:menutop:Dashboard"
+     ],
+     "shot": "00_10.png",
+     "msg": null,
+     "msgText": null,
+     "msgwhy": "",
+     "hint_mr": ""
+    }
+   ]
+  }
+ ]
+}

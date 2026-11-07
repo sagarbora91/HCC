@@ -45,3 +45,10 @@ tools/legacy/.runs/
 tools/legacy/__pycache__/
 tools/legacy/**/__pycache__/
 tools/legacy/__pycache__/
+
+# Wave TRN training media: outputs are never committed (sources only)
+06 Training/**/build/
+06 Training/**/work/
+06 Training/**/*.mp4
+06 Training/**/*.pptx
+06 Training/**/__pycache__/

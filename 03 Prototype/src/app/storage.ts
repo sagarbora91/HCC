@@ -11,6 +11,7 @@
 import {State} from '../services/mock';
 import {inspectSaved,loadScenario,STORAGE_KEY,LEGACY_KEYS,Restored,DEFAULT_SCENARIO} from '../services/mock';
 import {knownJson} from './jsonCache';
+import {trainingMode} from './demo/training/hooks';
 import {generateScenario,type GenProgress} from './scenarioGen';
 export const IDB_NAME='hcc',IDB_STORE='state',IDB_KEY='current';
 export const MANIFEST_KEY='manifest',SLICE_PREFIX='slice:',MANIFEST_FORMAT='hcc-slices-1';
@@ -164,6 +165,7 @@ function instance():StateStorage{
   return shared;
 }
 export function loadStored(onProgress?:(p:GenProgress)=>void):Promise<Restored>{return instance().load(onProgress);}
-export function saveStored(s:State):boolean{return instance().save(s);}
+/** Wave TRN: in training mode (?training=1, prototype build) nothing is saved, so every capture starts from the fixture. */
+export function saveStored(s:State):boolean{if(process.env.HCC_BUILD!=='production'&&trainingMode())return true;return instance().save(s);}
 /** Called when neither IndexedDB nor localStorage could store the state. */
 export function onStorageError(cb:()=>void){instance().onError(cb);}
