@@ -41,8 +41,7 @@ public sealed class OverbookingWashReport(SqlPlatform platform, IYieldStore yiel
         var walked = await MeasRevenueData.WalkedAsync(Platform, propertyId, from, to, ct).ConfigureAwait(false);
         var type = FindType(types, typeName);
         var chosen = type is null ? types : [type];
-        var allowed = 0;
-        foreach (var t in chosen) allowed += await MeasRevenueData.OverbookAllowedAsync(Settings, propertyId, t.Id, ct).ConfigureAwait(false);
+        var allowed = await AllowedAsync(Settings, propertyId, chosen.Select(t => t.Code), ct).ConfigureAwait(false);
         // Rooms sold above the rooms in service, per type and night (Confirmed / InHouse stays), worst figure per weekday.
         var sold = new Dictionary<(int Type, DateOnly Night), int>();
         foreach (var x in stays.Where(x => x.Status is "Confirmed" or "InHouse" && chosen.Any(t => t.Id == x.TypeId)))
@@ -85,6 +84,15 @@ public sealed class OverbookingWashReport(SqlPlatform platform, IYieldStore yiel
                 ["washRooms"] = (long)Math.Floor((a.Ns + a.Cx) / (double)Math.Max(1, weeks[w]) + 0.5), ["allowed"] = (long)allowed, ["walked"] = (long)a.Walked, ["walkCost"] = a.Cost,
             }, MeasRevenueLogic.OversoldRed(worst[w], allowed));
         }).ToList();
+    }
+
+    /// <summary>F12-MEAS2-C (M9): "Oversold allowed" = the sum of yld.overbook.&lt;code&gt; over the chosen room types (each 0 to 10, 0 until set).</summary>
+    public static async Task<int> AllowedAsync(ISettingsReader? settings, int propertyId, IEnumerable<string> typeCodes, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(typeCodes);
+        var allowed = 0;
+        foreach (var code in typeCodes) allowed += await MeasRevenueData.OverbookAllowedAsync(settings, propertyId, code, ct).ConfigureAwait(false);
+        return allowed;
     }
 
     public async Task<ReportResult> SelectAsync(Caller caller, BoundParams parameters, CancellationToken ct = default)

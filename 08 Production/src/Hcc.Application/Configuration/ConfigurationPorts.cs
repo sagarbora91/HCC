@@ -44,9 +44,20 @@ public interface ISettingsProvider
 public sealed record SettingsProvider(string Id, string Group, IReadOnlyList<SettingDefinition> Definitions) : ISettingsProvider;
 
 /// <summary>Every setting in the registry, in group order (built-ins first, then module providers in registration order).</summary>
-public sealed class SettingsRegistry
+public sealed partial class SettingsRegistry
 {
     private readonly Dictionary<string, RegisteredSetting> _byKey = new(StringComparer.Ordinal);
+
+    // F12-MEAS2-C (M9): key families. A definition whose key is "<prefix>*" (prefix on the explicit list below) stands for every key
+    // "<prefix><suffix>" with a suffix of 1 to 20 letters, digits, '_' or '-' (a room-type code). Families are not listed in All (the
+    // concrete keys depend on the property's data); Find / Get resolve them, so the hub can store and the reader can read them.
+    /// <summary>Prefixes that may register a key family. Keep this list short: a family makes every matching key look registered.</summary>
+    public static IReadOnlyList<string> FamilyPrefixes { get; } = ["yld.overbook."];
+
+    [GeneratedRegex(@"^[A-Za-z0-9_-]{1,20}$")]
+    private static partial Regex FamilySuffixPattern();
+
+    private readonly Dictionary<string, (string Source, ConfigGroup Group, SettingDefinition Definition)> _families = new(StringComparer.Ordinal);
 
     public SettingsRegistry(IEnumerable<ISettingsProvider> providers)
     {
@@ -57,6 +68,14 @@ public sealed class SettingsRegistry
             var group = ConfigCatalog.Group(p.Group) ?? throw new InvalidOperationException($"Unknown configuration group {p.Group} (provider {p.Id}).");
             foreach (var d in p.Definitions)
             {
+                if (d.Key.EndsWith('*'))
+                {
+                    var prefix = d.Key[..^1];
+                    if (!FamilyPrefixes.Contains(prefix, StringComparer.Ordinal)) throw new InvalidOperationException($"Setting key family '{d.Key}' is not on the family list.");
+                    if (string.IsNullOrWhiteSpace(d.Label)) throw new InvalidOperationException($"Setting family '{d.Key}' needs a label.");
+                    _families[prefix] = (p.Id, group, d);
+                    continue;
+                }
                 if (!ConfigurationPermissions.KeyPattern().IsMatch(d.Key)) throw new InvalidOperationException($"Setting key '{d.Key}' is not valid.");
                 if (string.IsNullOrWhiteSpace(d.Label)) throw new InvalidOperationException($"Setting '{d.Key}' needs a label.");
                 order.Remove(d.Key);
@@ -71,7 +90,23 @@ public sealed class SettingsRegistry
 
     public IReadOnlyList<RegisteredSetting> All { get; }
 
-    public RegisteredSetting? Find(string? key) => key is not null && _byKey.TryGetValue(key, out var s) ? s : null;
+    /// <summary>The exact key first; else a registered family whose prefix matches and whose suffix is a valid code (label "&lt;family label&gt; · &lt;suffix&gt;").</summary>
+    public RegisteredSetting? Find(string? key)
+    {
+        if (key is null) return null;
+        if (_byKey.TryGetValue(key, out var s)) return s;
+        foreach (var (prefix, f) in _families)
+        {
+            if (!key.StartsWith(prefix, StringComparison.Ordinal)) continue;
+            var suffix = key[prefix.Length..];
+            if (!FamilySuffixPattern().IsMatch(suffix) || !ConfigurationPermissions.KeyPattern().IsMatch(key)) return null;
+            return RegisteredSetting.From(f.Source, f.Group, f.Definition with { Key = key, Label = f.Definition.Label + " · " + suffix });
+        }
+        return null;
+    }
+
+    /// <summary>The family definitions (key "&lt;prefix&gt;*"), for parity tests and the hub.</summary>
+    public IReadOnlyList<SettingDefinition> Families => _families.Values.Select(f => f.Definition).ToList();
 
     public RegisteredSetting Get(string key) => Find(key) ?? throw new InvalidOperationException($"Setting '{key}' is not in the Master configuration registry.");
 

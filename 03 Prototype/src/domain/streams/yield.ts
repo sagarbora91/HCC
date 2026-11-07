@@ -216,12 +216,12 @@ export function yldSummary(s:State){
 // MEAS-CONTRACT §1.2 / §2, plan §4 (2.2, 2.5, 2.6). Read-only additions: nothing above this block changes, so the yield guards behave exactly
 // as before while the new settings sit at their defaults (yld.overbook.<type> = 0, yld.restrictionsEnforce = off). The settings are declared
 // by meas-settings (config.ts `measure` group); until then a missing value reads as the default.
-import {measOn} from './measure';
+import {measOn,MEAS_OVERBOOK_MAX} from './measure';
 import {fcCurve,fcForecastNight,fcInputOf,type FCNight,type FCStay} from '../forecast';
 import type {MeasRestrictionCounter,MeasState} from './measure-types';
 const yldCfg=(s:State,k:string):unknown=>(s.configX as {values?:Record<string,unknown>}|undefined)?.values?.[k];
 /** Rooms of a type that may be sold beyond the sellable count (M-6 default 0; integer 0 … 10). */
-export function yldOverbookAllowed(s:State,type:string):number{const v=Number(yldCfg(s,'yld.overbook.'+type));return Number.isInteger(v)&&v>0?Math.min(v,10):0;}
+export function yldOverbookAllowed(s:State,type:string):number{const v=Number(yldCfg(s,'yld.overbook.'+type));return Number.isInteger(v)&&v>0?Math.min(v,MEAS_OVERBOOK_MAX):0;} // F12-MEAS2-C (M9): max shared with the setting
 /** yld.restrictionsEnforce (M-7 default off = advisory). */
 export const yldRestrictionsEnforced=(s:State)=>yldCfg(s,'yld.restrictionsEnforce')===true;
 /** True when the MEAS real forecast curve is switched on (meas.rev.forecast). */

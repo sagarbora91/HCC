@@ -102,7 +102,19 @@ public static class MeasurementCatalogue
         new("meas.target.absenteeism", "Absenteeism (limit)", "percent", 5),
         new("meas.target.attrition", "Annual attrition (limit)", "percent", 30),
         new("meas.target.lossPct", "Linen / supply loss (limit)", "percent", 2),
+        // F12-MEAS2-C (L7, owner 7 Nov): Owner-changeable upsell target, Rs 50 per arrival; UpsellReport reads it via TargetAsync.
+        new("meas.target.upsellPerArrival", "Upsell revenue per arrival", "money", 5000), // = UpsellTargetKey (literal for the parity regexes)
     ];
+
+    /// <summary>L7 (owner 7 Nov 2026): upsell revenue per arrival target, money in paise (default Rs 50).</summary>
+    public const string UpsellTargetKey = "meas.target.upsellPerArrival";
+
+    /// <summary>M9 (owner 7 Nov 2026): the overbooking allowance per room type is the key family <c>yld.overbook.&lt;room-type code&gt;</c>, 0 to this many rooms.</summary>
+    public const string OverbookPrefix = "yld.overbook.";
+
+    public const int OverbookMax = 10;
+
+    public static string OverbookKey(string roomTypeCode) => OverbookPrefix + roomTypeCode;
 
     private static readonly Dictionary<string, MeasurementItem> ByKey = Items.ToDictionary(i => i.Key, StringComparer.Ordinal);
 
@@ -138,6 +150,12 @@ public static class MeasurementCatalogue
         list.Add(Flag("meas.daily.blockClose", "Day close waits for open measurement exceptions", false));
         list.Add(Flag("meas.regrets.mandatory", "Turn-away reason is mandatory", false));
         list.Add(Flag("yld.restrictionsEnforce", "Enforce yield restrictions (min stay / CTA)", false));
+        // F12-MEAS2-C (M9): one setting per room type, keyed by the type code (prototype measSettingDefs builds the same keys from the rooms).
+        list.Add(new SettingDefinition(OverbookPrefix + "*", "Overbooking allowance", SettingType.Integer)
+        {
+            Default = ConfigValue.Of(0L), Min = 0, Max = OverbookMax, Suffix = "rooms", Approver = SettingApprover.Owner, Money = true, Effective = EffectiveMode.Immediate,
+            Help = "M-6: 0 for every type.",
+        });
         list.Add(new SettingDefinition("ffe.reservePct", "FF&E reserve", SettingType.Integer) { Default = ConfigValue.Of(3L), Min = 0, Max = 20, Suffix = "%", Approver = SettingApprover.Owner, Money = true });
         return list;
     }

@@ -10,7 +10,7 @@ using Microsoft.Data.SqlClient;
 
 namespace Hcc.Reporting.Reports.MeasRevenue;
 
-internal sealed record RType(int Id, string Name, int Rooms);
+internal sealed record RType(int Id, string Name, int Rooms, string Code = ""); // F12-MEAS2-C (M9): + Code (inv.room_type.code)
 
 internal sealed record RRoom(int Id, int TypeId, DateOnly? RetiredOn);
 
@@ -44,11 +44,11 @@ internal static class MeasRevenueData
         var list = new List<RType>();
         await using var conn = await platform.Connections.OpenAsync(ct).ConfigureAwait(false);
         await using var cmd = Cmd(conn, """
-            SELECT t.room_type_id, COALESCE(t.name, t.code), (SELECT COUNT(*) FROM inv.room r WHERE r.room_type_id = t.room_type_id AND r.active = 1)
+            SELECT t.room_type_id, COALESCE(t.name, t.code), (SELECT COUNT(*) FROM inv.room r WHERE r.room_type_id = t.room_type_id AND r.active = 1), t.code
               FROM inv.room_type t WHERE t.property_id = @p AND t.active = 1 ORDER BY t.room_type_id;
             """, propertyId);
         await using var rd = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        while (await rd.ReadAsync(ct).ConfigureAwait(false)) list.Add(new RType(rd.GetInt32(0), GuestsSql.Str(rd, 1), rd.GetInt32(2)));
+        while (await rd.ReadAsync(ct).ConfigureAwait(false)) list.Add(new RType(rd.GetInt32(0), GuestsSql.Str(rd, 1), rd.GetInt32(2), GuestsSql.Str(rd, 3)));
         return list;
     }
 
@@ -182,14 +182,15 @@ internal static class MeasRevenueData
         return map.Select(kv => new RChannel(kv.Key, kv.Value.Markup, kv.Value.Types)).ToList();
     }
 
-    /// <summary>yld.overbook.&lt;roomTypeId&gt; (Owner setting, default 0, integer 0 to 10).</summary>
-    public static async Task<int> OverbookAllowedAsync(ISettingsReader? reader, int propertyId, int typeId, CancellationToken ct)
+    /// <summary>yld.overbook.&lt;room-type code&gt; (Owner setting, default 0, integer 0 to 10). F12-MEAS2-C (M9): keyed by the type code, the
+    /// key the prototype builds from Room.type, so a value saved in the hub is the value this report reads.</summary>
+    public static async Task<int> OverbookAllowedAsync(ISettingsReader? reader, int propertyId, string typeCode, CancellationToken ct)
     {
-        if (reader is null) return 0;
+        if (reader is null || string.IsNullOrEmpty(typeCode)) return 0;
         try
         {
-            var v = await reader.GetAsync(propertyId, "yld.overbook." + typeId, null, ct).ConfigureAwait(false);
-            return v.Kind == Hcc.Domain.Configuration.ConfigValueKind.Number ? (int)Math.Clamp(v.Number, 0, 10) : 0;
+            var v = await reader.GetAsync(propertyId, MeasurementCatalogue.OverbookKey(typeCode), null, ct).ConfigureAwait(false);
+            return v.Kind == Hcc.Domain.Configuration.ConfigValueKind.Number ? (int)Math.Clamp(v.Number, 0, MeasurementCatalogue.OverbookMax) : 0;
         }
         catch (Exception e) when (e is not OperationCanceledException) { return 0; }
     }

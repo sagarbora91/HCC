@@ -99,7 +99,11 @@ export const MEAS_TARGETS:MeasTargetDef[]=[
   {key:'meas.target.absenteeism',label:'Absenteeism (limit)',kind:'percent',default:5},
   {key:'meas.target.attrition',label:'Annual attrition (limit)',kind:'percent',default:30},
   {key:'meas.target.lossPct',label:'Linen / supply loss (limit)',kind:'percent',default:2},
+  // F12-MEAS2-C (L7, owner 7 Nov): Owner-changeable upsell target, Rs 50 per arrival (meas-guest/upsell.ts reads it).
+  {key:'meas.target.upsellPerArrival',label:'Upsell revenue per arrival',kind:'money',default:5000},
 ];
+/** F12-MEAS2-C (M9, owner 7 Nov): overbooking allowance per room type `yld.overbook.<Room.type>` (the type code), 0 … this many rooms; server MeasurementCatalogue.OverbookMax. */
+export const MEAS_OVERBOOK_MAX=10;
 /** The other settings of the group (contract §1.2). `yld.overbook.<roomTypeId>` is one per room type (built from the state). */
 export const MEAS_OTHER=['meas.study.packSchedule','meas.daily.blockClose','meas.regrets.mandatory','yld.restrictionsEnforce','ffe.reservePct'] as const;
 export const MEAS_PACK_SCHEDULES=['off','monthly','quarterly'] as const;
@@ -183,7 +187,7 @@ export function measSettingDefs(s:State):CfgProviderDef[]{
     {key:'meas.study.packSchedule',label:'Management study pack schedule',type:'choice',options:[...MEAS_PACK_SCHEDULES],default:'monthly',...OWNER,help:'Monthly on the 1st to Owner + Manager (M-10).'},
     {key:'meas.daily.blockClose',label:'Day close waits for open measurement exceptions',type:'boolean',unit:'on / off',default:false,...OWNER,help:'Off = a measurement never blocks the day close (contract §1.4).'},
     {key:'meas.regrets.mandatory',label:'Turn-away reason is mandatory',type:'boolean',unit:'on / off',default:false,...OWNER,help:'M-2: optional by default.'},
-    ...types.map(t=>({key:`yld.overbook.${t}`,label:`Overbooking allowance · ${t}`,type:'integer' as const,default:0,min:0,max:20,suffix:'rooms',...OWNER,help:'M-6: 0 for every type.'})),
+    ...types.map(t=>({key:`yld.overbook.${t}`,label:`Overbooking allowance · ${t}`,type:'integer' as const,default:0,min:0,max:MEAS_OVERBOOK_MAX,suffix:'rooms',...OWNER,help:'M-6: 0 for every type.'})),
     {key:'yld.restrictionsEnforce',label:'Enforce yield restrictions (min stay / CTA)',type:'boolean',unit:'on / off',default:false,...OWNER,help:'M-7: advisory by default.'},
     {key:'ffe.reservePct',label:'FF&E reserve',type:'integer',default:3,min:0,max:20,suffix:'%',...OWNER,help:'M-5: 3 % of room revenue.'},
   ];

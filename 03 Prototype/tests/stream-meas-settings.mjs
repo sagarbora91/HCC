@@ -117,4 +117,27 @@ export function register({test,M,assert}){
     let t=execute(seed(),'owner',{type:'CFG_IMPORT',config:ex});
     assert.equal(measOn(t,'meas.study.dashboard'),false);assert.equal(measOn(t,'meas.hk.ooo'),false);assert.equal(measTarget(t,'meas.target.adr'),210000);
   });
+  // F12-MEAS2-C (M9 + L7, owner 7 Nov 2026)
+  const csCat=()=>readFileSync(new URL('../../08 Production/src/Hcc.Application/Configuration/MeasurementCatalogue.cs',import.meta.url),'utf8');
+  test('[F12-MEAS2-C] M9: yld.overbook.<type code> per room type, max 10 on both twins, reader clamps at the same maximum',()=>{
+    const s=seed(),defs=cfgGroupDefs(s,'measure').filter(d=>d.key.startsWith('yld.overbook.'));
+    const types=[...new Set(s.rooms.map(r=>r.type))].sort();
+    assert.deepEqual(defs.map(d=>d.key),types.map(t=>'yld.overbook.'+t));
+    assert.equal(M.MEAS_OVERBOOK_MAX,10);
+    assert.ok(defs.every(d=>d.min===0&&d.max===10&&d.default===0&&d.type==='integer'),'0 … 10 rooms, default 0');
+    assert.ok(types.every(t=>/^[A-Za-z0-9_-]{1,20}$/.test(t)),'type codes fit the server family suffix');
+    const cs=csCat();assert.match(cs,/public const int OverbookMax = 10;/);assert.match(cs,/OverbookPrefix = "yld\.overbook\."/);
+    const withCfg=v=>({...s,configX:{...(s.configX||{}),values:{...(s.configX?.values||{}),...v}}});
+    assert.equal(M.yldOverbookAllowed(withCfg({['yld.overbook.'+types[0]]:15}),types[0]),10);
+    let t=set(s,'owner','yld.overbook.'+types[0],2);assert.equal(M.yldOverbookAllowed(t,types[0]),2,'a value saved in the hub is read');
+    assert.notEqual(code(()=>set(s,'owner','yld.overbook.'+types[0],11)),'OK','above the maximum refused');
+  });
+  test('[F12-MEAS2-C] L7: meas.target.upsellPerArrival is an Owner-changeable money target, default Rs 50 (5000 paise), on both twins',()=>{
+    const t=MEAS_TARGETS.find(x=>x.key==='meas.target.upsellPerArrival');assert.ok(t);assert.equal(t.kind,'money');assert.equal(t.default,5000);
+    const s=seed();assert.equal(measTarget(s,'meas.target.upsellPerArrival'),5000);
+    const d=cfgGroupDefs(s,'measure').find(x=>x.key==='meas.target.upsellPerArrival');assert.ok(d);assert.equal(d.type,'money');assert.equal(d.approver,'Owner');
+    const u=set(s,'owner','meas.target.upsellPerArrival',6000);assert.equal(measTarget(u,'meas.target.upsellPerArrival'),6000);
+    assert.notEqual(code(()=>set(s,'techadmin','meas.target.upsellPerArrival',6000)),'OK','Tech admin cannot change it directly');
+    assert.match(csCat(),/new\("meas\.target\.upsellPerArrival", "[^"]*", "money", 5000\)/);
+  });
 }
