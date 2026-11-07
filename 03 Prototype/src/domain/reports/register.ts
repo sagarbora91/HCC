@@ -52,6 +52,11 @@ import './built/admin';
 // F12-RPT-HK
 // F12-RPT-HK end
 // F12-RPT-PEOPLE
+import './meas-people/staff-productivity';
+import './meas-people/attrition';
+import './meas-people/agent-scorecard';
+import './meas-people/training';
+import './meas-people/staff-pulse';
 // F12-RPT-PEOPLE end
 // F12-STUDY-A
 // F12-STUDY-A end
