@@ -1,1 +1,17 @@
-{"done": [0], "notes": {}}
+{
+ "done": [
+  0,
+  1,
+  2,
+  3,
+  4,
+  5,
+  6,
+  7,
+  8
+ ],
+ "notes": {
+  "time travel": "chapter 8 uses the driver act closeday (REGISTER/CHECKIN pending arrivals, approve pending expense, settle open POS checks, NIGHT_POST, SHIFT_CLOSE, DAY_CLOSE, NEXT_DAY, SHIFT_OPEN through ctx.run) twice so Rahul can leave on 26 Oct; chapters 9+ run on 26 Oct 2026",
+  "ch2 keys": "encoder brought online by Meera in the Encoder tab (demo), card issued then lost-card re-issue"
+ }
+}

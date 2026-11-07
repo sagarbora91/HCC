@@ -16,17 +16,18 @@ def chapter(cid, title, goal, user, uid, menu='', display=''):
     global _cur, _n
     _cur = {'id': cid, 'title': title, 'goal': goal, 'user': user, 'uid': uid, 'menu': menu, 'display': display, 'steps': []}; CH.append(_cur); _n = 0
 
-def step(say, why='', target=None, auto=None, check=None, expect='', value=None, msg=None, msgText=None, msgwhy=None, form='', menu='', key='', action=None, hint_mr=None):
+def step(say, why='', target=None, auto=None, check=None, expect='', value=None, msg=None, msgText=None, msgwhy=None, form='', menu='', key='', action=None, hint_mr=None, allowError=False):
     global _n
     _n += 1; sid = '%s.%d' % (_cur['id'], _n)
     s = {'id': sid, 'say': say, 'why': why, 'form': form, 'menu': menu, 'key': key, 'target': target or '', 'action': action or ('click' if auto else 'read'), 'value': value or '',
          'expect': expect, 'check': check or '', 'auto': auto or [], 'shot': '%02d_%02d.png' % (_cur['id'], _n), 'msg': msg, 'msgText': msgText, 'msgwhy': msgwhy or '', 'hint_mr': hint_mr or ''}
+    if allowError: s['allowError'] = True
     _cur['steps'].append(s); return s
 
 def read(say, why='', target=None, **kw): return step(say, why, target=target, action='read', auto=kw.pop('auto', None), **kw)
 def click(target, say, why='', outline=None, **kw): return step(say, why, target=outline or target, auto=['click:' + target] + kw.pop('also', []), action='click', **kw)
-def typ(target, value, say, why='', **kw): return step(say, why, target=target, auto=['type:%s|%s' % (target, value)], value=value, action='type', **kw)
-def pick(target, option, say, why='', **kw): return step(say, why, target=target, auto=['select:%s|%s' % (target, option)], value=option, action='select', **kw)
+def typ(target, value, say, why='', **kw): return step(say, why, target=target, auto=['type:%s|%s' % (target, value)], value=kw.pop('value', value), action='type', **kw)
+def pick(target, option, say, why='', **kw): return step(say, why, target=target, auto=['select:%s|%s' % (target, option)], value=kw.pop('value', option), action='select', **kw)
 def tick(target, say, why='', **kw): return step(say, why, target=target, auto=['check:' + target], action='click', **kw)
 def press(keys, say, why='', target=None, **kw): return step(say, why, target=target, auto=['key:' + keys], key=keys, action='key', **kw)
 def tile(cat, say, why='', **kw): return step(say, why, target='menutop:' + cat, auto=['click:menutop:' + cat], menu=cat, action='click', **kw)

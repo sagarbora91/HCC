@@ -28,8 +28,11 @@ function fieldOf(label:string):HTMLElement|null{
     const cands=Array.from(root.querySelectorAll<HTMLElement>(ctl)).filter(e=>visible(e)&&!inDemo(e));
     const byAria=cands.find(e=>norm(e.getAttribute('aria-label'))===w)??cands.find(e=>norm(e.getAttribute('aria-label')).includes(w));
     if(byAria)return byAria;
-    for(const l of Array.from(root.querySelectorAll('label')).filter(l=>norm(l.textContent).startsWith(w)||norm(l.textContent).includes(w))){
-      const c=(l as HTMLLabelElement).control??l.querySelector<HTMLElement>(ctl);if(c&&visible(c))return c as HTMLElement;
+    // label text without the text of the control inside it (a <select> label would otherwise start with all its options); exact beats prefix beats contains
+    const own=(l:Element)=>{const c=l.cloneNode(true) as HTMLElement;c.querySelectorAll('select,textarea,input,option').forEach(x=>x.remove());return norm(c.textContent);};
+    const labels=Array.from(root.querySelectorAll('label')).filter(l=>norm(l.textContent).includes(w));
+    for(const test of [(t:string)=>t===w||t===w+' *',(t:string)=>t.startsWith(w),(t:string)=>t.includes(w)]){
+      for(const l of labels.filter(l=>test(own(l)))){const c=(l as HTMLLabelElement).control??l.querySelector<HTMLElement>(ctl);if(c&&visible(c))return c as HTMLElement;}
     }
     const byPh=cands.find(e=>norm(e.getAttribute('placeholder')).includes(w));if(byPh)return byPh;
     // aria-labelledby / preceding text label
@@ -60,6 +63,12 @@ export function resolveTarget(target:string):HTMLElement|null{
     case 'dialog':return topDialog();
     case 'menutop':return pick(Array.from(document.querySelectorAll<HTMLElement>('.tile,.nav-cat,.drawer button,nav button')),arg,e=>norm(e.querySelector('strong')?.textContent||e.textContent));
     case 'menuleaf':{const leaf=arg.split('>').pop()!.trim();return pick(Array.from(document.querySelectorAll<HTMLElement>('.tile,.drawer button,nav button')),leaf,e=>norm(e.querySelector('strong')?.textContent||e.textContent));}
+    case 'btnin':{ // "<text of the row or card>|<button text>": the button inside the smallest block that holds the text
+      const j=arg.lastIndexOf('|');const holder=norm(arg.slice(0,j)),label=arg.slice(j+1);
+      const hits=Array.from(document.querySelectorAll<HTMLElement>('main *,[role="dialog"] *')).filter(e=>visible(e)&&norm(e.textContent).includes(holder)&&!inDemo(e));
+      const leaf=hits.filter(e=>!hits.some(o=>o!==e&&e.contains(o)));
+      for(const h of leaf){let n:HTMLElement|null=h;for(let k=0;n&&k<8;k++,n=n.parentElement){const b=pick(Array.from(n.querySelectorAll<HTMLElement>(BTN)),label,nameOf);if(b)return b;}}
+      return null;}
     case 'text':{ // first smallest visible element whose own text contains arg
       const w=norm(arg);const all=Array.from(document.querySelectorAll<HTMLElement>('main *,[role="dialog"] *')).filter(e=>visible(e)&&!inDemo(e)&&norm(e.textContent).includes(w));
       return all.filter(e=>!all.some(o=>o!==e&&e.contains(o)))[0]??null;}

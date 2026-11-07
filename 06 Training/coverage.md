@@ -9,14 +9,14 @@ Features in the catalogue on this build: 67 (plan text said 60). Pages: 50 = 48 
 | Done | Ch | Title | Steps (plan) | Steps (steps.json) |
 |---|---|---|---|---|
 | [x] | 0 | Welcome: Modules Home and the Dashboard | 10 | 10 |
-| [ ] | 1 | Reservations and the Calendar | 22 | - |
-| [ ] | 2 | Arrivals, registration and check-in | 28 | - |
-| [ ] | 3 | The Room board | 10 | - |
-| [ ] | 4 | In-house guests and guest services | 26 | - |
-| [ ] | 5 | The folio: charges, discounts and corrections | 20 | - |
-| [ ] | 6 | Restaurant and room service | 18 | - |
-| [ ] | 7 | Cashier: shift, payments, cash book | 20 | - |
-| [ ] | 8 | Check-out, invoice, credit note, counter bills | 24 | - |
+| [x] | 1 | Reservations and the Calendar | 22 | 39 |
+| [x] | 2 | Arrivals, registration and check-in | 28 | 42 |
+| [x] | 3 | The Room board | 10 | 16 |
+| [x] | 4 | In-house guests and guest services | 26 | 34 |
+| [x] | 5 | The folio: charges, discounts and corrections | 20 | 26 |
+| [x] | 6 | Restaurant and room service | 18 | 30 |
+| [x] | 7 | Cashier: shift, payments, cash book | 20 | 20 |
+| [x] | 8 | Check-out, invoice, credit note, counter bills | 24 | 41 |
 | [ ] | 9 | Housekeeping | 18 | - |
 | [ ] | 10 | Maintenance | 16 | - |
 | [ ] | 11 | Checklists and handover | 8 | - |
@@ -34,7 +34,7 @@ Features in the catalogue on this build: 67 (plan text said 60). Pages: 50 = 48 
 | [ ] | 23 | Administration and setup | 34 | - |
 | [ ] | 24 | Closing: shortcuts, help, quick-reference | 6 | - |
 
-Total steps in steps.json: 10
+Total steps in steps.json: 258
 
 ## Pages (id -> chapter)
 
@@ -43,25 +43,25 @@ Total steps in steps.json: 10
 | [x] | `home` | 0 |
 | [x] | `overview` | 0 |
 | [x] | `prefs` | 0 |
-| [ ] | `reservations` | 1 |
-| [ ] | `calendar` | 1 |
-| [ ] | `arrivals` | 2 |
-| [ ] | `guests` | 2 |
-| [ ] | `keys` | 2 |
-| [ ] | `documents` | 2 |
-| [ ] | `rooms` | 3 |
-| [ ] | `inhouse` | 4 |
-| [ ] | `guest-services` | 4 |
-| [ ] | `gsv-my-requests` | 4 |
-| [ ] | `desk-alerts` | 4 |
-| [ ] | `messages` | 4 |
-| [ ] | `folios` | 5 |
-| [ ] | `plans-extras` | 5 |
-| [ ] | `pos` | 6 |
-| [ ] | `cashier` | 7 |
-| [ ] | `cashbook` | 7 |
-| [ ] | `counter-bills` | 8 |
-| [ ] | `approvals` | 8 |
+| [x] | `reservations` | 1 |
+| [x] | `calendar` | 1 |
+| [x] | `arrivals` | 2 |
+| [x] | `guests` | 2 |
+| [x] | `keys` | 2 |
+| [x] | `documents` | 2 |
+| [x] | `rooms` | 3 |
+| [x] | `inhouse` | 4 |
+| [x] | `guest-services` | 4 |
+| [x] | `gsv-my-requests` | 4 |
+| [x] | `desk-alerts` | 4 |
+| [x] | `messages` | 4 |
+| [x] | `folios` | 5 |
+| [x] | `plans-extras` | 5 |
+| [x] | `pos` | 6 |
+| [x] | `cashier` | 7 |
+| [x] | `cashbook` | 7 |
+| [x] | `counter-bills` | 8 |
+| [x] | `approvals` | 8 |
 | [ ] | `housekeeping` | 9 |
 | [ ] | `maintenance` | 10 |
 | [ ] | `handover` | 11 |
@@ -95,31 +95,31 @@ Total steps in steps.json: 10
 
 | Done | Feature id | Chapter |
 |---|---|---|
-| [ ] | `frontdesk.roomboard` | 3 |
-| [ ] | `frontdesk.reservations` | 1 |
-| [ ] | `frontdesk.checkin` | 2 |
-| [ ] | `frontdesk.guests` | 2 |
-| [ ] | `frontdesk.alerts` | 4 |
-| [ ] | `frontdesk.keys` | 2 |
-| [ ] | `cash.folios` | 5 |
-| [ ] | `cash.cashier` | 7 |
-| [ ] | `cash.cashbook` | 7 |
-| [ ] | `cash.counter` | 8 |
+| [x] | `frontdesk.roomboard` | 3 |
+| [x] | `frontdesk.reservations` | 1 |
+| [x] | `frontdesk.checkin` | 2 |
+| [x] | `frontdesk.guests` | 2 |
+| [x] | `frontdesk.alerts` | 4 |
+| [x] | `frontdesk.keys` | 2 |
+| [x] | `cash.folios` | 5 |
+| [x] | `cash.cashier` | 7 |
+| [x] | `cash.cashbook` | 7 |
+| [x] | `cash.counter` | 8 |
 | [ ] | `cash.expenses` | 17 |
-| [ ] | `cash.invoices` | 8 |
-| [ ] | `pos.checks` | 6 |
-| [ ] | `pos.menu` | 6 |
+| [x] | `cash.invoices` | 8 |
+| [x] | `pos.checks` | 6 |
+| [x] | `pos.menu` | 6 |
 | [ ] | `housekeeping.board` | 9 |
 | [ ] | `housekeeping.complaints` | 9 |
 | [ ] | `housekeeping.lostfound` | 9 |
 | [ ] | `maintenance.workorders` | 10 |
 | [ ] | `maintenance.assets` | 10 |
-| [ ] | `guestsvc.requests` | 4 |
-| [ ] | `guestsvc.inhouse` | 4 |
+| [x] | `guestsvc.requests` | 4 |
+| [x] | `guestsvc.inhouse` | 4 |
 | [ ] | `guestsvc.handover` | 11 |
-| [ ] | `messaging.messages` | 4 |
-| [ ] | `messaging.templates` | 4 |
-| [ ] | `documents.capture` | 2 |
+| [x] | `messaging.messages` | 4 |
+| [x] | `messaging.templates` | 4 |
+| [x] | `documents.capture` | 2 |
 | [ ] | `customers.c360` | 12 |
 | [ ] | `customers.crm` | 12 |
 | [ ] | `revenue.yield` | 13 |
@@ -149,7 +149,7 @@ Total steps in steps.json: 10
 | [ ] | `reports.reports` | 20 |
 | [ ] | `reports.hub` | 20 |
 | [ ] | `reports.digest` | 20 |
-| [ ] | `reports.plans` | 5 |
+| [x] | `reports.plans` | 5 |
 | [ ] | `compliance.calendar` | 22 |
 | [ ] | `assistant.assistant` | 22 |
 | [ ] | `admin.access` | 23 |
@@ -162,3 +162,8 @@ Total steps in steps.json: 10
 | [ ] | `admin.legacy` | 23 |
 | [ ] | `admin.internet` | 23 |
 | [ ] | `admin.roadmap` | 23 |
+
+## Notes
+
+- time travel: chapter 8 uses the driver act closeday (REGISTER/CHECKIN pending arrivals, approve pending expense, settle open POS checks, NIGHT_POST, SHIFT_CLOSE, DAY_CLOSE, NEXT_DAY, SHIFT_OPEN through ctx.run) twice so Rahul can leave on 26 Oct; chapters 9+ run on 26 Oct 2026
+- ch2 keys: encoder brought online by Meera in the Encoder tab (demo), card issued then lost-card re-issue

@@ -5,9 +5,10 @@
 import {getTrainingHooks} from './hooks';
 import {resolveTarget,topDialog,norm} from './targets';
 import {parseCatPage} from '../../navmap';
+import {posOpenOrders,posUnsent,drawer,totals} from '../../../services/mock';
 import {parseAct,parseKey,parseMenuPath,type Act} from './acts';
-type RawStep={id:string;auto?:string[];check?:string;target?:string};
-type Flat={id:string;chapter:number;first:boolean;uid:string;display:string;auto:string[];check:string;target:string};
+type RawStep={id:string;auto?:string[];check?:string;target?:string;allowError?:boolean};
+type Flat={id:string;chapter:number;first:boolean;uid:string;display:string;auto:string[];check:string;target:string;allowError:boolean};
 const sleep=(ms:number)=>new Promise<void>(r=>setTimeout(r,ms));
 const frames=(n=2)=>new Promise<void>(r=>{const f=(k:number)=>k<=0?r():requestAnimationFrame(()=>f(k-1));f(n);});
 const params=()=>new URLSearchParams(location.search);
@@ -20,7 +21,7 @@ async function loadSteps(){
     const r=await fetch(url,{cache:'no-store'});if(!r.ok)throw new Error(`steps not found at ${url} (${r.status})`);
     const j=await r.json() as {chapters:{id:number;uid?:string;display?:string;steps:RawStep[]}[]};
     const out:Flat[]=[];
-    for(const c of j.chapters)c.steps.forEach((s,i)=>out.push({id:s.id,chapter:c.id,first:i===0,uid:c.uid||'reception',display:c.display||'',auto:s.auto||[],check:s.check||'',target:s.target||''}));
+    for(const c of j.chapters)c.steps.forEach((s,i)=>out.push({id:s.id,chapter:c.id,first:i===0,uid:c.uid||'reception',display:c.display||'',auto:s.auto||[],check:s.check||'',target:s.target||'',allowError:!!s.allowError}));
     flat=out;})();
   await loading;
 }
@@ -41,17 +42,47 @@ function setValue(el:HTMLElement,v:string){
   Object.getOwnPropertyDescriptor(proto,'value')!.set!.call(el,v);
   el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}));
 }
-function realClick(el:HTMLElement){el.scrollIntoView({block:'nearest',inline:'nearest'});el.focus?.();el.click();}
+function realClick(el:HTMLElement){if((el as HTMLButtonElement).disabled||el.getAttribute('aria-disabled')==='true')throw new Error('control is disabled: '+(el.textContent||el.getAttribute('aria-label')||'').trim().slice(0,60));el.scrollIntoView({block:'nearest',inline:'nearest'});el.focus?.();el.click();}
 function keyEvent(spec:string){
   const k=parseKey(spec);const init={...k,bubbles:true,cancelable:true};
   const t:EventTarget=document.activeElement??document.body; // bubbles to document and window, where the app listens
   t.dispatchEvent(new KeyboardEvent('keydown',init));t.dispatchEvent(new KeyboardEvent('keyup',init));
 }
 const ready=async(target:string)=>until(()=>!!resolveTarget(target),4000,'target '+target);
+/** "Time passes": the hotel closes the business day exactly as the Day closing page does, through the app's own run() path with the
+ *  commands the page sends (REGISTER+CHECKIN the pending arrivals, approve pending expenses, settle open restaurant checks, NIGHT_POST,
+ *  SHIFT_CLOSE, DAY_CLOSE, NEXT_DAY, SHIFT_OPEN). Used between chapters so a guest can leave on the booked date; logged in TRAINING_NOTES. */
+async function closeDay(){
+  const back=ctx().uid;
+  const go=async(uid:string,cmd:Record<string,unknown>)=>{
+    if(ctx().uid!==uid){ctx().switchUser(uid);await settle(120);}
+    const ok=await ctx().run(cmd as never);await settle(80);
+    if(!ok){const t=document.querySelector('.toast.error');throw new Error('closeday: '+cmd.type+' refused: '+(t?.textContent||'').trim().slice(0,200));}
+  };
+  const st=()=>ctx().s;
+  for(const b of st().bookings.filter(b=>b.status==='Confirmed'&&b.arrival<=st().date)){await go('owner',{type:'REGISTER',id:b.id});await go('owner',{type:'CHECKIN',id:b.id});}
+  for(const e of st().expenses.filter(e=>e.status==='Pending'))await go('manager',{type:'EXPENSE_APPROVE',id:e.id,approve:true});
+  for(const o of posOpenOrders(st())){
+    if(posUnsent(o).length)await go('cashier',{type:'POS_KOT_SEND',id:o.id});
+    await go('cashier',{type:'POS_SETTLE',id:o.id,mode:'outlet',method:'UPI',reference:'DEMO-UPI-CLOSE-'+o.id});
+  }
+  await go('owner',{type:'NIGHT_POST'});
+  if(!st().shiftOpen)await go('cashier',{type:'SHIFT_OPEN',handover:st().openingCash});
+  await go('owner',{type:'SHIFT_CLOSE',counted:drawer(st())});
+  await go('owner',{type:'DAY_CLOSE'});
+  await go('owner',{type:'NEXT_DAY'});
+  await go('cashier',{type:'SHIFT_OPEN',handover:st().openingCash});
+  if(ctx().uid!==back){ctx().switchUser(back);await settle(120);}
+  document.querySelectorAll<HTMLElement>('[aria-label="Dismiss message"]').forEach(b=>b.click());
+}
+/** Visible inline alerts (form errors) now on the page; a new one after an act means the form refused the input. */
+const alerts=()=>Array.from(document.querySelectorAll<HTMLElement>('[role="alert"]')).filter(e=>e.getClientRects().length>0).map(e=>(e.textContent||'').trim()).filter(t=>t&&!/^(Choose |Card expires )/.test(t)); // hints that are on screen by design, not refusals
+let fresh:string[]=[];
 async function doAct(a:Act){
-  const c=ctx();
+  const c=ctx();const seen=new Set(alerts());
   switch(a.kind){
     case 'nav':c.go(a.arg);break;
+    case 'closeday':log.push('closeday '+c.s.date);await closeDay();break;
     case 'user':c.switchUser(a.arg);break;
     case 'signout':c.signOut();break;
     case 'click':await ready(a.arg);realClick(need(a.arg,'click'));break;
@@ -59,6 +90,9 @@ async function doAct(a:Act){
     case 'focus':need(a.arg,'focus').focus();break;
     case 'scroll':need(a.arg,'scroll').scrollIntoView({block:'center'});break;
     case 'type':{await ready(a.arg);const el=need(a.arg,'type');el.focus();setValue(el,a.value!);break;}
+    case 'typebal':{ // "typebal:<target>|<booking id>": type the folio balance of that booking (rupees) so the demo never guesses an amount
+      await ready(a.arg);const b=c.s.bookings.find(x=>x.id===a.value);if(!b)throw new Error('no booking '+a.value);
+      const el=need(a.arg,'typebal');el.focus();setValue(el,String(totals(b).balance/100));break;}
     case 'select':{await ready(a.arg);const el=need(a.arg,'select') as HTMLSelectElement;
       if(!(el instanceof HTMLSelectElement))throw new Error('not a <select>: '+a.arg);
       const w=norm(a.value);const o=Array.from(el.options).find(x=>norm(x.textContent)===w||norm(x.value)===w)??Array.from(el.options).find(x=>norm(x.textContent).includes(w));
@@ -82,6 +116,7 @@ async function doAct(a:Act){
     default:throw new Error('act not implemented: '+a.raw);
   }
   await settle();
+  fresh=alerts().filter(t=>!seen.has(t));
 }
 async function checkOk(expr:string){
   if(!expr)return;
@@ -106,16 +141,22 @@ async function resetAll(first:Flat){
   await until(()=>!document.querySelector('.toast'),3000,'toast dismissed').catch(()=>undefined);
   await settle(200);
 }
+/** The app answered an act with an error toast (a refused command): the step is wrong, not the app. */
+function refusal(){const t=document.querySelector('.toast.error');if(t)throw new Error('the app refused the action: '+(t.textContent||'').trim().slice(0,200));
+  if(fresh.length)throw new Error('the form shows an error: '+fresh[0].slice(0,200));}
 async function runStep(f:Flat){
   const h=getTrainingHooks()!;
   if(f.first){ // chapter start: close anything left open, make sure the chapter's operator is signed in
     if(h.ctx.modal)h.ctx.closeModal();await settle();
     if(!getTrainingHooks()!.signedIn)getTrainingHooks()!.signIn(f.uid);
     else if(ctx().uid!==f.uid)ctx().switchUser(f.uid);
+    if(ctx().page!=='home'){ctx().go('home');}
     await settle(120);
   }
-  for(const raw of f.auto)await doAct(parseAct(raw));
+  document.querySelectorAll<HTMLElement>('[aria-label="Dismiss message"]').forEach(b=>b.click()); // a toast from the previous step must not be mistaken for this step's answer
+  for(const raw of f.auto){await doAct(parseAct(raw));if(!f.allowError)refusal();}
   await checkOk(f.check);
+  if(!f.allowError)refusal();
 }
 export async function replay(id:string){
   await hooks();await loadSteps();
