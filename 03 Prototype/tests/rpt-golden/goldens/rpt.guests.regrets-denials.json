@@ -1,0 +1,18 @@
+{
+ "id": "rpt.guests.regrets-denials",
+ "cases": [
+  {
+   "uid": "owner",
+   "scenario": "BASE",
+   "params": {},
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["date","reason","channel","leadDays","roomType","nightsLost","roomsLost","quotedRate","convertedLater","exception"],
+     "rows": []
+    }
+   ]
+  }
+ ]
+}

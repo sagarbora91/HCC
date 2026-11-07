@@ -1,0 +1,18 @@
+{
+ "id": "rpt.rooms.inventory-exceptions",
+ "cases": [
+  {
+   "uid": "owner",
+   "scenario": "BASE",
+   "params": {},
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["room","kind","from","to","beneficiary","approver","reason","workOrder","exception"],
+     "rows": []
+    }
+   ]
+  }
+ ]
+}

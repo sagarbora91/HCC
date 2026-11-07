@@ -1,0 +1,18 @@
+{
+ "id": "rpt.guests.rate-variance",
+ "cases": [
+  {
+   "uid": "owner",
+   "scenario": "BASE",
+   "params": {},
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["booking","guest","room","cardRate","chargedRate","difference","differencePct","reasonCode","user","approver","exception"],
+     "rows": []
+    }
+   ]
+  }
+ ]
+}

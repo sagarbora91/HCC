@@ -1,0 +1,18 @@
+{
+ "id": "rpt.guests.no-show-cancel",
+ "cases": [
+  {
+   "uid": "owner",
+   "scenario": "BASE",
+   "params": {},
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["booking","channel","leadDays","kind","retention","waived","waivedBy","approver","exception"],
+     "rows": []
+    }
+   ]
+  }
+ ]
+}

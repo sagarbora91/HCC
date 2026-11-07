@@ -1,0 +1,18 @@
+{
+ "id": "rpt.rooms.room-discrepancy",
+ "cases": [
+  {
+   "uid": "owner",
+   "scenario": "BASE",
+   "params": {},
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["room","foStatus","hkStatus","kind","since","ageHours","exception"],
+     "rows": []
+    }
+   ]
+  }
+ ]
+}
