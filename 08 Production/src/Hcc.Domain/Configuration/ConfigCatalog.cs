@@ -22,6 +22,9 @@ public static class ConfigGroupIds
     public const string Messages = "messages";
     public const string Data = "data";
 
+    // F12 MEAS (MEAS-CONTRACT §1.1): measurement packs / items / targets. Settings inside are Owner-only (per-setting Money flag), the group is not.
+    public const string Measure = "measure";
+
     // F5-E1 (EGRESS-CONTRACT §1.1): the internet egress switches (net.*). Money flag = Owner-only (DEC-058 rule, owner default A28).
     public const string Internet = "internet";
 }
@@ -62,6 +65,8 @@ public static class ConfigCatalog
         new(ConfigGroupIds.Users, "Users, roles and PINs", "Software and security", false, "Users and roles live in Access control; PIN lock options"),
         new(ConfigGroupIds.Messages, "Messages and documents", "Software and security", false, "Sender name, consent, gateway key"),
         new(ConfigGroupIds.Data, "Data and system", "Software and security", false, "Backup schedule, restore drill, ID image retention, storage, diagnostics, about"),
+        // F12 MEAS (MEAS-CONTRACT §1.1, MEAS-SETTINGS-DONE item 4): after 'data' as in the prototype CFG_GROUPS.
+        new(ConfigGroupIds.Measure, "Measurement reports", "Software and security", false, "Switch measurement packs and individual reports on or off. Off = hidden from the hub, phone, search and digests; its data is kept."),
         // F5-E1: Owner only; master switch OFF at go-live (A28).
         new(ConfigGroupIds.Internet, "Internet", "Software and security", true, "Master internet switch, per-integration switches, allowed time window"),
     ];

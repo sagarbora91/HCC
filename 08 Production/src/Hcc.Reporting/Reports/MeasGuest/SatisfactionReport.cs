@@ -24,6 +24,11 @@ public sealed class SatisfactionReport(SqlPlatform platform, ISettingsReader? se
 
     public override string MeasKey => "meas.guest.survey";
 
+    /// <summary>Review H3: fewer answers than this show counts only (twin of SURVEY_MIN_ANSWERS).</summary>
+    public const int MinAnswers = 5;
+    private const string Few = "Fewer than 5 responses: scores hidden";
+    private const string FloorNote = " Fewer than 5 responses for the filters: scores, NPS and comments are hidden so no single guest can be read.";
+
     public override ReportDefinition Definition { get; } = new(Id, "Guest satisfaction and NPS", "guests", "P1", "MEAS", false, null, ["PERM-RPT-001"], [], "PERM-RPT-003", ReportDateClass.Month,
         [new("month", "Month", "month", ReportDateClass.Month), new("roomType", "Room type", "text"), new("channel", "Channel", "text")],
         Columns, "One row for the month by the survey date (guest identity is never shown). Scores are averages of 1-5; NPS = % scoring 9-10 minus % scoring 0-6 on the recommend question; response rate = surveys / stays that left in the month. Verbatim lists comments of guests who gave consent.",
@@ -80,17 +85,32 @@ public sealed class SatisfactionReport(SqlPlatform platform, ISettingsReader? se
             left = Convert.ToInt64(await c2.ExecuteScalarAsync(ct).ConfigureAwait(false), CultureInfo.InvariantCulture);
         }
 
+        var n = list.Count;
+        if (n < MinAnswers)
+        {
+            // Review H3: below the floor a filtered row could name one guest: counts only (no scores, NPS or comments).
+            return Result(parameters,
+            [
+                Row(new Dictionary<string, object?>(StringComparer.Ordinal)
+                {
+                    ["month"] = month, ["responses"] = (long)n, ["responseRate"] = MeasGuestRules.Pct1(n, left), ["overall"] = null, ["cleanliness"] = null, ["staff"] = null,
+                    ["value"] = null, ["breakfast"] = null, ["nps"] = null, ["verbatim"] = Few,
+                }),
+            ], basisOverride: Definition.DateBasis + FloorNote);
+        }
+
         var bf = list.Where(v => v.Breakfast is not null).ToList();
         var verbatim = string.Join(" | ", list.Where(v => v.Consent && !string.IsNullOrEmpty(v.Comment)).Take(5).Select(v => v.Comment!.Trim()));
-        var n = list.Count;
+        var nps = MeasGuestRules.Nps(list.Select(v => v.Recommend).ToList());
+        var red = nps is { } np && np < await TargetAsync(caller.PropertyId, "meas.target.nps", 30, ct).ConfigureAwait(false);
         return Result(parameters,
         [
-            Row(new Dictionary<string, object?>(StringComparer.Ordinal)
+            Row(red: red, cells: new Dictionary<string, object?>(StringComparer.Ordinal)
             {
                 ["month"] = month, ["responses"] = (long)n, ["responseRate"] = MeasGuestRules.Pct1(n, left),
                 ["overall"] = MeasGuestRules.Avg1(list.Sum(v => v.Overall), n), ["cleanliness"] = MeasGuestRules.Avg1(list.Sum(v => v.Cleanliness), n),
                 ["staff"] = MeasGuestRules.Avg1(list.Sum(v => v.Staff), n), ["value"] = MeasGuestRules.Avg1(list.Sum(v => v.Value), n),
-                ["breakfast"] = MeasGuestRules.Avg1(bf.Sum(v => v.Breakfast!.Value), bf.Count), ["nps"] = MeasGuestRules.Nps(list.Select(v => v.Recommend).ToList()), ["verbatim"] = verbatim,
+                ["breakfast"] = MeasGuestRules.Avg1(bf.Sum(v => v.Breakfast!.Value), bf.Count), ["nps"] = nps, ["verbatim"] = verbatim,
             }),
         ]);
     }

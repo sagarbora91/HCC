@@ -118,7 +118,8 @@
     {"version": 4820, "file": "4820_meas_guest_schema.sql", "reason": "MEAS wave F12 block 4802-4869 reserved below the lock's highest 4920 (MEAS-CONTRACT deviation 2)"},
     {"version": 4825, "file": "4825_meas_people_training.sql", "reason": "F12 MEAS cap-people block 4825-4829 (MEAS-CONTRACT 5)"},
     {"version": 4826, "file": "4826_meas_people_exit_pulse.sql", "reason": "F12 MEAS cap-people block 4825-4829 (MEAS-CONTRACT 5)"},
-    {"version": 4830, "file": "4830_meas_forecast_tables.sql", "reason": "F12 MEAS meas-forecast block 4830-4834 (MEAS-CONTRACT 5)"}
+    {"version": 4830, "file": "4830_meas_forecast_tables.sql", "reason": "F12 MEAS meas-forecast block 4830-4834 (MEAS-CONTRACT 5)"},
+    {"version": 4860, "file": "4860_meas_pulse_no_timestamp.sql", "reason": "F12 MEAS f12-int block 4860-4869 (MEAS-CONTRACT 5): review H4"}
   ],
   "migrations": [
     {"version": 1, "file": "0001_platform.sql", "sha256": "2CB8FB349156F501295E1148366BDFE406EC097C136093F09C6F0817542F46CC"},
@@ -352,6 +353,7 @@
     {"version": 4820, "file": "4820_meas_guest_schema.sql", "sha256": "5E88292A01B47AB029624ECA3CDE936A5B462741F75AD3E90F353B35711D74EC"},
     {"version": 4825, "file": "4825_meas_people_training.sql", "sha256": "D832F5CA59FCEABD164530CA06AF7DF39D786AE5434D62F1C381E3F940D03090"},
     {"version": 4826, "file": "4826_meas_people_exit_pulse.sql", "sha256": "D7F0D41BB1AF96A7B0C4E19AAF5FF14540C9966D4A0821BF55DDDE9988548A7B"},
-    {"version": 4830, "file": "4830_meas_forecast_tables.sql", "sha256": "B7E9F99FBC9ECA7341852FABAF1202F0ABF2AE43624D5EFA24B580998B219AEF"}
+    {"version": 4830, "file": "4830_meas_forecast_tables.sql", "sha256": "B7E9F99FBC9ECA7341852FABAF1202F0ABF2AE43624D5EFA24B580998B219AEF"},
+    {"version": 4860, "file": "4860_meas_pulse_no_timestamp.sql", "sha256": "03B89B258D2F507D2B5898306656755A8847A045D089D78541C3AE7A8A0D23EE"}
   ]
 }

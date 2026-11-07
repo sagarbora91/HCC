@@ -41,8 +41,16 @@ internal static class MeasTargets
     public static async Task<long> GetAsync(ISettingsReader? reader, int propertyId, string key, long fallback, CancellationToken ct)
     {
         if (reader is null) return fallback;
-        var v = await reader.GetAsync(propertyId, key, null, ct).ConfigureAwait(false);
-        return v.Kind == ConfigValueKind.Number ? v.Number : fallback;
+        try
+        {
+            var v = await reader.GetAsync(propertyId, key, null, ct).ConfigureAwait(false);
+            return v.Kind == ConfigValueKind.Number ? v.Number : fallback;
+        }
+        catch (Exception e) when (e is not OperationCanceledException)
+        {
+            // Review H1: a key missing from the settings registry (group not registered) must not break the report: use the contract default.
+            return fallback;
+        }
     }
 }
 

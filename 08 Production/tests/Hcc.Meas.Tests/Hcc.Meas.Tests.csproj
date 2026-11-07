@@ -16,6 +16,11 @@
     <ProjectReference Include="..\..\src\Hcc.Api\Hcc.Api.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <!-- f12-int-cap: the SQL round trip (Capture/MeasCaptureSqlTests.cs) uses the Hcc.Inventory.Tests database harness, as Hcc.Yield.Tests does. -->
+    <Compile Include="..\Hcc.Inventory.Tests\Harness\GoldenInventory.cs" Link="Linked\GoldenInventory.cs" />
+    <Compile Include="..\Hcc.Inventory.Tests\Harness\InventoryDatabase.cs" Link="Linked\InventoryDatabase.cs" />
+    <Compile Include="..\Hcc.Inventory.Tests\Harness\TestSessions.cs" Link="Linked\TestSessions.cs" />
+    <None Include="..\Hcc.Inventory.Tests\Golden\inventory-base.golden.json" Link="Golden\inventory-base.golden.json" CopyToOutputDirectory="PreserveNewest" />
     <None Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
     <Using Include="Xunit" />
   </ItemGroup>

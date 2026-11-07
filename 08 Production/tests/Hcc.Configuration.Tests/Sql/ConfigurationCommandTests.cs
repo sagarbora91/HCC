@@ -337,7 +337,7 @@ public class ConfigurationCommandTests(ConfigDatabase db) : IClassFixture<Config
         var h = await db.NewHotelAsync();
         foreach (var who in h.NonAdmins) Assert.Equal("FORBIDDEN", await Expect.Code(() => db.Queries.GroupsAsync(h.PropertyId, who)));
         var tad = await db.Queries.GroupsAsync(h.PropertyId, h.TechAdmin);
-        Assert.Equal(("2026-10-24", 13), (tad.BusinessDate, tad.Groups.Count));
+        Assert.Equal(("2026-10-24", 14), (tad.BusinessDate, tad.Groups.Count)); // F12 MEAS: + measure
         Assert.All(tad.Groups.Where(g => g.Money), g => Assert.Equal((true, SettingRules.OwnerOnly), (g.ReadOnly, g.Reason)));
         var money = await db.Queries.GroupAsync(h.PropertyId, h.TechAdmin, "money");
         Assert.All(money.Settings.Where(s => s.Editable), s => Assert.Equal("deny", s.CanChange.Mode));

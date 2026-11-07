@@ -30,10 +30,10 @@ public sealed class UpsellReport(SqlPlatform platform, ISettingsReader? settings
 
     private const string Sql = """
         SELECT st.reservation_id, COALESCE(x.upgrade, ''), COALESCE(au.display_name, ''),
-               ISNULL((SELECT SUM(c.amount_paise) FROM bill.charge c WHERE c.folio_id = st.folio_id AND c.reverses_charge_id IS NULL AND c.label LIKE N'UPG ·%'), 0),
-               ISNULL((SELECT SUM(c.amount_paise) FROM bill.charge c WHERE c.folio_id = st.folio_id AND c.reverses_charge_id IS NULL AND (c.label LIKE N'LCO1 ·%' OR c.label LIKE N'LCO2 ·%')), 0),
-               ISNULL((SELECT SUM(c.amount_paise) FROM bill.charge c WHERE c.folio_id = st.folio_id AND c.reverses_charge_id IS NULL AND c.label LIKE N'%breakfast%'), 0),
-               ISNULL((SELECT SUM(c.amount_paise) FROM bill.charge c WHERE c.folio_id = st.folio_id AND c.reverses_charge_id IS NULL AND c.label LIKE N'%extra bed%'), 0),
+               ISNULL((SELECT SUM(c.amount_paise) FROM bill.charge c WHERE c.folio_id = st.folio_id AND c.reverses_charge_id IS NULL AND c.reversed_by_charge_id IS NULL AND c.label LIKE N'UPG ·%'), 0),
+               ISNULL((SELECT SUM(c.amount_paise) FROM bill.charge c WHERE c.folio_id = st.folio_id AND c.reverses_charge_id IS NULL AND c.reversed_by_charge_id IS NULL AND (c.label LIKE N'LCO1 ·%' OR c.label LIKE N'LCO2 ·%')), 0),
+               ISNULL((SELECT SUM(c.amount_paise) FROM bill.charge c WHERE c.folio_id = st.folio_id AND c.reverses_charge_id IS NULL AND c.reversed_by_charge_id IS NULL AND c.label LIKE N'%breakfast%'), 0),
+               ISNULL((SELECT SUM(c.amount_paise) FROM bill.charge c WHERE c.folio_id = st.folio_id AND c.reverses_charge_id IS NULL AND c.reversed_by_charge_id IS NULL AND c.label LIKE N'%extra bed%'), 0),
                x.upgrade_approver
           FROM gst.stay st
           LEFT JOIN meas.booking_extra x ON x.property_id = st.property_id AND x.reservation_id = st.reservation_id

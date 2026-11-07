@@ -9,7 +9,7 @@ namespace Hcc.Configuration.Tests.Domain;
 /// </summary>
 public class RegistryAndRulesTests
 {
-    private static readonly SettingsRegistry Registry = new([Hcc.Application.Housekeeping.HousekeepingSettings.Provider, Hcc.Application.Tax.GstSettings.Provider, Hcc.Api.Endpoints.EgressEndpoints.Provider]); // F5-E1: + Internet group
+    private static readonly SettingsRegistry Registry = new([Hcc.Application.Housekeeping.HousekeepingSettings.Provider, Hcc.Application.Tax.GstSettings.Provider, Hcc.Api.Endpoints.EgressEndpoints.Provider, Hcc.Application.Configuration.MeasurementCatalogue.Provider()!]); // F5-E1: + Internet group; F12: + measure group
     private static readonly DateOnly Day = new(2026, 10, 24);
 
     private static RegisteredSetting S(string key) => Registry.Get(key);
@@ -22,7 +22,7 @@ public class RegistryAndRulesTests
     public void Twelve_fixed_groups_in_three_sections_with_pinned_names()
     {
         Assert.Equal(["Property and branding", "Rooms and rate plans", "Front-desk policies", "Money and tax", "Restaurant and POS", "Housekeeping and maintenance",
-            "People, payroll and leave", "Compliance obligations", "Modules on/off", "Users, roles and PINs", "Messages and documents", "Data and system", "Internet"], // F5-E1: Internet group
+            "People, payroll and leave", "Compliance obligations", "Modules on/off", "Users, roles and PINs", "Messages and documents", "Data and system", "Measurement reports", "Internet"], // F5-E1: Internet group; F12 MEAS: measure group after data
             ConfigCatalog.Groups.Select(g => g.Label));
         Assert.Equal(["Business setup", "Operations and people", "Software and security"], ConfigCatalog.Sections);
         Assert.Equal(["rooms", "money", "pos", "people", "compliance", "internet"], ConfigCatalog.Groups.Where(g => g.Money).Select(g => g.Id));
@@ -202,7 +202,7 @@ public class RegistryAndRulesTests
         Assert.Contains(SettingRules.Search(Registry.All, "pf"), h => h.Group.Id == "people");
         Assert.Contains(SettingRules.Search(Registry.All, "no-show"), h => h.Settings.Any(s => s.Key == "fd.noShowTime"));
         Assert.Empty(SettingRules.Search(Registry.All, "zzzz"));
-        Assert.Equal(13, SettingRules.Search(Registry.All, "").Count); // F5-E1: + Internet
+        Assert.Equal(14, SettingRules.Search(Registry.All, "").Count); // F5-E1: + Internet; F12 MEAS: + measure
 
         var key = S("msg.gatewayKey");
         Assert.Equal("Set (hidden)", SettingRules.Display(key, T("sk-demo-123"), ConfigAuthority.Full));

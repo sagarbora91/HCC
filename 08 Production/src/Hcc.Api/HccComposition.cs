@@ -151,6 +151,7 @@ public static class HccComposition
         if (Hcc.Application.Configuration.MeasurementCatalogue.Provider() is { } measProvider) services.AddSingleton(measProvider); // 'measure' group, once ConfigCatalog lists it
         // F12-SETTINGS end
         // F12-CAP-DESK
+        services.AddMeasCaptureModule(); // F12 f12-int-cap: one capture module for desk / hk / guest / people / forecast (MeasCaptureEndpoints)
         // F12-CAP-DESK end
         // F12-CAP-HK
         // F12-CAP-HK end
@@ -398,6 +399,7 @@ public static class HccComposition
         // F12-SETTINGS
         // F12-SETTINGS end
         // F12-CAP-DESK
+        api.MapMeasCaptureEndpoints();   // F12 f12-int-cap: POST /commands/<MEAS capture> (RequireHccMeasurement) + GET /meas/captures
         // F12-CAP-DESK end
         // F12-CAP-HK
         // F12-CAP-HK end

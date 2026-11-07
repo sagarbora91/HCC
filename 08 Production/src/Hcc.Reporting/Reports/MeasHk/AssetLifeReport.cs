@@ -10,7 +10,7 @@ using static Hcc.Reporting.Reports.MeasHk.MeasHkRules;
 
 namespace Hcc.Reporting.Reports.MeasHk;
 
-public sealed class AssetLifeReport(SqlPlatform platform) : MeasHkReportBase(platform)
+public sealed class AssetLifeReport(SqlPlatform platform, Hcc.Application.Configuration.ISettingsReader? settings = null) : MeasHkReportBase(platform)
 {
     public const string Id = "rpt.acc.asset-life";
 
@@ -74,7 +74,9 @@ public sealed class AssetLifeReport(SqlPlatform platform) : MeasHkReportBase(pla
         var capex = L((await QueryAsync("""
             SELECT ISNULL(SUM(cost_paise), 0) FROM acc.fixed_asset WHERE property_id = @p AND disposed_date IS NULL AND purchase_date BETWEEN @from AND @to;
             """, caller.PropertyId, c => { GuestsSql.Add(c, "@from", SqlDbType.Date, GuestsSql.D(fyStart)); GuestsSql.Add(c, "@to", SqlDbType.Date, GuestsSql.D(asOf)); }, ct).ConfigureAwait(false))[0][0]);
-        var accrued = (long)Math.Round(revenue * (double)DefaultFfePct / 100, MidpointRounding.AwayFromZero);
+        // Review M4: the Owner's ffe.reservePct (whole percent, default 3) as on the prototype; integer half-up on paise.
+        var pct = await Hcc.Reporting.Reports.MeasDaily.MeasTargets.GetAsync(settings, caller.PropertyId, "ffe.reservePct", DefaultFfePct, ct).ConfigureAwait(false);
+        var accrued = revenue >= 0 ? (revenue * pct + 50) / 100 : -((-revenue * pct + 50) / 100);
         rows.Add(new ReportRow(ReportRowKind.Total, new Dictionary<string, object?>(StringComparer.Ordinal)
         {
             ["asset"] = $"FY {fyStart.Year}-{fyEnd.Year % 100:00} to date", ["age"] = null, ["expectedLife"] = null, ["grade"] = null, ["replacementDue"] = null, ["wdv"] = null, ["replacementCost"] = null,

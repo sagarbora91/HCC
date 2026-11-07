@@ -12,6 +12,10 @@ export const SATISFACTION_COLS=[T('month','Month'),I('responses','Responses'),P(
 const BASIS='One row for the month by the survey date (guest identity is never shown). Scores are averages of 1-5; NPS = % scoring 9-10 minus % scoring 0-6 on the recommend question; response rate = surveys / stays that left in the month. Verbatim lists comments of guests who gave consent.';
 const NEED='gsv.survey (meas-cap-guest)';
 export const UNANSWERED_MINUTES=48*60;
+/** Review H3: fewer answers than this for the chosen filters show counts only (same floor as the staff pulse). */
+export const SURVEY_MIN_ANSWERS=5;
+const FEW='Fewer than 5 responses: scores hidden';
+const FLOOR_NOTE=' Fewer than 5 responses for the filters: scores, NPS and comments are hidden so no single guest can be read.';
 
 export const surveyLow=(v:MeasSurvey)=>Math.min(v.overall,v.cleanliness,v.staff,v.value,v.breakfast??5)<=2;
 export function npsOf(list:{recommend:number}[]):number|null{
@@ -40,10 +44,14 @@ export const satisfaction=registerReport({
     const month=p.month as string,rt=p.roomType as string|undefined,ch=p.channel as string|undefined,list=surveysOf(s,month,rt,ch);
     if(!list.length)return {params:p,columns:SATISFACTION_COLS,rows:[],about:{dateBasis:capNote(BASIS,NEED)}};
     const left=s.bookings.filter(b=>b.status==='Departed'&&b.departure.slice(0,7)===month&&(!rt||s.rooms.find(r=>r.id===b.room)?.type===rt)&&(!ch||b.source===ch)).length;
+    // Review H3: below SURVEY_MIN_ANSWERS a filtered row could name one guest, so it shows counts only (no scores, NPS or comments).
+    if(list.length<SURVEY_MIN_ANSWERS)return {params:p,columns:SATISFACTION_COLS,rows:[{kind:'row',cells:{month,responses:list.length,responseRate:pct1(list.length,left),overall:null,
+      cleanliness:null,staff:null,value:null,breakfast:null,nps:null,verbatim:FEW}}],about:{dateBasis:BASIS+FLOOR_NOTE}};
     const sum=(f:(v:MeasSurvey)=>number)=>list.reduce((a,v)=>a+f(v),0);
     const bf=list.filter(v=>v.breakfast!==undefined);
     const verbatim=list.filter(v=>v.consent&&v.comment).slice(0,5).map(v=>v.comment!.trim()).join(' | ');
-    return {params:p,columns:SATISFACTION_COLS,rows:[{kind:'row',cells:{month,responses:list.length,responseRate:pct1(list.length,left),overall:avg1(sum(v=>v.overall),list.length),
+    const nps=npsOf(list),red=nps!==null&&nps<(measTarget(s,'meas.target.nps')??30);
+    return {params:p,columns:SATISFACTION_COLS,rows:[{kind:'row',...(red?{group:'red'}:{}),cells:{month,responses:list.length,responseRate:pct1(list.length,left),overall:avg1(sum(v=>v.overall),list.length),
       cleanliness:avg1(sum(v=>v.cleanliness),list.length),staff:avg1(sum(v=>v.staff),list.length),value:avg1(sum(v=>v.value),list.length),
       breakfast:avg1(bf.reduce((a,v)=>a+v.breakfast!,0),bf.length),nps:npsOf(list),verbatim}}]};
   },

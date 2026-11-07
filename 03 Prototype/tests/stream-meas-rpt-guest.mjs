@@ -56,6 +56,17 @@ export function register({test,assert}){
     assert.equal(run(s2,'owner',SAT,{month:'2030-12',channel:'Direct'}).rows[0].cells.responses,1);
   });
 
+  test(T+'satisfaction floor (review H3): 4 responses show counts only, 5 show scores; the report row turns red when NPS is below target',()=>{
+    const four=withSurveys([1,2,3,4].map(()=>sv({recommend:2,comment:'Room 106 was cold'})));
+    const c4=run(four,'owner',SAT,{month:'2030-12'}).rows[0].cells;
+    assert.equal(c4.responses,4);assert.equal(c4.overall,null);assert.equal(c4.nps,null);assert.doesNotMatch(String(c4.verbatim),/106/);
+    assert.equal(run(four,'owner',SAT,{month:'2030-12'}).rows[0].group,undefined,'no red row below the floor');
+    const five=withSurveys([1,2,3,4,5].map(()=>sv({recommend:2})));
+    const r5=run(five,'owner',SAT,{month:'2030-12'}).rows[0];
+    assert.equal(r5.cells.responses,5);assert.equal(r5.cells.overall,'5.0');assert.equal(r5.cells.nps,-100);assert.equal(r5.group,'red');
+    assert.equal(run(withSurveys([1,2,3,4,5].map(()=>sv({recommend:10}))),'owner',SAT,{month:'2030-12'}).rows[0].group,undefined);
+  });
+
   test(T+'satisfaction red rule: NPS 29 is red, 30 is not (target meas.target.nps); a changed target moves the line',()=>{
     const mk=(prom,det,pass)=>withSurveys([...Array(prom).fill(0).map(()=>sv({recommend:10})),...Array(det).fill(0).map(()=>sv({recommend:0})),...Array(pass).fill(0).map(()=>sv({recommend:8}))]);
     // 13 promoters / 7 passives / 0 detractors of 20 -> 65; make exactly 30 and 29 with 100 responses

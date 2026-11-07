@@ -29,7 +29,7 @@ public sealed class MeasurementGate(ISettingsReader reader, IModuleGate modules,
 {
     private async Task<bool> FlagAsync(int propertyId, string key, CancellationToken ct)
     {
-        // Until the server ConfigCatalog lists the 'measure' group the keys are not in the registry: default on (nothing switched off yet).
+        // ConfigCatalog lists the 'measure' group (f12-int), so every key is registered; a registry without the measure provider (tests) reads on.
         if (registry is not null && registry.Find(key) is null) return true;
         var v = await reader.GetAsync(propertyId, key, null, ct).ConfigureAwait(false);
         return v.Kind != Hcc.Domain.Configuration.ConfigValueKind.Boolean || v.Flag;

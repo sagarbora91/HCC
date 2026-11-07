@@ -23,17 +23,24 @@ public abstract class MeasGuestBase(SqlPlatform platform, ISettingsReader? setti
     protected async Task<long> TargetAsync(int propertyId, string key, long fallback, CancellationToken ct)
     {
         if (settings is null) return fallback;
-        var v = await settings.GetAsync(propertyId, key, null, ct).ConfigureAwait(false);
-        return v.Kind == ConfigValueKind.Number ? v.Number : fallback;
+        try
+        {
+            var v = await settings.GetAsync(propertyId, key, null, ct).ConfigureAwait(false);
+            return v.Kind == ConfigValueKind.Number ? v.Number : fallback;
+        }
+        catch (Exception e) when (e is not OperationCanceledException)
+        {
+            return fallback; // review H1: an unregistered key falls back to the contract default
+        }
     }
 
-    protected ReportResult Result(BoundParams p, IReadOnlyList<ReportRow> rows, string? emptyNeeds = null)
+    protected ReportResult Result(BoundParams p, IReadOnlyList<ReportRow> rows, string? emptyNeeds = null, string? basisOverride = null)
     {
-        var basis = rows.Count == 0 && emptyNeeds is not null ? MeasGuestRules.CapNote(Definition.DateBasis, emptyNeeds) : Definition.DateBasis;
+        var basis = basisOverride ?? (rows.Count == 0 && emptyNeeds is not null ? MeasGuestRules.CapNote(Definition.DateBasis, emptyNeeds) : Definition.DateBasis);
         return new ReportResult(Definition.Id, Definition.Title, p, Definition.Columns, rows, new ReportAbout(DateTimeOffset.MinValue, "", basis, false, p.Legacy, p.From, p.To));
     }
 
-    protected static ReportRow Row(Dictionary<string, object?> cells) => new(ReportRowKind.Row, cells);
+    protected static ReportRow Row(Dictionary<string, object?> cells, bool red = false) => new(ReportRowKind.Row, cells, red ? "red" : null);
 
     protected static string Param(BoundParams p, string key) => p.Values.GetValueOrDefault(key) ?? "";
 

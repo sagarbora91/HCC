@@ -52,6 +52,7 @@ const YIELD=one(wide('PERM-YLD-001',true));
 export const READS={
   'GET /me/capabilities':always,
   'GET /me/directory':always,
+  'GET /meas/captures':always, // F12 f12-int-cap: any signed-in user; the server masks money / HR rows per caller (MeasCaptureService.Mask)
   'GET /closing/business-date':always,
   'GET /closing/records':FINANCE,
   // DEC-079: the daily collections report — the Cashier's finance-report cell (V·S) counts here (any scope); every other finance report is property-wide.

@@ -64,6 +64,8 @@ export function capabilities({userId=1,displayName='Test Owner',roles=['OWN'],gr
 export function fakeServer(routes={}){
   const table={'GET /system/health':()=>({status:'ok',database:'ok',schemaVersion:2,serverTimeUtc:'2026-10-24T04:30:00.000Z'}),
     'GET /me/capabilities':()=>capabilities(),
+    // F12 f12-int-cap: the shared measX loader (empty = nothing captured yet).
+    'GET /meas/captures':()=>({turnaway:[],walked:[],allowanceReasons:[],bookingExtra:[],preference:[],taskTimes:[],offline:[],meters:[],readings:[],assetLife:[],discards:[],surveys:[],reviews:[],rootCauseList:[],rootCause:[],training:[],exit:[],pulse:[],events:[],otb:[],competitors:[],rateshop:[],restrictions:[]}),
     // Empty front-desk lists (W4-1): every runtime with the full registry reloads bookings / guests; area tests override them.
     'GET /reservations':()=>({businessDate:'2026-10-24',total:0,page:1,pageSize:500,items:[]}),'GET /guests':()=>({total:0,page:1,pageSize:500,items:[]}),
     'GET /counter-bills':()=>[],'GET /guests/credit':()=>[],'GET /stays/rate-changes':()=>[],'GET /hall/snapshot':()=>({seesMoney:true,venues:[],enquiries:[],quotations:[],events:[],lostReasons:[]}),   // LF-finish list reads

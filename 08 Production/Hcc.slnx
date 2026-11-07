@@ -333,6 +333,9 @@
     <!-- F12-FORECAST -->
     <File Path="database/migrations/4830_meas_forecast_tables.sql" /> <!-- F12-FORECAST -->
     <!-- F12-FORECAST end -->
+    <!-- F12-INT -->
+    <File Path="database/migrations/4860_meas_pulse_no_timestamp.sql" /> <!-- F12-INT -->
+    <!-- F12-INT end -->
     <!-- F12-RPT-DAILY -->
     <!-- F12-RPT-DAILY end -->
     <!-- F12-RPT-REVENUE -->

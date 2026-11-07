@@ -93,19 +93,20 @@ import {catalogue} from './catalogue';
 import {hall} from './hall'; // F6 hall booking: enquiries, halls master, accept, advances, event bill, cancel, refund, credit note
 // F6-H3 end
 // F12-SETTINGS
+import {measCaptures} from './meas-captures'; // F12 f12-int-cap: the one loader of s.measX (GET /meas/captures)
 // F12-SETTINGS end
 // F12-CAP-DESK
-// Desk captures (turn-away, walked, allowance reasons, booking extras, preferences): commands only. The shared measX slice loader belongs to the integrator
-// (five capture lanes write the same slice); until then the screens read their own writes through the command reply.
+// Desk captures (turn-away, walked, allowance reasons, booking extras, preferences): commands only; the shared measX loader is meas-captures.ts
+// (F12-SETTINGS block); every mapper reloads measX.
 import {serverId as mdServerId} from './map';
 const mdText=(v:unknown)=>String(v??'').trim()||undefined;
 const measDesk:SyncArea={id:'meas-desk',loaders:[],commands:[
-  {type:'MEAS_TURNAWAY_LOG',reload:[],async send(c){const k=c.cmd;await c.api.command('LogTurnaway',{reason:k.reason,arrival:k.arrival,nights:k.nights,roomType:k.roomType,rooms:k.rooms??1,quotedRatePaise:k.quotedRate,channel:k.channel,note:mdText(k.note)});}},
-  {type:'MEAS_WALKED_LOG',reload:[],async send(c){const k=c.cmd;await c.api.command('LogWalkedGuest',{reservationId:mdServerId(k.booking,'Booking'),night:k.night,reason:k.reason,costPaise:k.costPaise});}},
-  {type:'MEAS_ALLOWANCE_REASON_SAVE',reload:[],async send(c){const k=c.cmd;await c.api.command('SaveAllowanceReason',{code:k.code,label:k.label,active:k.active!==false});}},
-  {type:'MEAS_BOOKING_EXTRA_SET',reload:['bookings'],async send(c){const k=c.cmd;await c.api.command('SetBookingExtra',{reservationId:mdServerId(k.id,'Booking'),bookedType:mdText(k.bookedType),item:mdText(k.item),upgrade:mdText(k.upgrade),
+  {type:'MEAS_TURNAWAY_LOG',reload:['measX'],async send(c){const k=c.cmd;await c.api.command('LogTurnaway',{reason:k.reason,arrival:k.arrival,nights:k.nights,roomType:k.roomType,rooms:k.rooms??1,quotedRatePaise:k.quotedRate,channel:k.channel,note:mdText(k.note)});}},
+  {type:'MEAS_WALKED_LOG',reload:['measX'],async send(c){const k=c.cmd;await c.api.command('LogWalkedGuest',{reservationId:mdServerId(k.booking,'Booking'),night:k.night,reason:k.reason,costPaise:k.costPaise});}},
+  {type:'MEAS_ALLOWANCE_REASON_SAVE',reload:['measX'],async send(c){const k=c.cmd;await c.api.command('SaveAllowanceReason',{code:k.code,label:k.label,active:k.active!==false});}},
+  {type:'MEAS_BOOKING_EXTRA_SET',reload:['bookings','measX'],async send(c){const k=c.cmd;await c.api.command('SetBookingExtra',{reservationId:mdServerId(k.id,'Booking'),bookedType:mdText(k.bookedType),item:mdText(k.item),upgrade:mdText(k.upgrade),
     amountPaise:k.amount,time:mdText(k.time),waive:k.waive===true?true:undefined,reason:mdText(k.reason),approver:mdText(k.approver)});}},
-  {type:'MEAS_PREFERENCE_SET',reload:[],async send(c){const k=c.cmd;await c.api.command('SetCustomerPreference',{customerKey:k.customer,floor:k.floor,roomKind:k.roomKind,meal:k.meal,pillow:k.pillow,billToCompany:k.billToCompany,
+  {type:'MEAS_PREFERENCE_SET',reload:['measX'],async send(c){const k=c.cmd;await c.api.command('SetCustomerPreference',{customerKey:k.customer,floor:k.floor,roomKind:k.roomKind,meal:k.meal,pillow:k.pillow,billToCompany:k.billToCompany,
     doNotDisturb:k.doNotDisturb,note:k.note,blacklistReason:typeof k.blacklist==='string'?k.blacklist:undefined,clearBlacklist:k.blacklist===null||k.blacklist===false?true:undefined,approvedBy:mdText(k.approvedBy),reason:mdText(k.reason)});}},
 ]};
 // F12-CAP-DESK end
@@ -119,8 +120,17 @@ import {measGuest} from './meas-guest'; // F12 MEAS guest captures
 import {measPeople} from './meas-people';
 // F12-CAP-PEOPLE end
 // F12-FORECAST
-/** F12 meas-forecast: the server tables (migration 4830) have no endpoints yet (DONE, open items), so the commands are listed as unmapped. */
-const measForecast:SyncArea={id:'meas-forecast',loaders:[],commands:[],unmapped:{MEAS_EVENT_SAVE:'F12 meas-forecast: server endpoint not built yet (tables in 4830)',MEAS_EVENT_DELETE:'F12 meas-forecast: server endpoint not built yet',MEAS_OTB_SNAPSHOT:'F12 meas-forecast: server Monday 06:00 schedule job not built yet',MEAS_COMPETITOR_SAVE:'F12 meas-forecast: server endpoint not built yet',MEAS_RATESHOP_ADD:'F12 meas-forecast: server endpoint not built yet'}};
+/** F12 meas-forecast (wired by f12-int-cap): server commands MeasEventSave / MeasEventDelete / MeasOtbSnapshot / MeasCompetitorSave / MeasRateShopAdd (tables in 4830). */
+const fcText=(v:unknown)=>String(v??'').trim()||undefined;
+const measForecast:SyncArea={id:'meas-forecast',loaders:[],commands:[
+  {type:'MEAS_EVENT_SAVE',reload:['measX'],async send(c){const k=c.cmd;await c.api.command('MeasEventSave',{id:fcText(k.id),name:fcText(k.name),from:fcText(k.from),to:fcText(k.to),kind:fcText(k.kind),
+    impactPct:k.impactPct===undefined||k.impactPct===''?undefined:Number(k.impactPct),note:fcText(k.note)});}},
+  {type:'MEAS_EVENT_DELETE',reload:['measX'],async send(c){await c.api.command('MeasEventDelete',{id:fcText(c.cmd.id)});}},
+  {type:'MEAS_OTB_SNAPSHOT',reload:['measX'],async send(c){const k=c.cmd;await c.api.command('MeasOtbSnapshot',{takenOn:fcText(k.takenOn),backfillFrom:fcText(k.backfillFrom)});}},
+  {type:'MEAS_COMPETITOR_SAVE',reload:['measX'],async send(c){const k=c.cmd;await c.api.command('MeasCompetitorSave',{id:fcText(k.id),name:fcText(k.name),active:k.active===undefined?undefined:!!k.active});}},
+  {type:'MEAS_RATESHOP_ADD',reload:['measX'],async send(c){const k=c.cmd;await c.api.command('MeasRateShopAdd',{clientId:fcText(k.clientId)??c.key,stayDate:fcText(k.stayDate),competitor:fcText(k.competitor),
+    roomType:fcText(k.roomType),ratePaise:k.ratePaise===undefined?undefined:Number(k.ratePaise),withBreakfast:!!k.withBreakfast,source:fcText(k.source)});}},
+]};
 // F12-FORECAST end
 // AF-SYNC-OPS
 import {keys} from './keys'; // OPS-01 room keys
@@ -202,6 +212,7 @@ export const AREAS:SyncArea[]=[
   hall,
   // F6-H3 end
   // F12-SETTINGS
+  measCaptures,
   // F12-SETTINGS end
   // F12-CAP-DESK
   measDesk,

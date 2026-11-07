@@ -38,7 +38,7 @@ public sealed class ManagerFlashReport(SqlPlatform platform, ISettingsReader? se
         const string sql = """
             SELECT (SELECT COUNT(*) FROM inv.reservation r WHERE r.property_id = @p AND r.status IN ('InHouse','Departed') AND r.arrival <= @d AND r.departure > @d),
                    (SELECT ISNULL(SUM(c.amount_paise), 0) FROM bill.charge c JOIN bill.folio f ON f.folio_id = c.folio_id JOIN inv.reservation r ON r.reservation_id = f.reservation_id
-                     WHERE r.property_id = @p AND c.kind = 'room' AND c.service_date = @d AND c.reverses_charge_id IS NULL),
+                     WHERE r.property_id = @p AND c.kind = 'room' AND c.service_date = @d AND c.reverses_charge_id IS NULL AND c.reversed_by_charge_id IS NULL),
                    (SELECT COUNT(*) FROM inv.reservation r WHERE r.property_id = @p AND r.status IN ('Confirmed','InHouse','Departed') AND r.arrival = @d),
                    (SELECT COUNT(*) FROM inv.reservation r WHERE r.property_id = @p AND r.status IN ('InHouse','Departed') AND r.departure = @d),
                    (SELECT COUNT(*) FROM inv.reservation r WHERE r.property_id = @p AND r.status = 'NoShow' AND r.arrival = @d),

@@ -93,7 +93,7 @@ public sealed class ConfigurationHttpTests(ConfigDatabase db) : IClassFixture<Co
             Assert.Equal(HttpStatusCode.Unauthorized, (await anon.GetAsync(ApiConventions.BasePath + "/configuration/groups", Ct)).StatusCode);
 
         var groups = await GetAsync<ConfigGroupsResult>(tad, "/configuration/groups");
-        Assert.Equal(13, groups.Groups.Count); // F5-E1: + Internet
+        Assert.Equal(14, groups.Groups.Count); // F5-E1: + Internet; F12 MEAS: + measure
         Assert.True(groups.Groups.Single(g => g.Id == "money").ReadOnly);
 
         var money = await PostAsync(tad, "/commands/SetSetting", new SetSettingRequest("discountLimit", ConfigDatabase.J(1000)));
