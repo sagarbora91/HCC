@@ -50,6 +50,12 @@ import './built/admin';
 // F12-RPT-GUEST
 // F12-RPT-GUEST end
 // F12-RPT-HK
+import './meas-hk/hk-productivity';
+import './meas-hk/ooo-days';
+import './meas-hk/ppm-compliance';
+import './meas-hk/utilities-per-room';
+import './meas-hk/linen-cost';
+import './meas-hk/asset-life';
 // F12-RPT-HK end
 // F12-RPT-PEOPLE
 // F12-RPT-PEOPLE end

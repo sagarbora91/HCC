@@ -167,6 +167,12 @@ public static class HccComposition
         // F12-RPT-GUEST
         // F12-RPT-GUEST end
         // F12-RPT-HK
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.MeasHk.HkProductivityReport>(services); // F12-RPT-HK
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.MeasHk.OooDaysReport>(services); // F12-RPT-HK
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.MeasHk.PpmComplianceReport>(services); // F12-RPT-HK
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.MeasHk.UtilitiesPerRoomReport>(services); // F12-RPT-HK
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.MeasHk.LinenCostReport>(services); // F12-RPT-HK
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.MeasHk.AssetLifeReport>(services); // F12-RPT-HK
         // F12-RPT-HK end
         // F12-RPT-PEOPLE
         // F12-RPT-PEOPLE end
