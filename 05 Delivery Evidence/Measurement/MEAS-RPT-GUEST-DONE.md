@@ -31,7 +31,7 @@ Behaviour:
 - Targets are read through `measTarget` (prototype) and `ISettingsReader` with the same defaults (server).
 
 ## Tests
-Counts: see the section "Counts" at the bottom (filled after the last run).
+Counts (after): `npx tsc --noEmit` clean; `npm test` 2994/2994 (the lane's file `stream-meas-rpt-guest.mjs` adds 18 tests, all `[F12-RPT-GUEST]`; filtered run before the goldens: 73/74 then the one fault fixed in the test data); `dotnet test tests/Hcc.Reporting.Tests` Passed 90/90 (7 new `MeasGuestRulesTests`; catalogue cross-check green with the six ids). Before: prototype 2976 per Phase A, Reporting.Tests not counted. `Hcc.Meas.Tests` not run (see below). Exit 75 (lock busy) happened four times and the fifth call got the lock.
 Commands: `HCC_TEST_ONLY='meas-rpt-guest|rpt-engine'` with `node tests/run.mjs`, `npx tsc --noEmit`, `npm test`, `dotnet test tests/Hcc.Reporting.Tests -maxcpucount:1 --logger trx`, all through `Invoke-Serialized.ps1`, label meas-rpt-guest. `tests/Hcc.Meas.Tests` was not run: nothing in it changed and the lane adds no file there.
 The server reports' SQL was written against the migration files but was NOT executed (no SQL Server run in this lane; `GuestsRoomsSqlTests` style tests need the shared SQL Express). Rules are unit-tested without SQL.
 

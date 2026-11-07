@@ -23,7 +23,7 @@ public sealed class MeasGuestRulesTests
             Assert.Equal(want[r.Definition.Id], r.MeasKey);
             var item = MeasurementCatalogue.Item(r.MeasKey);
             Assert.NotNull(item);
-            Assert.Equal(r.Definition.Id, item!.Report);
+            Assert.Equal(r.Definition.Id, item!.ReportId);
             Assert.IsAssignableFrom<IMeasuredReport>(r);
         }
     }
