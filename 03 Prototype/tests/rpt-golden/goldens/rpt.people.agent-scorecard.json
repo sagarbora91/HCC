@@ -11,8 +11,8 @@
      "title": null,
      "columns": ["user","checkins","checkouts","rateEdits","discountCount","discountAmount","discountReasonPct","comps","upsellPerArrival","complaints","cashVariance","regrets","surveyScore","exception"],
      "rows": [
-      ["row","Meera",0,0,0,0,0,0,0,"0.00",2,0,0,"",false],
-      ["row","Aarav",0,0,0,0,0,0,0,"0.00",1,0,0,"",false]
+      ["row","Meera",0,0,0,0,0,0,0,"0.00",2,0,0,"",0],
+      ["row","Aarav",0,0,0,0,0,0,0,"0.00",1,0,0,"",0]
      ]
     }
    ]

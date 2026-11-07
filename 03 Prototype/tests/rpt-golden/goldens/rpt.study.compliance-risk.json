@@ -1,0 +1,64 @@
+{
+ "id": "rpt.study.compliance-risk",
+ "cases": [
+  {
+   "uid": "owner",
+   "scenario": "BASE",
+   "params": {},
+   "tables": [
+    {
+     "key": "capture",
+     "title": "Capture Rates",
+     "columns": ["fy","stays","id","idPct","phone","phonePct","purpose","purposePct"],
+     "rows": [
+      ["row","2026-27",8,8,100,8,100,0,0]
+     ]
+    },
+    {
+     "key": "audit",
+     "title": "Audit Trail",
+     "columns": ["action","count"],
+     "rows": [
+      ["row","Demo initialized",1],
+      ["row","Discounted bills (selected FY)",0],
+      ["row","Zero-value bills (selected FY)",0],
+      ["row","Foreign-national stays (selected FY, Form C)",0]
+     ]
+    },
+    {
+     "key": "risk",
+     "title": "Risk Register",
+     "columns": ["risk","likelihood","impact","rating","control","status"],
+     "rows": [
+      ["row","Revenue leakage through free-text rate edits and zero edits",4,3,12,"Rate card, reason codes, approver for cuts > 10% and for complimentary stays, audit log","Open"],
+      ["row","Walk-in credit becoming bad debt",4,4,16,"No check-out with balance; credit only against company master with limit; monthly ageing","Open"],
+      ["row","Cash handling and unreferenced receipts",3,3,9,"Receipt always linked to a bill; daily cash count vs HCC; UPI / bank import","Open"],
+      ["row","GST slab or 0% bills mis-stated in returns",3,4,12,"Tax code per line; monthly GST reconciliation; CA review of 0% bills","Open"],
+      ["row","Guest ID not captured",3,4,12,"Mandatory ID at check-in; police register export","Open"],
+      ["row","Rooms out of order unrecorded",4,2,8,"Daily room-status log; maintenance tickets","Open"],
+      ["row","OTA dependence and commission cost",3,3,9,"Channel master with commission; direct-booking offer; enquiry log","Open"],
+      ["row","Single-point data loss",3,5,15,"HCC server with backups; legacy files archived read-only","Mitigated by HCC"],
+      ["row","Licence lapse (fire NOC, FSSAI, lodging licence)",2,5,10,"Licence calendar with 60 / 30-day alerts","Open"],
+      ["row","Foreign guest without Form C",1,4,4,"Nationality list + Form C task","Open"],
+      ["row","Key / access control (physical keys)",3,3,9,"KEYS module (key-card) with issue / return log","In progress"],
+      ["row","Staff advances unreconciled (paid-outs)",3,2,6,"Payroll module; advances ledger per employee","Open"]
+     ]
+    },
+    {
+     "key": "licences",
+     "title": "Licence Calendar",
+     "columns": ["name","validTo","days"],
+     "rows": []
+    },
+    {
+     "key": "series:id-capture",
+     "title": "[line] ID capture % by FY",
+     "columns": ["label","value"],
+     "rows": [
+      ["row","2026-27",100]
+     ]
+    }
+   ]
+  }
+ ]
+}

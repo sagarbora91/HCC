@@ -1,0 +1,118 @@
+{
+ "id": "rpt.study.operations-patterns",
+ "cases": [
+  {
+   "uid": "owner",
+   "scenario": "BASE",
+   "params": {},
+   "tables": [
+    {
+     "key": "arrivals-dow",
+     "title": "Arrivals_DOW",
+     "columns": ["item","stays","share"],
+     "rows": [
+      ["row","Sunday",0,0],
+      ["row","Monday",0,0],
+      ["row","Tuesday",0,0],
+      ["row","Wednesday",0,0],
+      ["row","Thursday",0,0],
+      ["row","Friday",8,100],
+      ["row","Saturday",0,0]
+     ]
+    },
+    {
+     "key": "departures-dow",
+     "title": "Departures_DOW",
+     "columns": ["item","stays","share"],
+     "rows": [
+      ["row","Sunday",0,0],
+      ["row","Monday",8,100],
+      ["row","Tuesday",0,0],
+      ["row","Wednesday",0,0],
+      ["row","Thursday",0,0],
+      ["row","Friday",0,0],
+      ["row","Saturday",0,0]
+     ]
+    },
+    {
+     "key": "length-of-stay",
+     "title": "LengthOfStay",
+     "columns": ["item","stays","share"],
+     "rows": [
+      ["row","1",0,0],
+      ["row","2",0,0],
+      ["row","3",8,100],
+      ["row","4",0,0],
+      ["row","5",0,0],
+      ["row","6",0,0],
+      ["row","7+",0,0]
+     ]
+    },
+    {
+     "key": "group-size",
+     "title": "GroupSize (rooms booked together: same guest, same arrival)",
+     "columns": ["item","parties","share"],
+     "rows": [
+      ["row","1 room",8,100],
+      ["row","2 rooms",0,0],
+      ["row","3-4 rooms",0,0],
+      ["row","5+ rooms",0,0]
+     ]
+    },
+    {
+     "key": "purpose",
+     "title": "Purpose",
+     "columns": ["item","stays","share"],
+     "rows": [
+      ["row","not recorded",8,100]
+     ]
+    },
+    {
+     "key": "booking-source",
+     "title": "BookingSource",
+     "columns": ["item","stays","share"],
+     "rows": [
+      ["row","Corporate",2,25],
+      ["row","Direct",2,25],
+      ["row","OTA · manual",2,25],
+      ["row","Phone",2,25]
+     ]
+    },
+    {
+     "key": "status",
+     "title": "Status (all stays arriving in the FY)",
+     "columns": ["item","stays","share"],
+     "rows": [
+      ["row","Confirmed",2,20],
+      ["row","In house",8,80]
+     ]
+    },
+    {
+     "key": "needs-times",
+     "title": "CheckIn_Hour, CheckOut_Hour, Turnover_EarlyLate, AdvanceLead",
+     "columns": ["item","state"],
+     "rows": [
+      ["row","CheckIn_Hour","Pending: the analytics input carries dates only (needs check-in / out times and booking date)"],
+      ["row","CheckOut_Hour","Pending: the analytics input carries dates only (needs check-in / out times and booking date)"],
+      ["row","Turnover_EarlyLate","Pending: the analytics input carries dates only (needs check-in / out times and booking date)"],
+      ["row","AdvanceLead","Pending: the analytics input carries dates only (needs check-in / out times and booking date)"]
+     ]
+    },
+    {
+     "key": "series.arrivals-dow",
+     "title": "bar|Arrivals by weekday",
+     "columns": ["label","value"],
+     "rows": [
+      ["row","Sunday",0],
+      ["row","Monday",0],
+      ["row","Tuesday",0],
+      ["row","Wednesday",0],
+      ["row","Thursday",0],
+      ["row","Friday",8],
+      ["row","Saturday",0]
+     ]
+    }
+   ]
+  }
+ ]
+}

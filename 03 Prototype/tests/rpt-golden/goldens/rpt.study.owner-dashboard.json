@@ -1,0 +1,50 @@
+{
+ "id": "rpt.study.owner-dashboard",
+ "cases": [
+  {
+   "uid": "owner",
+   "scenario": "BASE",
+   "params": {},
+   "tables": [
+    {
+     "key": "dashboard",
+     "title": "Owner Dashboard",
+     "columns": ["month","src","occ","adr","revpar","roomRev","billed","fnb","bills","repeat","otaShare","discPct","collected","outstanding"],
+     "rows": [
+      ["row","2025-11","Legacy",null,null,null,0,0,0,0,null,null,null,0,0],
+      ["row","2025-12","Legacy",null,null,null,0,0,0,0,null,null,null,0,0],
+      ["row","2026-01","Legacy",null,null,null,0,0,0,0,null,null,null,0,0],
+      ["row","2026-02","Legacy",null,null,null,0,0,0,0,null,null,null,0,0],
+      ["row","2026-03","Legacy",null,null,null,0,0,0,0,null,null,null,0,0],
+      ["row","2026-04","Legacy",null,null,null,0,0,0,0,null,null,null,0,0],
+      ["row","2026-05","Legacy",null,null,null,0,0,0,0,null,null,null,0,0],
+      ["row","2026-06","Legacy",null,null,null,0,0,0,0,null,null,null,0,0],
+      ["row","2026-07","Legacy",null,null,null,0,0,0,0,null,null,null,0,0],
+      ["row","2026-08","Legacy",null,null,null,0,0,0,0,null,null,null,0,0],
+      ["row","2026-09","Legacy",null,null,null,0,0,0,0,null,null,null,0,0],
+      ["row","2026-10","Legacy + live",33.3,81250,40625,1950000,2047500,0,8,0,0,0,1950000,97500]
+     ]
+    },
+    {
+     "key": "series:occupancy",
+     "title": "[line] Occupancy % (12 months)",
+     "columns": ["label","value"],
+     "rows": [
+      ["row","Nov 25",null],
+      ["row","Dec 25",null],
+      ["row","Jan 26",null],
+      ["row","Feb 26",null],
+      ["row","Mar 26",null],
+      ["row","Apr 26",null],
+      ["row","May 26",null],
+      ["row","Jun 26",null],
+      ["row","Jul 26",null],
+      ["row","Aug 26",null],
+      ["row","Sep 26",null],
+      ["row","Oct 26",33.3]
+     ]
+    }
+   ]
+  }
+ ]
+}

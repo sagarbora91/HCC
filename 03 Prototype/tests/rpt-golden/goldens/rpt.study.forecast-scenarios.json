@@ -1,0 +1,107 @@
+{
+ "id": "rpt.study.forecast-scenarios",
+ "cases": [
+  {
+   "uid": "owner",
+   "scenario": "BASE",
+   "params": {},
+   "tables": [
+    {
+     "key": "seasonality",
+     "title": "Seasonality Indices",
+     "columns": ["month","revIdx","occIdx","adrIdx","years"],
+     "rows": [
+      ["row","Apr",null,null,null,0],
+      ["row","May",null,null,null,0],
+      ["row","Jun",null,null,null,0],
+      ["row","Jul",null,null,null,0],
+      ["row","Aug",null,null,null,0],
+      ["row","Sep",null,null,null,0],
+      ["row","Oct",null,null,null,0],
+      ["row","Nov",null,null,null,0],
+      ["row","Dec",null,null,null,0],
+      ["row","Jan",null,null,null,0],
+      ["row","Feb",null,null,null,0],
+      ["row","Mar",null,null,null,0]
+     ]
+    },
+    {
+     "key": "forecast",
+     "title": "Forecast",
+     "columns": ["month","kind","actual","lastYear","seasonal","blend"],
+     "rows": [
+      ["row","2026-04","Actual",0,0,null,0],
+      ["row","2026-05","Actual",0,0,null,0],
+      ["row","2026-06","Actual",0,0,null,0],
+      ["row","2026-07","Actual",0,0,null,0],
+      ["row","2026-08","Actual",0,0,null,0],
+      ["row","2026-09","Actual",0,0,null,0],
+      ["row","2026-10","Actual",1950000,0,null,0],
+      ["row","2026-11","Forecast",null,0,null,0],
+      ["row","2026-12","Forecast",null,0,null,0],
+      ["row","2027-01","Forecast",null,0,null,0],
+      ["row","2027-02","Forecast",null,0,null,0],
+      ["row","2027-03","Forecast",null,0,null,0]
+     ]
+    },
+    {
+     "key": "scenarios",
+     "title": "Scenarios",
+     "columns": ["scenario","occ","adr","revenue"],
+     "rows": [
+      ["row","Occupancy -5 pts, ADR +0%",28.3,81250,201425250],
+      ["row","Occupancy +0 pts, ADR +0%",33.3,81250,237012750],
+      ["row","Occupancy +0 pts, ADR +5%",33.3,85313,248864846],
+      ["row","Occupancy +5 pts, ADR +5%",38.3,85313,286231940]
+     ]
+    },
+    {
+     "key": "budget",
+     "title": "Budget vs Actual",
+     "columns": ["month","budget","actual","variance","variancePct"],
+     "rows": [
+      ["row","2026-04",0,0,0,null],
+      ["row","2026-05",0,0,0,null],
+      ["row","2026-06",0,0,0,null],
+      ["row","2026-07",0,0,0,null],
+      ["row","2026-08",0,0,0,null],
+      ["row","2026-09",0,0,0,null],
+      ["row","2026-10",0,1950000,1950000,null],
+      ["row","2026-11",0,null,null,null],
+      ["row","2026-12",0,null,null,null],
+      ["row","2027-01",0,null,null,null],
+      ["row","2027-02",0,null,null,null],
+      ["row","2027-03",0,null,null,null]
+     ]
+    },
+    {
+     "key": "compset",
+     "title": "Comp Set Index",
+     "columns": ["fy","occ","compOcc","mpi","adr","compAdr","ari","rgi"],
+     "rows": [
+      ["row","2026-27",33.3,null,null,81250,null,null,null]
+     ]
+    },
+    {
+     "key": "series:seasonality",
+     "title": "[line] Revenue seasonality index",
+     "columns": ["label","value"],
+     "rows": [
+      ["row","Apr",null],
+      ["row","May",null],
+      ["row","Jun",null],
+      ["row","Jul",null],
+      ["row","Aug",null],
+      ["row","Sep",null],
+      ["row","Oct",null],
+      ["row","Nov",null],
+      ["row","Dec",null],
+      ["row","Jan",null],
+      ["row","Feb",null],
+      ["row","Mar",null]
+     ]
+    }
+   ]
+  }
+ ]
+}

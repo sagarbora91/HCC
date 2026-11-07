@@ -1,0 +1,124 @@
+{
+ "id": "rpt.study.receivables-bad-debt",
+ "cases": [
+  {
+   "uid": "owner",
+   "scenario": "BASE",
+   "params": {},
+   "tables": [
+    {
+     "key": "summary",
+     "title": "Summary by FY (legacy = bad debt, DEC-265)",
+     "columns": ["fy","kind","bills","due","share"],
+     "rows": [
+      ["row","FY 2026-27","Live receivable",8,97500,100],
+      ["total","Total","",8,97500,100]
+     ]
+    },
+    {
+     "key": "bad-debt-schedule",
+     "title": "Bad Debt Schedule (legacy, write-off provision 100 %; GST is an estimate, CA to confirm)",
+     "columns": ["fy","bills","due","gst","net"],
+     "rows": [
+      ["total","Total",0,0,0,0]
+     ]
+    },
+    {
+     "key": "ageing-by-fy",
+     "title": "Ageing by FY",
+     "columns": ["fy","b_0-30","b_31-90","b_91-180","b_181-365","b_366-730","b_731+","total"],
+     "rows": [
+      ["row","FY 2026-27",97500,0,0,0,0,0,97500]
+     ]
+    },
+    {
+     "key": "top-dues",
+     "title": "Top 100 dues",
+     "columns": ["bill","party","date","age","due","kind"],
+     "rows": [
+      ["row","B-HCC-1046","G-0006","2026-10-23",1,22500,"Live"],
+      ["row","B-HCC-1043","G-0003","2026-10-23",1,15000,"Live"],
+      ["row","B-HCC-1041","G-0001","2026-10-23",1,10000,"Live"],
+      ["row","B-HCC-1042","G-0002","2026-10-23",1,10000,"Live"],
+      ["row","B-HCC-1044","G-0004","2026-10-23",1,10000,"Live"],
+      ["row","B-HCC-1045","G-0005","2026-10-23",1,10000,"Live"],
+      ["row","B-HCC-1047","G-0007","2026-10-23",1,10000,"Live"],
+      ["row","B-HCC-1048","G-0008","2026-10-23",1,10000,"Live"]
+     ]
+    },
+    {
+     "key": "top-debtors",
+     "title": "Top debtors",
+     "columns": ["party","bills","due","oldest"],
+     "rows": [
+      ["row","G-0006",1,22500,"2026-10-23"],
+      ["row","G-0003",1,15000,"2026-10-23"],
+      ["row","G-0001",1,10000,"2026-10-23"],
+      ["row","G-0002",1,10000,"2026-10-23"],
+      ["row","G-0004",1,10000,"2026-10-23"],
+      ["row","G-0005",1,10000,"2026-10-23"],
+      ["row","G-0007",1,10000,"2026-10-23"],
+      ["row","G-0008",1,10000,"2026-10-23"]
+     ]
+    },
+    {
+     "key": "company-vs-walkin",
+     "title": "Company vs walk-in",
+     "columns": ["kind","bills","due","share"],
+     "rows": [
+      ["row","Company / B2B",0,0,0],
+      ["row","Walk-in",8,97500,100]
+     ]
+    },
+    {
+     "key": "follow-up-list",
+     "title": "Follow-up list (dues older than 2 years are verify-first)",
+     "columns": ["bill","party","due","age","action"],
+     "rows": [
+      ["row","B-HCC-1046","G-0006",22500,1,"Call"],
+      ["row","B-HCC-1043","G-0003",15000,1,"Call"],
+      ["row","B-HCC-1041","G-0001",10000,1,"Call"],
+      ["row","B-HCC-1042","G-0002",10000,1,"Call"],
+      ["row","B-HCC-1044","G-0004",10000,1,"Call"],
+      ["row","B-HCC-1045","G-0005",10000,1,"Call"],
+      ["row","B-HCC-1047","G-0007",10000,1,"Call"],
+      ["row","B-HCC-1048","G-0008",10000,1,"Call"]
+     ]
+    },
+    {
+     "key": "monthly-unpaid",
+     "title": "Monthly unpaid",
+     "columns": ["month","bills","due"],
+     "rows": [
+      ["row","Oct 2026",8,97500]
+     ]
+    },
+    {
+     "key": "cutover-comparison",
+     "title": "Cutover comparison (legacy to 2026-10-30 / HCC live)",
+     "columns": ["side","bills","due","treatment"],
+     "rows": [
+      ["row","Legacy",0,0,"Bad debt, not carried as opening receivable (DEC-265)"],
+      ["row","HCC live",8,97500,"Receivable; see rpt.acc.ageing"]
+     ]
+    },
+    {
+     "key": "series.due-by-fy",
+     "title": "bar|Due by FY",
+     "columns": ["label","value"],
+     "rows": [
+      ["row","2026-27",97500]
+     ]
+    },
+    {
+     "key": "note.contacts",
+     "title": "Note",
+     "columns": ["note"],
+     "rows": [
+      ["row","Debtor Contacts (phone, GSTIN) are pending: the analytics input carries no contact data. Names stay under rule V."]
+     ]
+    }
+   ]
+  }
+ ]
+}

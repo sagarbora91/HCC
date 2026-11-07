@@ -159,6 +159,9 @@ export * from '../../domain/forecast'; // F12 meas-forecast: real forecast curve
 export {MEAS_FC_EVENT_KINDS,MEAS_FC_OTB_NIGHTS,MEAS_FC_OTB_KEEP} from './handlers/meas-forecast';
 export {measFcEventsSeed,measFcCompetitorsSeed,measFcRateShopSeed,measFcLegacySample} from '../../fixtures/ext/meas-forecast';
 // F12-FORECAST end
+// F12-RPT-DAILY
+export * from '../../domain/reports/meas-daily'; // pure exception functions for the digest (flashRows, rateVarianceRows, … cashierRows, regretsRows)
+// F12-RPT-DAILY end
 // F4-T1
 export * from '../../domain/streams/tariffcard';
 // F4-T1 end

@@ -1,0 +1,104 @@
+{
+ "id": "rpt.study.fy-deep-dive",
+ "cases": [
+  {
+   "uid": "owner",
+   "scenario": "BASE",
+   "params": {},
+   "tables": [
+    {
+     "key": "a-price-volume",
+     "title": "A Price-volume FY 2025-26 to FY 2026-27",
+     "columns": ["item","amount"],
+     "rows": []
+    },
+    {
+     "key": "b-neighbours",
+     "title": "B Against neighbouring years",
+     "columns": ["fy","billed","nights","adr","occ"],
+     "rows": [
+      ["row","FY 2026-27",2047500,16,243750,33.3]
+     ]
+    },
+    {
+     "key": "c-room-type",
+     "title": "C Segments by room type",
+     "columns": ["type","nights","room","adr","share"],
+     "rows": [
+      ["row","Classic",6,1200000,200000,61.5],
+      ["row","Suite",1,450000,450000,23.1],
+      ["row","Deluxe",1,300000,300000,15.4]
+     ]
+    },
+    {
+     "key": "d-source",
+     "title": "D Booking source",
+     "columns": ["source","bills","billed","share"],
+     "rows": [
+      ["row","Phone",2,682500,33.3],
+      ["row","OTA · manual",2,525000,25.6],
+      ["row","Corporate",2,420000,20.5],
+      ["row","Direct",2,420000,20.5]
+     ]
+    },
+    {
+     "key": "e-payment-mix",
+     "title": "E Payment mix",
+     "columns": ["method","amount","share"],
+     "rows": [
+      ["row","UPI",1350000,69.2],
+      ["row","Cash",600000,30.8]
+     ]
+    },
+    {
+     "key": "f-top-bills",
+     "title": "F Top 10 bills",
+     "columns": ["bill","guest","date","billed","nights"],
+     "rows": [
+      ["row","B-HCC-1046","G-0006","2026-10-23",472500,1],
+      ["row","B-HCC-1043","G-0003","2026-10-23",315000,1],
+      ["row","B-HCC-1041","G-0001","2026-10-23",210000,1],
+      ["row","B-HCC-1042","G-0002","2026-10-23",210000,1],
+      ["row","B-HCC-1044","G-0004","2026-10-23",210000,1],
+      ["row","B-HCC-1045","G-0005","2026-10-23",210000,1],
+      ["row","B-HCC-1047","G-0007","2026-10-23",210000,1],
+      ["row","B-HCC-1048","G-0008","2026-10-23",210000,1]
+     ]
+    },
+    {
+     "key": "g-length-of-stay",
+     "title": "G Length of stay (stays by arrival)",
+     "columns": ["los","stays","share"],
+     "rows": [
+      ["row","1",0,0],
+      ["row","2",0,0],
+      ["row","3",8,100],
+      ["row","4",0,0],
+      ["row","5",0,0],
+      ["row","6",0,0],
+      ["row","7+",0,0]
+     ]
+    },
+    {
+     "key": "series.months",
+     "title": "line|Total billed by month FY 2026-27",
+     "columns": ["label","value"],
+     "rows": [
+      ["row","Apr",0],
+      ["row","May",0],
+      ["row","Jun",0],
+      ["row","Jul",0],
+      ["row","Aug",0],
+      ["row","Sep",0],
+      ["row","Oct",2047500],
+      ["row","Nov",0],
+      ["row","Dec",0],
+      ["row","Jan",0],
+      ["row","Feb",0],
+      ["row","Mar",0]
+     ]
+    }
+   ]
+  }
+ ]
+}

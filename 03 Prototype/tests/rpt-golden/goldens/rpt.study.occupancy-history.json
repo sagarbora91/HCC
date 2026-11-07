@@ -1,0 +1,90 @@
+{
+ "id": "rpt.study.occupancy-history",
+ "cases": [
+  {
+   "uid": "owner",
+   "scenario": "BASE",
+   "params": {},
+   "tables": [
+    {
+     "key": "monthly",
+     "title": "Monthly (FY 2026-27)",
+     "columns": ["month","days","inService","sold","occ","occA","occB","stays","alos","sameDay"],
+     "rows": [
+      ["row","Oct 2026",2,48,16,33.3,100,33.3,8,"3.00",0]
+     ]
+    },
+    {
+     "key": "fy-summary",
+     "title": "FY summary",
+     "columns": ["fy","days","inService","sold","occ","occA","occB","note"],
+     "rows": [
+      ["row","FY 2026-27",2,48,16,33.3,100,33.3,"Partial year"]
+     ]
+    },
+    {
+     "key": "fy-month-grid",
+     "title": "FY x Month grid (occupancy %)",
+     "columns": ["fy","m04","m05","m06","m07","m08","m09","m10","m11","m12","m01","m02","m03"],
+     "rows": [
+      ["row","FY 2026-27",null,null,null,null,null,null,33.3,null,null,null,null,null]
+     ]
+    },
+    {
+     "key": "weekday-weekend",
+     "title": "Weekday vs weekend (FY 2026-27; weekend = Fri + Sat nights)",
+     "columns": ["group","sold","capacity","occ"],
+     "rows": [
+      ["row","Weekday nights (Sun-Thu)",0,384,0],
+      ["row","Weekend nights (Fri-Sat)",16,192,8.3]
+     ]
+    },
+    {
+     "key": "seasonality",
+     "title": "Seasonality (simple mean of monthly %, normal years)",
+     "columns": ["month","obs","avg"],
+     "rows": [
+      ["row","Apr",0,0],
+      ["row","May",0,0],
+      ["row","Jun",0,0],
+      ["row","Jul",0,0],
+      ["row","Aug",0,0],
+      ["row","Sep",0,0],
+      ["row","Oct",0,0],
+      ["row","Nov",0,0],
+      ["row","Dec",0,0],
+      ["row","Jan",0,0],
+      ["row","Feb",0,0],
+      ["row","Mar",0,0]
+     ]
+    },
+    {
+     "key": "room-type-mix",
+     "title": "Room-type mix (FY 2026-27)",
+     "columns": ["type","rooms","sold","capacity","occ","share"],
+     "rows": [
+      ["row","Classic",12,12,24,50,75],
+      ["row","Deluxe",9,2,18,11.1,12.5],
+      ["row","Suite",3,2,6,33.3,12.5]
+     ]
+    },
+    {
+     "key": "series.occ-by-fy",
+     "title": "bar|Occupancy % by FY",
+     "columns": ["label","value"],
+     "rows": [
+      ["row","2026-27",33.3]
+     ]
+    },
+    {
+     "key": "note.caveat",
+     "title": "Note",
+     "columns": ["note"],
+     "rows": [
+      ["row","The data does not record which rooms were sellable on a given day; all three denominators are approximations and true occupancy of sellable inventory is at or above the headline."]
+     ]
+    }
+   ]
+  }
+ ]
+}

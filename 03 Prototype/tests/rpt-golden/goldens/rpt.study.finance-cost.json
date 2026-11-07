@@ -1,0 +1,68 @@
+{
+ "id": "rpt.study.finance-cost",
+ "cases": [
+  {
+   "uid": "owner",
+   "scenario": "BASE",
+   "params": {},
+   "tables": [
+    {
+     "key": "pl",
+     "title": "USALI P&L",
+     "columns": ["line","amount"],
+     "rows": [
+      ["row","Rooms revenue",1950000],
+      ["row","Food & beverage",0],
+      ["row","Other revenue",0],
+      ["row","Less discounts",0],
+      ["row","Net revenue (before GST)",1950000],
+      ["row","Cost: Laundry",180000],
+      ["row","Total cost recorded",180000],
+      ["row","Gross operating profit",1770000]
+     ]
+    },
+    {
+     "key": "breakeven",
+     "title": "Break-even",
+     "columns": ["fy","adr","rooms","fixed","variable","bePct","occ"],
+     "rows": [
+      ["row","2026-27",81250,24,0,0,0,33.3]
+     ]
+    },
+    {
+     "key": "paidouts",
+     "title": "Paid-outs",
+     "columns": ["category","count","amount"],
+     "rows": [
+      ["row","Laundry",1,180000]
+     ]
+    },
+    {
+     "key": "cash",
+     "title": "Cash & Bank",
+     "columns": ["month","method","receipts","amount"],
+     "rows": [
+      ["row","2026-10","Cash",3,600000],
+      ["row","2026-10","UPI",5,1350000]
+     ]
+    },
+    {
+     "key": "gst",
+     "title": "GST Reconciliation",
+     "columns": ["month","taxable","gst","effective","billed","paid"],
+     "rows": [
+      ["row","2026-10",1950000,97500,5,2047500,1950000]
+     ]
+    },
+    {
+     "key": "series:billed-by-month",
+     "title": "[bar] Total billed by month",
+     "columns": ["label","value"],
+     "rows": [
+      ["row","Oct 26",2047500]
+     ]
+    }
+   ]
+  }
+ ]
+}

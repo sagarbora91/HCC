@@ -1,0 +1,52 @@
+{
+ "id": "rpt.study.revenue-monthly",
+ "cases": [
+  {
+   "uid": "owner",
+   "scenario": "BASE",
+   "params": {},
+   "tables": [
+    {
+     "key": "monthly",
+     "title": "Monthly (FY 2026-27)",
+     "columns": ["month","data","bills","room","fnb","other","discount","netBilled","gst","billed","chargedNights","adr","received","receivedPct"],
+     "rows": [
+      ["row","Oct 2026","live",8,1950000,0,0,0,1950000,97500,2047500,8,243750,1950000,95.2]
+     ]
+    },
+    {
+     "key": "fy-summary",
+     "title": "FY summary",
+     "columns": ["fy","data","bills","netBilled","gst","billed","chargedNights","adr","received","receivedPct","note"],
+     "rows": [
+      ["row","FY 2026-27","live",8,1950000,97500,2047500,8,243750,1950000,95.2,"Partial year"]
+     ]
+    },
+    {
+     "key": "fy-month-grid",
+     "title": "FY x Month grid (total billed)",
+     "columns": ["fy","m04","m05","m06","m07","m08","m09","m10","m11","m12","m01","m02","m03","total"],
+     "rows": [
+      ["row","FY 2026-27",0,0,0,0,0,0,2047500,0,0,0,0,0,2047500]
+     ]
+    },
+    {
+     "key": "series.billed-by-fy",
+     "title": "bar|Total billed by FY",
+     "columns": ["label","value"],
+     "rows": [
+      ["row","2026-27",2047500]
+     ]
+    },
+    {
+     "key": "series.billed-by-month",
+     "title": "line|Total billed by month FY 2026-27",
+     "columns": ["label","value"],
+     "rows": [
+      ["row","Oct 2026",2047500]
+     ]
+    }
+   ]
+  }
+ ]
+}

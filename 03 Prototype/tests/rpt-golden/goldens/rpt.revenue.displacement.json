@@ -1,0 +1,27 @@
+{
+ "id": "rpt.revenue.displacement",
+ "cases": [
+  {
+   "uid": "owner",
+   "scenario": "BASE",
+   "params": {},
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["night","forecast","displaced","displacedRevenue","offerRevenue","net","recommendation"],
+     "rows": [
+      ["row","2026-10-24",43,0,0,750000,750000,"accept"],
+      ["row","2026-10-25",43,0,0,750000,750000,"accept"],
+      ["row","2026-10-26",0,0,0,750000,750000,"accept"],
+      ["row","2026-10-27",0,0,0,750000,750000,"accept"],
+      ["row","2026-10-28",0,0,0,750000,750000,"accept"],
+      ["row","2026-10-29",0,0,0,750000,750000,"accept"],
+      ["row","2026-10-30",35,0,0,750000,750000,"accept"],
+      ["total","Total · 7 nights",null,0,0,5250000,5250000,"accept"]
+     ]
+    }
+   ]
+  }
+ ]
+}

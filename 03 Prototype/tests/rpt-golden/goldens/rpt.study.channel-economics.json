@@ -1,0 +1,44 @@
+{
+ "id": "rpt.study.channel-economics",
+ "cases": [
+  {
+   "uid": "owner",
+   "scenario": "BASE",
+   "params": {},
+   "tables": [
+    {
+     "key": "net",
+     "title": "Net ADR after Commission",
+     "columns": ["fy","otaRn","otaRev","otaAdr","directAdr","c12","c15","c18","c20","netAdr","gap"],
+     "rows": [
+      ["row","2026-27",0,0,null,81250,0,0,0,0,null,null]
+     ]
+    },
+    {
+     "key": "direct",
+     "title": "Direct Share by Month",
+     "columns": ["month","directRn","otaRn","directShare","directRev","otaRev","directRevShare"],
+     "rows": [
+      ["row","2026-10",24,0,100,1950000,0,100]
+     ]
+    },
+    {
+     "key": "ota",
+     "title": "OTA Dependence",
+     "columns": ["fy","bills","otaBills","otaShare","otaRn","otaRev","otaRevShare","otaAdr","otaNights","directNights"],
+     "rows": [
+      ["row","2026-27",8,0,0,0,0,0,null,null,3]
+     ]
+    },
+    {
+     "key": "series:direct-share",
+     "title": "[line] Direct share of room-nights by month",
+     "columns": ["label","value"],
+     "rows": [
+      ["row","Oct 26",100]
+     ]
+    }
+   ]
+  }
+ ]
+}

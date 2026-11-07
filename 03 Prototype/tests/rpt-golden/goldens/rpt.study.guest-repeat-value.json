@@ -1,0 +1,46 @@
+{
+ "id": "rpt.study.guest-repeat-value",
+ "cases": [
+  {
+   "uid": "owner",
+   "scenario": "BASE",
+   "params": {},
+   "tables": [
+    {
+     "key": "repeat",
+     "title": "Repeat Guests by FY",
+     "columns": ["fy","guests","repeat","repeatPct","stays","repeatStays","net","repeatNet","repeatNetPct"],
+     "rows": [
+      ["row","2026-27",8,0,0,8,0,1950000,0,0]
+     ]
+    },
+    {
+     "key": "frequency",
+     "title": "Guest Frequency & Value",
+     "columns": ["bucket","guests","stays","nights","net","perGuest","avgNights"],
+     "rows": [
+      ["row","1 stay",8,8,24,1950000,243750,3],
+      ["row","2 stays",0,0,0,0,null,null],
+      ["row","3-4 stays",0,0,0,0,null,null],
+      ["row","5-9 stays",0,0,0,0,null,null],
+      ["row","10+ stays",0,0,0,0,null,null]
+     ]
+    },
+    {
+     "key": "list",
+     "title": "Repeat Customer List",
+     "columns": ["guest","stays","first","last","nights","net","fys"],
+     "rows": []
+    },
+    {
+     "key": "series:repeat-pct",
+     "title": "[line] Repeat guests % by FY",
+     "columns": ["label","value"],
+     "rows": [
+      ["row","2026-27",0]
+     ]
+    }
+   ]
+  }
+ ]
+}

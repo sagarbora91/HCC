@@ -1,0 +1,18 @@
+{
+ "id": "rpt.rooms.ooo-days",
+ "cases": [
+  {
+   "uid": "owner",
+   "scenario": "BASE",
+   "params": {},
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["room","reason","roomDays","workOrder","daysNoTicket","lostRevenue","idleNights"],
+     "rows": []
+    }
+   ]
+  }
+ ]
+}

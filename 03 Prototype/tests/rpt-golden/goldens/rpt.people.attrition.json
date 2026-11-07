@@ -11,13 +11,13 @@
      "title": null,
      "columns": ["dept","joiners","leavers","exitReasons","tenure","attritionPct","vacancyDays","exception"],
      "rows": [
-      ["row","Management",0,0,"","",0,0,false],
-      ["row","Front office",0,0,"","",0,0,false],
-      ["row","Housekeeping",0,0,"","",0,0,false],
-      ["row","Maintenance",0,0,"","",0,0,false],
-      ["row","Kitchen",1,0,"","",0,0,false],
-      ["row","Security",0,0,"","",0,0,false],
-      ["row","Accounts",0,0,"","",0,0,false]
+      ["row","Management",0,0,"","",0,0,0],
+      ["row","Front office",0,0,"","",0,0,0],
+      ["row","Housekeeping",0,0,"","",0,0,0],
+      ["row","Maintenance",0,0,"","",0,0,0],
+      ["row","Kitchen",1,0,"","",0,0,0],
+      ["row","Security",0,0,"","",0,0,0],
+      ["row","Accounts",0,0,"","",0,0,0]
      ]
     }
    ]

@@ -1,0 +1,36 @@
+{
+ "id": "rpt.stock.linen-cost",
+ "cases": [
+  {
+   "uid": "owner",
+   "scenario": "BASE",
+   "params": {},
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["item","par","onHand","batches","lost","damaged","discarded","issued","costPerNight"],
+     "rows": [
+      ["row","Bed sheet (king)",144,140,2,0,1,"",null,1699],
+      ["row","Pillow cover",306,276,2,0,0,"",null,524],
+      ["row","Duvet cover",72,67,1,0,0,"",null,414],
+      ["row","Bath towel",162,143,2,0,2,"",null,1968],
+      ["row","Hand towel",162,167,2,0,0,"",null,402],
+      ["row","Bath mat",81,82,1,0,0,"",null,115],
+      ["row","Bathrobe",18,17,1,0,0,"",null,92],
+      ["row","Soap bar 30 g",0,344,0,0,0,"",156,2510],
+      ["row","Shampoo 30 ml",0,106,0,0,0,"",198,2731],
+      ["row","Dental kit",0,204,0,0,0,"",104,2152],
+      ["row","Water bottle 500 ml",0,416,0,0,0,"",156,1614],
+      ["row","Tea & coffee kit",0,246,0,0,0,"",158,2724],
+      ["row","Slippers (pair)",0,84,0,0,0,"",40,1609],
+      ["row","Floor cleaner 5 L",0,8,0,0,0,"",4,2069],
+      ["row","Glass cleaner 500 ml",0,13,0,0,0,"",7,966],
+      ["row","Toilet cleaner 1 L",0,22,0,0,0,"",12,1310],
+      ["row","Garbage bags (roll of 30)",0,6,0,0,0,"",8,552]
+     ]
+    }
+   ]
+  }
+ ]
+}

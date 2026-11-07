@@ -1,0 +1,83 @@
+{
+ "id": "rpt.study.year-comparison",
+ "cases": [
+  {
+   "uid": "owner",
+   "scenario": "BASE",
+   "params": {},
+   "tables": [
+    {
+     "key": "summary",
+     "title": "Summary",
+     "columns": ["fy","billed","nights","occ","adr","yoy","note"],
+     "rows": [
+      ["row","FY 2026-27",2047500,16,33.3,243750,null,"Partial year, use like-for-like"]
+     ]
+    },
+    {
+     "key": "month-year-grid",
+     "title": "Month x Year (total billed)",
+     "columns": ["month","y2026-27"],
+     "rows": [
+      ["row","Apr",0],
+      ["row","May",0],
+      ["row","Jun",0],
+      ["row","Jul",0],
+      ["row","Aug",0],
+      ["row","Sep",0],
+      ["row","Oct",2047500],
+      ["row","Nov",0],
+      ["row","Dec",0],
+      ["row","Jan",0],
+      ["row","Feb",0],
+      ["row","Mar",0]
+     ]
+    },
+    {
+     "key": "yoy",
+     "title": "YoY growth (billed, room-nights, ADR)",
+     "columns": ["fy","billed","nights","adr"],
+     "rows": []
+    },
+    {
+     "key": "like-for-like",
+     "title": "Like-for-like 24-10 to 24-10 (date-exact)",
+     "columns": ["fy","billed","bills","vsPrev"],
+     "rows": [
+      ["row","FY 2026-27",0,0,null]
+     ]
+    },
+    {
+     "key": "cumulative",
+     "title": "Cumulative YTD (total billed)",
+     "columns": ["fy","m04","m05","m06","m07","m08","m09","m10","m11","m12","m01","m02","m03"],
+     "rows": [
+      ["row","FY 2026-27",0,0,0,0,0,0,2047500,2047500,2047500,2047500,2047500,2047500]
+     ]
+    },
+    {
+     "key": "cagr",
+     "title": "CAGR (normal full years)",
+     "columns": ["from","to","years","first","last","cagr"],
+     "rows": []
+    },
+    {
+     "key": "head-mix",
+     "title": "Revenue head mix (share of net billed)",
+     "columns": ["fy","room","fnb","other","discount"],
+     "rows": [
+      ["row","FY 2026-27",100,0,0,0]
+     ]
+    },
+    {
+     "key": "series.billed-by-fy",
+     "title": "bar|Total billed by FY",
+     "columns": ["label","value"],
+     "rows": [
+      ["row","2026-27",2047500]
+     ]
+    }
+   ]
+  }
+ ]
+}

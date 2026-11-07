@@ -1,0 +1,21 @@
+{
+ "id": "rpt.revenue.overbooking-wash",
+ "cases": [
+  {
+   "uid": "owner",
+   "scenario": "BASE",
+   "params": {},
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["weekday","channel","noShowPct","cancelPct","washRooms","allowed","walked","walkCost"],
+     "rows": [
+      ["row","Saturday","Direct",0,0,0,0,0,0],
+      ["row","Saturday","Phone",0,0,0,0,0,0]
+     ]
+    }
+   ]
+  }
+ ]
+}

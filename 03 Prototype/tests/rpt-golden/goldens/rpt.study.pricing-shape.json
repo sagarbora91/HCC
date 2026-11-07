@@ -1,0 +1,87 @@
+{
+ "id": "rpt.study.pricing-shape",
+ "cases": [
+  {
+   "uid": "owner",
+   "scenario": "BASE",
+   "params": {},
+   "tables": [
+    {
+     "key": "dow",
+     "title": "DOW & LOS Pricing: night of week",
+     "columns": ["night","sold","cap","occ","adr","adrRecent"],
+     "rows": [
+      ["row","Mon",0,0,null,null,null],
+      ["row","Tue",0,0,null,null,null],
+      ["row","Wed",0,0,null,null,null],
+      ["row","Thu",0,0,null,null,null],
+      ["row","Fri",8,24,33.3,81250,81250],
+      ["row","Sat",8,24,33.3,null,null],
+      ["row","Sun",0,0,null,null,null]
+     ]
+    },
+    {
+     "key": "los",
+     "title": "DOW & LOS Pricing: length of stay",
+     "columns": ["bucket","bills","rn","adr","billsRecent","adrRecent","discPct"],
+     "rows": [
+      ["row","1 night",0,0,null,0,null,null],
+      ["row","2 nights",0,0,null,0,null,null],
+      ["row","3 nights",8,24,81250,8,81250,0],
+      ["row","4-7 nights",0,0,null,0,null,null],
+      ["row","8-14 nights",0,0,null,0,null,null],
+      ["row","15+ nights",0,0,null,0,null,null]
+     ]
+    },
+    {
+     "key": "segment",
+     "title": "Segment Mix",
+     "columns": ["fy","segment","bills","rn","rev","adr","share"],
+     "rows": [
+      ["row","2026-27","Direct / walk-in",8,24,1950000,81250,100]
+     ]
+    },
+    {
+     "key": "ladder",
+     "title": "Rate Ladder",
+     "columns": ["type","fy","bills","modal","p10","p50","p90","below","cut"],
+     "rows": [
+      ["row","Suite","2026-27",1,150000,150000,150000,150000,0,null],
+      ["row","Deluxe","2026-27",1,100000,100000,100000,100000,0,null],
+      ["row","Classic","2026-27",6,66700,66700,66700,66700,0,null]
+     ]
+    },
+    {
+     "key": "upgrades",
+     "title": "Upgrades & Shifts",
+     "columns": ["fy","stays","typed","ups","upPct","downs"],
+     "rows": [
+      ["row","2026-27",8,0,0,null,0]
+     ]
+    },
+    {
+     "key": "window",
+     "title": "Booking Window (first receipt vs arrival)",
+     "columns": ["bucket","stays","share"],
+     "rows": [
+      ["row","Paid on / after arrival",8,100]
+     ]
+    },
+    {
+     "key": "series:dow-occupancy",
+     "title": "[bar] Occupancy % by night of week",
+     "columns": ["label","value"],
+     "rows": [
+      ["row","Mon",null],
+      ["row","Tue",null],
+      ["row","Wed",null],
+      ["row","Thu",null],
+      ["row","Fri",33.3],
+      ["row","Sat",33.3],
+      ["row","Sun",null]
+     ]
+    }
+   ]
+  }
+ ]
+}

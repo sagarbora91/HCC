@@ -1,0 +1,18 @@
+{
+ "id": "rpt.revenue.rate-parity",
+ "cases": [
+  {
+   "uid": "owner",
+   "scenario": "BASE",
+   "params": {},
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["stayDate","direct","ota","comp1","comp2","comp3","comp4","comp5","comp6","median","position","exception"],
+     "rows": []
+    }
+   ]
+  }
+ ]
+}

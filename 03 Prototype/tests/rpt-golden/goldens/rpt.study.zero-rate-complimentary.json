@@ -1,0 +1,102 @@
+{
+ "id": "rpt.study.zero-rate-complimentary",
+ "cases": [
+  {
+   "uid": "owner",
+   "scenario": "BASE",
+   "params": {},
+   "tables": [
+    {
+     "key": "rate-changes-by-fy",
+     "title": "Rate changes by FY (billed rate differs from the stay rate)",
+     "columns": ["fy","stays","changed","share"],
+     "rows": [
+      ["row","FY 2026-27",8,0,0]
+     ]
+    },
+    {
+     "key": "zero-events",
+     "title": "Zero-rate events (FY 2026-27)",
+     "columns": ["stay","date","room","category","nights","expected","billed","received"],
+     "rows": []
+    },
+    {
+     "key": "zero-bills",
+     "title": "Zero room-charge bills by FY",
+     "columns": ["fy","bills","zero","share"],
+     "rows": [
+      ["row","FY 2026-27",8,0,0]
+     ]
+    },
+    {
+     "key": "zero-by-fy-category",
+     "title": "Zero by FY and category",
+     "columns": ["fy","c_Complimentary","c_Zero room charge","c_Zero rate","total"],
+     "rows": [
+      ["row","FY 2026-27",0,0,0,0]
+     ]
+    },
+    {
+     "key": "zero-by-month",
+     "title": "Zero by month",
+     "columns": ["month","events","expected"],
+     "rows": []
+    },
+    {
+     "key": "zero-by-room",
+     "title": "Zero by room (FY 2026-27)",
+     "columns": ["room","type","events"],
+     "rows": []
+    },
+    {
+     "key": "large-down-adjustments",
+     "title": "Large down-adjustments (cut over 30 % or over Rs 1,000 a night; top 50)",
+     "columns": ["bill","room","from","to","cut","total"],
+     "rows": []
+    },
+    {
+     "key": "reasons-ranking",
+     "title": "Reasons ranking (purpose of the stay)",
+     "columns": ["reason","events"],
+     "rows": []
+    },
+    {
+     "key": "zero-vs-receipts",
+     "title": "Zero vs receipts",
+     "columns": ["item","stays"],
+     "rows": [
+      ["row","Zero-event stays",0],
+      ["row","With a zero room-charge bill",0],
+      ["row","Zero room-charge bill and money received",0]
+     ]
+    },
+    {
+     "key": "revenue-given-up",
+     "title": "Revenue given up (estimates, room tariff before GST)",
+     "columns": ["est","amount"],
+     "rows": [
+      ["row","A: expected charge of every zero-event stay",0],
+      ["row","B: shortfall against the bill (stays with a bill)",0],
+      ["row","C: expected charge of stays whose bill is zero",0]
+     ]
+    },
+    {
+     "key": "series.events-by-fy",
+     "title": "bar|Zero-rate events by FY",
+     "columns": ["label","value"],
+     "rows": [
+      ["row","2026-27",0]
+     ]
+    },
+    {
+     "key": "note.method",
+     "title": "Note",
+     "columns": ["note"],
+     "rows": [
+      ["row","Evidence of a zero rate, not proof of a free stay. Legacy rows keep note-parsed events; live rows read the complimentary flag (DEC-266: the explicit complimentary stay type is pending). Revenue-given-up figures are estimates, not losses."]
+     ]
+    }
+   ]
+  }
+ ]
+}

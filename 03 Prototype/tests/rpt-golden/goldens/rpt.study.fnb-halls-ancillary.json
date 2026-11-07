@@ -1,0 +1,60 @@
+{
+ "id": "rpt.study.fnb-halls-ancillary",
+ "cases": [
+  {
+   "uid": "owner",
+   "scenario": "BASE",
+   "params": {},
+   "tables": [
+    {
+     "key": "fnb-month",
+     "title": "F&B on Bills by Month",
+     "columns": ["month","bills","fnb","perBill","pctRoom"],
+     "rows": [
+      ["row","2026-10",8,0,0,0]
+     ]
+    },
+    {
+     "key": "fnb-fy",
+     "title": "F&B by FY",
+     "columns": ["fy","bills","withFnb","fnb","perBill","pctRoom"],
+     "rows": [
+      ["row","2026-27",8,0,0,0,0]
+     ]
+    },
+    {
+     "key": "covers",
+     "title": "Breakfast Covers",
+     "columns": ["fy","stays","covers","nights"],
+     "rows": [
+      ["row","2026-27",0,0,0]
+     ]
+    },
+    {
+     "key": "halls",
+     "title": "Hall Utilisation",
+     "columns": ["fy","events","days","revenue","perEvent"],
+     "rows": [
+      ["row","2026-27",0,0,0,null]
+     ]
+    },
+    {
+     "key": "ancillary",
+     "title": "Ancillary per Stay",
+     "columns": ["fy","bills","other","perBill","pctRoom"],
+     "rows": [
+      ["row","2026-27",8,0,0,0]
+     ]
+    },
+    {
+     "key": "series:fnb-per-bill",
+     "title": "[bar] F&B per bill by FY",
+     "columns": ["label","value"],
+     "rows": [
+      ["row","2026-27",0]
+     ]
+    }
+   ]
+  }
+ ]
+}

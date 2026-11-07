@@ -11,27 +11,27 @@
      "title": "Contents",
      "columns": ["no","chapter","report","title","status","blocks"],
      "rows": [
-      ["row",1,"Revenue and cash","rpt.study.revenue-monthly","rpt.study.revenue-monthly","not built yet",0],
-      ["row",1,"Revenue and cash","rpt.study.year-comparison","rpt.study.year-comparison","not built yet",0],
-      ["row",1,"Revenue and cash","rpt.study.index-vs-base","rpt.study.index-vs-base","not built yet",0],
-      ["row",1,"Revenue and cash","rpt.study.fy-deep-dive","rpt.study.fy-deep-dive","not built yet",0],
-      ["row",2,"Occupancy and operations","rpt.study.occupancy-history","rpt.study.occupancy-history","not built yet",0],
-      ["row",2,"Occupancy and operations","rpt.study.operations-patterns","rpt.study.operations-patterns","not built yet",0],
-      ["row",2,"Occupancy and operations","rpt.study.rooms-and-rates","rpt.study.rooms-and-rates","not built yet",0],
-      ["row",2,"Occupancy and operations","rpt.study.zero-rate-complimentary","rpt.study.zero-rate-complimentary","not built yet",0],
-      ["row",3,"Receivables","rpt.study.receivables-bad-debt","rpt.study.receivables-bad-debt","not built yet",0],
-      ["row",4,"Revenue management","rpt.study.revenue-kpi","rpt.study.revenue-kpi","not built yet",0],
-      ["row",4,"Revenue management","rpt.study.channel-economics","rpt.study.channel-economics","not built yet",0],
-      ["row",4,"Revenue management","rpt.study.pricing-shape","rpt.study.pricing-shape","not built yet",0],
-      ["row",5,"Guests","rpt.study.guest-repeat-value","rpt.study.guest-repeat-value","not built yet",0],
-      ["row",5,"Guests","rpt.study.guest-origin-plan","rpt.study.guest-origin-plan","not built yet",0],
-      ["row",6,"Housekeeping, F&B and halls","rpt.study.housekeeping-operations","rpt.study.housekeeping-operations","not built yet",0],
-      ["row",6,"Housekeeping, F&B and halls","rpt.study.fnb-halls-ancillary","rpt.study.fnb-halls-ancillary","not built yet",0],
-      ["row",7,"Finance, sales and compliance","rpt.study.finance-cost","rpt.study.finance-cost","not built yet",0],
-      ["row",7,"Finance, sales and compliance","rpt.study.corporate-accounts","rpt.study.corporate-accounts","not built yet",0],
-      ["row",7,"Finance, sales and compliance","rpt.study.compliance-risk","rpt.study.compliance-risk","not built yet",0],
-      ["row",8,"Forecast and Owner dashboard","rpt.study.forecast-scenarios","rpt.study.forecast-scenarios","not built yet",0],
-      ["row",8,"Forecast and Owner dashboard","rpt.study.owner-dashboard","rpt.study.owner-dashboard","not built yet",0]
+      ["row",1,"Revenue and cash","rpt.study.revenue-monthly","Monthly revenue and cash (FY history)","included",5],
+      ["row",1,"Revenue and cash","rpt.study.year-comparison","Year comparison","included",8],
+      ["row",1,"Revenue and cash","rpt.study.index-vs-base","Index vs a base year","included",4],
+      ["row",1,"Revenue and cash","rpt.study.fy-deep-dive","FY deep dive (price-volume, segments, top bills)","included",8],
+      ["row",2,"Occupancy and operations","rpt.study.occupancy-history","Occupancy history (three denominators)","included",8],
+      ["row",2,"Occupancy and operations","rpt.study.operations-patterns","Operations patterns","included",9],
+      ["row",2,"Occupancy and operations","rpt.study.rooms-and-rates","Rooms, rates and discounts","included",10],
+      ["row",2,"Occupancy and operations","rpt.study.zero-rate-complimentary","Zero-rate and complimentary stays","included",12],
+      ["row",3,"Receivables","rpt.study.receivables-bad-debt","Receivables and bad debt (legacy + live ageing)","included",11],
+      ["row",4,"Revenue management","rpt.study.revenue-kpi","Occupancy, ADR, RevPAR by month, FY, type, channel","included",5],
+      ["row",4,"Revenue management","rpt.study.channel-economics","Channel economics and net ADR","included",4],
+      ["row",4,"Revenue management","rpt.study.pricing-shape","Day-of-week, length-of-stay, segment mix, rate ladder, upgrades","included",7],
+      ["row",5,"Guests","rpt.study.guest-repeat-value","Repeat guests, frequency, lifetime value, repeat customer list","included",4],
+      ["row",5,"Guests","rpt.study.guest-origin-plan","Guest origin, nationality, meal plan, company guests","included",5],
+      ["row",6,"Housekeeping, F&B and halls","rpt.study.housekeeping-operations","Turnaround, idle streaks, check-in/out vs standard, daily load","included",5],
+      ["row",6,"Housekeeping, F&B and halls","rpt.study.fnb-halls-ancillary","F&B on bills, breakfast covers, hall utilisation, ancillary","included",6],
+      ["row",7,"Finance, sales and compliance","rpt.study.finance-cost","USALI P&L, break-even, paid-outs, cash & bank, GST by slab","included",6],
+      ["row",7,"Finance, sales and compliance","rpt.study.corporate-accounts","Corporate accounts, win-back list, account base","included",4],
+      ["row",7,"Finance, sales and compliance","rpt.study.compliance-risk","Capture rates, audit-trail counts, risk register, licence calendar","included",5],
+      ["row",8,"Forecast and Owner dashboard","rpt.study.forecast-scenarios","Seasonality indices, forecast (three methods), scenarios, budget vs actual, comp-set index","included",6],
+      ["row",8,"Forecast and Owner dashboard","rpt.study.owner-dashboard","Owner 12-KPI monthly dashboard","included",2]
      ]
     },
     {
@@ -87,12 +87,1383 @@
      ]
     },
     {
+     "key": "rpt.study.revenue-monthly:monthly",
+     "title": "1. Monthly revenue and cash (FY history) · Monthly (FY 2026-27)",
+     "columns": ["month","data","bills","room","fnb","other","discount","netBilled","gst","billed","chargedNights","adr","received","receivedPct"],
+     "rows": [
+      ["row","Oct 2026","live",8,1950000,0,0,0,1950000,97500,2047500,8,243750,1950000,95.2]
+     ]
+    },
+    {
+     "key": "rpt.study.revenue-monthly:fy-summary",
+     "title": "1. Monthly revenue and cash (FY history) · FY summary",
+     "columns": ["fy","data","bills","netBilled","gst","billed","chargedNights","adr","received","receivedPct","note"],
+     "rows": [
+      ["row","FY 2026-27","live",8,1950000,97500,2047500,8,243750,1950000,95.2,"Partial year"]
+     ]
+    },
+    {
+     "key": "rpt.study.revenue-monthly:fy-month-grid",
+     "title": "1. Monthly revenue and cash (FY history) · FY x Month grid (total billed)",
+     "columns": ["fy","m04","m05","m06","m07","m08","m09","m10","m11","m12","m01","m02","m03","total"],
+     "rows": [
+      ["row","FY 2026-27",0,0,0,0,0,0,2047500,0,0,0,0,0,2047500]
+     ]
+    },
+    {
+     "key": "rpt.study.revenue-monthly:series.billed-by-fy",
+     "title": "1. Monthly revenue and cash (FY history) · bar|Total billed by FY",
+     "columns": ["label","value"],
+     "rows": [
+      ["row","2026-27",2047500]
+     ]
+    },
+    {
+     "key": "rpt.study.revenue-monthly:series.billed-by-month",
+     "title": "1. Monthly revenue and cash (FY history) · line|Total billed by month FY 2026-27",
+     "columns": ["label","value"],
+     "rows": [
+      ["row","Oct 2026",2047500]
+     ]
+    },
+    {
+     "key": "rpt.study.year-comparison:summary",
+     "title": "1. Year comparison · Summary",
+     "columns": ["fy","billed","nights","occ","adr","yoy","note"],
+     "rows": [
+      ["row","FY 2026-27",2047500,16,33.3,243750,null,"Partial year, use like-for-like"]
+     ]
+    },
+    {
+     "key": "rpt.study.year-comparison:month-year-grid",
+     "title": "1. Year comparison · Month x Year (total billed)",
+     "columns": ["month","y2026-27"],
+     "rows": [
+      ["row","Apr",0],
+      ["row","May",0],
+      ["row","Jun",0],
+      ["row","Jul",0],
+      ["row","Aug",0],
+      ["row","Sep",0],
+      ["row","Oct",2047500],
+      ["row","Nov",0],
+      ["row","Dec",0],
+      ["row","Jan",0],
+      ["row","Feb",0],
+      ["row","Mar",0]
+     ]
+    },
+    {
+     "key": "rpt.study.year-comparison:yoy",
+     "title": "1. Year comparison · YoY growth (billed, room-nights, ADR)",
+     "columns": ["fy","billed","nights","adr"],
+     "rows": []
+    },
+    {
+     "key": "rpt.study.year-comparison:like-for-like",
+     "title": "1. Year comparison · Like-for-like 24-10 to 24-10 (date-exact)",
+     "columns": ["fy","billed","bills","vsPrev"],
+     "rows": [
+      ["row","FY 2026-27",0,0,null]
+     ]
+    },
+    {
+     "key": "rpt.study.year-comparison:cumulative",
+     "title": "1. Year comparison · Cumulative YTD (total billed)",
+     "columns": ["fy","m04","m05","m06","m07","m08","m09","m10","m11","m12","m01","m02","m03"],
+     "rows": [
+      ["row","FY 2026-27",0,0,0,0,0,0,2047500,2047500,2047500,2047500,2047500,2047500]
+     ]
+    },
+    {
+     "key": "rpt.study.year-comparison:cagr",
+     "title": "1. Year comparison · CAGR (normal full years)",
+     "columns": ["from","to","years","first","last","cagr"],
+     "rows": []
+    },
+    {
+     "key": "rpt.study.year-comparison:head-mix",
+     "title": "1. Year comparison · Revenue head mix (share of net billed)",
+     "columns": ["fy","room","fnb","other","discount"],
+     "rows": [
+      ["row","FY 2026-27",100,0,0,0]
+     ]
+    },
+    {
+     "key": "rpt.study.year-comparison:series.billed-by-fy",
+     "title": "1. Year comparison · bar|Total billed by FY",
+     "columns": ["label","value"],
+     "rows": [
+      ["row","2026-27",2047500]
+     ]
+    },
+    {
+     "key": "rpt.study.index-vs-base:index",
+     "title": "1. Index vs a base year · Index vs FY 2018-19 (base = 100)",
+     "columns": ["fy","billed","nights","adr","note"],
+     "rows": []
+    },
+    {
+     "key": "rpt.study.index-vs-base:covid-impact",
+     "title": "1. Index vs a base year · COVID impact and recovery",
+     "columns": ["fy","billed","vsBase","vsBasePct","status"],
+     "rows": []
+    },
+    {
+     "key": "rpt.study.index-vs-base:best-worst",
+     "title": "1. Index vs a base year · Best and worst months (normal years, total billed)",
+     "columns": ["rank","month","billed","kind"],
+     "rows": []
+    },
+    {
+     "key": "rpt.study.index-vs-base:series.index-billed",
+     "title": "1. Index vs a base year · line|Billed index vs base",
+     "columns": ["label","value"],
+     "rows": [
+      ["row","2026-27",null]
+     ]
+    },
+    {
+     "key": "rpt.study.fy-deep-dive:a-price-volume",
+     "title": "1. FY deep dive (price-volume, segments, top bills) · A Price-volume FY 2025-26 to FY 2026-27",
+     "columns": ["item","amount"],
+     "rows": []
+    },
+    {
+     "key": "rpt.study.fy-deep-dive:b-neighbours",
+     "title": "1. FY deep dive (price-volume, segments, top bills) · B Against neighbouring years",
+     "columns": ["fy","billed","nights","adr","occ"],
+     "rows": [
+      ["row","FY 2026-27",2047500,16,243750,33.3]
+     ]
+    },
+    {
+     "key": "rpt.study.fy-deep-dive:c-room-type",
+     "title": "1. FY deep dive (price-volume, segments, top bills) · C Segments by room type",
+     "columns": ["type","nights","room","adr","share"],
+     "rows": [
+      ["row","Classic",6,1200000,200000,61.5],
+      ["row","Suite",1,450000,450000,23.1],
+      ["row","Deluxe",1,300000,300000,15.4]
+     ]
+    },
+    {
+     "key": "rpt.study.fy-deep-dive:d-source",
+     "title": "1. FY deep dive (price-volume, segments, top bills) · D Booking source",
+     "columns": ["source","bills","billed","share"],
+     "rows": [
+      ["row","Phone",2,682500,33.3],
+      ["row","OTA · manual",2,525000,25.6],
+      ["row","Corporate",2,420000,20.5],
+      ["row","Direct",2,420000,20.5]
+     ]
+    },
+    {
+     "key": "rpt.study.fy-deep-dive:e-payment-mix",
+     "title": "1. FY deep dive (price-volume, segments, top bills) · E Payment mix",
+     "columns": ["method","amount","share"],
+     "rows": [
+      ["row","UPI",1350000,69.2],
+      ["row","Cash",600000,30.8]
+     ]
+    },
+    {
+     "key": "rpt.study.fy-deep-dive:f-top-bills",
+     "title": "1. FY deep dive (price-volume, segments, top bills) · F Top 10 bills",
+     "columns": ["bill","guest","date","billed","nights"],
+     "rows": [
+      ["row","B-HCC-1046","G-0006","2026-10-23",472500,1],
+      ["row","B-HCC-1043","G-0003","2026-10-23",315000,1],
+      ["row","B-HCC-1041","G-0001","2026-10-23",210000,1],
+      ["row","B-HCC-1042","G-0002","2026-10-23",210000,1],
+      ["row","B-HCC-1044","G-0004","2026-10-23",210000,1],
+      ["row","B-HCC-1045","G-0005","2026-10-23",210000,1],
+      ["row","B-HCC-1047","G-0007","2026-10-23",210000,1],
+      ["row","B-HCC-1048","G-0008","2026-10-23",210000,1]
+     ]
+    },
+    {
+     "key": "rpt.study.fy-deep-dive:g-length-of-stay",
+     "title": "1. FY deep dive (price-volume, segments, top bills) · G Length of stay (stays by arrival)",
+     "columns": ["los","stays","share"],
+     "rows": [
+      ["row","1",0,0],
+      ["row","2",0,0],
+      ["row","3",8,100],
+      ["row","4",0,0],
+      ["row","5",0,0],
+      ["row","6",0,0],
+      ["row","7+",0,0]
+     ]
+    },
+    {
+     "key": "rpt.study.fy-deep-dive:series.months",
+     "title": "1. FY deep dive (price-volume, segments, top bills) · line|Total billed by month FY 2026-27",
+     "columns": ["label","value"],
+     "rows": [
+      ["row","Apr",0],
+      ["row","May",0],
+      ["row","Jun",0],
+      ["row","Jul",0],
+      ["row","Aug",0],
+      ["row","Sep",0],
+      ["row","Oct",2047500],
+      ["row","Nov",0],
+      ["row","Dec",0],
+      ["row","Jan",0],
+      ["row","Feb",0],
+      ["row","Mar",0]
+     ]
+    },
+    {
+     "key": "rpt.study.occupancy-history:monthly",
+     "title": "2. Occupancy history (three denominators) · Monthly (FY 2026-27)",
+     "columns": ["month","days","inService","sold","occ","occA","occB","stays","alos","sameDay"],
+     "rows": [
+      ["row","Oct 2026",2,48,16,33.3,100,33.3,8,"3.00",0]
+     ]
+    },
+    {
+     "key": "rpt.study.occupancy-history:fy-summary",
+     "title": "2. Occupancy history (three denominators) · FY summary",
+     "columns": ["fy","days","inService","sold","occ","occA","occB","note"],
+     "rows": [
+      ["row","FY 2026-27",2,48,16,33.3,100,33.3,"Partial year"]
+     ]
+    },
+    {
+     "key": "rpt.study.occupancy-history:fy-month-grid",
+     "title": "2. Occupancy history (three denominators) · FY x Month grid (occupancy %)",
+     "columns": ["fy","m04","m05","m06","m07","m08","m09","m10","m11","m12","m01","m02","m03"],
+     "rows": [
+      ["row","FY 2026-27",null,null,null,null,null,null,33.3,null,null,null,null,null]
+     ]
+    },
+    {
+     "key": "rpt.study.occupancy-history:weekday-weekend",
+     "title": "2. Occupancy history (three denominators) · Weekday vs weekend (FY 2026-27; weekend = Fri + Sat nights)",
+     "columns": ["group","sold","capacity","occ"],
+     "rows": [
+      ["row","Weekday nights (Sun-Thu)",0,384,0],
+      ["row","Weekend nights (Fri-Sat)",16,192,8.3]
+     ]
+    },
+    {
+     "key": "rpt.study.occupancy-history:seasonality",
+     "title": "2. Occupancy history (three denominators) · Seasonality (simple mean of monthly %, normal years)",
+     "columns": ["month","obs","avg"],
+     "rows": [
+      ["row","Apr",0,0],
+      ["row","May",0,0],
+      ["row","Jun",0,0],
+      ["row","Jul",0,0],
+      ["row","Aug",0,0],
+      ["row","Sep",0,0],
+      ["row","Oct",0,0],
+      ["row","Nov",0,0],
+      ["row","Dec",0,0],
+      ["row","Jan",0,0],
+      ["row","Feb",0,0],
+      ["row","Mar",0,0]
+     ]
+    },
+    {
+     "key": "rpt.study.occupancy-history:room-type-mix",
+     "title": "2. Occupancy history (three denominators) · Room-type mix (FY 2026-27)",
+     "columns": ["type","rooms","sold","capacity","occ","share"],
+     "rows": [
+      ["row","Classic",12,12,24,50,75],
+      ["row","Deluxe",9,2,18,11.1,12.5],
+      ["row","Suite",3,2,6,33.3,12.5]
+     ]
+    },
+    {
+     "key": "rpt.study.occupancy-history:series.occ-by-fy",
+     "title": "2. Occupancy history (three denominators) · bar|Occupancy % by FY",
+     "columns": ["label","value"],
+     "rows": [
+      ["row","2026-27",33.3]
+     ]
+    },
+    {
+     "key": "rpt.study.occupancy-history:note.caveat",
+     "title": "2. Occupancy history (three denominators) · Note",
+     "columns": ["note"],
+     "rows": [
+      ["row","The data does not record which rooms were sellable on a given day; all three denominators are approximations and true occupancy of sellable inventory is at or above the headline."]
+     ]
+    },
+    {
+     "key": "rpt.study.operations-patterns:arrivals-dow",
+     "title": "2. Operations patterns · Arrivals_DOW",
+     "columns": ["item","stays","share"],
+     "rows": [
+      ["row","Sunday",0,0],
+      ["row","Monday",0,0],
+      ["row","Tuesday",0,0],
+      ["row","Wednesday",0,0],
+      ["row","Thursday",0,0],
+      ["row","Friday",8,100],
+      ["row","Saturday",0,0]
+     ]
+    },
+    {
+     "key": "rpt.study.operations-patterns:departures-dow",
+     "title": "2. Operations patterns · Departures_DOW",
+     "columns": ["item","stays","share"],
+     "rows": [
+      ["row","Sunday",0,0],
+      ["row","Monday",8,100],
+      ["row","Tuesday",0,0],
+      ["row","Wednesday",0,0],
+      ["row","Thursday",0,0],
+      ["row","Friday",0,0],
+      ["row","Saturday",0,0]
+     ]
+    },
+    {
+     "key": "rpt.study.operations-patterns:length-of-stay",
+     "title": "2. Operations patterns · LengthOfStay",
+     "columns": ["item","stays","share"],
+     "rows": [
+      ["row","1",0,0],
+      ["row","2",0,0],
+      ["row","3",8,100],
+      ["row","4",0,0],
+      ["row","5",0,0],
+      ["row","6",0,0],
+      ["row","7+",0,0]
+     ]
+    },
+    {
+     "key": "rpt.study.operations-patterns:group-size",
+     "title": "2. Operations patterns · GroupSize (rooms booked together: same guest, same arrival)",
+     "columns": ["item","parties","share"],
+     "rows": [
+      ["row","1 room",8,100],
+      ["row","2 rooms",0,0],
+      ["row","3-4 rooms",0,0],
+      ["row","5+ rooms",0,0]
+     ]
+    },
+    {
+     "key": "rpt.study.operations-patterns:purpose",
+     "title": "2. Operations patterns · Purpose",
+     "columns": ["item","stays","share"],
+     "rows": [
+      ["row","not recorded",8,100]
+     ]
+    },
+    {
+     "key": "rpt.study.operations-patterns:booking-source",
+     "title": "2. Operations patterns · BookingSource",
+     "columns": ["item","stays","share"],
+     "rows": [
+      ["row","Corporate",2,25],
+      ["row","Direct",2,25],
+      ["row","OTA · manual",2,25],
+      ["row","Phone",2,25]
+     ]
+    },
+    {
+     "key": "rpt.study.operations-patterns:status",
+     "title": "2. Operations patterns · Status (all stays arriving in the FY)",
+     "columns": ["item","stays","share"],
+     "rows": [
+      ["row","Confirmed",2,20],
+      ["row","In house",8,80]
+     ]
+    },
+    {
+     "key": "rpt.study.operations-patterns:needs-times",
+     "title": "2. Operations patterns · CheckIn_Hour, CheckOut_Hour, Turnover_EarlyLate, AdvanceLead",
+     "columns": ["item","state"],
+     "rows": [
+      ["row","CheckIn_Hour","Pending: the analytics input carries dates only (needs check-in / out times and booking date)"],
+      ["row","CheckOut_Hour","Pending: the analytics input carries dates only (needs check-in / out times and booking date)"],
+      ["row","Turnover_EarlyLate","Pending: the analytics input carries dates only (needs check-in / out times and booking date)"],
+      ["row","AdvanceLead","Pending: the analytics input carries dates only (needs check-in / out times and booking date)"]
+     ]
+    },
+    {
+     "key": "rpt.study.operations-patterns:series.arrivals-dow",
+     "title": "2. Operations patterns · bar|Arrivals by weekday",
+     "columns": ["label","value"],
+     "rows": [
+      ["row","Sunday",0],
+      ["row","Monday",0],
+      ["row","Tuesday",0],
+      ["row","Wednesday",0],
+      ["row","Thursday",0],
+      ["row","Friday",8],
+      ["row","Saturday",0]
+     ]
+    },
+    {
+     "key": "rpt.study.rooms-and-rates:room-nights-revenue-rate",
+     "title": "2. Rooms, rates and discounts · Room Nights / Revenue / Avg Rate / Share / Occupancy (FY 2026-27)",
+     "columns": ["room","type","nights","revenue","avg","share","occ"],
+     "rows": [
+      ["row","101","Classic",2,200000,200000,10.3,100],
+      ["row","102","Classic",2,200000,200000,10.3,100],
+      ["row","103","Deluxe",0,0,0,0,0],
+      ["row","104","Deluxe",2,300000,300000,15.4,100],
+      ["row","105","Classic",0,0,0,0,0],
+      ["row","106","Suite",0,0,0,0,0],
+      ["row","107","Deluxe",0,0,0,0,0],
+      ["row","108","Classic",0,0,0,0,0],
+      ["row","201","Classic",2,200000,200000,10.3,100],
+      ["row","202","Classic",2,200000,200000,10.3,100],
+      ["row","203","Deluxe",0,0,0,0,0],
+      ["row","204","Deluxe",0,0,0,0,0],
+      ["row","205","Classic",0,0,0,0,0],
+      ["row","206","Suite",2,450000,450000,23.1,100],
+      ["row","207","Deluxe",0,0,0,0,0],
+      ["row","208","Classic",0,0,0,0,0],
+      ["row","301","Classic",2,200000,200000,10.3,100],
+      ["row","302","Classic",2,200000,200000,10.3,100],
+      ["row","303","Deluxe",0,0,0,0,0],
+      ["row","304","Deluxe",0,0,0,0,0],
+      ["row","305","Classic",0,0,0,0,0],
+      ["row","306","Suite",0,0,0,0,0],
+      ["row","307","Deluxe",0,0,0,0,0],
+      ["row","308","Classic",0,0,0,0,0]
+     ]
+    },
+    {
+     "key": "rpt.study.rooms-and-rates:top-bottom",
+     "title": "2. Rooms, rates and discounts · Top / Bottom rooms (by room revenue)",
+     "columns": ["rank","room","revenue","nights"],
+     "rows": [
+      ["row","Top 1","206",450000,2],
+      ["row","Top 2","104",300000,2],
+      ["row","Top 3","101",200000,2],
+      ["row","Top 4","102",200000,2],
+      ["row","Top 5","201",200000,2],
+      ["row","Bottom 1","308",0,0],
+      ["row","Bottom 2","307",0,0],
+      ["row","Bottom 3","306",0,0],
+      ["row","Bottom 4","305",0,0],
+      ["row","Bottom 5","304",0,0]
+     ]
+    },
+    {
+     "key": "rpt.study.rooms-and-rates:low-sales",
+     "title": "2. Rooms, rates and discounts · Low sales (below half the room average)",
+     "columns": ["room","nights","avg"],
+     "rows": [
+      ["row","103",0,1],
+      ["row","105",0,1],
+      ["row","106",0,1],
+      ["row","107",0,1],
+      ["row","108",0,1],
+      ["row","203",0,1],
+      ["row","204",0,1],
+      ["row","205",0,1],
+      ["row","207",0,1],
+      ["row","208",0,1],
+      ["row","303",0,1],
+      ["row","304",0,1],
+      ["row","305",0,1],
+      ["row","306",0,1],
+      ["row","307",0,1],
+      ["row","308",0,1]
+     ]
+    },
+    {
+     "key": "rpt.study.rooms-and-rates:room-type-fy",
+     "title": "2. Rooms, rates and discounts · Room type by FY (room revenue)",
+     "columns": ["type","y2026-27"],
+     "rows": [
+      ["row","Classic",1200000],
+      ["row","Deluxe",300000],
+      ["row","Suite",450000]
+     ]
+    },
+    {
+     "key": "rpt.study.rooms-and-rates:tariff-trend",
+     "title": "2. Rooms, rates and discounts · Tariff trend (ADR by FY)",
+     "columns": ["fy","adr","change"],
+     "rows": [
+      ["row","FY 2026-27",243750,null]
+     ]
+    },
+    {
+     "key": "rpt.study.rooms-and-rates:rate-overrides",
+     "title": "2. Rooms, rates and discounts · Rate overrides (billed rate differs from the stay rate, FY 2026-27)",
+     "columns": ["kind","bills","delta"],
+     "rows": [
+      ["row","Below stay rate",0,0],
+      ["row","Above stay rate",0,0]
+     ]
+    },
+    {
+     "key": "rpt.study.rooms-and-rates:discount-control",
+     "title": "2. Rooms, rates and discounts · Discount control",
+     "columns": ["fy","bills","discount","pct"],
+     "rows": [
+      ["row","FY 2026-27",0,0,0]
+     ]
+    },
+    {
+     "key": "rpt.study.rooms-and-rates:payment-mix",
+     "title": "2. Rooms, rates and discounts · Payment mix by FY (received)",
+     "columns": ["fy","p_Cash","p_UPI"],
+     "rows": [
+      ["row","FY 2026-27",600000,1350000]
+     ]
+    },
+    {
+     "key": "rpt.study.rooms-and-rates:unpaid-ageing",
+     "title": "2. Rooms, rates and discounts · Unpaid ageing (as of the business date)",
+     "columns": ["bucket","bills","due"],
+     "rows": [
+      ["row","0-30",8,97500],
+      ["row","31-90",0,0],
+      ["row","91-180",0,0],
+      ["row","181-365",0,0],
+      ["row","366-730",0,0],
+      ["row","731+",0,0]
+     ]
+    },
+    {
+     "key": "rpt.study.rooms-and-rates:series.adr-by-fy",
+     "title": "2. Rooms, rates and discounts · line|ADR by FY",
+     "columns": ["label","value"],
+     "rows": [
+      ["row","2026-27",243750]
+     ]
+    },
+    {
+     "key": "rpt.study.zero-rate-complimentary:rate-changes-by-fy",
+     "title": "2. Zero-rate and complimentary stays · Rate changes by FY (billed rate differs from the stay rate)",
+     "columns": ["fy","stays","changed","share"],
+     "rows": [
+      ["row","FY 2026-27",8,0,0]
+     ]
+    },
+    {
+     "key": "rpt.study.zero-rate-complimentary:zero-events",
+     "title": "2. Zero-rate and complimentary stays · Zero-rate events (FY 2026-27)",
+     "columns": ["stay","date","room","category","nights","expected","billed","received"],
+     "rows": []
+    },
+    {
+     "key": "rpt.study.zero-rate-complimentary:zero-bills",
+     "title": "2. Zero-rate and complimentary stays · Zero room-charge bills by FY",
+     "columns": ["fy","bills","zero","share"],
+     "rows": [
+      ["row","FY 2026-27",8,0,0]
+     ]
+    },
+    {
+     "key": "rpt.study.zero-rate-complimentary:zero-by-fy-category",
+     "title": "2. Zero-rate and complimentary stays · Zero by FY and category",
+     "columns": ["fy","c_Complimentary","c_Zero room charge","c_Zero rate","total"],
+     "rows": [
+      ["row","FY 2026-27",0,0,0,0]
+     ]
+    },
+    {
+     "key": "rpt.study.zero-rate-complimentary:zero-by-month",
+     "title": "2. Zero-rate and complimentary stays · Zero by month",
+     "columns": ["month","events","expected"],
+     "rows": []
+    },
+    {
+     "key": "rpt.study.zero-rate-complimentary:zero-by-room",
+     "title": "2. Zero-rate and complimentary stays · Zero by room (FY 2026-27)",
+     "columns": ["room","type","events"],
+     "rows": []
+    },
+    {
+     "key": "rpt.study.zero-rate-complimentary:large-down-adjustments",
+     "title": "2. Zero-rate and complimentary stays · Large down-adjustments (cut over 30 % or over Rs 1,000 a night; top 50)",
+     "columns": ["bill","room","from","to","cut","total"],
+     "rows": []
+    },
+    {
+     "key": "rpt.study.zero-rate-complimentary:reasons-ranking",
+     "title": "2. Zero-rate and complimentary stays · Reasons ranking (purpose of the stay)",
+     "columns": ["reason","events"],
+     "rows": []
+    },
+    {
+     "key": "rpt.study.zero-rate-complimentary:zero-vs-receipts",
+     "title": "2. Zero-rate and complimentary stays · Zero vs receipts",
+     "columns": ["item","stays"],
+     "rows": [
+      ["row","Zero-event stays",0],
+      ["row","With a zero room-charge bill",0],
+      ["row","Zero room-charge bill and money received",0]
+     ]
+    },
+    {
+     "key": "rpt.study.zero-rate-complimentary:revenue-given-up",
+     "title": "2. Zero-rate and complimentary stays · Revenue given up (estimates, room tariff before GST)",
+     "columns": ["est","amount"],
+     "rows": [
+      ["row","A: expected charge of every zero-event stay",0],
+      ["row","B: shortfall against the bill (stays with a bill)",0],
+      ["row","C: expected charge of stays whose bill is zero",0]
+     ]
+    },
+    {
+     "key": "rpt.study.zero-rate-complimentary:series.events-by-fy",
+     "title": "2. Zero-rate and complimentary stays · bar|Zero-rate events by FY",
+     "columns": ["label","value"],
+     "rows": [
+      ["row","2026-27",0]
+     ]
+    },
+    {
+     "key": "rpt.study.zero-rate-complimentary:note.method",
+     "title": "2. Zero-rate and complimentary stays · Note",
+     "columns": ["note"],
+     "rows": [
+      ["row","Evidence of a zero rate, not proof of a free stay. Legacy rows keep note-parsed events; live rows read the complimentary flag (DEC-266: the explicit complimentary stay type is pending). Revenue-given-up figures are estimates, not losses."]
+     ]
+    },
+    {
+     "key": "rpt.study.receivables-bad-debt:summary",
+     "title": "3. Receivables and bad debt (legacy + live ageing) · Summary by FY (legacy = bad debt, DEC-265)",
+     "columns": ["fy","kind","bills","due","share"],
+     "rows": [
+      ["row","FY 2026-27","Live receivable",8,97500,100],
+      ["total","Total","",8,97500,100]
+     ]
+    },
+    {
+     "key": "rpt.study.receivables-bad-debt:bad-debt-schedule",
+     "title": "3. Receivables and bad debt (legacy + live ageing) · Bad Debt Schedule (legacy, write-off provision 100 %; GST is an estimate, CA to confirm)",
+     "columns": ["fy","bills","due","gst","net"],
+     "rows": [
+      ["total","Total",0,0,0,0]
+     ]
+    },
+    {
+     "key": "rpt.study.receivables-bad-debt:ageing-by-fy",
+     "title": "3. Receivables and bad debt (legacy + live ageing) · Ageing by FY",
+     "columns": ["fy","b_0-30","b_31-90","b_91-180","b_181-365","b_366-730","b_731+","total"],
+     "rows": [
+      ["row","FY 2026-27",97500,0,0,0,0,0,97500]
+     ]
+    },
+    {
+     "key": "rpt.study.receivables-bad-debt:top-dues",
+     "title": "3. Receivables and bad debt (legacy + live ageing) · Top 100 dues",
+     "columns": ["bill","party","date","age","due","kind"],
+     "rows": [
+      ["row","B-HCC-1046","G-0006","2026-10-23",1,22500,"Live"],
+      ["row","B-HCC-1043","G-0003","2026-10-23",1,15000,"Live"],
+      ["row","B-HCC-1041","G-0001","2026-10-23",1,10000,"Live"],
+      ["row","B-HCC-1042","G-0002","2026-10-23",1,10000,"Live"],
+      ["row","B-HCC-1044","G-0004","2026-10-23",1,10000,"Live"],
+      ["row","B-HCC-1045","G-0005","2026-10-23",1,10000,"Live"],
+      ["row","B-HCC-1047","G-0007","2026-10-23",1,10000,"Live"],
+      ["row","B-HCC-1048","G-0008","2026-10-23",1,10000,"Live"]
+     ]
+    },
+    {
+     "key": "rpt.study.receivables-bad-debt:top-debtors",
+     "title": "3. Receivables and bad debt (legacy + live ageing) · Top debtors",
+     "columns": ["party","bills","due","oldest"],
+     "rows": [
+      ["row","G-0006",1,22500,"2026-10-23"],
+      ["row","G-0003",1,15000,"2026-10-23"],
+      ["row","G-0001",1,10000,"2026-10-23"],
+      ["row","G-0002",1,10000,"2026-10-23"],
+      ["row","G-0004",1,10000,"2026-10-23"],
+      ["row","G-0005",1,10000,"2026-10-23"],
+      ["row","G-0007",1,10000,"2026-10-23"],
+      ["row","G-0008",1,10000,"2026-10-23"]
+     ]
+    },
+    {
+     "key": "rpt.study.receivables-bad-debt:company-vs-walkin",
+     "title": "3. Receivables and bad debt (legacy + live ageing) · Company vs walk-in",
+     "columns": ["kind","bills","due","share"],
+     "rows": [
+      ["row","Company / B2B",0,0,0],
+      ["row","Walk-in",8,97500,100]
+     ]
+    },
+    {
+     "key": "rpt.study.receivables-bad-debt:follow-up-list",
+     "title": "3. Receivables and bad debt (legacy + live ageing) · Follow-up list (dues older than 2 years are verify-first)",
+     "columns": ["bill","party","due","age","action"],
+     "rows": [
+      ["row","B-HCC-1046","G-0006",22500,1,"Call"],
+      ["row","B-HCC-1043","G-0003",15000,1,"Call"],
+      ["row","B-HCC-1041","G-0001",10000,1,"Call"],
+      ["row","B-HCC-1042","G-0002",10000,1,"Call"],
+      ["row","B-HCC-1044","G-0004",10000,1,"Call"],
+      ["row","B-HCC-1045","G-0005",10000,1,"Call"],
+      ["row","B-HCC-1047","G-0007",10000,1,"Call"],
+      ["row","B-HCC-1048","G-0008",10000,1,"Call"]
+     ]
+    },
+    {
+     "key": "rpt.study.receivables-bad-debt:monthly-unpaid",
+     "title": "3. Receivables and bad debt (legacy + live ageing) · Monthly unpaid",
+     "columns": ["month","bills","due"],
+     "rows": [
+      ["row","Oct 2026",8,97500]
+     ]
+    },
+    {
+     "key": "rpt.study.receivables-bad-debt:cutover-comparison",
+     "title": "3. Receivables and bad debt (legacy + live ageing) · Cutover comparison (legacy to 2026-10-30 / HCC live)",
+     "columns": ["side","bills","due","treatment"],
+     "rows": [
+      ["row","Legacy",0,0,"Bad debt, not carried as opening receivable (DEC-265)"],
+      ["row","HCC live",8,97500,"Receivable; see rpt.acc.ageing"]
+     ]
+    },
+    {
+     "key": "rpt.study.receivables-bad-debt:series.due-by-fy",
+     "title": "3. Receivables and bad debt (legacy + live ageing) · bar|Due by FY",
+     "columns": ["label","value"],
+     "rows": [
+      ["row","2026-27",97500]
+     ]
+    },
+    {
+     "key": "rpt.study.receivables-bad-debt:note.contacts",
+     "title": "3. Receivables and bad debt (legacy + live ageing) · Note",
+     "columns": ["note"],
+     "rows": [
+      ["row","Debtor Contacts (phone, GSTIN) are pending: the analytics input carries no contact data. Names stay under rule V."]
+     ]
+    },
+    {
+     "key": "rpt.study.revenue-kpi:month",
+     "title": "4. Occupancy, ADR, RevPAR by month, FY, type, channel · KPI by Month",
+     "columns": ["month","src","days","rooms","avail","sold","occ","bills","cn","rev","adr","revpar"],
+     "rows": [
+      ["row","2026-10","Legacy",2,24,48,16,33.3,8,24,1950000,81250,40625]
+     ]
+    },
+    {
+     "key": "rpt.study.revenue-kpi:fy",
+     "title": "4. Occupancy, ADR, RevPAR by month, FY, type, channel · KPI by FY",
+     "columns": ["fy","src","months","avail","sold","occ","rev","cn","adr","revpar","unsold","unsoldValue"],
+     "rows": [
+      ["row","2026-27","Legacy",1,48,16,33.3,1950000,24,81250,40625,32,2600000],
+      ["total","Total","",1,48,16,33.3,1950000,24,81250,40625,32,null]
+     ]
+    },
+    {
+     "key": "rpt.study.revenue-kpi:type",
+     "title": "4. Occupancy, ADR, RevPAR by month, FY, type, channel · KPI by Room Type",
+     "columns": ["type","fy","rooms","avail","sold","occ","rev","cn","adr","revpar"],
+     "rows": [
+      ["row","Suite","2026-27",3,6,2,33.3,450000,3,150000,75000],
+      ["row","Deluxe","2026-27",9,18,2,11.1,300000,3,100000,16667],
+      ["row","Classic","2026-27",12,24,12,50,1200000,18,66667,50000]
+     ]
+    },
+    {
+     "key": "rpt.study.revenue-kpi:channel",
+     "title": "4. Occupancy, ADR, RevPAR by month, FY, type, channel · KPI by Channel",
+     "columns": ["fy","channel","bills","rn","rev","adr","share"],
+     "rows": [
+      ["row","2026-27","Direct / walk-in",8,24,1950000,81250,100]
+     ]
+    },
+    {
+     "key": "rpt.study.revenue-kpi:series:occupancy-by-month",
+     "title": "4. Occupancy, ADR, RevPAR by month, FY, type, channel · [bar] Occupancy % by month",
+     "columns": ["label","value"],
+     "rows": [
+      ["row","Oct 26",33.3]
+     ]
+    },
+    {
+     "key": "rpt.study.channel-economics:net",
+     "title": "4. Channel economics and net ADR · Net ADR after Commission",
+     "columns": ["fy","otaRn","otaRev","otaAdr","directAdr","c12","c15","c18","c20","netAdr","gap"],
+     "rows": [
+      ["row","2026-27",0,0,null,81250,0,0,0,0,null,null]
+     ]
+    },
+    {
+     "key": "rpt.study.channel-economics:direct",
+     "title": "4. Channel economics and net ADR · Direct Share by Month",
+     "columns": ["month","directRn","otaRn","directShare","directRev","otaRev","directRevShare"],
+     "rows": [
+      ["row","2026-10",24,0,100,1950000,0,100]
+     ]
+    },
+    {
+     "key": "rpt.study.channel-economics:ota",
+     "title": "4. Channel economics and net ADR · OTA Dependence",
+     "columns": ["fy","bills","otaBills","otaShare","otaRn","otaRev","otaRevShare","otaAdr","otaNights","directNights"],
+     "rows": [
+      ["row","2026-27",8,0,0,0,0,0,null,null,3]
+     ]
+    },
+    {
+     "key": "rpt.study.channel-economics:series:direct-share",
+     "title": "4. Channel economics and net ADR · [line] Direct share of room-nights by month",
+     "columns": ["label","value"],
+     "rows": [
+      ["row","Oct 26",100]
+     ]
+    },
+    {
+     "key": "rpt.study.pricing-shape:dow",
+     "title": "4. Day-of-week, length-of-stay, segment mix, rate ladder, upgrades · DOW & LOS Pricing: night of week",
+     "columns": ["night","sold","cap","occ","adr","adrRecent"],
+     "rows": [
+      ["row","Mon",0,0,null,null,null],
+      ["row","Tue",0,0,null,null,null],
+      ["row","Wed",0,0,null,null,null],
+      ["row","Thu",0,0,null,null,null],
+      ["row","Fri",8,24,33.3,81250,81250],
+      ["row","Sat",8,24,33.3,null,null],
+      ["row","Sun",0,0,null,null,null]
+     ]
+    },
+    {
+     "key": "rpt.study.pricing-shape:los",
+     "title": "4. Day-of-week, length-of-stay, segment mix, rate ladder, upgrades · DOW & LOS Pricing: length of stay",
+     "columns": ["bucket","bills","rn","adr","billsRecent","adrRecent","discPct"],
+     "rows": [
+      ["row","1 night",0,0,null,0,null,null],
+      ["row","2 nights",0,0,null,0,null,null],
+      ["row","3 nights",8,24,81250,8,81250,0],
+      ["row","4-7 nights",0,0,null,0,null,null],
+      ["row","8-14 nights",0,0,null,0,null,null],
+      ["row","15+ nights",0,0,null,0,null,null]
+     ]
+    },
+    {
+     "key": "rpt.study.pricing-shape:segment",
+     "title": "4. Day-of-week, length-of-stay, segment mix, rate ladder, upgrades · Segment Mix",
+     "columns": ["fy","segment","bills","rn","rev","adr","share"],
+     "rows": [
+      ["row","2026-27","Direct / walk-in",8,24,1950000,81250,100]
+     ]
+    },
+    {
+     "key": "rpt.study.pricing-shape:ladder",
+     "title": "4. Day-of-week, length-of-stay, segment mix, rate ladder, upgrades · Rate Ladder",
+     "columns": ["type","fy","bills","modal","p10","p50","p90","below","cut"],
+     "rows": [
+      ["row","Suite","2026-27",1,150000,150000,150000,150000,0,null],
+      ["row","Deluxe","2026-27",1,100000,100000,100000,100000,0,null],
+      ["row","Classic","2026-27",6,66700,66700,66700,66700,0,null]
+     ]
+    },
+    {
+     "key": "rpt.study.pricing-shape:upgrades",
+     "title": "4. Day-of-week, length-of-stay, segment mix, rate ladder, upgrades · Upgrades & Shifts",
+     "columns": ["fy","stays","typed","ups","upPct","downs"],
+     "rows": [
+      ["row","2026-27",8,0,0,null,0]
+     ]
+    },
+    {
+     "key": "rpt.study.pricing-shape:window",
+     "title": "4. Day-of-week, length-of-stay, segment mix, rate ladder, upgrades · Booking Window (first receipt vs arrival)",
+     "columns": ["bucket","stays","share"],
+     "rows": [
+      ["row","Paid on / after arrival",8,100]
+     ]
+    },
+    {
+     "key": "rpt.study.pricing-shape:series:dow-occupancy",
+     "title": "4. Day-of-week, length-of-stay, segment mix, rate ladder, upgrades · [bar] Occupancy % by night of week",
+     "columns": ["label","value"],
+     "rows": [
+      ["row","Mon",null],
+      ["row","Tue",null],
+      ["row","Wed",null],
+      ["row","Thu",null],
+      ["row","Fri",33.3],
+      ["row","Sat",33.3],
+      ["row","Sun",null]
+     ]
+    },
+    {
+     "key": "rpt.study.guest-repeat-value:repeat",
+     "title": "5. Repeat guests, frequency, lifetime value, repeat customer list · Repeat Guests by FY",
+     "columns": ["fy","guests","repeat","repeatPct","stays","repeatStays","net","repeatNet","repeatNetPct"],
+     "rows": [
+      ["row","2026-27",8,0,0,8,0,1950000,0,0]
+     ]
+    },
+    {
+     "key": "rpt.study.guest-repeat-value:frequency",
+     "title": "5. Repeat guests, frequency, lifetime value, repeat customer list · Guest Frequency & Value",
+     "columns": ["bucket","guests","stays","nights","net","perGuest","avgNights"],
+     "rows": [
+      ["row","1 stay",8,8,24,1950000,243750,3],
+      ["row","2 stays",0,0,0,0,null,null],
+      ["row","3-4 stays",0,0,0,0,null,null],
+      ["row","5-9 stays",0,0,0,0,null,null],
+      ["row","10+ stays",0,0,0,0,null,null]
+     ]
+    },
+    {
+     "key": "rpt.study.guest-repeat-value:list",
+     "title": "5. Repeat guests, frequency, lifetime value, repeat customer list · Repeat Customer List",
+     "columns": ["guest","stays","first","last","nights","net","fys"],
+     "rows": []
+    },
+    {
+     "key": "rpt.study.guest-repeat-value:series:repeat-pct",
+     "title": "5. Repeat guests, frequency, lifetime value, repeat customer list · [line] Repeat guests % by FY",
+     "columns": ["label","value"],
+     "rows": [
+      ["row","2026-27",0]
+     ]
+    },
+    {
+     "key": "rpt.study.guest-origin-plan:origin",
+     "title": "5. Guest origin, nationality, meal plan, company guests · Guest Origin",
+     "columns": ["fy","state","stays","share"],
+     "rows": [
+      ["row","2026-27","Gujarat (fictional)",2,25],
+      ["row","2026-27","Maharashtra (fictional)",2,25],
+      ["row","2026-27","Chandigarh (fictional)",1,12.5],
+      ["row","2026-27","Karnataka (fictional)",1,12.5],
+      ["row","2026-27","New Delhi (fictional)",1,12.5],
+      ["row","2026-27","Tamil Nadu (fictional)",1,12.5]
+     ]
+    },
+    {
+     "key": "rpt.study.guest-origin-plan:nationality",
+     "title": "5. Guest origin, nationality, meal plan, company guests · Nationality & Form C",
+     "columns": ["fy","nationality","formC","stays","share"],
+     "rows": [
+      ["row","2026-27","Indian","No",8,100]
+     ]
+    },
+    {
+     "key": "rpt.study.guest-origin-plan:plan",
+     "title": "5. Guest origin, nationality, meal plan, company guests · Meal Plan Mix",
+     "columns": ["fy","stays","ep","cp","map","ap","none","cpPct"],
+     "rows": [
+      ["row","2026-27",8,0,0,0,0,8,0]
+     ]
+    },
+    {
+     "key": "rpt.study.guest-origin-plan:company",
+     "title": "5. Guest origin, nationality, meal plan, company guests · Company Guests",
+     "columns": ["fy","stays","companies","nights","share"],
+     "rows": [
+      ["row","2026-27",0,0,0,0]
+     ]
+    },
+    {
+     "key": "rpt.study.guest-origin-plan:series:cp-share",
+     "title": "5. Guest origin, nationality, meal plan, company guests · [bar] CP share of stays by FY",
+     "columns": ["label","value"],
+     "rows": [
+      ["row","2026-27",0]
+     ]
+    },
+    {
+     "key": "rpt.study.housekeeping-operations:turnaround",
+     "title": "6. Turnaround, idle streaks, check-in/out vs standard, daily load · Turnaround",
+     "columns": ["fy","turnovers","sameDay","sameDayPct","nextDay","avgGap"],
+     "rows": [
+      ["row","2026-27",0,0,null,0,null]
+     ]
+    },
+    {
+     "key": "rpt.study.housekeeping-operations:idle",
+     "title": "6. Turnaround, idle streaks, check-in/out vs standard, daily load · Idle Streaks",
+     "columns": ["room","type","fy","inService","soldDays","unsold","longest"],
+     "rows": [
+      ["row","101","Classic","2026-27",2,2,0,0],
+      ["row","102","Classic","2026-27",2,2,0,0],
+      ["row","103","Deluxe","2026-27",2,0,2,2],
+      ["row","104","Deluxe","2026-27",2,2,0,0],
+      ["row","105","Classic","2026-27",2,0,2,2],
+      ["row","106","Suite","2026-27",2,0,2,2],
+      ["row","107","Deluxe","2026-27",2,0,2,2],
+      ["row","108","Classic","2026-27",2,0,2,2],
+      ["row","201","Classic","2026-27",2,2,0,0],
+      ["row","202","Classic","2026-27",2,2,0,0],
+      ["row","203","Deluxe","2026-27",2,0,2,2],
+      ["row","204","Deluxe","2026-27",2,0,2,2],
+      ["row","205","Classic","2026-27",2,0,2,2],
+      ["row","206","Suite","2026-27",2,2,0,0],
+      ["row","207","Deluxe","2026-27",2,0,2,2],
+      ["row","208","Classic","2026-27",2,0,2,2],
+      ["row","301","Classic","2026-27",2,2,0,0],
+      ["row","302","Classic","2026-27",2,2,0,0],
+      ["row","303","Deluxe","2026-27",2,0,2,2],
+      ["row","304","Deluxe","2026-27",2,0,2,2],
+      ["row","305","Classic","2026-27",2,0,2,2],
+      ["row","306","Suite","2026-27",2,0,2,2],
+      ["row","307","Deluxe","2026-27",2,0,2,2],
+      ["row","308","Classic","2026-27",2,0,2,2]
+     ]
+    },
+    {
+     "key": "rpt.study.housekeeping-operations:inout",
+     "title": "6. Turnaround, idle streaks, check-in/out vs standard, daily load · Check-in-out vs Standard",
+     "columns": ["fy","stays","withIn","early","earlyPct","withOut","late","latePct"],
+     "rows": [
+      ["row","2026-27",8,0,0,null,0,0,null]
+     ]
+    },
+    {
+     "key": "rpt.study.housekeeping-operations:load",
+     "title": "6. Turnaround, idle streaks, check-in/out vs standard, daily load · Daily Load",
+     "columns": ["day","days","arrivals","avgArr","maxArr","departures","avgDep","maxDep"],
+     "rows": [
+      ["row","Mon",0,0,null,0,0,null,0],
+      ["row","Tue",0,0,null,0,0,null,0],
+      ["row","Wed",0,0,null,0,0,null,0],
+      ["row","Thu",0,0,null,0,0,null,0],
+      ["row","Fri",1,8,8,8,0,0,0],
+      ["row","Sat",1,0,0,0,0,0,0],
+      ["row","Sun",0,0,null,0,0,null,0]
+     ]
+    },
+    {
+     "key": "rpt.study.housekeeping-operations:series:avg-arrivals",
+     "title": "6. Turnaround, idle streaks, check-in/out vs standard, daily load · [bar] Average arrivals per day by night of week",
+     "columns": ["label","value"],
+     "rows": [
+      ["row","Mon",null],
+      ["row","Tue",null],
+      ["row","Wed",null],
+      ["row","Thu",null],
+      ["row","Fri",8],
+      ["row","Sat",0],
+      ["row","Sun",null]
+     ]
+    },
+    {
+     "key": "rpt.study.fnb-halls-ancillary:fnb-month",
+     "title": "6. F&B on bills, breakfast covers, hall utilisation, ancillary · F&B on Bills by Month",
+     "columns": ["month","bills","fnb","perBill","pctRoom"],
+     "rows": [
+      ["row","2026-10",8,0,0,0]
+     ]
+    },
+    {
+     "key": "rpt.study.fnb-halls-ancillary:fnb-fy",
+     "title": "6. F&B on bills, breakfast covers, hall utilisation, ancillary · F&B by FY",
+     "columns": ["fy","bills","withFnb","fnb","perBill","pctRoom"],
+     "rows": [
+      ["row","2026-27",8,0,0,0,0]
+     ]
+    },
+    {
+     "key": "rpt.study.fnb-halls-ancillary:covers",
+     "title": "6. F&B on bills, breakfast covers, hall utilisation, ancillary · Breakfast Covers",
+     "columns": ["fy","stays","covers","nights"],
+     "rows": [
+      ["row","2026-27",0,0,0]
+     ]
+    },
+    {
+     "key": "rpt.study.fnb-halls-ancillary:halls",
+     "title": "6. F&B on bills, breakfast covers, hall utilisation, ancillary · Hall Utilisation",
+     "columns": ["fy","events","days","revenue","perEvent"],
+     "rows": [
+      ["row","2026-27",0,0,0,null]
+     ]
+    },
+    {
+     "key": "rpt.study.fnb-halls-ancillary:ancillary",
+     "title": "6. F&B on bills, breakfast covers, hall utilisation, ancillary · Ancillary per Stay",
+     "columns": ["fy","bills","other","perBill","pctRoom"],
+     "rows": [
+      ["row","2026-27",8,0,0,0]
+     ]
+    },
+    {
+     "key": "rpt.study.fnb-halls-ancillary:series:fnb-per-bill",
+     "title": "6. F&B on bills, breakfast covers, hall utilisation, ancillary · [bar] F&B per bill by FY",
+     "columns": ["label","value"],
+     "rows": [
+      ["row","2026-27",0]
+     ]
+    },
+    {
+     "key": "rpt.study.finance-cost:pl",
+     "title": "7. USALI P&L, break-even, paid-outs, cash & bank, GST by slab · USALI P&L",
+     "columns": ["line","amount"],
+     "rows": [
+      ["row","Rooms revenue",1950000],
+      ["row","Food & beverage",0],
+      ["row","Other revenue",0],
+      ["row","Less discounts",0],
+      ["row","Net revenue (before GST)",1950000],
+      ["row","Cost: Laundry",180000],
+      ["row","Total cost recorded",180000],
+      ["row","Gross operating profit",1770000]
+     ]
+    },
+    {
+     "key": "rpt.study.finance-cost:breakeven",
+     "title": "7. USALI P&L, break-even, paid-outs, cash & bank, GST by slab · Break-even",
+     "columns": ["fy","adr","rooms","fixed","variable","bePct","occ"],
+     "rows": [
+      ["row","2026-27",81250,24,0,0,0,33.3]
+     ]
+    },
+    {
+     "key": "rpt.study.finance-cost:paidouts",
+     "title": "7. USALI P&L, break-even, paid-outs, cash & bank, GST by slab · Paid-outs",
+     "columns": ["category","count","amount"],
+     "rows": [
+      ["row","Laundry",1,180000]
+     ]
+    },
+    {
+     "key": "rpt.study.finance-cost:cash",
+     "title": "7. USALI P&L, break-even, paid-outs, cash & bank, GST by slab · Cash & Bank",
+     "columns": ["month","method","receipts","amount"],
+     "rows": [
+      ["row","2026-10","Cash",3,600000],
+      ["row","2026-10","UPI",5,1350000]
+     ]
+    },
+    {
+     "key": "rpt.study.finance-cost:gst",
+     "title": "7. USALI P&L, break-even, paid-outs, cash & bank, GST by slab · GST Reconciliation",
+     "columns": ["month","taxable","gst","effective","billed","paid"],
+     "rows": [
+      ["row","2026-10",1950000,97500,5,2047500,1950000]
+     ]
+    },
+    {
+     "key": "rpt.study.finance-cost:series:billed-by-month",
+     "title": "7. USALI P&L, break-even, paid-outs, cash & bank, GST by slab · [bar] Total billed by month",
+     "columns": ["label","value"],
+     "rows": [
+      ["row","Oct 26",2047500]
+     ]
+    },
+    {
+     "key": "rpt.study.corporate-accounts:accounts",
+     "title": "7. Corporate accounts, win-back list, account base · Corporate Accounts",
+     "columns": ["company","stays","nights","net","adr","firstFy","lastStay","years","unpaid"],
+     "rows": []
+    },
+    {
+     "key": "rpt.study.corporate-accounts:winback",
+     "title": "7. Corporate accounts, win-back list, account base · Win-back list (no stay in the last 12 months)",
+     "columns": ["company","lastStay","stays","net","years"],
+     "rows": []
+    },
+    {
+     "key": "rpt.study.corporate-accounts:base",
+     "title": "7. Corporate accounts, win-back list, account base · Account base",
+     "columns": ["fy","active","new","lost"],
+     "rows": [
+      ["row","2026-27",0,0,0]
+     ]
+    },
+    {
+     "key": "rpt.study.corporate-accounts:series:active-companies",
+     "title": "7. Corporate accounts, win-back list, account base · [bar] Active companies by FY",
+     "columns": ["label","value"],
+     "rows": [
+      ["row","2026-27",0]
+     ]
+    },
+    {
+     "key": "rpt.study.compliance-risk:capture",
+     "title": "7. Capture rates, audit-trail counts, risk register, licence calendar · Capture Rates",
+     "columns": ["fy","stays","id","idPct","phone","phonePct","purpose","purposePct"],
+     "rows": [
+      ["row","2026-27",8,8,100,8,100,0,0]
+     ]
+    },
+    {
+     "key": "rpt.study.compliance-risk:audit",
+     "title": "7. Capture rates, audit-trail counts, risk register, licence calendar · Audit Trail",
+     "columns": ["action","count"],
+     "rows": [
+      ["row","Demo initialized",1],
+      ["row","Discounted bills (selected FY)",0],
+      ["row","Zero-value bills (selected FY)",0],
+      ["row","Foreign-national stays (selected FY, Form C)",0]
+     ]
+    },
+    {
+     "key": "rpt.study.compliance-risk:risk",
+     "title": "7. Capture rates, audit-trail counts, risk register, licence calendar · Risk Register",
+     "columns": ["risk","likelihood","impact","rating","control","status"],
+     "rows": [
+      ["row","Revenue leakage through free-text rate edits and zero edits",4,3,12,"Rate card, reason codes, approver for cuts > 10% and for complimentary stays, audit log","Open"],
+      ["row","Walk-in credit becoming bad debt",4,4,16,"No check-out with balance; credit only against company master with limit; monthly ageing","Open"],
+      ["row","Cash handling and unreferenced receipts",3,3,9,"Receipt always linked to a bill; daily cash count vs HCC; UPI / bank import","Open"],
+      ["row","GST slab or 0% bills mis-stated in returns",3,4,12,"Tax code per line; monthly GST reconciliation; CA review of 0% bills","Open"],
+      ["row","Guest ID not captured",3,4,12,"Mandatory ID at check-in; police register export","Open"],
+      ["row","Rooms out of order unrecorded",4,2,8,"Daily room-status log; maintenance tickets","Open"],
+      ["row","OTA dependence and commission cost",3,3,9,"Channel master with commission; direct-booking offer; enquiry log","Open"],
+      ["row","Single-point data loss",3,5,15,"HCC server with backups; legacy files archived read-only","Mitigated by HCC"],
+      ["row","Licence lapse (fire NOC, FSSAI, lodging licence)",2,5,10,"Licence calendar with 60 / 30-day alerts","Open"],
+      ["row","Foreign guest without Form C",1,4,4,"Nationality list + Form C task","Open"],
+      ["row","Key / access control (physical keys)",3,3,9,"KEYS module (key-card) with issue / return log","In progress"],
+      ["row","Staff advances unreconciled (paid-outs)",3,2,6,"Payroll module; advances ledger per employee","Open"]
+     ]
+    },
+    {
+     "key": "rpt.study.compliance-risk:licences",
+     "title": "7. Capture rates, audit-trail counts, risk register, licence calendar · Licence Calendar",
+     "columns": ["name","validTo","days"],
+     "rows": []
+    },
+    {
+     "key": "rpt.study.compliance-risk:series:id-capture",
+     "title": "7. Capture rates, audit-trail counts, risk register, licence calendar · [line] ID capture % by FY",
+     "columns": ["label","value"],
+     "rows": [
+      ["row","2026-27",100]
+     ]
+    },
+    {
+     "key": "rpt.study.forecast-scenarios:seasonality",
+     "title": "8. Seasonality indices, forecast (three methods), scenarios, budget vs actual, comp-set index · Seasonality Indices",
+     "columns": ["month","revIdx","occIdx","adrIdx","years"],
+     "rows": [
+      ["row","Apr",null,null,null,0],
+      ["row","May",null,null,null,0],
+      ["row","Jun",null,null,null,0],
+      ["row","Jul",null,null,null,0],
+      ["row","Aug",null,null,null,0],
+      ["row","Sep",null,null,null,0],
+      ["row","Oct",null,null,null,0],
+      ["row","Nov",null,null,null,0],
+      ["row","Dec",null,null,null,0],
+      ["row","Jan",null,null,null,0],
+      ["row","Feb",null,null,null,0],
+      ["row","Mar",null,null,null,0]
+     ]
+    },
+    {
+     "key": "rpt.study.forecast-scenarios:forecast",
+     "title": "8. Seasonality indices, forecast (three methods), scenarios, budget vs actual, comp-set index · Forecast",
+     "columns": ["month","kind","actual","lastYear","seasonal","blend"],
+     "rows": [
+      ["row","2026-04","Actual",0,0,null,0],
+      ["row","2026-05","Actual",0,0,null,0],
+      ["row","2026-06","Actual",0,0,null,0],
+      ["row","2026-07","Actual",0,0,null,0],
+      ["row","2026-08","Actual",0,0,null,0],
+      ["row","2026-09","Actual",0,0,null,0],
+      ["row","2026-10","Actual",1950000,0,null,0],
+      ["row","2026-11","Forecast",null,0,null,0],
+      ["row","2026-12","Forecast",null,0,null,0],
+      ["row","2027-01","Forecast",null,0,null,0],
+      ["row","2027-02","Forecast",null,0,null,0],
+      ["row","2027-03","Forecast",null,0,null,0]
+     ]
+    },
+    {
+     "key": "rpt.study.forecast-scenarios:scenarios",
+     "title": "8. Seasonality indices, forecast (three methods), scenarios, budget vs actual, comp-set index · Scenarios",
+     "columns": ["scenario","occ","adr","revenue"],
+     "rows": [
+      ["row","Occupancy -5 pts, ADR +0%",28.3,81250,201425250],
+      ["row","Occupancy +0 pts, ADR +0%",33.3,81250,237012750],
+      ["row","Occupancy +0 pts, ADR +5%",33.3,85313,248864846],
+      ["row","Occupancy +5 pts, ADR +5%",38.3,85313,286231940]
+     ]
+    },
+    {
+     "key": "rpt.study.forecast-scenarios:budget",
+     "title": "8. Seasonality indices, forecast (three methods), scenarios, budget vs actual, comp-set index · Budget vs Actual",
+     "columns": ["month","budget","actual","variance","variancePct"],
+     "rows": [
+      ["row","2026-04",0,0,0,null],
+      ["row","2026-05",0,0,0,null],
+      ["row","2026-06",0,0,0,null],
+      ["row","2026-07",0,0,0,null],
+      ["row","2026-08",0,0,0,null],
+      ["row","2026-09",0,0,0,null],
+      ["row","2026-10",0,1950000,1950000,null],
+      ["row","2026-11",0,null,null,null],
+      ["row","2026-12",0,null,null,null],
+      ["row","2027-01",0,null,null,null],
+      ["row","2027-02",0,null,null,null],
+      ["row","2027-03",0,null,null,null]
+     ]
+    },
+    {
+     "key": "rpt.study.forecast-scenarios:compset",
+     "title": "8. Seasonality indices, forecast (three methods), scenarios, budget vs actual, comp-set index · Comp Set Index",
+     "columns": ["fy","occ","compOcc","mpi","adr","compAdr","ari","rgi"],
+     "rows": [
+      ["row","2026-27",33.3,null,null,81250,null,null,null]
+     ]
+    },
+    {
+     "key": "rpt.study.forecast-scenarios:series:seasonality",
+     "title": "8. Seasonality indices, forecast (three methods), scenarios, budget vs actual, comp-set index · [line] Revenue seasonality index",
+     "columns": ["label","value"],
+     "rows": [
+      ["row","Apr",null],
+      ["row","May",null],
+      ["row","Jun",null],
+      ["row","Jul",null],
+      ["row","Aug",null],
+      ["row","Sep",null],
+      ["row","Oct",null],
+      ["row","Nov",null],
+      ["row","Dec",null],
+      ["row","Jan",null],
+      ["row","Feb",null],
+      ["row","Mar",null]
+     ]
+    },
+    {
+     "key": "rpt.study.owner-dashboard:dashboard",
+     "title": "8. Owner 12-KPI monthly dashboard · Owner Dashboard",
+     "columns": ["month","src","occ","adr","revpar","roomRev","billed","fnb","bills","repeat","otaShare","discPct","collected","outstanding"],
+     "rows": [
+      ["row","2025-11","Legacy",null,null,null,0,0,0,0,null,null,null,0,0],
+      ["row","2025-12","Legacy",null,null,null,0,0,0,0,null,null,null,0,0],
+      ["row","2026-01","Legacy",null,null,null,0,0,0,0,null,null,null,0,0],
+      ["row","2026-02","Legacy",null,null,null,0,0,0,0,null,null,null,0,0],
+      ["row","2026-03","Legacy",null,null,null,0,0,0,0,null,null,null,0,0],
+      ["row","2026-04","Legacy",null,null,null,0,0,0,0,null,null,null,0,0],
+      ["row","2026-05","Legacy",null,null,null,0,0,0,0,null,null,null,0,0],
+      ["row","2026-06","Legacy",null,null,null,0,0,0,0,null,null,null,0,0],
+      ["row","2026-07","Legacy",null,null,null,0,0,0,0,null,null,null,0,0],
+      ["row","2026-08","Legacy",null,null,null,0,0,0,0,null,null,null,0,0],
+      ["row","2026-09","Legacy",null,null,null,0,0,0,0,null,null,null,0,0],
+      ["row","2026-10","Legacy + live",33.3,81250,40625,1950000,2047500,0,8,0,0,0,1950000,97500]
+     ]
+    },
+    {
+     "key": "rpt.study.owner-dashboard:series:occupancy",
+     "title": "8. Owner 12-KPI monthly dashboard · [line] Occupancy % (12 months)",
+     "columns": ["label","value"],
+     "rows": [
+      ["row","Nov 25",null],
+      ["row","Dec 25",null],
+      ["row","Jan 26",null],
+      ["row","Feb 26",null],
+      ["row","Mar 26",null],
+      ["row","Apr 26",null],
+      ["row","May 26",null],
+      ["row","Jun 26",null],
+      ["row","Jul 26",null],
+      ["row","Aug 26",null],
+      ["row","Sep 26",null],
+      ["row","Oct 26",33.3]
+     ]
+    },
+    {
      "key": "notes",
      "title": "Notes",
      "columns": ["note"],
      "rows": [
       ["row","Footer: Legacy to 30 Oct 2026 / HCC live. Legacy rows carry the legacy marker; HCC live data starts 31 Oct 2026."],
-      ["row","0 of 21 study reports included; the others are listed in the contents with the reason."],
+      ["row","21 of 21 study reports included; the others are listed in the contents with the reason."],
       ["row","Definitions (contract §9.2): occupancy = distinct room-nights slept ÷ (rooms in service × days); ADR = room charge before GST ÷ charged nights; FY April–March; halls excluded."]
      ]
     }

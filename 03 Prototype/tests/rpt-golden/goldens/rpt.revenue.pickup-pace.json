@@ -1,0 +1,25 @@
+{
+ "id": "rpt.revenue.pickup-pace",
+ "cases": [
+  {
+   "uid": "owner",
+   "scenario": "BASE",
+   "params": {},
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["month","rooms","lastYearRooms","revenue","lastYearRevenue","pace","pickup7","lead"],
+     "rows": [
+      ["row","2026-10",28,0,7050000,0,null,4,"8-30 days"],
+      ["row","2026-11",0,0,0,0,null,0,""],
+      ["row","2026-12",0,0,0,0,null,0,""],
+      ["row","2027-01",0,0,0,0,null,0,""],
+      ["row","2027-02",0,0,0,0,null,0,""],
+      ["row","2027-03",0,0,0,0,null,0,""]
+     ]
+    }
+   ]
+  }
+ ]
+}

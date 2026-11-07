@@ -1,0 +1,55 @@
+{
+ "id": "rpt.study.revenue-kpi",
+ "cases": [
+  {
+   "uid": "owner",
+   "scenario": "BASE",
+   "params": {},
+   "tables": [
+    {
+     "key": "month",
+     "title": "KPI by Month",
+     "columns": ["month","src","days","rooms","avail","sold","occ","bills","cn","rev","adr","revpar"],
+     "rows": [
+      ["row","2026-10","Legacy",2,24,48,16,33.3,8,24,1950000,81250,40625]
+     ]
+    },
+    {
+     "key": "fy",
+     "title": "KPI by FY",
+     "columns": ["fy","src","months","avail","sold","occ","rev","cn","adr","revpar","unsold","unsoldValue"],
+     "rows": [
+      ["row","2026-27","Legacy",1,48,16,33.3,1950000,24,81250,40625,32,2600000],
+      ["total","Total","",1,48,16,33.3,1950000,24,81250,40625,32,null]
+     ]
+    },
+    {
+     "key": "type",
+     "title": "KPI by Room Type",
+     "columns": ["type","fy","rooms","avail","sold","occ","rev","cn","adr","revpar"],
+     "rows": [
+      ["row","Suite","2026-27",3,6,2,33.3,450000,3,150000,75000],
+      ["row","Deluxe","2026-27",9,18,2,11.1,300000,3,100000,16667],
+      ["row","Classic","2026-27",12,24,12,50,1200000,18,66667,50000]
+     ]
+    },
+    {
+     "key": "channel",
+     "title": "KPI by Channel",
+     "columns": ["fy","channel","bills","rn","rev","adr","share"],
+     "rows": [
+      ["row","2026-27","Direct / walk-in",8,24,1950000,81250,100]
+     ]
+    },
+    {
+     "key": "series:occupancy-by-month",
+     "title": "[bar] Occupancy % by month",
+     "columns": ["label","value"],
+     "rows": [
+      ["row","Oct 26",33.3]
+     ]
+    }
+   ]
+  }
+ ]
+}

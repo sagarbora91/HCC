@@ -1,0 +1,18 @@
+{
+ "id": "rpt.rooms.utilities-per-room",
+ "cases": [
+  {
+   "uid": "owner",
+   "scenario": "BASE",
+   "params": {},
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["day","electricity","water","lpg","diesel","dgHours","perOccupied","perAvailable","unitCost","costPerNight","lastYear"],
+     "rows": []
+    }
+   ]
+  }
+ ]
+}

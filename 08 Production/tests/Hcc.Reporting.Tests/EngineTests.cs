@@ -55,6 +55,13 @@ public sealed class EngineTests
         // F12-STUDY-PACK
         new Hcc.Reporting.Reports.StudyPack.ManagementPackReport(null!),
         // F12-STUDY-PACK end
+        // F12-STUDY-A
+        .. MeasStudyAReports(),
+        // F12-STUDY-A end
+        // F12-RPT-HK
+        new Hcc.Reporting.Reports.MeasHk.HkProductivityReport(null!), new Hcc.Reporting.Reports.MeasHk.OooDaysReport(null!), new Hcc.Reporting.Reports.MeasHk.PpmComplianceReport(null!),
+        new Hcc.Reporting.Reports.MeasHk.UtilitiesPerRoomReport(null!), new Hcc.Reporting.Reports.MeasHk.LinenCostReport(null!), new Hcc.Reporting.Reports.MeasHk.AssetLifeReport(null!),
+        // F12-RPT-HK end
     ]).All;
 
     // F12-RPT-GUEST
@@ -62,10 +69,6 @@ public sealed class EngineTests
         [new Hcc.Reporting.Reports.MeasGuest.SatisfactionReport(null!), new Hcc.Reporting.Reports.MeasGuest.ReputationIndexReport(null!), new Hcc.Reporting.Reports.MeasGuest.ServiceRecoveryReport(null!),
          new Hcc.Reporting.Reports.MeasGuest.DeskTimingReport(null!), new Hcc.Reporting.Reports.MeasGuest.UpsellReport(null!), new Hcc.Reporting.Reports.MeasGuest.RepeatLoyaltyReport(null!)];
     // F12-RPT-GUEST end
-        // F12-STUDY-A
-        .. MeasStudyAReports(),
-        // F12-STUDY-A end
-    ]).All;
 
     // F12-STUDY-A
     private static IEnumerable<IReportSelector> MeasStudyAReports() =>

@@ -1,0 +1,38 @@
+{
+ "id": "rpt.study.index-vs-base",
+ "cases": [
+  {
+   "uid": "owner",
+   "scenario": "BASE",
+   "params": {},
+   "tables": [
+    {
+     "key": "index",
+     "title": "Index vs FY 2018-19 (base = 100)",
+     "columns": ["fy","billed","nights","adr","note"],
+     "rows": []
+    },
+    {
+     "key": "covid-impact",
+     "title": "COVID impact and recovery",
+     "columns": ["fy","billed","vsBase","vsBasePct","status"],
+     "rows": []
+    },
+    {
+     "key": "best-worst",
+     "title": "Best and worst months (normal years, total billed)",
+     "columns": ["rank","month","billed","kind"],
+     "rows": []
+    },
+    {
+     "key": "series.index-billed",
+     "title": "line|Billed index vs base",
+     "columns": ["label","value"],
+     "rows": [
+      ["row","2026-27",null]
+     ]
+    }
+   ]
+  }
+ ]
+}

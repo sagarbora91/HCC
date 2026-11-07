@@ -1,0 +1,22 @@
+{
+ "id": "rpt.rooms.ppm-compliance",
+ "cases": [
+  {
+   "uid": "owner",
+   "scenario": "BASE",
+   "params": {},
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["kind","plansDue","doneOnTime","overdue","ratio","mttr","repeatFailures","amcVisits"],
+     "rows": [
+      ["row","AC",0,0,0,"0 : 0","",0,4],
+      ["row","Lift",0,0,0,"0 : 1","",0,12],
+      ["row","Generator",0,0,0,"0 : 0","",0,4]
+     ]
+    }
+   ]
+  }
+ ]
+}

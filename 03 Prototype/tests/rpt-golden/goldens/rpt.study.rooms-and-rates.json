@@ -1,0 +1,147 @@
+{
+ "id": "rpt.study.rooms-and-rates",
+ "cases": [
+  {
+   "uid": "owner",
+   "scenario": "BASE",
+   "params": {},
+   "tables": [
+    {
+     "key": "room-nights-revenue-rate",
+     "title": "Room Nights / Revenue / Avg Rate / Share / Occupancy (FY 2026-27)",
+     "columns": ["room","type","nights","revenue","avg","share","occ"],
+     "rows": [
+      ["row","101","Classic",2,200000,200000,10.3,100],
+      ["row","102","Classic",2,200000,200000,10.3,100],
+      ["row","103","Deluxe",0,0,0,0,0],
+      ["row","104","Deluxe",2,300000,300000,15.4,100],
+      ["row","105","Classic",0,0,0,0,0],
+      ["row","106","Suite",0,0,0,0,0],
+      ["row","107","Deluxe",0,0,0,0,0],
+      ["row","108","Classic",0,0,0,0,0],
+      ["row","201","Classic",2,200000,200000,10.3,100],
+      ["row","202","Classic",2,200000,200000,10.3,100],
+      ["row","203","Deluxe",0,0,0,0,0],
+      ["row","204","Deluxe",0,0,0,0,0],
+      ["row","205","Classic",0,0,0,0,0],
+      ["row","206","Suite",2,450000,450000,23.1,100],
+      ["row","207","Deluxe",0,0,0,0,0],
+      ["row","208","Classic",0,0,0,0,0],
+      ["row","301","Classic",2,200000,200000,10.3,100],
+      ["row","302","Classic",2,200000,200000,10.3,100],
+      ["row","303","Deluxe",0,0,0,0,0],
+      ["row","304","Deluxe",0,0,0,0,0],
+      ["row","305","Classic",0,0,0,0,0],
+      ["row","306","Suite",0,0,0,0,0],
+      ["row","307","Deluxe",0,0,0,0,0],
+      ["row","308","Classic",0,0,0,0,0]
+     ]
+    },
+    {
+     "key": "top-bottom",
+     "title": "Top / Bottom rooms (by room revenue)",
+     "columns": ["rank","room","revenue","nights"],
+     "rows": [
+      ["row","Top 1","206",450000,2],
+      ["row","Top 2","104",300000,2],
+      ["row","Top 3","101",200000,2],
+      ["row","Top 4","102",200000,2],
+      ["row","Top 5","201",200000,2],
+      ["row","Bottom 1","308",0,0],
+      ["row","Bottom 2","307",0,0],
+      ["row","Bottom 3","306",0,0],
+      ["row","Bottom 4","305",0,0],
+      ["row","Bottom 5","304",0,0]
+     ]
+    },
+    {
+     "key": "low-sales",
+     "title": "Low sales (below half the room average)",
+     "columns": ["room","nights","avg"],
+     "rows": [
+      ["row","103",0,1],
+      ["row","105",0,1],
+      ["row","106",0,1],
+      ["row","107",0,1],
+      ["row","108",0,1],
+      ["row","203",0,1],
+      ["row","204",0,1],
+      ["row","205",0,1],
+      ["row","207",0,1],
+      ["row","208",0,1],
+      ["row","303",0,1],
+      ["row","304",0,1],
+      ["row","305",0,1],
+      ["row","306",0,1],
+      ["row","307",0,1],
+      ["row","308",0,1]
+     ]
+    },
+    {
+     "key": "room-type-fy",
+     "title": "Room type by FY (room revenue)",
+     "columns": ["type","y2026-27"],
+     "rows": [
+      ["row","Classic",1200000],
+      ["row","Deluxe",300000],
+      ["row","Suite",450000]
+     ]
+    },
+    {
+     "key": "tariff-trend",
+     "title": "Tariff trend (ADR by FY)",
+     "columns": ["fy","adr","change"],
+     "rows": [
+      ["row","FY 2026-27",243750,null]
+     ]
+    },
+    {
+     "key": "rate-overrides",
+     "title": "Rate overrides (billed rate differs from the stay rate, FY 2026-27)",
+     "columns": ["kind","bills","delta"],
+     "rows": [
+      ["row","Below stay rate",0,0],
+      ["row","Above stay rate",0,0]
+     ]
+    },
+    {
+     "key": "discount-control",
+     "title": "Discount control",
+     "columns": ["fy","bills","discount","pct"],
+     "rows": [
+      ["row","FY 2026-27",0,0,0]
+     ]
+    },
+    {
+     "key": "payment-mix",
+     "title": "Payment mix by FY (received)",
+     "columns": ["fy","p_Cash","p_UPI"],
+     "rows": [
+      ["row","FY 2026-27",600000,1350000]
+     ]
+    },
+    {
+     "key": "unpaid-ageing",
+     "title": "Unpaid ageing (as of the business date)",
+     "columns": ["bucket","bills","due"],
+     "rows": [
+      ["row","0-30",8,97500],
+      ["row","31-90",0,0],
+      ["row","91-180",0,0],
+      ["row","181-365",0,0],
+      ["row","366-730",0,0],
+      ["row","731+",0,0]
+     ]
+    },
+    {
+     "key": "series.adr-by-fy",
+     "title": "line|ADR by FY",
+     "columns": ["label","value"],
+     "rows": [
+      ["row","2026-27",243750]
+     ]
+    }
+   ]
+  }
+ ]
+}

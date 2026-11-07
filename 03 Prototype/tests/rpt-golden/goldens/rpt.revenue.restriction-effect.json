@@ -1,0 +1,18 @@
+{
+ "id": "rpt.revenue.restriction-effect",
+ "cases": [
+  {
+   "uid": "owner",
+   "scenario": "BASE",
+   "params": {},
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["night","restriction","refused","reshaped","revenue","unrestricted","mode"],
+     "rows": []
+    }
+   ]
+  }
+ ]
+}

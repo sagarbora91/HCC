@@ -1,0 +1,18 @@
+{
+ "id": "rpt.rooms.hk-productivity",
+ "cases": [
+  {
+   "uid": "owner",
+   "scenario": "BASE",
+   "params": {},
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["attendant","shift","departures","stayovers","minutesPerRoom","vacatedToInspected","passPct","rejections","relet"],
+     "rows": []
+    }
+   ]
+  }
+ ]
+}

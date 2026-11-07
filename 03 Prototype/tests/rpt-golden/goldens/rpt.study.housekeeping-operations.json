@@ -1,0 +1,87 @@
+{
+ "id": "rpt.study.housekeeping-operations",
+ "cases": [
+  {
+   "uid": "owner",
+   "scenario": "BASE",
+   "params": {},
+   "tables": [
+    {
+     "key": "turnaround",
+     "title": "Turnaround",
+     "columns": ["fy","turnovers","sameDay","sameDayPct","nextDay","avgGap"],
+     "rows": [
+      ["row","2026-27",0,0,null,0,null]
+     ]
+    },
+    {
+     "key": "idle",
+     "title": "Idle Streaks",
+     "columns": ["room","type","fy","inService","soldDays","unsold","longest"],
+     "rows": [
+      ["row","101","Classic","2026-27",2,2,0,0],
+      ["row","102","Classic","2026-27",2,2,0,0],
+      ["row","103","Deluxe","2026-27",2,0,2,2],
+      ["row","104","Deluxe","2026-27",2,2,0,0],
+      ["row","105","Classic","2026-27",2,0,2,2],
+      ["row","106","Suite","2026-27",2,0,2,2],
+      ["row","107","Deluxe","2026-27",2,0,2,2],
+      ["row","108","Classic","2026-27",2,0,2,2],
+      ["row","201","Classic","2026-27",2,2,0,0],
+      ["row","202","Classic","2026-27",2,2,0,0],
+      ["row","203","Deluxe","2026-27",2,0,2,2],
+      ["row","204","Deluxe","2026-27",2,0,2,2],
+      ["row","205","Classic","2026-27",2,0,2,2],
+      ["row","206","Suite","2026-27",2,2,0,0],
+      ["row","207","Deluxe","2026-27",2,0,2,2],
+      ["row","208","Classic","2026-27",2,0,2,2],
+      ["row","301","Classic","2026-27",2,2,0,0],
+      ["row","302","Classic","2026-27",2,2,0,0],
+      ["row","303","Deluxe","2026-27",2,0,2,2],
+      ["row","304","Deluxe","2026-27",2,0,2,2],
+      ["row","305","Classic","2026-27",2,0,2,2],
+      ["row","306","Suite","2026-27",2,0,2,2],
+      ["row","307","Deluxe","2026-27",2,0,2,2],
+      ["row","308","Classic","2026-27",2,0,2,2]
+     ]
+    },
+    {
+     "key": "inout",
+     "title": "Check-in-out vs Standard",
+     "columns": ["fy","stays","withIn","early","earlyPct","withOut","late","latePct"],
+     "rows": [
+      ["row","2026-27",8,0,0,null,0,0,null]
+     ]
+    },
+    {
+     "key": "load",
+     "title": "Daily Load",
+     "columns": ["day","days","arrivals","avgArr","maxArr","departures","avgDep","maxDep"],
+     "rows": [
+      ["row","Mon",0,0,null,0,0,null,0],
+      ["row","Tue",0,0,null,0,0,null,0],
+      ["row","Wed",0,0,null,0,0,null,0],
+      ["row","Thu",0,0,null,0,0,null,0],
+      ["row","Fri",1,8,8,8,0,0,0],
+      ["row","Sat",1,0,0,0,0,0,0],
+      ["row","Sun",0,0,null,0,0,null,0]
+     ]
+    },
+    {
+     "key": "series:avg-arrivals",
+     "title": "[bar] Average arrivals per day by night of week",
+     "columns": ["label","value"],
+     "rows": [
+      ["row","Mon",null],
+      ["row","Tue",null],
+      ["row","Wed",null],
+      ["row","Thu",null],
+      ["row","Fri",8],
+      ["row","Sat",0],
+      ["row","Sun",null]
+     ]
+    }
+   ]
+  }
+ ]
+}

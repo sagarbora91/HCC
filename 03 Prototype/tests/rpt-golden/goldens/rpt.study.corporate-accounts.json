@@ -1,0 +1,40 @@
+{
+ "id": "rpt.study.corporate-accounts",
+ "cases": [
+  {
+   "uid": "owner",
+   "scenario": "BASE",
+   "params": {},
+   "tables": [
+    {
+     "key": "accounts",
+     "title": "Corporate Accounts",
+     "columns": ["company","stays","nights","net","adr","firstFy","lastStay","years","unpaid"],
+     "rows": []
+    },
+    {
+     "key": "winback",
+     "title": "Win-back list (no stay in the last 12 months)",
+     "columns": ["company","lastStay","stays","net","years"],
+     "rows": []
+    },
+    {
+     "key": "base",
+     "title": "Account base",
+     "columns": ["fy","active","new","lost"],
+     "rows": [
+      ["row","2026-27",0,0,0]
+     ]
+    },
+    {
+     "key": "series:active-companies",
+     "title": "[bar] Active companies by FY",
+     "columns": ["label","value"],
+     "rows": [
+      ["row","2026-27",0]
+     ]
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,57 @@
+{
+ "id": "rpt.study.guest-origin-plan",
+ "cases": [
+  {
+   "uid": "owner",
+   "scenario": "BASE",
+   "params": {},
+   "tables": [
+    {
+     "key": "origin",
+     "title": "Guest Origin",
+     "columns": ["fy","state","stays","share"],
+     "rows": [
+      ["row","2026-27","Gujarat (fictional)",2,25],
+      ["row","2026-27","Maharashtra (fictional)",2,25],
+      ["row","2026-27","Chandigarh (fictional)",1,12.5],
+      ["row","2026-27","Karnataka (fictional)",1,12.5],
+      ["row","2026-27","New Delhi (fictional)",1,12.5],
+      ["row","2026-27","Tamil Nadu (fictional)",1,12.5]
+     ]
+    },
+    {
+     "key": "nationality",
+     "title": "Nationality & Form C",
+     "columns": ["fy","nationality","formC","stays","share"],
+     "rows": [
+      ["row","2026-27","Indian","No",8,100]
+     ]
+    },
+    {
+     "key": "plan",
+     "title": "Meal Plan Mix",
+     "columns": ["fy","stays","ep","cp","map","ap","none","cpPct"],
+     "rows": [
+      ["row","2026-27",8,0,0,0,0,8,0]
+     ]
+    },
+    {
+     "key": "company",
+     "title": "Company Guests",
+     "columns": ["fy","stays","companies","nights","share"],
+     "rows": [
+      ["row","2026-27",0,0,0,0]
+     ]
+    },
+    {
+     "key": "series:cp-share",
+     "title": "[bar] CP share of stays by FY",
+     "columns": ["label","value"],
+     "rows": [
+      ["row","2026-27",0]
+     ]
+    }
+   ]
+  }
+ ]
+}

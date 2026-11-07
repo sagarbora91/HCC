@@ -1,0 +1,18 @@
+{
+ "id": "rpt.acc.asset-life",
+ "cases": [
+  {
+   "uid": "owner",
+   "scenario": "BASE",
+   "params": {},
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["asset","age","expectedLife","grade","replacementDue","wdv","replacementCost","reserveAccrued","capexSpent","refurbishment"],
+     "rows": []
+    }
+   ]
+  }
+ ]
+}
