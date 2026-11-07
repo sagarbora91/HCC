@@ -1,0 +1,17 @@
+{
+ "id": "rpt.guests.reputation-index",
+ "cases": [
+  {
+   "uid": "owner",
+   "scenario": "BASE",
+   "params": {}
+  },
+  {
+   "uid": "owner",
+   "scenario": "FY26",
+   "params": {
+    "fy": "2026-27"
+   }
+  }
+ ]
+}

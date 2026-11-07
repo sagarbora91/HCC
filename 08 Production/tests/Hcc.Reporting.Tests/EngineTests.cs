@@ -39,7 +39,14 @@ public sealed class EngineTests
         // F7-R4
         new ShiftReport(null!, null!), new CollectionDetailReport(null!, null!), new CreditBillsReport(null!), new ExpenseRegisterReport(null!), new ExpensesByHeadReport(null!),
         // F7-R4 end
+        .. MeasGuestReports(), // F12-RPT-GUEST
     ]).All;
+
+    // F12-RPT-GUEST
+    private static IEnumerable<IReportSelector> MeasGuestReports() =>
+        [new Hcc.Reporting.Reports.MeasGuest.SatisfactionReport(null!), new Hcc.Reporting.Reports.MeasGuest.ReputationIndexReport(null!), new Hcc.Reporting.Reports.MeasGuest.ServiceRecoveryReport(null!),
+         new Hcc.Reporting.Reports.MeasGuest.DeskTimingReport(null!), new Hcc.Reporting.Reports.MeasGuest.UpsellReport(null!), new Hcc.Reporting.Reports.MeasGuest.RepeatLoyaltyReport(null!)];
+    // F12-RPT-GUEST end
 
     // F7-R3
     private static IEnumerable<IReportSelector> F7R3Reports() =>

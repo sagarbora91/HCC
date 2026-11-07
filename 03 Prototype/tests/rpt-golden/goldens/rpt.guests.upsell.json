@@ -1,0 +1,18 @@
+{
+ "id": "rpt.guests.upsell",
+ "cases": [
+  {
+   "uid": "owner",
+   "scenario": "BASE",
+   "params": {}
+  },
+  {
+   "uid": "owner",
+   "scenario": "FY26",
+   "params": {
+    "from": "2026-10-01",
+    "to": "2026-10-24"
+   }
+  }
+ ]
+}

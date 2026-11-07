@@ -165,6 +165,12 @@ public static class HccComposition
         // F12-RPT-REVENUE
         // F12-RPT-REVENUE end
         // F12-RPT-GUEST
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.MeasGuest.SatisfactionReport>(services); // F12-RPT-GUEST
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.MeasGuest.ReputationIndexReport>(services); // F12-RPT-GUEST
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.MeasGuest.ServiceRecoveryReport>(services); // F12-RPT-GUEST
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.MeasGuest.DeskTimingReport>(services); // F12-RPT-GUEST
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.MeasGuest.UpsellReport>(services); // F12-RPT-GUEST
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.MeasGuest.RepeatLoyaltyReport>(services); // F12-RPT-GUEST
         // F12-RPT-GUEST end
         // F12-RPT-HK
         // F12-RPT-HK end

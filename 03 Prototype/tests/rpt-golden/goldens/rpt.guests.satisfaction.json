@@ -1,0 +1,17 @@
+{
+ "id": "rpt.guests.satisfaction",
+ "cases": [
+  {
+   "uid": "owner",
+   "scenario": "BASE",
+   "params": {}
+  },
+  {
+   "uid": "owner",
+   "scenario": "FY26",
+   "params": {
+    "month": "2026-10"
+   }
+  }
+ ]
+}
