@@ -193,7 +193,7 @@ public sealed class SqlAnalyticsInputSource(SqlPlatform platform, TimeProvider? 
 
     private const string LegacyBillSql = """
         SELECT b.bill_id, b.stay_id, b.bill_date, b.room_no, b.nights, b.room_charge_paise, b.extra_paise, b.fb_paise, b.laundry_paise, b.other_paise, b.discount_paise,
-               b.room_gst_paise + b.fb_gst_paise + b.laundry_gst_paise + b.other_gst_paise, b.net_paise, b.balance_paise
+               b.room_gst_paise + b.fb_gst_paise + b.laundry_gst_paise + b.other_gst_paise, b.net_paise, b.balance_paise, b.paid_flag, b.advance_paise
           FROM lgc.bill b
          WHERE b.property_id = @p AND b.cancelled = 0
          ORDER BY b.bill_date, b.bill_id;
@@ -204,6 +204,13 @@ public sealed class SqlAnalyticsInputSource(SqlPlatform platform, TimeProvider? 
           FROM lgc.receipt x
          WHERE x.property_id = @p AND x.kind IN ('advance','payment')
          ORDER BY x.received_date, x.receipt_id;
+        """;
+
+    /// <summary>Receipts linked to a legacy bill by its bill id OR its stay id (each row once), for the workbook's receivables reconciliation.</summary>
+    private const string LegacyReceiptLinkSql = """
+        SELECT x.receipt_id, x.bill_id, x.stay_id, x.kind, x.amount_paise, x.received_date
+          FROM lgc.receipt x
+         WHERE x.property_id = @p AND x.kind IN ('advance','payment','refund');
         """;
 
     private const string ExpenseSql = "SELECT business_date, category, amount_paise FROM ops.expense WHERE property_id = @p AND status = 'Posted' ORDER BY business_date, expense_id;";
@@ -280,13 +287,33 @@ public sealed class SqlAnalyticsInputSource(SqlPlatform platform, TimeProvider? 
                 var rate = booked.FirstOrDefault(b => b.Room == room).Rate ?? 0;
                 stays.Add(new AnStay(id, ls.GuestKey, room, ls.Arrival, ls.To, ls.Nights, rate, src, ch, null, ls.Purpose, ls.Status, false, true)
                     { MealPlan = ls.MealPlan, People = ls.People });
-                if (!firstSale.TryGetValue(room, out var f) || string.CompareOrdinal(ls.Arrival, f) < 0) firstSale[room] = ls.Arrival;
+                // in service from the MONTH of the first sale (Occupancy workbook: rooms counted from the month of their first-ever sale)
+                if (!firstSale.TryGetValue(room, out var f) || string.CompareOrdinal(ls.Arrival, f) < 0) firstSale[room] = ls.Arrival[..8] + "01";
             }
         }
 
         // ── legacy bills (guest rooms only) and receipts ──
         var bills = new List<AnBill>();
         var billOfStay = new Dictionary<long, string>();
+        // DEC-265 receivables, the workbook's rule (build_receivables_report.py): a bill flagged unpaid (paid_flag N) owes max(balance - receipts after
+        // the bill date, 0) when the stored balance is positive, else max(net - max(advance, payments - refunds), 0), over the receipts linked by the
+        // bill OR its stay (each receipt once). Every other bill is paid in full. Paid = net - due.
+        var links = new List<(long Id, long? Bill, long? Stay, string Kind, long Amount, string Date)>();
+        await Read(LegacyReceiptLinkSql, r => links.Add((L(r, 0), Ln(r, 1), Ln(r, 2), S(r, 3), L(r, 4), Iso(r.GetDateTime(5))))).ConfigureAwait(false);
+        var byBill = links.Where(x => x.Bill is not null).ToLookup(x => x.Bill!.Value);
+        var byStay = links.Where(x => x.Stay is not null).ToLookup(x => x.Stay!.Value);
+        long LegacyDue(long billId, long? stayId, string billDate, string paidFlag, long net, long advance, long balance)
+        {
+            if (paidFlag.Trim() != "N") return 0;
+            var rs = byBill[billId].Concat(stayId is { } sid ? byStay[sid] : []).DistinctBy(x => x.Id).ToList();
+            long pay = 0, refund = 0, later = 0;
+            foreach (var x in rs)
+            {
+                if (x.Kind is "payment" or "advance") { pay += x.Amount; if (string.CompareOrdinal(x.Date, billDate) > 0) later += x.Amount; }
+                else if (x.Kind == "refund") refund += x.Amount;
+            }
+            return balance > 0 ? Math.Max(balance - later, 0) : Math.Max(net - Math.Max(advance, pay - refund), 0);
+        }
         await Read(LegacyBillSql, r =>
         {
             var rooms = S(r, 3).Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
@@ -297,7 +324,7 @@ public sealed class SqlAnalyticsInputSource(SqlPlatform platform, TimeProvider? 
             if (stayKey is { } k2) billOfStay.TryAdd(k2, id);
             long net = L(r, 12), balance = L(r, 13);
             bills.Add(new AnBill(id, stay, Iso(r.GetDateTime(2)), L(r, 5), L(r, 7), L(r, 6) + L(r, 8) + L(r, 9), L(r, 10), L(r, 11), net, (int)(L(r, 4) * rooms.Length),
-                Math.Clamp(net - balance, 0, Math.Max(0, net)), true));
+                Math.Max(0, net - Math.Min(Math.Max(0, net), LegacyDue(L(r, 0), stayKey, Iso(r.GetDateTime(2)), S(r, 14), net, L(r, 15), balance))), true));
         }).ConfigureAwait(false);
         var receipts = new List<AnReceipt>();
         await Read(LegacyReceiptSql, r =>

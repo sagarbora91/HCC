@@ -214,7 +214,7 @@ public static class FeatureCatalog
         ]),
         new("revenue", "Revenue & sales", null, Coarse["revenue"],
         [
-            F("revenue.yield", "Tariff & yield", false, ["yield"], ["YLD_", "TARIFF_SCHEDULE"], "Rate plans, seasons, guardrails, overrides"),
+            F("revenue.yield", "Tariff & yield", false, ["yield", "meas-events", "meas-rateshop", "meas-displacement"], ["YLD_", "TARIFF_SCHEDULE"], "Rate plans, seasons, guardrails, overrides"),
             F("revenue.groups", "Groups & companies", false, ["groups"], ["GRP_"], "Group blocks, companies, credit limits (follows the Groups module switch)"),
             F("revenue.ota", "OTA channels", false, ["channels"], ["CHN_"], "OTA inbound bookings and rate push (follows the OTA module switch)", except: ["CHN_WEB_", "CHN_PAYOUT"]),
             F("revenue.payouts", "OTA payouts", false, [], ["CHN_PAYOUT"], "OTA payout receipts and commission", requires: ["revenue.ota"]),

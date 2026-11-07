@@ -8,6 +8,7 @@ import {trapTab,useReturnFocus} from '../components/ui';
 import {buildSearchEntries,searchEntries,visibleEntries,categoryOf,PAGE_CATEGORY,DASHBOARD,navFilterModules,type SearchEntry} from './navmap';
 import {SUB_SCREENS,subScreenOpen,type SubScreen} from './subscreens';
 import {shortcutKeyOfPage} from './shortcuts'; // LF-ALERTS
+import {measOn} from '../domain/streams/measure'; // F12 MEAS: capture actions follow the switches
 
 /** FIT (DEC-196): every sub-screen tab is a result "Page › Tab" that opens with go(page,{tab}). Same page permission as its page. */
 type Entry=SearchEntry&{tab?:string};
@@ -38,10 +39,12 @@ export function SearchPalette({onClose}:{onClose:()=>void}){
   const all=useMemo<Entry[]>(()=>paletteEntries(display.isMobile),[display.isMobile]);
   const allowed=new Set(navFilterModules(s,navItems,uid).filter(n=>permission(n.p)).map(n=>n.id));
   // S3: a sub-screen the role's page never shows is not listed (same tab conditions as the page; subscreens.ts SUB_SCREEN_GATES)
-  const visible=visibleEntries(all,allowed,p=>permission(p)).filter(e=>!(e as Entry).tab||subScreenOpen(s,uid,e.page,(e as Entry).tab!));
+  const role=s.users.find(u=>u.id===uid)?.role;
+  const visible=visibleEntries(all,allowed,p=>permission(p)).filter(e=>!(e as Entry).tab||subScreenOpen(s,uid,e.page,(e as Entry).tab!))
+    .filter(e=>(!e.meas||measOn(s,e.meas))&&(!e.roles||(!!role&&e.roles.includes(role))));
   const terms=q.trim().toLowerCase().split(/\s+/).filter(Boolean);
   const hits:Entry[]=terms.length?searchEntries(visible,q).slice(0,12).map(h=>h.entry)
-    :[...visible.filter(e=>e.kind==='action'),...visible.filter(e=>e.kind==='page'&&!(e as Entry).tab).slice(0,6)];
+    :[...visible.filter(e=>e.kind==='action'&&!e.meas),...visible.filter(e=>e.kind==='page'&&!(e as Entry).tab).slice(0,6)];
   useEffect(()=>{ref.current?.focus();},[]);
   useEffect(()=>{setAt(0);},[q]);
   const choose=(e:Entry)=>{onClose();go(e.page,e.tab?{tab:e.tab}:{});if(e.modal){const m=e.modal;window.setTimeout(()=>open(m),60);}};

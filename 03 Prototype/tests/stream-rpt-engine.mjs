@@ -130,7 +130,7 @@ export function register({test,M,assert}){
     s=M.execute(s,'manager',{type:'RPT_RUN_DUE'});assert.equal(s.rptX.runs.length,1,'once per business date');
     assert.equal(M.rptScheduleDue({...s.rptX.schedules[0],lastRun:undefined,cadence:{kind:'weekly',day:0,time:'07:00'}},'2026-10-25','08:00'),true);
     assert.equal(M.rptScheduleDue({...s.rptX.schedules[0],lastRun:undefined,cadence:{kind:'monthly',day:1,time:'07:00'}},'2026-10-25','08:00'),false);
-    s=M.execute(s,'owner',{type:'RPT_SCHEDULE_DELETE',id:sid});assert.equal(s.rptX.schedules.length,0);
+    s=M.execute(s,'owner',{type:'RPT_SCHEDULE_DELETE',id:sid});assert.equal(s.rptX.schedules.filter(x=>x.reportId!=='rpt.study.management-pack').length,0,'F12: the run tick also syncs the study pack schedules (meas.study.packSchedule)');
     s=M.execute(s,'accountant',{type:'RPT_LOG',reportId:ID,params:{from:'2026-10-20'},format:'xlsx',rows:12,fileName:'x.xlsx'});
     assert.equal(s.rptX.exportLog.at(-1).by,'accountant');assert.equal(s.rptX.exportLog.at(-1).rows,12);
     assert.throws(()=>M.execute(s,'cashier',{type:'RPT_LOG',reportId:ID,params:{},format:'print',rows:1}),e=>e.code==='FORBIDDEN');

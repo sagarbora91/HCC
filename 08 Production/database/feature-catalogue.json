@@ -599,7 +599,10 @@
           "label": "Tariff & yield",
           "core": false,
           "pages": [
-            "yield"
+            "yield",
+            "meas-events",
+            "meas-rateshop",
+            "meas-displacement"
           ],
           "prefixes": [
             "YLD_",

@@ -9,6 +9,8 @@ export type LegacyAnRows={rooms?:AnRoom[];stays:AnStay[];bills:AnBill[];receipts
 let source:(()=>LegacyAnRows)|undefined;
 /** Production wiring / tests: where the lgc history comes from. */
 export const setLegacyAnSource=(f:(()=>LegacyAnRows)|undefined)=>{source=f;};
+/** f12-int: the registered legacy rows (or undefined), so study-b runs on the same legacy + live series as study-a (one AnInput, as the server). */
+export const legacyAnRows=():LegacyAnRows|undefined=>source?.();
 export const LEGACY_UNTIL='2026-10-30';
 export const COVID_WINDOW={from:'2020-03-01',to:'2021-03-31'};
 

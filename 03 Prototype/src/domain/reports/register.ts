@@ -103,5 +103,6 @@ import './study-b/index';
 import './study-pack/management-pack';
 // F12-STUDY-PACK end
 // F12-DIGEST
+import './meas-digest-wiring';
 // F12-DIGEST end
 export {};

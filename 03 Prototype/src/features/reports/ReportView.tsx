@@ -9,6 +9,7 @@ import {saveCsv,saveBinaryFile,saveAndReport,printPage} from '../../app/native';
 import {XLSX_MIME,buildXlsx} from '../../app/xlsx';
 import type {RptDefinition,RptColumn,RptRow,RptCell,RptParam,RptResult,RptFormat} from '../../domain/reports/types';
 import {runReport,toXlsx,toCsv,toPrintModel,printHtml,canExportReport} from './hub-engine';
+import {isChart,chartOf,chartSvg} from '../../domain/reports/charts/chart'; // F12 MEAS chart sections
 import {defaultParams,exportFileName,favsOf,AREA_LABEL,STATUS_LABEL} from './hub-logic';
 import {useServerReportRun,ServerRunNote,fetchHubFile,isOnServer,NOT_ON_SERVER,NOT_ON_SERVER_TEXT,type HubDef} from './hubServer'; // AF2-HUB-SERVER: production branches only
 
@@ -86,6 +87,13 @@ export function ResultCards({result}:{result:RptResult}){
     <dl>{rest.map(c=>{const t=fmtCell(c,r.cells[c.key]);return t?<div key={c.key}><dt>{c.label}</dt><dd className={isNum(c)?'number':''}>{t}</dd></div>:null;})}</dl></li>)}</ul><ShowMore p={p}/></>;
 }
 
+/** F12 MEAS (STUDY-PACK item 1): every section of a multi-block report; a chart section (`chart.<kind>`) draws as inline SVG (text escaped by chartSvg). */
+function ResultSections({result,phone}:{result:RptResult;phone?:boolean}){
+  return <>{result.sections!.map((t,i)=>{const c=isChart(t)?chartOf(t):null;const sub={...result,columns:t.columns,rows:t.rows,sections:undefined};
+    return <section key={t.key+i} className="rpt-section" aria-label={t.title||t.key}>{t.title&&<h3>{t.title}</h3>}
+      {c?<div className="rpt-chart" dangerouslySetInnerHTML={{__html:chartSvg(c)}}/>:t.rows.length===0?<p className="muted">No rows.</p>:phone?<ResultCards result={sub}/>:<ResultTable result={sub}/>}</section>;})}</>;
+}
+
 export function ResultNotes({result,def}:{result:RptResult;def:RptDefinition}){
   const a=result.about;
   return <div className="rpt-notes muted">
@@ -109,6 +117,7 @@ export function ReportView({def,phone}:{def:RptDefinition;phone?:boolean}){
     {process.env.HCC_BUILD==='production'&&!error&&<ServerRunNote result={result} loading={loading}/>}
     {error?<Empty title="Cannot show this report" body={error}/>:!result?null:<>
       <ResultNotes result={result} def={def}/>
-      {result.rows.length===0?<Empty title="No rows" body="Nothing matches these parameters."/>:phone?<ResultCards result={result}/>:<ResultTable result={result}/>}</>}</>}
+      {result.sections&&result.sections.length>1?<ResultSections result={result} phone={phone}/>
+        :result.rows.length===0?<Empty title="No rows" body="Nothing matches these parameters."/>:phone?<ResultCards result={result}/>:<ResultTable result={result}/>}</>}</>}
   </div>;
 }

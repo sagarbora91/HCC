@@ -7,6 +7,8 @@ import type {RptState,RptSchedule,RptRun} from '../../../domain/reports/types';
 import {reportDef,canViewReport,canExportReport,runDef} from '../../../domain/reports/engine';
 import {netEnqueue} from '../../../domain/streams/egress';
 import {HccError} from '../../../domain/errors';
+import {packScheduleSync} from '../../../domain/reports/study-pack/management-pack'; // F12 MEAS (STUDY-PACK item 2)
+import {measScheduleSkips} from '../../../domain/streams/measure';
 import {docDef} from '../../../domain/reports/documents'; // F7-R7
 
 export const rptSlice=(s:State):RptState=>{const x=s.rptX??(s.rptX={favourites:{},schedules:[],runs:[],exportLog:[]});x.favourites??={};x.schedules??=[];x.runs??=[];x.exportLog??=[];return x;};
@@ -67,8 +69,10 @@ export const handlers:Record<string,Handler>={
   },
   RPT_RUN_DUE:k=>{
     const {s}=k;if(!['Owner','Manager','Accountant'].includes(k.user.role))k.fail('FORBIDDEN','The report outbox tick is run by the Owner, Manager or Accountant.');
-    const x=rptSlice(s);const t=s.clock.slice(11,16);let ok=0,held=0,failed=0;const runs:RptRun[]=[...x.runs];
-    for(const sc of x.schedules.filter(y=>rptScheduleDue(y,s.date,t))){
+    const x=rptSlice(s);x.schedules=packScheduleSync(s); // F12: the study pack schedule follows meas.study.packSchedule
+    const t=s.clock.slice(11,16);let ok=0,held=0,failed=0;const runs:RptRun[]=[...x.runs];
+    // F12: a switched-off measurement report is skipped, not failed (measScheduleSkips).
+    for(const sc of x.schedules.filter(y=>rptScheduleDue(y,s.date,t)&&!measScheduleSkips(s,y.reportId))){
       const params=rptResolveTokens(sc.params,s.date);
       const run:RptRun={id:k.id('RPR'),scheduleId:sc.id,reportId:sc.reportId,params,by:sc.owner,startedAt:s.clock,status:'ok'};
       try{

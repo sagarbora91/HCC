@@ -5,6 +5,7 @@ import {registerReport} from '../catalogue';
 import type {RptColumn,RptParam,RptDateClass,RptRow} from '../types';
 import type {AnalyticsSelector,AnInput} from '../../analytics/types';
 import {anInputFromState,extrasFromState} from '../../analytics/beyond-lib';
+import {legacyAnRows} from '../../analytics/legacy-input';
 import {revenueKpi,channelEconomics,pricingShape} from '../../analytics/beyond-revenue';
 import {guestRepeatValue,guestOriginPlan} from '../../analytics/beyond-guest';
 import {housekeepingOperations,fnbHallsAncillary,complianceRisk} from '../../analytics/beyond-ops';
@@ -35,7 +36,10 @@ export const STUDY_B_SPECS:Spec[]=[
 
 /** Runs a selector over a State (also used by the tests and the pack). */
 export function studyBRun(s:State,spec:Pick<Spec,'sel'>,p:Record<string,unknown>){
-  return spec.sel(anInputFromState(s),{...p,extras:extrasFromState(s)});
+  const live=anInputFromState(s),lg=legacyAnRows();
+  // f12-int: legacy history (when a source is registered) joins the live rows, one series as on the server (SqlAnalyticsInputSource).
+  const input=lg?{...live,rooms:[...live.rooms,...(lg.rooms??[]).filter(r=>!live.rooms.some(x=>x.id===r.id))],stays:[...lg.stays,...live.stays],bills:[...lg.bills,...live.bills],receipts:[...lg.receipts,...live.receipts]}:live;
+  return spec.sel(input,{...p,extras:extrasFromState(s)});
 }
 const columnsOf=(sel:AnalyticsSelector):RptColumn[]=>sel(EMPTY,{}).columns;
 

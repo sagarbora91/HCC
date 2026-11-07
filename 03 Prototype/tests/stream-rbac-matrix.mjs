@@ -70,6 +70,8 @@ const PAGES={
   'hall-booking':['OWN MGR REC CSH SUP HKP ACC MNT','PERM-HAL-001…006 (F6-H3): every staff role but the Tech admin and the Restaurant role; housekeeping / maintenance / supervisor see the calendar and the function sheet without prices (DEC-061)'],
   'tariff-card':['OWN MGR ACC REC CSH','PERM-TRF-001 (F4-T1): view card, history, print; not Restaurant / housekeeping / maintenance (DEC-061)'],
   'owner-digest':['OWN','PERM-DGS-001 (F4-T2): Owner only; navRoleOk hides it from every other role'],
+  // F12-INT: MEAS revenue pages (approve = Owner + Manager; contract §2 Manager, Owner)
+  'meas-events':['OWN MGR','F12 meas-forecast: events master (MEAS_EVENT_SAVE, approve)'],'meas-rateshop':['OWN MGR','F12 meas-forecast: rate shop (approve)'],'meas-displacement':['OWN MGR','F12 meas-forecast: displacement calculator (money, approve)'],
   'report-hub':['OWN MGR ACC REC CSH','F7-R2: Report library = any of reports, billing, reservations, checkin; the engine filters each report by its own view right and removes money reports for housekeeping / maintenance (DEC-061)'],
   'revenue-category':['OWN MGR ACC','PERM-RPT-001 + PERM-RPT-002 (F4-T2; DEC-202 #1): Owner, Manager, Accountant; navRoleOk hides it from the Cashier and the rest'],
   syshealth:['OWN TAD','PERM-SYS-001 (Wave C3, A09-05: parked outbox events, retry, last backup; the Administration area like Backup & recovery)'],
@@ -310,7 +312,7 @@ export function register({test,M,assert}){
       assert.equal(v.drawer.has(n.id),app,`drawer ≠ allowed for ${n.id}`);assert.equal(v.home.has(n.id),app,`home ≠ allowed for ${n.id}`);assert.equal(v.search.has(n.id),app,`search ≠ allowed for ${n.id}`);
       if(isKnown(u,'page:'+n.id))continue;
       assert.equal(app,set(PAGES[n.id][0]).has(role),`${role} · ${n.id}: documents say ${set(PAGES[n.id][0]).has(role)?'visible':'hidden'} (${PAGES[n.id][1]})`);}
-    for(const e of v.entries.filter(e=>e.kind==='action'))assert.ok(M.can(s,u,e.needs)&&v.allowed.has(e.page),e.id);});
+    for(const e of v.entries.filter(e=>e.kind==='action'))assert.ok((!e.needs||M.can(s,u,e.needs))&&v.allowed.has(e.page),e.id);}); // F12: the anonymous staff pulse needs no permission (visibleEntries)
   test('[RBAC] nav · housekeeping and maintenance reach only the no-money pages',()=>{
     for(const u of NO_MONEY_USERS)assert.deepEqual([...surfaces(M,s,u).allowed].sort(),['gsv-my-requests','hall-booking','handover','housekeeping','inventory','maintenance','my-hr','prefs'],u);});
   test('[RBAC] nav · compliance content is Owner + Accountant only: Due-this-week card, assistant answers, commands (DEC-055)',()=>{

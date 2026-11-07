@@ -187,7 +187,10 @@ export function measSettingDefs(s:State):CfgProviderDef[]{
     {key:'yld.restrictionsEnforce',label:'Enforce yield restrictions (min stay / CTA)',type:'boolean',unit:'on / off',default:false,...OWNER,help:'M-7: advisory by default.'},
     {key:'ffe.reservePct',label:'FF&E reserve',type:'integer',default:3,min:0,max:20,suffix:'%',...OWNER,help:'M-5: 3 % of room revenue.'},
   ];
-  return [...packs,...items,...targets,...other];
+  // MEAS-DIGEST item 4: the Owner's per-item digest line subscription (Owner digest › Measurement), default subscribed.
+  const lines:CfgProviderDef[]=MEAS_ITEMS.filter(i=>i.pack!=='study').map(i=>({key:`meas.digest.line.${i.key}`,label:`Digest line · ${i.label}`,type:'boolean' as const,unit:'on / off',default:true,...OWNER,
+    help:'Shows this item\'s red rows in the Owner digest block "Measurement".'}));
+  return [...packs,...items,...targets,...other,...lines];
 }
 /** Registered lazily from config.ts builtins() (not at import): yield / services / staff import this file while config.ts is still loading. */
 export function measRegisterSettings(){registerSettingsGroup({id:'measure',group:'measure',defs:measSettingDefs,summary:s=>{

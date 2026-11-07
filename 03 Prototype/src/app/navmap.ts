@@ -69,6 +69,9 @@ export const PAGE_CATEGORY:Record<string,CategoryId>={
   // F6-H3
   'hall-booking':'revenue',
   // F6-H3 end
+  // F12-INT
+  'meas-events':'revenue','meas-rateshop':'revenue','meas-displacement':'revenue',
+  // F12-INT end
   access:'admin',settings:'admin',approvals:'admin',backup:'admin',roadmap:'admin',
 };
 
@@ -113,6 +116,9 @@ export const PAGE_BLURB:Record<string,string>={
   'tariff-card':'Published room, meal and extra prices by valid-from date; rate sheet', // F4-T1
   // F6-H3
   'hall-booking':'Halls and lawn: enquiries, quotations with terms, calendar, events, event-day bill',
+  'meas-events':'Local events that move demand: weddings, exams, fairs, festival dates (feeds the forecast)',
+  'meas-rateshop':'Competitor rates entered by hand each week, for the rate parity report',
+  'meas-displacement':'Does a group pay more than the guests it would push out? Break-even group rate',
   // F6-H3 end
 };
 
@@ -165,6 +171,9 @@ export const PAGE_KEYWORDS:Record<string,string[]>={
   'hall-booking':['hall','banquet','lawn','wedding','function','event','quotation','quote','enquiry','beo','function sheet','catering','plates','marriage','party','t&c','terms'],
   // F6-H3 end
   // F12-KEYWORDS
+  'meas-events':['events','local events','wedding season','exam','fair','holiday','demand','forecast','festival'],
+  'meas-rateshop':['rate shop','competitor','competitors','parity','comp set','market rate'],
+  'meas-displacement':['displacement','group','group quote','transient','break-even','break even'],
   // F12-KEYWORDS end
   'desk-alerts':['reminder','reminders','alert','alerts','wake up','wake-up','wakeup','alarm','alert days','due date'], // LF-ALERTS
   roadmap:['roadmap','future','planned','modules','phases'],
@@ -183,12 +192,23 @@ export type SearchEntry={
   keywords:string[];
   /** Permission needed beyond the page itself (actions). */
   needs?:Permission;
+  /** F12 MEAS: the measurement item that must be on (measOn) and the roles the capture allows. */
+  meas?:string;roles?:string[];
 };
 /** Actions that jump straight into a form. Only dialogs that exist today (verified by the nav tests). */
-export const SEARCH_ACTIONS:{id:string;label:string;page:string;modal:{type:string};needs:Permission;keywords:string[]}[]=[
+export const SEARCH_ACTIONS:{id:string;label:string;page:string;modal:{type:string};needs?:Permission;keywords:string[];meas?:string;roles?:string[]}[]=[
   {id:'act-new-reservation',label:'New reservation',page:'reservations',modal:{type:'new'},needs:'reservations',keywords:['new booking','add booking','book a room','create reservation','new stay']},
   {id:'act-walkin',label:'Walk-in guest',page:'arrivals',modal:{type:'guest-walkin'},needs:'checkin',keywords:['walk in','walkin','new guest arriving','register walk in']},
   {id:'act-add-expense',label:'Add expense',page:'expenses',modal:{type:'expense'},needs:'expenses',keywords:['new expense','petty cash','record expense','vendor bill']},
+  // F12-INT: measurement captures (each dialog and command also refuses MEAS_OFF and the wrong role itself).
+  {id:'act-meas-turnaway',label:'Log a turn-away (could not book)',page:'reservations',modal:{type:'meas-turnaway'},needs:'reservations',keywords:['regret','denial','turn away','could not book','no room','lost booking'],meas:'meas.daily.regrets',roles:['Owner','Manager','Reception']},
+  {id:'act-meas-reading',label:'Enter a meter reading',page:'maintenance',modal:{type:'meas-reading'},needs:'housekeeping',keywords:['meter','reading','electricity','water','lpg','dg hours','diesel','utility'],meas:'meas.hk.utilities',roles:['Owner','Manager','Maintenance']},
+  {id:'act-meas-meters',label:'Meters list',page:'maintenance',modal:{type:'meas-meters'},needs:'housekeeping',keywords:['meter','meters','sub-meter','utility meter'],meas:'meas.hk.utilities',roles:['Owner','Manager']},
+  {id:'act-meas-offline',label:'Room offline reason',page:'housekeeping',modal:{type:'meas-offline'},needs:'housekeeping',keywords:['out of order','ooo','out of service','oos','offline','renovation','house use'],meas:'meas.hk.ooo',roles:['Owner','Manager','Supervisor']},
+  {id:'act-meas-discard',label:'Linen discard',page:'housekeeping',modal:{type:'meas-discard'},needs:'housekeeping',keywords:['linen','discard','torn','stained','lost linen'],meas:'meas.hk.linen',roles:['Owner','Manager','Supervisor']},
+  {id:'act-meas-survey',label:'Guest survey (desk entry)',page:'guest-services',modal:{type:'meas-survey-new'},needs:'reservations',keywords:['survey','feedback','nps','satisfaction','rating'],meas:'meas.guest.survey',roles:['Owner','Manager','Reception']},
+  {id:'act-meas-training',label:'Training record',page:'staff',modal:{type:'meas-training'},needs:'approve',keywords:['training','course','certificate','fssai','fire drill'],meas:'meas.people.training',roles:['Owner','Manager']},
+  {id:'act-meas-pulse',label:'Staff pulse (anonymous)',page:'my-hr',modal:{type:'meas-pulse'},keywords:['pulse','staff survey','anonymous','enps','morale'],meas:'meas.people.pulse'},
 ];
 
 /** Index of every page (from the nav items the app actually registers) plus the quick actions. */
@@ -200,7 +220,7 @@ export function buildSearchEntries(items:{id:string;label:string}[]):SearchEntry
   const have=new Set(items.map(n=>n.id));
   const actions:SearchEntry[]=SEARCH_ACTIONS.filter(a=>have.has(a.page)).map(a=>{
     const cat=PAGE_CATEGORY[a.page],c=categoryOf(cat),label=items.find(n=>n.id===a.page)!.label;
-    return {id:a.id,kind:'action' as const,label:a.label,page:a.page,modal:a.modal,category:cat,path:[c.label,label,a.label],keywords:a.keywords,needs:a.needs};
+    return {id:a.id,kind:'action' as const,label:a.label,page:a.page,modal:a.modal,category:cat,path:[c.label,label,a.label],keywords:a.keywords,needs:a.needs,meas:a.meas,roles:a.roles};
   });
   return [...pages,...actions];
 }

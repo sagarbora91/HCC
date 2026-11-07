@@ -195,7 +195,7 @@ export function execute(input:State,uid:string,cmd:Command):State{
   // Simulated clock: every successful command advances one minute (deterministic, DEC-030).
   if(cmd.type!=='NEXT_DAY')s.clock=addMinutes(s.clock,1);
   if(cmd.type==='CHECKOUT'){try{keyAfterCheckout(s,uid,cmd.id);}catch{/* a key problem never blocks check-out (spec 6.8) */}}
-  s.audit.unshift({id:id('audit'),at:s.clock,actor:user.name,action:cmd.type.split('_').join(' '),detail});
+  s.audit.unshift({id:id('audit'),at:s.clock,actor:cmd.type==='MEAS_PULSE_ADD'?'Anonymous':user.name,action:cmd.type.split('_').join(' '),detail});
   return cowFinish(input,s);
 }
 

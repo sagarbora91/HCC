@@ -13,6 +13,7 @@ import {FitPage,ScrollPanel,SplitView,useFitTab,useWideSplit} from '../../compon
 import {GuardedButton} from './parts';
 import {cfgListRows,cfgDetailDefs,cfgNav,cfgMoneyMask} from './config/logic';
 import {CfgModulesPanel,CfgDataPanel,CfgGroupLink} from './config/panels';
+import {MeasurePanel} from './config/MeasurePanel'; // F12 MEAS switches + targets
 import {ServerDevicePanel} from '../../clients/sync/react'; // production build only (W4-12: server address, device registration)
 import {MstListsBlock} from '../masters/MasterList'; // MA-0: "Lists" block (masters of the group)
 
@@ -84,6 +85,7 @@ export function CfgGroupDetail({g,q}:{g:CfgGroupId;q:string}){
     {g==='rooms'&&!q&&mstSeesMoney(s,uid)&&<Tariffs block={block}/>}
     {g==='money'&&!q&&mstSeesMoney(s,uid)&&<GstPanel/>}
     {g==='modules'&&<CfgModulesPanel/>}
+{g==='measure'&&<MeasurePanel/>}
     {g==='internet'&&<InternetPanel/>}
     {g!=='modules'&&(defs.length?<ul className="cfg-rows">{defs.map(d=><CfgRow key={d.key} def={d}/>)}</ul>:(!['rooms','money','data','internet'].includes(g)||q)&&!(q&&row.listHits)?<Empty title="No matching settings in this group"/>:null)}
     {g==='people'&&<p className="muted padded">Dated statutory rates, leave policy and weekly offs from the payroll module join this group through the settings provider API.</p>}

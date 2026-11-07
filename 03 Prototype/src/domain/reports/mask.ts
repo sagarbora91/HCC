@@ -20,7 +20,9 @@ RPT_V2_GRANTS['PERM-ACC-006']=['Owner','Accountant'];
 /** Server grants (migrations 3700 / 3921 / 0901 seeds) of the module codes the moved built reports use; the prototype's v1 matrix has no row for them.
  *  Wide grants (scope P, or A that is not own-only) and the own-shift scoped ones (POS-004 Cashier S) are separate: a scoped grant passes only for `ownShift` reports. */
 export const RPT_V2_R8:Record<string,string[]>={'PERM-STK-001':['Owner','Manager','Accountant','Supervisor','Housekeeper'],'PERM-STK-004':['Owner','Manager','Accountant'],
-  'PERM-POS-004':['Owner','Manager','Accountant'],'PERM-CFG-001':['Owner','Tech admin']};
+  'PERM-POS-004':['Owner','Manager','Accountant'],'PERM-CFG-001':['Owner','Tech admin'],
+  // F12 MEAS (MEAS-RPT-HK item 2; server seed 3700): Maintenance opens ppm-compliance, utilities-per-room and asset-life (money removed, DEC-061).
+  'PERM-MNT-001':['Owner','Manager','Maintenance']};
 export const RPT_V2_R8_SCOPED:Record<string,string[]>={'PERM-POS-004':['Cashier']};
 // F7-R8 end
 /** One permission: PERM-* codes through the access matrix (scoped cells such as the Cashier's own-shift V·S pass only for `ownShift` reports),

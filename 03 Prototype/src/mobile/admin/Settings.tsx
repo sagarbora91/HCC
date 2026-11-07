@@ -14,6 +14,7 @@ import {MaTag,MaIntro,MaGuard,MaRows} from './parts';
 import {cfgMoneyMask} from '../../features/admin/config/logic';
 import {cfgListRows,cfgDetailDefs,cfgNav} from '../../features/admin/config/logic';
 import {CfgModulesPanel,CfgDataPanel,CfgGroupLink} from '../../features/admin/config/panels';
+import {MeasurePanel} from '../../features/admin/config/MeasurePanel'; // F12 MEAS
 import {scheduleBlock} from '../../features/admin/HotelSettings';
 import {MstListsBlockPhone} from '../masters/MasterListPhone'; // MA-0: "Lists" block
 
@@ -46,6 +47,7 @@ function MaGroup({g,q,onBack}:{g:CfgGroupId;q:string;onBack:()=>void}){
     {g==='rooms'&&!q&&mstSeesMoney(s,uid)&&<Tariffs block={block}/>}
     {g==='money'&&!q&&mstSeesMoney(s,uid)&&<Tax block={block}/>}
     {g==='modules'&&<CfgModulesPanel/>}
+{g==='measure'&&<MeasurePanel/>}
     {g==='internet'&&<InternetPanel/>}
     {g!=='modules'&&defs.map(d=>{const dec=cfgCanChange(s,uid,d);const sched=cfgScheduled(s,d.key);const pend=cfgPendingRequests(s,d.key).length>0;
       return <article className="ma-card" key={d.key} aria-label={d.label}>

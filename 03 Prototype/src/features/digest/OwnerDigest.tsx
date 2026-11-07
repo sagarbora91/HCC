@@ -3,6 +3,7 @@ import React,{useMemo,useState} from 'react';
 import {Printer,ArrowRight} from 'lucide-react';
 import {money,dgsCard,dgsCanView,dgsClosedDates,dgsYesterday,dgsSlice,dgsRateLine,DGS_REASON} from '../../services/mock';
 import {useHcc} from '../../app/context';
+import {DigestMeasurement} from '../overview/DigestMeasurement'; // F12 MEAS block
 import {Empty,Pill} from '../../components/ui';
 import {printDocument} from '../../app/native';
 import {FitPage,ScrollPanel} from '../../components/fit';
@@ -38,6 +39,7 @@ export function OwnerDigest(){
         {row('Feedback',c.feedback.count?`${c.feedback.count} · ${c.feedback.average.toFixed(1)} stars`:'None')}
         {row('Tomorrow',`${c.tomorrow.arrivals} arrivals${c.tomorrow.rooms.length?' (rooms '+c.tomorrow.rooms.join(', ')+')':''} · ${c.tomorrow.events} events`)}
       </tbody></table></div></ScrollPanel>
+      <ScrollPanel title="Measurement" label="Measurement exceptions"><div className="padded"><DigestMeasurement date={c.date}/></div></ScrollPanel>
       <ScrollPanel title="Outbox drafts" label="Held drafts" actions={<Pill tone="neutral">held</Pill>}><div className="padded">
         {drafts.length?drafts.map(d=><p key={d.id}><strong>{d.channel}{d.countsOnly?' · counts only':''}</strong> · {d.status} · {d.reason}</p>):<p className="muted">No drafts for this date.</p>}
         <p className="muted">{DGS_REASON}. Nothing is sent from here.</p></div></ScrollPanel></>}

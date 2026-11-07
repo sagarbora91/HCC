@@ -76,7 +76,8 @@ def ref_workbooks(d, map_p, out_p):
             for row in wb[sn].iter_rows(values_only=True):
                 cells = list(row)
                 if col is None:
-                    if cells and isinstance(cells[0], str) and re.match(r"^FY\b", cells[0]):
+                    # header row = first cell "FY..." and at least three filled cells (a note line such as "FY 2017-18 from 3 Jul 2017; ..." is not a header)
+                    if cells and isinstance(cells[0], str) and re.match(r"^FY\b", cells[0]) and sum(c is not None for c in cells) >= 3:
                         col = next((i for i, c in enumerate(cells) if isinstance(c, str) and re.search(w["column"], c, re.I)), None)
                         if col is None:
                             break

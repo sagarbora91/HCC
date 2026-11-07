@@ -24,7 +24,9 @@ param(
     [string]$Workbooks = 'E:\Projects\HCC\Existing Software\Reports',
     [string[]]$Fys = @('2017-18', '2018-19', '2019-20', '2020-21', '2021-22', '2022-23', '2023-24', '2024-25', '2025-26', '2026-27'),
     [string]$DryFy = '2026-27',
-    [string]$Out
+    [string]$Out,
+    # f12-int: run the ported selectors on an LG extract folder (lgc_*.csv) instead of a server API (no server with imported lgc data on this PC).
+    [string]$Extract
 )
 $ErrorActionPreference = 'Stop'
 $repo = Split-Path -Parent $PSScriptRoot
@@ -44,6 +46,14 @@ if ($Dry) {
     $skipped = (Get-Content $results -Raw | ConvertFrom-Json).reports | Where-Object { $_.error } | ForEach-Object { $_.id }
     if ($skipped) { Write-Host ("skipped (error): " + ($skipped -join ', ')) }
     python $py compare $hcc $ref $map --dry
+    $code = $LASTEXITCODE
+}
+elseif ($Extract) {
+    if (-not (Test-Path $Workbooks)) { throw "Workbooks folder not found: $Workbooks" }
+    Invoke-Step 'HCC side (legacy extract through the ported selectors)' { node (Join-Path $legacy 'meas_golden_lgc.mjs') --extract $Extract --results $results --fys ($Fys -join ',') }
+    Invoke-Step 'extract headlines (HCC)' { python $py extract $results $map $hcc }
+    Invoke-Step 'reference (legacy workbooks)' { python $py ref-workbooks $Workbooks $map $ref }
+    python $py compare $hcc $ref $map
     $code = $LASTEXITCODE
 }
 else {

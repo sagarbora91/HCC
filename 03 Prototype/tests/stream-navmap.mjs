@@ -58,7 +58,7 @@ export function register({test,M,assert}){
   test('[NAV] results respect the role: housekeeper cannot find folios, reception can book, owner finds everything',()=>{
     const hk=forRole('housekeeper'),rec=forRole('reception'),own=forRole('owner');
     assert.equal(top(hk,'folio').length,0);assert.equal(top(hk,'new reservation').length,0);assert.ok(top(hk,'housekeeping').length>0);
-    assert.ok(top(rec,'new reservation').length>0);assert.deepEqual(top(rec,'payroll').map(e=>e.page),['my-hr']);
+    assert.ok(top(rec,'new reservation').length>0);assert.deepEqual([...new Set(top(rec,'payroll').map(e=>e.page))],['my-hr']); // F12: the staff pulse quick action also opens my-hr
     assert.equal(top(own,'payroll')[0].page,'staff');assert.ok(own.length>=entries.length-0);
   });
   test('[NAV] every page can be found by its own label for a role that may open it',()=>{

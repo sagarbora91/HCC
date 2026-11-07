@@ -5,6 +5,7 @@ import {money,addDays} from '../money';
 import {reportOccupancyRange,reportPct,reportRatioMoney,reportExpenses,approvalKindLabel} from './closing';
 import {rctReport} from './rpt-revcat';
 import {qwReorderAlerts,fbkOverdue,fbkSummary} from './feedback'; // F4-int: real T3 selectors
+import {measDigestBlock,measDigestEmailLines,measDigestWhatsAppLines,type MeasDigestBlock} from './measure-digest'; // F12 MEAS block
 
 export const DGS_REASON='Delivery waits for the messaging gateway (F9) and the internet switch (F5)';
 export const dgsCanView=(s:State,uid:string)=>{const u=s.users.find(x=>x.id===uid);return !!u&&u.enabled&&u.role==='Owner';};
@@ -23,7 +24,9 @@ export type DGSCard={date:string;
   /** CTL-01: the day's rate changes more than the Owner's threshold below the stay's agreed rate (who / what / how much). */
   rateCuts:DGSRateCut[];
   reorder:number;overdue:{complaints:number;lostFound:number};feedback:{count:number;average:number};
-  tomorrow:{arrivals:number;rooms:string[];events:number}};
+  tomorrow:{arrivals:number;rooms:string[];events:number};
+  /** F12 MEAS: the Measurement block (red rows of the switched-on reports); absent when every pack is off. */
+  meas?:MeasDigestBlock};
 
 export type DGSRateCut={room:string;booking:string;tariff:number;agreed:number;rate:number;reductionBps:number;thresholdBps:number;changedBy:string;approvedBy?:string;reason:string};
 /** CTL-01: rate changes of `date` flagged over the threshold (stay-rate.ts strApply; server SqlRateReductionDigest). */
@@ -55,7 +58,7 @@ export function dgsCard(s:State,date:string):DGSCard{
     pendingApprovals:[...kinds].map(([kind,count])=>({kind,count})),
     rateCuts:dgsRateCuts(s,date),
     reorder:qwReorderAlerts(s).length,overdue:(({complaints,lostFound})=>({complaints,lostFound}))(fbkOverdue(s,date)),feedback:(f=>({count:f.count,average:f.avg??0}))(fbkSummary(s,date)),
-    tomorrow:{arrivals:arr.length,rooms:arr.map(b=>b.room),events:0}};
+    tomorrow:{arrivals:arr.length,rooms:arr.map(b=>b.room),events:0},meas:measDigestBlock(s,date)};
 }
 const pendingTotal=(c:DGSCard)=>c.pendingApprovals.reduce((t,x)=>t+x.count,0);
 /** E-mail body (money allowed; Owner + Accountant). */
@@ -70,12 +73,12 @@ export function dgsEmailBody(c:DGSCard):string{
     `Pending approvals: ${pendingTotal(c)}${c.pendingApprovals.length?' ('+c.pendingApprovals.map(x=>`${x.kind} ${x.count}`).join(', ')+')':''}`,
     `Rate reductions beyond the agreed-rate threshold: ${(c.rateCuts??[]).length}`,...(c.rateCuts??[]).map(dgsRateLine),
     `Reorder alerts: ${c.reorder} · complaints / lost & found over SLA: ${c.overdue.complaints + c.overdue.lostFound} · feedback: ${c.feedback.count}${c.feedback.count?` (average ${c.feedback.average.toFixed(1)} stars)`:''}`,
-    `Tomorrow: ${c.tomorrow.arrivals} arrival${c.tomorrow.arrivals===1?'':'s'}, ${c.tomorrow.events} event${c.tomorrow.events===1?'':'s'}`].join('\n');
+    `Tomorrow: ${c.tomorrow.arrivals} arrival${c.tomorrow.arrivals===1?'':'s'}, ${c.tomorrow.events} event${c.tomorrow.events===1?'':'s'}`,...measDigestEmailLines(c.meas)].join('\n');
 }
 /** WhatsApp body (DEC-202 #7): counts only, no names, no money. */
 export function dgsWhatsAppBody(c:DGSCard):string{
   return [`Digest ${c.date}`,`Rooms sold ${c.occupancy.sold} of ${c.occupancy.sellable}`,`Arrivals tomorrow ${c.tomorrow.arrivals}`,`Pending approvals ${pendingTotal(c)}`,`Rate cuts beyond threshold ${(c.rateCuts??[]).length}`,
-    `Reorder alerts ${c.reorder}`,`Complaints over SLA ${c.overdue.complaints + c.overdue.lostFound}`].join('\n');
+    `Reorder alerts ${c.reorder}`,`Complaints over SLA ${c.overdue.complaints + c.overdue.lostFound}`,...measDigestWhatsAppLines(c.meas)].join('\n');
 }
 /** The two held drafts of a closed date (idempotent per date and channel: a re-close replaces them). Never sent. */
 export function dgsWriteDrafts(s:State,uid:string,date:string):DGSState{

@@ -127,7 +127,8 @@ public sealed class AnalyticsInputSqlTests(AnalyticsInputSqlFixture f) : IClassF
 
         // bills in paise: legacy (hall bill out; duplicate stay's bill kept as in the workbooks) and live (bill date = departure, reversed night out)
         var lb = Assert.Single(inp.Bills, b => b.Id == "LB" + f.LegacyBillId.ToString(CultureInfo.InvariantCulture));
-        Assert.Equal(("L2025-26-7", "2025-06-03", 660000L, 20000L, 15000L, 15000L, 80200L, 760200L, 4, 660200L, true),
+        // paid: the workbook receivables rule (f12-int golden): a bill not flagged unpaid (paid_flag Y) is paid in full whatever its stored balance
+        Assert.Equal(("L2025-26-7", "2025-06-03", 660000L, 20000L, 15000L, 15000L, 80200L, 760200L, 4, 760200L, true),
             (lb.Stay, lb.Date, lb.RoomChargePaise, lb.FnbPaise, lb.OtherPaise, lb.DiscountPaise, lb.GstPaise, lb.TotalPaise, lb.ChargedNights, lb.PaidPaise, lb.Legacy));
         Assert.DoesNotContain(inp.Bills, b => b.RoomChargePaise == 900000);              // CONAC hall bill
         Assert.Equal(2, inp.Bills.Count(b => b.Legacy));

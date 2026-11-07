@@ -86,7 +86,7 @@ export const FEATURE_MODULES:FeatureModule[]=[
     {id:'crm',label:'CRM notes, tags & merge',pages:[],prefixes:[],permPrefixes:['PERM-CRM-'],note:'Tags, notes, preferences, consent, merge'},
   ]},
   {id:'revenue',label:'Revenue & sales',coarse:['reservations'],features:[
-    {id:'yield',label:'Tariff & yield',pages:['yield'],prefixes:['YLD_','TARIFF_SCHEDULE'],permPrefixes:['PERM-YLD-'],note:'Rate plans, seasons, guardrails, overrides'},
+    {id:'yield',label:'Tariff & yield',pages:['yield','meas-events','meas-rateshop','meas-displacement'],prefixes:['YLD_','TARIFF_SCHEDULE'],permPrefixes:['PERM-YLD-'],note:'Rate plans, seasons, guardrails, overrides'},
     {id:'groups',label:'Groups & companies',pages:['groups'],prefixes:['GRP_'],permPrefixes:['PERM-GRP-'],note:'Group blocks, companies, credit limits (follows the Groups module switch)'},
     {id:'ota',label:'OTA channels',pages:['channels'],prefixes:['CHN_'],except:['CHN_WEB_','CHN_PAYOUT'],permPrefixes:['PERM-OTA-'],note:'OTA inbound bookings and rate push (follows the OTA module switch)'},
     {id:'payouts',label:'OTA payouts',pages:[],prefixes:['CHN_PAYOUT'],requires:['revenue.ota'],permPrefixes:['PERM-OTA-'],note:'OTA payout receipts and commission'},
