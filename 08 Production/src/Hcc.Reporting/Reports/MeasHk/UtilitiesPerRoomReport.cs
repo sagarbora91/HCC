@@ -41,7 +41,7 @@ public sealed class UtilitiesPerRoomReport(SqlPlatform platform) : MeasHkReportB
             for (var i = 1; i < l.Count; i++)
             {
                 var k = l[i].Kind == "lpg" && l[i].Unit != "kg" ? LpgKgPerCylinder : 1;
-                var u = Math.Round((l[i].Value - l[i - 1].Value) * 100) / 100 * k;
+                var u = Math.Round((l[i].Value - l[i - 1].Value) * 100, MidpointRounding.AwayFromZero) / 100 * k;
                 use[l[i].Kind][l[i].Date] = use[l[i].Kind].GetValueOrDefault(l[i].Date) + u;
             }
         }
@@ -109,7 +109,7 @@ public sealed class UtilitiesPerRoomReport(SqlPlatform platform) : MeasHkReportB
             ["day"] = "Month", ["electricity"] = Dec2(monthKwh), ["water"] = Dec2(SumIn(use["water"], monthStart.Year, monthStart.Month)), ["lpg"] = Dec2(SumIn(use["lpg"], monthStart.Year, monthStart.Month)),
             ["diesel"] = Dec2(SumIn(use["diesel"], monthStart.Year, monthStart.Month)), ["dgHours"] = Dec2(SumIn(use["dg-hours"], monthStart.Year, monthStart.Month)), ["perOccupied"] = Dec2(perMonth),
             ["perAvailable"] = monthKwh > 0 ? Dec2(monthKwh / avail) : null, ["unitCost"] = monthKwh > 0 && spend > 0 ? (long)Math.Round(spend / monthKwh, MidpointRounding.AwayFromZero) : null,
-            ["costPerNight"] = monthRn > 0 && spend > 0 ? (long)Math.Round((double)spend / monthRn, MidpointRounding.AwayFromZero) : null, ["lastYear"] = ly > 0 ? Dec2(ly) : null,
+            ["costPerNight"] = monthRn > 0 && spend > 0 ? Hcc.Reporting.Reports.StudyPack.PackRules.DivP(spend, monthRn) : null, ["lastYear"] = ly > 0 ? Dec2(ly) : null,
         }, UtilityRed(perMonth, baseline) ? RedGroup : null));
         return Done(parameters, Columns, rows);
     }

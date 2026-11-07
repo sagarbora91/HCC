@@ -1,6 +1,9 @@
 using System.Text.Json;
+using Hcc.Application.Access;
 using Hcc.Application.Configuration;
 using Hcc.Application.Reporting.Rpt;
+using Hcc.Application.Billing;
+using Hcc.Reporting;
 using Hcc.Reporting.Reports.MeasHk;
 using static Hcc.Reporting.Reports.MeasHk.MeasHkRules;
 
@@ -192,5 +195,78 @@ public class MeasHkReportsTests
             Assert.Equal(cols.Select(c => c.GetProperty("money").GetBoolean()), d.Columns.Select(c => c.Money));
             Assert.Equal(cols.Select(c => c.GetProperty("type").GetString()), d.Columns.Select(c => c.Type == ReportColumnType.Percent ? "pct" : c.Type.ToString().ToLowerInvariant()));
         }
+    }
+
+    // F12-D L1 · half away from zero, not banker's rounding (JS Math.round on these non-negative values).
+    [Fact]
+    public void Two_and_a_half_minutes_round_to_three_and_three_and_a_half_to_four()
+    {
+        Assert.Equal(3d, HkProductivityReport.RoundMinutes(TimeSpan.FromSeconds(150)));
+        Assert.Equal(4d, HkProductivityReport.RoundMinutes(TimeSpan.FromSeconds(210)));
+        Assert.Equal(0d, HkProductivityReport.RoundMinutes(TimeSpan.FromSeconds(29)));
+    }
+
+    [Fact]
+    public void Meter_delta_0_125_becomes_0_13()
+    {
+        var d = new DateOnly(2026, 10, 2);
+        var use = UtilitiesPerRoomReport.Use([("m", "electricity", "kWh", d.AddDays(-1), 10.0), ("m", "electricity", "kWh", d, 10.125)]);
+        Assert.Equal(0.13, use["electricity"][d], 10);
+        var use2 = UtilitiesPerRoomReport.Use([("m", "electricity", "kWh", d.AddDays(-1), 20.0), ("m", "electricity", "kWh", d, 20.375)]);
+        Assert.Equal(0.38, use2["electricity"][d], 10);
+    }
+
+    // F12-D L4 · a Housekeeping caller (PERM-HK-001 + PERM-STK-001, never the money gate) gets no money key at all: absent, not null.
+    private sealed class HkpPolicy(params string[] held) : IAccessPolicy
+    {
+        public Task<bool> HasAsync(int propertyId, int principalId, string permissionId, AccessScope? scope = null, CancellationToken ct = default) => Task.FromResult(held.Contains(permissionId));
+
+        public Task RequireAsync(int propertyId, int principalId, string permissionId, AccessScope? scope = null, long? amountPaise = null, CancellationToken ct = default) =>
+            held.Contains(permissionId) ? Task.CompletedTask : throw new Hcc.Domain.Errors.HccException(Hcc.Contracts.HccErrorCode.FORBIDDEN, permissionId);
+    }
+
+    private sealed class ProbeProperty : IReportPropertyInfo
+    {
+        public Task<ReportProperty> GetAsync(int propertyId, CancellationToken ct = default) => Task.FromResult(new ReportProperty("HPE", "Test", new DateOnly(2026, 10, 24)));
+    }
+
+    /// <summary>The real definition of a measurement report with a fixed result that fills every column of it (money columns with paise).</summary>
+    private sealed class FilledSelector(ReportDefinition def) : IReportSelector
+    {
+        public ReportDefinition Definition { get; } = def;
+
+        public Task<ReportResult> SelectAsync(Caller caller, BoundParams parameters, CancellationToken ct = default)
+        {
+            var rows = Enumerable.Range(0, 3).Select(n => new ReportRow(n == 2 ? ReportRowKind.Total : ReportRowKind.Row,
+                Definition.Columns.ToDictionary(c => c.Key, c => c.Money ? (object?)(123400L + n) : c.Type == ReportColumnType.Text ? "x" : (object?)(long)n, StringComparer.Ordinal))).ToList();
+            return Task.FromResult(new ReportResult(Definition.Id, Definition.Title, parameters, Definition.Columns, rows, new ReportAbout(DateTimeOffset.MinValue, "t", Definition.DateBasis, false, false)));
+        }
+    }
+
+    private static ReportRunner RunnerFor(IAccessPolicy policy, ReportDefinition d) =>
+        new(new ReportCatalogue([new FilledSelector(d)]), policy, new ProbeProperty(), [new FixedCodeEngine()], TimeProvider.System);
+
+    [Theory]
+    [InlineData("rpt.acc.asset-life")]
+    [InlineData("rpt.stock.linen-cost")]
+    public async Task A_housekeeping_caller_sees_no_money_column_and_no_money_cell(string id)
+    {
+        var d = All.First(r => r.Definition.Id == id).Definition;
+        var money = d.Columns.Where(c => c.Money).Select(c => c.Key).ToList();
+        Assert.NotEmpty(money);
+        var result = await RunnerFor(new HkpPolicy("PERM-HK-001", "PERM-STK-001"), d).RunAsync(new Caller(1, 7), id, new Dictionary<string, string?>(), new RunOptions(All: true), TestContext.Current.CancellationToken);
+        foreach (var k in money)
+        {
+            Assert.DoesNotContain(result.Columns, c => c.Key == k);
+            Assert.All(result.Rows, r => Assert.False(r.Cells.ContainsKey(k), k));
+        }
+
+        Assert.NotNull(result.Removed);
+        Assert.All(money, k => Assert.Contains(k, result.Removed!));
+        Assert.NotEmpty(result.Rows);
+
+        // control: the holder of the money gate does get them
+        var full = await RunnerFor(new HkpPolicy("PERM-HK-001", "PERM-STK-001", d.MoneyGate!), d).RunAsync(new Caller(1, 1), id, new Dictionary<string, string?>(), new RunOptions(All: true), TestContext.Current.CancellationToken);
+        Assert.All(money, k => Assert.Contains(full.Columns, c => c.Key == k));
     }
 }
