@@ -112,7 +112,7 @@ public sealed class MeasurementGateTests
         Assert.Equal(22, MeasurementCatalogue.Items.Count(i => i.Pack == "study"));
         Assert.Equal(MeasurementCatalogue.Items.Count, MeasurementCatalogue.Items.Select(i => i.Key).Distinct().Count());
         Assert.Equal(54, MeasurementCatalogue.Items.Count(i => i.ReportId is not null));
-        Assert.Equal(13, MeasurementCatalogue.Targets.Count);
+        Assert.Equal(14, MeasurementCatalogue.Targets.Count); // F12-MEAS2-C: + meas.target.upsellPerArrival
         Assert.Equal(205000, MeasurementCatalogue.Targets.Single(t => t.Key == "meas.target.adr").Default);
         Assert.Equal(35, MeasurementCatalogue.Targets.Single(t => t.Key == "meas.target.occupancy").Default);
     }
@@ -122,8 +122,8 @@ public sealed class MeasurementGateTests
     {
         var defs = MeasurementCatalogue.Definitions();
         Assert.All(defs, d => Assert.True(d.Money == true && d.Approver == SettingApprover.Owner, d.Key));
-        Assert.All(defs, d => Assert.Matches("^[a-z][a-zA-Z0-9._-]{1,79}$", d.Key));
-        Assert.Equal(6 + 56 + 13 + 5, defs.Count);
+        Assert.All(defs, d => Assert.Matches("^[a-z][a-zA-Z0-9._-]{1,79}$", d.Key == "yld.overbook.*" ? "yld.overbook.X" : d.Key)); // F12-MEAS2-C: the one key family
+        Assert.Equal(6 + 56 + 14 + 6, defs.Count); // F12-MEAS2-C: + upsell target, + yld.overbook.* family
     }
 
     [Fact]
