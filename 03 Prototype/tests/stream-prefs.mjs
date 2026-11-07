@@ -123,7 +123,7 @@ export function register({test,M,assert}){
   test('[PREFS] toast duration: 3 / 6.5 / 10 s in ms, 0 = until dismissed (null); App uses it instead of the fixed 6500',()=>{
     assert.deepEqual(X.TOAST_SECONDS.map(X.toastMs),[3000,6500,10000,null]);assert.equal(X.toastMs(D.toastSeconds),6500);
     assert.equal(X.toastLabel(0),'Until dismissed');
-    const app=readFileSync('src/app/App.tsx','utf8');assert.match(app,/const ms=toastMs\(prefsRef\.current\.toastSeconds\);if\(ms!==null\)/);assert.doesNotMatch(app,/setNotice\(null\),6500\)/);});
+    const app=readFileSync('src/app/App.tsx','utf8');assert.match(app,/const ms=toastDuration\(prefsRef\.current\.toastSeconds,minMs\);if\(ms!==null\)/);assert.doesNotMatch(app,/setNotice\(null\),6500\)/);});
   test('[PREFS] density tokens never below 44 px on touch; compact CSS stays inside the desktop shell (phone keeps 48 px)',()=>{
     for(const d of X.DENSITIES){const t=X.densityTokens(d);assert.ok(t.dense>=44&&t.primary>=44,d);}
     assert.deepEqual(X.densityTokens('comfortable'),{dense:44,primary:48},'DEC-060 values unchanged by default');

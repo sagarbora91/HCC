@@ -86,6 +86,8 @@ export function resolvePageSize(pref:ListPageSize,phone:boolean):number{
 }
 /** Toast lifetime in ms, or null = stays until dismissed. */
 export const toastMs=(seconds:ToastSeconds):number|null=>seconds>0?Math.round(seconds*1000):null;
+/** ADM-UX: a message that must be read (configuration changes) lasts at least `minMs`; the personal 'until dismissed' choice stays as it is. */
+export const toastDuration=(seconds:ToastSeconds,minMs?:number):number|null=>{const base=toastMs(seconds);return base===null||!minMs?base:Math.max(base,minMs);};
 /** Touch tokens per density (DEC-060). Compact tightens the tablet primary target; nothing goes below 44 px on touch. */
 export const TOUCH_MIN=44;
 export function densityTokens(d:Density):{dense:number;primary:number}{
