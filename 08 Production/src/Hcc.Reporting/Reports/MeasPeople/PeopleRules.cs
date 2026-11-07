@@ -8,6 +8,7 @@ using Hcc.Application.Configuration;
 using Hcc.Application.Reporting.Rpt;
 using Hcc.Domain.Configuration;
 using Hcc.Domain.Errors;
+using Hcc.Contracts;
 using Microsoft.Data.SqlClient;
 
 namespace Hcc.Reporting.Reports.MeasPeople;
@@ -98,7 +99,7 @@ internal static class PeopleSql
 
     public static ReportColumn M(string key, string label) => new(key, label, ReportColumnType.Money, true);
 
-    public static readonly ReportColumn Exception = new("exception", "Exception", ReportColumnType.Bool, false);
+    public static readonly ReportColumn ExceptionCol = new("exception", "Exception", ReportColumnType.Bool, false);
 
     public static ReportRow Row(Dictionary<string, object?> cells, ReportRowKind kind = ReportRowKind.Row) => new(kind, cells);
 

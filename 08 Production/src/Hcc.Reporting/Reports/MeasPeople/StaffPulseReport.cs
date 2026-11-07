@@ -21,7 +21,7 @@ public sealed class StaffPulseReport(SqlPlatform platform, IAccessPolicy policy)
     public static readonly IReadOnlyList<ReportColumn> Columns =
     [
         T("quarter", "Quarter"), T("dept", "Department"), I("responses", "Responses"), T("workload", "Workload"), T("respect", "Respect"), T("tools", "Tools"), T("payFairness", "Pay fairness"),
-        T("recommend", "Would recommend"), I("enps", "eNPS"), Exception,
+        T("recommend", "Would recommend"), I("enps", "eNPS"), ExceptionCol,
     ];
 
     public ReportDefinition Definition { get; } = new(Id, "Staff pulse (optional)", "people", "P3", "MEAS", false, null, ["PERM-HR-002"], [], "PERM-RPT-003", ReportDateClass.FinancialYear,

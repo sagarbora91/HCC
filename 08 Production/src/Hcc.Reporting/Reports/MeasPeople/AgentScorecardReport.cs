@@ -13,6 +13,7 @@ using static Hcc.Reporting.Reports.MeasPeople.PeopleSql;
 
 namespace Hcc.Reporting.Reports.MeasPeople;
 
+#pragma warning disable CS0649
 public sealed class AgentScorecardReport(SqlPlatform platform, IAccessPolicy policy) : IReportSelector, IMeasuredReport
 {
     public const string Id = "rpt.people.agent-scorecard";
@@ -23,7 +24,7 @@ public sealed class AgentScorecardReport(SqlPlatform platform, IAccessPolicy pol
     [
         T("user", "User"), I("checkins", "Check-ins"), I("checkouts", "Check-outs"), I("rateEdits", "Rate edits"), I("discountCount", "Discounts (count)"), M("discountAmount", "Discounts (Rs)"),
         P("discountReasonPct", "Discounts with a reason (%)"), I("comps", "Comps requested"), T("upsellPerArrival", "Upsell per arrival"), I("complaints", "Complaints attributed"),
-        M("cashVariance", "Cash variances (Rs)"), I("regrets", "Regrets logged"), T("surveyScore", "Survey score"), Exception,
+        M("cashVariance", "Cash variances (Rs)"), I("regrets", "Regrets logged"), T("surveyScore", "Survey score"), ExceptionCol,
     ];
 
     public ReportDefinition Definition { get; } = new(Id, "Performance by desk user", "people", "P2", "MEAS", true, "PERM-RPT-002", ["PERM-RPT-002"], [], "PERM-RPT-003", ReportDateClass.Month,

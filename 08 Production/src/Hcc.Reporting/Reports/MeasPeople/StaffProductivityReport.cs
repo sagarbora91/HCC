@@ -21,7 +21,7 @@ public sealed class StaffProductivityReport(SqlPlatform platform, ISettingsReade
     public static readonly IReadOnlyList<ReportColumn> Columns =
     [
         T("dept", "Department"), I("headcount", "Headcount"), T("hoursPerRoomNight", "Staff-hours per occupied room-night"), P("otPct", "OT %"), P("absentPct", "Absenteeism %"),
-        I("lateMarks", "Late marks"), T("lowNightHours", "Rostered hours on low-forecast nights"), Exception,
+        I("lateMarks", "Late marks"), T("lowNightHours", "Rostered hours on low-forecast nights"), ExceptionCol,
     ];
 
     public ReportDefinition Definition { get; } = new(Id, "Staff per occupied room, overtime, absenteeism", "people", "P2", "MEAS", false, null, ["PERM-HR-001"], [], "PERM-RPT-003", ReportDateClass.Month,

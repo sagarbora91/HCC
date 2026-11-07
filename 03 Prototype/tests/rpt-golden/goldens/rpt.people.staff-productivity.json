@@ -1,0 +1,27 @@
+{
+ "id": "rpt.people.staff-productivity",
+ "cases": [
+  {
+   "uid": "owner",
+   "scenario": "BASE",
+   "params": {},
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["dept","headcount","hoursPerRoomNight","otPct","absentPct","lateMarks","lowNightHours","exception"],
+     "rows": [
+      ["row","Management",1,"11.81",1.1,7.1,0,"189.0",true],
+      ["row","Front office",2,"21.00",0.9,4.8,3,"336.0",false],
+      ["row","Housekeeping",3,"30.50",1.8,4.9,4,"488.0",false],
+      ["row","Maintenance",1,"11.25",2.8,0,1,"180.0",false],
+      ["row","Kitchen",2,"21.00",2.7,2.4,2,"336.0",false],
+      ["row","Security",2,"21.75",2.9,2.4,1,"348.0",false],
+      ["row","Accounts",1,"11.81",1.6,7.1,1,"189.0",true],
+      ["total","All departments",12,"129.13",2,4,12,"2066.0",false]
+     ]
+    }
+   ]
+  }
+ ]
+}

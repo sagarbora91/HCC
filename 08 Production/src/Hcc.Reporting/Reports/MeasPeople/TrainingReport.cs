@@ -19,7 +19,7 @@ public sealed class TrainingReport(SqlPlatform platform) : IReportSelector, IMea
     public static readonly IReadOnlyList<ReportColumn> Columns =
     [
         T("staff", "Staff"), T("course", "Course"), D("date", "Date"), T("hours", "Hours"), T("certificateNo", "Certificate no"), D("validTo", "Valid to"), I("daysToExpiry", "Days to expiry"),
-        T("quarterHours", "Hours per head this quarter"), Exception,
+        T("quarterHours", "Hours per head this quarter"), ExceptionCol,
     ];
 
     public ReportDefinition Definition { get; } = new(Id, "Training hours and certifications", "people", "P2", "MEAS", false, null, ["PERM-HR-001"], [], "PERM-RPT-003", ReportDateClass.AsOf,

@@ -19,7 +19,7 @@ public sealed class AttritionReport(SqlPlatform platform, ISettingsReader? setti
     public static readonly IReadOnlyList<ReportColumn> Columns =
     [
         T("dept", "Department"), I("joiners", "Joiners"), I("leavers", "Leavers"), T("exitReasons", "Exit reasons"), T("tenure", "Tenure at exit"), P("attritionPct", "12-month attrition %"),
-        I("vacancyDays", "Vacancy days"), Exception,
+        I("vacancyDays", "Vacancy days"), ExceptionCol,
     ];
 
     public ReportDefinition Definition { get; } = new(Id, "Attrition and tenure", "people", "P2", "MEAS", false, null, ["PERM-HR-001"], [], "PERM-RPT-003", ReportDateClass.FinancialYear,

@@ -1,0 +1,26 @@
+{
+ "id": "rpt.people.attrition",
+ "cases": [
+  {
+   "uid": "owner",
+   "scenario": "BASE",
+   "params": {},
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["dept","joiners","leavers","exitReasons","tenure","attritionPct","vacancyDays","exception"],
+     "rows": [
+      ["row","Management",0,0,"","",0,0,false],
+      ["row","Front office",0,0,"","",0,0,false],
+      ["row","Housekeeping",0,0,"","",0,0,false],
+      ["row","Maintenance",0,0,"","",0,0,false],
+      ["row","Kitchen",1,0,"","",0,0,false],
+      ["row","Security",0,0,"","",0,0,false],
+      ["row","Accounts",0,0,"","",0,0,false]
+     ]
+    }
+   ]
+  }
+ ]
+}
