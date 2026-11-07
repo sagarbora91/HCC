@@ -1,0 +1,18 @@
+{
+ "id": "rpt.money.cashier-variance",
+ "cases": [
+  {
+   "uid": "owner",
+   "scenario": "BASE",
+   "params": {},
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["date","shift","cashier","expected","counted","paidOuts","float","variance","mtdVariance","exception"],
+     "rows": []
+    }
+   ]
+  }
+ ]
+}

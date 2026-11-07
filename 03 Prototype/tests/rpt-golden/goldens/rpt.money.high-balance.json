@@ -1,0 +1,27 @@
+{
+ "id": "rpt.money.high-balance",
+ "cases": [
+  {
+   "uid": "owner",
+   "scenario": "BASE",
+   "params": {},
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["room","guest","company","daysInHouse","balance","deposit","limit","overBy","exception"],
+     "rows": [
+      ["row","101","Ananya Rao","",1,10000,0,0,0,""],
+      ["row","102","Vikram Shah","",1,10000,0,0,0,""],
+      ["row","104","Riya Mehta","",1,15000,0,0,0,""],
+      ["row","201","Arjun Kapoor","",1,10000,0,0,0,""],
+      ["row","202","Nisha Desai","",1,10000,0,0,0,""],
+      ["row","206","Kabir Sen","",1,22500,0,0,0,""],
+      ["row","301","Tara Iyer","",1,10000,0,0,0,""],
+      ["row","302","Dev Malhotra","",1,10000,0,0,0,""]
+     ]
+    }
+   ]
+  }
+ ]
+}

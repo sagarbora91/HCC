@@ -161,6 +161,15 @@ public static class HccComposition
         // F12-FORECAST
         // F12-FORECAST end
         // F12-RPT-DAILY
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.MeasDaily.ManagerFlashReport>(services); // F12-RPT-DAILY
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.MeasDaily.RegretsDenialsReport>(services); // F12-RPT-DAILY
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.MeasDaily.RateVarianceReport>(services); // F12-RPT-DAILY
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.MeasDaily.RoomDiscrepancyReport>(services); // F12-RPT-DAILY
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.MeasDaily.HighBalanceReport>(services); // F12-RPT-DAILY
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.MeasDaily.AllowancesVoidsReport>(services); // F12-RPT-DAILY
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.MeasDaily.NoShowCancelReport>(services); // F12-RPT-DAILY
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.MeasDaily.InventoryExceptionsReport>(services); // F12-RPT-DAILY
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.MeasDaily.CashierVarianceReport>(services); // F12-RPT-DAILY
         // F12-RPT-DAILY end
         // F12-RPT-REVENUE
         // F12-RPT-REVENUE end

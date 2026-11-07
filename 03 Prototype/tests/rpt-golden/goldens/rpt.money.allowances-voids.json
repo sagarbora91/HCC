@@ -1,0 +1,18 @@
+{
+ "id": "rpt.money.allowances-voids",
+ "cases": [
+  {
+   "uid": "owner",
+   "scenario": "BASE",
+   "params": {},
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["date","kind","bill","amount","reasonCode","user","approver","exception"],
+     "rows": []
+    }
+   ]
+  }
+ ]
+}
