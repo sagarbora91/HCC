@@ -1,6 +1,7 @@
 // F12-RPT-REVENUE · rpt.revenue.restriction-effect — Length-of-stay and minimum-stay controls (catalogue §3.10, switch meas.rev.restrictions).
 // Server twin of meas-revenue/restriction-effect.ts. Restrictions come from the yield configuration, counters from meas.restriction_counter.
 using Hcc.Application.Configuration;
+using Hcc.Contracts;
 using Hcc.Application.Reporting.Rpt;
 using Hcc.Application.Yield;
 using Hcc.Domain.Errors;

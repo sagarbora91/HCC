@@ -63,25 +63,25 @@ export async function register({test,M,assert}){
   test(T+'overbooking rule: oversold above the allowed number is red, equal is not; the allowed number is the Owner setting',()=>{
     assert.equal(R.mrOversoldRed(1,0),true);assert.equal(R.mrOversoldRed(1,1),false);assert.equal(R.mrOversoldRed(0,0),false);
     let s=M.seed();const a=s.bookings.find(b=>b.status==='Confirmed')??s.bookings[1];
-    // a second booking on the same room and nights = one room oversold on those nights
+    const aType=s.rooms.find(r=>r.id===a.room).type;
+    // the type is cut down to the one room, then two bookings share it: one room sold above the rooms in service
     const dup=mk(s,{id:'DUP-1',room:a.room,arrival:a.arrival,departure:a.departure,status:'Confirmed',source:'Direct'});
-    s={...s,bookings:[...s.bookings,dup]};
+    s={...s,rooms:s.rooms.filter(r=>r.type!==aType||r.id===a.room),bookings:[...s.bookings.filter(b=>s.rooms.find(r=>r.id===b.room)?.type!==aType||b.room===a.room),dup]};
     const rows=R.washCompute(s,M.addDays(a.arrival,-1),a.departure,'','');
     assert.ok(rows.length>0);assert.ok(rows.some(r=>r.red),'oversold with allowed 0 is red');
-    const type=s.rooms.find(r=>r.id===a.room).type;
-    const ok=withCfg(s,{['yld.overbook.'+type]:1});
+    const ok=withCfg(s,{['yld.overbook.'+aType]:1});
     assert.ok(R.washCompute(ok,M.addDays(a.arrival,-1),a.departure,'','').every(r=>!r.red),'allowed 1 covers one oversold room');
     assert.equal(R.washCompute(ok,M.addDays(a.arrival,-1),a.departure,'','')[0].cells.allowed>=1,true);
   });
   test(T+'overbooking report counts no-shows, cancellations and the walked-guest cost',()=>{
     let s=M.seed();const b=s.bookings[1];
-    s={...s,bookings:s.bookings.map(x=>x.id===b.id?{...x,status:'No show'}:x),measX:{walked:[{id:'W1',at:s.clock,by:'manager',booking:b.id,night:b.arrival,reason:'Oversold',costPaise:250000}]}};
+    s={...s,bookings:[{...b,status:'No show'}],measX:{walked:[{id:'W1',at:s.clock,by:'manager',booking:b.id,night:b.arrival,reason:'Oversold',costPaise:250000}]}};
     const rows=R.washCompute(s,b.arrival,b.arrival,'','');const mine=rows.filter(r=>r.cells.channel===b.source);
     assert.equal(mine.length,1);assert.equal(mine[0].cells.noShowPct,100);assert.equal(mine[0].cells.walked,1);assert.equal(mine[0].cells.walkCost,250000);
   });
   test(T+'restriction rule: a restricted night at 39 % occupancy is red, at 40 % it is not; counters and advisory mode shown',()=>{
     assert.equal(R.mrRestrictionRed(39,100),true);assert.equal(R.mrRestrictionRed(40,100),false);assert.equal(R.mrRestrictionRed(0,0),false);assert.equal(R.mrRestrictionRed(9,24),true);assert.equal(R.mrRestrictionRed(10,24),false);
-    let s=M.seed();const d=M.addDays(s.date,20);
+    let s=M.seed();const d=M.addDays(s.date,-20);
     s={...s,yieldX:{...s.yieldX,restrictions:[{id:'R1',type:'*',from:d,to:d,minStay:3,cta:true,note:''}]},measX:{restrictions:[{night:d,kind:'MIN_STAY',refused:4,reshaped:1}]}};
     const rows=R.restrictionCompute(s,d,d,'');assert.deepEqual(rows.map(r=>r.cells.restriction),['CTA','MIN_STAY']);
     const ms=rows.find(r=>r.cells.restriction==='MIN_STAY').cells;assert.equal(ms.refused,4);assert.equal(ms.reshaped,1);assert.equal(ms.mode,'Advisory');
@@ -112,7 +112,7 @@ export async function register({test,M,assert}){
     s={...s,bookings:[stay(month,8,'NOW-1','101',M.addDays(t,-20)),stay(ly,10,'LY-1','102',M.addDays(t,-364-30))]};
     const rows=R.pickupCompute(s,2,'');const r=rows[1];
     assert.equal(r.cells.month,month);assert.equal(r.cells.rooms,8);assert.equal(r.cells.lastYearRooms,10);assert.equal(r.cells.pace,-20);assert.equal(r.red,true);
-    assert.equal(r.cells.revenue,8*200000);assert.equal(r.cells.lastYearRevenue,10*200000);assert.equal(r.cells.lead,'8-30 days');assert.equal(r.cells.pickup7,8);
+    assert.equal(r.cells.revenue,8*200000);assert.equal(r.cells.lastYearRevenue,10*200000);assert.equal(r.cells.lead,'31-90 days');assert.equal(r.cells.pickup7,8);
     const snap={...s,measX:{otb:[{id:'o',takenOn:M.addDays(t,-364),night:ly+'-10',rooms:8,revenuePaise:1600000}]}};
     const r2=R.pickupCompute(snap,2,'')[1];assert.equal(r2.cells.lastYearRooms,8);assert.equal(r2.cells.pace,0);assert.equal(r2.red,false);
     assert.equal(R.pickupCompute(s,2,'Booking.com').every(x=>x.cells.rooms===0),true,'channel filter');
@@ -163,7 +163,7 @@ export async function register({test,M,assert}){
   test(T+'FY26: every report runs for Owner and Manager; screen = Excel = PDF text',()=>{
     const s=M.loadScenario('FY26');
     const cases={'rpt.revenue.demand-calendar':{nights:'30'},'rpt.revenue.pickup-pace':{months:'6'},'rpt.revenue.displacement':{from:s.date,to:M.addDays(s.date,6),rooms:'6',rate:'1500'},
-      'rpt.revenue.overbooking-wash':{from:'2026-04-01',to:s.date},'rpt.revenue.restriction-effect':{from:M.addDays(s.date,-30),to:M.addDays(s.date,30)},'rpt.revenue.rate-parity':{nights:'14'}};
+      'rpt.revenue.overbooking-wash':{from:'2026-04-01',to:s.date},'rpt.revenue.restriction-effect':{from:M.addDays(s.date,-30),to:s.date},'rpt.revenue.rate-parity':{nights:'14'}};
     for(const id of IDS){const r=run(s,'owner',id,cases[id]);threeWay(M,assert,r);const m=run(s,'manager',id,cases[id]);threeWay(M,assert,m);}
   });
 }

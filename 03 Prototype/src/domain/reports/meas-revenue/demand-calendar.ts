@@ -17,7 +17,7 @@ export const DEMAND_COLS:RptColumn[]=[D('date','Date'),T('weekday','Weekday'),I(
 /** One row's inputs → cells + red flag (pure; the boundary tests call it directly). */
 export function demandRow(x:{date:string;onBooks:number;forecastPct:number;lastYearPct:number|null;event:string;bar:number;suggested:number;base:number;offerOpen:boolean}):MrRow{
   const unchanged=x.bar<=x.base;
-  return {cells:{date:x.date,weekday:mrWeekday(x.date),onBooks:x.onBooks,forecast:x.forecastPct,lastYear:x.lastYearPct,event:x.event,bar:x.bar,suggested:x.suggested,offerOpen:x.offerOpen},
+  return {cells:{date:x.date,weekday:mrWeekday(x.date),onBooks:x.onBooks,forecast:x.forecastPct,lastYear:x.lastYearPct,event:x.event,bar:x.bar,suggested:x.suggested,offerOpen:x.offerOpen?1:0},
     red:mrDemandRed(x.forecastPct,unchanged,x.offerOpen)};
 }
 export function demandCompute(s:State,from:string,nights:number):MrRow[]{

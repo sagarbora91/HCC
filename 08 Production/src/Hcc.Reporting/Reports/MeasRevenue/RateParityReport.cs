@@ -1,5 +1,6 @@
 // F12-RPT-REVENUE · rpt.revenue.rate-parity — Rate shop and parity (catalogue §3.10, switch meas.rev.rate-shop). Server twin of meas-revenue/rate-parity.ts.
 using Hcc.Application.Configuration;
+using Hcc.Contracts;
 using Hcc.Application.Reporting.Rpt;
 using Hcc.Application.Yield;
 using Hcc.Domain.Yield;
@@ -29,7 +30,7 @@ public sealed class RateParityReport(SqlPlatform platform, IYieldStore yield, IS
         [new("from", "From", "date", ReportDateClass.Forward), new("nights", "Nights (max 92)", "text", Default: "30"), new("roomType", "Room type", "text")],
         Columns, Basis, [ReportFormat.Screen, ReportFormat.Xlsx, ReportFormat.Pdf, ReportFormat.Csv], ReportPhone.Yes, false, []);
 
-    public async Task<(IReadOnlyList<Computed> Rows, IReadOnlyList<RCompetitor> Competitors)> ComputeAsync(int propertyId, DateOnly from, int n, string typeName, CancellationToken ct)
+    internal async Task<(IReadOnlyList<Computed> Rows, IReadOnlyList<RCompetitor> Competitors)> ComputeAsync(int propertyId, DateOnly from, int n, string typeName, CancellationToken ct)
     {
         var now = NowUtc(Clk);
         var types = await MeasRevenueData.TypesAsync(Platform, propertyId, ct).ConfigureAwait(false);

@@ -1,6 +1,7 @@
 // F12-RPT-REVENUE · rpt.revenue.displacement — Displacement calculator, report shell (catalogue §3.10, switch meas.rev.displacement). Server twin of
 // meas-revenue/displacement.ts; the arithmetic is meas-forecast's MeasForecast.Displacement (read, not changed).
 using Hcc.Application.Configuration;
+using Hcc.Contracts;
 using Hcc.Application.Reporting.Rpt;
 using Hcc.Application.Yield;
 using Hcc.Domain.Errors;

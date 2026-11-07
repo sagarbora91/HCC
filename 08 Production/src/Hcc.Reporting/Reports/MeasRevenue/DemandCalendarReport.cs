@@ -1,5 +1,6 @@
 // F12-RPT-REVENUE · rpt.revenue.demand-calendar — Demand calendar (catalogue §3.10, switch meas.rev.demand-calendar). Server twin of meas-revenue/demand-calendar.ts.
 using Hcc.Application.Configuration;
+using Hcc.Contracts;
 using Hcc.Application.Reporting.Rpt;
 using Hcc.Application.Yield;
 using Hcc.Domain.Yield;

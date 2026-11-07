@@ -6,6 +6,9 @@ using Hcc.Reporting.Reports.Guests;
 
 namespace Hcc.Reporting.Reports.MeasRevenue;
 
+/// <summary>A computed row with its red-row flag (the digest lane and the tests read Red).</summary>
+public sealed record Computed(Dictionary<string, object?> Cells, bool Red);
+
 internal static class MeasRevenueCommon
 {
     public static ReportColumn T(string key, string label) => new(key, label, ReportColumnType.Text, false);
@@ -36,9 +39,6 @@ internal static class MeasRevenueCommon
     }
 
     public static string Text(BoundParams p, string key) => p.Values.GetValueOrDefault(key) ?? "";
-
-    /// <summary>A red-row-carrying computed row (the digest lane and the tests read Red).</summary>
-    public sealed record Computed(Dictionary<string, object?> Cells, bool Red);
 
     public static ReportRow Row(Computed c) => new(ReportRowKind.Row, c.Cells);
 

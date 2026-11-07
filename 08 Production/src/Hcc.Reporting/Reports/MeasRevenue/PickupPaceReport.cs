@@ -1,6 +1,7 @@
 // F12-RPT-REVENUE · rpt.revenue.pickup-pace — Pickup and pace (catalogue §3.10, switch meas.rev.pickup). Server twin of meas-revenue/pickup-pace.ts:
 // derived on-the-books figures from reservation created / cancelled dates; a stored OTB snapshot replaces the derived last-year figure and the 7-day baseline.
 using Hcc.Application.Configuration;
+using Hcc.Contracts;
 using Hcc.Application.Reporting.Rpt;
 using Hcc.Application.Yield;
 using Hcc.Infrastructure.SqlServer;
