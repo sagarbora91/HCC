@@ -3,10 +3,11 @@ import type {State} from '../../domain/types';
 import type {RptDefinition,RptResult} from '../../domain/reports/types';
 import {allReports,canViewReport,canExportReport,runReport,toXlsx as engineXlsx,toCsv,toPrintModel as enginePrintModel,printHtml as enginePrintHtml} from '../../domain/reports/engine';
 import {printablePage} from '../../app/native';
+import {measReportOn} from '../../domain/streams/measure';
 
 export {canViewReport,canExportReport,runReport,toCsv};
 /** Full definitions the caller may view (the hub filters and groups them). */
-export function reportCatalogue(s:State,uid:string):RptDefinition[]{return allReports().filter(d=>canViewReport(s,uid,d));}
+export function reportCatalogue(s:State,uid:string):RptDefinition[]{return allReports().filter(d=>measReportOn(s,d.id)&&canViewReport(s,uid,d));}
 const property=(s?:State)=>s?.settings?.hotel||'HCC';
 export const toXlsx=(r:RptResult,s?:State)=>engineXlsx(r,property(s));
 export const toPrintModel=(r:RptResult,s?:State)=>enginePrintModel(r,property(s));
