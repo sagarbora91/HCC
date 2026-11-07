@@ -63,6 +63,12 @@ import './meas-revenue/restriction-effect';
 import './meas-revenue/rate-parity';
 // F12-RPT-REVENUE end
 // F12-RPT-GUEST
+import './meas-guest/satisfaction';
+import './meas-guest/reputation-index';
+import './meas-guest/service-recovery';
+import './meas-guest/desk-timing';
+import './meas-guest/upsell';
+import './meas-guest/repeat-loyalty';
 // F12-RPT-GUEST end
 // F12-RPT-HK
 // F12-RPT-HK end

@@ -1,0 +1,33 @@
+{
+ "id": "rpt.guests.reputation-index",
+ "cases": [
+  {
+   "uid": "owner",
+   "scenario": "BASE",
+   "params": {},
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["month","platform","reviews","avgScore","score12m","responseRate","themes"],
+     "rows": []
+    }
+   ]
+  },
+  {
+   "uid": "owner",
+   "scenario": "FY26",
+   "params": {
+    "fy": "2026-27"
+   },
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["month","platform","reviews","avgScore","score12m","responseRate","themes"],
+     "rows": []
+    }
+   ]
+  }
+ ]
+}

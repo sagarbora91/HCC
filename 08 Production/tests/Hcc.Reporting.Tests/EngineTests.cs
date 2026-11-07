@@ -44,7 +44,14 @@ public sealed class EngineTests
         new Hcc.Reporting.Reports.MeasDaily.ManagerFlashReport(null!), new Hcc.Reporting.Reports.MeasDaily.RegretsDenialsReport(null!), new Hcc.Reporting.Reports.MeasDaily.RateVarianceReport(null!), new Hcc.Reporting.Reports.MeasDaily.RoomDiscrepancyReport(null!), new Hcc.Reporting.Reports.MeasDaily.HighBalanceReport(null!),
         new Hcc.Reporting.Reports.MeasDaily.AllowancesVoidsReport(null!), new Hcc.Reporting.Reports.MeasDaily.NoShowCancelReport(null!), new Hcc.Reporting.Reports.MeasDaily.InventoryExceptionsReport(null!), new Hcc.Reporting.Reports.MeasDaily.CashierVarianceReport(null!),
         // F12-RPT-DAILY end
+        .. MeasGuestReports(), // F12-RPT-GUEST
     ]).All;
+
+    // F12-RPT-GUEST
+    private static IEnumerable<IReportSelector> MeasGuestReports() =>
+        [new Hcc.Reporting.Reports.MeasGuest.SatisfactionReport(null!), new Hcc.Reporting.Reports.MeasGuest.ReputationIndexReport(null!), new Hcc.Reporting.Reports.MeasGuest.ServiceRecoveryReport(null!),
+         new Hcc.Reporting.Reports.MeasGuest.DeskTimingReport(null!), new Hcc.Reporting.Reports.MeasGuest.UpsellReport(null!), new Hcc.Reporting.Reports.MeasGuest.RepeatLoyaltyReport(null!)];
+    // F12-RPT-GUEST end
 
     // F7-R3
     private static IEnumerable<IReportSelector> F7R3Reports() =>
