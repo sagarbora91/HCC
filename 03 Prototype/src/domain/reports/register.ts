@@ -55,6 +55,12 @@ import './meas-daily/inventory-exceptions';
 import './meas-daily/cashier-variance';
 // F12-RPT-DAILY end
 // F12-RPT-REVENUE
+import './meas-revenue/demand-calendar';
+import './meas-revenue/pickup-pace';
+import './meas-revenue/displacement';
+import './meas-revenue/overbooking-wash';
+import './meas-revenue/restriction-effect';
+import './meas-revenue/rate-parity';
 // F12-RPT-REVENUE end
 // F12-RPT-GUEST
 // F12-RPT-GUEST end

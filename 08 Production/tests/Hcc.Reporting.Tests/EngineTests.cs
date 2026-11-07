@@ -36,6 +36,7 @@ public sealed class EngineTests
         .. F7R3Reports(),
         .. F7R5Reports(),
         .. F7R6Reports(), // F7-R6
+        .. MeasRevenueCatalogue.Reports(), // F12-RPT-REVENUE (lane meas-rpt-revenue; Reports/MeasRevenueTests.cs)
         // F7-R4
         new ShiftReport(null!, null!), new CollectionDetailReport(null!, null!), new CreditBillsReport(null!), new ExpenseRegisterReport(null!), new ExpensesByHeadReport(null!),
         // F7-R4 end
