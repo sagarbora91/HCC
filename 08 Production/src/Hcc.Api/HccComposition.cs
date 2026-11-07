@@ -163,6 +163,12 @@ public static class HccComposition
         // F12-RPT-DAILY
         // F12-RPT-DAILY end
         // F12-RPT-REVENUE
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.MeasRevenue.DemandCalendarReport>(services);
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.MeasRevenue.PickupPaceReport>(services);
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.MeasRevenue.DisplacementReport>(services);
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.MeasRevenue.OverbookingWashReport>(services);
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.MeasRevenue.RestrictionEffectReport>(services);
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.MeasRevenue.RateParityReport>(services);
         // F12-RPT-REVENUE end
         // F12-RPT-GUEST
         // F12-RPT-GUEST end
