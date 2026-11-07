@@ -1,6 +1,7 @@
 // F12-RPT-REVENUE · rpt.revenue.overbooking-wash — Overbooking and wash (catalogue §3.10, switch meas.rev.overbooking). Server twin of meas-revenue/overbooking-wash.ts.
 using Hcc.Application.Configuration;
 using Hcc.Contracts;
+using Hcc.Application.Billing;
 using Hcc.Application.Reporting.Rpt;
 using Hcc.Application.Yield;
 using Hcc.Domain.Errors;

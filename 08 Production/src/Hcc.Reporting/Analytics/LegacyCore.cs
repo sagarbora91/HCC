@@ -4,21 +4,52 @@ using Hcc.Application.Reporting.Rpt;
 
 namespace Hcc.Reporting.Analytics;
 
-public sealed record AnRoom(string Id, string Type, string InServiceFrom, string? InServiceTo = null, bool Suite = false);
+// One definition of the analytics input for every study lane (MEAS Phase B integration): study-a builds these positionally, study-b and the pack
+// use object initialisers / JSON (parameterless constructor + init properties). The extra study-b fields are optional init properties.
+public sealed record AnRoom(string Id, string Type, string InServiceFrom, string? InServiceTo = null, bool Suite = false)
+{
+    public AnRoom() : this("", "", "") { }
+}
 
 public sealed record AnStay(string Id, string GuestKey, string Room, string From, string To, int Nights, long RatePaise, string Source, string? Channel, string? Company, string? Purpose,
-    string Status, bool Complimentary, bool Legacy);
+    string Status, bool Complimentary, bool Legacy)
+{
+    public AnStay() : this("", "", "", "", "", 0, 0, "", null, null, null, "", false, false) { }
+    public string? BookedType { get; init; } public string? City { get; init; } public string? State { get; init; } public string? Nationality { get; init; } public string? MealPlan { get; init; }
+    public string? InTime { get; init; } public string? OutTime { get; init; } public bool IdCaptured { get; init; } public bool PhoneCaptured { get; init; } public int? People { get; init; }
+}
 
 public sealed record AnBill(string Id, string Stay, string Date, long RoomChargePaise, long FnbPaise, long OtherPaise, long DiscountPaise, long GstPaise, long TotalPaise, int ChargedNights,
-    long PaidPaise, bool Legacy);
+    long PaidPaise, bool Legacy)
+{
+    public AnBill() : this("", "", "", 0, 0, 0, 0, 0, 0, 0, 0, false) { }
+}
 
-public sealed record AnReceipt(string Id, string Bill, string Date, string Method, long AmountPaise, bool Legacy);
+public sealed record AnReceipt(string Id, string Bill, string Date, string Method, long AmountPaise, bool Legacy)
+{
+    public AnReceipt() : this("", "", "", "", 0, false) { }
+}
+
+public sealed class AnWindow { public string From { get; init; } = ""; public string To { get; init; } = ""; }
 
 public sealed record AnInput(IReadOnlyList<AnRoom> Rooms, IReadOnlyList<AnStay> Stays, IReadOnlyList<AnBill> Bills, IReadOnlyList<AnReceipt> Receipts, string AsOf, string LegacyUntil,
-    string CovidFrom, string CovidTo);
+    string CovidFrom, string CovidTo)
+{
+    public AnInput() : this([], [], [], [], "", "2026-10-30", "2020-03-01", "2021-03-31") { }
+    /// <summary>study-b view of the Covid window (JSON key covidWindow); the same two dates as CovidFrom / CovidTo.</summary>
+    public AnWindow CovidWindow { get => new() { From = CovidFrom, To = CovidTo }; init { CovidFrom = value.From; CovidTo = value.To; } }
+}
 
-/// <summary>Analytics parameters as bound by the engine (fy, from, to, baseFy, topN, asOf).</summary>
-public sealed record AnParams(string? Fy = null, string? From = null, string? To = null, string? BaseFy = null, string? TopN = null, string? AsOf = null);
+/// <summary>Analytics parameters as bound by the engine. study-a reads the typed fields (fy, from, to, baseFy, topN, asOf); study-b reads the raw
+/// text values plus the extras the caller could supply.</summary>
+public sealed record AnParams(string? Fy = null, string? From = null, string? To = null, string? BaseFy = null, string? TopN = null, string? AsOf = null)
+{
+    public Dictionary<string, string> Values { get; init; } = new(StringComparer.Ordinal);
+    public BeyondExtras Extras { get; init; } = new();
+    public string? Get(string key) => Values.TryGetValue(key, out var v) && v.Length > 0 ? v : null;
+    public double Num(string key, double fallback = double.NaN) =>
+        Get(key) is { } s && double.TryParse(s, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var d) ? d : fallback;
+}
 
 /// <summary>Where the AnInput comes from (production: SQL over stays, bills, receipts and lgc; see Integration needed in MEAS-STUDY-A-DONE).</summary>
 public interface IAnalyticsInputSource

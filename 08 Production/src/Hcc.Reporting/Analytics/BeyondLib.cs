@@ -5,31 +5,7 @@ using Hcc.Application.Reporting.Rpt;
 
 namespace Hcc.Reporting.Analytics;
 
-public sealed class AnRoom { public string Id { get; init; } = ""; public string Type { get; init; } = ""; public string InServiceFrom { get; init; } = ""; public string? InServiceTo { get; init; } public bool Suite { get; init; } }
-
-public sealed class AnStay
-{
-    public string Id { get; init; } = ""; public string GuestKey { get; init; } = ""; public string Room { get; init; } = ""; public string From { get; init; } = ""; public string To { get; init; } = "";
-    public int Nights { get; init; } public long RatePaise { get; init; } public string Source { get; init; } = ""; public string? Channel { get; init; } public string? Company { get; init; } public string? Purpose { get; init; }
-    public string Status { get; init; } = ""; public bool Complimentary { get; init; } public bool Legacy { get; init; }
-    public string? BookedType { get; init; } public string? City { get; init; } public string? State { get; init; } public string? Nationality { get; init; } public string? MealPlan { get; init; }
-    public string? InTime { get; init; } public string? OutTime { get; init; } public bool IdCaptured { get; init; } public bool PhoneCaptured { get; init; } public int? People { get; init; }
-}
-
-public sealed class AnBill
-{
-    public string Id { get; init; } = ""; public string Stay { get; init; } = ""; public string Date { get; init; } = ""; public long RoomChargePaise { get; init; } public long FnbPaise { get; init; } public long OtherPaise { get; init; }
-    public long DiscountPaise { get; init; } public long GstPaise { get; init; } public long TotalPaise { get; init; } public int ChargedNights { get; init; } public long PaidPaise { get; init; } public bool Legacy { get; init; }
-}
-
-public sealed class AnReceipt { public string Id { get; init; } = ""; public string Bill { get; init; } = ""; public string Date { get; init; } = ""; public string Method { get; init; } = ""; public long AmountPaise { get; init; } public bool Legacy { get; init; } }
-public sealed class AnWindow { public string From { get; init; } = ""; public string To { get; init; } = ""; }
-
-public sealed class AnInput
-{
-    public List<AnRoom> Rooms { get; init; } = []; public List<AnStay> Stays { get; init; } = []; public List<AnBill> Bills { get; init; } = []; public List<AnReceipt> Receipts { get; init; } = [];
-    public string AsOf { get; init; } = ""; public string LegacyUntil { get; init; } = "2026-10-30"; public AnWindow CovidWindow { get; init; } = new() { From = "2020-03-01", To = "2021-03-31" };
-}
+// AnRoom, AnStay, AnBill, AnReceipt, AnWindow, AnInput and AnParams are defined once in LegacyCore.cs (shared with study-a).
 
 public sealed record HallEvent(string Date, int Days, long RevenuePaise);
 public sealed record ExpenseFact(string Date, string Category, long AmountPaise);
@@ -41,13 +17,6 @@ public sealed class BeyondExtras
     public List<HallEvent> HallEvents { get; init; } = []; public List<ExpenseFact> Expenses { get; init; } = []; public List<AuditFact> Audit { get; init; } = []; public List<LicenceFact> Licences { get; init; } = [];
 }
 
-/// <summary>Text parameters (as bound by the report engine) plus the extras the caller could supply.</summary>
-public sealed class AnParams
-{
-    public Dictionary<string, string> Values { get; init; } = new(StringComparer.Ordinal); public BeyondExtras Extras { get; init; } = new();
-    public string? Get(string key) => Values.TryGetValue(key, out var v) && v.Length > 0 ? v : null;
-    public double Num(string key, double fallback = double.NaN) => Get(key) is { } s && double.TryParse(s, NumberStyles.Float, CultureInfo.InvariantCulture, out var d) ? d : fallback;
-}
 
 public sealed record AnSection(string Key, string Title, IReadOnlyList<ReportColumn> Columns, IReadOnlyList<ReportRow> Rows);
 public sealed record AnResult(IReadOnlyList<AnSection> Sections, bool Legacy);

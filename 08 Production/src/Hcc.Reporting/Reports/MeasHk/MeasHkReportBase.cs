@@ -18,7 +18,7 @@ public abstract class MeasHkReportBase(SqlPlatform platform) : IReportSelector, 
 
     public abstract Task<ReportResult> SelectAsync(Caller caller, BoundParams parameters, CancellationToken ct = default);
 
-    protected async Task<GuestsSql.Clock> ClockAsync(Caller caller, CancellationToken ct) => await GuestsSql.ClockAsync(platform.Connections, caller.PropertyId, ct).ConfigureAwait(false);
+    private protected async Task<GuestsSql.Clock> ClockAsync(Caller caller, CancellationToken ct) => await GuestsSql.ClockAsync(platform.Connections, caller.PropertyId, ct).ConfigureAwait(false);
 
     /// <summary>Runs a query with the property id as @p; <paramref name="bind"/> adds the other parameters. Rows come back as value arrays.</summary>
     protected async Task<List<object?[]>> QueryAsync(string sql, int propertyId, Action<SqlCommand>? bind, CancellationToken ct)
@@ -49,6 +49,8 @@ public abstract class MeasHkReportBase(SqlPlatform platform) : IReportSelector, 
     protected static DateTime? Utc(object? o) => o is DateTime d ? DateTime.SpecifyKind(d, DateTimeKind.Utc) : null;
 
     protected static string P(BoundParams p, string key) => p.Values.GetValueOrDefault(key) ?? "";
+    /// <summary>Percent column (same as MeasHkRules.P; declared here so the parameter helper above does not hide it).</summary>
+    protected static ReportColumn P(string key, string label) => MeasHkRules.P(key, label);
 
     protected ReportResult Done(BoundParams parameters, IReadOnlyList<ReportColumn> columns, List<ReportRow> rows, string? basisOverride = null)
     {

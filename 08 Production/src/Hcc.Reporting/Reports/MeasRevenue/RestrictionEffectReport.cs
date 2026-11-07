@@ -2,6 +2,7 @@
 // Server twin of meas-revenue/restriction-effect.ts. Restrictions come from the yield configuration, counters from meas.restriction_counter.
 using Hcc.Application.Configuration;
 using Hcc.Contracts;
+using Hcc.Application.Billing;
 using Hcc.Application.Reporting.Rpt;
 using Hcc.Application.Yield;
 using Hcc.Domain.Errors;

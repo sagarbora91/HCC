@@ -112,7 +112,8 @@ export async function register({test,M,assert}){
     s={...s,bookings:[stay(month,8,'NOW-1','101',M.addDays(t,-20)),stay(ly,10,'LY-1','102',M.addDays(t,-364-30))]};
     const rows=R.pickupCompute(s,2,'');const r=rows[1];
     assert.equal(r.cells.month,month);assert.equal(r.cells.rooms,8);assert.equal(r.cells.lastYearRooms,10);assert.equal(r.cells.pace,-20);assert.equal(r.red,true);
-    assert.equal(r.cells.revenue,8*200000);assert.equal(r.cells.lastYearRevenue,10*200000);assert.equal(r.cells.lead,'31-90 days');assert.equal(r.cells.pickup7,8);
+    assert.equal(r.cells.revenue,8*200000);assert.equal(r.cells.lastYearRevenue,10*200000);assert.equal(r.cells.lead,'31-90 days');assert.equal(r.cells.pickup7,0,'booked 20 days ago: no 7-day pickup');
+    const s3={...s,bookings:[...s.bookings,stay(month,3,'NOW-2','103',M.addDays(t,-2))]};assert.equal(R.pickupCompute(s3,2,'')[1].cells.pickup7,3,'booked 2 days ago: 3 room-nights picked up');
     const snap={...s,measX:{otb:[{id:'o',takenOn:M.addDays(t,-364),night:ly+'-10',rooms:8,revenuePaise:1600000}]}};
     const r2=R.pickupCompute(snap,2,'')[1];assert.equal(r2.cells.lastYearRooms,8);assert.equal(r2.cells.pace,0);assert.equal(r2.red,false);
     assert.equal(R.pickupCompute(s,2,'Booking.com').every(x=>x.cells.rooms===0),true,'channel filter');

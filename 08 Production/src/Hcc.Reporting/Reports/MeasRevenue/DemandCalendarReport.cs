@@ -1,6 +1,7 @@
 // F12-RPT-REVENUE · rpt.revenue.demand-calendar — Demand calendar (catalogue §3.10, switch meas.rev.demand-calendar). Server twin of meas-revenue/demand-calendar.ts.
 using Hcc.Application.Configuration;
 using Hcc.Contracts;
+using Hcc.Application.Billing;
 using Hcc.Application.Reporting.Rpt;
 using Hcc.Application.Yield;
 using Hcc.Domain.Yield;
@@ -42,7 +43,7 @@ public sealed class DemandCalendarReport(SqlPlatform platform, IYieldStore yield
         var rooms = await MeasRevenueData.RoomsAsync(Platform, propertyId, ct).ConfigureAwait(false);
         var stays = await MeasRevenueData.StaysAsync(Platform, propertyId, cl, now, ct).ConfigureAwait(false);
         var events = await MeasRevenueData.EventsAsync(Platform, propertyId, ct).ConfigureAwait(false);
-        var engine = await MeasRevenueData.EngineAsync(yield, propertyId, from, nights, now, ct).ConfigureAwait(false);
+        var engine = await MeasRevenueData.EngineAsync(Yield, propertyId, from, nights, now, ct).ConfigureAwait(false);
         var real = await MeasRevenueData.RealForecastOnAsync(Gate, propertyId, ct).ConfigureAwait(false);
         var fc = stays.Select(MeasRevenueData.ToFc).ToList();
         var fcEvents = events.Select(e => new MeasFcEvent(e.From, e.To, e.ImpactPct)).ToList();

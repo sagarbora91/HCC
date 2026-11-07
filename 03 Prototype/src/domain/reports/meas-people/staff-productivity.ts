@@ -49,13 +49,13 @@ export function productivityRows(s:State,from:string,to:string,deptFilter?:strin
     if(!f.head)continue;
     const r=productivityRule(f,otTarget,absTarget);
     out.push(row({dept:d.name,headcount:f.head,hoursPerRoomNight:occRoomNights?(f.rosterMin/60/occRoomNights).toFixed(2):'0.00',otPct:pct1(f.otMin,f.rosterMin),absentPct:pct1(f.absentHalves,2*f.scheduledDays),
-      lateMarks:f.late,lowNightHours:hoursText(f.lowRosterMin),exception:r.ot||r.absent||r.overRostered}));
+      lateMarks:f.late,lowNightHours:hoursText(f.lowRosterMin),exception:r.ot||r.absent||r.overRostered?1:0}));
     for(const k of ['rosterMin','otMin','scheduledDays','absentHalves','lowRosterMin','head','late'] as const)tot[k]+=f[k];
   }
   if(out.length){
     const r=productivityRule(tot,otTarget,absTarget);
     out.push(row({dept:'All departments',headcount:tot.head,hoursPerRoomNight:occRoomNights?(tot.rosterMin/60/occRoomNights).toFixed(2):'0.00',otPct:pct1(tot.otMin,tot.rosterMin),absentPct:pct1(tot.absentHalves,2*tot.scheduledDays),
-      lateMarks:tot.late,lowNightHours:hoursText(tot.lowRosterMin),exception:r.ot||r.absent||r.overRostered},'total'));
+      lateMarks:tot.late,lowNightHours:hoursText(tot.lowRosterMin),exception:r.ot||r.absent||r.overRostered?1:0},'total'));
   }
   return out;
 }

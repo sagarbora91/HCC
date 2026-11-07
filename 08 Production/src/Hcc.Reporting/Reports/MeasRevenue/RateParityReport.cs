@@ -1,6 +1,7 @@
 // F12-RPT-REVENUE · rpt.revenue.rate-parity — Rate shop and parity (catalogue §3.10, switch meas.rev.rate-shop). Server twin of meas-revenue/rate-parity.ts.
 using Hcc.Application.Configuration;
 using Hcc.Contracts;
+using Hcc.Application.Billing;
 using Hcc.Application.Reporting.Rpt;
 using Hcc.Application.Yield;
 using Hcc.Domain.Yield;

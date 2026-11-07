@@ -36,14 +36,14 @@ export function trainingRows(s:State,asOf:string,deptFilter?:string):RptRow[]{
     if(!inDept(t.staff))continue;
     const mand=!!t.mandatory||!!mandatoryKey(t.course);
     rows.push(row({staff:staffOf(t.staff)?.name??t.staff,course:t.course,date:t.date,hours:t.hours.toFixed(1),certificateNo:t.certificateNo??'',validTo:t.validTo??null,
-      daysToExpiry:t.validTo?daysBetween(asOf,t.validTo):null,quarterHours:((qHours.get(t.staff)??0)/100).toFixed(1),exception:mand&&certificateExpired(list,t,asOf)}));
+      daysToExpiry:t.validTo?daysBetween(asOf,t.validTo):null,quarterHours:((qHours.get(t.staff)??0)/100).toFixed(1),exception:mand&&certificateExpired(list,t,asOf)?1:0}));
   }
   // missing: an active person with no record at all of a mandatory course that applies to their department
   for(const st of x.staff.filter(z=>z.active&&!z.exitedOn&&z.joined<=asOf&&deptMatches(s,z.dept,deptFilter))){
     for(const m of MANDATORY_COURSES){
       if(m.dept&&m.dept!==st.dept)continue;
       if(list.some(t=>t.staff===st.id&&t.course.toLowerCase().includes(m.match)))continue;
-      rows.push(row({staff:st.name,course:m.label+' (missing)',date:null,hours:'0.0',certificateNo:'',validTo:null,daysToExpiry:null,quarterHours:((qHours.get(st.id)??0)/100).toFixed(1),exception:true}));
+      rows.push(row({staff:st.name,course:m.label+' (missing)',date:null,hours:'0.0',certificateNo:'',validTo:null,daysToExpiry:null,quarterHours:((qHours.get(st.id)??0)/100).toFixed(1),exception:1}));
     }
   }
   return rows;

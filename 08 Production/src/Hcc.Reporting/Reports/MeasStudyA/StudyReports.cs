@@ -1,6 +1,7 @@
 // F12 MEAS · meas-study-a · the nine legacy-study reports on the server (catalogue §3.10). Each is an adapter over a pure selector in Hcc.Reporting.Analytics
 // (same ids, column keys, flags as 03 Prototype/src/domain/reports/study-a/*). The measurement switch is honoured through IMeasuredReport (MEAS_OFF).
 using Hcc.Application.Configuration;
+using Hcc.Application.Billing;
 using Hcc.Application.Reporting.Rpt;
 using Hcc.Reporting.Analytics;
 

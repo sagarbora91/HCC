@@ -39,7 +39,7 @@ export function attritionRows(s:State,from:string,to:string,deptFilter?:string):
       const end=next&&next<=to?next:to;return a+Math.max(0,Math.round((Date.parse(end+'T00:00:00Z')-Date.parse(e+'T00:00:00Z'))/86400000));},0);
     const open=headAt(d.id,w0),close=headAt(d.id,to);
     rows.push(row({dept:d.name,joiners:joined.length,leavers:left.length,exitReasons:[...reasons].sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0])).map(([r,n])=>`${r} x${n}`).join('; '),tenure,
-      attritionPct:pct1(left12.length*2,open+close),vacancyDays:vac,exception:attritionRed(left12.length,open,close,limit)}));
+      attritionPct:pct1(left12.length*2,open+close),vacancyDays:vac,exception:attritionRed(left12.length,open,close,limit)?1:0}));
   }
   return rows;
 }

@@ -58,7 +58,7 @@ export function scorecardRows(s:State,from:string,to:string,userFilter?:string):
     const u=s.users.find(x=>x.id===uid)!;
     rows.push(row({user:u.name.split(' · ')[0],checkins:f.checkins,checkouts:f.checkouts,rateEdits:f.rateEdits,discountCount:f.discountCount,discountAmount:f.discountAmount,
       discountReasonPct:pct1(f.withReason,f.discountCount),comps:f.comps,upsellPerArrival:f.checkins?(f.upsells/f.checkins).toFixed(2):'0.00',complaints:f.complaints,cashVariance:f.cashVariance,
-      regrets:f.regrets,surveyScore:f.surveyCount?(Math.round(f.surveyTotal*10/f.surveyCount)/10).toFixed(1):'',exception:scorecardRed(team,f)}));
+      regrets:f.regrets,surveyScore:f.surveyCount?(Math.round(f.surveyTotal*10/f.surveyCount)/10).toFixed(1):'',exception:scorecardRed(team,f)?1:0}));
   }
   return rows;
 }

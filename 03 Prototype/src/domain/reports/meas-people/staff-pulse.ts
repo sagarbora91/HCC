@@ -31,7 +31,7 @@ export function pulseRows(s:State,fy:string,quarter?:string):{rows:RptRow[];supp
     if(v.length<PULSE_MIN_ANSWERS){suppressed++;continue;}
     const e=enps(v.map(x=>x.recommend));
     rows.push(row({quarter:v[0].quarter,dept:hrDeptName(s,k.split('|')[1]),responses:v.length,workload:avg(v.map(x=>x.workload)),respect:avg(v.map(x=>x.respect)),tools:avg(v.map(x=>x.tools)),
-      payFairness:avg(v.map(x=>x.payFairness)),recommend:avg(v.map(x=>x.recommend)),enps:e,exception:e<0}));
+      payFairness:avg(v.map(x=>x.payFairness)),recommend:avg(v.map(x=>x.recommend)),enps:e,exception:e<0?1:0}));
   }
   return {rows,suppressed};
 }
