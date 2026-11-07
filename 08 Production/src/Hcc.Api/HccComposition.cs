@@ -196,6 +196,11 @@ public static class HccComposition
         Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.MeasHk.AssetLifeReport>(services); // F12-RPT-HK
         // F12-RPT-HK end
         // F12-RPT-PEOPLE
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.MeasPeople.StaffProductivityReport>(services);
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.MeasPeople.AttritionReport>(services);
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.MeasPeople.AgentScorecardReport>(services);
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.MeasPeople.TrainingReport>(services);
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.MeasPeople.StaffPulseReport>(services);
         // F12-RPT-PEOPLE end
         // F12-STUDY-A
         Microsoft.Extensions.DependencyInjection.Extensions.ServiceCollectionDescriptorExtensions.TryAddSingleton<Hcc.Reporting.Analytics.IAnalyticsInputSource, Hcc.Reporting.Analytics.EmptyAnalyticsInputSource>(services); // until the SQL loader lands (MEAS-STUDY-A-DONE)

@@ -3290,6 +3290,497 @@
   "side": "both"
  },
  {
+  "id": "rpt.people.agent-scorecard",
+  "title": "Performance by desk user",
+  "area": "people",
+  "priority": "P2",
+  "status": "MEAS",
+  "moneyFlag": true,
+  "moneyGate": "PERM-RPT-002",
+  "viewPerms": [
+   "PERM-RPT-002"
+  ],
+  "deskPerms": [],
+  "exportPerm": "PERM-RPT-003",
+  "dateClass": "D-M",
+  "params": [
+   "month",
+   "user"
+  ],
+  "columns": [
+   {
+    "key": "user",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "checkins",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "checkouts",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "rateEdits",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "discountCount",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "discountAmount",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "discountReasonPct",
+    "type": "pct",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "comps",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "upsellPerArrival",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "complaints",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "cashVariance",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "regrets",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "surveyScore",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "exception",
+    "type": "bool",
+    "money": false,
+    "mask": null,
+    "computed": null
+   }
+  ],
+  "formats": [
+   "screen",
+   "xlsx",
+   "pdf",
+   "csv"
+  ],
+  "phone": "no",
+  "layout": "table",
+  "side": "both"
+ },
+ {
+  "id": "rpt.people.attrition",
+  "title": "Attrition and tenure",
+  "area": "people",
+  "priority": "P2",
+  "status": "MEAS",
+  "moneyFlag": false,
+  "moneyGate": null,
+  "viewPerms": [
+   "PERM-HR-001"
+  ],
+  "deskPerms": [],
+  "exportPerm": "PERM-RPT-003",
+  "dateClass": "D-FY",
+  "params": [
+   "fy",
+   "dept"
+  ],
+  "columns": [
+   {
+    "key": "dept",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "joiners",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "leavers",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "exitReasons",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "tenure",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "attritionPct",
+    "type": "pct",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "vacancyDays",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "exception",
+    "type": "bool",
+    "money": false,
+    "mask": null,
+    "computed": null
+   }
+  ],
+  "formats": [
+   "screen",
+   "xlsx",
+   "pdf",
+   "csv"
+  ],
+  "phone": "no",
+  "layout": "table",
+  "side": "both"
+ },
+ {
+  "id": "rpt.people.staff-productivity",
+  "title": "Staff per occupied room, overtime, absenteeism",
+  "area": "people",
+  "priority": "P2",
+  "status": "MEAS",
+  "moneyFlag": false,
+  "moneyGate": null,
+  "viewPerms": [
+   "PERM-HR-001"
+  ],
+  "deskPerms": [],
+  "exportPerm": "PERM-RPT-003",
+  "dateClass": "D-M",
+  "params": [
+   "month",
+   "dept"
+  ],
+  "columns": [
+   {
+    "key": "dept",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "headcount",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "hoursPerRoomNight",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "otPct",
+    "type": "pct",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "absentPct",
+    "type": "pct",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "lateMarks",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "lowNightHours",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "exception",
+    "type": "bool",
+    "money": false,
+    "mask": null,
+    "computed": null
+   }
+  ],
+  "formats": [
+   "screen",
+   "xlsx",
+   "pdf",
+   "csv"
+  ],
+  "phone": "yes",
+  "layout": "table",
+  "side": "both"
+ },
+ {
+  "id": "rpt.people.staff-pulse",
+  "title": "Staff pulse (optional)",
+  "area": "people",
+  "priority": "P3",
+  "status": "MEAS",
+  "moneyFlag": false,
+  "moneyGate": null,
+  "viewPerms": [
+   "PERM-HR-002"
+  ],
+  "deskPerms": [],
+  "exportPerm": "PERM-RPT-003",
+  "dateClass": "D-FY",
+  "params": [
+   "fy",
+   "quarter"
+  ],
+  "columns": [
+   {
+    "key": "quarter",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "dept",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "responses",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "workload",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "respect",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "tools",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "payFairness",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "recommend",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "enps",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "exception",
+    "type": "bool",
+    "money": false,
+    "mask": null,
+    "computed": null
+   }
+  ],
+  "formats": [
+   "screen",
+   "pdf"
+  ],
+  "phone": "yes",
+  "layout": "table",
+  "side": "both"
+ },
+ {
+  "id": "rpt.people.training",
+  "title": "Training hours and certifications",
+  "area": "people",
+  "priority": "P2",
+  "status": "MEAS",
+  "moneyFlag": false,
+  "moneyGate": null,
+  "viewPerms": [
+   "PERM-HR-001"
+  ],
+  "deskPerms": [],
+  "exportPerm": "PERM-RPT-003",
+  "dateClass": "D-ASOF",
+  "params": [
+   "asOf",
+   "dept"
+  ],
+  "columns": [
+   {
+    "key": "staff",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "course",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "date",
+    "type": "date",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "hours",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "certificateNo",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "validTo",
+    "type": "date",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "daysToExpiry",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "quarterHours",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "exception",
+    "type": "bool",
+    "money": false,
+    "mask": null,
+    "computed": null
+   }
+  ],
+  "formats": [
+   "screen",
+   "xlsx",
+   "pdf",
+   "csv"
+  ],
+  "phone": "yes",
+  "layout": "table",
+  "side": "both"
+ },
+ {
   "id": "rpt.rest.closed-bills",
   "title": "Closed bills",
   "area": "rest",

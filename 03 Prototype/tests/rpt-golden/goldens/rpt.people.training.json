@@ -1,0 +1,18 @@
+{
+ "id": "rpt.people.training",
+ "cases": [
+  {
+   "uid": "owner",
+   "scenario": "BASE",
+   "params": {},
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["staff","course","date","hours","certificateNo","validTo","daysToExpiry","quarterHours","exception"],
+     "rows": []
+    }
+   ]
+  }
+ ]
+}

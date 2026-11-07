@@ -79,6 +79,11 @@ import './meas-hk/linen-cost';
 import './meas-hk/asset-life';
 // F12-RPT-HK end
 // F12-RPT-PEOPLE
+import './meas-people/staff-productivity';
+import './meas-people/attrition';
+import './meas-people/agent-scorecard';
+import './meas-people/training';
+import './meas-people/staff-pulse';
 // F12-RPT-PEOPLE end
 // F12-STUDY-A
 import './study-a/revenue-monthly';
