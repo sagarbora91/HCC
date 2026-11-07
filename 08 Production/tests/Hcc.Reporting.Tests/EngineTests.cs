@@ -36,6 +36,10 @@ public sealed class EngineTests
         .. F7R3Reports(),
         .. F7R5Reports(),
         .. F7R6Reports(), // F7-R6
+        // F12-RPT-PEOPLE
+        new Hcc.Reporting.Reports.MeasPeople.StaffProductivityReport(null!), new Hcc.Reporting.Reports.MeasPeople.AttritionReport(null!), new Hcc.Reporting.Reports.MeasPeople.AgentScorecardReport(null!, null!),
+        new Hcc.Reporting.Reports.MeasPeople.TrainingReport(null!), new Hcc.Reporting.Reports.MeasPeople.StaffPulseReport(null!, null!),
+        // F12-RPT-PEOPLE end
         // F7-R4
         new ShiftReport(null!, null!), new CollectionDetailReport(null!, null!), new CreditBillsReport(null!), new ExpenseRegisterReport(null!), new ExpensesByHeadReport(null!),
         // F7-R4 end
