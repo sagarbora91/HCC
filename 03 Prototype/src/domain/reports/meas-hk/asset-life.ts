@@ -16,10 +16,15 @@ export const FFE_DEFAULT_PCT=3;
 /** Past life = the as-of date is after the replacement date (the day itself is not past). */
 export const assetPastLife=(replacementDue:string|undefined,asOf:string)=>!!replacementDue&&asOf>replacementDue;
 export const ffePct=(s:State)=>{const v=s.configX?.values?.['ffe.reservePct'];return typeof v==='number'?v:FFE_DEFAULT_PCT;};
-/** Room revenue (before GST, paise) of the booking lines dated inside [from, to]. */
-export const roomRevenueBetween=(s:State,from:string,to:string)=>s.bookings.reduce((a,b)=>a+b.lines.filter(l=>l.kind==='room'&&l.date>=from&&l.date<=to).reduce((t,l)=>t+l.amount,0),0);
+/** Room revenue (before GST, paise) of the live room lines dated inside [from, to].
+ *  F12-MEAS2-E N2: a reversed original and its reversal never count (a rate re-post writes the reversal as an 'adjustment'), so a re-posted night is in
+ *  the base once, at the new rate — the server twin filters reverses_charge_id / reversed_by_charge_id the same way. */
+export const roomRevenueBetween=(s:State,from:string,to:string)=>s.bookings.reduce((a,b)=>{
+  const reversed=new Set(b.lines.filter(l=>l.reversalOf).map(l=>l.reversalOf as string));
+  return a+b.lines.filter(l=>l.kind==='room'&&!l.reversalOf&&!reversed.has(l.id)&&l.date>=from&&l.date<=to).reduce((t,l)=>t+l.amount,0);
+},0);
 
-const BASIS='As of one date. Age from the installed date (or the put-to-use date for register assets); expected life, grade and replacement cost as captured. Replacement due = installed date + expected life. WDV = the register cost HCC holds (the CA passes depreciation in Tally). Month-end row: FF&E reserve accrued = ffe.reservePct of the FY room revenue (before GST) to the date; capex spent = register purchases of the FY. Refurbishment due is named when the replacement date falls within 12 months. Red: past expected life with no maintenance plan; capex spent above the reserve accrued.';
+const BASIS='As of one date. Age from the installed date (or the put-to-use date for register assets); expected life, grade and replacement cost as captured. Replacement due = installed date + expected life. WDV = the asset\'s register cost: depreciation is booked per block at the year end (DEC-138), so no per-asset written-down value is held (the block WDV is in the fixed-asset register). Month-end row: FF&E reserve accrued = ffe.reservePct of the FY room revenue (before GST, live room nights only: a reversed or re-posted night counts once, at its current rate) to the date; capex spent = register purchases of the FY. Refurbishment due is named when the replacement date falls within 12 months. Red: past expected life with no maintenance plan; capex spent above the reserve accrued.';
 
 export const assetLife=registerReport({
   id:'rpt.acc.asset-life',title:'Asset register, FF&E reserve and renovation cycle',area:'acc',priority:'P2',status:'MEAS',
