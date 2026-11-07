@@ -1,4 +1,5 @@
 // F12-RPT-GUEST · base of the six guest measurement selectors: the switch key (IMeasuredReport, honoured by ReportRunner), target reads, empty-result helper.
+using Hcc.Application.Billing;
 using System.Data;
 using Hcc.Application.Configuration;
 using Hcc.Application.Reporting.Rpt;
@@ -36,7 +37,7 @@ public abstract class MeasGuestBase(SqlPlatform platform, ISettingsReader? setti
 
     protected static string Param(BoundParams p, string key) => p.Values.GetValueOrDefault(key) ?? "";
 
-    protected static DateTime LocalOf(GuestsSql.Clock clock, DateTime utc) => TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(utc, DateTimeKind.Utc), clock.Zone);
+    internal static DateTime LocalOf(GuestsSql.Clock clock, DateTime utc) => TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(utc, DateTimeKind.Utc), clock.Zone);
 
     protected static void Add(Microsoft.Data.SqlClient.SqlCommand c, string name, SqlDbType type, object? value) => GuestsSql.Add(c, name, type, value);
 }

@@ -1,5 +1,6 @@
 // F12-RPT-GUEST · rpt.guests.repeat-loyalty — Repeat guests and loyalty base (gst.stay, gst.guest, msg.message, meas.customer_preference; switch meas.guest.repeat). Twin of meas-guest/repeat-loyalty.ts.
 // Customers are grouped by the last 10 digits of the mobile (else the lower-cased name). The revenue-share column is money-flagged (PERM-RPT-002). The 3+ stay list shows the name (GuestName mask, rule V).
+using Hcc.Application.Billing;
 using System.Data;
 using System.Globalization;
 using Hcc.Application.Configuration;

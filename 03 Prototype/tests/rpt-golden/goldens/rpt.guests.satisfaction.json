@@ -4,14 +4,30 @@
   {
    "uid": "owner",
    "scenario": "BASE",
-   "params": {}
+   "params": {},
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["month","responses","responseRate","overall","cleanliness","staff","value","breakfast","nps","verbatim"],
+     "rows": []
+    }
+   ]
   },
   {
    "uid": "owner",
    "scenario": "FY26",
    "params": {
     "month": "2026-10"
-   }
+   },
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["month","responses","responseRate","overall","cleanliness","staff","value","breakfast","nps","verbatim"],
+     "rows": []
+    }
+   ]
   }
  ]
 }

@@ -1,5 +1,6 @@
 // F12-RPT-GUEST · rpt.guests.upsell — Upsell and upgrade (bill.charge labels UPG / LCO1 / LCO2, meas.booking_extra; switch meas.guest.upsell). Twin of meas-guest/upsell.ts.
 // Revenue per arrival = upgrade + late check-out + breakfast add-on + extra bed lines (before GST) / arrivals, half up. Day-use cannot exist on the server (departure > arrival), so it is 0.
+using Hcc.Application.Billing;
 using System.Data;
 using Hcc.Application.Configuration;
 using Hcc.Application.Reporting.Rpt;

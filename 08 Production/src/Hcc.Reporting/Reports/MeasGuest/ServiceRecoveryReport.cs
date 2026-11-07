@@ -1,5 +1,6 @@
 // F12-RPT-GUEST · rpt.guests.service-recovery — Service recovery (ops.guest_complaint, meas.root_cause_set; switch meas.guest.recovery). Twin of meas-guest/service-recovery.ts.
 // Money: the compensation column only (PERM-RPT-002 gate; removed for roles without it, DEC-061).
+using Hcc.Application.Billing;
 using System.Data;
 using System.Globalization;
 using Hcc.Application.Configuration;

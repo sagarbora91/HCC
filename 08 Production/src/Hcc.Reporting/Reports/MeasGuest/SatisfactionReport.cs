@@ -1,5 +1,6 @@
 // F12-RPT-GUEST · rpt.guests.satisfaction — Guest satisfaction and NPS (meas.survey; switch meas.guest.survey). Twin of meas-guest/satisfaction.ts.
 // meas.survey has no identity column; the verbatim lists comments of surveys with consent only.
+using Hcc.Application.Billing;
 using System.Data;
 using System.Globalization;
 using Hcc.Application.Configuration;

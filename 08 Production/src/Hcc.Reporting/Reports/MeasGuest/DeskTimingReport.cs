@@ -1,5 +1,6 @@
 // F12-RPT-GUEST · rpt.guests.desk-timing — Arrival and departure experience (gst.stay instants, ops.key_job, bill.charge / pay.receipt times; switch meas.guest.desk-timing). Twin of meas-guest/desk-timing.ts.
 // Arrival-to-key = check-in instant to the first finished key job of the stay; bill-to-checkout = the last charge or receipt in the 60 minutes before check-out. Whole minutes, lower median.
+using Hcc.Application.Billing;
 using System.Data;
 using System.Globalization;
 using Hcc.Application.Configuration;

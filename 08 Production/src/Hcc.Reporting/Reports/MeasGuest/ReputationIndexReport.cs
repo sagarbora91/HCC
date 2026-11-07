@@ -1,4 +1,5 @@
 // F12-RPT-GUEST · rpt.guests.reputation-index — Online reputation (meas.review_month; switch meas.guest.reputation). Twin of meas-guest/reputation-index.ts.
+using Hcc.Application.Billing;
 using System.Data;
 using System.Globalization;
 using Hcc.Application.Configuration;

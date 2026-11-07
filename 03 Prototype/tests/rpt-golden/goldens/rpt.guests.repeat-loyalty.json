@@ -4,14 +4,35 @@
   {
    "uid": "owner",
    "scenario": "BASE",
-   "params": {}
+   "params": {},
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["month","seenBefore","repeatShare","stays","revenueShare","guests3","loyaltyTag","offerSent"],
+     "rows": [
+      ["row","2026-10",0,0,8,0,"","",null]
+     ]
+    }
+   ]
   },
   {
    "uid": "owner",
    "scenario": "FY26",
    "params": {
     "month": "2026-10"
-   }
+   },
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["month","seenBefore","repeatShare","stays","revenueShare","guests3","loyaltyTag","offerSent"],
+     "rows": [
+      ["row","2026-10",16,9.1,176,11.2,"","",null],
+      ["row","",null,null,3,null,"Divya More","",false]
+     ]
+    }
+   ]
   }
  ]
 }
