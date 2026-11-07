@@ -54,6 +54,15 @@ import './built/admin';
 // F12-RPT-PEOPLE
 // F12-RPT-PEOPLE end
 // F12-STUDY-A
+import './study-a/revenue-monthly';
+import './study-a/year-comparison';
+import './study-a/index-vs-base';
+import './study-a/fy-deep-dive';
+import './study-a/occupancy-history';
+import './study-a/operations-patterns';
+import './study-a/rooms-and-rates';
+import './study-a/zero-rate-complimentary';
+import './study-a/receivables-bad-debt';
 // F12-STUDY-A end
 // F12-STUDY-B
 // F12-STUDY-B end
