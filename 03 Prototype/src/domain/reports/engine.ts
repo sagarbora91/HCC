@@ -9,7 +9,7 @@ import {reportDef,allReports} from './catalogue';
 import {bindParams,paramsText} from './params';
 import {canViewReport,canExportReport,holdsMoneyGate,removeMoney,applyMasks} from './mask';
 import {computeColumns} from './computed';
-import {cellText} from './print';
+import {cellText,RPT_RENDER_HOOKS} from './print'; // F12-STUDY-PACK: RPT_RENDER_HOOKS
 import {rptTables} from './tables';
 import './register';
 import {measReportOn,measReportGuard} from '../streams/measure'; // F12-SETTINGS (MEAS-CONTRACT §1.5)
@@ -75,8 +75,8 @@ export function xlsxCell(c:RptColumn,v:RptRow['cells'][string]|undefined):XCell{
 }
 /** Sheets: one per table + About (parameters, date basis, run time, user, provisional). */
 export function toXlsx(r:RptResult,property:string):XSheet[]{
-  const sheets:XSheet[]=rptTables(r).map(t=>({name:t.title??r.title,widths:t.columns.map(c=>c.type==='text'?26:16),
-    rows:[t.columns.map(c=>c.label),...t.rows.map(row=>t.columns.map(c=>xlsxCell(c,row.cells[c.key])))]}));
+  const sheets:XSheet[]=rptTables(r).map(t=>RPT_RENDER_HOOKS.xlsx.reduce((sh,h)=>h(t,sh),{name:t.title??r.title,widths:t.columns.map(c=>c.type==='text'?26:16), // F12-STUDY-PACK hook
+    rows:[t.columns.map(c=>c.label),...t.rows.map(row=>t.columns.map(c=>xlsxCell(c,row.cells[c.key])))]} as XSheet));
   const about:XCell[][]=[['Item','Value'],['Report',`${r.title} · ${r.id}`],['Property',property],
     ...Object.entries(paramsText(r.params)).map(([k,v])=>[k,v] as XCell[]),['Date basis',r.about.dateBasis],['Run at (IST, business clock)',r.about.runAt],['Run by',r.about.user],
     ['Provisional',r.about.provisional?'Yes — the day is not closed':'No'],...(r.about.legacy?[['Source','Legacy data (old Lodge software)'] as XCell[]]:[]),

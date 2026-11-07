@@ -48,6 +48,9 @@ public sealed class EngineTests
         // F12-STUDY-B
         .. Hcc.Reporting.Reports.MeasStudyB.StudyBReport.All(null),
         // F12-STUDY-B end
+        // F12-STUDY-PACK
+        new Hcc.Reporting.Reports.StudyPack.ManagementPackReport(null!),
+        // F12-STUDY-PACK end
     ]).All;
 
     // F12-RPT-GUEST

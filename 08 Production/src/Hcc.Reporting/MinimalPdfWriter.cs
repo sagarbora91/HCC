@@ -11,7 +11,8 @@ public static class MinimalPdfWriter
     public const double A4W = 595.28, A4H = 841.89, Margin = 36;
 
     /// <summary>One positioned text run or a horizontal rule on a page.</summary>
-    public sealed record Op(double X, double Y, string? Text, bool Bold = false, double Size = 8, double RuleTo = 0, bool RightAlign = false);
+    public sealed record Op(double X, double Y, string? Text, bool Bold = false, double Size = 8, double RuleTo = 0, bool RightAlign = false,
+        string? Raw = null); // F12-STUDY-PACK extension point: ready-made path operators (ChartBlock shapes), written as they are
 
     /// <summary>WinAnsi bytes of a text: ₹ → "Rs.", • and dashes / quotes to their 1252 codes, anything else outside Latin-1 → '?'.</summary>
     public static byte[] WinAnsi(string text)
@@ -66,6 +67,7 @@ public static class MinimalPdfWriter
             var sb = new StringBuilder();
             foreach (var op in i < pages.Count ? pages[i] : [])
             {
+                if (op.Raw is { } raw) { sb.Append(raw); continue; } // F12-STUDY-PACK
                 if (op.Text is null) { sb.Append(CultureInfo.InvariantCulture, $"0.5 w {N(op.X)} {N(op.Y)} m {N(op.RuleTo)} {N(op.Y)} l S\n"); continue; }
                 var x = op.RightAlign ? op.X - Width(op.Text, op.Size) : op.X;
                 sb.Append(CultureInfo.InvariantCulture, $"BT /{(op.Bold ? "F2" : "F1")} {N(op.Size)} Tf {N(x)} {N(op.Y)} Td {Lit(op.Text)} Tj ET\n");

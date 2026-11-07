@@ -213,6 +213,7 @@ public static class HccComposition
         Hcc.Reporting.Reports.MeasStudyB.StudyBReport.AddStudyB(services); // twelve ported study reports
         // F12-STUDY-B end
         // F12-STUDY-PACK
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.StudyPack.ManagementPackReport>(services); services.AddSingleton<Hcc.Reporting.Reports.StudyPack.StudyPackScheduler>(); services.AddHostedService<Hcc.Reporting.Reports.StudyPack.StudyPackScheduleWorker>(); // rpt.study.management-pack + meas.study.packSchedule
         // F12-STUDY-PACK end
         // F12-DIGEST
         // F12-DIGEST end

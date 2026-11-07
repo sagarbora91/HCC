@@ -1,0 +1,102 @@
+{
+ "id": "rpt.study.management-pack",
+ "cases": [
+  {
+   "uid": "owner",
+   "scenario": "BASE",
+   "params": {},
+   "tables": [
+    {
+     "key": "contents",
+     "title": "Contents",
+     "columns": ["no","chapter","report","title","status","blocks"],
+     "rows": [
+      ["row",1,"Revenue and cash","rpt.study.revenue-monthly","rpt.study.revenue-monthly","not built yet",0],
+      ["row",1,"Revenue and cash","rpt.study.year-comparison","rpt.study.year-comparison","not built yet",0],
+      ["row",1,"Revenue and cash","rpt.study.index-vs-base","rpt.study.index-vs-base","not built yet",0],
+      ["row",1,"Revenue and cash","rpt.study.fy-deep-dive","rpt.study.fy-deep-dive","not built yet",0],
+      ["row",2,"Occupancy and operations","rpt.study.occupancy-history","rpt.study.occupancy-history","not built yet",0],
+      ["row",2,"Occupancy and operations","rpt.study.operations-patterns","rpt.study.operations-patterns","not built yet",0],
+      ["row",2,"Occupancy and operations","rpt.study.rooms-and-rates","rpt.study.rooms-and-rates","not built yet",0],
+      ["row",2,"Occupancy and operations","rpt.study.zero-rate-complimentary","rpt.study.zero-rate-complimentary","not built yet",0],
+      ["row",3,"Receivables","rpt.study.receivables-bad-debt","rpt.study.receivables-bad-debt","not built yet",0],
+      ["row",4,"Revenue management","rpt.study.revenue-kpi","rpt.study.revenue-kpi","not built yet",0],
+      ["row",4,"Revenue management","rpt.study.channel-economics","rpt.study.channel-economics","not built yet",0],
+      ["row",4,"Revenue management","rpt.study.pricing-shape","rpt.study.pricing-shape","not built yet",0],
+      ["row",5,"Guests","rpt.study.guest-repeat-value","rpt.study.guest-repeat-value","not built yet",0],
+      ["row",5,"Guests","rpt.study.guest-origin-plan","rpt.study.guest-origin-plan","not built yet",0],
+      ["row",6,"Housekeeping, F&B and halls","rpt.study.housekeeping-operations","rpt.study.housekeeping-operations","not built yet",0],
+      ["row",6,"Housekeeping, F&B and halls","rpt.study.fnb-halls-ancillary","rpt.study.fnb-halls-ancillary","not built yet",0],
+      ["row",7,"Finance, sales and compliance","rpt.study.finance-cost","rpt.study.finance-cost","not built yet",0],
+      ["row",7,"Finance, sales and compliance","rpt.study.corporate-accounts","rpt.study.corporate-accounts","not built yet",0],
+      ["row",7,"Finance, sales and compliance","rpt.study.compliance-risk","rpt.study.compliance-risk","not built yet",0],
+      ["row",8,"Forecast and Owner dashboard","rpt.study.forecast-scenarios","rpt.study.forecast-scenarios","not built yet",0],
+      ["row",8,"Forecast and Owner dashboard","rpt.study.owner-dashboard","rpt.study.owner-dashboard","not built yet",0]
+     ]
+    },
+    {
+     "key": "summary",
+     "title": "Executive summary",
+     "columns": ["fy","period","rooms","roomNights","chargedNights","roomRevenue","occupancy","adr","revpar"],
+     "rows": [
+      ["row","2026-27","Apr 26",24,0,0,0,0,0,0],
+      ["row","2026-27","May 26",24,0,0,0,0,0,0],
+      ["row","2026-27","Jun 26",24,0,0,0,0,0,0],
+      ["row","2026-27","Jul 26",24,0,0,0,0,0,0],
+      ["row","2026-27","Aug 26",24,0,0,0,0,0,0],
+      ["row","2026-27","Sep 26",24,0,0,0,0,0,0],
+      ["row","2026-27","Oct 26",24,8,8,1950000,1.4,243750,3385],
+      ["total","2026-27","FY 2026-27",24,8,8,1950000,0.2,243750,393]
+     ]
+    },
+    {
+     "key": "scorecard",
+     "title": "Scorecard",
+     "columns": ["kpi","actualPct","targetPct","actualMoney","targetMoney","status"],
+     "rows": [
+      ["row","Occupancy",0.2,35,null,null,"Below target"],
+      ["row","ADR (before GST)",null,null,243750,205000,"On target"]
+     ]
+    },
+    {
+     "key": "chart:pack-revenue",
+     "title": "Room revenue by month",
+     "columns": ["chart.bar","roomRevenue"],
+     "rows": [
+      ["row","Apr 26",0],
+      ["row","May 26",0],
+      ["row","Jun 26",0],
+      ["row","Jul 26",0],
+      ["row","Aug 26",0],
+      ["row","Sep 26",0],
+      ["row","Oct 26",1950000]
+     ]
+    },
+    {
+     "key": "chart:pack-occupancy",
+     "title": "Occupancy by month",
+     "columns": ["chart.line","occupancy"],
+     "rows": [
+      ["row","Apr 26",0],
+      ["row","May 26",0],
+      ["row","Jun 26",0],
+      ["row","Jul 26",0],
+      ["row","Aug 26",0],
+      ["row","Sep 26",0],
+      ["row","Oct 26",1.4]
+     ]
+    },
+    {
+     "key": "notes",
+     "title": "Notes",
+     "columns": ["note"],
+     "rows": [
+      ["row","Footer: Legacy to 30 Oct 2026 / HCC live. Legacy rows carry the legacy marker; HCC live data starts 31 Oct 2026."],
+      ["row","0 of 21 study reports included; the others are listed in the contents with the reason."],
+      ["row","Definitions (contract §9.2): occupancy = distinct room-nights slept ÷ (rooms in service × days); ADR = room charge before GST ÷ charged nights; FY April–March; halls excluded."]
+     ]
+    }
+   ]
+  }
+ ]
+}

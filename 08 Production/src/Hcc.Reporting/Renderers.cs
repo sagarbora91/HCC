@@ -41,9 +41,9 @@ public sealed class XlsxRenderer : IReportRenderer
     {
         ArgumentNullException.ThrowIfNull(result);
         ArgumentNullException.ThrowIfNull(context);
-        var sheets = ReportRunner.Tables(result).Select(t => new XlsxSheet(t.Title ?? result.Title,
+        var sheets = ReportRunner.Tables(result).Select(t => Charts.ChartBlocks.Decorate(t, new XlsxSheet(t.Title ?? result.Title, // F12-STUDY-PACK hook: native chart parts
             [t.Columns.Select(c => (object?)new XlsxBold(c.Label)).ToList(), .. t.Rows.Select(r => (IReadOnlyList<object?>)t.Columns.Select(c => Cell(c, r.Cells.GetValueOrDefault(c.Key))).ToList())],
-            1, t.Columns.Select(c => c.Type == ReportColumnType.Text ? 26.0 : 16.0).ToList())).ToList();
+            1, t.Columns.Select(c => c.Type == ReportColumnType.Text ? 26.0 : 16.0).ToList()))).ToList();
         var a = result.About;
         var about = new List<IReadOnlyList<object?>> { new object?[] { new XlsxBold("Item"), new XlsxBold("Value") }, new object?[] { "Report", $"{result.Title} · {result.Id}" }, new object?[] { "Property", context.PropertyName } };
         about.AddRange(result.Params.Values.Select(kv => (IReadOnlyList<object?>)new object?[] { kv.Key, kv.Value }));
@@ -114,7 +114,8 @@ public sealed class PdfRenderer : IReportRenderer
             foreach (var t in m.Pages[pi].Tables)
             {
                 if (t.Title is { } title) { ops.Add(new(x0, y, title, true, 10)); y -= 13; }
-                var cw = (x1 - x0) / Math.Max(1, t.Columns.Count);
+                ops.AddRange(Charts.ChartBlocks.PdfOps(t, x0, x1, y - 13, 11)); // F12-STUDY-PACK hook: a chart table draws its chart in the right half
+                var cw = (Charts.ChartBlocks.TableRight(t, x0, x1) - x0) / Math.Max(1, t.Columns.Count);
                 bool Num(ReportColumn c) => c.Type is ReportColumnType.Money or ReportColumnType.Int or ReportColumnType.Percent;
                 double X(int i, ReportColumn c) => Num(c) ? x0 + cw * (i + 1) - 2 : x0 + cw * i;
                 for (var i = 0; i < t.Columns.Count; i++) ops.Add(new(X(i, t.Columns[i]), y, t.Columns[i].Label, true, 7, 0, Num(t.Columns[i])));

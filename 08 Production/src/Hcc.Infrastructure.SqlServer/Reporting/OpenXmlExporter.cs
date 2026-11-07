@@ -19,7 +19,17 @@ public readonly record struct XlsxBold(string Text);
 
 /// <summary>One worksheet: rows of cells (null / string / long / int / decimal / <see cref="XlsxMoney"/> / <see cref="XlsxBold"/> / <see cref="DateOnly"/> /
 /// double as a percent fraction via <see cref="XlsxPercent"/>), the number of rows frozen above the body and optional column widths.</summary>
-public sealed record XlsxSheet(string Name, IReadOnlyList<IReadOnlyList<object?>> Rows, int FreezeRows = 0, IReadOnlyList<double>? Widths = null);
+public sealed record XlsxSheet(string Name, IReadOnlyList<IReadOnlyList<object?>> Rows, int FreezeRows = 0, IReadOnlyList<double>? Widths = null,
+    Func<int, string, XlsxSheetParts>? Parts = null); // F12-STUDY-PACK extension point: extra parts (native charts), called with the 1-based sheet index and final name
+
+// F12-STUDY-PACK · extension point types (mirror of the prototype XSheetExt): `Tail` is written after sheetData, `Rels` are the sheet's
+// relationships, `Files` are added to the package (an Override when ContentType is set).
+public sealed record XlsxRel(string Id, string Type, string Target);
+
+public sealed record XlsxPart(string Name, string Xml, string? ContentType);
+
+public sealed record XlsxSheetParts(string Tail, IReadOnlyList<XlsxRel> Rels, IReadOnlyList<XlsxPart> Files);
+// F12-STUDY-PACK end
 
 /// <summary>A fraction (0.494 = 49.4 %) shown with <c>0.0%</c>.</summary>
 public readonly record struct XlsxPercent(double Fraction);
@@ -57,6 +67,7 @@ public static class OpenXmlExporter
         ArgumentNullException.ThrowIfNull(sheets);
         var used = new List<string>();
         var named = (sheets.Count == 0 ? [new XlsxSheet("Sheet1", [])] : sheets).Select(s => (Name: SheetName(s.Name, used), Sheet: s)).ToList();
+        var parts = named.Select((s, i) => s.Sheet.Parts?.Invoke(i + 1, s.Name)).ToList(); // F12-STUDY-PACK extension point
         using var ms = new MemoryStream();
         using (var zip = new ZipArchive(ms, ZipArchiveMode.Create, leaveOpen: true))
         {
@@ -68,6 +79,7 @@ public static class OpenXmlExporter
                 Override(w, "/xl/workbook.xml", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml");
                 Override(w, "/xl/styles.xml", "application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml");
                 for (var i = 1; i <= named.Count; i++) Override(w, $"/xl/worksheets/sheet{i}.xml", "application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml");
+                foreach (var f in parts.SelectMany(p => p?.Files ?? []).Where(f => f.ContentType is not null)) Override(w, "/" + f.Name, f.ContentType!); // F12-STUDY-PACK
                 w.WriteEndElement();
             });
             Put(zip, "_rels/.rels", w =>
@@ -104,8 +116,24 @@ public static class OpenXmlExporter
             for (var i = 0; i < named.Count; i++)
             {
                 var sheet = named[i].Sheet;
-                Put(zip, $"xl/worksheets/sheet{i + 1}.xml", w => WriteSheet(w, sheet));
+                var tail = parts[i]?.Tail;
+                Put(zip, $"xl/worksheets/sheet{i + 1}.xml", w => WriteSheet(w, sheet, tail));
             }
+
+            // F12-STUDY-PACK: sheet relationships and extra parts of the extension point
+            for (var i = 0; i < named.Count; i++)
+            {
+                if (parts[i] is not { } p) continue;
+                if (p.Rels.Count > 0)
+                    Put(zip, $"xl/worksheets/_rels/sheet{i + 1}.xml.rels", w =>
+                    {
+                        w.WriteStartElement("Relationships", "http://schemas.openxmlformats.org/package/2006/relationships");
+                        foreach (var r in p.Rels) Relationship(w, r.Id, r.Type, r.Target);
+                        w.WriteEndElement();
+                    });
+                foreach (var f in p.Files) PutRaw(zip, f.Name, f.Xml);
+            }
+            // F12-STUDY-PACK end
         }
 
         return ms.ToArray();
@@ -120,6 +148,16 @@ public static class OpenXmlExporter
         w.WriteStartDocument(true);
         write(w);
         w.WriteEndDocument();
+    }
+
+    // F12-STUDY-PACK: a ready-made XML part (chart / drawing), byte-stable like Put.
+    private static void PutRaw(ZipArchive zip, string name, string xml)
+    {
+        var entry = zip.CreateEntry(name, CompressionLevel.Optimal);
+        entry.LastWriteTime = new DateTimeOffset(1980, 1, 1, 0, 0, 0, TimeSpan.Zero);
+        using var s = entry.Open();
+        var b = new UTF8Encoding(false).GetBytes(xml);
+        s.Write(b, 0, b.Length);
     }
 
     private static void Default(XmlWriter w, string ext, string type)
@@ -165,7 +203,7 @@ public static class OpenXmlExporter
         w.WriteEndElement();
     }
 
-    private static void WriteSheet(XmlWriter w, XlsxSheet sheet)
+    private static void WriteSheet(XmlWriter w, XlsxSheet sheet, string? tail = null)
     {
         w.WriteStartElement("worksheet", Main);
         if (sheet.FreezeRows > 0)
@@ -211,6 +249,7 @@ public static class OpenXmlExporter
         }
 
         w.WriteEndElement();
+        if (tail is { Length: > 0 }) w.WriteRaw(tail); // F12-STUDY-PACK: after sheetData (e.g. <drawing r:id/>)
         w.WriteEndElement();
     }
 
