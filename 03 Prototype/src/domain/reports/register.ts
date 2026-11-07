@@ -44,6 +44,15 @@ import './built/stock';
 import './built/admin';
 // F7-R8 end
 // F12-RPT-DAILY
+import './meas-daily/flash';
+import './meas-daily/regrets';
+import './meas-daily/rate-variance';
+import './meas-daily/room-discrepancy';
+import './meas-daily/high-balance';
+import './meas-daily/allowances-voids';
+import './meas-daily/no-show-cancel';
+import './meas-daily/inventory-exceptions';
+import './meas-daily/cashier-variance';
 // F12-RPT-DAILY end
 // F12-RPT-REVENUE
 // F12-RPT-REVENUE end

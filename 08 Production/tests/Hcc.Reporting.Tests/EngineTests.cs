@@ -39,6 +39,10 @@ public sealed class EngineTests
         // F7-R4
         new ShiftReport(null!, null!), new CollectionDetailReport(null!, null!), new CreditBillsReport(null!), new ExpenseRegisterReport(null!), new ExpensesByHeadReport(null!),
         // F7-R4 end
+        // F12-RPT-DAILY
+        new Hcc.Reporting.Reports.MeasDaily.ManagerFlashReport(null!), new Hcc.Reporting.Reports.MeasDaily.RegretsDenialsReport(null!), new Hcc.Reporting.Reports.MeasDaily.RateVarianceReport(null!), new Hcc.Reporting.Reports.MeasDaily.RoomDiscrepancyReport(null!), new Hcc.Reporting.Reports.MeasDaily.HighBalanceReport(null!),
+        new Hcc.Reporting.Reports.MeasDaily.AllowancesVoidsReport(null!), new Hcc.Reporting.Reports.MeasDaily.NoShowCancelReport(null!), new Hcc.Reporting.Reports.MeasDaily.InventoryExceptionsReport(null!), new Hcc.Reporting.Reports.MeasDaily.CashierVarianceReport(null!),
+        // F12-RPT-DAILY end
     ]).All;
 
     // F7-R3
