@@ -173,6 +173,7 @@ public static class HccComposition
         // F12-STUDY-A
         // F12-STUDY-A end
         // F12-STUDY-B
+        Hcc.Reporting.Reports.MeasStudyB.StudyBReport.AddStudyB(services); // twelve ported study reports
         // F12-STUDY-B end
         // F12-STUDY-PACK
         // F12-STUDY-PACK end

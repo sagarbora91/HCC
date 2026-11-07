@@ -56,6 +56,7 @@ import './built/admin';
 // F12-STUDY-A
 // F12-STUDY-A end
 // F12-STUDY-B
+import './study-b/index';
 // F12-STUDY-B end
 // F12-STUDY-PACK
 // F12-STUDY-PACK end

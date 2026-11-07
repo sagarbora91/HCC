@@ -39,6 +39,9 @@ public sealed class EngineTests
         // F7-R4
         new ShiftReport(null!, null!), new CollectionDetailReport(null!, null!), new CreditBillsReport(null!), new ExpenseRegisterReport(null!), new ExpensesByHeadReport(null!),
         // F7-R4 end
+        // F12-STUDY-B
+        .. Hcc.Reporting.Reports.MeasStudyB.StudyBReport.All(null),
+        // F12-STUDY-B end
     ]).All;
 
     // F7-R3
