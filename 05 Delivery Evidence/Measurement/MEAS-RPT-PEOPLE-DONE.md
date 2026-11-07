@@ -42,4 +42,7 @@ Counts are in RESULTS below (all heavy jobs through the lock).
 F12 rpt-people (Sonnet): five people measurement reports (staff-productivity, attrition, agent-scorecard, training, staff-pulse) on both sides, switch/payroll-module gated, pulse anonymous with a 5-answer minimum, red-row rule printed as an `Exception` column; no migrations; server SQL not yet run against a database.
 
 ## RESULTS
-(filled at the end of the lane)
+Stopped at the tool-turn cap while the shared lock stayed busy (exit 75 many times).
+- Done and green: `tests/stream-meas-rpt-people.mjs` 18/19 on the first run; the failing assertion was fixed afterwards (re-run owed); `npx tsc --noEmit` clean (run before the test files existed).
+- NOT yet run (a background chain `.scratch/chain.sh` was queued and may have finished: see `.scratch/gold.log`, `meas-dotnet.log`, `rep-dotnet.log`, `npmtest.log`): `node tools/rpt-catalogue.mjs` + `node tests/rpt-golden/accept.mjs` (writes `catalogue.json` x2 and `rpt.people.*.json` goldens; commit them if they appear as changes), `dotnet test Hcc.Meas.Tests`, `dotnet test Hcc.Reporting.Tests` (cross-check test fails until catalogue.json is regenerated), `npm test`. The C# has not been compiled yet.
+- Counts before/after: not recorded.
