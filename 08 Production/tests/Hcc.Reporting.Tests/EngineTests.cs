@@ -45,6 +45,9 @@ public sealed class EngineTests
         new Hcc.Reporting.Reports.MeasDaily.AllowancesVoidsReport(null!), new Hcc.Reporting.Reports.MeasDaily.NoShowCancelReport(null!), new Hcc.Reporting.Reports.MeasDaily.InventoryExceptionsReport(null!), new Hcc.Reporting.Reports.MeasDaily.CashierVarianceReport(null!),
         // F12-RPT-DAILY end
         .. MeasGuestReports(), // F12-RPT-GUEST
+        // F12-STUDY-B
+        .. Hcc.Reporting.Reports.MeasStudyB.StudyBReport.All(null),
+        // F12-STUDY-B end
     ]).All;
 
     // F12-RPT-GUEST

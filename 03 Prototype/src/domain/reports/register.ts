@@ -92,6 +92,7 @@ import './study-a/zero-rate-complimentary';
 import './study-a/receivables-bad-debt';
 // F12-STUDY-A end
 // F12-STUDY-B
+import './study-b/index';
 // F12-STUDY-B end
 // F12-STUDY-PACK
 // F12-STUDY-PACK end
