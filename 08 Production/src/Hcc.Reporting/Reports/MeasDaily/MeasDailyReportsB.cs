@@ -20,7 +20,7 @@ public sealed class AllowancesVoidsReport(SqlPlatform platform) : IReportSelecto
 
     public string MeasKey => "meas.daily.adjustments";
 
-    private static readonly string[] Kinds = ["discount", "allowance", "rebate", "void", "correction", "refund"];
+    private static readonly string[] Kinds = ["discount", "allowance", "rebate", "void", "rate-change", "correction", "refund"];
 
     public static readonly IReadOnlyList<ReportColumn> Columns =
     [
@@ -29,21 +29,43 @@ public sealed class AllowancesVoidsReport(SqlPlatform platform) : IReportSelecto
 
     public ReportDefinition Definition { get; } = new(Id, "Allowances, rebates, voids and corrections", "money", "P1", "MEAS", true, "PERM-RPT-002", ["PERM-RPT-002"], [], "PERM-RPT-003", ReportDateClass.Business,
         [new("from", "From", "date", ReportDateClass.Business), new("to", "To", "date", ReportDateClass.Business), new("kind", "Kind", "enum", null, ["all", .. Kinds], "all"), new("user", "User", "user")], Columns,
-        "Entries by the business date they were posted on (range up to 92 days): discount, allowance and rebate lines, reversed lines (voids), issued bill corrections and refunds. Amount is the absolute value before tax for lines, the net change for corrections. Exception: no reason, no approver, or a user above the daily cap (that user's discount limit). Capture needed: allowance reason codes (meas-cap-desk); with nothing captured the report shows no rows.",
+        BasisText,
         [ReportFormat.Screen, ReportFormat.Xlsx, ReportFormat.Pdf, ReportFormat.Csv], ReportPhone.No);
 
+    public const string BasisText = "Entries by the business date they were posted on (range up to 92 days): discount, allowance and rebate lines, reversed lines (voids), rate re-posts (a posted night reversed by a stay rate change, kind rate-change), issued bill corrections and refunds. Amount is the absolute value before tax for lines, the net change for corrections. A rate re-post takes its reason and approver from the rate change (an Owner's own change is its own approval). Exception: no reason, no approver, or a user above the daily cap (that user's discount limit). Capture needed: allowance reason codes (meas-cap-desk); with nothing captured the report shows no rows.";
+
+    // F12-MEAS2-A · N3 (owner 7 Nov: rate re-posts are their own kind). A rate re-post reversal (StayRateCommands: kind correction, "Reversal · rate change · …")
+    // is kind 'rate-change'; its user, reason and approver come from gst.stay_rate_change (the change that lists the reversal in reposted_json): the approver
+    // of an approved change, or the Owner who changed it directly (a direct Manager change has no approver and stays red). Other lines take the approval
+    // from the result row (discount / correction), else the approval held on the charge row (c.approval_id: rate-change, bill-correction), else, for a bill
+    // correction's credit-note line, the correction's approval (ivc.bill_correction by credit-note number).
     private const string Sql = """
         SELECT c.service_date,
-               CASE WHEN c.reverses_charge_id IS NOT NULL THEN 'void' WHEN c.kind = 'correction' THEN 'correction' WHEN LOWER(c.label) LIKE N'%rebate%' THEN 'rebate'
+               CASE WHEN c.reverses_charge_id IS NOT NULL AND c.label LIKE N'Reversal · rate change · %' THEN 'rate-change'
+                    WHEN c.reverses_charge_id IS NOT NULL THEN 'void' WHEN c.kind = 'correction' THEN 'correction' WHEN LOWER(c.label) LIKE N'%rebate%' THEN 'rebate'
                     WHEN LOWER(c.label) LIKE N'%allowance%' THEN 'allowance' ELSE 'discount' END,
-               r.public_no, ABS(c.amount_paise), CASE WHEN CHARINDEX(N' · ', c.label) > 0 THEN LTRIM(SUBSTRING(c.label, CHARINDEX(N' · ', c.label) + 3, 200)) ELSE N'' END,
-               COALESCE(ur.display_name, N''), COALESCE(ud.display_name, N''), c.charge_id
+               r.public_no, ABS(c.amount_paise),
+               COALESCE(rc.reason, CASE WHEN CHARINDEX(N' · ', c.label) > 0 THEN LTRIM(SUBSTRING(c.label, CHARINDEX(N' · ', c.label) + 3, 200)) ELSE N'' END),
+               COALESCE(CASE WHEN rc.changed_by IS NOT NULL THEN uc.display_name END, ur.display_name, N''),
+               COALESCE(CASE WHEN rc.changed_by IS NOT NULL THEN ua.display_name ELSE ud.display_name END, N''), c.charge_id
           FROM bill.charge c
           JOIN bill.folio f ON f.folio_id = c.folio_id
           JOIN inv.reservation r ON r.reservation_id = f.reservation_id
-          LEFT JOIN bill.approval a ON a.result_id = c.charge_id AND a.action IN ('discount','correction') AND a.status = 'Executed'
+          OUTER APPLY (SELECT TOP (1) x.reason, x.changed_by,
+                              COALESCE(x.approved_by, CASE WHEN EXISTS (SELECT 1 FROM plat.user_role o WHERE o.user_id = x.changed_by AND o.role_code = 'OWN') THEN x.changed_by END) AS approver
+                         FROM gst.stay_rate_change x CROSS APPLY OPENJSON(x.reposted_json) WITH (reversal NVARCHAR(30) '$.reversal') j
+                        WHERE c.reverses_charge_id IS NOT NULL AND x.reservation_id = r.reservation_id AND j.reversal = CONVERT(NVARCHAR(30), c.charge_id)
+                        ORDER BY x.change_id) rc
+          OUTER APPLY (SELECT TOP (1) bc.approval_id FROM ivc.bill_correction bc
+                        WHERE c.kind = 'correction' AND c.reverses_charge_id IS NULL AND c.approval_id IS NULL AND bc.folio_id = c.folio_id AND bc.status = 'Issued'
+                          AND c.label LIKE N'Credit note ' + bc.credit_note_no + N' · %'
+                        ORDER BY bc.correction_id) bc
+          LEFT JOIN bill.approval ar ON ar.result_id = c.charge_id AND ar.action IN ('discount','correction') AND ar.status = 'Executed'
+          LEFT JOIN bill.approval a ON a.approval_id = COALESCE(ar.approval_id, c.approval_id, bc.approval_id) AND a.action IN ('discount','correction','rate-change','bill-correction') AND a.status = 'Executed'
           LEFT JOIN plat.app_user ur ON ur.user_id = a.requested_by
           LEFT JOIN plat.app_user ud ON ud.user_id = a.decided_by
+          LEFT JOIN plat.app_user uc ON uc.user_id = rc.changed_by
+          LEFT JOIN plat.app_user ua ON ua.user_id = rc.approver
          WHERE r.property_id = @p AND (c.kind IN ('discount','correction') OR c.reverses_charge_id IS NOT NULL) AND c.service_date BETWEEN @from AND @to
         UNION ALL
         SELECT CAST(a.executed_utc AS DATE), 'refund', r.public_no, a.amount_paise, a.reason, COALESCE(ur.display_name, N''), COALESCE(ud.display_name, N''), -a.approval_id

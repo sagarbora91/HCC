@@ -5,6 +5,7 @@ import type {State} from '../../types';
 import type {RptColumn,RptRow,RptCell} from '../types';
 import {reportSellableOn} from '../../streams/closing';
 import {addDays} from '../../money';
+import {rptDivRound} from '../computed';
 
 export const T=(key:string,label:string,mask?:RptColumn['mask']):RptColumn=>({key,label,type:'text',money:false,...(mask?{mask}:{})});
 export const I=(key:string,label:string):RptColumn=>({key,label,type:'int',money:false});
@@ -17,7 +18,8 @@ export const isRed=(r:{cells:Record<string,RptCell>})=>!!r.cells.exception;
 export const row=(cells:Record<string,RptCell>):RptRow=>({kind:'row',cells});
 /** One decimal, half away from zero: 0.35 -> 35.0. */
 export const pct1=(n:number,d:number)=>d>0?Math.round(n*1000/d)/10:0;
-export const divRound=(n:number,d:number)=>d>0?Math.round(n/d):0;
+/** F12-MEAS2-A · L2: money n / d in integer paise, half away from zero (rptDivRound = server FixedCodeEngine.DivRound); 0 without a divisor. */
+export const divRound=(n:number,d:number)=>d>0?rptDivRound(n,d):0;
 export const CAPTURE_NOTE=(what:string)=>` Capture needed: ${what}; with nothing captured the report shows no rows.`;
 
 /** Rooms on the books for a night: confirmed, in-house and departed stays covering it, against the rooms in service. */
@@ -26,6 +28,14 @@ export function occOn(s:State,d:string){
   const occ=s.bookings.filter(b=>(b.status==='Confirmed'||b.status==='In house'||b.status==='Departed')&&b.arrival<=d&&d<b.departure).length;
   return {occ,sell};
 }
+/** F12-MEAS2-A · L8 (owner 7 Nov 2026): the same calendar date one year earlier; 29 Feb maps to 28 Feb (server DateOnly.AddYears(-1)). */
+export function sameDateLastYear(d:string){
+  const y=Number(d.slice(0,4))-1,md=d.slice(5,10);
+  const leap=(y%4===0&&y%100!==0)||y%400===0;
+  return `${String(y).padStart(4,'0')}-${md==='02-29'&&!leap?'02-28':md}`;
+}
+/** F12-MEAS2-A · L3: paise as rupees for a rule text (en-IN grouping), paise kept when there are any: 500050 → "5,000.50" (server MeasDailyRules.Rupees). */
+export const rupeesText=(paise:number)=>(paise/100).toLocaleString('en-IN',paise%100===0?{maximumFractionDigits:0}:{minimumFractionDigits:2,maximumFractionDigits:2});
 export const monthStart=(d:string)=>d.slice(0,7)+'-01';
 export const inRange=(d:string,from?:string,to?:string)=>(!from||d>=from)&&(!to||d<=to);
 /** Whole hours from one 'YYYY-MM-DD[T ]HH:mm' instant to another (never negative). */

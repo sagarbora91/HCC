@@ -12,7 +12,7 @@
      "columns": ["kpi","pctActual","pctTarget","pctLast","pctVar","amtActual","amtTarget","amtLast","amtVar","cntActual","cntTarget","cntLast","cntVar","exception"],
      "rows": [
       ["row","Occupancy %",34.8,35,0,-0.2,null,null,null,null,null,null,null,null,""],
-      ["row","ADR",null,null,null,null,0,205000,null,-205000,null,null,null,null,"ADR more than 10 % below target"],
+      ["row","ADR",null,null,null,null,null,205000,null,null,null,null,null,null,""],
       ["row","RevPAR",null,null,null,null,0,71750,null,-71750,null,null,null,null,"RevPAR more than 10 % below target"],
       ["row","Arrivals",null,null,null,null,null,null,null,null,2,null,0,null,""],
       ["row","Departures",null,null,null,null,null,null,null,null,0,null,0,null,""],

@@ -110,4 +110,58 @@ public sealed class MeasDailyRulesTests
             Assert.Equal("exception", r.Definition.Columns[^1].Key);
         }
     }
+
+    // ── F12-MEAS2-A (twins of the [F12-MEAS2-A] tests in tests/stream-meas-rpt-daily.mjs) ──
+
+    [Fact]
+    public void Meas2A_L2_flash_money_division_is_integer_half_away_from_zero()
+    {
+        Assert.Equal([3L, -3L, 2L, 0L, 0L], new[] { ManagerFlashReport.DivRound(5, 2), ManagerFlashReport.DivRound(-5, 2), ManagerFlashReport.DivRound(7, 3), ManagerFlashReport.DivRound(1, 0), ManagerFlashReport.DivRound(1, 3) });
+        const long big = 1L << 40;                                                           // 2^40 paise: exact, no double on the way
+        Assert.Equal(big / 3,ManagerFlashReport.DivRound(big, 3));                       // 2^40 mod 3 = 1 → rounds down
+        Assert.Equal(big + 1, ManagerFlashReport.DivRound(big * 2 + 1, 2));                   // exact half → away from zero
+    }
+
+    [Fact]
+    public void Meas2A_M5_adr_divides_by_charged_nights_and_is_blank_without_one()
+    {
+        // 3 paid nights of 3,000 and 1 zero-rate night: ADR = 9,000 / 3, not / 4
+        Assert.Equal(300000L, ManagerFlashReport.Adr(900000, 3));
+        Assert.Null(ManagerFlashReport.Adr(0, 0));
+        Assert.Contains("charged nights (nights with a room charge above zero)", ManagerFlashReport.BasisText, StringComparison.Ordinal);
+        Assert.Equal(ManagerFlashReport.BasisText, new ManagerFlashReport(null!).Definition.DateBasis);
+    }
+
+    [Fact]
+    public void Meas2A_L8_last_year_is_the_same_calendar_date_and_29_february_maps_to_28()
+    {
+        Assert.Equal(new DateOnly(2027, 3, 1), ManagerFlashReport.LastYear(new DateOnly(2028, 3, 1)));
+        Assert.Equal(new DateOnly(2027, 2, 28), ManagerFlashReport.LastYear(new DateOnly(2028, 2, 29)));
+        Assert.Equal(new DateOnly(2025, 11, 7), ManagerFlashReport.LastYear(new DateOnly(2026, 11, 7)));
+        Assert.Contains("same calendar date", ManagerFlashReport.BasisText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Meas2A_L3_high_balance_text_keeps_paise()
+    {
+        Assert.Equal("5,000.50", MeasDailyRules.Rupees(500050));
+        Assert.Equal("5,000", MeasDailyRules.Rupees(500000));
+        Assert.Equal("10,00,000", MeasDailyRules.Rupees(100000000));
+        Assert.Equal(["Walk-in balance above 5,000.50 rupees"], MeasDailyRules.HighBalanceReasons(false, 500051, 0, 0, 500050, 0));
+    }
+
+    [Fact]
+    public void Meas2A_N4_ooo_with_stay_start_is_local_and_the_later_of_offline_and_check_in()
+    {
+        var ist = TimeZoneInfo.FindSystemTimeZoneById("India Standard Time");
+        // offline set 09:00 UTC = 14:30 local, check-in 04:30 UTC = 10:00 local → 14:30 local (not the UTC value)
+        Assert.Equal(new DateTime(2026, 11, 7, 14, 30, 0), MeasDailyRoomSince(null, new DateTime(2026, 11, 7, 9, 0, 0), new DateTime(2026, 11, 7, 4, 30, 0), ist));
+        // block from 6 Nov (local midnight) before a check-in on 7 Nov 10:00 local → the check-in
+        Assert.Equal(new DateTime(2026, 11, 7, 10, 0, 0), MeasDailyRoomSince(new DateTime(2026, 11, 6), null, new DateTime(2026, 11, 7, 4, 30, 0), ist));
+        // block from 8 Nov after the check-in → 8 Nov 00:00 local; nothing known → null
+        Assert.Equal(new DateTime(2026, 11, 8, 0, 0, 0), MeasDailyRoomSince(new DateTime(2026, 11, 8), null, new DateTime(2026, 11, 7, 4, 30, 0), ist));
+        Assert.Null(MeasDailyRoomSince(null, null, null, ist));
+    }
+
+    private static DateTime? MeasDailyRoomSince(DateTime? block, DateTime? setUtc, DateTime? checkedInUtc, TimeZoneInfo zone) => RoomDiscrepancyReport.OooSince(block, setUtc, checkedInUtc, zone);
 }
