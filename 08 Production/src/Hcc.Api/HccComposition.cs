@@ -204,6 +204,10 @@ public static class HccComposition
         Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.MeasPeople.StaffPulseReport>(services);
         // F12-RPT-PEOPLE end
         // F12-STUDY-A
+        // f12-int-an: the SQL loader (live stays / bills / receipts + lgc history + rooms) serves study-a and study-b; registered before the TryAdd empty defaults.
+        services.AddSingleton<Hcc.Reporting.Analytics.SqlAnalyticsInputSource>(sp => new Hcc.Reporting.Analytics.SqlAnalyticsInputSource(sp.GetRequiredService<Hcc.Infrastructure.SqlServer.SqlPlatform>(), sp.GetService<TimeProvider>()));
+        services.AddSingleton<Hcc.Reporting.Analytics.IAnalyticsInputSource>(sp => sp.GetRequiredService<Hcc.Reporting.Analytics.SqlAnalyticsInputSource>());
+        services.AddSingleton<Hcc.Reporting.Reports.MeasStudyB.IAnalyticsInputSource>(sp => sp.GetRequiredService<Hcc.Reporting.Analytics.SqlAnalyticsInputSource>());
         Microsoft.Extensions.DependencyInjection.Extensions.ServiceCollectionDescriptorExtensions.TryAddSingleton<Hcc.Reporting.Analytics.IAnalyticsInputSource, Hcc.Reporting.Analytics.EmptyAnalyticsInputSource>(services); // until the SQL loader lands (MEAS-STUDY-A-DONE)
         Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.MeasStudyA.RevenueMonthlyReport>(services);
         Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.MeasStudyA.YearComparisonReport>(services);
@@ -219,9 +223,11 @@ public static class HccComposition
         Hcc.Reporting.Reports.MeasStudyB.StudyBReport.AddStudyB(services); // twelve ported study reports
         // F12-STUDY-B end
         // F12-STUDY-PACK
+        services.AddSingleton<Hcc.Reporting.Reports.StudyPack.IStudyPackFacts>(sp => new Hcc.Reporting.Reports.StudyPack.SqlStudyPackFacts(sp.GetRequiredService<Hcc.Infrastructure.SqlServer.SqlPlatform>())); // f12-int-an: executive summary facts
         Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.StudyPack.ManagementPackReport>(services); services.AddSingleton<Hcc.Reporting.Reports.StudyPack.StudyPackScheduler>(); services.AddHostedService<Hcc.Reporting.Reports.StudyPack.StudyPackScheduleWorker>(); // rpt.study.management-pack + meas.study.packSchedule
         // F12-STUDY-PACK end
         // F12-DIGEST
+        services.AddSingleton<Hcc.Application.Reporting.IMeasDigestSource>(sp => new Hcc.Reporting.Reports.MeasDigest.MeasReportDigestSource(sp, sp.GetRequiredService<Hcc.Infrastructure.SqlServer.SqlPlatform>())); // f12-int-an: Owner digest Measurement block (review M2)
         // F12-DIGEST end
         // F4 lanes: ONE services.Add<Lane>Module(); line inside your own block (append only).
         // F4-T1

@@ -11,7 +11,7 @@ using static Hcc.Reporting.Reports.MeasHk.MeasHkRules;
 
 namespace Hcc.Reporting.Reports.MeasHk;
 
-public sealed class LinenCostReport(SqlPlatform platform) : MeasHkReportBase(platform)
+public sealed class LinenCostReport(SqlPlatform platform, Hcc.Application.Configuration.ISettingsReader? settings = null) : MeasHkReportBase(platform)
 {
     public const string Id = "rpt.stock.linen-cost";
     private static readonly string[] Lost = ["Missing", "Taken by guest", "Expired", "Other"];
@@ -63,7 +63,8 @@ public sealed class LinenCostReport(SqlPlatform platform) : MeasHkReportBase(pla
         var anyDiscard = L((await QueryAsync("SELECT COUNT(*) FROM meas.discard WHERE property_id = @p;", caller.PropertyId, null, ct).ConfigureAwait(false))[0][0]) > 0;
         var occ = await OccupiedAsync(caller.PropertyId, from, to, ct).ConfigureAwait(false);
         var rn = occ.Sum(kv => kv.Value);
-        long lossPct = DefaultLossPct;
+        // f12-int-an (MEAS-RPT-HK item 5): the Owner's stored meas.target.lossPct (whole percent), else the contract default 2.
+        var lossPct = await Hcc.Reporting.Reports.MeasDaily.MeasTargets.GetAsync(settings, caller.PropertyId, "meas.target.lossPct", DefaultLossPct, ct).ConfigureAwait(false);
         var rows = new List<ReportRow>();
         foreach (var it in items)
         {

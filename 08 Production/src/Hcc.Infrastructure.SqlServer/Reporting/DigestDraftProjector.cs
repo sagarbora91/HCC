@@ -15,7 +15,8 @@ namespace Hcc.Infrastructure.SqlServer.Reporting;
 /// into digest.draft in the consumer's own transaction (at-least-once delivery, exactly-once effect; a re-close replaces the drafts). It never sends anything and writes to no
 /// delivery outbox: the F9 adapter will move held drafts there.
 /// </summary>
-public sealed class DigestDraftProjector(OutboxConsumer outbox, SqlConnectionFactory connections, IReportSource reports, IRevenueCategorySource categories, TimeProvider clock)
+public sealed class DigestDraftProjector(OutboxConsumer outbox, SqlConnectionFactory connections, IReportSource reports, IRevenueCategorySource categories, TimeProvider clock,
+    IMeasDigestSource? measurement = null)
 {
     public const string ConsumerName = "owner-digest-drafts";
     public const string BusinessDayClosed = "BusinessDayClosed";
@@ -40,7 +41,8 @@ public sealed class DigestDraftProjector(OutboxConsumer outbox, SqlConnectionFac
                 "SELECT COUNT(*) FROM bill.approval a JOIN bill.folio f ON f.folio_id = a.folio_id JOIN inv.reservation r ON r.reservation_id = f.reservation_id WHERE r.property_id = @p AND a.status = 'Pending'", propertyId, date, ct).ConfigureAwait(false),
             await CountAsync(connection, transaction,
                 "SELECT COUNT(*) FROM inv.reservation WHERE property_id = @p AND status = 'Confirmed' AND arrival = DATEADD(DAY, 1, @d)", propertyId, date, ct).ConfigureAwait(false),
-            RateReductions: await SqlRateReductionDigest.LinesAsync(connections, connection, transaction, propertyId, date, ct).ConfigureAwait(false)); // CTL-01
+            RateReductions: await SqlRateReductionDigest.LinesAsync(connections, connection, transaction, propertyId, date, ct).ConfigureAwait(false), // CTL-01
+            Measurement: measurement is null ? null : await measurement.BuildAsync(propertyId, date, ct).ConfigureAwait(false)); // F12 MEAS (review M2)
         var now = clock.GetUtcNow().UtcDateTime;
         await UpsertAsync(connection, transaction, propertyId, date, "Email", false, DigestBodies.Email(facts), now, ct).ConfigureAwait(false);
         await UpsertAsync(connection, transaction, propertyId, date, "WhatsApp", true, DigestBodies.WhatsApp(facts), now, ct).ConfigureAwait(false);

@@ -55,6 +55,9 @@ public sealed record AnParams(string? Fy = null, string? From = null, string? To
 public interface IAnalyticsInputSource
 {
     Task<AnInput> LoadAsync(DateOnly asOf, CancellationToken ct = default);
+
+    /// <summary>The caller's property (f12-int-an: SqlAnalyticsInputSource reads that property's rows); sources without properties ignore it.</summary>
+    Task<AnInput> LoadAsync(int propertyId, DateOnly asOf, CancellationToken ct = default) => LoadAsync(asOf, ct);
 }
 
 /// <summary>Default registration until the SQL loader lands: an empty history, so the reports run and show empty tables.</summary>

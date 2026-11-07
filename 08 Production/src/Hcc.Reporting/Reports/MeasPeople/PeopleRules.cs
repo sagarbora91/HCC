@@ -114,11 +114,11 @@ internal static class PeopleSql
         try
         {
             var v = await settings.GetAsync(propertyId, key, null, ct).ConfigureAwait(false);
-            return v.Kind is ConfigValueKind.Null ? def : v.Number;
+            return v.Kind is ConfigValueKind.Number ? v.Number : def;
         }
-        catch (HccException)
+        catch (Exception e) when (e is not OperationCanceledException)
         {
-            return def;
+            return def; // f12-int-an (MEAS-RPT-PEOPLE item 5, as review H1): an unregistered / unreadable key falls back to the contract default
         }
     }
 

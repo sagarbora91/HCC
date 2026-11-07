@@ -5,7 +5,7 @@ namespace Hcc.Domain.Reporting;
 
 /// <summary>Counts and totals of a closed day that the owner digest prints (F4-CONTRACT §3); the money comes from the daily pack and the revenue-by-category report.</summary>
 public sealed record DigestFacts(DateOnly Date, DailyReport Pack, RevenueByCategoryReport Revenue, int PendingApprovals, int TomorrowArrivals, int ReorderAlerts = 0, int OverdueComplaints = 0,
-    IReadOnlyList<RateReductionLine>? RateReductions = null);
+    IReadOnlyList<RateReductionLine>? RateReductions = null, MeasDigestBlock? Measurement = null);
 
 /// <summary>CTL-01: one rate change of the day that went more than the Owner's threshold below the stay's agreed rate (gst.stay_rate_change.over_threshold):
 /// what (room, booking, agreed → new, tariff), how much (basis points below the agreed rate, threshold in force), who (changed by, approved by), why.</summary>
@@ -41,6 +41,7 @@ public static class DigestBodies
         lines.AddRange(cuts.Select(RateLine));
         lines.Add($"Reorder alerts: {f.ReorderAlerts} · complaints / lost and found over SLA: {f.OverdueComplaints}");
         lines.Add($"Tomorrow: {f.TomorrowArrivals} arrival{(f.TomorrowArrivals == 1 ? "" : "s")}, 0 events");
+        lines.AddRange(MeasurementDigest.EmailLines(f.Measurement)); // F12 MEAS: absent when there is no block
         return string.Join('\n', lines);
     }
 
@@ -48,8 +49,9 @@ public static class DigestBodies
     {
         ArgumentNullException.ThrowIfNull(f);
         var o = f.Pack.Occupancy;
-        return string.Join('\n', $"Digest {f.Date:yyyy-MM-dd}", $"Rooms sold {o.OccupiedRoomNights} of {o.SellableRoomNights}", $"Arrivals tomorrow {f.TomorrowArrivals}",
-            $"Pending approvals {f.PendingApprovals}", $"Rate cuts beyond threshold {(f.RateReductions ?? []).Count}", $"Reorder alerts {f.ReorderAlerts}", $"Complaints over SLA {f.OverdueComplaints}");
+        return string.Join('\n', (string[])[$"Digest {f.Date:yyyy-MM-dd}", $"Rooms sold {o.OccupiedRoomNights} of {o.SellableRoomNights}", $"Arrivals tomorrow {f.TomorrowArrivals}",
+            $"Pending approvals {f.PendingApprovals}", $"Rate cuts beyond threshold {(f.RateReductions ?? []).Count}", $"Reorder alerts {f.ReorderAlerts}", $"Complaints over SLA {f.OverdueComplaints}",
+            .. MeasurementDigest.WhatsAppLines(f.Measurement)]); // F12 MEAS: a count only (DEC-202 #7)
     }
 
     /// <summary>"Room 101 · HCC-S0001 · agreed ₹2,500 → ₹1,900 (24% below; threshold 15%) · tariff ₹2,000 · by Meera · approved by Sagar · reason".

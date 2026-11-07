@@ -10,7 +10,7 @@ using static Hcc.Reporting.Reports.MeasHk.MeasHkRules;
 
 namespace Hcc.Reporting.Reports.MeasHk;
 
-public sealed class OooDaysReport(SqlPlatform platform) : MeasHkReportBase(platform)
+public sealed class OooDaysReport(SqlPlatform platform, Hcc.Application.Configuration.ISettingsReader? settings = null) : MeasHkReportBase(platform)
 {
     public const string Id = "rpt.rooms.ooo-days";
 
@@ -75,7 +75,8 @@ public sealed class OooDaysReport(SqlPlatform platform) : MeasHkReportBase(platf
              WHERE r.property_id = @p AND r.status IN ('InHouse','Departed') AND n.night BETWEEN @from AND @to;
             """, caller.PropertyId, c => BindRange(c, parameters), ct).ConfigureAwait(false);
         var occupied = stays.GroupBy(s => L(s[0])).ToDictionary(g => g.Key, g => g.Select(s => Dt(s[1])).ToHashSet());
-        var adr = (long)DefaultAdrPaise;
+        // f12-int-an (MEAS-RPT-HK item 5): lost revenue at the Owner's stored meas.target.adr (paise before GST), else the contract default.
+        var adr = await Hcc.Reporting.Reports.MeasDaily.MeasTargets.GetAsync(settings, caller.PropertyId, "meas.target.adr", DefaultAdrPaise, ct).ConfigureAwait(false);
         var rows = new List<ReportRow>();
         foreach (var r in rooms.OrderBy(r => S(r[1]), StringComparer.Ordinal))
         {

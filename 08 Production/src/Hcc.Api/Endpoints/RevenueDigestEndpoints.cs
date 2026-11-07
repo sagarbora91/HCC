@@ -19,7 +19,8 @@ public static class RevenueDigestEndpoints
         services.AddSingleton<IDigestDraftStore>(sp => new SqlDigestDraftStore(sp.GetRequiredService<SqlPlatform>().Connections));
         services.AddSingleton<DigestDraftQueries>();
         services.AddSingleton(sp => new DigestDraftProjector(sp.GetRequiredService<SqlPlatform>().Outbox, sp.GetRequiredService<SqlPlatform>().Connections,
-            sp.GetRequiredService<Hcc.Application.Closing.IReportSource>(), sp.GetRequiredService<IRevenueCategorySource>(), sp.GetRequiredService<TimeProvider>()));
+            sp.GetRequiredService<Hcc.Application.Closing.IReportSource>(), sp.GetRequiredService<IRevenueCategorySource>(), sp.GetRequiredService<TimeProvider>(),
+            sp.GetService<IMeasDigestSource>())); // F12 MEAS: the Measurement block (registered in HccComposition F12-DIGEST)
         services.AddHostedService<DigestDraftWorker>();
         return services;
     }

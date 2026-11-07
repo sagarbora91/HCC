@@ -32,10 +32,11 @@ public abstract class StudyReport : IReportSelector, IMeasuredReport
 
     public async Task<ReportResult> SelectAsync(Caller caller, BoundParams parameters, CancellationToken ct = default)
     {
+        ArgumentNullException.ThrowIfNull(caller);
         ArgumentNullException.ThrowIfNull(parameters);
         var today = DateOnly.FromDateTime(_clock.GetUtcNow().UtcDateTime);
         var asOf = parameters.To ?? today;
-        var input = await _source.LoadAsync(asOf, ct).ConfigureAwait(false);
+        var input = await _source.LoadAsync(caller.PropertyId, asOf, ct).ConfigureAwait(false); // f12-int-an: the caller's property
         var v = parameters.Values;
         string? V(string k) => v.GetValueOrDefault(k);
         var p = new AnParams(V("fy"), parameters.From?.ToString("yyyy-MM-dd"), parameters.To?.ToString("yyyy-MM-dd"), V("baseFy"), V("topN"), V("asOf"));
