@@ -9,7 +9,7 @@ Tolerances (tools/legacy/meas_golden_map.json): 0.1 % money, 5 room-nights, 0.5 
 or missing metric.
 
 Dry mode (-Dry, required plumbing check, fictional data only): runs the registered study reports and the management pack on the prototype's
-FY26 fixture (FY 2025-26), recomputes the pack's executive-summary headlines independently in Python from the fixture's raw room lines, and
+FY26 fixture (FY 2026-27, April to the business date), recomputes the pack's executive-summary headlines independently in Python from the fixture's raw room lines, and
 compares them with the same tolerances. Study reports not merged yet are listed as skipped.
 
   pwsh -NoProfile -File tools\meas-legacy-golden.ps1 -Dry
@@ -23,7 +23,7 @@ param(
     [string]$Token = $env:HCC_GOLDEN_TOKEN,
     [string]$Workbooks = 'E:\Projects\HCC\Existing Software\Reports',
     [string[]]$Fys = @('2017-18', '2018-19', '2019-20', '2020-21', '2021-22', '2022-23', '2023-24', '2024-25', '2025-26', '2026-27'),
-    [string]$DryFy = '2025-26',
+    [string]$DryFy = '2026-27',
     [string]$Out
 )
 $ErrorActionPreference = 'Stop'

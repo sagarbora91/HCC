@@ -78,7 +78,7 @@ public sealed class MeasStudyPackTests
         var marks = ChartBlocks.Marks(ChartBlocks.Of(r.Sections![0])!, 300, 559, 700, 11);
         Assert.Equal([123456d, 0d, 987654d], marks.Where(m => m.Series == "rev").Select(m => m.Value));
         var lines = PdfText.Extract(pdf).Lines;
-        Assert.Contains("₹1,23,456", lines);
+        Assert.Contains("Rs.1,23,456", lines); // MinimalPdfWriter prints ₹ as "Rs." (WinAnsi)
         Assert.Contains("77", lines);
     }
 

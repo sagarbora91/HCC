@@ -6,7 +6,7 @@
 import {createRequire} from 'node:module';import {writeFileSync,mkdirSync} from 'node:fs';import {dirname,resolve} from 'node:path';import {fileURLToPath,pathToFileURL} from 'node:url';
 const here=dirname(fileURLToPath(import.meta.url));const proto=resolve(here,'../../03 Prototype');
 const arg=k=>{const i=process.argv.indexOf('--'+k);return i>0?process.argv[i+1]:undefined;};
-const fy=arg('fy')??'2025-26',resultsOut=arg('results'),factsOut=arg('facts');
+const fy=arg('fy')??'2026-27',resultsOut=arg('results'),factsOut=arg('facts');
 if(!resultsOut||!factsOut){console.error('usage: --fy <yyyy-yy> --results <file> --facts <file>');process.exit(2);}
 const {build}=createRequire(resolve(proto,'package.json'))('esbuild');
 const bundle=resolve(proto,'tests/.generated/meas-golden-dry.mjs');
@@ -20,7 +20,7 @@ for(const id of ids){
     results.push({id,fy,sections:M.rptTables(r).map(t=>({key:t.key,title:t.title??r.title,columns:t.columns.map(c=>({key:c.key,label:c.label,type:c.type})),rows:t.rows.map(x=>({kind:x.kind,cells:x.cells}))}))});}
   catch(e){results.push({id,fy,error:String(e?.message??e)});}
 }
-const from=fy.slice(0,4)+'-04-01',to=(+fy.slice(0,4)+1)+'-03-31';
+const from=fy.slice(0,4)+'-04-01',fyEnd=(+fy.slice(0,4)+1)+'-03-31',to=fyEnd>s.date&&from<=s.date?s.date:fyEnd; // the report binder stops a current FY at the business date
 const lines=[];for(const b of s.bookings??[]){if(b.status==='Cancelled'||b.status==='Expired')continue;for(const l of b.lines??[])if(l.kind==='room'&&l.date>=from&&l.date<=to)lines.push([b.room,l.date,l.amount]);}
 const rooms=(s.rooms??[]).filter(r=>!/hall/i.test(r.type)).length;
 for(const f of [resultsOut,factsOut])mkdirSync(dirname(resolve(f)),{recursive:true});

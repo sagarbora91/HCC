@@ -92,13 +92,13 @@ export function register({test,assert}){
     for(const x of contents.filter(x=>x.cells.report!=='rpt.study.revenue-monthly'))assert.equal(x.cells.status,C.reportDef(x.cells.report)?'included':'not built yet');
     assert.ok(t.at(-1).rows[0].cells.note.includes('Legacy to 30 Oct 2026 / HCC live'));
   });
-  test(T+'pack on the FY26 fixture (FY 2025-26): summary = sum of months, occupancy and ADR by the contract definitions, three-way equal',()=>{
-    const s=FY26();const r=C.runReport(s,'owner',C.PACK_ID,{fy:'2025-26'},{all:true});
+  test(T+'pack on the FY26 fixture (FY 2026-27 to the business date): summary = sum of months, occupancy and ADR by the contract definitions, three-way equal',()=>{
+    const s=FY26();const r=C.runReport(s,'owner',C.PACK_ID,{fy:'2026-27'},{all:true});
     const sum=C.rptTables(r).find(x=>x.key==='summary');const months=sum.rows.filter(x=>x.kind==='row'),fy=sum.rows.find(x=>x.kind==='total');
-    assert.equal(months.length,12);
+    assert.equal(months.length,7);
     for(const k of ['roomNights','chargedNights','roomRevenue'])assert.equal(fy.cells[k],months.reduce((a,m)=>a+m.cells[k],0),k);
     assert.ok(fy.cells.roomNights>0&&fy.cells.roomRevenue>0,'FY26 has stays');
-    const rooms=fy.cells.rooms;assert.equal(fy.cells.occupancy,Math.round(fy.cells.roomNights*1000/(rooms*365))/10);
+    const rooms=fy.cells.rooms;assert.equal(fy.cells.occupancy,Math.round(fy.cells.roomNights*1000/(rooms*207))/10);
     assert.equal(fy.cells.adr,Math.round(fy.cells.roomRevenue/fy.cells.chargedNights));
     const ch=C.chartOf(C.rptTables(r).find(x=>x.key==='chart:pack-revenue'));assert.deepEqual(ch.series[0].values,months.map(m=>m.cells.roomRevenue));
     threeWay(C,assert,r);
