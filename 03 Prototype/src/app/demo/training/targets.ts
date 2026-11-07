@@ -63,11 +63,16 @@ export function resolveTarget(target:string):HTMLElement|null{
     case 'dialog':return topDialog();
     case 'menutop':return pick(Array.from(document.querySelectorAll<HTMLElement>('.tile,.nav-cat,.drawer button,nav button')),arg,e=>norm(e.querySelector('strong')?.textContent||e.textContent));
     case 'menuleaf':{const leaf=arg.split('>').pop()!.trim();return pick(Array.from(document.querySelectorAll<HTMLElement>('.tile,.drawer button,nav button')),leaf,e=>norm(e.querySelector('strong')?.textContent||e.textContent));}
-    case 'btnin':{ // "<text of the row or card>|<button text>": the button inside the smallest block that holds the text
+    case 'btnin':case 'fldin':{ // "<text of the row or card>|<control text>": the control inside the smallest block that holds the text, never a neighbouring card
       const j=arg.lastIndexOf('|');const holder=norm(arg.slice(0,j)),label=arg.slice(j+1);
       const hits=Array.from(document.querySelectorAll<HTMLElement>('main *,[role="dialog"] *')).filter(e=>visible(e)&&norm(e.textContent).includes(holder)&&!inDemo(e));
       const leaf=hits.filter(e=>!hits.some(o=>o!==e&&e.contains(o)));
-      for(const h of leaf){let n:HTMLElement|null=h;for(let k=0;n&&k<8;k++,n=n.parentElement){const b=pick(Array.from(n.querySelectorAll<HTMLElement>(BTN)),label,nameOf);if(b)return b;}}
+      const spots=(t:string)=>new Set((norm(t).match(/\b(?:room|table)\s+\d+/g)||[]));
+      for(const h of leaf){let n:HTMLElement|null=h;for(let k=0;n&&k<8;k++,n=n.parentElement){
+        if(spots(n.textContent||'').size>1)break; // the block now holds two rooms or tables: stop, the control is not in this card
+        if(kind==='btnin'){const b=pick(Array.from(n.querySelectorAll<HTMLElement>(BTN)),label,nameOf);if(b)return b;}
+        else{const w=norm(label);const l=Array.from(n.querySelectorAll('label')).find(l=>norm(l.textContent).includes(w));const c=l&&((l as HTMLLabelElement).control??l.querySelector<HTMLElement>('input,select,textarea'));if(c&&visible(c as HTMLElement))return c as HTMLElement;}
+      }}
       return null;}
     case 'text':{ // first smallest visible element whose own text contains arg
       const w=norm(arg);const all=Array.from(document.querySelectorAll<HTMLElement>('main *,[role="dialog"] *')).filter(e=>visible(e)&&!inDemo(e)&&norm(e.textContent).includes(w));
