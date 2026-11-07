@@ -64,7 +64,8 @@ export const deskTiming=registerReport({
   columns:DESK_COLS,dateBasis:BASIS,formats:['screen','xlsx','pdf','csv'],phone:'no',
   select:(s,_uid,p)=>{
     rangeGuard(p.from,p.to,92,s.date);
-    return {params:p,columns:DESK_COLS,rows:deskRows(s,p.from!,p.to!,p.deskUser as string|undefined).map(r=>({kind:'row' as const,cells:{hour:r.hour,deskUser:r.user.split(' · ')[0],arrivals:r.arrivals,
+    // MEAS2-B (M1): red row per deskRed (medians above the check-in / check-out standards).
+    return {params:p,columns:DESK_COLS,rows:deskRows(s,p.from!,p.to!,p.deskUser as string|undefined).map(r=>({kind:'row' as const,...(deskRed(s,r).red?{group:'red'}:{}),cells:{hour:r.hour,deskUser:r.user.split(' · ')[0],arrivals:r.arrivals,
       arrivalToKey:r.arrivalToKey,billToCheckout:r.billToCheckout,queuePeak:r.queuePeak}}))};
   },
 });

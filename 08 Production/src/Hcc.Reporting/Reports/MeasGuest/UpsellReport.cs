@@ -23,17 +23,25 @@ public sealed class UpsellReport(SqlPlatform platform, ISettingsReader? settings
 
     public override string MeasKey => "meas.guest.upsell";
 
+    /// <summary>MEAS2-B (L7): the Owner's upsell revenue per arrival target (paise); the catalogue key is added by lane C.</summary>
+    public const string TargetKey = "meas.target.upsellPerArrival";
+
     public override ReportDefinition Definition { get; } = new(Id, "Upsell and upgrade", "guests", "P2", "MEAS", true, "PERM-RPT-002", ["PERM-RPT-002"], [], "PERM-RPT-003", ReportDateClass.Business,
         [new("from", "From", "date", ReportDateClass.Business), new("to", "To", "date", ReportDateClass.Business), new("deskUser", "Desk user", "user")],
-        Columns, "Stays checked in within the range (up to 92 days), one summary row. Upgrades by the booked type kept at booking; late check-out = lines LCO1 / LCO2; day-use = arrival and departure on the same day; revenue per arrival = upsell lines before GST / arrivals.",
+        Columns, "Stays checked in within the range (up to 92 days), one summary row. Upgrades by the booked type kept at booking; late check-out = lines LCO1 / LCO2 and the half-day late check-out charge; only service lines count (restaurant and room-service food lines do not); day-use = arrival and departure on the same day; revenue per arrival = upsell lines before GST / arrivals.",
         [ReportFormat.Screen, ReportFormat.Xlsx, ReportFormat.Pdf, ReportFormat.Csv], ReportPhone.Yes);
 
-    private const string Sql = """
+    // MEAS2-B (M3 step a): service lines only (a restaurant / room-service "Breakfast" line is kind 'food' and is not an upsell; room, discount and
+    // correction lines are left out too); late check-out also matches the desk's half-day line (GuestsSql.LateChargeLabel, DeskFieldService).
+    // Still matched by label: the item-code column (M3 step b) is a separate change.
+    private const string Live = "c.folio_id = st.folio_id AND c.kind = 'service' AND c.reverses_charge_id IS NULL AND c.reversed_by_charge_id IS NULL";
+
+    private const string Sql = $"""
         SELECT st.reservation_id, COALESCE(x.upgrade, ''), COALESCE(au.display_name, ''),
-               ISNULL((SELECT SUM(c.amount_paise) FROM bill.charge c WHERE c.folio_id = st.folio_id AND c.reverses_charge_id IS NULL AND c.reversed_by_charge_id IS NULL AND c.label LIKE N'UPG ·%'), 0),
-               ISNULL((SELECT SUM(c.amount_paise) FROM bill.charge c WHERE c.folio_id = st.folio_id AND c.reverses_charge_id IS NULL AND c.reversed_by_charge_id IS NULL AND (c.label LIKE N'LCO1 ·%' OR c.label LIKE N'LCO2 ·%')), 0),
-               ISNULL((SELECT SUM(c.amount_paise) FROM bill.charge c WHERE c.folio_id = st.folio_id AND c.reverses_charge_id IS NULL AND c.reversed_by_charge_id IS NULL AND c.label LIKE N'%breakfast%'), 0),
-               ISNULL((SELECT SUM(c.amount_paise) FROM bill.charge c WHERE c.folio_id = st.folio_id AND c.reverses_charge_id IS NULL AND c.reversed_by_charge_id IS NULL AND c.label LIKE N'%extra bed%'), 0),
+               ISNULL((SELECT SUM(c.amount_paise) FROM bill.charge c WHERE {Live} AND c.label LIKE N'UPG ·%'), 0),
+               ISNULL((SELECT SUM(c.amount_paise) FROM bill.charge c WHERE {Live} AND (c.label LIKE N'LCO1 ·%' OR c.label LIKE N'LCO2 ·%' OR c.label = N'{GuestsSql.LateChargeLabel}')), 0),
+               ISNULL((SELECT SUM(c.amount_paise) FROM bill.charge c WHERE {Live} AND c.label LIKE N'%breakfast%'), 0),
+               ISNULL((SELECT SUM(c.amount_paise) FROM bill.charge c WHERE {Live} AND c.label LIKE N'%extra bed%'), 0),
                x.upgrade_approver
           FROM gst.stay st
           LEFT JOIN meas.booking_extra x ON x.property_id = st.property_id AND x.reservation_id = st.reservation_id
@@ -48,7 +56,7 @@ public sealed class UpsellReport(SqlPlatform platform, ISettingsReader? settings
         ArgumentNullException.ThrowIfNull(parameters);
         var clock = await GuestsSql.ClockAsync(Platform.Connections, caller.PropertyId, ct).ConfigureAwait(false);
         GuestsSql.RangeGuard(parameters.From, parameters.To, 92, clock.BusinessDate);
-        int arrivals = 0, paid = 0, free = 0;
+        int arrivals = 0, paid = 0, free = 0, freeNoApprover = 0;
         long lco = 0, bf = 0, bed = 0, upg = 0;
         var approvers = new SortedSet<string>(StringComparer.Ordinal);
         await using (var conn = await Platform.Connections.OpenAsync(ct).ConfigureAwait(false))
@@ -64,7 +72,12 @@ public sealed class UpsellReport(SqlPlatform platform, ISettingsReader? settings
                 arrivals++;
                 var up = rd.GetString(1);
                 if (up == "paid") paid++;
-                if (up == "free") { free++; if (rd.GetString(2).Length > 0) approvers.Add(rd.GetString(2)); }
+                if (up == "free")
+                {
+                    free++;
+                    if (rd.GetString(2).Length > 0) approvers.Add(rd.GetString(2));
+                    if (rd.IsDBNull(7)) freeNoApprover++; // MEAS2-B (M1): a free upgrade without an approver
+                }
                 upg += rd.GetInt64(3);
                 lco += rd.GetInt64(4);
                 bf += rd.GetInt64(5);
@@ -74,9 +87,12 @@ public sealed class UpsellReport(SqlPlatform platform, ISettingsReader? settings
 
         if (arrivals == 0) return Result(parameters, [], "UPG / LCO items, booked type kept (meas-cap-desk)");
         long? per = MeasGuestRules.RoundHalf((lco + bf + bed + upg) / (decimal)arrivals);
+        // MEAS2-B (M1 + L7 read side): red = a free upgrade without an approver, or revenue per arrival below the Owner's target
+        // (meas.target.upsellPerArrival, money; Rs 50 per arrival until the Owner stores one).
+        var target = await TargetAsync(caller.PropertyId, TargetKey, MeasGuestRules.UpsellTargetDefault, ct).ConfigureAwait(false);
         return Result(parameters,
         [
-            Row(new Dictionary<string, object?>(StringComparer.Ordinal)
+            Row(red: MeasGuestRules.UpsellRed(freeNoApprover, per, target), cells: new Dictionary<string, object?>(StringComparer.Ordinal)
             {
                 ["arrivals"] = (long)arrivals, ["upgradesPaid"] = (long)paid, ["upgradesFree"] = (long)free, ["approver"] = string.Join(", ", approvers), ["lateCheckout"] = lco,
                 ["dayUse"] = 0L, ["breakfast"] = bf, ["extraBed"] = bed, ["revenuePerArrival"] = per,

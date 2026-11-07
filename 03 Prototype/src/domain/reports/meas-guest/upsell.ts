@@ -8,13 +8,17 @@ import {rangeGuard,userLabel} from '../guests/shared';
 import {T,I,M,roundHalf,capNote} from './shared';
 
 export const UPSELL_COLS=[I('arrivals','Arrivals'),I('upgradesPaid','Upgrades paid'),I('upgradesFree','Upgrades free'),T('approver','Approver'),M('lateCheckout','Late check-out charged'),I('dayUse','Day-use sold'),M('breakfast','Breakfast add-on'),M('extraBed','Extra bed'),M('revenuePerArrival','Revenue per arrival')];
-const BASIS='Stays checked in within the range (up to 92 days), one summary row. Upgrades by the booked type kept at booking; late check-out = lines LCO1 / LCO2; day-use = arrival and departure on the same day; revenue per arrival = upsell lines before GST / arrivals.';
+const BASIS='Stays checked in within the range (up to 92 days), one summary row. Upgrades by the booked type kept at booking; late check-out = lines LCO1 / LCO2 and the half-day late check-out charge; only service lines count (restaurant and room-service food lines do not); day-use = arrival and departure on the same day; revenue per arrival = upsell lines before GST / arrivals.';
 const NEED='UPG / LCO items, booked type kept (meas-cap-desk)';
 /** Default upsell revenue per arrival when no target is stored: Rs 50 (paise). The contract lists no upsell target; the Owner can set meas.target.upsellPerArrival later. */
 export const UPSELL_TARGET_DEFAULT=5000;
-const sum=(b:Booking,test:(l:Booking['lines'][number])=>boolean)=>b.lines.filter(l=>test(l)&&!l.reversalOf).reduce((a,l)=>a+l.amount,0);
+/** The desk's half-day late check-out line (server GuestsSql.LateChargeLabel). */
+export const LATE_CHARGE_LABEL='Late check-out · half day';
+// MEAS2-B (M3 step a): service lines only (a POS / room-service "Breakfast" line is kind 'food'), never a reversal or a reversed line (server twin:
+// kind = 'service' AND reverses_charge_id IS NULL AND reversed_by_charge_id IS NULL). Still matched by label; the item code is a separate change.
+const sum=(b:Booking,test:(l:Booking['lines'][number])=>boolean)=>b.lines.filter(l=>l.kind==='service'&&test(l)&&!l.reversalOf&&!b.lines.some(x=>x.reversalOf===l.id)).reduce((a,l)=>a+l.amount,0);
 const isUpg=(l:{label:string})=>l.label.startsWith('UPG ·');
-const isLco=(l:{label:string})=>l.label.startsWith('LCO1 ·')||l.label.startsWith('LCO2 ·');
+const isLco=(l:{label:string})=>l.label.startsWith('LCO1 ·')||l.label.startsWith('LCO2 ·')||l.label===LATE_CHARGE_LABEL;
 const isBf=(l:{label:string})=>/breakfast/i.test(l.label);
 const isBed=(l:{label:string})=>/extra bed/i.test(l.label);
 
@@ -50,7 +54,8 @@ export const upsell=registerReport({
     const list=arrivalsOf(s,p.from!,p.to!,p.deskUser as string|undefined);
     if(!list.length)return {params:p,columns:UPSELL_COLS,rows:[],about:{dateBasis:capNote(BASIS,NEED)}};
     const f=upsellFigures(s,list);
-    return {params:p,columns:UPSELL_COLS,rows:[{kind:'row',cells:{arrivals:f.arrivals,upgradesPaid:f.paid,upgradesFree:f.free,approver:f.approvers.join(', '),lateCheckout:f.lco,dayUse:f.dayUse,
+    // MEAS2-B (M1 + L7): red = a free upgrade without an approver, or revenue per arrival below meas.target.upsellPerArrival (default Rs 50).
+    return {params:p,columns:UPSELL_COLS,rows:[{kind:'row',...(upsellRed(s,f).red?{group:'red'}:{}),cells:{arrivals:f.arrivals,upgradesPaid:f.paid,upgradesFree:f.free,approver:f.approvers.join(', '),lateCheckout:f.lco,dayUse:f.dayUse,
       breakfast:f.bf,extraBed:f.bed,revenuePerArrival:f.perArrival}}]};
   },
 });

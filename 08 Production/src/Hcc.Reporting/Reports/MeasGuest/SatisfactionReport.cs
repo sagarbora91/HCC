@@ -11,7 +11,7 @@ using Microsoft.Data.SqlClient;
 
 namespace Hcc.Reporting.Reports.MeasGuest;
 
-public sealed class SatisfactionReport(SqlPlatform platform, ISettingsReader? settings = null) : MeasGuestBase(platform, settings)
+public sealed class SatisfactionReport(SqlPlatform platform, ISettingsReader? settings = null, TimeProvider? time = null) : MeasGuestBase(platform, settings)
 {
     public const string Id = "rpt.guests.satisfaction";
 
@@ -34,7 +34,7 @@ public sealed class SatisfactionReport(SqlPlatform platform, ISettingsReader? se
         Columns, "One row for the month by the survey date (guest identity is never shown). Scores are averages of 1-5; NPS = % scoring 9-10 minus % scoring 0-6 on the recommend question; response rate = surveys / stays that left in the month. Verbatim lists comments of guests who gave consent.",
         [ReportFormat.Screen, ReportFormat.Xlsx, ReportFormat.Pdf, ReportFormat.Csv], ReportPhone.Yes);
 
-    private sealed record Survey(int Overall, int Cleanliness, int Staff, int Value, int? Breakfast, int Recommend, string? Comment, bool Consent);
+    private sealed record Survey(int Overall, int Cleanliness, int Staff, int Value, int? Breakfast, int Recommend, string? Comment, bool Consent, DateTime AtUtc, bool Answered);
 
     public override async Task<ReportResult> SelectAsync(Caller caller, BoundParams parameters, CancellationToken ct = default)
     {
@@ -49,11 +49,13 @@ public sealed class SatisfactionReport(SqlPlatform platform, ISettingsReader? se
         await using (var conn = await Platform.Connections.OpenAsync(ct).ConfigureAwait(false))
         {
             await using (var cmd = new SqlCommand("""
-                SELECT at_utc, overall, cleanliness, staff, value_score, breakfast, recommend, comment, consent
-                  FROM meas.survey
-                 WHERE property_id = @p AND at_utc >= DATEADD(DAY, -2, @from) AND at_utc < DATEADD(DAY, 33, @from)
-                   AND (@rt = '' OR room_type = @rt) AND (@ch = '' OR channel = @ch)
-                 ORDER BY at_utc, survey_id;
+                SELECT sv.at_utc, sv.overall, sv.cleanliness, sv.staff, sv.value_score, sv.breakfast, sv.recommend, sv.comment, sv.consent,
+                       CASE WHEN sv.reservation_id IS NOT NULL AND EXISTS (SELECT 1 FROM ops.guest_complaint gc JOIN gst.stay s ON s.stay_id = gc.stay_id
+                                 WHERE gc.property_id = sv.property_id AND s.reservation_id = sv.reservation_id AND gc.created_utc >= sv.at_utc) THEN 1 ELSE 0 END
+                  FROM meas.survey sv
+                 WHERE sv.property_id = @p AND sv.at_utc >= DATEADD(DAY, -2, @from) AND sv.at_utc < DATEADD(DAY, 33, @from)
+                   AND (@rt = '' OR sv.room_type = @rt) AND (@ch = '' OR sv.channel = @ch)
+                 ORDER BY sv.at_utc, sv.survey_id;
                 """, conn))
             {
                 Add(cmd, "@p", SqlDbType.Int, caller.PropertyId);
@@ -64,7 +66,8 @@ public sealed class SatisfactionReport(SqlPlatform platform, ISettingsReader? se
                 while (await rd.ReadAsync(ct).ConfigureAwait(false))
                 {
                     if (LocalOf(clock, rd.GetDateTime(0)).ToString("yyyy-MM", CultureInfo.InvariantCulture) != month) continue;
-                    list.Add(new Survey(rd.GetByte(1), rd.GetByte(2), rd.GetByte(3), rd.GetByte(4), rd.IsDBNull(5) ? null : rd.GetByte(5), rd.GetByte(6), rd.IsDBNull(7) ? null : rd.GetString(7), rd.GetBoolean(8)));
+                    list.Add(new Survey(rd.GetByte(1), rd.GetByte(2), rd.GetByte(3), rd.GetByte(4), rd.IsDBNull(5) ? null : rd.GetByte(5), rd.GetByte(6), rd.IsDBNull(7) ? null : rd.GetString(7), rd.GetBoolean(8),
+                        rd.GetDateTime(0), rd.GetInt32(9) == 1));
                 }
             }
 
@@ -73,36 +76,45 @@ public sealed class SatisfactionReport(SqlPlatform platform, ISettingsReader? se
                 SELECT COUNT(*) FROM gst.stay st
                   JOIN inv.reservation r ON r.reservation_id = st.reservation_id
                   LEFT JOIN inv.room rm ON rm.room_id = r.room_id
-                  LEFT JOIN inv.room_type t ON t.room_type_id = COALESCE(r.room_type_id, rm.room_type_id)
+                  LEFT JOIN inv.room_type t ON t.room_type_id = COALESCE(rm.room_type_id, r.room_type_id) -- MEAS2-B (N5): assigned type first, as the capture stores it
                  WHERE st.property_id = @p AND st.status = 'CheckedOut' AND st.checked_out_date BETWEEN @from AND @to
                    AND (@rt = '' OR t.code = @rt) AND (@ch = '' OR r.source = @ch);
                 """, conn);
             Add(c2, "@p", SqlDbType.Int, caller.PropertyId);
-            Add(c2, "@from", SqlDbType.Date, GuestsSql.D(parameters.From!.Value));
-            Add(c2, "@to", SqlDbType.Date, GuestsSql.D(parameters.To!.Value));
+            // MEAS2-B: the month bounds when the binder left From / To empty (the month was defaulted above).
+            var first = DateOnly.ParseExact(month + "-01", "yyyy-MM-dd", CultureInfo.InvariantCulture);
+            Add(c2, "@from", SqlDbType.Date, GuestsSql.D(parameters.From ?? first));
+            Add(c2, "@to", SqlDbType.Date, GuestsSql.D(parameters.To ?? first.AddMonths(1).AddDays(-1)));
             Add(c2, "@rt", SqlDbType.NVarChar, rt);
             Add(c2, "@ch", SqlDbType.NVarChar, ch);
             left = Convert.ToInt64(await c2.ExecuteScalarAsync(ct).ConfigureAwait(false), CultureInfo.InvariantCulture);
         }
 
         var n = list.Count;
+        // MEAS2-B (M1): a score of 2 or lower is unanswered when no complaint was raised on the same booking at or after the survey, 48 hours on.
+        // A QR survey has no booking, so it can never be answered (the prototype's lowUnanswered behaves the same).
+        var nowUtc = (time ?? TimeProvider.System).GetUtcNow().UtcDateTime;
+        var unanswered = list.Count(v => MeasGuestRules.SurveyLow(v.Overall, v.Cleanliness, v.Staff, v.Value, v.Breakfast) && !v.Answered
+            && (nowUtc - v.AtUtc).TotalMinutes >= MeasGuestRules.UnansweredMinutes);
+        var unNote = UnansweredNote(unanswered);
         if (n < MinAnswers)
         {
             // Review H3: below the floor a filtered row could name one guest: counts only (no scores, NPS or comments).
+            // MEAS2-B (owner, 7 Nov): the row may still turn red on the unanswered count; it shows the count only, never a score.
             return Result(parameters,
             [
-                Row(new Dictionary<string, object?>(StringComparer.Ordinal)
+                Row(red: unanswered > 0, cells: new Dictionary<string, object?>(StringComparer.Ordinal)
                 {
                     ["month"] = month, ["responses"] = (long)n, ["responseRate"] = MeasGuestRules.Pct1(n, left), ["overall"] = null, ["cleanliness"] = null, ["staff"] = null,
                     ["value"] = null, ["breakfast"] = null, ["nps"] = null, ["verbatim"] = Few,
                 }),
-            ], basisOverride: Definition.DateBasis + FloorNote);
+            ], basisOverride: Definition.DateBasis + FloorNote + unNote);
         }
 
         var bf = list.Where(v => v.Breakfast is not null).ToList();
         var verbatim = string.Join(" | ", list.Where(v => v.Consent && !string.IsNullOrEmpty(v.Comment)).Take(5).Select(v => v.Comment!.Trim()));
         var nps = MeasGuestRules.Nps(list.Select(v => v.Recommend).ToList());
-        var red = nps is { } np && np < await TargetAsync(caller.PropertyId, "meas.target.nps", 30, ct).ConfigureAwait(false);
+        var red = MeasGuestRules.SatisfactionRed(nps, await TargetAsync(caller.PropertyId, "meas.target.nps", 30, ct).ConfigureAwait(false), unanswered);
         return Result(parameters,
         [
             Row(red: red, cells: new Dictionary<string, object?>(StringComparer.Ordinal)
@@ -112,6 +124,14 @@ public sealed class SatisfactionReport(SqlPlatform platform, ISettingsReader? se
                 ["staff"] = MeasGuestRules.Avg1(list.Sum(v => v.Staff), n), ["value"] = MeasGuestRules.Avg1(list.Sum(v => v.Value), n),
                 ["breakfast"] = MeasGuestRules.Avg1(bf.Sum(v => v.Breakfast!.Value), bf.Count), ["nps"] = nps, ["verbatim"] = verbatim,
             }),
-        ]);
+        ], basisOverride: unNote.Length == 0 ? null : Definition.DateBasis + unNote);
     }
+
+    /// <summary>MEAS2-B: the basis note naming the unanswered count (empty when none); twin of satisfaction.ts unansweredNote.</summary>
+    public static string UnansweredNote(int unanswered) => unanswered switch
+    {
+        0 => "",
+        1 => " 1 score of 2 or lower has had no complaint raised on its booking for 48 hours or more.",
+        _ => $" {unanswered} scores of 2 or lower have had no complaint raised on their booking for 48 hours or more.",
+    };
 }

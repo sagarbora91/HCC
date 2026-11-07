@@ -76,7 +76,9 @@ public sealed class ServiceRecoveryReport(SqlPlatform platform, ISettingsReader?
             var cs = g.ToList();
             var done = cs.Where(c => c.Resolved is not null).ToList();
             var sla = cs.Where(c => c.SlaHours is not null).ToList();
-            return Row(new Dictionary<string, object?>(StringComparer.Ordinal)
+            // MEAS2-B (M1): red = a repeat cause in 90 days, or a compensation with no approval (twin of recoveryRed / unapproved).
+            var red = cs.Any(Repeat) || cs.Any(c => c.Recovery > 0 && c.ApprovalId is null);
+            return Row(red: red, cells: new Dictionary<string, object?>(StringComparer.Ordinal)
             {
                 ["category"] = cs[0].Category, ["room"] = cs[0].Room, ["complaints"] = (long)cs.Count,
                 ["hours"] = MeasGuestRules.Avg1(done.Sum(c => (decimal)(c.Resolved!.Value - c.Created).TotalMinutes / 60m), done.Count),

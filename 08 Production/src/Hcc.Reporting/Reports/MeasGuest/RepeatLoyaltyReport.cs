@@ -97,9 +97,12 @@ public sealed class RepeatLoyaltyReport(SqlPlatform platform, ISettingsReader? s
 
         var f = Figures(all, month);
         if (f.Customers == 0) return Result(parameters, [], "cust.loyaltyTag (meas-cap-guest)");
+        // MEAS2-B (M1): the summary row is red when the repeat share falls two months running (twin of repeatFalling).
+        var m1 = MeasGuestRules.PrevMonth(month);
+        var falling = MeasGuestRules.RepeatFalling(f.Share, Figures(all, m1).Share, Figures(all, MeasGuestRules.PrevMonth(m1)).Share);
         var rows = new List<ReportRow>
         {
-            Row(new Dictionary<string, object?>(StringComparer.Ordinal)
+            Row(red: falling, cells: new Dictionary<string, object?>(StringComparer.Ordinal)
             {
                 ["month"] = month, ["seenBefore"] = f.Before, ["repeatShare"] = f.Share, ["stays"] = f.Stays, ["revenueShare"] = f.RevShare, ["guests3"] = "", ["loyaltyTag"] = "", ["offerSent"] = null,
             }),

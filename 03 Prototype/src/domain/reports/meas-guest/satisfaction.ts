@@ -35,6 +35,9 @@ export function satisfactionExceptions(s:State,month:string,roomType?:string,cha
   const list=surveysOf(s,month,roomType,channel),nps=npsOf(list),target=measTarget(s,'meas.target.nps')??30,un=lowUnanswered(s,list);
   return {responses:list.length,nps,target,npsBelowTarget:nps!==null&&nps<target,unanswered:un.length,red:nps!==null&&nps<target||un.length>0};
 }
+/** MEAS2-B: the basis note naming the unanswered count (empty when none); twin of SatisfactionReport.UnansweredNote. */
+export const unansweredNote=(n:number)=>n===0?'':n===1?' 1 score of 2 or lower has had no complaint raised on its booking for 48 hours or more.'
+  :` ${n} scores of 2 or lower have had no complaint raised on their booking for 48 hours or more.`;
 export const satisfaction=registerReport({
   id:'rpt.guests.satisfaction',title:'Guest satisfaction and NPS',area:'guests',priority:'P1',status:'MEAS',
   moneyFlag:false,viewPerms:['PERM-RPT-001'],dateClass:'D-M',
@@ -44,15 +47,17 @@ export const satisfaction=registerReport({
     const month=p.month as string,rt=p.roomType as string|undefined,ch=p.channel as string|undefined,list=surveysOf(s,month,rt,ch);
     if(!list.length)return {params:p,columns:SATISFACTION_COLS,rows:[],about:{dateBasis:capNote(BASIS,NEED)}};
     const left=s.bookings.filter(b=>b.status==='Departed'&&b.departure.slice(0,7)===month&&(!rt||s.rooms.find(r=>r.id===b.room)?.type===rt)&&(!ch||b.source===ch)).length;
+    // MEAS2-B (M1): a low score with no complaint on its booking for 48 hours turns the row red; below the floor too (owner 7 Nov: count only, never a score).
+    const un=lowUnanswered(s,list).length,note=unansweredNote(un);
     // Review H3: below SURVEY_MIN_ANSWERS a filtered row could name one guest, so it shows counts only (no scores, NPS or comments).
-    if(list.length<SURVEY_MIN_ANSWERS)return {params:p,columns:SATISFACTION_COLS,rows:[{kind:'row',cells:{month,responses:list.length,responseRate:pct1(list.length,left),overall:null,
-      cleanliness:null,staff:null,value:null,breakfast:null,nps:null,verbatim:FEW}}],about:{dateBasis:BASIS+FLOOR_NOTE}};
+    if(list.length<SURVEY_MIN_ANSWERS)return {params:p,columns:SATISFACTION_COLS,rows:[{kind:'row',...(un>0?{group:'red'}:{}),cells:{month,responses:list.length,responseRate:pct1(list.length,left),overall:null,
+      cleanliness:null,staff:null,value:null,breakfast:null,nps:null,verbatim:FEW}}],about:{dateBasis:BASIS+FLOOR_NOTE+note}};
     const sum=(f:(v:MeasSurvey)=>number)=>list.reduce((a,v)=>a+f(v),0);
     const bf=list.filter(v=>v.breakfast!==undefined);
     const verbatim=list.filter(v=>v.consent&&v.comment).slice(0,5).map(v=>v.comment!.trim()).join(' | ');
-    const nps=npsOf(list),red=nps!==null&&nps<(measTarget(s,'meas.target.nps')??30);
+    const nps=npsOf(list),red=nps!==null&&nps<(measTarget(s,'meas.target.nps')??30)||un>0;
     return {params:p,columns:SATISFACTION_COLS,rows:[{kind:'row',...(red?{group:'red'}:{}),cells:{month,responses:list.length,responseRate:pct1(list.length,left),overall:avg1(sum(v=>v.overall),list.length),
       cleanliness:avg1(sum(v=>v.cleanliness),list.length),staff:avg1(sum(v=>v.staff),list.length),value:avg1(sum(v=>v.value),list.length),
-      breakfast:avg1(bf.reduce((a,v)=>a+v.breakfast!,0),bf.length),nps:npsOf(list),verbatim}}]};
+      breakfast:avg1(bf.reduce((a,v)=>a+v.breakfast!,0),bf.length),nps:npsOf(list),verbatim}}],...(note?{about:{dateBasis:BASIS+note}}:{})};
   },
 });

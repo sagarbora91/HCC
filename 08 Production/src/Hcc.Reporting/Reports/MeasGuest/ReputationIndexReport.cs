@@ -32,24 +32,31 @@ public sealed class ReputationIndexReport(SqlPlatform platform, ISettingsReader?
         ArgumentNullException.ThrowIfNull(parameters);
         string from = parameters.From!.Value.ToString("yyyy-MM", CultureInfo.InvariantCulture), to = parameters.To!.Value.ToString("yyyy-MM", CultureInfo.InvariantCulture), platform = Param(parameters, "platform");
         var rows = new List<ReportRow>();
+        // MEAS2-B (M1): the month before the range is read too, so the first month's red rule can compare with the previous month of the same platform.
+        var avgOf = new Dictionary<string, decimal>(StringComparer.Ordinal);
         await using var conn = await Platform.Connections.OpenAsync(ct).ConfigureAwait(false);
         await using var cmd = new SqlCommand("""
             SELECT month, platform, review_count, avg_score, score_12m, responded, themes
               FROM meas.review_month
-             WHERE property_id = @p AND month BETWEEN @from AND @to AND (@platform = '' OR platform = @platform)
+             WHERE property_id = @p AND month BETWEEN @prev AND @to AND (@platform = '' OR platform = @platform)
              ORDER BY month, platform;
             """, conn);
         Add(cmd, "@p", SqlDbType.Int, caller.PropertyId);
-        Add(cmd, "@from", SqlDbType.Char, from);
+        Add(cmd, "@prev", SqlDbType.Char, MeasGuestRules.PrevMonth(from));
         Add(cmd, "@to", SqlDbType.Char, to);
         Add(cmd, "@platform", SqlDbType.VarChar, platform);
         await using var rd = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
         while (await rd.ReadAsync(ct).ConfigureAwait(false))
         {
             int count = rd.GetInt32(2), responded = rd.GetInt32(5);
-            rows.Add(Row(new Dictionary<string, object?>(StringComparer.Ordinal)
+            string month = rd.GetString(0).Trim(), plat = rd.GetString(1);
+            var avg = rd.GetDecimal(3);
+            avgOf[month + "\0" + plat] = avg;
+            if (string.CompareOrdinal(month, from) < 0) continue; // the previous month only feeds the rule
+            decimal? prev = avgOf.TryGetValue(MeasGuestRules.PrevMonth(month) + "\0" + plat, out var pa) ? pa : null;
+            rows.Add(Row(red: MeasGuestRules.ReputationRed(avg, prev, count, responded), cells: new Dictionary<string, object?>(StringComparer.Ordinal)
             {
-                ["month"] = rd.GetString(0).Trim(), ["platform"] = rd.GetString(1), ["reviews"] = (long)count,
+                ["month"] = month, ["platform"] = plat, ["reviews"] = (long)count,
                 ["avgScore"] = rd.GetDecimal(3).ToString("0.00", CultureInfo.InvariantCulture), ["score12m"] = rd.IsDBNull(4) ? null : rd.GetDecimal(4).ToString("0.00", CultureInfo.InvariantCulture),
                 ["responseRate"] = MeasGuestRules.Pct1(responded, count), ["themes"] = rd.IsDBNull(6) ? "" : rd.GetString(6),
             }));
