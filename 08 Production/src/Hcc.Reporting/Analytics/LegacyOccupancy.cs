@@ -103,7 +103,8 @@ public static class LegacyOccupancy
     private static readonly string[] Buckets = ["0-30", "31-90", "91-180", "181-365", "366-730", "731+"];
     public static string Bucket(long age) => age <= 30 ? Buckets[0] : age <= 90 ? Buckets[1] : age <= 180 ? Buckets[2] : age <= 365 ? Buckets[3] : age <= 730 ? Buckets[4] : Buckets[5];
     public static string[] BucketNames => Buckets;
-    public static long AgeDays(string asOf, string d) => (long)Math.Round((DateTime.Parse(asOf) - DateTime.Parse(d)).TotalDays, MidpointRounding.AwayFromZero);
+    public static long AgeDays(string asOf, string d) => ParseDay(asOf).DayNumber - ParseDay(d).DayNumber; // F12-D L5: invariant yyyy-MM-dd, whole days
+    private static DateOnly ParseDay(string x) => DateOnly.ParseExact(x.Length > 10 ? x[..10] : x, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
 
     public static ReportResult RoomsAndRates(AnInput i, AnParams p)
     {

@@ -68,7 +68,7 @@ public sealed class HkProductivityReport(SqlPlatform platform) : MeasHkReportBas
             var stay = all.Where(t => t.Kind == "stayover").ToList();
             var mins = all.Select(Mins).Where(x => x.HasValue).Select(x => x!.Value).ToList();
             var depMins = dep.Select(Mins).Where(x => x.HasValue).Select(x => x!.Value).ToList();
-            var vac = dep.Where(t => t.Created is not null && t.Inspected is not null).Select(t => Math.Round((t.Inspected!.Value - t.Created!.Value).TotalMinutes)).Where(x => x >= 0).ToList();
+            var vac = dep.Where(t => t.Created is not null && t.Inspected is not null).Select(t => RoundMinutes(t.Inspected!.Value - t.Created!.Value)).Where(x => x >= 0).ToList();
             var inspected = all.Where(t => t.Result != "").ToList();
             var pass = inspected.Count(t => t.Result == "pass");
             var reasons = inspected.Where(t => t.Result == "fail").GroupBy(t => t.Reject == "" ? "No reason" : t.Reject).OrderByDescending(x => x.Count()).ThenBy(x => x.Key, StringComparer.Ordinal);
@@ -97,5 +97,8 @@ public sealed class HkProductivityReport(SqlPlatform platform) : MeasHkReportBas
         return Done(parameters, Columns, rows);
     }
 
-    private static double? Mins(Task t) => t.Started is { } a && t.Finished is { } b && b >= a ? Math.Round((b - a).TotalMinutes) : null;
+    private static double? Mins(Task t) => t.Started is { } a && t.Finished is { } b && b >= a ? RoundMinutes(b - a) : null;
+
+    /// <summary>F12-D L1: whole minutes, half away from zero (JS Math.round on these non-negative spans), not banker's rounding: 2.5 min = 3.</summary>
+    public static double RoundMinutes(TimeSpan span) => Math.Round(span.TotalMinutes, MidpointRounding.AwayFromZero);
 }

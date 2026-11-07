@@ -71,7 +71,14 @@ public static class PackRules
     /// <summary>Percent with one decimal (prototype div1) and paise division rounded half away from zero (Math.round on positives).</summary>
     public static double Div1(long a, long b) => b > 0 ? Math.Round(a * 1000.0 / b, MidpointRounding.AwayFromZero) / 10 : 0;
 
-    public static long DivP(long a, long b) => b > 0 ? (long)Math.Round((double)a / b, MidpointRounding.AwayFromZero) : 0;
+    /// <summary>F12-D L2: paise division in integers, rounded half away from zero (no double, exact above 2^53); 0 when the divisor is not positive. Equals the old Math.Round on the same inputs.</summary>
+    public static long DivP(long a, long b)
+    {
+        if (b <= 0) return 0;
+        var q = Math.DivRem(Math.Abs(a), b, out var r);
+        if (r * 2 >= b) q++; // r < b, so r * 2 cannot overflow for b up to long.MaxValue / 2; larger b is not a paise count
+        return a < 0 ? -q : q;
+    }
 
     private static readonly string[] Mon = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -235,21 +242,59 @@ public sealed class StudyPackScheduler(IReportScheduleStore schedules, ISettings
     }
 }
 
+/// <summary>F12-D L6: rate-limited failure log of the pack schedule sync: a warning on the first failure and then every <c>RepeatEvery</c>-th one in a row, an information line on recovery.</summary>
+public sealed class StudyPackFailureLog(Microsoft.Extensions.Logging.ILogger logger, int repeatEvery = 30)
+{
+    private readonly Dictionary<int, int> _failures = [];
+
+    public int RepeatEvery { get; } = repeatEvery < 1 ? 1 : repeatEvery;
+
+    public void Failed(int propertyId, Exception ex)
+    {
+        var n = _failures.GetValueOrDefault(propertyId) + 1;
+        _failures[propertyId] = n;
+        if (n == 1 || n % RepeatEvery == 0)
+            Microsoft.Extensions.Logging.LoggerExtensions.LogWarning(logger, ex, "Study pack schedule sync failed for property {PropertyId} ({Count} failed minute(s) in a row); retrying next minute.", propertyId, n);
+    }
+
+    public void Succeeded(int propertyId)
+    {
+        if (_failures.Remove(propertyId, out var n))
+            Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(logger, "Study pack schedule sync recovered for property {PropertyId} after {Count} failed minute(s).", propertyId, n);
+    }
+}
+
+/// <summary>One minute of the pack schedule sync: every property is tried on its own, a failure is logged and never stops the host or the other properties.</summary>
+public static class StudyPackTick
+{
+    public static async Task RunAsync(StudyPackScheduler scheduler, Func<CancellationToken, Task<IEnumerable<int>>> propertyIds, StudyPackFailureLog log, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(scheduler);
+        ArgumentNullException.ThrowIfNull(propertyIds);
+        ArgumentNullException.ThrowIfNull(log);
+        IEnumerable<int> ids;
+#pragma warning disable CA1031 // a background sync must never stop the host: a failed minute is logged and retried on the next tick
+        try { ids = await propertyIds(ct).ConfigureAwait(false); }
+        catch (Exception ex) when (ex is not OperationCanceledException) { log.Failed(0, ex); return; }
+        foreach (var p in ids)
+        {
+            try { await scheduler.SyncAsync(p, ct).ConfigureAwait(false); log.Succeeded(p); }
+            catch (Exception ex) when (ex is not OperationCanceledException) { log.Failed(p, ex); }
+        }
+#pragma warning restore CA1031
+    }
+}
+
 /// <summary>Keeps the pack schedules in step with the setting once a minute, ahead of the F7 schedule worker's tick.</summary>
-public sealed class StudyPackScheduleWorker(StudyPackScheduler scheduler, Hcc.Reporting.Sql.SqlReportStores stores, TimeProvider clock) : BackgroundService
+public sealed class StudyPackScheduleWorker(StudyPackScheduler scheduler, Hcc.Reporting.Sql.SqlReportStores stores, TimeProvider clock, Microsoft.Extensions.Logging.ILogger<StudyPackScheduleWorker> logger) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         using var timer = new PeriodicTimer(TimeSpan.FromMinutes(1), clock);
+        var log = new StudyPackFailureLog(logger);
         do
         {
-            try
-            {
-                foreach (var p in await stores.PropertyIdsAsync(stoppingToken).ConfigureAwait(false)) await scheduler.SyncAsync(p, stoppingToken).ConfigureAwait(false);
-            }
-#pragma warning disable CA1031 // a background sync must never stop the host: a failed minute is retried on the next tick
-            catch (Exception ex) when (ex is not OperationCanceledException) { /* next minute */ }
-#pragma warning restore CA1031
+            await StudyPackTick.RunAsync(scheduler, async ct => await stores.PropertyIdsAsync(ct).ConfigureAwait(false), log, stoppingToken).ConfigureAwait(false);
         }
         while (await timer.WaitForNextTickAsync(stoppingToken).ConfigureAwait(false));
     }
