@@ -14,13 +14,13 @@ public static class LegacyRevenue
         var monthly = Table("monthly", $"Monthly ({FyLabel(fy)})",
             [T("month", "Month"), T("data", "Data"), I("bills", "Bills"), M("room", "Room"), M("fnb", "F&B"), M("other", "Other"), M("discount", "Discount"), M("netBilled", "Net billed"), M("gst", "GST"),
              M("billed", "Total billed"), I("chargedNights", "Charged nights"), M("adr", "ADR"), M("received", "Cash received"), P("receivedPct", "Received % of billed")],
-            rev.Where(r => FyOf(MonthStart(r.Month)) == fy).Select(r => Row(("month", MonthLabel(r.Month)), ("data", Marker(i, MonthStart(r.Month), r.Month + "-28")), ("bills", r.Bills), ("room", r.Room),
+            rev.Where(r => FyOf(MonthStart(r.Month)) == fy).Select(r => Row(("month", MonthLabel(r.Month)), ("data", BillMarker(i.Bills.Where(b => MonthOf(b.Date) == r.Month))), ("bills", r.Bills), ("room", r.Room),
                 ("fnb", r.Fnb), ("other", r.Other), ("discount", r.Discount), ("netBilled", Net(r)), ("gst", r.Gst), ("billed", r.Total), ("chargedNights", r.ChargedNights), ("adr", Adr(r)),
                 ("received", r.Received), ("receivedPct", Pct1(r.Received, r.Total)))));
         var summary = Table("fy-summary", "FY summary",
             [T("fy", "FY"), T("data", "Data"), I("bills", "Bills"), M("netBilled", "Net billed"), M("gst", "GST"), M("billed", "Total billed"), I("chargedNights", "Charged nights"), M("adr", "ADR"),
              M("received", "Cash received"), P("receivedPct", "Received % of billed"), T("note", "Note")],
-            fys.Select(f => Row(("fy", FyLabel(f.Fy)), ("data", Marker(i, f.Fy[..4] + "-04-01", (FyStartYear(f.Fy) + 1) + "-03-31")), ("bills", f.R.Bills), ("netBilled", Net(f.R)), ("gst", f.R.Gst),
+            fys.Select(f => Row(("fy", FyLabel(f.Fy)), ("data", BillMarker(i.Bills.Where(b => FyOf(b.Date) == f.Fy))), ("bills", f.R.Bills), ("netBilled", Net(f.R)), ("gst", f.R.Gst),
                 ("billed", f.R.Total), ("chargedNights", f.R.ChargedNights), ("adr", Adr(f.R)), ("received", f.R.Received), ("receivedPct", Pct1(f.R.Received, f.R.Total)),
                 ("note", f.Partial ? "Partial year" : f.Normal ? "" : "COVID window"))));
         var gridCols = new List<ReportColumn> { T("fy", "FY") }; gridCols.AddRange(FyMonths.Select(m => M("m" + m, MonLabel[m]))); gridCols.Add(M("total", "Total"));

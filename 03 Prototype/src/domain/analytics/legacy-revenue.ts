@@ -1,7 +1,7 @@
 // F12 MEAS · meas-study-a · revenue family: rpt.study.revenue-monthly, year-comparison, index-vs-base, fy-deep-dive (workbooks 1-4).
 // "Billed" = total billed incl. GST (the workbooks' headline); "net" = before GST. C# twin: Analytics/LegacyRevenue.cs.
 import type {AnalyticsSelector} from './types';
-import {T,I,M,P,row,tbl,series,result,fyOf,fyPrev,monthStart,monthOf,net,adr,pct1,idx1,rdiv,sum,fyRows,revenueMonths,focusFy,marker,FY_MONTHS,MON_LABEL,
+import {billMarker,T,I,M,P,row,tbl,series,result,fyOf,fyPrev,monthStart,monthOf,net,adr,pct1,idx1,rdiv,sum,fyRows,revenueMonths,focusFy,marker,FY_MONTHS,MON_LABEL,
   addDays,fyStartYear,billStay,roomType,type Tbl} from './legacy-core';
 
 const fyLabel=(fy:string)=>'FY '+fy;
@@ -11,11 +11,11 @@ export const revenueMonthly:AnalyticsSelector=(i,p)=>{
   const fy=focusFy(i,p),rev=revenueMonths(i),fys=fyRows(i);
   const monthly=tbl('monthly',`Monthly (${fyLabel(fy)})`,[T('month','Month'),T('data','Data'),I('bills','Bills'),M('room','Room'),M('fnb','F&B'),M('other','Other'),M('discount','Discount'),M('netBilled','Net billed'),
     M('gst','GST'),M('billed','Total billed'),I('chargedNights','Charged nights'),M('adr','ADR'),M('received','Cash received'),P('receivedPct','Received % of billed')],
-    rev.filter(r=>fyOf(monthStart(r.month))===fy).map(r=>row({month:monthLabel(r.month),data:marker(i,monthStart(r.month),r.month+'-28'),bills:r.bills,room:r.room,fnb:r.fnb,other:r.other,discount:r.discount,
+    rev.filter(r=>fyOf(monthStart(r.month))===fy).map(r=>row({month:monthLabel(r.month),data:billMarker(i.bills.filter(b=>monthOf(b.date)===r.month)),bills:r.bills,room:r.room,fnb:r.fnb,other:r.other,discount:r.discount,
       netBilled:net(r),gst:r.gst,billed:r.total,chargedNights:r.chargedNights,adr:adr(r),received:r.received,receivedPct:pct1(r.received,r.total)})));
   const summary=tbl('fy-summary','FY summary',[T('fy','FY'),T('data','Data'),I('bills','Bills'),M('netBilled','Net billed'),M('gst','GST'),M('billed','Total billed'),I('chargedNights','Charged nights'),M('adr','ADR'),
     M('received','Cash received'),P('receivedPct','Received % of billed'),T('note','Note')],
-    fys.map(f=>row({fy:fyLabel(f.fy),data:marker(i,f.fy.slice(0,4)+'-04-01',(fyStartYear(f.fy)+1)+'-03-31'),bills:f.bills,netBilled:net(f),gst:f.gst,billed:f.total,chargedNights:f.chargedNights,adr:adr(f),received:f.received,
+    fys.map(f=>row({fy:fyLabel(f.fy),data:billMarker(i.bills.filter(b=>fyOf(b.date)===f.fy)),bills:f.bills,netBilled:net(f),gst:f.gst,billed:f.total,chargedNights:f.chargedNights,adr:adr(f),received:f.received,
       receivedPct:pct1(f.received,f.total),note:f.partial?'Partial year':f.normal?'':'COVID window'})));
   const grid=tbl('fy-month-grid','FY x Month grid (total billed)',[T('fy','FY'),...FY_MONTHS.map(m=>M('m'+m,MON_LABEL[m])),M('total','Total')],
     fys.map(f=>{const c:Record<string,string|number>={fy:fyLabel(f.fy),total:f.total};for(const m of FY_MONTHS){const yr=m>='04'?fyStartYear(f.fy):fyStartYear(f.fy)+1;c['m'+m]=rev.find(r=>r.month===`${yr}-${m}`)?.total??0;}return row(c);}));

@@ -105,6 +105,11 @@ public static class LegacyCore
         var a = Cmp(from, i.LegacyUntil) <= 0; var b = Cmp(to, i.LegacyUntil) > 0;
         return a && b ? "legacy + live" : a ? "legacy" : "live";
     }
+    public static string BillMarker(IEnumerable<AnBill> bs)
+    {
+        var l = false; var v = false; foreach (var b in bs) { if (b.Legacy) l = true; else v = true; }
+        return l && v ? "legacy + live" : l ? "legacy" : "live";
+    }
     public static string RoomType(AnInput i, string room)
     {
         var r = i.Rooms.FirstOrDefault(x => x.Id == room);

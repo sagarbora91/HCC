@@ -45,6 +45,8 @@ export const nightsOf=(s:AnStay)=>Math.max(1,s.nights);
 export const inCovid=(i:AnInput,m:string)=>monthEnd(m)>=i.covidWindow.from&&monthStart(m)<=i.covidWindow.to;
 export const isLegacyDate=(i:AnInput,d:string)=>d<=i.legacyUntil;
 export function marker(i:AnInput,from:string,to:string){const a=from<=i.legacyUntil,b=to>i.legacyUntil;return a&&b?'legacy + live':a?'legacy':'live';}
+/** Data marker from the bills' own legacy flags (a live HCC row dated before the cut-over date is still live). */
+export function billMarker(bs:AnBill[]){const l=bs.some(b=>b.legacy),v=bs.some(b=>!b.legacy);return l&&v?'legacy + live':l?'legacy':'live';}
 export function roomType(i:AnInput,room:string){const r=i.rooms.find(x=>x.id===room);return r?(r.suite||room==='211'?'Suite':r.type):'unassigned';}
 
 /** Every (room, night) slept, clipped to the data window [dataStart, asOf]. */
