@@ -2,6 +2,7 @@
 // Column keys, types, money flags, parameters and exception rules equal the prototype (03 Prototype/src/domain/reports/meas-daily/*). Rules: MeasDailyRules.
 using System.Data;
 using System.Globalization;
+using Hcc.Application.Billing;
 using Hcc.Application.Configuration;
 using Hcc.Application.Reporting.Rpt;
 using Hcc.Infrastructure.SqlServer;

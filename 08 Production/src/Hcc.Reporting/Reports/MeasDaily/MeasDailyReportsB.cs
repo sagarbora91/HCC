@@ -4,6 +4,7 @@
 // server flow yet, cash paid-outs come from the closing step when it records them.
 using System.Data;
 using System.Globalization;
+using Hcc.Application.Billing;
 using Hcc.Application.Configuration;
 using Hcc.Application.Reporting.Rpt;
 using Hcc.Infrastructure.SqlServer;
