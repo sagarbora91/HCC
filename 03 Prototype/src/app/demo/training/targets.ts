@@ -59,6 +59,7 @@ export function resolveTarget(target:string):HTMLElement|null{
     case 'tab':return scoped(root=>pick(Array.from(root.querySelectorAll<HTMLElement>('[role="tab"]')),arg,nameOf))??byBtn(arg);
     case 'field':return fieldOf(arg);
     case 'row':return rowOf(arg);
+    case 'lastbtn':{const d=topDialog();if(!d)return null;const w=norm(arg);const l=Array.from(d.querySelectorAll<HTMLElement>(BTN)).filter(e=>visible(e)&&nameOf(e).startsWith(w));return l[l.length-1]??null;} // last matching button of the open dialog (a tab and its submit share a name)
     case 'modalbtn':{const d=topDialog();return d?pick(Array.from(d.querySelectorAll<HTMLElement>(BTN)),arg,nameOf):null;}
     case 'dialog':return topDialog();
     case 'menutop':return pick(Array.from(document.querySelectorAll<HTMLElement>('.tile,.nav-cat,.drawer button,nav button')),arg,e=>norm(e.querySelector('strong')?.textContent||e.textContent));

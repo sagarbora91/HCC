@@ -47,3 +47,17 @@ Written while scripting the course; nothing here was fixed in HCC code (plan sec
 | F11 | Bank deposit | The deposit slip photo is required and cannot be attached by the driver | Dialog is read, not submitted |
 | F12 | Shift close | Closing the cashier shift in chapter 7 would refuse later cash receipts | Shift is counted and closed by `closeday`; chapter 19 shows the page |
 | F13 | Booking numbers | Booking ids are sequence based: Rahul HCC-1101, Meena Kulkarni HCC-1103, Vikram HCC-1107, Anita HCC-1115 | Deterministic on a fresh FY26 load |
+
+## Findings while scripting chapters 9-19
+
+| # | Where | What | Course handling |
+|---|---|---|---|
+| F14 | Cashier shift vs close command | On 26 Oct the Cashier shift page shows expected cash Rs 9,625 (float 12,825 net movements -3,200); typing 9625 and submitting is refused with "A reason is required when the count differs from the expected cash". The command compares against another figure (`drawer()`, Rs 30,255). The page and the command disagree. | Chapter 19 types the amount and stops before Submit; `closeday` uses `drawer()` |
+| F15 | Day close on 26 Oct | Ten fixture stays are due out on 26 Oct (Ananya Rao 101 ... Aditi Nair 207) and block the close | Chapter 19 teaches the seven steps and the blocked preflight; the day is not closed, so chapters 20+ stay on 26 Oct |
+| F16 | Payroll | Only Apr to Sep can be opened in Payroll; October is run after the month ends | Chapter 18 reads the locked September run and payslips |
+| F17 | Hall terms | Quotation terms are all "OWNER TO REPLACE" and the Templates tab lists none; only the Owner can send with an override and a reason | Chapter 15 uses Override (Owner); halls are Sagar Hall, Moti Hall and Garden Lawn (the plan said Hall A) |
+| F18 | Customers CRM | No merge screen: duplicates are flagged "Possible duplicate" on Guests and never merged | Said on the slide |
+| F19 | OTA | Four of six inbox bookings cannot be accepted (arrival before the business date, party too big) | Chapter 14 accepts BookNest BN-88231 and explains the pre-check |
+| F20 | Expense bill photo and bank deposit slip | File inputs cannot be filled by the driver | Sections are opened and described |
+| F21 | Advances | One open advance per person: Ravi already has one | Chapter 18 records the advance for Sunil Pawar |
+| F22 | Tariff card | A card with the same start date as a just-published rate set is refused (hand-entered tariff exists) | Chapter 13 leaves the card as a draft |

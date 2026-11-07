@@ -1,7 +1,7 @@
 // Training driver: the act mini-language (plan §7.3). Pure parsing, unit-tested in tests/stream-training.mjs.
-export type ActKind='nav'|'user'|'click'|'type'|'select'|'check'|'uncheck'|'key'|'menu'|'modal'|'wait'|'js'|'display'|'signout'|'hover'|'scroll'|'focus'|'closeday'|'typebal';
+export type ActKind='nav'|'user'|'click'|'type'|'select'|'check'|'uncheck'|'key'|'menu'|'modal'|'wait'|'js'|'display'|'signout'|'hover'|'scroll'|'focus'|'closeday'|'typebal'|'typedrawer';
 export type Act={kind:ActKind;arg:string;value?:string;raw:string};
-const KINDS:readonly string[]=['nav','user','click','type','select','check','uncheck','key','menu','modal','wait','js','display','signout','hover','scroll','focus','closeday','typebal'];
+const KINDS:readonly string[]=['nav','user','click','type','select','check','uncheck','key','menu','modal','wait','js','display','signout','hover','scroll','focus','closeday','typebal','typedrawer'];
 const TWO=new Set(['type','select','typebal']); // "<target>|<value>"
 /** "type:field:Guest name|Rahul" -> {kind:'type',arg:'field:Guest name',value:'Rahul'}. Throws on an unknown kind. */
 export function parseAct(raw:string):Act{

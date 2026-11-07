@@ -26,7 +26,7 @@ export async function register({test,assert}){
     let raw=null;try{await access(f);raw=await readFile(f,'utf8');}catch{raw=null;}
     if(!raw)continue;
     test(`[TRN] ${f}: every act parses, every target kind is known, ids and shots are unique`,()=>{
-      const kinds=new Set(['sel','aria','btn','tab','field','row','modalbtn','menutop','menuleaf','tr','text','dialog','btnin','fldin']);
+      const kinds=new Set(['sel','aria','btn','tab','field','row','modalbtn','menutop','menuleaf','tr','text','dialog','btnin','fldin','lastbtn']);
       const j=JSON.parse(raw);const ids=new Set(),shots=new Set();
       for(const c of j.chapters)for(const s of c.steps){
         assert.ok(!ids.has(s.id),'duplicate id '+s.id);ids.add(s.id);assert.ok(!shots.has(s.shot),'duplicate shot '+s.shot);shots.add(s.shot);

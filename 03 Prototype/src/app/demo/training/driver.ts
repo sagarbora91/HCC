@@ -93,6 +93,7 @@ async function doAct(a:Act){
     case 'typebal':{ // "typebal:<target>|<booking id>": type the folio balance of that booking (rupees) so the demo never guesses an amount
       await ready(a.arg);const b=c.s.bookings.find(x=>x.id===a.value);if(!b)throw new Error('no booking '+a.value);
       const el=need(a.arg,'typebal');el.focus();setValue(el,String(totals(b).balance/100));break;}
+    case 'typedrawer':{await ready(a.arg);const el=need(a.arg,'typedrawer');el.focus();const m=/expected\s+₹([\d,]+(?:\.\d+)?)/.exec(document.body.innerText);if(!m)throw new Error('expected cash not on screen');setValue(el,m[1].replace(/,/g,''));break;} // type the expected cash shown on the Cashier shift page, so a count never differs by a guess
     case 'select':{await ready(a.arg);const el=need(a.arg,'select') as HTMLSelectElement;
       if(!(el instanceof HTMLSelectElement))throw new Error('not a <select>: '+a.arg);
       const w=norm(a.value);const o=Array.from(el.options).find(x=>norm(x.textContent)===w||norm(x.value)===w)??Array.from(el.options).find(x=>norm(x.textContent).includes(w));
@@ -153,6 +154,7 @@ async function runStep(f:Flat){
     if(ctx().page!=='home'){ctx().go('home');}
     await settle(120);
   }
+  fresh=[];
   document.querySelectorAll<HTMLElement>('[aria-label="Dismiss message"]').forEach(b=>b.click()); // a toast from the previous step must not be mistaken for this step's answer
   for(const raw of f.auto){await doAct(parseAct(raw));if(!f.allowError)refusal();}
   await checkOk(f.check);
