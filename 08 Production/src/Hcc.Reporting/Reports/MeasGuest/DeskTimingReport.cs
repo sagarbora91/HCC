@@ -79,17 +79,22 @@ public sealed class DeskTimingReport(SqlPlatform platform, ISettingsReader? sett
             }
         }
 
+        // MEAS2-B (M1): red row = median above the check-in / check-out standard (meas.target.checkinMinutes 8 / checkoutMinutes 6).
+        var inT = await TargetAsync(caller.PropertyId, "meas.target.checkinMinutes", 8, ct).ConfigureAwait(false);
+        var outT = await TargetAsync(caller.PropertyId, "meas.target.checkoutMinutes", 6, ct).ConfigureAwait(false);
         var rows = ev.GroupBy(e => LocalOf(clock, e.At).ToString("HH", CultureInfo.InvariantCulture) + ":00\0" + e.User).OrderBy(g => g.Key, StringComparer.Ordinal).Select(g =>
         {
             var parts = g.Key.Split('\0');
             var ins = g.Where(e => e.In).ToList();
             var iv = ins.Select(e => (Start: e.At, End: e.End ?? e.At)).ToList();
             var peak = iv.Count == 0 ? 0 : iv.Max(a => iv.Count(b => b.Start <= a.Start && (a.Start < b.End || b.Start == a.Start)));
-            return Row(new Dictionary<string, object?>(StringComparer.Ordinal)
+            var toKey = MeasGuestRules.LowerMedian(ins.Where(e => e.Minutes is not null).Select(e => e.Minutes!.Value));
+            var toOut = MeasGuestRules.LowerMedian(g.Where(e => !e.In && e.Minutes is not null).Select(e => e.Minutes!.Value));
+            return Row(red: MeasGuestRules.DeskRed(toKey, toOut, inT, outT), cells: new Dictionary<string, object?>(StringComparer.Ordinal)
             {
                 ["hour"] = parts[0], ["deskUser"] = parts[1], ["arrivals"] = (long)ins.Count,
-                ["arrivalToKey"] = MeasGuestRules.LowerMedian(ins.Where(e => e.Minutes is not null).Select(e => e.Minutes!.Value)),
-                ["billToCheckout"] = MeasGuestRules.LowerMedian(g.Where(e => !e.In && e.Minutes is not null).Select(e => e.Minutes!.Value)),
+                ["arrivalToKey"] = toKey,
+                ["billToCheckout"] = toOut,
                 ["queuePeak"] = (long)peak,
             });
         }).ToList();

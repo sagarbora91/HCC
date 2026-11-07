@@ -27,7 +27,8 @@ export const reputation=registerReport({
   select:(s,_uid,p)=>{
     const list=reviewsOf(s,p.from!.slice(0,7),p.to!.slice(0,7),p.platform as string|undefined);
     if(!list.length)return {params:p,columns:REPUTATION_COLS,rows:[],about:{dateBasis:capNote(BASIS,NEED)}};
-    return {params:p,columns:REPUTATION_COLS,rows:list.map(r=>({kind:'row' as const,cells:{month:r.month,platform:r.platform,reviews:r.count,avgScore:r.avgScore.toFixed(2),
+    // MEAS2-B (M1): red row per reputationRed against the previous month of the same platform.
+    return {params:p,columns:REPUTATION_COLS,rows:list.map(r=>({kind:'row' as const,...(reputationRed(r,prevReview(s,r)).red?{group:'red'}:{}),cells:{month:r.month,platform:r.platform,reviews:r.count,avgScore:r.avgScore.toFixed(2),
       score12m:r.score12m===undefined?null:r.score12m.toFixed(2),responseRate:pct1(r.responded,r.count),themes:r.themes??''}}))};
   },
 });

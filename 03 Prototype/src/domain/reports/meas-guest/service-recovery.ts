@@ -40,7 +40,8 @@ export const serviceRecovery=registerReport({
     const rows=[...groups.entries()].sort((a,b)=>a[0].localeCompare(b[0])).map(([,cs])=>{
       const done=cs.filter(c=>c.resolvedAt),sla=cs.filter(c=>gcatSlaDue(s,c)),causes=[...new Set(cs.map(c=>causeLabel(s,c)).filter(Boolean))].sort();
       const approvers=[...new Set(cs.map(c=>c.recovery?.approvalId?userLabel(s,s.approvals.find(a=>a.id===c.recovery!.approvalId)?.approver):'').filter(Boolean))].sort();
-      return {kind:'row' as const,cells:{category:cs[0].category,room:cs[0].room??'',complaints:cs.length,
+      // MEAS2-B (M1): red group = a repeat in 90 days or a compensation without approval.
+      return {kind:'row' as const,...(recoveryRed(s,cs).red?{group:'red'}:{}),cells:{category:cs[0].category,room:cs[0].room??'',complaints:cs.length,
         hours:done.length?avg1(done.reduce((a,c)=>a+minutesBetween(c.createdAt,c.resolvedAt!),0)/60,done.length):null,
         withinSla:pct1(sla.filter(c=>!gcatOverSla(s,c)).length,sla.length),rootCause:causes.join(', '),
         compensation:cs.reduce((a,c)=>a+(c.recovery?.amount??0),0),approver:approvers.join(', '),repeat:cs.filter(c=>isRepeat(s,c)).length}};

@@ -4,6 +4,11 @@ import {build} from 'esbuild';
 import {threeWay} from './rpt-golden/harness.mjs';
 await build({entryPoints:['tests/rpt-meas-guest-entry.ts'],bundle:true,platform:'node',format:'esm',outfile:'tests/.generated/rpt-meas-guest.mjs',logLevel:'error'});
 const M=await import('./.generated/rpt-meas-guest.mjs');
+// MEAS2-B: a second bundle with the digest wiring (every red guest row reaches the Owner digest block) and the new constants.
+await build({stdin:{contents:`export * from '../src/services/mock/index';export {measDigestBlock} from '../src/domain/streams/measure-digest';import '../src/domain/reports/meas-digest-wiring';
+export {LATE_CHARGE_LABEL} from '../src/domain/reports/meas-guest/upsell';export {unansweredNote} from '../src/domain/reports/meas-guest/satisfaction';`,resolveDir:'tests',loader:'ts'},
+  bundle:true,platform:'node',format:'esm',outfile:'tests/.generated/rpt-meas-guest-b.mjs',logLevel:'error'});
+const MB=await import('./.generated/rpt-meas-guest-b.mjs');
 export function register({test,assert}){
   const T='[F12-RPT-GUEST] ';
   const IDS=['rpt.guests.satisfaction','rpt.guests.reputation-index','rpt.guests.service-recovery','rpt.guests.desk-timing','rpt.guests.upsell','rpt.guests.repeat-loyalty'];
@@ -228,5 +233,72 @@ export function register({test,assert}){
     const d=deskState(7,5);const u=upState();const rp=repState({'2030-10':['P1','N1']});
     const cases=[[s,SAT,{month:'2030-12'}],[s,REP,{fy:'2030-31'}],[s,REC,{from:'2030-12-01',to:'2030-12-31'}],[d,DESK,{from:'2030-12-20',to:'2030-12-21'}],[u,UP,{from:'2030-12-15',to:'2030-12-15'}],[rp.s,RPT,{month:'2030-10'}]];
     for(const [st,id,p] of cases){const r=run(st,'owner',id,p);assert.ok(r.rows.length>0,id+' has rows');threeWay(M,assert,r);}
+  });
+
+  // ── MEAS2-B: the red rows through the report itself (not only the helpers), M3 step (a), L7 target read ──
+  const T2='[MEAS2-B] ';
+  const lowAt=(clock,extra=[],o={})=>{const s=withSurveys([sv({at:'2030-12-29T09:00',staff:2,recommend:10,booking:'MG-X',...o}),...extra]);s.clock=clock;return s;};
+  test(T2+'satisfaction report: a low score unanswered 48:00 turns the row red, 47:59 does not; below the 5-answer floor too (count only), with the count in the basis',()=>{
+    const r0=run(lowAt('2030-12-31T08:59'),'owner',SAT,{month:'2030-12'}),r1=run(lowAt('2030-12-31T09:00'),'owner',SAT,{month:'2030-12'});
+    assert.equal(r0.rows[0].group,undefined,'47:59');assert.equal(r1.rows[0].group,'red','48:00 below the floor');
+    assert.equal(r1.rows[0].cells.overall,null,'still no score below the floor');assert.equal(r1.rows[0].cells.nps,null);
+    assert.match(r1.about.dateBasis,/Fewer than 5 responses/);assert.ok(r1.about.dateBasis.endsWith(MB.unansweredNote(1)),'count named in the basis');
+    assert.doesNotMatch(r0.about.dateBasis,/no complaint raised/);
+    const five=lowAt('2030-12-31T09:00',[1,2,3,4].map(()=>sv({recommend:10})));const r5=run(five,'owner',SAT,{month:'2030-12'});
+    assert.equal(r5.rows[0].cells.nps,100);assert.equal(r5.rows[0].group,'red','NPS above target, red on the unanswered score');
+    const answered=lowAt('2030-12-31T09:00');answered.servicesX={requests:[],items:[],complaints:[{id:'C-1',booking:'MG-X',room:'101',guest:'G',category:'Other',severity:'Low',description:'d',owner:'manager',status:'Open',createdAt:'2030-12-29T09:00',by:'reception',log:[]}]};
+    assert.equal(run(answered,'owner',SAT,{month:'2030-12'}).rows[0].group,undefined,'a complaint on the booking at the survey minute answers it');
+    const before=lowAt('2030-12-31T09:00');before.servicesX={requests:[],items:[],complaints:[{...answered.servicesX.complaints[0],createdAt:'2030-12-29T08:59'}]};
+    assert.equal(run(before,'owner',SAT,{month:'2030-12'}).rows[0].group,'red','a complaint raised before the survey does not answer it');
+    assert.equal(run(lowAt('2030-12-31T09:00',[],{booking:undefined,via:'qr'}),'owner',SAT,{month:'2030-12'}).rows[0].group,'red','a QR survey has no booking: never answered');
+    assert.equal(MB.unansweredNote(0),'');assert.match(MB.unansweredNote(2),/^ 2 scores of 2 or lower/);
+  });
+  test(T2+'satisfaction: a red row reaches the Owner digest block (Measurement)',()=>{
+    const s=lowAt('2030-12-31T09:00');const b=MB.measDigestBlock(s,'2030-12-31');
+    assert.ok(b&&b.rows.some(r=>r.reportId===SAT&&r.severity==='red'),'satisfaction line in the digest');
+    const ok=lowAt('2030-12-31T08:59');const b0=MB.measDigestBlock(ok,'2030-12-31');assert.ok(!b0||!b0.rows.some(r=>r.reportId===SAT));
+  });
+  test(T2+'reputation report: drop 0.30 red, 0.29 not; response 79 % red, 80 % not; the first month compares with the month before the FY',()=>{
+    const s=fresh();s.measX={reviews:[{id:'a',month:'2030-03',platform:'google',count:10,avgScore:4.5,responded:10},{id:'b',month:'2030-04',platform:'google',count:10,avgScore:4.2,responded:10},
+      {id:'c',month:'2030-05',platform:'google',count:10,avgScore:3.91,responded:10},{id:'d',month:'2030-06',platform:'agoda',count:100,avgScore:4,responded:79},{id:'e',month:'2030-07',platform:'agoda',count:100,avgScore:4,responded:80}]};
+    const g=Object.fromEntries(rows(run(s,'owner',REP,{fy:'2030-31'})).map(x=>[x.cells.month+' '+x.cells.platform,x.group]));
+    assert.deepEqual(g,{'2030-04 google':'red','2030-05 google':undefined,'2030-06 agoda':'red','2030-07 agoda':undefined});
+  });
+  test(T2+'service recovery report: repeat 90 days red, 91 not; compensation without approval red, with approval not',()=>{
+    const s=fresh();s.approvals.push({id:'AP-1',booking:'MG-1',amount:10000,reason:'x',status:'Executed',actor:'reception',version:1,approver:'manager'});
+    const pay=(id,room,approvalId)=>cmp(id,room,'2030-12-02T10:00',{recovery:{amount:10000,reason:'x',...(approvalId?{approvalId}:{}),at:'2030-12-02T11:00',by:'reception'}});
+    s.servicesX={requests:[],items:[],complaints:[cmp('A','101','2030-09-01T10:00'),cmp('B','101','2030-11-30T10:00'),cmp('C','102','2030-09-01T10:00'),cmp('D','102','2030-12-01T10:00'),pay('E','103'),pay('F','104','AP-1')]};
+    const g=Object.fromEntries(rows(run(s,'owner',REC,{from:'2030-11-25',to:'2030-12-05'})).map(x=>[x.cells.room,x.group]));
+    assert.deepEqual(g,{'101':'red','102':undefined,'103':'red','104':undefined});
+  });
+  test(T2+'desk timing report: 9 / 7 minutes red, 8 / 6 not; a stored standard moves the line',()=>{
+    const grp=s=>rows(run(s,'owner',DESK,{from:'2030-12-20',to:'2030-12-21'})).map(x=>x.group);
+    assert.deepEqual(grp(deskState(9,7)),['red','red']);assert.deepEqual(grp(deskState(8,6)),[undefined,undefined]);
+    assert.deepEqual(grp(deskState(9,6)),['red',undefined]);assert.deepEqual(grp(deskState(8,7)),[undefined,'red']);
+    const s=deskState(9,7);s.configX={values:{'meas.target.checkinMinutes':9,'meas.target.checkoutMinutes':7}};assert.deepEqual(grp(s),[undefined,undefined]);
+  });
+  const oneArrival=(lines,extra)=>{const s=fresh();s.measX={bookingExtra:{}};const b=stay(s,{checkedInAt:'2030-12-15T12:00',arrival:'2030-12-15',departure:'2030-12-16',lines});if(extra)s.measX.bookingExtra[b.id]=extra;return s;};
+  const Ln=(label,amount,o={})=>({id:'L'+(++seq),label,amount,date:'2030-12-15',kind:'service',taxBps:1800,...o});
+  const upRun=s=>run(s,'owner',UP,{from:'2030-12-15',to:'2030-12-15'}).rows[0];
+  test(T2+'upsell report red rule: revenue per arrival 4999 red, 5000 not (default Rs 50); a stored Owner target 6000 moves the line; a free upgrade without approver is red',()=>{
+    assert.equal(upRun(oneArrival([Ln('UPG · Room upgrade',4999)])).group,'red');assert.equal(upRun(oneArrival([Ln('UPG · Room upgrade',5000)])).group,undefined);
+    const t=oneArrival([Ln('UPG · Room upgrade',5000)]);t.configX={values:{'meas.target.upsellPerArrival':6000}};assert.equal(upRun(t).group,'red','L7: the Owner target is read');
+    assert.equal(upRun(oneArrival([Ln('UPG · Room upgrade',90000)],{upgrade:'free'})).group,'red','free upgrade, no approver');
+    assert.equal(upRun(oneArrival([Ln('UPG · Room upgrade',90000)],{upgrade:'free',upgradeApprover:'manager'})).group,undefined);
+  });
+  test(T2+'upsell M3 (a): only service lines count; a restaurant "Breakfast" food line is out; the desk half-day late check-out line counts; a reversed UPG is out',()=>{
+    const live=Ln('UPG · Room upgrade Deluxe',100000),old=Ln('UPG · Room upgrade Old',80000);
+    const s=oneArrival([live,Ln('Breakfast buffet',30000,{kind:'food',taxBps:500}),Ln(MB.LATE_CHARGE_LABEL,50000),old,Ln('Reversal · UPG',-80000,{kind:'adjustment',reversalOf:old.id})]);
+    const c=upRun(s).cells;
+    assert.equal(MB.LATE_CHARGE_LABEL,'Late check-out · half day');
+    assert.equal(c.breakfast,0,'food line is not an upsell');assert.equal(c.lateCheckout,50000,'half-day line counts as late check-out');
+    assert.equal(c.revenuePerArrival,150000,'live UPG 100000 + late 50000; the reversed UPG and its reversal are out');
+    assert.equal(upRun(oneArrival([Ln('Breakfast add-on',20000),Ln('Extra bed · night',40000)])).cells.breakfast,20000,'a service breakfast add-on still counts');
+  });
+  test(T2+'repeat loyalty report: the summary row is red when the share falls two months running; flat is not',()=>{
+    const falling=repState({'2030-08':['P1','P2','P3','N1'],'2030-09':['P1','P2','N2','N3'],'2030-10':['P1','N4','N5','N6']});
+    assert.equal(rows(run(falling.s,'owner',RPT,{month:'2030-10'}))[0].group,'red');
+    const flat=repState({'2030-08':['P1','P2','P3','N1'],'2030-09':['P1','P2','N2','N3'],'2030-10':['P1','P2','N4','N5']});
+    assert.equal(rows(run(flat.s,'owner',RPT,{month:'2030-10'}))[0].group,undefined);
   });
 }

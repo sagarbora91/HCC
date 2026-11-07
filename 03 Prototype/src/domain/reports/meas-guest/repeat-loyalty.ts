@@ -40,7 +40,8 @@ export const repeatLoyalty=registerReport({
   select:(s,_uid,p)=>{
     const month=p.month as string,f=repeatFigures(s,month);
     if(!f.customers)return {params:p,columns:REPEAT_COLS,rows:[],about:{dateBasis:capNote(BASIS,NEED)}};
-    const rows=[{kind:'row' as const,cells:{month,seenBefore:f.seenBefore,repeatShare:f.share,stays:f.stays,revenueShare:f.revenueShare,guests3:'',loyaltyTag:'',offerSent:null}}];
+    // MEAS2-B (M1): the summary row is red when the repeat share falls two months running.
+    const rows=[{kind:'row' as const,...(repeatFalling(s,month).red?{group:'red'}:{}),cells:{month,seenBefore:f.seenBefore,repeatShare:f.share,stays:f.stays,revenueShare:f.revenueShare,guests3:'',loyaltyTag:'',offerSent:null}}];
     const loyal=customerIndex(s).filter(c=>stayIn(c,month).length&&c.completed.length>=3).sort((a,b)=>a.name.localeCompare(b.name)||a.key.localeCompare(b.key));
     for(const c of loyal)rows.push({kind:'row',cells:{month:'',seenBefore:null,repeatShare:null,stays:c.completed.length,revenueShare:null,guests3:c.name,loyaltyTag:s.measX?.preference?.[c.key]?.loyaltyTag??'',offerSent:offerSentTo(s,c.key)}} as never);
     return {params:p,columns:REPEAT_COLS,rows};
