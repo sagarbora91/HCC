@@ -196,4 +196,64 @@ export function register({test,M,assert}){
     b.lines=[];assert.equal(D.measBlockClose(setVal(s,'meas.daily.blockClose',true)).reasons.some(x=>/High balance/.test(x)),false);
     assert.equal(D.measBlockClose(setVal(off(s,'meas.daily.high-balance'),'meas.daily.blockClose',true)).reasons.some(x=>/High balance/.test(x)),false);
   });
+
+  // ── F12-MEAS2-A · daily money follow-up (twins of Hcc.Meas.Tests MeasDailyRulesTests / MeasDailySqlTests Meas2A_*) ──
+  const A2='[F12-MEAS2-A] ';
+  test(A2+'M5: flash ADR divides by charged nights (room lines above zero); a re-posted night counts its new line only',()=>{
+    const s=structuredClone(M.seed());const d=s.date;
+    for(const b of s.bookings)b.lines=b.lines.filter(l=>!(l.kind==='room'&&l.date===d));
+    const ih=inhouse(s);assert.ok(ih.length>=4,'four in-house stays');
+    const night=(id,amount)=>({id,label:`Room night · ${d}`,amount,date:d,kind:'room',taxBps:0});
+    ih[0].lines.push(night('M5a',200000));
+    ih[1].lines.push(night('M5o',180000),{id:'M5r',label:`Reversal · Room night · ${d} · rate change`,amount:-180000,date:d,kind:'adjustment',taxBps:0,reversalOf:'M5o'},night('M5b',200000));
+    ih[2].lines.push(night('M5c',200000));ih[3].lines.push(night('M5z',0));
+    const adr=D.flashKpis(s,d).find(k=>k.kpi==='ADR');
+    assert.equal(adr.actual,200000);                                                  // 6,000 / 3, not / rooms slept and not counting the reversed 1,800
+    assert.equal(D.flashRows(s,d,'budget').find(r=>r.cells.kpi==='ADR').cells.exception,'');
+    for(const b of s.bookings)b.lines=b.lines.filter(l=>!(l.kind==='room'&&l.date===d));
+    assert.equal(D.flashKpis(s,d).find(k=>k.kpi==='ADR').actual,null);              // no charged night → blank, never 0 and red
+    assert.match(M.reportDef('rpt.guests.manager-flash').dateBasis,/charged nights \(nights with a room charge above zero\)/);
+  });
+  test(A2+'L8: last year is the same calendar date; 29 Feb compares with 28 Feb',()=>{
+    assert.equal(D.sameDateLastYear('2028-03-01'),'2027-03-01');assert.equal(D.sameDateLastYear('2028-02-29'),'2027-02-28');
+    assert.equal(D.sameDateLastYear('2026-11-07'),'2025-11-07');
+    assert.match(M.reportDef('rpt.guests.manager-flash').dateBasis,/same calendar date one year earlier/);
+  });
+  test(A2+'L2: flash money division is integer half away from zero (server FixedCodeEngine.DivRound)',()=>{
+    assert.deepEqual([D.divRound(5,2),D.divRound(-5,2),D.divRound(7,3),D.divRound(1,0),D.divRound(1,3)],[3,-3,2,0,0]);
+    const big=2**40;assert.equal(D.divRound(big,3),Math.floor(big/3));assert.equal(D.divRound(big*2+1,2),big+1);
+  });
+  test(A2+'L3: the walk-in threshold text keeps paise (500050 → 5,000.50)',()=>{
+    assert.equal(D.rupeesText(500050),'5,000.50');assert.equal(D.rupeesText(500000),'5,000');assert.equal(D.rupeesText(100000000),'10,00,000');
+    const s=structuredClone(M.seed());const b=inhouse(s)[0];b.company=undefined;b.arrival=s.date;b.receipts=[];b.lines=[{id:'L1',label:'Room',amount:500051,date:s.date,kind:'service',taxBps:0}];
+    assert.equal(D.highBalanceRows(s,500050).find(x=>x.cells.room===b.room).cells.exception,'Walk-in balance above 5,000.50 rupees');
+  });
+  test(A2+'N4: OOO-with-stay starts at the later of the block start and the check-in; an offline mark alone starts at the check-in',()=>{
+    const s=structuredClone(M.seed());const b=inhouse(s)[0];const r=s.rooms.find(x=>x.id===b.room);
+    b.checkedInAt=`${addDays(s.date,-1)}T10:00`;
+    s.measX={offline:{[r.id]:{reason:'OOO'}}};delete r.ooo;
+    assert.equal(D.discrepancyRows(s).find(x=>x.cells.room===b.room).cells.since,`${addDays(s.date,-1)} 10:00`); // not today's midnight
+    r.ooo={from:s.date,reason:'AC fault'};
+    assert.equal(D.discrepancyRows(s).find(x=>x.cells.room===b.room).cells.since,`${s.date} 00:00`);
+    r.ooo={from:addDays(s.date,-3),reason:'AC fault'};
+    assert.equal(D.discrepancyRows(s).find(x=>x.cells.room===b.room).cells.since,`${addDays(s.date,-1)} 10:00`);
+  });
+  test(A2+'N3: rate re-posts are kind rate-change with the change approver; an Owner change is its own approval; only unapproved entries are red',()=>{
+    const s=structuredClone(M.seed());const d=s.date;const bs=s.bookings.slice(0,4);
+    const owner=s.users.find(u=>u.role==='Owner').id,manager=s.users.find(u=>u.role==='Manager').id;
+    const rev=(b,id,amount)=>{b.lines.push({id:id+'o',label:`Room night · ${d}`,amount,date:d,kind:'room',taxBps:0},{id,label:`Reversal · Room night · ${d} · rate change`,amount:-amount,date:d,kind:'adjustment',taxBps:0,reversalOf:id+'o'});};
+    const ch=(b,id,by,approvedBy,reason)=>({id:'STR-'+id,booking:b.id,room:b.room,date:d,at:s.clock,by,scope:'all',reason,oldRate:1,newRate:2,oldPeople:1,newPeople:1,oldChildren:0,newChildren:0,effectiveFrom:d,reposted:[{reversal:id,line:id+'n',night:d}],...(approvedBy?{approvalId:'AP-'+id,approvedBy}:{})});
+    rev(bs[0],'NR1',180000);rev(bs[1],'NR2',220000);rev(bs[2],'NR3',150000);
+    bs[3].lines.push({id:'NV0',label:'Laundry',amount:5000,date:d,kind:'service',taxBps:0},{id:'NV1',label:'Reversal · Laundry · guest dispute',amount:-5000,date:d,kind:'adjustment',taxBps:0,reversalOf:'NV0'});
+    s.stayRateX={changes:[ch(bs[0],'NR1',manager,owner,'Corporate rate agreed'),ch(bs[1],'NR2',owner,undefined,'Owner guest rate'),ch(bs[2],'NR3',manager,undefined,'Long stay')]};
+    const rows=D.allowanceRows(s,{from:d,to:d});
+    const rate=rows.filter(r=>r.cells.kind==='rate-change');assert.equal(rate.length,3);
+    const by=no=>rate.find(r=>r.cells.bill===(bs[no].publicNo??bs[no].id)).cells;
+    assert.deepEqual([by(0).reasonCode,by(0).exception,by(0).amount],['Corporate rate agreed','',180000]);assert.notEqual(by(0).approver,'');
+    assert.deepEqual([by(1).reasonCode,by(1).exception],['Owner guest rate','']);assert.equal(by(1).approver,by(1).user);
+    assert.deepEqual([by(2).reasonCode,by(2).approver,by(2).exception],['Long stay','','No approver']);
+    const v=rows.find(r=>r.cells.kind==='void'&&r.cells.bill===(bs[3].publicNo??bs[3].id)&&r.cells.amount===5000);assert.equal(v.cells.amount,5000);assert.match(v.cells.exception,/No approver/);
+    assert.ok(D.ALLOWANCE_KINDS.includes('rate-change'));
+    assert.equal(D.allowanceRows(s,{from:d,to:d,kind:'rate-change'}).length,3);
+  });
 }

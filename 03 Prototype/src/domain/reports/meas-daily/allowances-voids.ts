@@ -10,11 +10,13 @@ import {rbacDiscountLimit} from '../../streams/rbac';
 import {bookingNo,rangeGuard,userLabel} from '../guests/shared';
 import {T,M,D,EXC,inRange,CAPTURE_NOTE} from './shared';
 
-export const ALLOWANCE_KINDS=['discount','allowance','rebate','void','correction','refund'];
+export const ALLOWANCE_KINDS=['discount','allowance','rebate','void','rate-change','correction','refund'];
 export const ALLOWANCES_COLS:RptColumn[]=[D('date','Date'),T('kind','Kind'),T('bill','Bill'),M('amount','Amount'),T('reasonCode','Reason code'),T('user','User'),T('approver','Approver'),EXC()];
 export const ALLOWANCES_KEY='meas.daily.adjustments';
 type Entry={date:string;kind:string;bill:string;amount:number;reason:string;user:string;approver:string};
 const tail=(label:string)=>{const i=label.indexOf(' · ');return i<0?'':label.slice(i+3).trim();};
+/** A rate re-post reversal: prototype "Reversal · <night> · rate change", server "Reversal · rate change · <night>". */
+export const isRateRepost=(label:string)=>label.startsWith('Reversal · ')&&(label.endsWith(' · rate change')||label.startsWith('Reversal · rate change · '));
 
 export function allowanceEntries(s:State):Entry[]{
   const out:Entry[]=[];
@@ -27,7 +29,14 @@ export function allowanceEntries(s:State):Entry[]{
         out.push({date:l.date,kind:low.includes('rebate')?'rebate':low.includes('allowance')?'allowance':'discount',bill,amount:Math.abs(l.amount),reason,user:ap?.actor??'',approver:ap?.approver??''});
       }else if(l.reversalOf){
         const ap=l.approvalId?s.approvals.find(a=>a.id===l.approvalId):undefined;
-        out.push({date:l.date,kind:l.kind==='adjustment'?'correction':'void',bill,amount:Math.abs(l.amount),reason:tail(l.label),user:ap?.actor??'',approver:ap?.approver??''});
+        // F12-MEAS2-A · N3 (owner 7 Nov): a rate re-post reversal (stay-rate.ts strApply) is its own kind; user, reason and approver come from the rate change
+        // that re-posted it: its approver, or the Owner who changed it directly (a direct Manager change has none). Server twin: AllowancesVoidsReport.
+        // A bill correction's credit-note line stays a correction; any other reversed line is a void (server: reverses_charge_id).
+        const ch=isRateRepost(l.label)?(s.stayRateX?.changes??[]).find(c=>c.reposted.some(r=>r.reversal===l.id)):undefined;
+        if(ch){
+          const approver=ch.approvedBy??(s.users.find(u=>u.id===ch.by)?.role==='Owner'?ch.by:'');
+          out.push({date:l.date,kind:'rate-change',bill,amount:Math.abs(l.amount),reason:ch.reason,user:ch.by,approver});
+        }else out.push({date:l.date,kind:isRateRepost(l.label)?'rate-change':l.label.startsWith('Credit note ')?'correction':'void',bill,amount:Math.abs(l.amount),reason:tail(l.label),user:ap?.actor??'',approver:ap?.approver??''});
       }
     }
     for(const r of b.receipts)if(r.kind==='refund'){
@@ -45,14 +54,15 @@ export function allowanceEntries(s:State):Entry[]{
 export function allowanceRows(s:State,p:{from?:string;to?:string;kind?:string;user?:string}):RptRow[]{
   const all=allowanceEntries(s);
   const dayTotal=new Map<string,number>();
-  for(const e of all)if(e.user)dayTotal.set(e.user+'|'+e.date,(dayTotal.get(e.user+'|'+e.date)??0)+e.amount);
+  // F12-MEAS2-A · N3: a rate re-post is governed by the rate-change limit (PERM-RATE-001), not the discount limit: it never counts towards the daily cap.
+  for(const e of all)if(e.user&&e.kind!=='rate-change')dayTotal.set(e.user+'|'+e.date,(dayTotal.get(e.user+'|'+e.date)??0)+e.amount);
   return all.filter(e=>inRange(e.date,p.from,p.to)&&(!p.kind||p.kind==='all'||e.kind===p.kind)&&(!p.user||e.user===p.user))
     .sort((a,b)=>a.date.localeCompare(b.date)||a.kind.localeCompare(b.kind)||a.bill.localeCompare(b.bill)||a.amount-b.amount)
     .map(e=>{
       const why:string[]=[];
       if(!e.reason.trim())why.push('No reason');
       if(!e.approver)why.push('No approver');
-      const cap=e.user?rbacDiscountLimit(s,e.user):undefined;
+      const cap=e.user&&e.kind!=='rate-change'?rbacDiscountLimit(s,e.user):undefined;
       if(cap!==undefined&&(dayTotal.get(e.user+'|'+e.date)??0)>cap)why.push('User above the daily cap');
       return {kind:'row' as const,cells:{date:e.date,kind:e.kind,bill:e.bill,amount:e.amount,reasonCode:e.reason,user:userLabel(s,e.user),approver:userLabel(s,e.approver),exception:why.join('; ')}};
     });
@@ -63,7 +73,7 @@ export const allowancesVoids=registerReport({
   moneyFlag:true,moneyGate:'PERM-RPT-002',viewPerms:['PERM-RPT-002'],dateClass:'D-B',
   params:[{key:'from',label:'From',type:'date',dateClass:'D-B'},{key:'to',label:'To',type:'date',dateClass:'D-B'},{key:'kind',label:'Kind',type:'enum',options:['all',...ALLOWANCE_KINDS],default:'all'},{key:'user',label:'User',type:'user'}],
   columns:ALLOWANCES_COLS,
-  dateBasis:'Entries by the business date they were posted on (range up to 92 days): discount, allowance and rebate lines, reversed lines (voids), issued bill corrections and refunds. Amount is the absolute value before tax for lines, the net change for corrections. Exception: no reason, no approver, or a user above the daily cap (that user\'s discount limit).'+CAPTURE_NOTE('allowance reason codes (meas-cap-desk)'),
+  dateBasis:'Entries by the business date they were posted on (range up to 92 days): discount, allowance and rebate lines, reversed lines (voids), rate re-posts (a posted night reversed by a stay rate change, kind rate-change), issued bill corrections and refunds. Amount is the absolute value before tax for lines, the net change for corrections. A rate re-post takes its reason and approver from the rate change (an Owner\'s own change is its own approval). Exception: no reason, no approver, or a user above the daily cap (that user\'s discount limit).'+CAPTURE_NOTE('allowance reason codes (meas-cap-desk)'),
   formats:['screen','xlsx','pdf','csv'],phone:'no',
   select:(s,_uid,p)=>{rangeGuard(p.from,p.to,92,s.date);return {params:p,columns:ALLOWANCES_COLS,rows:allowanceRows(s,p)};},
 });

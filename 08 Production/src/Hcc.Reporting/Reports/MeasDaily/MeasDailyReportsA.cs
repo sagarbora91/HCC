@@ -27,10 +27,21 @@ public sealed class ManagerFlashReport(SqlPlatform platform, ISettingsReader? se
 
     public ReportDefinition Definition { get; } = new(Id, "Manager's flash", "guests", "P1", "MEAS", true, "PERM-RPT-002", ["PERM-RPT-001"], [], "PERM-RPT-003", ReportDateClass.Day,
         [new("from", "Date", "date", ReportDateClass.Day), new("compare", "Compare with", "enum", null, ["budget", "last year"], "budget")], Columns,
-        "One business date. Occupancy = rooms slept / rooms in service; ADR = room charge before GST / rooms slept; RevPAR = room charge / rooms in service. Targets are meas.target.* (budget); last year = the date 365 days earlier. Exception: a KPI with a target more than 10 % below it. Comps are pending DEC-266.",
-        [ReportFormat.Screen, ReportFormat.Pdf], ReportPhone.Yes);
+        BasisText, [ReportFormat.Screen, ReportFormat.Pdf], ReportPhone.Yes);
 
-    private sealed record Day(int Occupied, int Sell, long RoomRev, int Arrivals, int Departures, int NoShows, int Ooo);
+    // F12-MEAS2-A · M5 (contract §9.2): ADR divides by charged nights (live room lines above zero), not rooms slept; L8 (owner 7 Nov): last year = the same calendar date.
+    public const string BasisText = "One business date. Occupancy = rooms slept / rooms in service; ADR = room charge before GST / charged nights (nights with a room charge above zero); RevPAR = room charge / rooms in service. Targets are meas.target.* (budget); last year = the same calendar date one year earlier (29 Feb compares with 28 Feb). Exception: a KPI with a target more than 10 % below it. Comps are pending DEC-266.";
+
+    /// <summary>L8 (owner 7 Nov 2026): the same calendar date one year earlier; 29 Feb maps to 28 Feb.</summary>
+    public static DateOnly LastYear(DateOnly date) => date.AddYears(-1);
+
+    /// <summary>L2: money division in integer paise, half away from zero (FixedCodeEngine.DivRound); 0 when there is no divisor.</summary>
+    public static long DivRound(long n, long d) => d > 0 ? FixedCodeEngine.DivRound(n, d) : 0;
+
+    /// <summary>M5: ADR = room revenue / charged nights; null when no night carried a room charge above zero.</summary>
+    public static long? Adr(long roomRev, int charged) => charged > 0 ? DivRound(roomRev, charged) : null;
+
+    private sealed record Day(int Occupied, int Sell, long RoomRev, int Arrivals, int Departures, int NoShows, int Ooo, int Charged);
 
     private static async Task<Day> DayAsync(SqlConnection conn, int p, DateOnly d, CancellationToken ct)
     {
@@ -42,7 +53,9 @@ public sealed class ManagerFlashReport(SqlPlatform platform, ISettingsReader? se
                    (SELECT COUNT(*) FROM inv.reservation r WHERE r.property_id = @p AND r.status IN ('Confirmed','InHouse','Departed') AND r.arrival = @d),
                    (SELECT COUNT(*) FROM inv.reservation r WHERE r.property_id = @p AND r.status IN ('InHouse','Departed') AND r.departure = @d),
                    (SELECT COUNT(*) FROM inv.reservation r WHERE r.property_id = @p AND r.status = 'NoShow' AND r.arrival = @d),
-                   (SELECT COUNT(DISTINCT b.room_id) FROM ops.room_block b JOIN inv.room rm ON rm.room_id = b.room_id WHERE rm.property_id = @p AND b.released_utc IS NULL AND (b.from_date IS NULL OR b.from_date <= @d) AND (b.to_date IS NULL OR b.to_date > @d));
+                   (SELECT COUNT(DISTINCT b.room_id) FROM ops.room_block b JOIN inv.room rm ON rm.room_id = b.room_id WHERE rm.property_id = @p AND b.released_utc IS NULL AND (b.from_date IS NULL OR b.from_date <= @d) AND (b.to_date IS NULL OR b.to_date > @d)),
+                   (SELECT COUNT(*) FROM bill.charge c JOIN bill.folio f ON f.folio_id = c.folio_id JOIN inv.reservation r ON r.reservation_id = f.reservation_id
+                     WHERE r.property_id = @p AND c.kind = 'room' AND c.service_date = @d AND c.reverses_charge_id IS NULL AND c.reversed_by_charge_id IS NULL AND c.amount_paise > 0);
             """;
         await using var cmd = new SqlCommand(sql, conn);
         GuestsSql.Add(cmd, "@p", SqlDbType.Int, p);
@@ -50,19 +63,20 @@ public sealed class ManagerFlashReport(SqlPlatform platform, ISettingsReader? se
         await using var rd = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
         await rd.ReadAsync(ct).ConfigureAwait(false);
         return new Day(Convert.ToInt32(rd.GetValue(0), CultureInfo.InvariantCulture), sell, Convert.ToInt64(rd.GetValue(1), CultureInfo.InvariantCulture), Convert.ToInt32(rd.GetValue(2), CultureInfo.InvariantCulture),
-            Convert.ToInt32(rd.GetValue(3), CultureInfo.InvariantCulture), Convert.ToInt32(rd.GetValue(4), CultureInfo.InvariantCulture), Convert.ToInt32(rd.GetValue(5), CultureInfo.InvariantCulture));
+            Convert.ToInt32(rd.GetValue(3), CultureInfo.InvariantCulture), Convert.ToInt32(rd.GetValue(4), CultureInfo.InvariantCulture), Convert.ToInt32(rd.GetValue(5), CultureInfo.InvariantCulture),
+            Convert.ToInt32(rd.GetValue(6), CultureInfo.InvariantCulture));
     }
 
-    private static double Pct1(long n, long d) => d > 0 ? Math.Round(n * 1000.0 / d, MidpointRounding.AwayFromZero) / 10 : 0;
+    private static object? Cell(string px, double? v) => v is not { } x ? null : px == "pct" ? (object)x : (long)Math.Round(x, MidpointRounding.AwayFromZero);
 
-    private static long DivRound(long n, long d) => d > 0 ? (long)Math.Round((double)n / d, MidpointRounding.AwayFromZero) : 0;
+    private static double Pct1(long n, long d) => d > 0 ? Math.Round(n * 1000.0 / d, MidpointRounding.AwayFromZero) / 10 : 0;
 
     public async Task<ReportResult> SelectAsync(Caller caller, BoundParams parameters, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(caller);
         ArgumentNullException.ThrowIfNull(parameters);
         var date = parameters.From!.Value;
-        var lastYear = date.AddDays(-365);
+        var lastYear = LastYear(date);
         var compareLast = MeasSql.Param(parameters, "compare") == "last year";
         var tOcc = await MeasTargets.GetAsync(settings, caller.PropertyId, "meas.target.occupancy", MeasTargets.Occupancy, ct).ConfigureAwait(false);
         var tAdr = await MeasTargets.GetAsync(settings, caller.PropertyId, "meas.target.adr", MeasTargets.Adr, ct).ConfigureAwait(false);
@@ -77,16 +91,16 @@ public sealed class ManagerFlashReport(SqlPlatform platform, ISettingsReader? se
             var red = actual is not null && target is not null && px != "cnt" && MeasDailyRules.FlashRed((long)Math.Round(actual.Value * (px == "pct" ? 10 : 1), MidpointRounding.AwayFromZero), (long?)Math.Round(target.Value * (px == "pct" ? 10 : 1), MidpointRounding.AwayFromZero));
             rows.Add(Row(new Dictionary<string, object?>(StringComparer.Ordinal)
             {
-                ["kpi"] = kpi, [px + "Actual"] = actual is null ? null : px == "pct" ? actual : (long)actual, [px + "Target"] = target is null ? null : px == "pct" ? target : (long)target,
-                [px + "Last"] = last is null ? null : px == "pct" ? last : (long)last,
-                [px + "Var"] = actual is not null && baseV is not null ? Math.Round(actual.Value - baseV.Value, 1, MidpointRounding.AwayFromZero) : null,
+                // F12-MEAS2-A · L2: money and count cells are long (ReportRow contract), percent cells double; the old ternary widened every cell to double.
+                ["kpi"] = kpi, [px + "Actual"] = Cell(px, actual), [px + "Target"] = Cell(px, target), [px + "Last"] = Cell(px, last),
+                [px + "Var"] = actual is not null && baseV is not null ? Cell(px, Math.Round(actual.Value - baseV.Value, 1, MidpointRounding.AwayFromZero)) : null,
                 ["exception"] = red ? $"{kpi} more than 10 % below target" : "",
             }));
         }
 
-        var tRev = Math.Round(tOcc * tAdr / 100.0, MidpointRounding.AwayFromZero);
+        var tRev = DivRound(tOcc * tAdr, 100);
         Add("Occupancy %", "pct", f.Sell > 0 ? Pct1(f.Occupied, f.Sell) : null, tOcc, ly.Sell > 0 ? Pct1(ly.Occupied, ly.Sell) : null);
-        Add("ADR", "amt", f.Occupied > 0 ? DivRound(f.RoomRev, f.Occupied) : null, tAdr, ly.Occupied > 0 ? DivRound(ly.RoomRev, ly.Occupied) : null);
+        Add("ADR", "amt", Adr(f.RoomRev, f.Charged), tAdr, Adr(ly.RoomRev, ly.Charged));
         Add("RevPAR", "amt", f.Sell > 0 && f.Occupied > 0 ? DivRound(f.RoomRev, f.Sell) : null, tRev, ly.Sell > 0 && ly.Occupied > 0 ? DivRound(ly.RoomRev, ly.Sell) : null);
         Add("Arrivals", "cnt", f.Arrivals, null, ly.Arrivals);
         Add("Departures", "cnt", f.Departures, null, ly.Departures);
@@ -267,10 +281,29 @@ public sealed class RoomDiscrepancyReport(SqlPlatform platform) : IReportSelecto
         "The state now (the property clock) unless an as-of time is given. Mismatch kinds: sold-but-vacant, vacant-but-occupied, OOO-with-stay (sleep-out has no data source yet). Exception: a mismatch older than 2 hours.",
         [ReportFormat.Screen, ReportFormat.Pdf], ReportPhone.Yes);
 
+    /// <summary>
+    /// N4: start of an OOO-with-stay mismatch in property-local time = the later of the room going offline (block from_date at local midnight, else the
+    /// meas.room_offline set time) and the check-in. UTC inputs are converted with the property zone; null when nothing is known.
+    /// </summary>
+    public static DateTime? OooSince(DateTime? blockFromDate, DateTime? offlineSetUtc, DateTime? checkedInUtc, TimeZoneInfo zone)
+    {
+        ArgumentNullException.ThrowIfNull(zone);
+        DateTime? Local(DateTime? utc) => utc is { } u ? TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(u, DateTimeKind.Utc), zone) : null;
+        var offline = blockFromDate is { } b ? DateTime.SpecifyKind(b.Date, DateTimeKind.Unspecified) : Local(offlineSetUtc);
+        var checkedIn = Local(checkedInUtc);
+        if (offline is null) return checkedIn;
+        if (checkedIn is null) return offline;
+        return offline > checkedIn ? offline : checkedIn;
+    }
+
     // sold-but-vacant: a confirmed reservation whose arrival day is today or earlier and whose check-in time (@ci) has passed, not checked in.
     // OOO-with-stay: an in-house stay in a room with an active block or an OOO / OOS offline reason.
+    // F12-MEAS2-A · N4: the OOO-with-stay start is the later of the room going offline (block from_date = local midnight, else meas.room_offline.set_utc)
+    // and the check-in (gst.stay.checked_in_utc); UTC values become property-local in C# before the age is taken. Columns 4-7: local since (sold-but-vacant),
+    // block from_date, offline set_utc, checked_in_utc.
     private const string Sql = """
-        SELECT rm.room_no, 'OOO-with-stay', 'Occupied', 'Out of order', COALESCE(CAST(blk.from_date AS DATETIME2), r.created_utc), rm.hk_status
+        SELECT rm.room_no, 'OOO-with-stay', 'Occupied', 'Out of order', CAST(NULL AS DATETIME2), blk.from_date,
+               (SELECT o.set_utc FROM meas.room_offline o WHERE o.property_id = rm.property_id AND o.room_id = rm.room_id AND o.reason IN ('OOO','OOS')), s.checked_in_utc
           FROM inv.room rm
           JOIN inv.reservation r ON r.property_id = rm.property_id AND r.status = 'InHouse'
           JOIN gst.stay_segment sg ON sg.room_id = rm.room_id AND sg.to_date IS NULL
@@ -280,7 +313,8 @@ public sealed class RoomDiscrepancyReport(SqlPlatform platform) : IReportSelecto
            AND (blk.from_date IS NOT NULL OR EXISTS (SELECT 1 FROM ops.room_block b2 WHERE b2.room_id = rm.room_id AND b2.released_utc IS NULL AND b2.from_date IS NULL)
                 OR EXISTS (SELECT 1 FROM meas.room_offline o WHERE o.property_id = rm.property_id AND o.room_id = rm.room_id AND o.reason IN ('OOO','OOS')))
         UNION ALL
-        SELECT rm.room_no, 'sold-but-vacant', 'Reserved, arrival due', rm.hk_status, DATEADD(MINUTE, DATEDIFF(MINUTE, 0, CAST(@ci AS TIME)), CAST(r.arrival AS DATETIME2)), rm.hk_status
+        SELECT rm.room_no, 'sold-but-vacant', 'Reserved, arrival due', rm.hk_status, DATEADD(MINUTE, DATEDIFF(MINUTE, 0, CAST(@ci AS TIME)), CAST(r.arrival AS DATETIME2)), CAST(NULL AS DATE),
+               CAST(NULL AS DATETIME2(3)), CAST(NULL AS DATETIME2(3))
           FROM inv.reservation r
           JOIN inv.room_night n ON n.reservation_id = r.reservation_id AND n.night = r.arrival
           JOIN inv.room rm ON rm.room_id = n.room_id
@@ -306,7 +340,11 @@ public sealed class RoomDiscrepancyReport(SqlPlatform platform) : IReportSelecto
         await using (var rd = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false))
         {
             while (await rd.ReadAsync(ct).ConfigureAwait(false))
-                list.Add((rd.GetString(0), rd.GetString(1), rd.GetString(2), rd.GetString(3), rd.GetDateTime(4)));
+            {
+                DateTime? Opt(int i) => rd.IsDBNull(i) ? null : rd.GetDateTime(i);
+                var since = Opt(4) ?? OooSince(Opt(5), Opt(6), Opt(7), clock.Zone) ?? now;
+                list.Add((rd.GetString(0), rd.GetString(1), rd.GetString(2), rd.GetString(3), since));
+            }
         }
 
         foreach (var x in list.OrderBy(x => x.Room, StringComparer.Ordinal))

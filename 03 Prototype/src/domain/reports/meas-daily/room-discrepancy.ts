@@ -21,10 +21,13 @@ export function discrepancyRows(s:State,at?:string):RptRow[]{
   const out:{room:string;fo:string;hk:string;kind:string;since:string}[]=[];
   for(const r of s.rooms.filter(rmsListed)){
     const stay=s.bookings.find(b=>b.status==='In house'&&b.room===r.id);
-    const off=rmsOooDuring(r,date,addDays(date,1))||s.measX?.offline?.[r.id]?.reason==='OOO'||s.measX?.offline?.[r.id]?.reason==='OOS';
+    const blocked=rmsOooDuring(r,date,addDays(date,1));
+    const off=blocked||s.measX?.offline?.[r.id]?.reason==='OOO'||s.measX?.offline?.[r.id]?.reason==='OOS';
     if(stay&&off){
-      const from=r.ooo?.from??date;
-      out.push({room:r.id,fo:'Occupied',hk:'Out of order',kind:'OOO-with-stay',since:(from>(stay.checkedInAt??'').slice(0,10)?from+'T00:00':stay.checkedInAt??`${stay.arrival}T${s.settings.checkin}`).slice(0,16)});
+      // F12-MEAS2-A · N4 (server OooSince): the later of the room going offline (block from = local midnight) and the check-in, all in hotel-clock time.
+      // An offline mark without a block carries no set time in the prototype capture (MeasOffline), so it starts at the check-in.
+      const ci=(stay.checkedInAt??`${stay.arrival}T${s.settings.checkin}`).slice(0,16),from=blocked?r.ooo!.from+'T00:00':undefined;
+      out.push({room:r.id,fo:'Occupied',hk:'Out of order',kind:'OOO-with-stay',since:from&&from>ci?from:ci});
       continue;
     }
     if(!stay){

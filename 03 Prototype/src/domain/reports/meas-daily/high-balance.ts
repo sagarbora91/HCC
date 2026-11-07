@@ -9,7 +9,7 @@ import {totals} from '../../selectors';
 import {grpSlice} from '../../streams/groups';
 import {nights} from '../../money';
 import {guestNameOf} from '../guests/shared';
-import {T,I,M,EXC} from './shared';
+import {T,I,M,EXC,rupeesText} from './shared';
 
 export const HIGH_BALANCE_COLS:RptColumn[]=[T('room','Room'),T('guest','Guest','guestName'),T('company','Company'),I('daysInHouse','Days in house'),M('balance','Balance'),M('deposit','Deposit'),M('limit','Limit'),M('overBy','Over by'),EXC()];
 export const HIGH_BALANCE_KEY='meas.daily.high-balance';
@@ -27,7 +27,7 @@ export function highBalanceRows(s:State,threshold:number):RptRow[]{
     const allowed=hasCo?t.deposit+limit:threshold;
     const reasons:string[]=[];
     if(hasCo&&t.balance>t.deposit+limit)reasons.push('Balance above deposit plus credit limit');
-    if(!hasCo&&t.balance>threshold)reasons.push(`Walk-in balance above ${(threshold/100).toLocaleString('en-IN')} rupees`);
+    if(!hasCo&&t.balance>threshold)reasons.push(`Walk-in balance above ${rupeesText(threshold)} rupees`); // F12-MEAS2-A · L3: paise kept
     if(days>HIGH_BALANCE_DAYS)reasons.push('Balance older than 2 nights');
     return {kind:'row' as const,cells:{room:b.room,guest:guestNameOf(s,b),company:b.company?.name??'',daysInHouse:days,balance:t.balance,deposit:t.deposit,limit,overBy:Math.max(0,t.balance-allowed),exception:reasons.join('; ')}};
   });

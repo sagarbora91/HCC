@@ -89,10 +89,13 @@ public static class MeasDailyRules
     {
         var r = new List<string>();
         if (hasCompany && balance > deposit + limit) r.Add("Balance above deposit plus credit limit");
-        if (!hasCompany && balance > threshold) r.Add($"Walk-in balance above {(threshold / 100).ToString("N0", CultureInfo.GetCultureInfo("en-IN"))} rupees");
+        if (!hasCompany && balance > threshold) r.Add($"Walk-in balance above {Rupees(threshold)} rupees");
         if (daysInHouse > HighBalanceDays) r.Add("Balance older than 2 nights");
         return r;
     }
+
+    /// <summary>F12-MEAS2-A · L3: a paise amount as rupees for a rule text (en-IN grouping); paise are kept when there are any (500050 → "5,000.50").</summary>
+    public static string Rupees(long paise) => (paise / 100m).ToString(paise % 100 == 0 ? "N0" : "N2", CultureInfo.GetCultureInfo("en-IN"));
 
     /// <summary>OOO more than 7 days without a work order (exactly 7 is not red).</summary>
     public static bool OooRed(string kind, int days, string workOrder) => kind == "OOO" && days > OooDaysLimit && string.IsNullOrEmpty(workOrder);

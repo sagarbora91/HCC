@@ -6,7 +6,7 @@ import {registerReport} from '../catalogue';
 import {registerMeasReport,measTarget} from '../../streams/measure';
 import {reportStaysOn,reportSellableOn} from '../../streams/closing';
 import {rmsOooDuring} from '../../streams/roomoffline';
-import {T,M,I,P,EXC,pct1,divRound,occOn,addDays} from './shared';
+import {T,M,I,P,EXC,pct1,divRound,occOn,addDays,sameDateLastYear} from './shared';
 
 export const FLASH_COLS:RptColumn[]=[T('kpi','KPI'),P('pctActual','Actual %'),P('pctTarget','Target %'),P('pctLast','Last year %'),P('pctVar','Variance %'),
   M('amtActual','Actual'),M('amtTarget','Target'),M('amtLast','Last year'),M('amtVar','Variance'),
@@ -16,18 +16,26 @@ export const FLASH_KEY='meas.daily.flash';
 export const flashRed=(actual:number,target:number|undefined|null)=>target!==undefined&&target!==null&&target>0&&actual*100<target*90;
 
 export type FlashKpi={kpi:string;unit:'pct'|'amt'|'cnt';actual:number|null;target:number|null;last:number|null};
+// F12-MEAS2-A · M5 (contract §9.2): ADR = room charge before GST / charged nights = live room lines of the night above zero (zero-rate and complimentary
+// nights do not lower it). Live = neither a reversal nor reversed (server: reverses_charge_id / reversed_by_charge_id both null), so a rate re-post
+// counts the new line only. L8: last year = the same calendar date (sameDateLastYear).
+export const FLASH_BASIS='One business date. Occupancy = rooms slept / rooms in service; ADR = room charge before GST / charged nights (nights with a room charge above zero); RevPAR = room charge / rooms in service. Targets are meas.target.* (budget); last year = the same calendar date one year earlier (29 Feb compares with 28 Feb). Exception: a KPI with a target more than 10 % below it. Comps are pending DEC-266.';
 function dayFigures(s:State,d:string){
   const stays=reportStaysOn(s,d),sell=reportSellableOn(s,d).length;
-  const roomRev=s.bookings.reduce((a,b)=>a+b.lines.filter(l=>l.kind==='room'&&l.date===d).reduce((x,l)=>x+l.amount,0),0);
+  let roomRev=0,charged=0;
+  for(const b of s.bookings){
+    const reversed=new Set(b.lines.filter(l=>l.reversalOf).map(l=>l.reversalOf));
+    for(const l of b.lines)if(l.kind==='room'&&l.date===d&&!l.reversalOf&&!reversed.has(l.id)){roomRev+=l.amount;if(l.amount>0)charged++;}
+  }
   const occupied=stays.length;
-  return {occupied,sell,roomRev,occ:sell?pct1(occupied,sell):null,adr:occupied?divRound(roomRev,occupied):null,revpar:sell&&occupied?divRound(roomRev,sell):null};
+  return {occupied,sell,roomRev,charged,occ:sell?pct1(occupied,sell):null,adr:charged?divRound(roomRev,charged):null,revpar:sell&&occupied?divRound(roomRev,sell):null};
 }
 /** All KPIs of one business date with their targets and last-year figures (pure; the digest and the night audit reuse it). */
 export function flashKpis(s:State,date:string):FlashKpi[]{
-  const ly0=addDays(date,-365);
+  const ly0=sameDateLastYear(date);
   const f=dayFigures(s,date),ly=dayFigures(s,ly0);
   const tOcc=measTarget(s,'meas.target.occupancy'),tAdr=measTarget(s,'meas.target.adr');
-  const tRev=tOcc!==undefined&&tAdr!==undefined?Math.round(tOcc*tAdr/100):null;
+  const tRev=tOcc!==undefined&&tAdr!==undefined?divRound(tOcc*tAdr,100):null;
   const live=(b:{status:string})=>b.status==='Confirmed'||b.status==='In house'||b.status==='Departed';
   const arrivals=(d:string)=>s.bookings.filter(b=>live(b)&&b.arrival===d).length;
   const departures=(d:string)=>s.bookings.filter(b=>(b.status==='Departed'||b.status==='In house')&&b.departure===d).length;
@@ -64,7 +72,7 @@ export const managerFlash=registerReport({
   moneyFlag:true,moneyGate:'PERM-RPT-002',viewPerms:['PERM-RPT-001'],dateClass:'D-DAY',
   params:[{key:'from',label:'Date',type:'date',dateClass:'D-DAY'},{key:'compare',label:'Compare with',type:'enum',options:['budget','last year'],default:'budget'}],
   columns:FLASH_COLS,
-  dateBasis:'One business date. Occupancy = rooms slept / rooms in service; ADR = room charge before GST / rooms slept; RevPAR = room charge / rooms in service. Targets are meas.target.* (budget); last year = the date 365 days earlier. Exception: a KPI with a target more than 10 % below it. Comps are pending DEC-266.',
+  dateBasis:FLASH_BASIS,
   formats:['screen','pdf'],phone:'yes',
   select:(s,_uid,p)=>({params:p,columns:FLASH_COLS,rows:flashRows(s,p.from!,String(p.compare??'budget'))}),
 });
