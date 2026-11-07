@@ -35,4 +35,9 @@ Per FY the selectors give: billed (`fy-summary.billed`), room-nights (`fy-summar
 | 2026-27 (FY26 fixture, Apr to 24 Oct) | see fy26-parity.json revenue-monthly / occupancy-history | | | |
 
 ## Counts
-(see final lines below)
+STOPPED at the turn cap, NOT fully verified:
+- `tsc --noEmit`: clean (0 errors).
+- Filtered prototype run (`HCC_TEST_ONLY=meas-study-a`, run 3): 65/75 passed, including screen = Excel = PDF (threeWay) for all nine reports. The 10 failures were test-file bugs (an `export *` name clash hid `addDays`; one column-count assert); both fixed and committed, re-run queued behind other lanes (log `.scratch/run5.log`, retry loop) and NOT seen green.
+- `fy26-parity.json` is written by that green run; until then the server parity test (`StudyParityTests`) has no input file. Server code (LegacyCore/Revenue/Occupancy/Zero.cs, StudyReports.cs, HccComposition F12-STUDY-A block, test csproj and EngineTests blocks) was written without a compiler: `dotnet build` / `dotnet test Hcc.Reporting.Tests` NOT run.
+- Full `npm test` NOT run. catalogue.json regenerated.
+Next: re-run the filtered test (writes the parity file), then `dotnet test` for Hcc.Reporting.Tests, fix compile errors, then `npm test`.
