@@ -12,7 +12,7 @@ Lane meas-digest / Sonnet / branch claude/meas-digest / worktree E:\Projects\HCC
 Off item (module / pack / item via `measOn`) absent; all packs off or nothing checkable = no block; subscription = `configX.values['meas.digest.line.<item key>'] === false` hides the item (default shown). A provider can only report on its own switch. WhatsApp = count only (DEC-202 #7).
 
 ## Tests
-tsc --noEmit clean; `HCC_TEST_ONLY=meas-digest npm test` 64/64 (8 new); full `npm test` see commit log / below; `dotnet test tests/Hcc.Closing.Tests --filter MeasurementDigestTests` 3/3.
+tsc --noEmit clean; `HCC_TEST_ONLY=meas-digest npm test` 64/64 (8 new); full `npm test` 2984/2984; `dotnet test tests/Hcc.Closing.Tests --filter MeasurementDigestTests` 3/3.
 
 ## Integration needed (files outside my row)
 1. `src/domain/streams/digest.ts`: `import './measure-digest'`; in `dgsEmailBody` append `...measDigestEmailLines(measDigestBlock(s,c.date))` (needs `s`, so add a `meas` field to `DGSCard` built in `dgsCard`) and in `dgsWhatsAppBody` `...measDigestWhatsAppLines(...)`.
