@@ -7,6 +7,8 @@ namespace Hcc.Reporting.Analytics;
 
 public static class BeyondGuest
 {
+    private sealed class PerGuest { public long N; public long Nights; public long Rev; public string First = ""; public string Last = ""; public SortedSet<string> Fys = new(StringComparer.Ordinal); }
+
     private static Dictionary<string, long> NetOf(Ctx c)
     {
         var m = new Dictionary<string, long>(StringComparer.Ordinal);
@@ -31,11 +33,11 @@ public static class BeyondGuest
             var rs = ss.Where(s => rep.Contains(s.GuestKey)).ToList();
             return (object)R(f, (long)gs.Count, (long)rep.Count, Pct1(rep.Count, gs.Count), (long)ss.Count, (long)rs.Count, ss.Sum(N), rs.Sum(N), Pct1(rs.Sum(N), ss.Sum(N)));
         }).ToList();
-        var per = new Dictionary<string, (long N, long Nights, long Rev, string First, string Last, SortedSet<string> Fys)>(StringComparer.Ordinal);
+        var per = new Dictionary<string, PerGuest>(StringComparer.Ordinal);
         foreach (var s in c.Stays)
         {
-            var o = per.TryGetValue(s.GuestKey, out var e) ? e : (0L, 0L, 0L, s.From, s.From, new SortedSet<string>(StringComparer.Ordinal));
-            o.N++; o.Nights += s.Nights; o.Rev += N(s); if (Lt(s.From, o.First)) o.First = s.From; if (Lt(o.Last, s.From)) o.Last = s.From; o.Fys.Add(FyOf(s.From)); per[s.GuestKey] = o;
+            if (!per.TryGetValue(s.GuestKey, out var o)) per[s.GuestKey] = o = new PerGuest { First = s.From, Last = s.From };
+            o.N++; o.Nights += s.Nights; o.Rev += N(s); if (Lt(s.From, o.First)) o.First = s.From; if (Lt(o.Last, s.From)) o.Last = s.From; o.Fys.Add(FyOf(s.From));
         }
         (string N, int Lo, int Hi)[] B = [("1 stay", 1, 1), ("2 stays", 2, 2), ("3-4 stays", 3, 4), ("5-9 stays", 5, 9), ("10+ stays", 10, 1_000_000_000)];
         var freq = B.Select(b =>

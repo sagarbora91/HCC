@@ -3607,6 +3607,998 @@
   "side": "prototype"
  },
  {
+  "id": "rpt.study.channel-economics",
+  "title": "Channel economics and net ADR",
+  "area": "study",
+  "priority": "P2",
+  "status": "MEAS",
+  "moneyFlag": true,
+  "moneyGate": "PERM-RPT-002",
+  "viewPerms": [
+   "PERM-RPT-001",
+   "PERM-RPT-002"
+  ],
+  "deskPerms": [],
+  "exportPerm": "PERM-RPT-003",
+  "dateClass": "D-FY",
+  "params": [
+   "fy",
+   "commissionPct"
+  ],
+  "columns": [
+   {
+    "key": "fy",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "otaRn",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "otaRev",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "otaAdr",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "directAdr",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "c12",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "c15",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "c18",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "c20",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "netAdr",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "gap",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   }
+  ],
+  "formats": [
+   "screen",
+   "xlsx",
+   "pdf"
+  ],
+  "phone": "no",
+  "layout": "table",
+  "side": "both"
+ },
+ {
+  "id": "rpt.study.compliance-risk",
+  "title": "Capture rates, audit-trail counts, risk register, licence calendar",
+  "area": "study",
+  "priority": "P2",
+  "status": "MEAS",
+  "moneyFlag": false,
+  "moneyGate": null,
+  "viewPerms": [
+   "PERM-RPT-001",
+   "PERM-RPT-002"
+  ],
+  "deskPerms": [],
+  "exportPerm": "PERM-RPT-003",
+  "dateClass": "D-FY",
+  "params": [
+   "fy"
+  ],
+  "columns": [
+   {
+    "key": "fy",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "stays",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "id",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "idPct",
+    "type": "pct",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "phone",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "phonePct",
+    "type": "pct",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "purpose",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "purposePct",
+    "type": "pct",
+    "money": false,
+    "mask": null,
+    "computed": null
+   }
+  ],
+  "formats": [
+   "screen",
+   "xlsx",
+   "pdf"
+  ],
+  "phone": "no",
+  "layout": "table",
+  "side": "both"
+ },
+ {
+  "id": "rpt.study.corporate-accounts",
+  "title": "Corporate accounts, win-back list, account base",
+  "area": "study",
+  "priority": "P2",
+  "status": "MEAS",
+  "moneyFlag": true,
+  "moneyGate": "PERM-RPT-002",
+  "viewPerms": [
+   "PERM-RPT-001",
+   "PERM-RPT-002"
+  ],
+  "deskPerms": [],
+  "exportPerm": "PERM-RPT-003",
+  "dateClass": "D-FY",
+  "params": [
+   "fy"
+  ],
+  "columns": [
+   {
+    "key": "company",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "stays",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "nights",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "net",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "adr",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "firstFy",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "lastStay",
+    "type": "date",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "years",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "unpaid",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   }
+  ],
+  "formats": [
+   "screen",
+   "xlsx",
+   "pdf"
+  ],
+  "phone": "no",
+  "layout": "table",
+  "side": "both"
+ },
+ {
+  "id": "rpt.study.finance-cost",
+  "title": "USALI P&L, break-even, paid-outs, cash & bank, GST by slab",
+  "area": "study",
+  "priority": "P2",
+  "status": "MEAS",
+  "moneyFlag": true,
+  "moneyGate": "PERM-RPT-002",
+  "viewPerms": [
+   "PERM-RPT-001",
+   "PERM-RPT-002"
+  ],
+  "deskPerms": [],
+  "exportPerm": "PERM-RPT-003",
+  "dateClass": "D-FY",
+  "params": [
+   "fy",
+   "fixedPerMonth",
+   "variablePerRn"
+  ],
+  "columns": [
+   {
+    "key": "line",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "amount",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   }
+  ],
+  "formats": [
+   "screen",
+   "xlsx",
+   "pdf"
+  ],
+  "phone": "no",
+  "layout": "table",
+  "side": "both"
+ },
+ {
+  "id": "rpt.study.fnb-halls-ancillary",
+  "title": "F&B on bills, breakfast covers, hall utilisation, ancillary",
+  "area": "study",
+  "priority": "P2",
+  "status": "MEAS",
+  "moneyFlag": true,
+  "moneyGate": "PERM-RPT-002",
+  "viewPerms": [
+   "PERM-RPT-001",
+   "PERM-RPT-002"
+  ],
+  "deskPerms": [],
+  "exportPerm": "PERM-RPT-003",
+  "dateClass": "D-FY",
+  "params": [
+   "fy"
+  ],
+  "columns": [
+   {
+    "key": "month",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "bills",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "fnb",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "perBill",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "pctRoom",
+    "type": "pct",
+    "money": false,
+    "mask": null,
+    "computed": null
+   }
+  ],
+  "formats": [
+   "screen",
+   "xlsx",
+   "pdf"
+  ],
+  "phone": "no",
+  "layout": "table",
+  "side": "both"
+ },
+ {
+  "id": "rpt.study.forecast-scenarios",
+  "title": "Seasonality indices, forecast (three methods), scenarios, budget vs actual, comp-set index",
+  "area": "study",
+  "priority": "P2",
+  "status": "MEAS",
+  "moneyFlag": true,
+  "moneyGate": "PERM-RPT-002",
+  "viewPerms": [
+   "PERM-RPT-001",
+   "PERM-RPT-002"
+  ],
+  "deskPerms": [],
+  "exportPerm": "PERM-RPT-003",
+  "dateClass": "D-FY",
+  "params": [
+   "fy",
+   "budgetGrowthPct",
+   "adrDeltaPct",
+   "compOccPct",
+   "compAdr"
+  ],
+  "columns": [
+   {
+    "key": "month",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "revIdx",
+    "type": "pct",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "occIdx",
+    "type": "pct",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "adrIdx",
+    "type": "pct",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "years",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   }
+  ],
+  "formats": [
+   "screen",
+   "xlsx",
+   "pdf"
+  ],
+  "phone": "no",
+  "layout": "table",
+  "side": "both"
+ },
+ {
+  "id": "rpt.study.guest-origin-plan",
+  "title": "Guest origin, nationality, meal plan, company guests",
+  "area": "study",
+  "priority": "P2",
+  "status": "MEAS",
+  "moneyFlag": false,
+  "moneyGate": null,
+  "viewPerms": [
+   "PERM-RPT-001",
+   "PERM-RPT-002"
+  ],
+  "deskPerms": [],
+  "exportPerm": "PERM-RPT-003",
+  "dateClass": "D-FY",
+  "params": [
+   "fy"
+  ],
+  "columns": [
+   {
+    "key": "fy",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "state",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "stays",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "share",
+    "type": "pct",
+    "money": false,
+    "mask": null,
+    "computed": null
+   }
+  ],
+  "formats": [
+   "screen",
+   "xlsx",
+   "pdf"
+  ],
+  "phone": "no",
+  "layout": "table",
+  "side": "both"
+ },
+ {
+  "id": "rpt.study.guest-repeat-value",
+  "title": "Repeat guests, frequency, lifetime value, repeat customer list",
+  "area": "study",
+  "priority": "P2",
+  "status": "MEAS",
+  "moneyFlag": true,
+  "moneyGate": "PERM-RPT-002",
+  "viewPerms": [
+   "PERM-RPT-001",
+   "PERM-RPT-002"
+  ],
+  "deskPerms": [],
+  "exportPerm": "PERM-RPT-003",
+  "dateClass": "D-FY",
+  "params": [
+   "fy"
+  ],
+  "columns": [
+   {
+    "key": "fy",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "guests",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "repeat",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "repeatPct",
+    "type": "pct",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "stays",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "repeatStays",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "net",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "repeatNet",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "repeatNetPct",
+    "type": "pct",
+    "money": false,
+    "mask": null,
+    "computed": null
+   }
+  ],
+  "formats": [
+   "screen",
+   "xlsx",
+   "pdf"
+  ],
+  "phone": "no",
+  "layout": "table",
+  "side": "both"
+ },
+ {
+  "id": "rpt.study.housekeeping-operations",
+  "title": "Turnaround, idle streaks, check-in/out vs standard, daily load",
+  "area": "study",
+  "priority": "P2",
+  "status": "MEAS",
+  "moneyFlag": false,
+  "moneyGate": null,
+  "viewPerms": [
+   "PERM-RPT-001",
+   "PERM-RPT-002"
+  ],
+  "deskPerms": [],
+  "exportPerm": "PERM-RPT-003",
+  "dateClass": "D-FY",
+  "params": [
+   "fy"
+  ],
+  "columns": [
+   {
+    "key": "fy",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "turnovers",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "sameDay",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "sameDayPct",
+    "type": "pct",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "nextDay",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "avgGap",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   }
+  ],
+  "formats": [
+   "screen",
+   "xlsx",
+   "pdf"
+  ],
+  "phone": "no",
+  "layout": "table",
+  "side": "both"
+ },
+ {
+  "id": "rpt.study.owner-dashboard",
+  "title": "Owner 12-KPI monthly dashboard",
+  "area": "study",
+  "priority": "P1",
+  "status": "MEAS",
+  "moneyFlag": true,
+  "moneyGate": "PERM-RPT-002",
+  "viewPerms": [
+   "PERM-RPT-001",
+   "PERM-RPT-002"
+  ],
+  "deskPerms": [],
+  "exportPerm": "PERM-RPT-003",
+  "dateClass": "D-M",
+  "params": [
+   "month"
+  ],
+  "columns": [
+   {
+    "key": "month",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "src",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "occ",
+    "type": "pct",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "adr",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "revpar",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "roomRev",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "billed",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "fnb",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "bills",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "repeat",
+    "type": "pct",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "otaShare",
+    "type": "pct",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "discPct",
+    "type": "pct",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "collected",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "outstanding",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   }
+  ],
+  "formats": [
+   "screen",
+   "xlsx",
+   "pdf"
+  ],
+  "phone": "yes",
+  "layout": "table",
+  "side": "both"
+ },
+ {
+  "id": "rpt.study.pricing-shape",
+  "title": "Day-of-week, length-of-stay, segment mix, rate ladder, upgrades",
+  "area": "study",
+  "priority": "P2",
+  "status": "MEAS",
+  "moneyFlag": true,
+  "moneyGate": "PERM-RPT-002",
+  "viewPerms": [
+   "PERM-RPT-001",
+   "PERM-RPT-002"
+  ],
+  "deskPerms": [],
+  "exportPerm": "PERM-RPT-003",
+  "dateClass": "D-FY",
+  "params": [
+   "fy"
+  ],
+  "columns": [
+   {
+    "key": "night",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "sold",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "cap",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "occ",
+    "type": "pct",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "adr",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "adrRecent",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   }
+  ],
+  "formats": [
+   "screen",
+   "xlsx",
+   "pdf"
+  ],
+  "phone": "no",
+  "layout": "table",
+  "side": "both"
+ },
+ {
+  "id": "rpt.study.revenue-kpi",
+  "title": "Occupancy, ADR, RevPAR by month, FY, type, channel",
+  "area": "study",
+  "priority": "P2",
+  "status": "MEAS",
+  "moneyFlag": true,
+  "moneyGate": "PERM-RPT-002",
+  "viewPerms": [
+   "PERM-RPT-001",
+   "PERM-RPT-002"
+  ],
+  "deskPerms": [],
+  "exportPerm": "PERM-RPT-003",
+  "dateClass": "D-FY",
+  "params": [
+   "fy"
+  ],
+  "columns": [
+   {
+    "key": "month",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "src",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "days",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "rooms",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "avail",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "sold",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "occ",
+    "type": "pct",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "bills",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "cn",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "rev",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "adr",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "revpar",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   }
+  ],
+  "formats": [
+   "screen",
+   "xlsx",
+   "pdf"
+  ],
+  "phone": "no",
+  "layout": "table",
+  "side": "both"
+ },
+ {
   "id": "rpt.tax.bill-corrections",
   "title": "Bill corrections",
   "area": "tax",

@@ -87,14 +87,14 @@ export function register({test,M,assert}){
   test(T+'break-even is empty when ADR does not exceed the variable cost; win-back needs 12 months without a stay',()=>{
     const i=tiny();assert.equal(A.financeCost(i,{fy:'2026-27',fixedPerMonth:'100',variablePerRn:'999999'}).sections[1].rows[0].cells.bePct,null);
     const be=A.financeCost(i,{fy:'2026-27',fixedPerMonth:'6000000',variablePerRn:'0'}).sections[1].rows[0].cells;assert.equal(be.adr,168000);assert.equal(be.bePct,59.5);
-    i.stays[0].company='Acme';i.stays[0].from='2025-04-09';i.stays[0].to='2025-04-10';i.stays[0].nights=1;i.bills[0].date='2025-04-10';
+    i.stays[0].company='Acme';i.stays[0].from='2025-04-11';i.stays[0].to='2025-04-12';i.stays[0].nights=1;i.bills[0].date='2025-04-12';
     assert.equal(A.corporateAccounts(i,{fy:'2025-26'}).sections.find(s=>s.key==='winback').rows.length,0);
-    i.asOf='2026-04-11';assert.equal(A.corporateAccounts(i,{fy:'2025-26'}).sections.find(s=>s.key==='winback').rows.length,1);
+    assert.equal(A.corporateAccounts({...i,asOf:'2026-04-12'},{fy:'2025-26'}).sections.find(s=>s.key==='winback').rows.length,1);
   });
   test(T+'COVID window is left out of the night-of-week capacity',()=>{
-    const i=tiny();i.asOf='2021-03-31';i.rooms[0].inServiceFrom='2020-01-01';i.rooms[1].inServiceFrom='2020-01-01';i.stays=[];i.bills=[];
+    const i=tiny();i.asOf='2021-03-31';i.rooms[0].inServiceFrom='2020-01-01';i.rooms[1].inServiceFrom='2020-01-01';i.stays=[{...i.stays[0],id:'C1',from:'2020-01-01',to:'2020-01-02',nights:1}];i.bills=[];
     const cap=A.pricingShape(i,{fy:'2020-21'}).sections[0].rows.reduce((a,w)=>a+w.cells.cap,0);
-    assert.equal(cap,2*(Math.round((Date.parse('2020-02-29')-Date.parse('2020-01-01'))/864e5)+1)+0);
+    assert.equal(cap,2*60);
   });
   test(T+'owner dashboard has 12 months ending the chosen month with the 12 KPIs',()=>{
     const r=A.ownerDashboard(goldenInput(),{month:'2026-10'});assert.equal(r.rows.length,12);assert.equal(r.rows[11].cells.month,'2026-10');assert.equal(r.rows[0].cells.month,'2025-11');
