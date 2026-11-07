@@ -62,7 +62,7 @@ public sealed class PickupPaceReport(SqlPlatform platform, IYieldStore yield, IS
         return (rows.Sum(r => r.Rooms), rows.Sum(r => r.RevenuePaise));
     }
 
-    internal static string MonthPlus(DateOnly d, int k)
+    public static string MonthPlus(DateOnly d, int k)
     {
         var m = d.Month - 1 + k;
         return $"{d.Year + (m >= 0 ? m / 12 : (m - 11) / 12):0000}-{((m % 12) + 12) % 12 + 1:00}";
