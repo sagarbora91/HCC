@@ -4,10 +4,10 @@
 import {build} from 'esbuild';
 import {writeFileSync,mkdirSync} from 'node:fs';
 import {threeWay} from './rpt-golden/harness.mjs';
-await build({stdin:{contents:`export * from '../src/services/mock/index';export * from '../src/domain/analytics/legacy-core';export * from '../src/domain/analytics/legacy-input';
+await build({stdin:{contents:`export * from '../src/services/mock/index';export {pct1,inCovid,dow,fyRows,occupancyMonths} from '../src/domain/analytics/legacy-core';export * from '../src/domain/analytics/legacy-input';
 export {revenueMonthly,yearComparison,indexVsBase,fyDeepDive} from '../src/domain/analytics/legacy-revenue';
 export {occupancyHistory,operationsPatterns,roomsAndRates} from '../src/domain/analytics/legacy-occupancy';
-export {zeroRateComplimentary,receivablesBadDebt} from '../src/domain/analytics/legacy-zero';`,resolveDir:new URL('.',import.meta.url).pathname.replace(/^\/([A-Za-z]:)/,'$1'),loader:'ts'},
+export {zeroRateComplimentary,receivablesBadDebt} from '../src/domain/analytics/legacy-zero';`,resolveDir:process.cwd()+'/tests',loader:'ts'},
   bundle:true,platform:'node',format:'esm',outfile:'tests/.generated/meas-study-a.mjs',logLevel:'error'});
 const M=await import('./.generated/meas-study-a.mjs');
 export function register({test,assert}){
@@ -17,6 +17,7 @@ export function register({test,assert}){
   const MONEY={'rpt.study.occupancy-history':false,'rpt.study.operations-patterns':false};
   const KEY={'rpt.study.revenue-monthly':'meas.study.revenue-monthly','rpt.study.year-comparison':'meas.study.year-comparison','rpt.study.index-vs-base':'meas.study.covid-index','rpt.study.fy-deep-dive':'meas.study.deep-dive',
     'rpt.study.occupancy-history':'meas.study.occupancy','rpt.study.operations-patterns':'meas.study.patterns','rpt.study.rooms-and-rates':'meas.study.rooms-rates','rpt.study.zero-rate-complimentary':'meas.study.zero-rate','rpt.study.receivables-bad-debt':'meas.study.receivables'};
+  const addDays=(d,n)=>new Date(Date.parse(d+'T12:00:00Z')+n*86400000).toISOString().slice(0,10);
   const code=fn=>{try{fn();}catch(e){return e.code;}return 'none';};
   let f;const fy=()=>f??=M.loadScenario('FY26');
   const run=(s,uid,id,p={})=>M.runReport(s,uid,id,p,{all:true});
@@ -24,23 +25,23 @@ export function register({test,assert}){
   const rowsOf=(r,k)=>sec(r,k).rows;
   const cell=(r,k,i,c)=>rowsOf(r,k)[i].cells[c];
   const mini=(extra={})=>({rooms:[{id:'101',type:'Deluxe',inServiceFrom:'2000-01-01'},{id:'102',type:'Deluxe',inServiceFrom:'2000-01-01'}],stays:[],bills:[],receipts:[],asOf:'2026-10-24',legacyUntil:'2026-10-30',covidWindow:{from:'2020-03-01',to:'2021-03-31'},...extra});
-  const stay=(id,from,nights,extra={})=>({id,guestKey:'g'+id,room:'101',from,to:M.addDays(from,nights),nights,ratePaise:100000,source:'Walk-in',status:'Departed',legacy:false,...extra});
+  const stay=(id,from,nights,extra={})=>({id,guestKey:'g'+id,room:'101',from,to:addDays(from,nights),nights,ratePaise:100000,source:'Walk-in',status:'Departed',legacy:false,...extra});
   const bill=(id,date,room,nights,extra={})=>({id:'B'+id,stay:id,date,roomChargePaise:room,fnbPaise:0,otherPaise:0,discountPaise:0,gstPaise:Math.floor(room*0.05),totalPaise:room+Math.floor(room*0.05),chargedNights:nights,paidPaise:0,legacy:false,...extra});
 
   // A synthetic legacy history (fictional) shaped like the real one: 2018-19, a COVID year, 2021-22, plus the live fixture.
   const legacyRows=()=>{
     const rooms=M.buildAnInput(fy(),undefined).rooms.map(r=>r.id);const stays=[],bills=[],receipts=[];let n=0;
     for(const [d,nts,room] of [['2018-10-05',2,100000],['2018-11-10',3,100000],['2019-06-14',1,80000],['2020-05-01',2,90000],['2021-08-20',2,120000],['2022-01-12',4,110000]]){
-      const id='LG'+(++n),rm=rooms[n%rooms.length];stays.push({id,guestKey:'lg'+n,room:rm,from:d,to:M.addDays(d,nts),nights:nts,ratePaise:room,source:'Walk-in',status:'Departed',legacy:true});
-      const gst=Math.floor(room*nts*5/100);bills.push({id:'LB'+n,stay:id,date:M.addDays(d,nts),roomChargePaise:room*nts,fnbPaise:n%2?20000:0,otherPaise:0,discountPaise:0,gstPaise:gst,totalPaise:room*nts+(n%2?20000:0)+gst,chargedNights:nts,paidPaise:n%3?room*nts:0,legacy:true});
-      if(n%3)receipts.push({id:'LR'+n,bill:'LB'+n,date:M.addDays(d,nts),method:'Cash',amountPaise:room*nts,legacy:true});}
+      const id='LG'+(++n),rm=rooms[n%rooms.length];stays.push({id,guestKey:'lg'+n,room:rm,from:d,to:addDays(d,nts),nights:nts,ratePaise:room,source:'Walk-in',status:'Departed',legacy:true});
+      const gst=Math.floor(room*nts*5/100);bills.push({id:'LB'+n,stay:id,date:addDays(d,nts),roomChargePaise:room*nts,fnbPaise:n%2?20000:0,otherPaise:0,discountPaise:0,gstPaise:gst,totalPaise:room*nts+(n%2?20000:0)+gst,chargedNights:nts,paidPaise:n%3?room*nts:0,legacy:true});
+      if(n%3)receipts.push({id:'LR'+n,bill:'LB'+n,date:addDays(d,nts),method:'Cash',amountPaise:room*nts,legacy:true});}
     return {stays,bills,receipts};
   };
 
   test(T+'all nine reports are registered: area study, catalogue flags, money gate, measurement key',()=>{
     for(const id of IDS){const d=M.reportDef(id);assert.ok(d,id);assert.equal(d.area,'study');assert.equal(d.status,'MEAS');assert.deepEqual(d.formats,['screen','xlsx','pdf']);assert.equal(d.phone,'no');
       const money=MONEY[id]??true;assert.equal(d.moneyFlag,money,id);if(money)assert.equal(d.moneyGate,'PERM-RPT-002',id);
-      assert.equal(M.MEAS_REPORT_KEY[id],KEY[id],id+' switch key');assert.ok(d.columns.length>2,id+' columns');}
+      assert.equal(M.MEAS_REPORT_KEY[id],KEY[id],id+' switch key');assert.ok(d.columns.length>=2,id+' columns');}
     assert.equal(M.reportDef('rpt.study.year-comparison').dateClass,'D-F');assert.equal(M.reportDef('rpt.study.receivables-bad-debt').dateClass,'D-ASOF');
     assert.deepEqual(M.reportDef('rpt.study.fy-deep-dive').columns.filter(c=>c.key==='guest'),[]); // first table is the price-volume block
   });
@@ -55,7 +56,7 @@ export function register({test,assert}){
     assert.equal(cell(r,'fy-summary',0,'billed'),total);assert.equal(cell(r,'fy-month-grid',0,'total'),total);
     assert.equal(rowsOf(r,'monthly').reduce((a,x)=>a+x.cells.billed,0),total);
     assert.equal(cell(r,'fy-summary',0,'chargedNights'),inp.bills.reduce((a,b)=>a+b.chargedNights,0));
-    assert.equal(cell(r,'fy-summary',0,'data'),'legacy + live'.length?cell(r,'fy-summary',0,'data'):'');
+    assert.equal(cell(r,'fy-summary',0,'data'),'live');
   });
 
   test(T+'occupancy: sold = distinct room-nights; headline denominator = rooms in service x days; same-day stay counts 1 night; nights go to the arrival month',()=>{
@@ -105,7 +106,7 @@ export function register({test,assert}){
 
   test(T+'rooms and rates: room revenue sums to the FY room charge; unpaid ageing buckets split at 30 / 31 and 730 / 731 days',()=>{
     assert.equal(M.pct1(1,3),33.3);assert.equal(M.pct1(1,2),50);
-    const mk=(age)=>mini({asOf:'2026-10-24',stays:[stay('S1',M.addDays('2026-10-24',-age-1),1)],bills:[bill('S1',M.addDays('2026-10-24',-age),100000,1)]});
+    const mk=(age)=>mini({asOf:'2026-10-24',stays:[stay('S1',addDays('2026-10-24',-age-1),1)],bills:[bill('S1',addDays('2026-10-24',-age),100000,1)]});
     const bucket=(age)=>{const r=M.roomsAndRates(mk(age),{fy:'2026-27'});return rowsOf(r,'unpaid-ageing').find(x=>x.cells.bills===1)?.cells.bucket;};
     assert.equal(bucket(30),'0-30');assert.equal(bucket(31),'31-90');assert.equal(bucket(90),'31-90');assert.equal(bucket(91),'91-180');assert.equal(bucket(365),'181-365');assert.equal(bucket(366),'366-730');
     assert.equal(bucket(730),'366-730');assert.equal(bucket(731),'731+');
