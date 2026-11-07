@@ -3,7 +3,10 @@
 // Money in HCC is integer paise: pass {paise:n} and it is written as the rupee number n/100 with a ₹ format.
 
 export type XCell=string|number|null|undefined|{paise:number}|{date:string}|{int:number}|/** Fraction (0.494 = 49.4%), shown with a 0.0% format. */{pct:number}|/** ACC-3 reports: integer paise written as the rupee number with a plain `#,##0.00` format (no symbol). */{amt:number}|/** ACC-3 reports: bold text (title rows, column headers below a title block). */{b:string};
-export type XSheet={name:string;rows:XCell[][];/** First row is a bold header (default true). */header?:boolean;/** Column widths in characters. */widths?:number[];/** Rows kept visible above the scrolling body (default 1 when `header`, else none). ACC-3 report sheets put a title block above the header row. */freeze?:number};
+/** F12-STUDY-PACK extension point: extra parts for one sheet (native charts). `tail` goes after sheetData; `rels` are the sheet's relationships;
+ *  `files` are added to the package (an Override is written when `contentType` is set). Called with the sheet's 1-based index and final name. */
+export type XSheetExt={tail:string;rels:{id:string;type:string;target:string}[];files:{name:string;data:string;contentType?:string}[]};
+export type XSheet={/** F12-STUDY-PACK */ext?:(index:number,name:string)=>XSheetExt;name:string;rows:XCell[][];/** First row is a bold header (default true). */header?:boolean;/** Column widths in characters. */widths?:number[];/** Rows kept visible above the scrolling body (default 1 when `header`, else none). ACC-3 report sheets put a title block above the header row. */freeze?:number};
 
 const esc=(t:string)=>t.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g,'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 /** Excel sheet names: ≤ 31 chars, none of : \ / ? * [ ], no leading/trailing apostrophe, not the reserved name History, unique. */
@@ -36,7 +39,7 @@ function cellXml(c:XCell,ref:string,head:boolean):string{
 }
 /** Rows per encoded chunk: a full-FY workbook is never held as one huge string (W05 review F6). */
 const ROW_CHUNK=2000;
-function sheetXml(sh:XSheet,enc:TextEncoder):Uint8Array[]{
+function sheetXml(sh:XSheet,enc:TextEncoder,tail=''):Uint8Array[]{
   const head=sh.header!==false;
   const cols=sh.widths?.length?`<cols>${sh.widths.map((w,i)=>`<col min="${i+1}" max="${i+1}" width="${w}" customWidth="1"/>`).join('')}</cols>`:'';
   const fr=sh.freeze??(head?1:0);
@@ -47,7 +50,7 @@ function sheetXml(sh:XSheet,enc:TextEncoder):Uint8Array[]{
     for(let ri=i;ri<Math.min(i+ROW_CHUNK,sh.rows.length);ri++){const r=sh.rows[ri];t+=`<row r="${ri+1}">`;for(let ci=0;ci<r.length;ci++)t+=cellXml(r[ci],colRef(ci)+(ri+1),head&&ri===0);t+='</row>';}
     out.push(enc.encode(t));
   }
-  out.push(enc.encode('</sheetData></worksheet>'));
+  out.push(enc.encode('</sheetData>'+tail+'</worksheet>'));
   return out;
 }
 const STYLES=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><numFmts count="3"><numFmt numFmtId="164" formatCode="&quot;₹&quot;#,##0.00"/><numFmt numFmtId="165" formatCode="yyyy\\-mm\\-dd"/><numFmt numFmtId="166" formatCode="0.0%"/></numFmts><fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font></fonts><fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="8"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/><xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf numFmtId="165" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf numFmtId="1" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf numFmtId="166" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf numFmtId="4" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/></cellXfs></styleSheet>`;
@@ -81,12 +84,16 @@ export function buildXlsx(sheets:XSheet[]):Uint8Array{
   const used:string[]=[];const named=(sheets.length?sheets:[{name:'Sheet1',rows:[]}]).map(s=>{const n=sheetName(s.name,used);used.push(n);return {...s,name:n};});
   const enc=new TextEncoder();const f=(name:string,text:string)=>({name,data:enc.encode(text)});
   const R='http://schemas.openxmlformats.org/officeDocument/2006/relationships',H='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
+  const exts=named.map((s,i)=>s.ext?.(i+1,s.name)); // F12-STUDY-PACK extension point
+  const extFiles=exts.flatMap(e=>e?.files??[]);
   return zipStored([
-    f('[Content_Types].xml',`${H}<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>${named.map((_,i)=>`<Override PartName="/xl/worksheets/sheet${i+1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join('')}</Types>`),
+    f('[Content_Types].xml',`${H}<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>${named.map((_,i)=>`<Override PartName="/xl/worksheets/sheet${i+1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join('')}${extFiles.filter(x=>x.contentType).map(x=>`<Override PartName="/${x.name}" ContentType="${x.contentType}"/>`).join('')}</Types>`),
     f('_rels/.rels',`${H}<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="${R}/officeDocument" Target="xl/workbook.xml"/></Relationships>`),
     f('xl/workbook.xml',`${H}<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="${R}"><sheets>${named.map((s,i)=>`<sheet name="${esc(s.name)}" sheetId="${i+1}" r:id="rId${i+1}"/>`).join('')}</sheets></workbook>`),
     f('xl/_rels/workbook.xml.rels',`${H}<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${named.map((_,i)=>`<Relationship Id="rId${i+1}" Type="${R}/worksheet" Target="worksheets/sheet${i+1}.xml"/>`).join('')}<Relationship Id="rId${named.length+1}" Type="${R}/styles" Target="styles.xml"/></Relationships>`),
     f('xl/styles.xml',STYLES),
-    ...named.map((s,i)=>({name:`xl/worksheets/sheet${i+1}.xml`,data:sheetXml(s,enc)})),
+    ...named.map((s,i)=>({name:`xl/worksheets/sheet${i+1}.xml`,data:sheetXml(s,enc,exts[i]?.tail)})),
+    ...exts.flatMap((e,i)=>e?.rels.length?[f(`xl/worksheets/_rels/sheet${i+1}.xml.rels`,`${H}<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${e.rels.map(r=>`<Relationship Id="${esc(r.id)}" Type="${esc(r.type)}" Target="${esc(r.target)}"/>`).join('')}</Relationships>`)]:[]),
+    ...extFiles.map(x=>f(x.name,x.data)),
   ]);
 }

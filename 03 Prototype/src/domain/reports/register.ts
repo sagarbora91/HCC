@@ -58,6 +58,7 @@ import './built/admin';
 // F12-STUDY-B
 // F12-STUDY-B end
 // F12-STUDY-PACK
+import './study-pack/management-pack';
 // F12-STUDY-PACK end
 // F12-DIGEST
 // F12-DIGEST end

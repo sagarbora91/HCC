@@ -3607,6 +3607,76 @@
   "side": "prototype"
  },
  {
+  "id": "rpt.study.management-pack",
+  "title": "Management study pack (PDF + Excel)",
+  "area": "study",
+  "priority": "P1",
+  "status": "MEAS",
+  "moneyFlag": true,
+  "moneyGate": "PERM-RPT-002",
+  "viewPerms": [
+   "PERM-RPT-001"
+  ],
+  "deskPerms": [],
+  "exportPerm": "PERM-RPT-003",
+  "dateClass": "D-FY",
+  "params": [
+   "fy"
+  ],
+  "columns": [
+   {
+    "key": "no",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "chapter",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "report",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "title",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "status",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "blocks",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   }
+  ],
+  "formats": [
+   "screen",
+   "xlsx",
+   "pdf"
+  ],
+  "phone": "no",
+  "layout": "table",
+  "side": "both"
+ },
+ {
   "id": "rpt.tax.bill-corrections",
   "title": "Bill corrections",
   "area": "tax",

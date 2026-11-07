@@ -1,6 +1,7 @@
 // F7-R1 · PDF-or-print renderer (RPT-ARCHITECTURE §4.3): ReportResult → PrintModel → HTML for native.ts printPage / printablePage.
 // The server renders the same model to PDF bytes (Hcc.Reporting MinimalPdfWriter). Text only from cellText() — the same text as the screen.
-import type {RptResult,RptPrintModel,RptColumn,RptRow,RptCell} from './types';
+import type {RptResult,RptPrintModel,RptColumn,RptRow,RptCell,RptPrintTable} from './types';
+import type {XSheet} from '../../app/xlsx'; // F12-STUDY-PACK
 import {money} from '../money';
 import {rptTables} from './tables';
 
@@ -39,8 +40,12 @@ export function toPrintModel(r:RptResult,property:string):RptPrintModel{
 }
 const esc=(t:string)=>t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const num=(c:RptColumn)=>c.type==='money'||c.type==='int'||c.type==='pct';
+// F12-STUDY-PACK · renderer extension points (ChartBlock, src/domain/reports/charts/chart.ts): `print` adds HTML before a table (a chart drawn
+// from that table's cells); `xlsx` may decorate the sheet toXlsx made for a table (native chart parts through XSheet.ext). Empty = no change.
+export const RPT_RENDER_HOOKS:{print:((t:RptPrintTable)=>string)[];xlsx:((t:RptPrintTable&{key?:string},sheet:XSheet)=>XSheet)[]}={print:[],xlsx:[]};
+// F12-STUDY-PACK end
 function tableHtml(columns:RptColumn[],rows:RptRow[],title?:string){
-  return `${title?`<h3>${esc(title)}</h3>`:''}<table><thead><tr>${columns.map(c=>`<th${num(c)?' class="n"':''}>${esc(c.label)}</th>`).join('')}</tr></thead><tbody>${
+  return `${title?`<h3>${esc(title)}</h3>`:''}${RPT_RENDER_HOOKS.print.map(h=>h({columns,rows,...(title?{title}:{})})).join('')}<table><thead><tr>${columns.map(c=>`<th${num(c)?' class="n"':''}>${esc(c.label)}</th>`).join('')}</tr></thead><tbody>${
     rows.map(r=>`<tr${r.kind!=='row'?` class="${r.kind}"`:''}>${columns.map(c=>`<td${num(c)?' class="n"':''}>${esc(cellText(c,r.cells[c.key]))}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
 }
 /** Body HTML + CSS for native.ts printablePage(title, body, css) → printPage(). One `.rpt-page` per PrintModel page. */
