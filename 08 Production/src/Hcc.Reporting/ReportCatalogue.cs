@@ -25,7 +25,7 @@ public sealed partial class ReportCatalogue : IReportCatalogue
 
     public IReportSelector? Find(string id) => _byId.GetValueOrDefault(id);
 
-    [GeneratedRegex("^rpt\\.(guests|rooms|money|tax|acc|people|stock|rest|admin)\\.[a-z0-9-]+$")]
+    [GeneratedRegex("^rpt\\.(guests|rooms|money|tax|acc|people|stock|rest|admin|revenue|study)\\.[a-z0-9-]+$")]
     private static partial Regex IdPattern();
 
     public static void Validate(ReportDefinition d)

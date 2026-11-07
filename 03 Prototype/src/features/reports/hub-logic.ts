@@ -8,8 +8,8 @@ import type {RptDefinition,RptArea,RptParam,RptSchedule,RptRun,RptExportLogEntry
 export const NO_MONEY_ROLES:readonly Role[]=['Housekeeper','Maintenance','Supervisor'];
 /** Catalogue §1.9: money reports are delivered only to these roles. */
 export const MONEY_RECIPIENT_ROLES:readonly Role[]=['Owner','Manager','Accountant'];
-export const AREA_LABEL:Record<RptArea,string>={guests:'Guests',rooms:'Rooms',money:'Money & cash',tax:'Tax & GST',acc:'Accounting',people:'People',stock:'Stock',rest:'Restaurant',admin:'Admin & audit'};
-export const AREA_ORDER:readonly RptArea[]=['guests','rooms','money','tax','acc','people','stock','rest','admin'];
+export const AREA_LABEL:Record<RptArea,string>={guests:'Guests',rooms:'Rooms',money:'Money & cash',tax:'Tax & GST',acc:'Accounting',people:'People',stock:'Stock',rest:'Restaurant',admin:'Admin & audit',revenue:'Revenue management',study:'Management study'};
+export const AREA_ORDER:readonly RptArea[]=['guests','rooms','money','tax','acc','people','stock','rest','admin','revenue','study'];
 export const STATUS_LABEL:Record<string,string>={built:'Built',partial:'Partly built','ACC-3':'Accounting',planned:'Planned'};
 
 export const roleOf=(s:State,uid:string):Role|undefined=>s.users.find(u=>u.id===uid&&u.enabled)?.role;

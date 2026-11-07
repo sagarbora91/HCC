@@ -2,8 +2,8 @@
 // rpt-engine (R1) may add optional members; nobody renames. Money = integer paise.
 import type {State} from '../types';
 
-export type RptArea='guests'|'rooms'|'money'|'tax'|'acc'|'people'|'stock'|'rest'|'admin';
-export type RptStatus='built'|'partial'|'ACC-3'|'planned';
+export type RptArea='guests'|'rooms'|'money'|'tax'|'acc'|'people'|'stock'|'rest'|'admin'|'revenue'|'study';
+export type RptStatus='built'|'partial'|'ACC-3'|'planned'|'MEAS';
 export type RptPriority='P1'|'P2'|'P3';
 /** Catalogue §1.4 date classes. */
 export type RptDateClass='D-DAY'|'D-S'|'D-B'|'D-F'|'D-M'|'D-FY'|'D-ASOF'|'D-NOW'|'D-FWD';

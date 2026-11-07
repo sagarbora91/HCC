@@ -2,7 +2,7 @@
 import type {RptDefinition,RptBoundParams} from './types';
 
 const REG=new Map<string,RptDefinition>();
-const ID=/^rpt\.(guests|rooms|money|tax|acc|people|stock|rest|admin)\.[a-z0-9-]+$/;
+const ID=/^rpt\.(guests|rooms|money|tax|acc|people|stock|rest|admin|revenue|study)\.[a-z0-9-]+$/;
 
 /** Registers a report definition. A second registration of the same id replaces the first only when it is the same object (module reload). */
 export function registerReport<P extends RptBoundParams>(def:RptDefinition<P>):RptDefinition<P>{
