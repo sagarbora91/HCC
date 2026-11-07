@@ -81,7 +81,7 @@ public sealed class LinenCostReport(SqlPlatform platform, Hcc.Application.Config
             long sent = batch is null ? 0 : L(batch[2]);
             long? issued = kind == "linen" ? null : issues.Where(m => L(m[0]) == id).Sum(m => L(m[1]));
             var total = (lost + damaged + disQty + (issued ?? 0)) * cost + sent * rate;
-            long? per = rn > 0 ? (long)Math.Round((double)total / rn, MidpointRounding.AwayFromZero) : null;
+            long? per = rn > 0 ? DivHalfUp(total, rn) : null; // F12-MEAS2-E L2: integer half-up on paise (contract §8), no double
             rows.Add(Row(new Dictionary<string, object?>(StringComparer.Ordinal)
             {
                 ["item"] = name, ["par"] = par, ["onHand"] = L(it[5]), ["batches"] = batch is null ? 0L : L(batch[1]), ["lost"] = lost, ["damaged"] = damaged,
@@ -91,4 +91,7 @@ public sealed class LinenCostReport(SqlPlatform platform, Hcc.Application.Config
 
         return Done(parameters, Columns, rows, anyDiscard ? null : Basis + " Discards: capture needed — no discard reason has been captured yet (meas-cap-hk).");
     }
+
+    /// <summary>F12-MEAS2-E L2: n ÷ d rounded half away from zero in integers (d &gt; 0); equals JS Math.round for n ≥ 0.</summary>
+    public static long DivHalfUp(long n, long d) => n >= 0 ? (2 * n + d) / (2 * d) : -((-2 * n + d) / (2 * d));
 }

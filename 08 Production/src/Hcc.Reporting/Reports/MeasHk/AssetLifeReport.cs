@@ -20,7 +20,7 @@ public sealed class AssetLifeReport(SqlPlatform platform, Hcc.Application.Config
         M("reserveAccrued", "FF&E reserve accrued"), M("capexSpent", "Capex spent"), T("refurbishment", "Refurbishment due (category)"),
     ];
 
-    private const string Basis = "As of one date. Age from the installed date (or the put-to-use date for register assets); expected life, grade and replacement cost as captured. Replacement due = installed date + expected life. WDV = the register cost HCC holds (the CA passes depreciation in Tally). Month-end row: FF&E reserve accrued = ffe.reservePct of the FY room revenue (before GST) to the date; capex spent = register purchases of the FY. Refurbishment due is named when the replacement date falls within 12 months. Red: past expected life with no maintenance plan; capex spent above the reserve accrued.";
+    private const string Basis = "As of one date. Age from the installed date (or the put-to-use date for register assets); expected life, grade and replacement cost as captured. Replacement due = installed date + expected life. WDV = the asset's register cost: depreciation is booked per block at the year end (DEC-138), so no per-asset written-down value is held (the block WDV is in the fixed-asset register). Month-end row: FF&E reserve accrued = ffe.reservePct of the FY room revenue (before GST, live room nights only: a reversed or re-posted night counts once, at its current rate) to the date; capex spent = register purchases of the FY. Refurbishment due is named when the replacement date falls within 12 months. Red: past expected life with no maintenance plan; capex spent above the reserve accrued.";
 
     public override string MeasKey => "meas.hk.assets";
 
@@ -44,13 +44,18 @@ public sealed class AssetLifeReport(SqlPlatform platform, Hcc.Application.Config
               FROM mnt.asset a WHERE a.property_id = @p AND a.status <> 'Retired';
             """, caller.PropertyId, null, ct).ConfigureAwait(false);
         var acc = await QueryAsync("""
-            SELECT CAST(f.fixed_asset_id AS VARCHAR(30)), f.asset_no + N' ' + f.name, f.ledger, COALESCE(f.put_to_use, f.purchase_date), f.cost_paise, f.purchase_date
-              FROM acc.fixed_asset f WHERE f.property_id = @p AND f.disposed_date IS NULL AND f.purchase_date <= @to;
+            SELECT CAST(f.fixed_asset_id AS VARCHAR(30)), f.asset_no + N' ' + f.name, COALESCE(lp.name, lb.name, f.ledger), COALESCE(f.put_to_use, f.purchase_date), f.cost_paise, f.purchase_date
+              FROM acc.fixed_asset f
+              LEFT JOIN acc.ledger lp ON lp.property_id = f.property_id AND lp.code = f.ledger
+              LEFT JOIN acc.ledger lb ON lb.property_id IS NULL AND lb.code = f.ledger
+             WHERE f.property_id = @p AND f.disposed_date IS NULL AND f.purchase_date <= @to;
             """, caller.PropertyId, c => GuestsSql.Add(c, "@to", SqlDbType.Date, GuestsSql.D(asOf)), ct).ConfigureAwait(false);
         var wanted = P(parameters, "kind");
+        // F12-MEAS2-E N5: a register asset's kind = its ledger (block) name from the effective chart (the property's override, else the built-in, else the
+        // code), as the prototype's accAssetRegister ledgerName; sorted with the culture-aware order of the prototype's localeCompare.
         var assets = mnt.Select(r => new Asset(S(r[0]), S(r[1]), S(r[2]), r[3] is null ? null : Dt(r[3]), null, L(r[4]) == 1, L(r[5]) == 1))
-            .Concat(acc.Select(r => new Asset(S(r[0]), S(r[1]), "Fixed assets " + S(r[2]), Dt(r[3]), L(r[4]), false, false)))
-            .Where(a => wanted == "" || a.Kind == wanted).OrderBy(a => a.Kind, StringComparer.Ordinal).ThenBy(a => a.Name, StringComparer.Ordinal).ToList();
+            .Concat(acc.Select(r => new Asset(S(r[0]), S(r[1]), S(r[2]), Dt(r[3]), L(r[4]), false, false)))
+            .Where(a => wanted == "" || a.Kind == wanted).OrderBy(a => a.Kind, StringComparer.InvariantCulture).ThenBy(a => a.Name, StringComparer.InvariantCulture).ToList();
         var rows = new List<ReportRow>();
         foreach (var a in assets)
         {
@@ -67,9 +72,12 @@ public sealed class AssetLifeReport(SqlPlatform platform, Hcc.Application.Config
 
         var fyStart = asOf.Month >= 4 ? new DateOnly(asOf.Year, 4, 1) : new DateOnly(asOf.Year - 1, 4, 1);
         var fyEnd = fyStart.AddYears(1).AddDays(-1);
+        // F12-MEAS2-E N2: live room lines only (as SqlStudyPackFacts and the flash): a reversed original and its reversal row never count, so a
+        // re-posted night is in the reserve base once, at the new rate.
         var revenue = L((await QueryAsync("""
             SELECT ISNULL(SUM(c.amount_paise), 0) FROM bill.charge c JOIN bill.folio f ON f.folio_id = c.folio_id JOIN inv.reservation r ON r.reservation_id = f.reservation_id
-             WHERE r.property_id = @p AND c.kind = 'room' AND c.service_date BETWEEN @from AND @to;
+             WHERE r.property_id = @p AND c.kind = 'room' AND c.service_date BETWEEN @from AND @to
+               AND c.reverses_charge_id IS NULL AND c.reversed_by_charge_id IS NULL;
             """, caller.PropertyId, c => { GuestsSql.Add(c, "@from", SqlDbType.Date, GuestsSql.D(fyStart)); GuestsSql.Add(c, "@to", SqlDbType.Date, GuestsSql.D(asOf)); }, ct).ConfigureAwait(false))[0][0]);
         var capex = L((await QueryAsync("""
             SELECT ISNULL(SUM(cost_paise), 0) FROM acc.fixed_asset WHERE property_id = @p AND disposed_date IS NULL AND purchase_date BETWEEN @from AND @to;

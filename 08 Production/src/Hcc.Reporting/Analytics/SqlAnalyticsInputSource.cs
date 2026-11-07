@@ -147,16 +147,21 @@ public sealed class SqlAnalyticsInputSource(SqlPlatform platform, TimeProvider? 
         """;
 
     // Amounts: every line of the folio (a reversal nets its original to zero); charged nights: live room lines only.
+    // F12-MEAS2-E N1: a reversal is posted as kind 'correction' (StayRateCommands rate re-post, BillingService void), so it is summed under the kind of
+    // the line it reverses (k.kind): a re-posted night's room revenue = the new rate only, and "other" is not pushed negative. Bill totals are unchanged.
+    // M5/N1 (owner 7 Nov): charged nights = live room lines above zero, the same rule as the flash ADR divisor.
     private const string LiveChargeSql = """
         SELECT c.folio_id,
-               SUM(CASE WHEN c.kind = 'room' THEN c.amount_paise ELSE 0 END),
-               SUM(CASE WHEN c.kind = 'food' THEN c.amount_paise ELSE 0 END),
-               SUM(CASE WHEN c.kind IN ('service','correction') THEN c.amount_paise ELSE 0 END),
-               SUM(CASE WHEN c.kind = 'discount' THEN c.amount_paise ELSE 0 END),
+               SUM(CASE WHEN k.kind = 'room' THEN c.amount_paise ELSE 0 END),
+               SUM(CASE WHEN k.kind = 'food' THEN c.amount_paise ELSE 0 END),
+               SUM(CASE WHEN k.kind IN ('service','correction') THEN c.amount_paise ELSE 0 END),
+               SUM(CASE WHEN k.kind = 'discount' THEN c.amount_paise ELSE 0 END),
                SUM(c.tax_paise),
-               SUM(CASE WHEN c.kind = 'room' AND c.reverses_charge_id IS NULL AND c.reversed_by_charge_id IS NULL THEN 1 ELSE 0 END),
+               SUM(CASE WHEN c.kind = 'room' AND c.reverses_charge_id IS NULL AND c.reversed_by_charge_id IS NULL AND c.amount_paise > 0 THEN 1 ELSE 0 END),
                COUNT(*)
           FROM bill.charge c JOIN bill.folio f ON f.folio_id = c.folio_id JOIN inv.reservation r ON r.reservation_id = f.reservation_id
+          LEFT JOIN bill.charge o ON c.kind = 'correction' AND o.charge_id = c.reverses_charge_id
+         CROSS APPLY (SELECT COALESCE(o.kind, c.kind) AS kind) k
          WHERE r.property_id = @p
          GROUP BY c.folio_id;
         """;

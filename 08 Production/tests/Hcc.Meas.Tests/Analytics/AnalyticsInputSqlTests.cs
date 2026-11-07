@@ -46,7 +46,8 @@ public sealed class AnalyticsInputSqlFixture : IAsyncLifetime
         await Db.ExecAsync($"INSERT gst.stay_segment(stay_id, seq, room_id, from_date, to_date) VALUES ({s1}, 1, {r101}, '2026-11-01', '2026-11-03');");
         await Db.ExecAsync($"INSERT bill.charge(folio_id, kind, service_date, label, amount_paise, tax_bps, tax_paise) VALUES ({f1}, 'room', '2026-11-01', N'Room night', 250000, 1200, 30000);");
         var orig = await IdAsync($"INSERT bill.charge(folio_id, kind, service_date, label, amount_paise, tax_bps, tax_paise) OUTPUT INSERTED.charge_id VALUES ({f1}, 'room', '2026-11-02', N'Room night', 250000, 1200, 30000);");
-        var rev = await IdAsync($"INSERT bill.charge(folio_id, kind, service_date, label, amount_paise, tax_bps, tax_paise, reverses_charge_id) OUTPUT INSERTED.charge_id VALUES ({f1}, 'room', '2026-11-02', N'Reversal', -250000, 1200, -30000, {orig});");
+        // F12-MEAS2-E N1: the reversal is written as production writes it (BillingService void / StayRateCommands re-post): kind 'correction', reverses_charge_id set
+        var rev = await IdAsync($"INSERT bill.charge(folio_id, kind, service_date, label, amount_paise, tax_bps, tax_paise, reverses_charge_id) OUTPUT INSERTED.charge_id VALUES ({f1}, 'correction', '2026-11-02', N'Reversal · Room night · left early', -250000, 1200, -30000, {orig});");
         await Db.ExecAsync($"UPDATE bill.charge SET reversed_by_charge_id = {rev} WHERE charge_id = {orig};");
         await Db.ExecAsync($"INSERT bill.charge(folio_id, kind, service_date, label, amount_paise, tax_bps, tax_paise) VALUES ({f1}, 'food', '2026-11-02', N'Dinner', 50000, 500, 2500);");
         await Db.ExecAsync($"INSERT bill.charge(folio_id, kind, service_date, label, amount_paise, tax_bps, tax_paise) VALUES ({f1}, 'discount', '2026-11-02', N'Discount', -20000, 0, 0);");
@@ -85,7 +86,27 @@ public sealed class AnalyticsInputSqlFixture : IAsyncLifetime
             VALUES ({P}, '2025-26', 'deposit', 1, {l7}, {LegacyBillId}, '2025-06-03', '2025-06-03', 'payment', 'CASH', 500000),
                    ({P}, '2025-26', 'refund', 2, {l7}, {LegacyBillId}, '2025-06-03', '2025-06-03', 'refund', 'CASH', 1000);
             """);
+
+        // F12-MEAS2-E N1 / M5: a property of its own with one live stay whose night 2 was re-posted exactly as StayRateCommands.ApplyAsync does it
+        // (reversal kind 'correction' dated the business date with reverses_charge_id, original marked reversed_by, then the new room line), and a zero-rate night 3.
+        R = (int)await IdAsync("INSERT inv.property(code, name, time_zone, business_date) OUTPUT INSERTED.property_id VALUES ('ANR', N'Analytics re-post test (fictional)', 'Asia/Kolkata', '2026-11-05');");
+        var rdlx = await IdAsync($"INSERT inv.room_type(property_id, code, max_occupancy, name) OUTPUT INSERTED.room_type_id VALUES ({R}, 'RDLX', 2, N'Deluxe');");
+        var r301 = await IdAsync($"INSERT inv.room(property_id, room_no, room_type_id) OUTPUT INSERTED.room_id VALUES ({R}, '301', {rdlx});");
+        var res9 = await IdAsync($"""
+            INSERT inv.reservation(property_id, public_no, guest_name, arrival, departure, status, room_id, room_type_id, adults, children, nightly_rate_paise)
+            OUTPUT INSERTED.reservation_id VALUES ({R}, 'T-9', N'Guest Nine (fictional)', '2026-11-01', '2026-11-04', 'Departed', {r301}, {rdlx}, 2, 0, 200000);
+            """);
+        var f9 = await IdAsync($"INSERT bill.folio(reservation_id) OUTPUT INSERTED.folio_id VALUES ({res9});");
+        await Db.ExecAsync($"INSERT bill.charge(folio_id, kind, service_date, label, amount_paise, tax_bps, tax_paise) VALUES ({f9}, 'room', '2026-11-01', N'Room night', 250000, 1200, 30000);");
+        var o9 = await IdAsync($"INSERT bill.charge(folio_id, kind, service_date, label, amount_paise, tax_bps, tax_paise) OUTPUT INSERTED.charge_id VALUES ({f9}, 'room', '2026-11-02', N'Room night', 250000, 1200, 30000);");
+        var v9 = await IdAsync($"INSERT bill.charge(folio_id, kind, service_date, label, amount_paise, tax_bps, tax_paise, reverses_charge_id) OUTPUT INSERTED.charge_id VALUES ({f9}, 'correction', '2026-11-02', N'Reversal · rate change · Room night', -250000, 1200, -30000, {o9});");
+        await Db.ExecAsync($"UPDATE bill.charge SET reversed_by_charge_id = {v9} WHERE charge_id = {o9};");
+        await Db.ExecAsync($"INSERT bill.charge(folio_id, kind, service_date, label, amount_paise, tax_bps, tax_paise) VALUES ({f9}, 'room', '2026-11-02', N'Room night', 200000, 1200, 24000);");
+        await Db.ExecAsync($"INSERT bill.charge(folio_id, kind, service_date, label, amount_paise, tax_bps, tax_paise) VALUES ({f9}, 'room', '2026-11-03', N'Room night', 0, 0, 0);");
     }
+
+    /// <summary>F12-MEAS2-E: the re-post property (one stay, night 2 re-posted, night 3 at zero).</summary>
+    public int R { get; private set; }
 
     private static string Q(string? d) => d is null ? "NULL" : "'" + d + "'";
 
@@ -160,6 +181,20 @@ public sealed class AnalyticsInputSqlTests(AnalyticsInputSqlFixture f) : IClassF
         var nights = await facts.RoomNightsAsync(f.P, new DateOnly(2026, 11, 1), new DateOnly(2026, 11, 5), Ct);
         var n = Assert.Single(nights);                                                    // the reversed night and its reversal are not room-nights
         Assert.Equal(("101", new DateOnly(2026, 11, 1), 250000L), (n.Room, n.Night, n.AmountPaise));
+    }
+
+    [Fact]
+    public async Task MEAS2_E_N1_a_reposted_night_counts_once_at_the_new_rate_and_zero_nights_are_not_charged()
+    {
+        var inp = await new SqlAnalyticsInputSource(f.Db.Platform).LoadAsync(f.R, new DateOnly(2026, 12, 31), Ct);
+        var b = Assert.Single(inp.Bills);
+        // room = 250000 (night 1) + 200000 (night 2 at the new rate) + 0 (night 3); the 'correction' reversal nets the original, not "other"
+        Assert.Equal(("B-T-9", 450000L, 0L, 0L, 0L), (b.Id, b.RoomChargePaise, b.FnbPaise, b.OtherPaise, b.DiscountPaise));
+        Assert.Equal((54000L, 504000L), (b.GstPaise, b.TotalPaise));                    // bill total unchanged by the netting
+        Assert.Equal(2, b.ChargedNights);                                               // M5/N1: night 1 + the new night 2; the zero-rate night 3 is not charged
+
+        var nights = await new SqlStudyPackFacts(f.Db.Platform).RoomNightsAsync(f.R, new DateOnly(2026, 11, 1), new DateOnly(2026, 11, 5), Ct);
+        Assert.Equal(200000L, Assert.Single(nights, n => n.Night == new DateOnly(2026, 11, 2)).AmountPaise);
     }
 
     [Fact]
