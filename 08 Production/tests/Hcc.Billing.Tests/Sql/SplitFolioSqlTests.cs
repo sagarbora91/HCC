@@ -42,6 +42,8 @@ public class SplitFolioSqlTests(BillingDb db) : IClassFixture<BillingDb>
         OUTPUT INSERTED.company_id VALUES (@p, @n, '27AAACD1111A1Z1', 5000000, 1, SYSUTCDATETIME());
         """, ("@p", System.Data.SqlDbType.Int, db.PropertyId), ("@n", System.Data.SqlDbType.NVarChar, "Deccan Agro " + Guid.NewGuid().ToString("N")[..6]));
 
+    private async Task<long> StoredFolioAsync(long chargeId) => await db.LongAsync("SELECT folio_id FROM bill.charge WHERE charge_id = @c", ("@c", System.Data.SqlDbType.BigInt, chargeId));
+
     private async Task<(long Rid, long FolioA)> StayAsync(long rate = 300_000)
     {
         var (rid, fid) = await db.NewFolioAsync("InHouse", BillingDb.Day, BillingDb.Day.AddDays(3));
@@ -59,9 +61,9 @@ public class SplitFolioSqlTests(BillingDb db) : IClassFixture<BillingDb>
         Assert.Equal(("B", "company"), (opened.Letter, opened.PayerKind));
 
         var night = (await db.Billing.PostRoomNightAsync(db.As(Who.Manager), BillingDb.Key(), new PostRoomNightRequest(rid, BillingDb.Day), Ct)).Value;
-        Assert.Equal(opened.FolioId, night.FolioId); // room goes to the company folio
+        Assert.Equal(opened.FolioId, await StoredFolioAsync(night.ChargeId)); // room goes to the company folio
         var laundry = (await db.Billing.PostChargeAsync(db.As(Who.Reception), BillingDb.Key(), new PostChargeRequest(fa, "Laundry", 50_000, "laundry"), Ct)).Value;
-        Assert.Equal(fa, laundry.FolioId); // extras are not routed: they stay on A
+        Assert.Equal(fa, await StoredFolioAsync(laundry.ChargeId)); // extras are not routed: they stay on A
 
         var rows = (await store.SummaryAsync(db.PropertyId, rid, Ct))!;
         Assert.Equal(["A", "B"], rows.Select(r => r.Letter));
@@ -85,7 +87,7 @@ public class SplitFolioSqlTests(BillingDb db) : IClassFixture<BillingDb>
     {
         var (rid, fa) = await StayAsync();
         var night = (await db.Billing.PostRoomNightAsync(db.As(Who.Manager), BillingDb.Key(), new PostRoomNightRequest(rid, BillingDb.Day), Ct)).Value;
-        Assert.Equal(fa, night.FolioId);
+        Assert.Equal(fa, await StoredFolioAsync(night.ChargeId));
         var (store, _) = Split();
         var rows = (await store.SummaryAsync(db.PropertyId, rid, Ct))!;
         var only = Assert.Single(rows);
@@ -102,7 +104,7 @@ public class SplitFolioSqlTests(BillingDb db) : IClassFixture<BillingDb>
         var co = await CompanyAsync();
         var b = (await svc.OpenAsync(Ctx(SplitFolioService.OpOpen), new OpenFolioRequest(rid, "company", co, null, null, null, ["room", "extras"], null), Ct)).Value;
         var charge = (await db.Billing.PostChargeAsync(db.As(Who.Reception), BillingDb.Key(), new PostChargeRequest(fa, "Laundry", 10_000, "laundry"), Ct)).Value;
-        Assert.Equal(b.FolioId, charge.FolioId); // extras routed to B
+        Assert.Equal(b.FolioId, await StoredFolioAsync(charge.ChargeId)); // extras routed to B
         await Assert.ThrowsAsync<Hcc.Domain.Errors.HccException>(() => svc.RemoveAsync(Ctx(SplitFolioService.OpRemove), new RemoveFolioRequest(rid, 2), Ct));
 
         var (rid2, fa2) = await StayAsync();
@@ -110,7 +112,7 @@ public class SplitFolioSqlTests(BillingDb db) : IClassFixture<BillingDb>
         await svc.OpenAsync(Ctx(SplitFolioService.OpOpen), new OpenFolioRequest(rid2, "company", c2, null, null, null, ["extras"], null), Ct);
         await svc.RemoveAsync(Ctx(SplitFolioService.OpRemove), new RemoveFolioRequest(rid2, 2), Ct);
         var back = (await db.Billing.PostChargeAsync(db.As(Who.Reception), BillingDb.Key(), new PostChargeRequest(fa2, "Laundry", 10_000, "laundry"), Ct)).Value;
-        Assert.Equal(fa2, back.FolioId);
+        Assert.Equal(fa2, await StoredFolioAsync(back.ChargeId));
     }
 
     [Fact]

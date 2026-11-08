@@ -1,5 +1,6 @@
 using Hcc.Application.Access;
 using Hcc.Application.Billing;
+using Hcc.Contracts;
 using Hcc.Contracts.Billing;
 using Hcc.Domain.Errors;
 using Hcc.Infrastructure.SqlServer;
