@@ -63,7 +63,7 @@ public sealed class F8FixTests
         var folioB = opened.FolioId;
 
         // Variant (c): ₹6,000 laundry at 18 % (₹7,080) onto B: ₹3,150 + ₹7,080 = ₹10,230 > ₹10,000 → refused with the D7 text, nothing posted.
-        var refused = await Wire.CommandFailsAsync(staff.Reception, "PostCharge", new PostChargeRequest(folioB, "Laundry", 600000, "laundry", ExplicitFolio: true),
+        var refused = await Wire.CommandFailsAsync(staff.Owner, "PostCharge", new PostChargeRequest(folioB, "Laundry", 600000, "laundry", ExplicitFolio: true),
             HttpStatusCode.Conflict, "INVALID_TRANSITION", Ct);
         Assert.Contains("Credit limit exceeded for Deccan Agro Ltd (fictional)", refused.Message, StringComparison.Ordinal);
         Assert.Contains("split folio", refused.Message, StringComparison.Ordinal);
@@ -72,12 +72,12 @@ public sealed class F8FixTests
         Assert.Equal(0, await s.CountAsync($"SELECT COUNT(*) FROM bill.charge WHERE folio_id = {folioB}", Ct));
 
         // The same line onto the guest folio A passes (SFQ-7: the desk may post it to the guest's bill), and so does a line routed by category (extras → A).
-        await Wire.CommandAsync<ChargeResult>(staff.Reception, "PostCharge", new PostChargeRequest(folioA, "Laundry", 600000, "laundry", ExplicitFolio: true), Ct);
-        await Wire.CommandAsync<ChargeResult>(staff.Reception, "PostCharge", new PostChargeRequest(folioA, "Laundry 2", 600000, "laundry"), Ct);
+        await Wire.CommandAsync<ChargeResult>(staff.Owner, "PostCharge", new PostChargeRequest(folioA, "Laundry", 600000, "laundry", ExplicitFolio: true), Ct);
+        await Wire.CommandAsync<ChargeResult>(staff.Owner, "PostCharge", new PostChargeRequest(folioA, "Laundry 2", 600000, "laundry"), Ct);
         Assert.Equal(2, await s.CountAsync($"SELECT COUNT(*) FROM bill.charge WHERE folio_id = {folioA}", Ct));
 
         // A smaller extra onto B that fits (₹3,150 + ₹590 ≤ ₹10,000) passes; the night itself is never refused (it posts to its routed folio B).
-        await Wire.CommandAsync<ChargeResult>(staff.Reception, "PostCharge", new PostChargeRequest(folioB, "Laundry", 50000, "laundry", ExplicitFolio: true), Ct);
+        await Wire.CommandAsync<ChargeResult>(staff.Owner, "PostCharge", new PostChargeRequest(folioB, "Laundry", 50000, "laundry", ExplicitFolio: true), Ct);
         await Wire.CommandAsync<ChargeResult>(staff.Owner, "PostRoomNight", new PostRoomNightRequest(stay.StayId, new DateOnly(2026, 10, 24)), Ct);
         Assert.Equal(2, await s.CountAsync($"SELECT COUNT(*) FROM bill.charge WHERE folio_id = {folioB}", Ct));
     }
@@ -122,7 +122,7 @@ public sealed class F8FixTests
         // Folio B (Udhaar) takes the extras; folio C (another guest payer) is opened empty to prove the receipt-folio rule.
         var b = await Wire.CommandAsync<FolioCommandResult>(staff.Owner, "OpenFolio", new OpenFolioRequest(reservationId, "udhaar", null, key, null, null, ["extras"], "Udhaar customer pays the extras"), Ct);
         var c = await Wire.CommandAsync<FolioCommandResult>(staff.Owner, "OpenFolio", new OpenFolioRequest(reservationId, "guest", null, null, "Other Person (fictional)", null, [], null), Ct);
-        await Wire.CommandAsync<ChargeResult>(staff.Reception, "PostCharge", new PostChargeRequest(folioA, "Laundry", 50000, "laundry"), Ct); // routed: extras → B
+        await Wire.CommandAsync<ChargeResult>(staff.Owner, "PostCharge", new PostChargeRequest(folioA, "Laundry", 50000, "laundry"), Ct); // routed: extras → B
         Assert.Equal(1, await s.CountAsync($"SELECT COUNT(*) FROM bill.charge WHERE folio_id = {b.FolioId}", Ct));
 
         // Guest credit on a plain guest folio C is refused (SF-CONTRACT §3: A or an Udhaar folio); on the Udhaar folio B it is requested for B's balance.
