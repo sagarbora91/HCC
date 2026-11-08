@@ -26,6 +26,8 @@ import {serverId} from './map';
 import {allPages,bookingOf,roomIdOf,versionOf,type SrvGuestPage} from './frontdesk/shared';
 import {companyCreditApprovalId,issueInvoiceAfterCheckout,invoiceStepWarning,FOLIO_SLICES} from './money';
 import {creditAccountsFromServer} from './lfmoney';
+import {sfIsSplit} from '../../domain/streams/folio-split'; // F8C-SYNC
+import {sfCheckoutCreditApprovals,sfInvoiceWarning,type SrvCheckoutResult} from './money-split'; // F8C-SYNC
 
 type Guest=NonNullable<State['guests']>[number];
 
@@ -141,6 +143,18 @@ export const frontdesk:SyncArea={
       const ota=c.cmd.otaCredit===true;
       if(ota){const f=c.ids.server('folio',id);if(f===undefined)throw new HccClientError('INVALID_TRANSITION','This booking has no folio on the server yet.');
         await c.api.command('SettleFolioToOta',{folioId:f,expectedVersion:c.ids.version('folio',id)??null},{step:'ota'});}
+      // F8C-SYNC · CHECKOUT of a split stay (SF-CONTRACT §4/§5): the server settles every folio with the credit approval named for it
+      // (CreditApprovalIds) and numbers one invoice per non-zero folio inside the checkout (InvoiceNos) — no IssueInvoice step afterwards.
+      const sb=bookingOf(c,id);
+      if(sfIsSplit(sb)){
+        const named=!ota&&c.cmd.companyCreditApprovalId?[serverId(c.cmd.companyCreditApprovalId,'Approval')]:[];
+        const credits=[...new Set([...named,...sfCheckoutCreditApprovals(c.state,sb)])];
+        const res=await c.api.command<SrvCheckoutResult>('CheckoutStay',{stayId:stayIdOf(c,id),...(credits.length?{creditApprovalIds:credits}:{}),desk:true,
+          ...(c.cmd.lateCharge?{lateCharge:String(c.cmd.lateCharge),lateReason:String(c.cmd.lateReason??'')}:{})},{expectedVersion:versionOf(c,'stay',id,'Stay')});
+        const warning=sfInvoiceWarning(sb,res?.invoiceNos);
+        return {reload:['rooms','tasks',...FOLIO_SLICES],...(warning?{warning}:{result:{invoiceNos:res?.invoiceNos??[]}})};
+      }
+      // F8C-SYNC end
       const given=ota?undefined:c.cmd.companyCreditApprovalId;
       const approval=ota?undefined:given?serverId(given,'Approval'):companyCreditApprovalId(c.state,id);
       await c.api.command('CheckoutStay',{stayId:stayIdOf(c,id),...(approval?{companyCreditApprovalId:approval}:{}),desk:true,...(c.cmd.lateCharge?{lateCharge:String(c.cmd.lateCharge),lateReason:String(c.cmd.lateReason??'')}:{})},{expectedVersion:versionOf(c,'stay',id,'Stay')});

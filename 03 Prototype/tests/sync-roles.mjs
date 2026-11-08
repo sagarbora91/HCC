@@ -53,6 +53,9 @@ function routes(role){
       {roomId:11,roomNo:'305',roomType:'Suite',blocked:true,blockReason:'AC repair',roomBlockId:66,occupied:false,hk:'Ready',blockFrom:BD,blockTo:'2026-10-27'}]}),
     'GET /housekeeping/tasks':({query})=>({...page(mine,query),assignedOnly:!wide}),
     'GET /folios/by-reservation/:id':({params})=>params.id==='1201'?{reservationId:1201,stayId:501,stayVersion:'SV1201',folio:folio(1201)}:{reservationId:Number(params.id),stayId:null,stayVersion:null,folio:null},
+    'GET /folios/by-reservation/:id/summary':({params})=>params.id==='1201'?[{folioId:6201,seq:1,letter:'A',payerKind:'guest',payerName:null,payerGstin:null,companyId:null,customerKey:null,
+      routes:['room','extras'],netPaise:200000,taxPaise:10000,totalPaise:210000,paidPaise:0,depositPaise:0,balancePaise:210000,invoiceNo:null,removed:false}]:[], // F8C-SYNC: single folio
+    'GET /folios/:id':()=>reply(404,{code:'NOT_FOUND',message:'Folio not found.'}), // F8C-SYNC: read only for folios B–D of a split stay
     'GET /invoices/by-source/folio/:id':()=>reply(404,{code:'NOT_FOUND',message:'No invoice.'}),
     'GET /credit-note-requests':()=>[],
     'GET /cashier/desk':()=>({businessDate:BD,tills:[{till:{tillId:3,code:'FRONT',name:'Front desk',version:'T1'},active:{shift,submittedBy:null,differenceReason:null,closedBy:null,approval:null},expected:{expectedPaise:500000},lastClosed:null}]}),

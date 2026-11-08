@@ -7,6 +7,8 @@ import type {BLCState,BLCCorrection,BLCChange,CTRState,CTRBill,STRState,GuestAgr
 import type {SyncArea,SyncApi,CommandCtx} from './types';
 import {mnyIsDrawer,mnyMethod,mnyNames} from '../../domain/streams/money-master';
 import {shiftClosedText} from './money';
+import {sfIsSplit,sfFolio,SF_PRIMARY} from '../../domain/streams/folio-split'; // F8C-SYNC
+import {sfLetter,sfFolioRef} from './money-split'; // F8C-SYNC
 
 const text=(v:unknown)=>String(v??'').trim();
 /** AF-FIX2 F4: the counter method as the master names it (`cash` / ` CASH ` → Cash), so the drawer test and the till see the same row as the server. */
@@ -121,8 +123,17 @@ export const lfmoney:SyncArea={
       await c.api.command('ClearGuestAgreedRate',{guestId:serverId(k.guestId,'Guest'),roomTypeId:await roomTypeIdOf(c,text(k.roomType))});}},
     {type:'GUEST_CREDIT_ACCOUNT_SET',reload:[],async send(c){const k=c.cmd;
       await c.api.command('SetGuestCreditAccount',{guestId:serverId(k.guestId,'Guest'),limitPaise:Number(k.limit),active:k.active!==false,note:text(k.note)||undefined});}},
-    {type:'GUEST_CREDIT_REQUEST',reload:['bookings'],async send(c){const k=c.cmd;
-      await c.api.command('RequestGuestCredit',{stayId:stayOf(c,text(k.booking??k.id)),reason:text(k.reason)});}},
+    // F8C-SYNC · GUEST_CREDIT_REQUEST {folio?}: folio A (no folioId, as before) or an Udhaar folio of a split stay (FolioId from the folio summary);
+    // the reason defaults to the prototype's "Guest credit · <payer>" (the split check-out sheet sends none; the server requires one).
+    {type:'GUEST_CREDIT_REQUEST',reload:['bookings','approvals'],
+      precheck(cmd,s){const b=s.bookings.find(x=>x.id===text(cmd.booking??cmd.id));if(!b||!sfIsSplit(b))return undefined;
+        const fol=text(cmd.folio)||SF_PRIMARY,f=sfFolio(b,fol);if(!f)return `This stay has no open folio ${fol}.`;
+        return fol!==SF_PRIMARY&&f.payer.kind!=='udhaar'?'Guest credit goes on folio A or an Udhaar folio.':undefined;},
+      async send(c){const k=c.cmd,id=text(k.booking??k.id),b=c.state.bookings.find(x=>x.id===id);
+        const letter=b?sfLetter(b,k.folio):SF_PRIMARY,payer=b&&letter!==SF_PRIMARY?sfFolio(b,letter)?.payer.name:b?.guest;
+        await c.api.command('RequestGuestCredit',{stayId:stayOf(c,id),reason:text(k.reason)||(payer?'Guest credit · '+payer:''),
+          ...(letter!==SF_PRIMARY?{folioId:sfFolioRef(c,id,letter).folioId}:{})});}},
+    // F8C-SYNC end
     {type:'CTR_BILL_ISSUE',reload:[],
       // AF-CTR-UI (BIL-01 / UX-01): the method must be a front-desk row of the payment-methods master, a reference when the row needs one, and a cash (drawer)
       // method needs the open shift — the phone says so before any request. The server (CounterBillService) re-checks all of it.
@@ -150,7 +161,11 @@ export const lfmoney:SyncArea={
         guestId:k.party?.guestId?serverId(k.party.guestId,'Guest'):undefined},lines,settlement:{mode:text(st.mode),method:method||undefined,reference:text(st.reference)||undefined,tillId,
         companyId:st.companyId?serverId(st.companyId,'Company'):undefined},discountPaise:Number(k.discount?.amount??0),discountReason:text(k.discount?.reason)||undefined,remark:text(k.remark)||undefined});}},
     {type:'CTR_BILL_VOID_REQUEST',reload:[],async send(c){await c.api.command('RequestCounterBillVoid',{billId:serverId(c.cmd.id,'CounterBill'),reason:text(c.cmd.reason)});}},
-    {type:'BILL_CORRECTION_REQUEST',reload:['bookings'],async send(c){const k=c.cmd;const b=c.state.bookings.find(x=>x.id===text(k.booking));
+    {type:'BILL_CORRECTION_REQUEST',reload:['bookings'],
+      // F8C-SYNC (SFQ-11): refused on a split stay before any request, in the prototype's words (server: SF_SPLIT_BILL_CORRECTION)
+      precheck(cmd,s){const b=s.bookings.find(x=>x.id===text(cmd.booking));
+        return b&&sfIsSplit(b)?'This stay has a split bill (one invoice per folio): correct it with a credit note on the folio concerned.':undefined;},
+      async send(c){const k=c.cmd;const b=c.state.bookings.find(x=>x.id===text(k.booking));
       if(!b?.invoiceNo)throw new HccClientError('VALIDATION','This stay has no invoice to correct.');
       const changes=(Array.isArray(k.changes)?k.changes:[]).map((x:Record<string,unknown>)=>x.kind==='room-rate'?{kind:'room-rate',night:x.night,newRatePaise:Number(x.newRate)}
         :x.kind==='remove-line'?{kind:'remove-line',chargeId:serverId(x.lineId as string,'Charge')}:{kind:'add-line',label:x.label,amountPaise:Number(x.amount),gstCategory:x.gstCategory,serviceDate:x.date});

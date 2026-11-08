@@ -33,6 +33,10 @@ import {BOOKING_STATUS} from './frontdesk/shared';
 import {folioIntoBooking,approvalFromServer,creditNoteRequestFromServer,cashDifferenceApproval,CNR_PREFIX,deskTill,deskShiftOpen,deskOpeningCash,
   deskShiftRecord,deskShiftClose,cashbookFromServer,blockFromServer,companyFromServer,companyPaymentFromServer,limitRequestFromServer,type SrvCompanyBook,
   type SrvReservationFolio,type SrvInvoice,type SrvCreditNoteRequest,type SrvCashDesk,type SrvCashBookRange,type SrvGroupSummary,type SrvGroupStatement} from './money/wire';
+// F8C-SYNC · split folio (SF-CONTRACT): folios B–D are loaded and every folio-aware command addresses its folio (money-split.ts)
+import {sfIsSplit,sfFolio,sfView,sfCompanyFolio,sfRouteTarget,sfLineFolio,SF_PRIMARY} from '../../domain/streams/folio-split';
+import {sfLoadSplit,sfLetter,sfFolioRef,sfInvoiceIds,sfIssueInvoices,sfFoliosToInvoice,sfKey as sfKeyOf,type SrvFolioSummary} from './money-split';
+// F8C-SYNC end
 
 /** A booking as the money patch leaves it: the folio's approvals travel with it to the approvals loader (same batch). */
 type MoneyBooking=Booking&{srvApprovals?:Approval[]};
@@ -80,7 +84,15 @@ async function patchBookings(c:LoaderCtx):Promise<MoneyBooking[]>{
     let inv:SrvInvoice|null=null;
     if(f&&b.status==='Departed'&&c.mayRead('GET /invoices/by-source/folio/:id'))inv=await optional(c.api.get<SrvInvoice>(`/invoices/by-source/folio/${f.folioId}`));
     if(inv)c.ids.learn('invoice',b.id,inv.invoiceId);
+    // F8C-SYNC: a stay with more than one live folio loads every folio (lines stamped with their letter, Booking.folios); else today's path (I1)
+    if(f&&c.mayRead('GET /folios/by-reservation/:id/summary')){
+      const rows=await optional(c.api.get<SrvFolioSummary[]>(`/folios/by-reservation/${b.id}/summary`));
+      const split=rows?await sfLoadSplit(c,b,f,inv,rows):null;
+      if(split)return split as MoneyBooking;
+    }
+    // F8C-SYNC end
     const next=folioIntoBooking(b,f,inv) as MoneyBooking;
+    delete next.folios; // F8C-SYNC: a single-folio stay never carries folios (I1)
     next.srvApprovals=(f?.approvals??[]).map(a=>{c.ids.setVersion('approval',protoId(a.approvalId),a.version);return approvalFromServer(a,b.id);});
     return next;
   });
@@ -116,12 +128,12 @@ async function patchApprovals(c:LoaderCtx):Promise<Approval[]>{
   const out:Approval[]=bookings.flatMap(b=>b.srvApprovals??[]);
   const cash=cashDifferenceApproval(c.current('shift'));
   if(cash)out.push(cash);
-  const byInvoice=new Map<number,string>();
-  for(const b of bookings){const i=c.ids.server('invoice',b.id);if(i!==undefined)byInvoice.set(i,b.id);}
+  const byInvoice=new Map<number,{booking:string;folio?:string}>(); // F8C-SYNC: every folio invoice of a split stay (meta.folio)
+  for(const b of bookings)for(const x of sfInvoiceIds(c.ids,b))byInvoice.set(x.invoiceId,{booking:b.id,folio:x.folio});
   if(byInvoice.size&&c.mayRead('GET /credit-note-requests')){
     const reqs=await optional(c.api.get<SrvCreditNoteRequest[]>('/credit-note-requests',{status:'Pending'}))??[];
-    for(const r of reqs){const bid=byInvoice.get(r.invoiceId);if(!bid)continue;
-      const a=creditNoteRequestFromServer(r,bid);c.ids.setVersion('approval',a.id,r.version);out.push(a);}
+    for(const r of reqs){const at=byInvoice.get(r.invoiceId);if(!at)continue;
+      const a=creditNoteRequestFromServer(r,at.booking);if(at.folio)a.meta={...(a.meta??{}),folio:at.folio};c.ids.setVersion('approval',a.id,r.version);out.push(a);}
   }
   out.sort((a,b)=>(Number(a.id.replace(CNR_PREFIX,''))||0)-(Number(b.id.replace(CNR_PREFIX,''))||0));
   return [...(c.current('approvals')??[]),...out];
@@ -170,11 +182,10 @@ async function loadGroups(c:LoaderCtx):Promise<GRPState>{
 const invalid=(m:string)=>new HccClientError('INVALID_TRANSITION',m);
 const validation=(m:string)=>new HccClientError('VALIDATION',m);
 const bookingOf=(c:CommandCtx,id:unknown)=>{const b=c.state.bookings.find(x=>x.id===String(id??''));if(!b)throw new HccClientError('NOT_FOUND','Booking not found.');return b;};
-/** Folio id + the version loaded (DEC-041: requests are bound to the folio version the user saw). */
-function folioOf(c:CommandCtx,bookingId:string){
-  const folioId=c.ids.server('folio',bookingId),version=c.ids.version('folio',bookingId);
-  if(folioId===undefined||!version)throw invalid('This booking has no folio on the server yet — it opens at check-in. Refresh and try again.');
-  return {folioId,version};
+/** Folio id + the version loaded (DEC-041: requests are bound to the folio version the user saw). F8C-SYNC: `letter` names a folio B–D of a
+ *  split stay (its own id and version); A = the booking's folio as before. */
+function folioOf(c:CommandCtx,bookingId:string,letter:string=SF_PRIMARY){
+  return sfFolioRef(c,bookingId,letter);
 }
 function approvalVersion(c:CommandCtx,id:string){
   const v=c.ids.version('approval',id);if(!v)throw new HccClientError('NOT_FOUND','This request is no longer pending. Refresh and try again.');return v;
@@ -216,6 +227,15 @@ function paymentPrecheck(cmd:Command,s:State,me?:SyncMe){
     if(mnyIsDrawer(s,p.method.name)){const b=cashBlockedReason(me,s.shiftOpen,cxSlice(s).opener?.by);if(b)return b;if(!s.shiftOpen)return shiftClosedText(s);}
   }
   if(tenders.reduce((a,t)=>a+t.amount,0)!==cmd.amount)return 'Tender rows must add up to the payment amount.';
+  // F8C-SYNC · PAYMENT {folio?} on a split stay: the receipt table of SF-CONTRACT §3 in the prototype's words (the server re-checks: EnsureReceiptFolio)
+  const b=s.bookings.find(x=>x.id===String(cmd.id??''));
+  if(b&&sfIsSplit(b)){
+    const fol=String(cmd.folio||SF_PRIMARY),f=sfFolio(b,fol);
+    if(!f)return `This stay has no open folio ${fol}.`;
+    if(fol!==SF_PRIMARY&&(kind==='deposit'||kind==='deposit-return'))return 'Deposits are held on folio A only.';
+    if(f.payer.kind==='company'&&tenders.some(t=>folioIsDrawer(s,t.method)))return 'A company folio is not paid in cash (DEC-076): use bank transfer, UPI or card.';
+  }
+  // F8C-SYNC end
   return undefined;
 }
 function tendersOf(cmd:Command):{method:string;amount:number;reference:string}[]{
@@ -223,8 +243,8 @@ function tendersOf(cmd:Command):{method:string;amount:number;reference:string}[]
     ?cmd.tenders.map((t:{method?:string;amount?:number;reference?:string})=>({method:String(t?.method??''),amount:Number(t?.amount),reference:text(t?.reference)}))
     :[{method:String(cmd.method??''),amount:Number(cmd.amount),reference:text(cmd.reference)}];
 }
-async function requestAdjustment(c:CommandCtx,action:string,b:Booking,amount:number,reason:string,targetId:number|null){
-  const f=folioOf(c,b.id);
+async function requestAdjustment(c:CommandCtx,action:string,b:Booking,amount:number,reason:string,targetId:number|null,letter:string=SF_PRIMARY){
+  const f=folioOf(c,b.id,letter); // F8C-SYNC: the folio the request is on (split stay)
   return c.api.command('RequestAdjustment',{action,folioId:f.folioId,targetId,amountPaise:amount,reason},{expectedVersion:f.version});
 }
 /** Block code for CreateGroupBlock (1–20 characters): name letters/digits + arrival MMDD. */
@@ -288,8 +308,9 @@ export const money:SyncArea={
         // Advance before arrival: a Confirmed booking has no folio until check-in. The server opens it with the first receipt
         // (RecordReceipt by reservationId, folioId 0), the same folio check-in then finds. Once a folio exists, its id is used.
         const known=c.ids.server('folio',b.id);
-        const preArrival=known===undefined&&b.status==='Confirmed'&&kind!=='deposit-return';
-        const target=preArrival?{folioId:0,reservationId:serverId(b.id,'Booking')}:{folioId:folioOf(c,b.id).folioId};
+        const letter=sfLetter(b,c.cmd.folio); // F8C-SYNC: PAYMENT {folio?} → that folio (default A)
+        const preArrival=letter===SF_PRIMARY&&known===undefined&&b.status==='Confirmed'&&kind!=='deposit-return';
+        const target=preArrival?{folioId:0,reservationId:serverId(b.id,'Booking')}:{folioId:folioOf(c,b.id,letter).folioId};
         const results=[];
         // AF-PAY08 (PAY-08): confirmDuplicate=true is the cashier's "second, separate payment" tick. The resend uses its own key suffix (:confirm) so it can
         // never collide with the refused attempt's key (same key + a changed payload would be IDEMPOTENCY_MISMATCH).
@@ -321,22 +342,42 @@ export const money:SyncArea={
       }},
     {type:'CHARGE',reload:FOLIO,
       precheck:cmd=>!positive(cmd.amount)?'Enter an amount greater than zero.':!text(cmd.label)?'Describe the service.':undefined,
-      async send(c){const b=bookingOf(c,c.cmd.id),f=folioOf(c,b.id);
+      async send(c){const b=bookingOf(c,c.cmd.id);
         // DEC-077: a missed charge on the reopened business day names that day (the server refuses any other earlier date).
         const on=typeof c.cmd.date==='string'&&c.cmd.date!==c.state.date?{serviceDate:c.cmd.date}:{};
+        // F8C-SYNC · CHARGE {folio?} on a split stay: a named folio posts there exactly (ExplicitFolio); without one the server routes the
+        // extra from folio A (route(extras), FolioRouting.Resolve — the routing the server holds, not the screen's copy).
+        if(sfIsSplit(b)){const named=c.cmd.folio!==undefined&&c.cmd.folio!==null&&c.cmd.folio!=='',f=folioOf(c,b.id,sfLetter(b,c.cmd.folio));
+          await c.api.command('PostCharge',{folioId:f.folioId,label:text(c.cmd.label),amountPaise:c.cmd.amount,gstCategory:c.cmd.gst??null,...on,...(named?{explicitFolio:true}:{})});return;}
+        // F8C-SYNC end
+        const f=folioOf(c,b.id,sfLetter(b,c.cmd.folio));
         await c.api.command('PostCharge',{folioId:f.folioId,label:text(c.cmd.label),amountPaise:c.cmd.amount,gstCategory:c.cmd.gst??null,...on});}},
     {type:'DISCOUNT',reload:FOLIO,
       precheck:cmd=>!positive(cmd.amount)?'Enter an amount greater than zero.':!text(cmd.reason)?'A reason is required.':undefined,
-      async send(c){const b=bookingOf(c,c.cmd.id);return {result:await requestAdjustment(c,'discount',b,c.cmd.amount,text(c.cmd.reason),null)};}},
+      // F8C-SYNC: DISCOUNT {folio?} → that folio, else the folio room is routed to (prototype default); the server posts it on that folio exactly
+      async send(c){const b=bookingOf(c,c.cmd.id),letter=sfIsSplit(b)?sfLetter(b,c.cmd.folio,sfRouteTarget(b,'room')):sfLetter(b,c.cmd.folio);
+        return {result:await requestAdjustment(c,'discount',b,c.cmd.amount,text(c.cmd.reason),null,letter)};}},
     {type:'REFUND_REQUEST',reload:FOLIO,
       precheck:cmd=>!positive(cmd.amount)?'Enter an amount greater than zero.':!text(cmd.reason)?'Enter a reason for the refund.':!cmd.receiptId?'Select the original receipt to refund.':undefined,
-      async send(c){const b=bookingOf(c,c.cmd.id);
-        return {result:await requestAdjustment(c,'refund',b,c.cmd.amount,text(c.cmd.reason),serverId(c.cmd.receiptId,'Receipt'))};}},
+      // F8C-SYNC: a refund is requested on the folio of the receipt it refunds (SF-CONTRACT §3)
+      async send(c){const b=bookingOf(c,c.cmd.id),r=b.receipts.find(x=>x.id===String(c.cmd.receiptId));
+        return {result:await requestAdjustment(c,'refund',b,c.cmd.amount,text(c.cmd.reason),serverId(c.cmd.receiptId,'Receipt'),r?.folio??SF_PRIMARY)};}},
     {type:'COMPANY_CREDIT_REQUEST',reload:FOLIO,
       precheck:(cmd,s)=>{const b=s.bookings.find(x=>x.id===cmd.id);if(!b)return undefined;
-        if(b.status!=='In house')return 'This stay is not in house.';if(!b.company?.name?.trim()&&!grpAccountOf(s,b))return 'Add a company to this booking before requesting company credit.';
+        if(b.status!=='In house')return 'This stay is not in house.';
+        // F8C-SYNC · split stay: the company folio's balance (prototype COMPANY_CREDIT_REQUEST {folio?})
+        if(sfIsSplit(b)){const cf=sfCompanyFolio(b),fol=String(cmd.folio||cf?.id||SF_PRIMARY);
+          if(!cf||fol!==cf.id)return 'Company credit goes on the company folio only. Open a company folio (Split bill) first.';
+          return totals(sfView(b,fol)).balance<=0?'There is no outstanding balance to place on company credit.':undefined;}
+        // F8C-SYNC end
+        if(!b.company?.name?.trim()&&!grpAccountOf(s,b))return 'Add a company to this booking before requesting company credit.';
         if(totals(b).balance<=0)return 'There is no outstanding balance to place on company credit.';return undefined;},
       async send(c){const b=bookingOf(c,c.cmd.id);
+        // F8C-SYNC · split stay: the request is on the company folio for exactly that folio's balance (the server checks it equals its balance)
+        if(sfIsSplit(b)){const cf=sfCompanyFolio(b);
+          if(!cf||sfLetter(b,c.cmd.folio,cf.id)!==cf.id)throw new HccClientError('VALIDATION','Company credit goes on the company folio only. Open a company folio (Split bill) first.',{reason:'SF_COMPANY_FOLIO'});
+          return {result:await requestAdjustment(c,'credit',b,totals(sfView(b,cf.id)).balance,text(c.cmd.reason)||('Company credit · '+cf.payer.name),null,cf.id)};}
+        // F8C-SYNC end
         // Server rule: the credit equals the current balance — the folio's own figures, which the loader reconciled paise-exact with the server.
         // DEC-076: the server also needs the booking billed to a company account and checks that account's credit limit.
         const company=b.company?.name||grpAccountOf(c.state,b)?.name||'';
@@ -345,7 +386,8 @@ export const money:SyncArea={
       precheck:cmd=>!text(cmd.reason)?'A reason is required.':!cmd.lineId?'Select the posted line to correct.':undefined,
       async send(c){const b=bookingOf(c,c.cmd.id),l=b.lines.find(x=>x.id===c.cmd.lineId);
         if(!l)throw new HccClientError('NOT_FOUND','Select the posted line to correct.');
-        return {result:await requestAdjustment(c,'correction',b,Math.abs(l.amount),text(c.cmd.reason),serverId(l.id,'Folio line'))};}},
+        // F8C-SYNC: the correction is requested on the folio of the line it corrects (I4)
+        return {result:await requestAdjustment(c,'correction',b,Math.abs(l.amount),text(c.cmd.reason),serverId(l.id,'Folio line'),sfLineFolio(b,l))};}},
     {type:'REFUND_EXECUTE',reload:[...FOLIO,'shiftOpen','openingCash','shift','shiftClose'],
       // S3 / N10 (prototype validMethod, DEC-052): a CASH refund leaves the shared drawer, so it needs the till's shift open today. The
       // tender defaults to the original receipt's (as on the server), so a dialog without a method is checked too. Non-cash: no shift.
@@ -373,13 +415,22 @@ export const money:SyncArea={
       precheck:(cmd,s,me)=>{if(!me.permIds.includes(INVOICE_PERMISSION))return 'Your role cannot issue tax invoices.';
         const b=s.bookings.find(x=>x.id===String(cmd.id??''));if(!b)return undefined;
         if(b.status!=='Departed')return 'A tax invoice is issued after checkout.';
+        // F8C-SYNC · split stay (SFQ-19 default): every folio with charges and no number yet is invoiced, in letter order; a ₹0 folio never (SFQ-8)
+        if(sfIsSplit(b))return sfFoliosToInvoice(b).length?undefined:'Every folio of this stay with charges already has its tax invoice.';
+        // F8C-SYNC end
         return b.invoiceNo?`Invoice ${b.invoiceNo} has already been issued for this stay.`:undefined;},
-      async send(c){return {result:await issueInvoice(c,String(c.cmd.id))};}},
+      async send(c){const b=bookingOf(c,c.cmd.id);if(sfIsSplit(b))return {result:await sfIssueInvoices(c,b)}; // F8C-SYNC
+        return {result:await issueInvoice(c,String(c.cmd.id))};}},
     {type:'CREDIT_NOTE',reload:FOLIO,
       precheck:(cmd,s)=>{if(!positive(cmd.amount))return 'Enter an amount greater than zero.';if(!text(cmd.reason))return 'A reason is required.';
-        const b=s.bookings.find(x=>x.id===cmd.id);return b&&b.status!=='Departed'?'A credit note applies only to a departed (invoiced) stay. Use a correction while the guest is in house.':undefined;},
-      async send(c){const b=bookingOf(c,c.cmd.id),invoiceId=c.ids.server('invoice',b.id);
-        if(invoiceId===undefined)throw invalid('No tax invoice has been issued for this stay yet.');
+        const b=s.bookings.find(x=>x.id===cmd.id);if(b&&b.status!=='Departed')return 'A credit note applies only to a departed (invoiced) stay. Use a correction while the guest is in house.';
+        // F8C-SYNC · CREDIT_NOTE {folio?} on a split stay: target = that folio's invoice (SF-CONTRACT §6)
+        if(b&&sfIsSplit(b)){const fol=String(cmd.folio||SF_PRIMARY),f=sfFolio(b,fol);if(!f)return `This stay has no open folio ${fol}.`;
+          if(!f.invoiceNo)return `Folio ${fol} has no tax invoice (a ₹0 folio is not invoiced): nothing to credit.`;}
+        // F8C-SYNC end
+        return undefined;},
+      async send(c){const b=bookingOf(c,c.cmd.id),letter=sfLetter(b,c.cmd.folio),invoiceId=c.ids.server('invoice',sfKeyOf(b.id,letter)); // F8C-SYNC: that folio's invoice
+        if(invoiceId===undefined)throw invalid(letter===SF_PRIMARY?'No tax invoice has been issued for this stay yet.':`Folio ${letter} has no tax invoice yet.`);
         return {result:await c.api.command('RequestCreditNote',{invoiceId,mode:'amount',reason:text(c.cmd.reason),amountPaise:c.cmd.amount})};}},
     {type:'SHIFT_SUBMIT',reload:CASH,
       precheck:(cmd,s)=>!s.shiftOpen?'Shift already closed.':!(Number.isSafeInteger(cmd.counted)&&cmd.counted>=0)?'Enter a valid physical cash count.':undefined,
