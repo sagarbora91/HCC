@@ -22,7 +22,7 @@ internal static partial class GuestsSql
                      FROM pay.receipt x WHERE x.folio_id IN (SELECT y.folio_id FROM bill.folio y WHERE y.reservation_id = f.reservation_id)), 0))
         """;
 
-    public const string LateChargeExpr = "ISNULL((SELECT SUM(c.amount_paise + c.tax_paise) FROM bill.charge c WHERE c.folio_id = f.folio_id AND c.label = N'Late check-out · half day' AND c.reverses_charge_id IS NULL), 0)";
+    public const string LateChargeExpr = "ISNULL((SELECT SUM(c.amount_paise + c.tax_paise) FROM bill.charge c WHERE c.folio_id IN (SELECT y.folio_id FROM bill.folio y WHERE y.reservation_id = f.reservation_id) AND c.label = N'Late check-out · half day' AND c.reverses_charge_id IS NULL), 0)";
 
     public const string BillNoExpr = "(SELECT TOP (1) i.invoice_no FROM ivc.invoice i WHERE i.property_id = r.property_id AND i.source_kind = 'folio' AND i.source_id = f.folio_id ORDER BY i.revision DESC)";
 

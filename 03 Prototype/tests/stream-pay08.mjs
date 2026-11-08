@@ -72,6 +72,6 @@ export function register({test,M,assert}){
     assert.match(app,/\/\/ AF-PAY08 \(PAY-08\)[\s\S]*announceFolioDuplicate\(cmd\.key,r\.error\)[\s\S]*RESULT_UNKNOWN[\s\S]*getSyncRuntime\(\)\.refresh\(\)[\s\S]*\/\/ AF-PAY08 end/);
     assert.match(app,/setError\(''\);dirty\.current=false;/,'the a11y / phonefix pinned line is untouched');
     assert.match(app,/closeModal=\(\)=>\{if\(dirty\.current\)\{setDiscardAsk\(true\)/,'the discard guard is untouched');
-    assert.match(mod,/This is a second, separate payment/);assert.match(mod,/confirmDuplicate:true/);assert.match(mod,/recentEqualReceipt\(b,/);
+    assert.match(mod,/This is a second, separate payment/);assert.match(mod,/confirmDuplicate:true/);assert.match(mod,/recentEqualReceipt\(bv?!?,/); // F8-SF-UI: the dialog checks the folio view (bv) on a split stay
   });
 }

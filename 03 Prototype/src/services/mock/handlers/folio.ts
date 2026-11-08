@@ -7,7 +7,7 @@ import {deskCheckoutLate} from './desk'; // LF-DESK
 import type {Approval,Booking,Receipt} from '../../../domain/types';
 import {money,addDays} from '../../../domain/money';
 import {totals} from '../../../domain/selectors';
-import {gstForCharge,gstCategoryOfLabel,gstForFolioAdjustment,gstExactPieces,GST_CHARGE_CATEGORIES} from '../../../domain/gst';
+import {gstForCharge,gstCategoryOfLabel,gstForFolioAdjustment,gstExactPieces,GST_CHARGE_CATEGORIES,gstAdjustmentMixed,GST_ADJUSTMENT_MIXED_MSG} from '../../../domain/gst'; // F8-INT: H2
 import {rbacCanDiscount,rbacDiscountLimit,rbacApprovalLimit,rbacCanRequestCorrection,RBAC_OWNER_DECIDES} from '../../../domain/streams/rbac';
 import {cbIsLocked,cbLockedMessage} from '../../../domain/streams/cashbook';
 import {mnyMethod,mnyMethodFor,mnyIsDrawer} from '../../../domain/streams/money-master';
@@ -180,6 +180,7 @@ const DISCOUNT:Handler=k=>{
   const x=b();financial(x);positive(cmd.amount);assert(cmd.reason?.trim(),'A reason is required.');
   const fol=sfIsSplit(x)?cmdFolio(k,x,sfRouteTarget(x,'room')):SF_PRIMARY,xv=sfView(x,fol); // F8-SF-DOMAIN: cap = that folio's net
   assert(cmd.amount<=totals(xv).net,'Discount cannot exceed existing net charges.');
+  assert(!gstAdjustmentMixed(xv),GST_ADJUSTMENT_MIXED_MSG); // F8-INT (H2)
   const limit=rbacDiscountLimit(s,uid);
   if(limit!==undefined&&cmd.amount>limit){
     assert(!pendingOf(k,x.id,'discount'),'A discount request is already pending.','INVALID_TRANSITION');
@@ -277,6 +278,7 @@ const CREDIT_NOTE:Handler=k=>{
   // F8-SF-DOMAIN · CREDIT_NOTE {folio?}: cap = that folio's net, target = that folio's invoice (SF-CONTRACT §6)
   const fol=sfIsSplit(x)?cmdFolio(k,x):SF_PRIMARY,xv=sfView(x,fol);
   assert(cmd.amount<=totals(xv).net,'Credit note cannot exceed the net charges on this folio.');
+  assert(!gstAdjustmentMixed(xv),GST_ADJUSTMENT_MIXED_MSG); // F8-INT (H2)
   assert(!pendingOf(k,x.id,'credit-note'),'A credit-note request is already pending.','INVALID_TRANSITION');
   if(sfIsSplit(x))assert(xv.invoiceNo,`Folio ${fol} has no tax invoice (a ₹0 folio is not invoiced): nothing to credit.`,'INVALID_TRANSITION');
   const a=request(k,x,{amount:cmd.amount,reason:String(cmd.reason).trim(),kind:'credit-note',target:xv.invoiceNo,...(sfIsSplit(x)?{meta:{command:'APPROVAL',folio:fol}}:{})});
@@ -307,6 +309,7 @@ const APPROVAL:Handler=k=>{
       financial(x!);stale();
       const fol=sfIsSplit(x!)?metaFolio(a!):SF_PRIMARY,xv=sfView(x!,fol); // F8-SF-DOMAIN: the folio named at the request
       assert(totals(xv).net>=a!.amount,'Discount exceeds the current charges.');
+      assert(!gstAdjustmentMixed(xv),GST_ADJUSTMENT_MIXED_MSG); // F8-INT (H2)
       x!.lines.push({id:id('discount'),label:'Approved discount · '+a!.reason,amount:-a!.amount,date:s.date,kind:'discount',taxBps:gstForFolioAdjustment(s,xv,s.date).bps,...stamp(x!,fol)});x!.version++;
     }else if(kind==='refund'){
       assert(x,'Booking not found.','NOT_FOUND');stale();
@@ -341,6 +344,7 @@ const APPROVAL:Handler=k=>{
       assert(x&&x.status==='Departed','A credit note applies only to a departed stay.','INVALID_TRANSITION');stale();
       const fol=sfIsSplit(x!)?metaFolio(a!):SF_PRIMARY,xv=sfView(x!,fol); // F8-SF-DOMAIN: the credited folio (SF-CONTRACT §6); identity on a single-folio stay
       assert(a!.amount<=totals(xv).net,'Credit note cannot exceed the net charges on this folio.');
+      assert(!gstAdjustmentMixed(xv),GST_ADJUSTMENT_MIXED_MSG); // F8-INT (H2)
       const no=fdmAllocate(s,'CRN'); // MA-5: numbering series (seeded CRN series continues s.creditNoteSeqC)
       const lid=id('credit'),bps=gstForFolioAdjustment(s,xv,s.date).bps,t=totals(xv);
       // A03a-04: crediting the folio's whole remaining net, all at the credit's rate, credits exactly the tax still on it (never a paisa

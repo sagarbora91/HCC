@@ -65,7 +65,8 @@ public interface IBillCorrectionStore
 /// the credit note and the corrected lines both post to the adjustments ledger, every voucher balanced.
 /// </summary>
 public sealed class BillCorrectionService(ICommandRunner runner, IAccessPolicy policy, IBillCorrectionStore store, IInvoiceStore invoicesStore, InvoiceService invoices,
-    IBillingStore billing, IGstRateResolver gst, IGstChargeSnapshots snapshots, TimeProvider clock) : ILfApprovalHandler
+    IBillingStore billing, IGstRateResolver gst, IGstChargeSnapshots snapshots, TimeProvider clock,
+    Hcc.Application.Billing.ISplitFolioStore? split = null) : ILfApprovalHandler // F8-INT: split = SF_SPLIT_BILL_CORRECTION (SFQ-11)
 {
     public const string OpRequest = "RequestBillCorrection";
     public const string PermRequest = "PERM-FOL-010";
@@ -98,6 +99,8 @@ public sealed class BillCorrectionService(ICommandRunner runner, IAccessPolicy p
             if (inv.SourceKind != FolioInvoiceSource.FolioKind) throw new HccException(HccErrorCode.INVALID_TRANSITION, "Only a stay's tax invoice is corrected here.");
             var f = await billing.LockFolioAsync(tx, inv.SourceId, c).ConfigureAwait(false) ?? throw new HccException(HccErrorCode.NOT_FOUND, "Folio not found.");
             if (f.ReservationStatus != "Departed") throw new HccException(HccErrorCode.INVALID_TRANSITION, "A bill is corrected after check-out.");
+            if (split is not null && await split.LockStayAsync(tx, ctx.PropertyId, f.ReservationId, c).ConfigureAwait(false) is { } st)
+                Hcc.Domain.Billing.SplitFolioRules.EnsureNoBillCorrection(st.Snapshot); // F8-INT: a split stay is corrected by a credit note per folio
             if (await store.SupersededAsync(tx, invoiceId, c).ConfigureAwait(false))
                 throw new HccException(HccErrorCode.INVALID_TRANSITION, $"Invoice {inv.InvoiceNo} was already superseded: correct its latest revision.");
             if (await store.PendingForFolioAsync(tx, f.FolioId, c).ConfigureAwait(false)

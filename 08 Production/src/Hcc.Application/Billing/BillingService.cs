@@ -32,7 +32,7 @@ public sealed class BillingService(ICommandRunner runner, IBillingStore store, I
     IGstRateResolver gst, TimeProvider clock, IGstChargeSnapshots? gstSnapshots = null, Closing.IBusinessDayGuard? days = null,
     ICashOutDecisions? cashOut = null, Groups.ICompanyCreditGuard? credit = null, MoneyMasters.IPaymentMethodSource? methods = null,
     IRoomNightBundle? bundles = null, Accounting.CashGuardService? cashGuard = null, ILfApprovalDecisions? lf = null,
-    IGuestCreditReceivables? guestCredit = null)
+    IGuestCreditReceivables? guestCredit = null, ISplitFolioStore? split = null) // F8-INT: split = the stay's folios (receipt-folio rules, SF-CONTRACT §3)
 {
     private DateTime Now => clock.GetUtcNow().UtcDateTime;
 
@@ -113,7 +113,8 @@ public sealed class BillingService(ICommandRunner runner, IBillingStore store, I
             var date = await PostingDateAsync(tx, caller, f, req.ServiceDate, "a charge on that day", ct2).ConfigureAwait(false);
             var g = await gst.ChargeAsync(tx, caller.PropertyId, date, category, ct2).ConfigureAwait(false);
             var bps = g.Bps;
-            var line = new NewCharge(f.FolioId, ChargeKind.Service, date, label, amount, bps, GstMath.LineTax(amount, bps), null, null, caller.PrincipalId, Now);
+            var line = new NewCharge(f.FolioId, ChargeKind.Service, date, label, amount, bps, GstMath.LineTax(amount, bps), null, null, caller.PrincipalId, Now,
+                req.ExplicitFolio); // F8-INT: ExplicitFolio = post on this folio exactly (SF-CONTRACT §3 CHARGE {folio}); otherwise routed as extras
             var id = await store.InsertChargeAsync(tx, line, ct2).ConfigureAwait(false);
             await RecordGstAsync(tx, id, g, line.Tax, ct2).ConfigureAwait(false);
             var version = await store.TouchFolioAsync(tx, f.FolioId, ct2).ConfigureAwait(false);
@@ -160,6 +161,7 @@ public sealed class BillingService(ICommandRunner runner, IBillingStore store, I
             }
 
             var f = await RequireFolioAsync(tx, caller, folioId, ct2).ConfigureAwait(false);
+            await EnsureReceiptFolioAsync(tx, caller, f, req.Kind, tender, ct2).ConfigureAwait(false); // F8-INT
             if (kind is ReceiptKind.Payment or ReceiptKind.Deposit && !f.IsOpen)
             {
                 // LF A2: a corrected bill (balance-due) is paid on the departed folio for exactly that balance (check-out left it at 0).
@@ -634,8 +636,21 @@ public sealed class BillingService(ICommandRunner runner, IBillingStore store, I
     /// company's remaining credit (everything else billed to it + this balance ≤ the limit; a limit of 0 = no credit). No override: the Owner
     /// raises the limit, or the guest pays.
     /// </summary>
+    /// <summary>F8-INT · SF-CONTRACT §3 receipt table on a split stay (deposits / OTA credit on A, company credit on the company folio, guest credit on
+    /// A or an Udhaar folio, no cash on a company folio). A single-folio stay is unchanged (its only folio is seq 1, payer guest).</summary>
+    internal async Task EnsureReceiptFolioAsync(ICommandTransaction tx, Caller caller, FolioHeader f, string receiptKind, string? method, CancellationToken ct)
+    {
+        if (split is null) return;
+        var stay = await split.LockStayAsync(tx, caller.PropertyId, f.ReservationId, ct).ConfigureAwait(false);
+        if (stay is null || !stay.Snapshot.IsSplit) return;
+        var me = stay.Snapshot.Folios.FirstOrDefault(x => x.FolioId == f.FolioId);
+        if (me is null) return;
+        SplitFolioRules.EnsureReceiptFolio(stay.Snapshot, receiptKind, method, me.Seq);
+    }
+
     private async Task EnsureCompanyCreditAsync(ICommandTransaction tx, Caller caller, FolioHeader f, Paise amount, CancellationToken ct)
     {
+        await EnsureReceiptFolioAsync(tx, caller, f, "company-credit", null, ct).ConfigureAwait(false); // F8-INT: split stay → the company folio only (SF_COMPANY_FOLIO)
         if (credit is null) return;
         if (f.CompanyId is not { } companyId)
             throw Invalid("This booking is not billed to a company account. Link the booking to the company account before requesting company credit.");
@@ -684,7 +699,8 @@ public sealed class BillingService(ICommandRunner runner, IBillingStore store, I
         // gstForFolioAdjustment; apportionment across mixed-rate folios: CA to confirm).
         var g = await AdjustmentRateAsync(tx, caller, f, ct).ConfigureAwait(false);
         var bps = g.Bps;
-        var line = new NewCharge(f.FolioId, ChargeKind.Discount, f.BusinessDate, Clip(label, 200), -amount, bps, GstMath.LineTax(-amount, bps), null, approvalId, caller.PrincipalId, Now);
+        var line = new NewCharge(f.FolioId, ChargeKind.Discount, f.BusinessDate, Clip(label, 200), -amount, bps, GstMath.LineTax(-amount, bps), null, approvalId, caller.PrincipalId, Now,
+            ExplicitFolio: true); // F8-INT: a discount stays on the folio whose net capped it and whose rate it took (SF-CONTRACT §3 discount)
         var id = await store.InsertChargeAsync(tx, line, ct).ConfigureAwait(false);
         await RecordGstAsync(tx, id, g, line.Tax, ct).ConfigureAwait(false);
         var version = await store.TouchFolioAsync(tx, f.FolioId, ct).ConfigureAwait(false);
@@ -702,6 +718,17 @@ public sealed class BillingService(ICommandRunner runner, IBillingStore store, I
         {
             var snap = gstSnapshots is null ? null : await gstSnapshots.FindAsync(tx, source.ChargeId, ct).ConfigureAwait(false);
             return new GstRate(source.TaxBps, snap?.Itc ?? false, GstCategory.Room, "Follows the room-night rate");
+        }
+
+        // F8-INT (money review H2, prototype twin gstAdjustmentMixed): a folio of a split stay without room nights takes the one rate its lines
+        // share; with mixed rates there is no single adjustment rate (CA apportionment, SFQ-20) and the discount is refused.
+        if (split is not null && await split.LockStayAsync(tx, caller.PropertyId, f.ReservationId, ct).ConfigureAwait(false) is { Snapshot.IsSplit: true })
+        {
+            var rates = lines.Where(l => l.Kind is not ChargeKind.Correction && l.ReversesChargeId is null && !lines.Any(r => r.ReversesChargeId == l.ChargeId))
+                .Select(l => l.TaxBps).Distinct().ToList();
+            if (rates.Count > 1)
+                throw Invalid("This folio has no room night and its lines carry different GST rates: a discount on it has no single GST rate. Ask the Owner (SFQ-20: apportionment is for the CA).");
+            if (rates.Count == 1) return new GstRate(rates[0], false, GstCategory.Other, "Follows the rate of the folio's lines");
         }
 
         var booked = await store.ReservationNightlyRateAsync(tx, f.ReservationId, ct).ConfigureAwait(false) ?? Paise.Zero;

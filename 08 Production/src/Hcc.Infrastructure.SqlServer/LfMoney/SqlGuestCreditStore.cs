@@ -17,7 +17,12 @@ public sealed class SqlGuestCreditStore : IGuestCreditStore
     public async Task<FolioGuest?> GuestOfFolioAsync(ICommandTransaction tx, long folioId, CancellationToken ct)
     {
         await using var cmd = Cmd(tx, """
-            SELECT TOP (1) g.guest_id, g.full_name, g.phone FROM bill.folio f JOIN gst.stay s ON s.reservation_id = f.reservation_id JOIN gst.guest g ON g.guest_id = s.guest_id
+            SELECT TOP (1) g.guest_id, g.full_name, g.phone FROM bill.folio f
+              JOIN inv.reservation r ON r.reservation_id = f.reservation_id
+              OUTER APPLY (SELECT TOP (1) s.guest_id FROM gst.stay s WHERE s.reservation_id = f.reservation_id) st
+              LEFT JOIN gst.guest_credit_account ca ON f.payer_kind = 'udhaar' AND ca.property_id = r.property_id AND ca.customer_key = f.payer_customer_key
+              -- F8-INT (SF-CONTRACT §2.2): an Udhaar folio's guest is its payer (the credit account of payer_customer_key), never the stay guest
+              JOIN gst.guest g ON g.guest_id = CASE WHEN f.payer_kind = 'udhaar' THEN ca.guest_id ELSE st.guest_id END
             WHERE f.folio_id = @f;
             """);
         cmd.Parameters.Add("@f", SqlDbType.BigInt).Value = folioId;

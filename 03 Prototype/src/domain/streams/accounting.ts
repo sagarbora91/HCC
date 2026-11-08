@@ -277,7 +277,8 @@ export function accLiveVouchers(s:State,date:string,mapping=accMapping(s)):ACCVo
       // ── end ACC-2 flows ──
       const counter=pt(map('receipt:'+r.kind,miss),ctx);
       // LF-COUNTER (§7 B2): the folio balance to the guest's Udhaar account — Journal Dr 1120/UD-<customerKey> · Cr 1100 (mirror of company credit).
-      if(r.kind==='guest-credit'){const ud=(s.expensesX?.udhaar??[]).find(u=>u.booking===b.id&&u.amount===r.amount);push({date,type:'Journal',narration:`Guest credit · ${r.reference} · ${b.guest}`,source:src},miss,[dr(pt(map('receipt:udhaar',miss),{udhaar:ud?accUdhaarPartyId(ud):undefined}),r.amount),cr(map('folio:guest',miss),r.amount)]);continue;}
+      if(r.kind==='guest-credit'){const uds=s.expensesX?.udhaar??[],udId=(r.approvalId?(s.approvals.find(a=>a.id===r.approvalId)?.meta as {udhaar?:string}|undefined)?.udhaar:undefined); // F8-INT (review M5): the UD row of THIS receipt (its approval), not the first of the same amount
+        const ud=(udId?uds.find(u=>u.id===udId):undefined)??uds.find(u=>u.booking===b.id&&u.amount===r.amount);push({date,type:'Journal',narration:`Guest credit · ${r.reference} · ${b.guest}`,source:src},miss,[dr(pt(map('receipt:udhaar',miss),{udhaar:ud?accUdhaarPartyId(ud):undefined}),r.amount),cr(map('folio:guest',miss),r.amount)]);continue;}
       if(r.kind==='company-credit'){push({date,type:'Journal',narration:`Company credit · ${r.reference} · ${b.guest}`,source:src},miss,[dr(counter,r.amount),cr(map('folio:guest',miss),r.amount)]);continue;}
       const tender=pt(map('method:'+r.method,miss),ctx),inflow=RECEIPT_IN.includes(r.kind);
       const label=r.kind==='payment'?'Payment received':r.kind==='deposit'?'Deposit received':r.kind==='refund'?'Payment refunded':r.kind==='deposit-return'?'Deposit returned':r.kind;

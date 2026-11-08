@@ -20,7 +20,7 @@ export function collectionLines(s:State,from:string,to:string):CollectLine[]{
   for(const {b,r} of reportReceipts(s,from,to)){
     // company credit / OTA credit / guest credit are credit raised, not money received (credit-bills report); they stay out of the receipts register.
     if(r.kind==='company-credit'||r.kind==='ota-credit'||r.kind==='guest-credit')continue;
-    out.push({date:r.date,receiptNo:r.id,guest:b.guest,room:b.room,billNo:b.invoiceNo??b.id,tender:r.method,
+    out.push({date:r.date,receiptNo:r.id,guest:b.guest,room:b.room,billNo:(r.folio?b.folios?.find(f=>f.id===r.folio)?.invoiceNo:undefined)??b.invoiceNo??b.id,tender:r.method, /* F8-INT (L1): the receipt's folio invoice */
       amount:r.kind==='refund'||r.kind==='deposit-return'?-r.amount:r.amount,tds:0,by:r.actor,source:'stay',inc:INC[r.kind]??'receipts'});
   }
   for(const b of ctrState(s).bills){

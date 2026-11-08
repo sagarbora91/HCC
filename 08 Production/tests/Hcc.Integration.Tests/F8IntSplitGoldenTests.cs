@@ -58,6 +58,8 @@ public sealed class F8IntSplitGoldenTests
         Assert.Equal(("B", 2), (opened.Letter, opened.Seq));
         var folioB = opened.FolioId;
         await Wire.CommandAsync<ReceiptResult>(staff.Reception, "RecordReceipt", new RecordReceiptRequest(folioA, "payment", "UPI", 100000, "UPI-GOLD-1", null), Ct);
+        // Money review H4: the receipt table of SF-CONTRACT §3 — a deposit is held on A only.
+        await Wire.CommandFailsAsync(staff.Reception, "RecordReceipt", new RecordReceiptRequest(folioB, "deposit", "UPI", 50000, "UPI-DEP-B", null), System.Net.HttpStatusCode.UnprocessableEntity, "VALIDATION", Ct);
 
         // Extras on A (category extras: the primary folio), the three nights routed to B by the store; each day closed.
         await Wire.CommandAsync<ChargeResult>(staff.Owner, "PostCharge", new PostChargeRequest(folioA, "Laundry", 50000, "laundry"), Ct);
@@ -79,6 +81,11 @@ public sealed class F8IntSplitGoldenTests
         // Departure day: ₹850 cash on A on Reception's own shift; company credit ₹9,450 on B (requested by Reception, approved by the Owner).
         var till = await Wire.CommandAsync<TillResult>(staff.Owner, "CreateTill", new CreateTillRequest("FD-1", "Front desk"), Ct);
         await Wire.CommandAsync<ShiftResult>(staff.Reception, "OpenShift", new OpenShiftRequest(till.TillId, 500000), Ct);
+        // H4: no cash on the company folio (DEC-076)
+        await Wire.CommandFailsAsync(staff.Reception, "RecordReceipt", new RecordReceiptRequest(folioB, "payment", "Cash", 1000, null, till.TillId), System.Net.HttpStatusCode.UnprocessableEntity, "VALIDATION", Ct);
+        // H4 / H5: company credit is never requested on the guest folio A
+        var fa0 = await Wire.GetAsync<FolioView>(staff.Reception, $"/folios/{folioA}", Ct);
+        await Wire.CommandFailsAsync(staff.Reception, "RequestAdjustment", new RequestAdjustmentRequest("credit", folioA, null, 85000, "Bill A to Deccan (refused)", fa0.Version), System.Net.HttpStatusCode.UnprocessableEntity, "VALIDATION", Ct);
         await Wire.CommandAsync<ReceiptResult>(staff.Reception, "RecordReceipt", new RecordReceiptRequest(folioA, "payment", "Cash", 85000, null, till.TillId), Ct);
         var fb = await Wire.GetAsync<FolioView>(staff.Reception, $"/folios/{folioB}", Ct);
         var req = await Wire.CommandAsync<AdjustmentResult>(staff.Reception, "RequestAdjustment", new RequestAdjustmentRequest("credit", folioB, null, 945000, "Bill to Deccan Agro (fictional)", fb.Version), Ct);

@@ -106,4 +106,20 @@ export async function register({test,M,assert}){
     const low={...g.s,groupsX:{...g.s.groupsX,companies:g.s.groupsX.companies.map(c=>c.id===g.co?{...c,creditLimit:900000}:c)}};
     hb=row(low);assert.equal(hb.cells.exception,'Company folio above its credit limit');assert.equal(hb.cells.overBy,45000);
   });
+
+  test('[F8-INT] money review H2 / M7: credit note on B follows the room rate (5 %); on mixed-rate folio A it is refused, never at the room rule',()=>{
+    let s=checkout(golden());const id=s.bookings.find(b=>b.guest==='Golden Split Guest').id;
+    const why=fn=>{try{fn();return '';}catch(e){return e.message;}};
+    assert.match(why(()=>execute(s,'manager',{type:'CREDIT_NOTE',id,folio:'A',amount:50000,reason:'Laundry not done'})),/different GST rates/);
+    s=execute(s,'manager',{type:'CREDIT_NOTE',id,folio:'B',amount:300000,reason:'One night not used'});
+    const a=s.approvals.at(-1);s=execute(s,'owner',{type:'APPROVAL',id:a.id,approve:true});
+    const b=bk(s,id),cl=b.lines.filter(l=>l.approvalId===a.id);
+    assert.ok(cl.length&&cl.every(l=>l.folio==='B'&&l.taxBps===500),'variant (a): credit at 5 % on B');
+    assert.equal(cl.reduce((x,l)=>x+M.lineTax(l),0),-15000,'GST ₹150 credited');
+    assert.equal(b.creditNotes.at(-1).folio,'B');
+    // M7: an overpaid guest folio is an advance held even while the company folio owes
+    let g=golden();g.s=execute(g.s,'owner',{type:'PAYMENT',id:g.id,amount:185000,method:'UPI',reference:'UPI-OVER',folio:'A'});
+    const row=M.advHeld(g.s).find(r=>r.booking===g.id);
+    assert.ok(row,'listed');assert.equal(row.advance,100000,'A overpaid by ₹1,000');
+  });
 }

@@ -268,7 +268,8 @@
           "label": "Outlets & checks",
           "core": false,
           "pages": [
-            "pos"
+            "pos",
+            "kds"
           ],
           "prefixes": [
             "POS_ORDER_",

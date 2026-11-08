@@ -108,7 +108,7 @@ export function register({test,assert}){
     for(const u of ['reception','cashier'])assert.equal(code(()=>run(s,u,COR)),'FORBIDDEN',u+' '+COR);
     for(const id of [SAC,DOC,GBB,REG,COR,GSM])for(const u of ['housekeeper','maint','techadmin','supervisor'])assert.equal(code(()=>run(s,u,id)),'FORBIDDEN',u+' '+id);
     for(const u of ['housekeeper','reception','cashier'])assert.ok(!M.reportCatalogue(s,u).some(d=>d.area==='tax'),u);
-    assert.ok(M.reportCatalogue(s,'accountant').filter(d=>d.area==='tax').length===6);
+    assert.ok(M.reportCatalogue(s,'accountant').filter(d=>d.area==='tax').length===7); // F8-RPT-P2-B: + rpt.tax.licence-expiry (PERM-CMP-001, Owner + Accountant)
     assert.equal(code(()=>M.runReport(s,'accountant',GBB,{month:'2026-10'},{all:true,purpose:'export'})),'none');
     assert.deepEqual(run(s,'accountant',DOC,{month:'2026-10'}).columns.map(c=>c.key),M.reportDef(DOC).columns.map(c=>c.key));
   });

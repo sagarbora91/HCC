@@ -5,7 +5,7 @@ import {totals} from '../selectors';
 import {can} from '../selectors';
 import {bookingRefOf} from '../bookingRef';
 import {folioRefundable,folioApprovalExpired} from './folio';
-import {sfReceiptFolio,SF_PRIMARY} from './folio-split';
+import {sfReceiptFolio,SF_PRIMARY,sfIsSplit,sfFolios,sfView} from './folio-split';
 
 /** QWQ-5 default: an advance older than this many days is red (strictly older: day 90 is not red, day 91 is). */
 export const ADV_RED_DAYS=90;
@@ -40,7 +40,8 @@ export function advHeld(s:State,uid?:string):AdvRow[]{
   const rows:AdvRow[]=[];
   for(const b of s.bookings){
     const t=totals(b);
-    const advance=Math.max(0,-t.balance),deposit=Math.max(0,t.deposit);
+    // F8-INT (review M7, SF-CONTRACT §13 "per folio on split stays"): an overpaid folio holds an advance even while another folio still owes.
+    const advance=sfIsSplit(b)?sfFolios(b).filter(f=>!f.removedAt).reduce((a,f)=>a+Math.max(0,-totals(sfView(b,f.id)).balance),0):Math.max(0,-t.balance),deposit=Math.max(0,t.deposit);
     if(advance<=0&&deposit<=0)continue;
     const refunded=b.receipts.filter(r=>r.kind==='refund').reduce((a,r)=>a+r.amount,0);
     const pays=b.receipts.filter(r=>r.kind==='payment'),deps=b.receipts.filter(r=>r.kind==='deposit');

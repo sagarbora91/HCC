@@ -11,7 +11,8 @@ public sealed record PostRoomNightRequest(long StayId, DateOnly ServiceDate);
 /// DEC-077: <c>ServiceDate</c> may name the reopened business day (a missed charge posts on it at that day's GST rate); any other earlier
 /// date is DAY_CLOSED, a later one VALIDATION.
 /// </summary>
-public sealed record PostChargeRequest(long FolioId, string Label, long AmountPaise, string? GstCategory = null, DateOnly? ServiceDate = null);
+public sealed record PostChargeRequest(long FolioId, string Label, long AmountPaise, string? GstCategory = null, DateOnly? ServiceDate = null,
+    bool ExplicitFolio = false); // F8-INT: true = post on FolioId exactly on a split stay (CHARGE {folio}); false = routed (extras → its route)
 
 public sealed record ChargeResult(long ChargeId, long FolioId, string Kind, DateOnly ServiceDate, string Label, long AmountPaise, int TaxBps,
     long TaxPaise, bool Created, string FolioVersion);

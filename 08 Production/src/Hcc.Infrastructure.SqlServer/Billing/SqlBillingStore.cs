@@ -170,6 +170,12 @@ public sealed class SqlBillingStore(SqlConnectionFactory connections) : IBilling
         cmd.Parameters.Add("@p", SqlDbType.Int).Value = c.PrincipalId;
         cmd.Parameters.Add("@apr", SqlDbType.BigInt).Value = (object?)c.ApprovalId ?? DBNull.Value;
         var id = (long)(await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false))!;
+        if (folioId != c.FolioId) // F8-INT: a charge routed to another folio of a split stay changes THAT folio: bump its version (DEC-041 binding of its approvals)
+        {
+            await using var touch = Cmd(tx, "UPDATE bill.folio SET change_seq = change_seq + 1 WHERE folio_id = @f;");
+            touch.Parameters.Add("@f", SqlDbType.BigInt).Value = folioId;
+            await touch.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+        }
         if (c.ReversesChargeId is { } original) // 4686: the original is marked reversed (the one update the append-only trigger allows)
         {
             await using var mark = Cmd(tx, "UPDATE bill.charge SET reversed_by_charge_id = @r WHERE charge_id = @o AND reversed_by_charge_id IS NULL;");

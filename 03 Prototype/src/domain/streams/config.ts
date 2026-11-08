@@ -68,7 +68,7 @@ export type CfgModuleId='pos'|'groups'|'ota'|'website'|'messaging'|'documents'|'
 export type CfgModule={id:CfgModuleId;label:string;pages:string[];prefixes:string[];except?:string[];note:string};
 /** Switchable modules: their nav pages and command prefixes. Everything else (front desk, folios, cashier, closing, access, configuration) is core. */
 export const CFG_MODULES:CfgModule[]=[
-  {id:'pos',label:'Restaurant & POS',pages:['pos'],prefixes:['POS_'],note:'Restaurant and room-service checks, KOT, menu'},
+  {id:'pos',label:'Restaurant & POS',pages:['pos','kds'] /* F8-QW-KDS */,prefixes:['POS_'],note:'Restaurant and room-service checks, KOT, menu'},
   {id:'groups',label:'Groups & companies',pages:['groups'],prefixes:['GRP_'],note:'Group blocks, companies and credit limits'},
   {id:'ota',label:'OTA channels',pages:['channels'],prefixes:['CHN_'],except:['CHN_WEB_'],note:'Simulated OTA inbound bookings and rate push'},
   {id:'website',label:'Direct booking site',pages:['booking-site'],prefixes:['CHN_WEB_'],note:'Simulated booking-engine requests'},

@@ -140,7 +140,8 @@ export function sfAfterCommand(input:State,s:State,cmd:Command):void{
     if(night)continue;
     const cf=sfCompanyFolio(b);if(!cf||!cf.payer.ref)continue;
     const reconfig=cmd.type==='SF_FOLIO_OPEN'||cmd.type==='SF_ROUTE_SET';
-    if(!reconfig&&!b.lines.some(l=>l.folio===cf.id&&!known.has(l.id)))continue;
+    // F8-INT (review M6): the late check-out half day posted inside CHECKOUT is never refused here (like a night): settlement decides (company credit refused → pay)
+    if(!reconfig&&!b.lines.some(l=>l.folio===cf.id&&!known.has(l.id)&&!(cmd.type==='CHECKOUT'&&l.id===`late-half:${b.id}`)))continue;
     const after=sfFolioExposure(s,b,cf.id);
     const before=prev&&sfCompanyFolio(prev,cf.payer.ref)?.id===cf.id?sfFolioExposure(input,prev,cf.id):0;
     if(after<=before)continue;

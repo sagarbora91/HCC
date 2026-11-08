@@ -46,6 +46,7 @@ const PAGES={
   cashier:['OWN MGR REC CSH','SHF-001, PAY-001'],
   cashbook:['OWN MGR CSH ACC','DEC-055 / Wave 0.5 placement (Cashier, Manager, Owner, Accountant)'],
   pos:['OWN MGR REC CSH','Module 23 + DEC-052 (shared till)'],
+  kds:['OWN MGR REC CSH','F8 QW-KDS kitchen display (nav p billing; Restaurant role through RBAC_RESTAURANT_PAGES)'],
   expenses:['OWN MGR REC CSH ACC','EXP-001..003 (DEC-063 G4 Accountant; G6: SUP/MNT hand bills to REC/CSH)'],
   housekeeping:['OWN MGR SUP HKP MNT','HK-001 (DEC-063 G8: Reception uses the Room board)'],
   'gsv-my-requests':['OWN MGR SUP HKP MNT','Module 18 §2'],
@@ -127,6 +128,7 @@ const CMDS={
   STAY_CHECKOUT_BASIS:C('OWN MGR REC','STY-001 (LF A6)'),STAY_FORM_C:C('OWN MGR REC','STY-001 (LF A5)'),STAY_LATE_CHARGE:C('OWN MGR REC','STY-003 (LF A6)'), // LF-DESK
   REGISTER:C('OWN MGR REC','GST-002'),GUEST_SAVE:C('OWN MGR REC','GST-002'),GUEST_PHOTO:C('OWN MGR REC','GST-003 / DOC-004 (LF-images B5; checkin stand-in)'),GUEST_PHOTO_REMOVE:C('OWN MGR REC','GST-003 / DOC-004 (LF-images B5)'),GUEST_ID_VIEW:C('OWN MGR REC','GST-003 (DEC-068 Show ID)'),CHECKIN:C('OWN MGR REC','STY-001'),CHECKOUT:C('OWN MGR REC','STY-003'),
   COMPANY_CREDIT_REQUEST:C('OWN MGR REC','PAY-005 + §7 (raised by REC)'),
+  SF_FOLIO_OPEN:C('OWN MGR REC CSH','F8 split folio (billing, SFQ-4)'),SF_ROUTE_SET:C('OWN MGR REC CSH','F8 split folio (billing)'),SF_FOLIO_REMOVE:C('OWN MGR REC CSH','F8 split folio (billing)'), // F8-INT
   CHARGE:C('OWN MGR REC CSH','FOL-002'),POST_NIGHTS:C('OWN MGR REC CSH','FOL-002'),DISCOUNT:C('OWN MGR REC','FOL-003'),
   CORRECTION_REQUEST:C('OWN MGR REC CSH ACC','FOL-005 (DEC-063 G3)'),CREDIT_NOTE:C('OWN MGR REC CSH ACC','FOL-005 (DEC-063 G3)'),
   PAYMENT:C('OWN MGR REC CSH','PAY-001/002'),REFUND_REQUEST:C('OWN MGR REC CSH','PAY-003'),REFUND_EXECUTE:C('OWN MGR REC CSH','PAY-004 (DEC-063 G2: REC own shift, never own request)'),
@@ -335,7 +337,7 @@ export function register({test,M,assert}){
     // Production-only role: the demo has no Restaurant user or grants, so the test gives it what the server maps (PERM-POS-002 → billing).
     const w=structuredClone(s);w.users.push({id:'waiter',name:'Waiter · Restaurant',role:'Restaurant',enabled:true});w.grants.Restaurant=['billing'];
     const v=surfaces(M,w,'waiter');
-    assert.deepEqual([...v.allowed].sort(),['my-hr','pos']);assert.deepEqual([...v.drawer].sort(),['my-hr','pos']);
+    assert.deepEqual([...v.allowed].sort(),['kds','my-hr','pos']);assert.deepEqual([...v.drawer].sort(),['kds','my-hr','pos']); // F8-QW-KDS: the kitchen display joins the Restaurant role's pages
     assert.equal(M.rbacPosCanSettle(w,'waiter'),false);assert.equal(M.rbacPosSeesDaySales(w,'waiter'),false);
     assert.equal(M.rbacPosCanSettle(w,'cashier'),true);assert.equal(M.rbacPosSeesDaySales(w,'cashier'),true);
     let x=M.execute(w,'waiter',{type:'POS_ORDER_OPEN',outlet:'restaurant',table:'T8',covers:2});const id=M.posSlice(x).orders.at(-1).id;

@@ -175,8 +175,19 @@ export function gstForFolioAdjustment(s:State,b:Booking,date:string):GstRate{
   const rooms=b.lines.filter(l=>l.kind==='room'&&!l.reversalOf);
   const l=rooms.find(x=>x.date===date)??rooms.filter(x=>x.date<=date).slice(-1)[0]??rooms.slice(-1)[0];
   if(l)return {bps:l.taxBps,itc:false,category:'room',rule:'Follows the room-night rate'};
+  // F8-INT (money review H2): a folio of a split stay without room nights (e.g. the guest's extras folio) does not take the room rule:
+  // when all its lines share one rate the adjustment follows that rate; mixed rates are refused by the commands (gstAdjustmentMixed, SFQ-20).
+  if(b.folios?.length){const r=[...new Set(b.lines.filter(x=>!x.reversalOf&&x.kind!=='adjustment').map(x=>x.taxBps))];
+    if(r.length===1)return {bps:r[0],itc:false,category:'other',rule:'Follows the rate of the folio lines'};}
   return gstForRoomNight(s,date,b.rate);
 }
+/** F8-INT (H2): true for a split-folio view with no room-night line whose lines carry more than one GST rate: no single adjustment rate exists
+ *  (apportionment is for the CA, SFQ-20), so a discount / credit note on it is refused. Always false on a single-folio stay (I1). */
+export function gstAdjustmentMixed(b:Booking):boolean{
+  if(!b.folios?.length||b.lines.some(l=>l.kind==='room'&&!l.reversalOf))return false;
+  return new Set(b.lines.filter(x=>!x.reversalOf&&x.kind!=='adjustment').map(x=>x.taxBps)).size>1;
+}
+export const GST_ADJUSTMENT_MIXED_MSG='This folio has no room night and its lines carry different GST rates: a discount or credit note on it has no single GST rate. Credit the folio that holds the room nights, or ask the Owner (SFQ-20: apportionment is for the CA).';
 /** Tax on a run of nights at one nightly price (quotes, estimates): per night, per line. */
 export function gstStayTax(s:State,rate:number,from:string,to:string):number{
   let t=0;if(!/^\d{4}-\d{2}-\d{2}$/.test(from)||!/^\d{4}-\d{2}-\d{2}$/.test(to))return 0;

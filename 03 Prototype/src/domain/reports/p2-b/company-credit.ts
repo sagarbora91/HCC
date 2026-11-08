@@ -16,7 +16,7 @@ export const ratesText=(r:Record<string,number>)=>Object.keys(r).sort().map(k=>`
 export function companyStatement(s:State,id:string){
   const c=grpSlice(s).companies.find(x=>x.id===id);if(!c)return [];
   const ev:{date:string;ord:number;ref:string;narration:string;credit:number;payment:number}[]=[];
-  for(const b of grpCompanyBookings(s,c))for(const r of b.receipts)if(r.kind==='company-credit')ev.push({date:r.date,ord:0,ref:b.invoiceNo??b.id,narration:'Company credit · '+b.guest,credit:r.amount,payment:0});
+  for(const b of grpCompanyBookings(s,c))for(const r of b.receipts)if(r.kind==='company-credit')ev.push({date:r.date,ord:0,ref:(r.folio?b.folios?.find(f=>f.id===r.folio)?.invoiceNo:undefined)??b.invoiceNo??b.id /* F8-INT (L1) */,narration:'Company credit · '+b.guest,credit:r.amount,payment:0});
   for(const p of grpSlice(s).payments??[])if(p.company===c.id)ev.push({date:p.date,ord:1,ref:p.reference||p.id,narration:'Payment · '+p.method+(p.tds?' (incl. TDS)':''),credit:0,payment:p.amount+(p.tds??0)});
   ev.sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:a.ord-b.ord||(a.ref<b.ref?-1:a.ref>b.ref?1:0));
   let run=c.openingOutstanding;

@@ -57,7 +57,7 @@ export const FEATURE_MODULES:FeatureModule[]=[
     {id:'invoices',label:'Invoices & credit notes',core:true,pages:[],prefixes:[],permPrefixes:['PERM-INV-'],note:'GST invoices and credit notes (statutory)'},
   ]},
   {id:'pos',label:'Restaurant & POS',switch:'pos',coarse:['billing'],features:[
-    {id:'checks',label:'Outlets & checks',pages:['pos'],prefixes:['POS_ORDER_','POS_ITEM_','POS_KOT_','POS_SETTLE','POS_VOID_','POS_INVOICE_'],permPrefixes:['PERM-POS-'],note:'Checks, KOT, settlement and voids'},
+    {id:'checks',label:'Outlets & checks',pages:['pos','kds'] /* F8-QW-KDS */,prefixes:['POS_ORDER_','POS_ITEM_','POS_KOT_','POS_SETTLE','POS_VOID_','POS_INVOICE_'],permPrefixes:['PERM-POS-'],note:'Checks, KOT, settlement and voids'},
     {id:'menu',label:'Menu & prices',pages:[],prefixes:['POS_MENU_'],requires:['pos.checks'],permPrefixes:['PERM-POS-'],note:'Menu availability and price changes'},
   ]},
   {id:'housekeeping',label:'Housekeeping',coarse:['housekeeping', 'inspect'],features:[
