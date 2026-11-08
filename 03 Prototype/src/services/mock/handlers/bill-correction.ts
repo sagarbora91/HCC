@@ -8,6 +8,8 @@ import {totals} from '../../../domain/selectors';
 import {rbacCanRequestCorrection} from '../../../domain/streams/rbac';
 import {folioExpiresAt} from '../../../domain/streams/folio';
 import {fdmAllocate} from '../../../domain/streams/frontdesk-master';
+import {sfIsSplit} from '../../../domain/streams/folio-split'; // F8-SF-DOMAIN
+import {sfFail} from './folio-split'; // F8-SF-DOMAIN
 import {blcPreview,blcRefusal,blcLive,blcInvoiceDate,blcState} from '../../../domain/streams/bill-correction';
 
 const BILL_CORRECTION_REQUEST:Handler=k=>{
@@ -16,6 +18,9 @@ const BILL_CORRECTION_REQUEST:Handler=k=>{
   if(!rbacCanRequestCorrection(s,uid))fail('FORBIDDEN','Access denied: billing permission or the Accountant role is required.');
   open();
   const x=s.bookings.find(b=>b.id===cmd.booking||b.id===cmd.id);assert(x,'Booking not found.','NOT_FOUND');
+  // F8-SF-DOMAIN · a split stay is corrected by a credit note per folio (SF-CONTRACT §3, SFQ-11)
+  if(sfIsSplit(x!))sfFail('INVALID_TRANSITION','SF_SPLIT_BILL_CORRECTION','This stay has a split bill (one invoice per folio): correct it with a credit note on the folio concerned.');
+  // F8-SF-DOMAIN end
   const refusal=blcRefusal(s,x);if(refusal)fail(/s\.34/.test(refusal)?'DAY_CLOSED':'INVALID_TRANSITION',refusal);
   const reason=String(cmd.reason??'').trim();assert(reason,'A reason is required.');
   const p=blcPreview(s,x!,cmd.changes);if('error' in p)fail('VALIDATION',p.error);

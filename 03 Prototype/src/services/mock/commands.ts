@@ -12,6 +12,7 @@ import {rolCommandBlock} from '../../domain/streams/roles'; // ADM-2
 import {keyAfterCheckout} from '../../domain/streams/keys'; // KEYS: check-out hook (never blocks)
 import {mnyMethodFor,mnyIsDrawer} from '../../domain/streams/money-master';
 import {catPlanNight} from '../../domain/streams/catalogue';
+import {sfAfterCommand} from './handlers/folio-split'; // F8-SF-DOMAIN
 
 export function execute(input:State,uid:string,cmd:Command):State{
   const fail=(code:ErrorCode,msg:string):never=>{throw new HccError(code,msg);};
@@ -191,6 +192,9 @@ export function execute(input:State,uid:string,cmd:Command):State{
     detail='Demo policy updated · existing posted line tax snapshots preserved';break;}
   default:fail('VALIDATION','Unknown action.');
   }
+  // F8-SF-DOMAIN · split-folio routing hook (SF-CONTRACT §3): stamps new lines / receipts of split stays, D7 per company folio (§7)
+  sfAfterCommand(input,s,cmd);
+  // F8-SF-DOMAIN end
   if(cmd.key)s.processed.push(cmd.key);
   // Simulated clock: every successful command advances one minute (deterministic, DEC-030).
   if(cmd.type!=='NEXT_DAY')s.clock=addMinutes(s.clock,1);

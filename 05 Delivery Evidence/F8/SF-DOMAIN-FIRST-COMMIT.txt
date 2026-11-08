@@ -1,0 +1,10 @@
+F8 sf-domain STEP 1 commit (sf-server and sf-ui: git merge this commit on claude/f8-sf-domain)
+hash: PENDING
+Contents: migrations 4350 sf_folio_payer + 4351 sf_folio_route (lock + Hcc.slnx F8-SF-DOMAIN block);
+server Hcc.Domain/Billing/FolioRouting.cs, SplitFolioRules.cs, Hcc.Contracts/Billing/SplitFolioContracts.cs,
+Hcc.Application/Billing/SplitFolioService.cs (ISplitFolioStore port — SQL adapter is sf-server's);
+prototype commands SF_FOLIO_OPEN / SF_ROUTE_SET / SF_FOLIO_REMOVE (services/mock/handlers/folio-split.ts),
+helpers sfCompanyLines, sfCompanyFolio, sfNewLineFolio, sfNewReceiptFolio, sfCmdFolio, SF_REASONS (domain/streams/folio-split.ts),
+sfFolioExposure / sfStayExposureFor (domain/streams/groups.ts), the routing hook in commands.ts.
+NAME DEVIATION: the server enum is FolioRouteCategory (Hcc.Domain.Billing), not RouteCategory —
+Hcc.Domain.Groups already declares RouteCategory and the Groups application code fails to compile with two (CS0104).

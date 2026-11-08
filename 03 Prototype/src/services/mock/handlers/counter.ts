@@ -13,6 +13,8 @@ import {accCashEnforce} from '../../../domain/streams/accounting-guards';
 import {adminLimitFor} from '../../../domain/streams/admin';
 import {RES_GSTIN} from '../../../domain/streams/reservations';
 import {EXP_UD_DUE_DAYS,expUdPaid,type ExpUdReceivable} from '../../../domain/streams/expenses-scc';
+import {sfIsSplit,sfView,sfFolio,sfCmdFolio,SF_PRIMARY} from '../../../domain/streams/folio-split'; // F8-SF-DOMAIN
+import {sfFail} from './folio-split'; // F8-SF-DOMAIN
 import {ctrLineFrom,ctrBillRefusal,ctrTotals,ctrDiscountRefusal,ctrCompanyRefusal,ctrUdKind,ctrDominant,ctrState,gcrRefusal,gcrCustomerKey,CTR_SETTLEMENTS,type CTRLineInput} from '../../../domain/streams/counter';
 
 /** Approval kind of a counter-bill void (a credit note on a counter bill; the folio `credit-note` kind is booking-bound). Owner decides. */
@@ -119,37 +121,52 @@ const GUEST_CREDIT_ACCOUNT_SET:Handler=k=>{
   g!.version=(g!.version||1)+1;
   return `${g!.id} · credit account ${g!.creditAccount.active?'active':'inactive'} · limit ${money(cmd.limit)} · party 1120/UD-${g!.creditAccount.customerKey}`;
 };
-const guestOf=(k:Kit,x:Booking)=>x.guestId?(k.s.guests??[]).find(g=>g.id===x.guestId):undefined;
+const guestOf=(k:Kit,x:Booking,folio?:string)=>{
+  // F8-SF-DOMAIN · an Udhaar folio of a split stay is paid by its own credit guest (SF-CONTRACT §2.2)
+  if(folio&&folio!==SF_PRIMARY&&sfIsSplit(x)){const p=sfFolio(x,folio)?.payer;return p?.kind==='udhaar'?(k.s.guests??[]).find(g=>g.id===p.ref):undefined;}
+  // F8-SF-DOMAIN end
+  return x.guestId?(k.s.guests??[]).find(g=>g.id===x.guestId):undefined;
+};
+// F8-SF-DOMAIN · the folio of a guest-credit request: A, or an Udhaar folio (receipt table, SF-CONTRACT §3)
+function gcrFolio(k:Kit,x:Booking):string{
+  const f=sfCmdFolio(x,k.cmd.folio);
+  if(f===false)sfFail('NOT_FOUND','SF_FOLIO_UNKNOWN','This stay has no such open folio.');
+  const id=f||SF_PRIMARY;
+  if(id!==SF_PRIMARY&&sfFolio(x,id)?.payer.kind!=='udhaar')sfFail('VALIDATION','SF_PAYER_KIND','Guest credit goes on folio A or an Udhaar folio.');
+  return id;
+}
+const metaFolio=(a:Approval)=>String((a.meta as Record<string,unknown>|undefined)?.folio??SF_PRIMARY);
+// F8-SF-DOMAIN end
 const GUEST_CREDIT_REQUEST:Handler=k=>{
   // as COMPANY_CREDIT_REQUEST (checkout permission)
   const {s,cmd,req,open,assert,fail,uid}=k;req('checkout');open();
   const x=s.bookings.find(b=>b.id===cmd.booking||b.id===cmd.id);assert(x,'Booking not found.','NOT_FOUND');
   assert(x!.status==='In house','This stay is not in house.','INVALID_TRANSITION');
-  const bal=totals(x!).balance;assert(bal>0,'There is no outstanding balance to place on guest credit.','INVALID_TRANSITION');
+  const fol=gcrFolio(k,x!),bal=totals(sfView(x!,fol)).balance;assert(bal>0,'There is no outstanding balance to place on guest credit.','INVALID_TRANSITION'); // F8-SF-DOMAIN: that folio's balance
   assert(!s.approvals.some(a=>a.booking===x!.id&&folioKind(a)==='guest-credit'&&a.status==='Pending'&&!folioApprovalExpired(s,a)),'A guest-credit request is already pending.','INVALID_TRANSITION');
-  const g=guestOf(k,x!);const r=gcrRefusal(s,g,bal);if(r)fail('INVALID_TRANSITION',r);
+  const g=guestOf(k,x!,fol);const r=gcrRefusal(s,g,bal);if(r)fail('INVALID_TRANSITION',r);
   const a:Approval={id:k.id('APR'),booking:x!.id,actor:uid,version:x!.version,status:'Pending',expiresAt:folioExpiresAt(s.clock),amount:bal,
-    reason:txt(cmd.reason)||('Guest credit · '+g!.name),kind:'guest-credit',meta:{command:'APPROVAL',guestId:g!.id,customerKey:g!.creditAccount!.customerKey}};
+    reason:txt(cmd.reason)||('Guest credit · '+g!.name),kind:'guest-credit',meta:{command:'APPROVAL',guestId:g!.id,customerKey:g!.creditAccount!.customerKey,...(sfIsSplit(x!)?{folio:fol}:{})}}; // F8-SF-DOMAIN: meta.folio
   s.approvals.push(a);
   return `${x!.id} · guest credit ${money(bal)} requested for ${g!.name} · ${a.id}`;
 };
 /** APPROVAL branch for `guest-credit`: Manager within PERM-PAY-005 (₹10,000), Owner beyond; the limit re-checked. */
 export function gcrApprove(k:Kit,x:Booking,a:Approval):string{
   const {s,assert,fail,user}=k;
-  assert(totals(x).balance===a.amount,'The folio changed after this request. Reject it and request again.','STALE_VERSION');
+  assert(totals(sfView(x,metaFolio(a))).balance===a.amount,'The folio changed after this request. Reject it and request again.','STALE_VERSION'); // F8-SF-DOMAIN: that folio
   const lim=adminLimitFor(s,'Manager','PERM-PAY-005')??FOLIO_MANAGER_CREDIT_LIMIT;
   if(user.role!=='Owner')assert(user.role==='Manager'&&a.amount<=lim,`Guest credit above ${money(lim)} per stay needs an Owner’s approval.`,'FORBIDDEN');
-  const r=gcrRefusal(s,guestOf(k,x),a.amount);if(r)fail('INVALID_TRANSITION',r);
+  const r=gcrRefusal(s,guestOf(k,x,metaFolio(a)),a.amount);if(r)fail('INVALID_TRANSITION',r);
   return ' · apply at checkout';
 }
 /** CHECKOUT: an approved guest credit for exactly the balance and folio version → receipt 'guest-credit' + Udhaar receivable (kind room). */
-export function gcrCheckout(k:Kit,x:Booking):string{
-  const {s,id,uid}=k;const bal=totals(x).balance;if(bal<=0)return '';
-  const a=s.approvals.find(a=>a.booking===x.id&&a.kind==='guest-credit'&&a.status==='Approved'&&!folioApprovalExpired(s,a)&&a.amount===bal&&a.version===x.version);
+export function gcrCheckout(k:Kit,x:Booking,folio:string=SF_PRIMARY):string{ // F8-SF-DOMAIN: per folio (A or an Udhaar folio)
+  const {s,id,uid}=k;const bal=totals(sfView(x,folio)).balance;if(bal<=0)return '';
+  const a=s.approvals.find(a=>a.booking===x.id&&a.kind==='guest-credit'&&a.status==='Approved'&&!folioApprovalExpired(s,a)&&a.amount===bal&&a.version===x.version&&(!sfIsSplit(x)||metaFolio(a)===folio));
   if(!a)return '';
-  const g=guestOf(k,x);const r=gcrRefusal(s,g,bal);if(r)k.fail('INVALID_TRANSITION',r);
+  const g=guestOf(k,x,folio);const r=gcrRefusal(s,g,bal);if(r)k.fail('INVALID_TRANSITION',r);
   const key=g!.creditAccount!.customerKey,room=x.lines.find(l=>l.kind==='room');
-  x.receipts.push({id:id('RCPT'),amount:bal,method:'Guest credit',date:s.date,kind:'guest-credit',reference:`${g!.name} · ${a.id}`,actor:uid,approvalId:a.id});
+  x.receipts.push({id:id('RCPT'),amount:bal,method:'Guest credit',date:s.date,kind:'guest-credit',reference:`${g!.name} · ${a.id}`,actor:uid,approvalId:a.id,...(sfIsSplit(x)?{folio}:{})}); // F8-SF-DOMAIN
   const ud:ExpUdReceivable={id:id('UD'),name:g!.name,mobile:/^\d{10}$/.test(key)?key:'',amount:bal,date:s.date,dueDate:addDays(s.date,EXP_UD_DUE_DAYS),note:`Stay ${x.id} · room ${x.room}`,
     settlements:[],by:uid,at:s.clock,kind:'room',gstBps:room?.taxBps??0,guestId:g!.id,booking:x.id};
   udhaars(k).push(ud);

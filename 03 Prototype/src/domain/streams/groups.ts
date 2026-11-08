@@ -6,6 +6,7 @@ import {available,availableRaw,registerRoomHold,totals} from '../selectors';
 import {gstForRoomNight,gstLineTax,gstSplit,gstStayTax} from '../gst';
 import {addDays,nights,money} from '../money';
 import {rmsOffline} from './roomoffline';
+import {sfView,sfFolios,sfIsSplit,sfCompanyFolio,sfRouteTarget} from './folio-split'; // F8-SF-DOMAIN
 
 export type GRPCompany={id:string;name:string;
   /** GSTIN-format placeholder — always fictional in this prototype. */
@@ -149,12 +150,33 @@ export function grpBookingExposure(s:State,b:Booking){
   if(b.status!=='Departed')for(let d=b.arrival;d<b.departure;d=addDays(d,1))if(!b.lines.some(l=>l.kind==='room'&&l.date===d)){net+=b.rate;tax+=gstLineTax(b.rate,gstForRoomNight(s,d,b.rate).bps);}
   return Math.max(0,net+tax-t.paid);
 }
+// F8-SF-DOMAIN · D7 per company folio (SF-CONTRACT §7.2)
+/** Exposure of one folio of a split stay: that folio's posted lines + GST, plus the agreed room nights not yet posted when `room` is routed
+ *  to it (GST per night), less what was paid on that folio; never below 0. The stay's other folios never count. */
+export function sfFolioExposure(s:State,b:Booking,folio:string){
+  if(!GRP_ACTIVE.includes(b.status))return 0;
+  const v=sfView(b,folio),t=totals(v);let net=t.net,tax=t.tax;
+  const f=sfFolios(b).find(x=>x.id===folio);
+  if(b.status!=='Departed'&&f&&sfRouteTarget(b,'room')===folio)for(let d=b.arrival;d<b.departure;d=addDays(d,1))if(!b.lines.some(l=>l.kind==='room'&&l.date===d)){net+=b.rate;tax+=gstLineTax(b.rate,gstForRoomNight(s,d,b.rate).bps);}
+  return Math.max(0,net+tax-t.paid);
+}
+/** What a live stay adds to company `c`'s exposure: a split stay with a company folio counts only that folio (and nothing when the folio names
+ *  another company); any other stay counts whole (grpBookingExposure), as before F8. */
+export function sfStayExposureFor(s:State,b:Booking,companyId:string){
+  const cf=sfIsSplit(b)?sfCompanyFolio(b):undefined;
+  if(cf)return cf.payer.ref===companyId?sfFolioExposure(s,b,cf.id):0;
+  return grpBookingExposure(s,b);
+}
+// F8-SF-DOMAIN end
 /** Bookings billed to a company account (DEC-076: an explicit link, as on the server): members of its bill-to-company blocks plus
  *  bookings whose company names the account (`company.account`). A company typed by name only is invoice details, not billed to it. */
 export function grpCompanyBookings(s:State,c:GRPCompany):Booking[]{
   const ids=new Set<string>();
   for(const blk of grpSlice(s).blocks)if(blk.company===c.id&&blk.billTo==='company')blk.members.forEach(m=>ids.add(m.booking));
   for(const b of s.bookings)if(b.company?.account===c.id)ids.add(b.id);
+  // F8-SF-DOMAIN: a split stay whose live company folio names the account (SF-CONTRACT §7.2)
+  for(const b of s.bookings)if(b.folios&&sfCompanyFolio(b,c.id))ids.add(b.id);
+  // F8-SF-DOMAIN end
   return s.bookings.filter(b=>ids.has(b.id));
 }
 /** The company account a booking is billed to (its own link, else its bill-to-company block), or undefined. */
@@ -176,7 +198,7 @@ export function grpReceivable(s:State,c:GRPCompany){
  * A departed stay counts only through the company credit it left.
  */
 export function grpExposure(s:State,c:GRPCompany){
-  return grpReceivable(s,c)+grpCompanyBookings(s,c).filter(b=>b.status!=='Departed').reduce((a,b)=>a+grpBookingExposure(s,b),0);
+  return grpReceivable(s,c)+grpCompanyBookings(s,c).filter(b=>b.status!=='Departed').reduce((a,b)=>a+sfStayExposureFor(s,b,c.id),0); // F8-SF-DOMAIN: per company folio
 }
 export type GRPCreditLevel='ok'|'near'|'over'|'none';
 export function grpCreditLevel(limit:number,exposure:number):GRPCreditLevel{if(limit<=0)return exposure>0?'over':'none';return exposure>limit?'over':exposure>=limit*0.8?'near':'ok';}
@@ -202,7 +224,7 @@ export function grpCreditRefusal(c:GRPCompany,used:number,needed:number,what:str
  */
 export function grpCreditPreview(s:State,b:Booking,needed:number,what='stay on company credit'):{c?:GRPCompany;used:number;refusal?:string}{
   const c=grpAccountOf(s,b);if(!c)return {used:0};
-  const own=c.credit?(c.credit.items.find(i=>i.kind==='stay'&&i.id===b.id)?.amount??0):b.status!=='Departed'?grpBookingExposure(s,b):0;
+  const own=c.credit?(c.credit.items.find(i=>i.kind==='stay'&&i.id===b.id)?.amount??0):b.status!=='Departed'?sfStayExposureFor(s,b,c.id):0; // F8-SF-DOMAIN
   const used=Math.max(0,grpCredit(s,c).exposure-own);
   return {c,used,refusal:grpCreditRefusal(c,used,needed,what)};
 }

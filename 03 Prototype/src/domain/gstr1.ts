@@ -1,3 +1,4 @@
+import {sfInvoiceDocs} from './streams/folio-split'; // F8-SF-DOMAIN
 // DEC-072 (audit A03a-01) · GSTR-1 working summary — a working aid for the CA, not a return file. Port of the server's Gstr1Summary
 // (08 Production Hcc.Domain/Invoices/Gstr1Summary.cs) over the prototype's documents: folio sample invoices (stream C, allocated at checkout)
 // with their credit notes, and restaurant tax invoices (RST series, POS) with the credit notes of voided bills. Rate-wise B2B / B2CS
@@ -49,20 +50,21 @@ export function gstr1Documents(s:State,from:string,to:string):{docs:Gstr1Documen
   const within=(d?:string)=>!!d&&d>=from&&d<=to;
   const docs:Doc[]=[],notes:Note[]=[];
   const roomOf=(b:Booking)=>{const g=(b.segments??[]);return g.length?[...new Set(g.map(x=>x.room))].join(', '):b.room;};
-  for(const b of s.bookings){
-    if(!b.invoiceNo)continue;
+  // F8-SF-DOMAIN · one document per issued folio invoice (SF-CONTRACT §5.4): sfInvoiceDocs gives the stay itself on a single-folio stay
+  for(const b0 of s.bookings)for(const {view:b} of sfInvoiceDocs(b0)){
+  // F8-SF-DOMAIN end
     const supply=b.company?.gstin?'B2B':'B2C';
     // LF-BILL (§4/§5): a corrected stay has one document per revision — lines added by a correction belong to its new invoice (dated the
     // correction's decision), all other lines to the first invoice (dated the departure). The superseded invoice counts as issued.
     const byNo=new Map<string,Line[]>();
     for(const l of b.lines)if(!isCreditLine(b,l)){const no=blcLineInvoice(s,b,l)!;byNo.set(no,[...(byNo.get(no)??[]),l]);}
-    if(!byNo.size)byNo.set(b.invoiceNo,[]);
+    if(!byNo.size)byNo.set(b.invoiceNo!,[]);
     for(const [no,ls] of byNo){
       const c=blcState(s).corrections.find(c=>c.status==='Issued'&&c.newInvoiceNo===no);
       const date=c?.decidedAt?.slice(0,10)??b.departure;
       if(within(date))docs.push({no,series:'INV',supply,lines:ls.map(docLine),meta:{date,party:b.company?.name||b.guest,gstin:b.company?.gstin??'',room:roomOf(b),booking:b.id,source:'folio'}});
     }
-    for(const c of b.creditNotes??[])if(within(c.date))notes.push({no:c.no,supply,lines:b.lines.filter(l=>l.approvalId===c.approvalId).map(creditLine),against:b.invoiceNo,meta:{date:c.date,party:b.company?.name||b.guest,gstin:b.company?.gstin??'',room:roomOf(b),booking:b.id,source:'folio'}});
+    for(const c of b.creditNotes??[])if(within(c.date))notes.push({no:c.no,supply,lines:b.lines.filter(l=>l.approvalId===c.approvalId).map(creditLine),against:b.invoiceNo!,meta:{date:c.date,party:b.company?.name||b.guest,gstin:b.company?.gstin??'',room:roomOf(b),booking:b.id,source:'folio'}});
   }
   for(const o of posSlice(s).orders){
     const st=o.settlement;if(!st?.invoiceNo)continue;

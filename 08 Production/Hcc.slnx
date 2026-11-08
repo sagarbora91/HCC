@@ -355,6 +355,8 @@
     <!-- F12-DIGEST -->
     <!-- F12-DIGEST end -->
     <!-- F8-SF-DOMAIN -->
+    <File Path="database/migrations/4350_sf_folio_payer.sql" />
+    <File Path="database/migrations/4351_sf_folio_route.sql" />
     <!-- F8-SF-DOMAIN end -->
     <!-- F8-SF-SERVER -->
     <!-- F8-SF-SERVER end -->

@@ -3,6 +3,7 @@
 import type {State,Booking} from '../../types';
 import {gstr1Documents,GSTR1_SAC,type Gstr1Document,type Gstr1Note} from '../../gstr1';
 import {blcState} from '../../streams/bill-correction';
+import {sfInvoiceDocs} from '../../streams/folio-split'; // F8-SF-DOMAIN
 import {getLegacyBills} from '../../../features/customers/legacy-source';
 
 export const TAX_RATE_BPS=[0,500,1200,1800,2800] as const;
@@ -16,7 +17,7 @@ const isCash=(m?:string)=>String(m??'').trim().toLowerCase()==='cash';
 function payOf(s:State,d:Gstr1Document):TaxPay{
   const p=noPay();
   if(d.meta.source==='folio'){
-    const b=s.bookings.find(x=>x.id===d.meta.booking);if(!b||b.invoiceNo!==d.no)return p;
+    const b0=s.bookings.find(x=>x.id===d.meta.booking);const b=b0?sfInvoiceDocs(b0).find(x=>x.no===d.no)?.view:undefined;if(!b||b.invoiceNo!==d.no)return p; // F8-SF-DOMAIN: that folio's receipts
     for(const r of b.receipts){
       if(r.kind==='payment'||r.kind==='deposit-apply'){(isCash(r.method)?(p.cash+=r.amount):(p.cardUpi+=r.amount));}
       else if(r.kind==='refund'){(isCash(r.method)?(p.cash-=r.amount):(p.cardUpi-=r.amount));}

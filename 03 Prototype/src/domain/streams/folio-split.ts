@@ -2,7 +2,8 @@
 // Exported names start with 'sf' / 'SF' (shared mock namespace). Lane sf-domain owns this file after the setup commit: it may ADD helpers and
 // fill the commands, but never changes these signatures or the single-folio behaviour (a stay without `folios` is exactly today's stay).
 // Money = integer paise; nothing here posts, rounds or changes money: a view only filters the stay's own lines and receipts.
-import type {Booking,Line,Receipt} from '../types';
+import type {Booking,Line,Receipt,State} from '../types';
+import type {GRPState} from './groups'; // F8-SF-DOMAIN (type only: no runtime import cycle)
 
 /** Who pays a folio (SF-CONTRACT §2). 'group' is declared for the server mirror only: F8 refuses a split on a group member (§2.4, SFQ-10). */
 export type SFPayerKind='guest'|'company'|'group'|'udhaar';
@@ -73,3 +74,62 @@ export function sfInvoiceDocs(b:Booking):{folio:string;no:string;view:Booking}[]
   if(!sfIsSplit(b))return b.invoiceNo?[{folio:SF_PRIMARY,no:b.invoiceNo,view:b}]:[];
   return sfFolios(b).filter(f=>!!f.invoiceNo).map(f=>({folio:f.id,no:f.invoiceNo!,view:sfView(b,f.id)}));
 }
+
+// F8-SF-DOMAIN · helpers added by lane sf-domain (SF-CONTRACT §3, §7, §8 R8). Pure; single-folio stays keep today's answers.
+/** Refusal reasons (details.reason) of the SF commands and of the folio rules in existing commands (SF-CONTRACT §4). */
+export const SF_REASONS=['SF_FOLIO_LIMIT','SF_ROUTE_TAKEN','SF_COMPANY_FOLIO','SF_COMPANY_MISMATCH','SF_GROUP_MEMBER','SF_PAYER_KIND','SF_FOLIO_NOT_EMPTY',
+  'SF_FOLIO_INVOICED','SF_SPLIT_BILL_CORRECTION','SF_DEPOSIT_FOLIO','SF_FOLIO_UNKNOWN'] as const;
+export type SFReason=typeof SF_REASONS[number];
+/** Commands that post room nights: never refused by D7 (SF-CONTRACT §7.3 — it would stop the day close). */
+export const SF_NIGHT_COMMANDS:readonly string[]=['POST_NIGHTS','NIGHT_POST','CLOSE_RUN','DAY_CLOSE','NEXT_DAY'];
+/** The live company folio of a split stay (at most one), optionally only when it names company account `companyId`. */
+export function sfCompanyFolio(b:Booking,companyId?:string):SFFolio|undefined{
+  if(!sfIsSplit(b))return undefined;
+  return live(b).find(f=>f.payer.kind==='company'&&(companyId===undefined||f.payer.ref===companyId));
+}
+/** True when a non-split stay is billed to company account `companyId` (its own link or a bill-to-company block it belongs to; as grpAccountOf). */
+function billedTo(s:State,b:Booking,companyId:string):boolean{
+  if(b.company?.account)return b.company.account===companyId;
+  const blocks=((s.groupsX as Partial<GRPState>|undefined)?.blocks)??[];
+  return blocks.some(x=>x.billTo==='company'&&x.company===companyId&&x.members.some(m=>m.booking===b.id));
+}
+/**
+ * SF-CONTRACT §8 R8: the lines of a stay that a company report attributes to company `companyId`: on a split stay with a company folio,
+ * only that folio's lines (and none when the folio names another company); on any other stay, every line when the stay is billed to the
+ * company, else none.
+ */
+export function sfCompanyLines(s:State,b:Booking,companyId:string):Line[]{
+  if(sfIsSplit(b)){
+    const cf=sfCompanyFolio(b);
+    if(cf)return cf.payer.ref===companyId?sfView(b,cf.id).lines:[];
+  }
+  return billedTo(s,b,companyId)?b.lines:[];
+}
+/** Folio a NEW line (one without `folio`) belongs to (SF-CONTRACT §3): reversal → its original's folio; closed-day correction → the folio of
+ *  the line it corrects; any other adjustment → A; meal-plan line → the folio of that night's room line; late check-out half day → route(extras);
+ *  else the route of its category. On a stay without folios: 'A'. */
+export function sfNewLineFolio(b:Booking,l:Line):SFFolioId{
+  if(l.folio)return l.folio as SFFolioId;
+  if(!b.folios?.length)return SF_PRIMARY;
+  if(l.reversalOf)return sfLineFolio(b,l) as SFFolioId;
+  if(l.correctionOf){const o=b.lines.find(x=>x.id===l.correctionOf);return (o?sfLineFolio(b,o):SF_PRIMARY) as SFFolioId;}
+  if(l.kind==='adjustment')return SF_PRIMARY;
+  if(l.planCode){const n=b.lines.find(x=>x.kind==='room'&&x.date===l.date&&!x.reversalOf&&x.folio);if(n)return n.folio as SFFolioId;return sfRouteTarget(b,'room');}
+  if(l.id===`late-half:${b.id}`)return sfRouteTarget(b,'extras');
+  return sfRouteTarget(b,sfRouteCategory(l));
+}
+/** Folio a NEW receipt (one without `folio`) belongs to: a refund → the folio of the receipt it refunds; anything else → A. */
+export function sfNewReceiptFolio(b:Booking,r:Receipt):SFFolioId{
+  if(r.folio)return r.folio as SFFolioId;
+  if(r.refundOf){const o=b.receipts.find(x=>x.id===r.refundOf);if(o&&o!==r)return sfReceiptFolio(b,o) as SFFolioId;}
+  return SF_PRIMARY;
+}
+/** The folio letter a command names (`cmd.folio`), validated against the stay's live folios; undefined when absent. Throws nothing:
+ *  callers refuse with SF_FOLIO_UNKNOWN when the result is `false`. */
+export function sfCmdFolio(b:Booking,folio:unknown):SFFolioId|undefined|false{
+  if(folio===undefined||folio===null||folio==='')return undefined;
+  const f=String(folio);
+  if(!sfIsSplit(b))return f===SF_PRIMARY?SF_PRIMARY:false;
+  return live(b).some(x=>x.id===f)?f as SFFolioId:false;
+}
+// F8-SF-DOMAIN end

@@ -166,6 +166,8 @@ export * from '../../domain/reports/meas-daily'; // pure exception functions for
 export * from '../../domain/streams/folio-split'; // F8 SF split folio: SFFolio types, sfFolios, sfView, sfLineFolio, sfRouteTarget, sfInvoiceDocs (SF-CONTRACT §2)
 // F8-SETUP end
 // F8-SF-DOMAIN
+export {sfFolioExposure,sfStayExposureFor} from '../../domain/streams/groups'; // F8 SF: D7 exposure per company folio (SF-CONTRACT §7)
+export {sfFail,sfAfterCommand} from './handlers/folio-split';
 // F8-SF-DOMAIN end
 // F8-SF-TESTS
 // F8-SF-TESTS end
