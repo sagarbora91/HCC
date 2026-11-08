@@ -29,3 +29,38 @@
 .invoice-stamp{text-transform:uppercase}
 @media(max-width:760px){.folio-tender{flex-wrap:wrap}.folio-tender label{flex:1 1 140px}}
 @media print{.invoice-stamp{border:2px dashed var(--primary);font-size:11px}.folio-cn-list{break-inside:avoid}}
+/* F8C-SCREENS · split folio (switcher, routing bar, Split bill dialog, settle sheet, invoice list). Tokens only; sizes follow the text-scale transform. */
+.sf-switcher{margin:12px 0 4px}
+.sf-switcher button{border-color:var(--line);background:var(--surface,transparent);color:var(--ink);text-align:left;min-width:0;max-width:100%;overflow-wrap:anywhere}
+.sf-switcher button.active{background:var(--primary-tint);border-color:var(--c-cdb9a3);color:var(--primary)}
+.sf-switcher button small{font-size:inherit;color:inherit;opacity:.85;white-space:nowrap}
+.sf-bar{display:flex;flex-wrap:wrap;align-items:center;gap:6px 16px;margin:6px 0 12px}
+.sf-bar .folio-company{margin:0;flex:1 1 260px;min-width:0;overflow-wrap:anywhere}
+.sf-bar .folio-company svg{flex:none}
+.sf-bar .text-btn{flex:none}
+.sf-bar.mm-meta{display:block}.sf-bar.mm-meta .btn{margin-top:8px}
+.sf-folios{margin:14px 0 6px}
+.summary-list>.sf-folio-edit{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 16px;align-items:start;padding:12px 0;border-bottom:1px solid var(--line)}
+.summary-list>.sf-folio-edit:last-child{border-bottom:0}
+.sf-folio-edit>span{min-width:0;overflow-wrap:anywhere}
+.sf-folio-edit small,.sf-row small{display:block;margin-top:3px;font-size:10px;font-weight:400;color:var(--muted);overflow-wrap:anywhere}
+.sf-folio-edit .sf-routes{flex-direction:column;align-items:flex-start;gap:4px}
+.sf-folio-edit .sf-reason{min-width:0}
+.sf-folio-edit>.sf-reason,.sf-folio-edit>.sf-actions{grid-column:1/-1}
+.sf-folio-edit>.sf-actions{flex-wrap:wrap;gap:10px}
+@media(max-width:520px){.summary-list>.sf-folio-edit{grid-template-columns:minmax(0,1fr)}}
+.sf-sheet{margin:6px 0 14px}
+.sf-sheet .summary-list>div.sf-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 14px;align-items:center}
+.sf-row>span:first-child{min-width:0;overflow-wrap:anywhere}
+.sf-row>span:first-child strong{display:block;text-align:left;color:var(--ink)}
+.sf-row .number{white-space:nowrap}
+.sf-row .inline{grid-column:1/-1;flex-wrap:wrap;gap:8px;justify-content:flex-end}
+.sf-total strong{font-weight:700;color:var(--ink)}
+.sf-invoices{margin:8px 0 12px}
+.sf-invoices>div{padding:9px 0;flex-wrap:wrap}
+.sf-invoices strong{overflow-wrap:anywhere}
+.sf-routing ul{margin:6px 0;padding-left:18px}
+.sf-routing p{margin:4px 0 8px}
+.sf-folio-edit .sf-routes label.checkbox-line{flex-direction:row;align-items:center;gap:8px;white-space:nowrap}
+.sf-folio-edit .sf-reason{display:flex;flex-direction:column;gap:4px}
+.sf-folio-edit .sf-reason input{width:100%;min-width:0}

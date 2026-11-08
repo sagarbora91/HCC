@@ -24,22 +24,24 @@ export function SfFolioBar({b,folio,mobile}:{b:Booking;folio:string;mobile?:bool
   const active=['Confirmed','In house'].includes(b.status);
   const f=sfFolios(b).find(x=>x.id===folio);
   return <div className={'sf-bar'+(mobile?' mm-meta':'')}>
-    {sfIsSplit(b)&&f&&<p className="folio-company"><Building2 size={14}/>Folio {f.id} is paid by {f.id===SF_PRIMARY?b.guest:f.payer.name}{f.payer.gstin?` · GSTIN ${f.payer.gstin}`:''} · {f.routes.length?f.routes.map(c=>c==='room'?'room':'extras').join(' + ')+' post here':'no new postings routed here'}</p>}
+    {sfIsSplit(b)&&f&&<p className="folio-company"><Building2 size={14}/>Folio {f.id} is paid by {f.id===SF_PRIMARY?b.guest:f.payer.name}{f.payer.gstin?` · GSTIN ${f.payer.gstin}`:''} · {f.invoiceNo?`invoice ${f.invoiceNo}`:f.routes.length?`new ${f.routes.map(c=>c==='room'?'room charges':'extras').join(' and ')} post here`:'no new postings routed here'}</p>}
     {active&&act('billing',()=>open({type:'sf-split',id:b.id}),sfIsSplit(b)?'Split bill / routing':'Split bill',mobile?'btn':'text-btn')}
   </div>;
 }
 
 const SPLIT_KINDS:SFPayerKind[]=['guest','company','udhaar'];
+/** A stay has at most one company folio (SF-CONTRACT §2): once there is one, the picker offers the other payer kinds only. */
+const b0HasCompany=(s:{bookings:Booking[]},id?:string)=>{const b=s.bookings.find(x=>x.id===id);return !!b&&sfFolios(b).some(f=>f.payer.kind==='company');};
 /** 'sf-split' dialog (id = booking): open a folio (payer kind, company with ₹ left, routes, reason), change routes, remove an empty folio. */
 export function SplitBillModal({id}:{id?:string}){
   const {s,run,busy,modal,booking}=useHcc();
   const b=s.bookings.find(x=>x.id===id);
-  const [kind,setKind]=useState<SFPayerKind>('company'),[ref,setRef]=useState(''),[name,setName]=useState(''),[gstin,setGstin]=useState('');
+  const [kind,setKind]=useState<SFPayerKind>(b0HasCompany(s,id)?'guest':'company'),[ref,setRef]=useState(''),[name,setName]=useState(''),[gstin,setGstin]=useState('');
   const free=b?sfFreeRoutes(b):[];
   const [routes,setRoutes]=useState<SFRouteCategory[]>(['room']),[reason,setReason]=useState('');
   const [edit,setEdit]=useState<Record<string,{routes:SFRouteCategory[];reason:string}>>({});
   if(!b)return <Empty title="This record is unavailable"/>;
-  const companies=grpActiveCompanies(s),udhaar=(s.guests??[]).filter(g=>g.creditAccount?.active);
+  const companies=grpActiveCompanies(s).filter(c=>!b.company?.account||b.company.account===c.id),udhaar=(s.guests??[]).filter(g=>g.creditAccount?.active);
   const toggle=(list:SFRouteCategory[],c:SFRouteCategory)=>list.includes(c)?list.filter(x=>x!==c):[...list,c];
   const folios=sfFolios(b).filter(f=>f.id!==SF_PRIMARY);
   const key=(p:string)=>`${modal?.key??'sf'}:${p}:${b.version}`;
@@ -47,19 +49,19 @@ export function SplitBillModal({id}:{id?:string}){
       <p>Choose who pays which part. Later postings follow the routing; what is already posted stays where it is. At most four folios (A–D).</p></div>
     {folios.length>0&&<div className="summary-list sf-folios">{folios.map(f=>{const e=edit[f.id]??{routes:f.routes,reason:''},empty=!b.lines.some(l=>l.folio===f.id)&&!b.receipts.some(r=>r.folio===f.id);
       return <div key={f.id} className="sf-folio-edit"><span><strong>{sfFolioLabel(f,b.guest)}</strong><small>{SF_PAYER_LABEL[f.payer.kind]} · {money(totals(sfView(b,f.id)).balance)} balance{f.invoiceNo?` · invoice ${f.invoiceNo}`:''}</small></span>
-        <div className="inline">{SF_ROUTE_CATEGORIES.map(c=><label key={c} className="checkbox-line"><input type="checkbox" checked={e.routes.includes(c)} disabled={!!f.invoiceNo} onChange={()=>setEdit({...edit,[f.id]:{...e,routes:toggle(e.routes,c)}})}/> {c==='room'?'Room':'Extras'}</label>)}</div>
-        <label>Reason for the change<input value={e.reason} maxLength={200} onChange={ev=>setEdit({...edit,[f.id]:{...e,reason:ev.target.value}})}/></label>
-        <div className="inline"><button type="button" className="btn small-btn" disabled={busy||!!f.invoiceNo} onClick={()=>void run(sfRouteCommand(b,f.id,e.routes,e.reason,key('route'+f.id)),`Folio ${f.id} routing saved`)}>Save routing</button>
-          {empty&&<button type="button" className="text-btn" disabled={busy} onClick={()=>void run(sfRemoveCommand(b,f.id,key('rm'+f.id)),`Folio ${f.id} removed`)}>Remove empty folio</button>}</div></div>;})}</div>}
+        <div className="inline sf-routes" role="group" aria-label={`Routing of folio ${f.id}`}>{SF_ROUTE_CATEGORIES.map(c=><label key={c} className="checkbox-line"><input type="checkbox" checked={e.routes.includes(c)} disabled={!!f.invoiceNo} onChange={()=>setEdit({...edit,[f.id]:{...e,routes:toggle(e.routes,c)}})}/> {c==='room'?'Room':'Extras'}</label>)}</div>
+        <label className="sf-reason">Reason for the change<input value={e.reason} maxLength={200} onChange={ev=>setEdit({...edit,[f.id]:{...e,reason:ev.target.value}})}/></label>
+        <div className="inline sf-actions"><button type="button" className="btn small-btn" aria-label={`Save routing of folio ${f.id}`} disabled={busy||!!f.invoiceNo} onClick={()=>void run(sfRouteCommand(b,f.id,e.routes,e.reason,key('route'+f.id)),`Folio ${f.id} routing saved`)}>Save routing</button>
+          {empty&&<button type="button" className="text-btn" aria-label={`Remove empty folio ${f.id}`} disabled={busy} onClick={()=>void run(sfRemoveCommand(b,f.id,key('rm'+f.id)),`Folio ${f.id} removed`)}>Remove empty folio</button>}</div></div>;})}</div>}
     {folios.length<3?<form className="form" onSubmit={e=>{e.preventDefault();void run(sfOpenCommand(b,{kind,ref,name,gstin,routes,reason},key('open')),'Folio opened',{after:()=>booking(b.id)});}}>
       <h3 className="gs-sub">Open a folio</h3>
-      <label>Who pays<select value={kind} onChange={e=>{setKind(e.target.value as SFPayerKind);setRef('');}}>{SPLIT_KINDS.map(k=><option key={k} value={k}>{SF_PAYER_LABEL[k]}</option>)}</select></label>
+      <label>Who pays<select value={kind} onChange={e=>{setKind(e.target.value as SFPayerKind);setRef('');}}>{SPLIT_KINDS.filter(k=>k!=='company'||!b0HasCompany(s,id)).map(k=><option key={k} value={k}>{SF_PAYER_LABEL[k]}</option>)}</select></label>
       {kind==='guest'&&<><label>Payer name<input value={name} maxLength={120} onChange={e=>setName(e.target.value)} required/></label><label>GSTIN (optional)<input value={gstin} maxLength={15} onChange={e=>setGstin(e.target.value.toUpperCase())}/></label></>}
-      {kind==='company'&&<label>Company account<select value={ref} onChange={e=>setRef(e.target.value)} required><option value="">Choose an account…</option>{companies.map(c=><option key={c.id} value={c.id}>{c.name} · {money(grpCredit(s,c).available)} left</option>)}</select></label>}
-      {kind==='udhaar'&&<label>Credit guest<select value={ref} onChange={e=>setRef(e.target.value)} required><option value="">Choose a guest…</option>{udhaar.map(g=><option key={g.id} value={g.id}>{g.name}</option>)}</select></label>}
+      {kind==='company'&&<label>Company account<select value={ref} onChange={e=>setRef(e.target.value)} required><option value="">Choose an account…</option>{companies.map(c=><option key={c.id} value={c.id}>{c.name} · {money(grpCredit(s,c).available)} left</option>)}</select>{companies.length===0&&<small className="muted">No active company account is available for this stay (Groups &amp; corporate › Companies).</small>}</label>}
+      {kind==='udhaar'&&<label>Credit guest<select value={ref} onChange={e=>setRef(e.target.value)} required><option value="">Choose a guest…</option>{udhaar.map(g=><option key={g.id} value={g.id}>{g.name}</option>)}</select>{udhaar.length===0&&<small className="muted">No guest has an active credit account yet (the Owner sets one on the guest profile).</small>}</label>}
       <fieldset><legend>Route to this folio</legend>{SF_ROUTE_CATEGORIES.map(c=><label key={c} className="checkbox-line"><input type="checkbox" checked={routes.includes(c)} disabled={!free.includes(c)} onChange={()=>setRoutes(toggle(routes,c))}/> {SF_ROUTE_LABEL[c]}{free.includes(c)?'':' (already on another folio)'}</label>)}</fieldset>
       <label>Reason (optional)<input value={reason} maxLength={200} onChange={e=>setReason(e.target.value)}/></label>
-      <div className="info-note"><Info size={16}/>A company folio is bound by the company’s credit limit and is not paid in cash. Folio A stays with the guest.</div>
+      <div className="info-note"><Info size={16}/>{kind==='company'?'A company folio is bound by the company’s credit limit and is not paid in cash. Folio A stays with the guest.':kind==='udhaar'?'An Udhaar folio is placed on the guest’s credit account, within that guest’s credit limit. Folio A stays with the guest.':'Another person pays this folio directly, at check-out. Folio A stays with the guest.'}</div>
       <div className="modal-actions"><button type="button" className="btn" onClick={()=>booking(b.id)}>Back to folio</button><button className="btn primary" disabled={busy}><SplitIcon size={16}/> Open folio</button></div></form>
       :<div className="modal-actions"><span className="muted">A stay has at most four folios.</span><button type="button" className="btn" onClick={()=>booking(b.id)}>Back to folio</button></div>}</>;
 }
@@ -87,10 +89,8 @@ export function SfCheckoutSheet({b,mobile}:{b:Booking;mobile?:boolean}){
         {r.status==='pay'&&r.kind==='company'&&permission('checkout')&&<button type="button" className={mobile?'btn':'btn small-btn'} disabled={busy} onClick={()=>void run({type:'COMPANY_CREDIT_REQUEST',id:b.id,folio:r.id,key:`cc:${b.id}:${r.id}:${b.version}`},'Company credit requested — awaiting approval')}>Request company credit</button>}
         {r.status==='pay'&&r.kind==='udhaar'&&permission('checkout')&&<button type="button" className={mobile?'btn':'btn small-btn'} disabled={busy} onClick={()=>void run({type:'GUEST_CREDIT_REQUEST',id:b.id,folio:r.id,key:`gc:${b.id}:${r.id}:${b.version}`},'Guest credit requested — awaiting approval')}>Place on credit account</button>}
         {r.status==='settled'&&<Pill tone="green"><Check size={11}/> Settled</Pill>}</span></div>)}
-      <div><span>Charges including GST (all folios)</span><strong>{money(sh.total)}</strong></div>
-      <div><span>Net payments (all folios)</span><strong>{money(sh.paid)}</strong></div>
       <div className="sf-total"><span>Outstanding (sum of folios)</span><strong>{money(sh.balance)}</strong></div>
-      <div><span>Deposit to return</span><strong>{money(sh.deposit)}</strong></div></div>
+</div>
     {sh.blockers.length>0&&<div className="info-note folio-blockers" role="status"><AlertTriangle size={17}/><div><strong>Checkout is blocked until:</strong><ul>{sh.blockers.map(x=><li key={x}>{x}</li>)}</ul></div></div>}
   </section>;
 }
