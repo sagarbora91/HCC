@@ -44,7 +44,7 @@ public sealed class MovementRegisterReport(SqlPlatform platform) : IReportSelect
           LEFT JOIN inv.room rm ON rm.room_id = COALESCE((SELECT TOP (1) sg.room_id FROM gst.stay_segment sg WHERE sg.stay_id = s.stay_id ORDER BY sg.seq DESC), r.room_id)
           LEFT JOIN inv.room_type rt ON rt.room_type_id = COALESCE(rm.room_type_id, r.room_type_id)
           LEFT JOIN mst.purpose_of_visit pv ON pv.property_id = r.property_id AND pv.code = r.purpose_code
-          LEFT JOIN bill.folio f ON f.reservation_id = r.reservation_id
+          LEFT JOIN bill.folio f ON f.reservation_id = r.reservation_id AND f.folio_seq = 1 -- F8-SF-SERVER: one row per reservation
          ORDER BY x.mdate, rm.room_no, x.kind;
         """;
 

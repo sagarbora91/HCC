@@ -67,7 +67,7 @@ public sealed class SqlInvoiceStore(SqlConnectionFactory connections) : IInvoice
     public async Task<FolioParty?> FolioPartyAsync(ICommandTransaction tx, long folioId, CancellationToken ct)
     {
         await using var cmd = Sql(tx).Command("""
-            SELECT r.property_id, r.public_no, r.guest_name, COALESCE(a.room_no, b.room_no), r.arrival, r.departure
+            SELECT r.property_id, r.public_no, COALESCE(f.payer_name, r.guest_name), COALESCE(a.room_no, b.room_no), r.arrival, r.departure, f.payer_kind, f.payer_gstin
               FROM bill.folio f JOIN inv.reservation r ON r.reservation_id = f.reservation_id
               OUTER APPLY (SELECT TOP 1 rm.room_no FROM gst.stay s JOIN gst.stay_segment sg ON sg.stay_id = s.stay_id JOIN inv.room rm ON rm.room_id = sg.room_id
                             WHERE s.reservation_id = r.reservation_id ORDER BY sg.seq DESC) a
@@ -77,7 +77,7 @@ public sealed class SqlInvoiceStore(SqlConnectionFactory connections) : IInvoice
         P(cmd, "@f", SqlDbType.BigInt, folioId);
         await using var rd = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
         if (!await rd.ReadAsync(ct).ConfigureAwait(false)) return null;
-        return new FolioParty(rd.GetInt32(0), rd.GetString(1), rd.GetString(2), S(rd, 3), D(rd, 4), D(rd, 5));
+        return new FolioParty(rd.GetInt32(0), rd.GetString(1), rd.GetString(2), S(rd, 3), D(rd, 4), D(rd, 5), S(rd, 6), rd.IsDBNull(7) ? null : rd.GetString(7).Trim());
     }
 
     public async Task<long?> InvoiceIdForSourceAsync(ICommandTransaction tx, int propertyId, string sourceKind, long sourceId, CancellationToken ct)

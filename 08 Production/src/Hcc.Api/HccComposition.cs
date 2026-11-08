@@ -233,6 +233,7 @@ public static class HccComposition
         // F8-SF-DOMAIN
         // F8-SF-DOMAIN end
         // F8-SF-SERVER
+        services.AddSplitFolioModule(); // split folio SQL store + SplitFolioService
         // F8-SF-SERVER end
         // F8-RPT-P2-A
         // F8-RPT-P2-A end
@@ -458,6 +459,7 @@ public static class HccComposition
         // F8-SF-DOMAIN
         // F8-SF-DOMAIN end
         // F8-SF-SERVER
+        api.MapSplitFolioEndpoints(); // OpenFolio / SetFolioRouting / RemoveFolio + folio summaries
         // F8-SF-SERVER end
         // F8-RPT-P2-A
         // F8-RPT-P2-A end

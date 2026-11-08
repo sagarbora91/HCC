@@ -45,7 +45,7 @@ public sealed class SqlBillingStore(SqlConnectionFactory connections) : IBilling
     public async Task<long> EnsureFolioAsync(ICommandTransaction tx, long reservationId, CancellationToken ct)
     {
         await using var cmd = Cmd(tx, """
-            DECLARE @f BIGINT = (SELECT folio_id FROM bill.folio WITH (UPDLOCK, HOLDLOCK) WHERE reservation_id = @r);
+            DECLARE @f BIGINT = (SELECT folio_id FROM bill.folio WITH (UPDLOCK, HOLDLOCK) WHERE reservation_id = @r AND folio_seq = 1); -- F8-SF-SERVER: the primary folio
             IF @f IS NULL
             BEGIN
               INSERT bill.folio(reservation_id) VALUES (@r);
@@ -59,7 +59,7 @@ public sealed class SqlBillingStore(SqlConnectionFactory connections) : IBilling
 
     public async Task<long?> FolioIdForReservationAsync(ICommandTransaction tx, long reservationId, CancellationToken ct)
     {
-        await using var cmd = Cmd(tx, "SELECT folio_id FROM bill.folio WHERE reservation_id = @r;");
+        await using var cmd = Cmd(tx, "SELECT folio_id FROM bill.folio WHERE reservation_id = @r AND folio_seq = 1;" /* F8-SF-SERVER: primary */);
         cmd.Parameters.Add("@r", SqlDbType.BigInt).Value = reservationId;
         return await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false) as long?;
     }
@@ -146,11 +146,12 @@ public sealed class SqlBillingStore(SqlConnectionFactory connections) : IBilling
     public async Task<long> InsertChargeAsync(ICommandTransaction tx, NewCharge c, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(c);
+        var folioId = await SqlSplitFolioStore.ResolveChargeFolioAsync(Sql(tx), c, ct).ConfigureAwait(false); // F8-SF-SERVER: route on a split stay
         await using var cmd = Cmd(tx, """
             INSERT bill.charge(folio_id, kind, service_date, label, amount_paise, tax_bps, tax_paise, reverses_charge_id, posted_utc, principal_id, approval_id)
             OUTPUT INSERTED.charge_id VALUES (@f, @k, @d, @l, @a, @b, @t, @rev, @u, @p, @apr);
             """);
-        cmd.Parameters.Add("@f", SqlDbType.BigInt).Value = c.FolioId;
+        cmd.Parameters.Add("@f", SqlDbType.BigInt).Value = folioId;
         cmd.Parameters.Add("@k", SqlDbType.VarChar, 12).Value = BillingCodes.Code(c.Kind);
         cmd.Parameters.Add("@d", SqlDbType.Date).Value = c.ServiceDate;
         cmd.Parameters.Add("@l", SqlDbType.NVarChar, 200).Value = c.Label;
@@ -517,7 +518,7 @@ public sealed class SqlBillingStore(SqlConnectionFactory connections) : IBilling
         await using var cmd = connections.Command("""
             SELECT r.reservation_id, f.folio_id, s.stay_id, s.row_ver
             FROM inv.reservation r
-            LEFT JOIN bill.folio f ON f.reservation_id = r.reservation_id
+            LEFT JOIN bill.folio f ON f.reservation_id = r.reservation_id AND f.folio_seq = 1
             LEFT JOIN gst.stay s ON s.reservation_id = r.reservation_id
             WHERE r.reservation_id = @r AND r.property_id = @p;
             """, conn);
@@ -552,7 +553,7 @@ public sealed class SqlBillingStore(SqlConnectionFactory connections) : IBilling
           LEFT JOIN inv.room rm ON rm.room_id = r.room_id
           LEFT JOIN inv.room_type t ON t.room_type_id = r.room_type_id
           LEFT JOIN gst.stay s ON s.reservation_id = r.reservation_id
-          LEFT JOIN bill.folio f ON f.reservation_id = r.reservation_id
+          LEFT JOIN bill.folio f ON f.reservation_id = r.reservation_id AND f.folio_seq = 1
           OUTER APPLY (SELECT TOP (1) sg.room_id, sr.room_no FROM gst.stay_segment sg JOIN inv.room sr ON sr.room_id = sg.room_id
                        WHERE sg.stay_id = s.stay_id AND sg.to_date IS NULL) cur
         ORDER BY COALESCE(cur.room_no, rm.room_no), r.reservation_id;

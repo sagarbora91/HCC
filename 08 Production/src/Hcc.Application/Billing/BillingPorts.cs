@@ -75,7 +75,11 @@ public sealed record FolioHeader(long FolioId, int PropertyId, long ReservationI
 }
 
 public sealed record NewCharge(long FolioId, ChargeKind Kind, DateOnly ServiceDate, string Label, Paise Amount, int TaxBps, Paise Tax,
-    long? ReversesChargeId, long? ApprovalId, int PrincipalId, DateTime PostedUtc);
+    long? ReversesChargeId, long? ApprovalId, int PrincipalId, DateTime PostedUtc, bool ExplicitFolio = false)
+{
+    // F8-SF-SERVER: ExplicitFolio = true posts on FolioId exactly. False (the default): when FolioId is the primary folio of a reservation that has
+    // more than one live folio, the store routes the charge (FolioRouting.Resolve: reversal -> the original's folio, else the category route).
+}
 
 /// <summary><see cref="CompanyId"/>: a company-credit receipt executed for a stay billed to a company account (DEC-076: the company's receivable).</summary>
 public sealed record NewReceipt(long FolioId, ReceiptKind Kind, string Tender, Paise Amount, long? RefundOf, DateOnly BusinessDate, int? TillId,
@@ -106,6 +110,15 @@ public sealed record NewMovement(long ShiftId, int TillId, DateOnly BusinessDate
 
 public sealed record MovementRow(long MovementId, CashMovementKind Kind, string SourceType, long SourceId, Paise Amount, string Label, string Reference,
     DateOnly BusinessDate);
+
+// F8-SF-SERVER
+/// <summary>Read side of the split folios (GET folio summaries): routing snapshot + per-folio statement figures. Implemented by SqlSplitFolioStore.</summary>
+public interface ISplitFolioReader
+{
+    /// <summary>Folio summaries of the reservation (live and removed, seq order), or null when the reservation is not on the property.</summary>
+    Task<IReadOnlyList<Hcc.Contracts.Billing.FolioSummaryDto>?> SummaryAsync(int propertyId, long reservationId, CancellationToken ct);
+}
+// F8-SF-SERVER end
 
 public sealed record FolioSnapshot(FolioHeader Header, IReadOnlyList<PostedLine> Lines, IReadOnlyList<PostedReceipt> Receipts, IReadOnlyList<ApprovalRow> Approvals);
 
