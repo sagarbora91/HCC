@@ -164,6 +164,12 @@ public interface IBillingStore
 
     Task<long> InsertChargeAsync(ICommandTransaction tx, NewCharge charge, CancellationToken ct);
 
+    /// <summary>
+    /// F8D-LOW (money review L6): the folio a posted charge sits on (on a split stay the routed one, which may differ from the folio the caller
+    /// addressed) and that folio's current version, so <c>ChargeResult</c> names the folio the line is on. Null when the charge does not exist.
+    /// </summary>
+    Task<(long FolioId, string Version)?> ChargeFolioAsync(ICommandTransaction tx, long chargeId, CancellationToken ct);
+
     Task<long> InsertReceiptAsync(ICommandTransaction tx, NewReceipt receipt, CancellationToken ct);
 
     /// <summary>The parent receipt under UPDLOCK + HOLDLOCK, so competing refunds serialize on it (spike T06/C3).</summary>

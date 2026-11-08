@@ -342,7 +342,9 @@ public sealed class CatalogueCommands(ICommandRunner runner, IAccessPolicy polic
             await tx.AuditAsync("CHARGE_POSTED", "folio:" + f.FolioId.ToString(CultureInfo.InvariantCulture),
                 $"{label} · {amount} + tax {line.Tax} · catalogue {item.Code}{(qty > 1 ? " × " + qty.ToString(CultureInfo.InvariantCulture) : "")}{(edited.Count > 0 ? $" (changed: {string.Join(", ", edited)})" : "")}", c).ConfigureAwait(false);
             await tx.PublishAsync("ChargePosted", f.FolioId, new { folioId = f.FolioId, chargeId, kind = BillingCodes.Code(kind), serviceDate = f.BusinessDate, amountPaise = amount.Value, taxPaise = line.Tax.Value }, c).ConfigureAwait(false);
-            return new ChargeResult(chargeId, f.FolioId, BillingCodes.Code(kind), f.BusinessDate, label, amount.Value, g.Bps, line.Tax.Value, true, version);
+            // F8D-LOW (money review L6): name the folio the extra was routed to (and its version), not the addressed one, on a split stay.
+            (long FolioId, string Version) on = await billing.ChargeFolioAsync(tx, chargeId, c).ConfigureAwait(false) is { } p2 && p2.FolioId != f.FolioId ? p2 : (f.FolioId, version);
+            return new ChargeResult(chargeId, on.FolioId, BillingCodes.Code(kind), f.BusinessDate, label, amount.Value, g.Bps, line.Tax.Value, true, on.Version);
         }, ct).ConfigureAwait(false);
     }
 

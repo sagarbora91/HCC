@@ -143,7 +143,8 @@ const GUEST_CREDIT_REQUEST:Handler=k=>{
   const x=s.bookings.find(b=>b.id===cmd.booking||b.id===cmd.id);assert(x,'Booking not found.','NOT_FOUND');
   assert(x!.status==='In house','This stay is not in house.','INVALID_TRANSITION');
   const fol=gcrFolio(k,x!),bal=totals(sfView(x!,fol)).balance;assert(bal>0,'There is no outstanding balance to place on guest credit.','INVALID_TRANSITION'); // F8-SF-DOMAIN: that folio's balance
-  assert(!s.approvals.some(a=>a.booking===x!.id&&folioKind(a)==='guest-credit'&&a.status==='Pending'&&!folioApprovalExpired(s,a)),'A guest-credit request is already pending.','INVALID_TRANSITION');
+  assert(!s.approvals.some(a=>a.booking===x!.id&&folioKind(a)==='guest-credit'&&a.status==='Pending'&&!folioApprovalExpired(s,a)
+    &&(!sfIsSplit(x!)||metaFolio(a)===fol)),'A guest-credit request is already pending.','INVALID_TRANSITION'); // F8D-LOW (L3): per folio on a split stay (A and each Udhaar folio)
   const g=guestOf(k,x!,fol);const r=gcrRefusal(s,g,bal);if(r)fail('INVALID_TRANSITION',r);
   const a:Approval={id:k.id('APR'),booking:x!.id,actor:uid,version:x!.version,status:'Pending',expiresAt:folioExpiresAt(s.clock),amount:bal,
     reason:txt(cmd.reason)||('Guest credit · '+g!.name),kind:'guest-credit',meta:{command:'APPROVAL',guestId:g!.id,customerKey:g!.creditAccount!.customerKey,...(sfIsSplit(x!)?{folio:fol}:{})}}; // F8-SF-DOMAIN: meta.folio
@@ -159,6 +160,12 @@ export function gcrApprove(k:Kit,x:Booking,a:Approval):string{
   const r=gcrRefusal(s,guestOf(k,x,metaFolio(a)),a.amount);if(r)fail('INVALID_TRANSITION',r);
   return ' · apply at checkout';
 }
+/** F8D-LOW (L4): GST rate recorded on a guest-credit receivable raised from one folio view of a split stay (see gcrCheckout). */
+function gcrFolioBps(v:Booking):number{
+  const room=v.lines.find(l=>l.kind==='room'&&!l.reversalOf);if(room)return room.taxBps;
+  const rates=[...new Set(v.lines.filter(l=>!l.reversalOf&&l.kind!=='adjustment').map(l=>l.taxBps))];
+  return rates.length===1?rates[0]:0;
+}
 /** CHECKOUT: an approved guest credit for exactly the balance and folio version → receipt 'guest-credit' + Udhaar receivable (kind room). */
 export function gcrCheckout(k:Kit,x:Booking,folio:string=SF_PRIMARY):string{ // F8-SF-DOMAIN: per folio (A or an Udhaar folio)
   const {s,id,uid}=k;const bal=totals(sfView(x,folio)).balance;if(bal<=0)return '';
@@ -166,9 +173,13 @@ export function gcrCheckout(k:Kit,x:Booking,folio:string=SF_PRIMARY):string{ // 
   if(!a)return '';
   const g=guestOf(k,x,folio);const r=gcrRefusal(s,g,bal);if(r)k.fail('INVALID_TRANSITION',r);
   const key=g!.creditAccount!.customerKey,room=x.lines.find(l=>l.kind==='room');
+  // F8D-LOW (money review L4): on a split stay the receivable's GST metadata comes from the settled folio itself — its room-night rate
+  // (gstForFolioAdjustment's room rule), else the one rate all its lines share (H2), else 0 when they carry several rates (no single rate,
+  // SFQ-20; the server stores 0 for every guest-credit receivable). Metadata only: a guest-credit receivable posts no Sales voucher of its own.
+  const gstBps=sfIsSplit(x)?gcrFolioBps(sfView(x,folio)):room?.taxBps??0;
   x.receipts.push({id:id('RCPT'),amount:bal,method:'Guest credit',date:s.date,kind:'guest-credit',reference:`${g!.name} · ${a.id}`,actor:uid,approvalId:a.id,...(sfIsSplit(x)?{folio}:{})}); // F8-SF-DOMAIN
   const ud:ExpUdReceivable={id:id('UD'),name:g!.name,mobile:/^\d{10}$/.test(key)?key:'',amount:bal,date:s.date,dueDate:addDays(s.date,EXP_UD_DUE_DAYS),note:`Stay ${x.id} · room ${x.room}`,
-    settlements:[],by:uid,at:s.clock,kind:'room',gstBps:room?.taxBps??0,guestId:g!.id,booking:x.id};
+    settlements:[],by:uid,at:s.clock,kind:'room',gstBps,guestId:g!.id,booking:x.id};
   udhaars(k).push(ud);
   a.status='Executed';a.meta={...a.meta,executedBy:uid,executedAt:s.clock,udhaar:ud.id};
   void can;

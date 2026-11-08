@@ -58,7 +58,8 @@ public sealed class BillingService(ICommandRunner runner, IBillingStore store, I
             if (existing is not null)
             {
                 await tx.AuditAsync("ROOM_NIGHT_ALREADY_POSTED", Target("folio", f.FolioId), $"{existing.Label} · charge {existing.ChargeId} returned", ct2).ConfigureAwait(false);
-                return ToResult(f.FolioId, existing, created: false, f.Version);
+                var on0 = await PostedOnAsync(tx, existing.ChargeId, f.FolioId, f.Version, ct2).ConfigureAwait(false); // F8D-LOW (L6): the folio the night is on
+                return ToResult(on0.FolioId, existing, created: false, on0.Version);
             }
 
             var rate = night.Rate.EnsureFieldRange();
@@ -74,7 +75,8 @@ public sealed class BillingService(ICommandRunner runner, IBillingStore store, I
             var version = await store.TouchFolioAsync(tx, f.FolioId, ct2).ConfigureAwait(false);
             await tx.AuditAsync("ROOM_NIGHT_POSTED", Target("folio", f.FolioId), $"{line.Label} · {rate} + tax {line.Tax}", ct2).ConfigureAwait(false);
             await tx.PublishAsync("ChargePosted", f.FolioId, new { folioId = f.FolioId, chargeId = id, kind = "room", serviceDate = req.ServiceDate, amountPaise = rate.Value, taxPaise = line.Tax.Value }, ct2).ConfigureAwait(false);
-            return new ChargeResult(id, f.FolioId, "room", req.ServiceDate, line.Label, rate.Value, line.TaxBps, line.Tax.Value, true, version);
+            var on = await PostedOnAsync(tx, id, f.FolioId, version, ct2).ConfigureAwait(false); // F8D-LOW (L6): the routed folio, not the addressed one
+            return new ChargeResult(id, on.FolioId, "room", req.ServiceDate, line.Label, rate.Value, line.TaxBps, line.Tax.Value, true, on.Version);
         }, ct).ConfigureAwait(false);
     }
 
@@ -122,7 +124,8 @@ public sealed class BillingService(ICommandRunner runner, IBillingStore store, I
             var version = await store.TouchFolioAsync(tx, f.FolioId, ct2).ConfigureAwait(false);
             await tx.AuditAsync("CHARGE_POSTED", Target("folio", f.FolioId), $"{label} · {amount} + tax {line.Tax}" + (date != f.BusinessDate ? $" · on reopened day {date:yyyy-MM-dd} (DEC-077)" : ""), ct2).ConfigureAwait(false);
             await tx.PublishAsync("ChargePosted", f.FolioId, new { folioId = f.FolioId, chargeId = id, kind = "service", serviceDate = date, amountPaise = amount.Value, taxPaise = line.Tax.Value }, ct2).ConfigureAwait(false);
-            return new ChargeResult(id, f.FolioId, "service", date, label, amount.Value, bps, line.Tax.Value, true, version);
+            var on = await PostedOnAsync(tx, id, f.FolioId, version, ct2).ConfigureAwait(false); // F8D-LOW (L6): the routed folio, not the addressed one
+            return new ChargeResult(id, on.FolioId, "service", date, label, amount.Value, bps, line.Tax.Value, true, on.Version);
         }, ct).ConfigureAwait(false);
     }
 
@@ -768,6 +771,14 @@ public sealed class BillingService(ICommandRunner runner, IBillingStore store, I
     private static Paise OutstandingRefunds(IReadOnlyList<ApprovalRow> approvals, long? exceptApprovalId, DateTime now)
         => approvals.Where(x => x.Action == AdjustmentAction.Refund && x.ApprovalId != exceptApprovalId && ApprovalRules.IsOutstanding(x.Status, x.Action, x.ExpiresUtc, now))
             .Aggregate(Paise.Zero, (s, x) => s + x.Amount);
+
+    /// <summary>
+    /// F8D-LOW (money review L6): the folio a posted charge is on and that folio's version. On a split stay the routing may have put the line on
+    /// another folio than the one the caller addressed; <c>ChargeResult.FolioId</c> then names that folio (and its version), so the UI and sync
+    /// can trust it. Unchanged (the addressed folio and its version) whenever the line is on the addressed folio.
+    /// </summary>
+    private async Task<(long FolioId, string Version)> PostedOnAsync(ICommandTransaction tx, long chargeId, long addressedFolioId, string addressedVersion, CancellationToken ct)
+        => await store.ChargeFolioAsync(tx, chargeId, ct).ConfigureAwait(false) is { } p && p.FolioId != addressedFolioId ? p : (addressedFolioId, addressedVersion);
 
     private static ChargeResult ToResult(long folioId, PostedLine l, bool created, string version)
         => new(l.ChargeId, folioId, BillingCodes.Code(l.Kind), l.ServiceDate, l.Label, l.Amount.Value, l.TaxBps, l.Tax.Value, created, version);

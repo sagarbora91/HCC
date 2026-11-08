@@ -5,6 +5,8 @@
 import type {Handler,Kit} from '../commands';
 import {HccError,type ErrorCode} from '../../../domain/errors';
 import type {Booking,State,Command} from '../../../domain/types';
+import {totals} from '../../../domain/selectors'; // F8D-LOW (L9)
+import {sfView} from '../../../domain/streams/folio-split'; // F8D-LOW (L9)
 import {grpCompany,grpSlice,grpExposure,grpCreditRefusal,sfFolioExposure} from '../../../domain/streams/groups';
 import {SF_FOLIO_IDS,SF_PRIMARY,SF_ROUTE_CATEGORIES,SF_NIGHT_COMMANDS,sfFolios,sfIsSplit,sfCompanyFolio,sfNewLineFolio,sfNewReceiptFolio,
   type SFFolio,type SFFolioId,type SFPayer,type SFReason,type SFRouteCategory} from '../../../domain/streams/folio-split';
@@ -146,7 +148,13 @@ export function sfAfterCommand(input:State,s:State,cmd:Command):void{
     const before=prev&&sfCompanyFolio(prev,cf.payer.ref)?.id===cf.id?sfFolioExposure(input,prev,cf.id):0;
     if(after<=before)continue;
     const c=grpCompany(s,cf.payer.ref);if(!c)continue;
-    const refusal=grpCreditRefusal(c,Math.max(0,grpExposure(s,c)-after),after,'split folio');
+    // F8D-LOW (money review L9): `used` = the company's exposure without this folio. grpExposure counts a stay only while it is not Departed;
+    // after check-out the folio's settled part is already in the company's receivable (company-credit receipt) and the folio itself is not in
+    // grpExposure, so nothing is subtracted (subtracting `after` made `used` too small: too lenient) and the folio adds only what is still open
+    // on it (its balance; sfFolioExposure would count the receivable part a second time).
+    const departed=b.status==='Departed';
+    const used=departed?grpExposure(s,c):Math.max(0,grpExposure(s,c)-after),needed=departed?Math.max(0,totals(sfView(b,cf.id)).balance):after;
+    const refusal=grpCreditRefusal(c,used,needed,'split folio');
     if(refusal)throw new HccError('INVALID_TRANSITION',refusal);
   }
 }
