@@ -50,3 +50,7 @@ Internal hotel-operations app for the owner's hotel business in India (owner: Sa
   - 1-Nov-2026 live Hotel Parth build (lanes A-E + `demo_live_F.js`): see `Existing Software\HTML Demo\live\INTEGRATION.md`; build + hashes in `E:\Projects\HCC\Builds\2026-11-01\` (APK 1.2026.11.01-0322, not yet on the Tab S7).
 
   - 1-Nov-2026 evening integration (lanes P, X, U, T, V, M + demo clock `demo_live_M.js`, APK 1.2026.11.01-1429): `Existing Software\HTML Demo\live\INTEGRATION.md` section 7; build in `E:\Projects\HCC\Builds\2026-11-01\`.
+
+## Manual (paper) operating system + training (7-8 Nov 2026)
+- Owner-requested paper fallback for Hotel Parth Executive when Lodge / HCC is down: `E:\Projects\HCC\Manual System\` — `Hotel Parth - Manual Operations Plan.docx` v1.1, `Stationery\` 51 fillable PDFs (codes FO / HK / FB / ST / HR / AC / CC, generator `toolsuild_stationery.py`), `Training\` 7 role modules (decks + Hinglish + MP4), 7 role cards, trainer's guide with the quarterly drill script, 36 filled samples (`Training\README.md`, `TRAINING_NOTES.md`). Documents only, outside this repo; HANDOFF Session 14b.
+- Facts that bind HCC: **GST 5 % on rooms and breakfast, 18 % on halls** (owner, 7 Nov 2026; redo the rate-card import CSVs at 5 %); manual invoice series **HPE/2627/M** must be accepted at re-entry (requirement, not built); hotel identity from the letterhead (Belambe Nagar, Ambajogai Road, Latur 413512; Tel 02382-228252; Mob 9158966000; GSTIN 27AAXFA6286B1Z3; brand green #1e6b3a).
