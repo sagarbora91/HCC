@@ -19,9 +19,11 @@ export function creditLines(s:State,from:string,to:string):CreditLine[]{
   const g=grpSlice(s),all:Omit<CreditLine,'used'>[]=[];let n=0;
   for(const {b,r} of reportReceipts(s,'0000-01-01','9999-12-31')){
     if(r.kind!=='company-credit'&&r.kind!=='guest-credit')continue;
-    const c=r.kind==='company-credit'?companyOf(s,b.company?.account,b.company?.name):undefined;
+    // F8-INT (I5 / R2): on a split stay the receipt's folio names the payer company and carries its own invoice number.
+    const fo=r.folio?b.folios?.find(f=>f.id===r.folio):undefined,fc=fo?.payer.kind==='company'?fo.payer:undefined;
+    const c=r.kind==='company-credit'?companyOf(s,fc?.ref??b.company?.account,fc?.name??b.company?.name):undefined;
     const gu=r.kind==='guest-credit'?(s.guests??[]).find(x=>x.name===b.guest):undefined;
-    all.push({date:r.date,order:n++,billNo:b.invoiceNo??b.id,party:r.kind==='company-credit'?(c?.name??b.company?.name??b.guest):b.guest,room:b.room,credit:r.amount,
+    all.push({date:r.date,order:n++,billNo:fo?.invoiceNo??b.invoiceNo??b.id,party:r.kind==='company-credit'?(c?.name??b.company?.name??b.guest):b.guest,room:b.room,credit:r.amount,
       limit:r.kind==='company-credit'?(c?.creditLimit??0):(gu?.creditAccount?.limit??0),account:r.kind==='company-credit'?'C:'+(c?.id??b.company?.name):'G:'+(gu?.id??b.guest)});
   }
   for(const b of ctrState(s).bills){

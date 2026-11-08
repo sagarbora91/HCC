@@ -265,6 +265,7 @@ public static class OpenXmlExporter
             case DateOnly d: Number(w, reference, (d.DayNumber - new DateOnly(1899, 12, 30).DayNumber).ToString(CultureInfo.InvariantCulture), Date); return;
             case int or long: Number(w, reference, Convert.ToString(value, CultureInfo.InvariantCulture)!, Int); return;
             case decimal dec: Number(w, reference, dec.ToString(CultureInfo.InvariantCulture), Money); return;
+            case double dbl when double.IsFinite(dbl): Number(w, reference, dbl.ToString("R", CultureInfo.InvariantCulture), Text); return; // F8-INT: General number format (e.g. 0.5 leave days)
             case XlsxPercent p: Number(w, reference, p.Fraction.ToString("R", CultureInfo.InvariantCulture), Pct); return;
             default: Inline(w, reference, Convert.ToString(value, CultureInfo.InvariantCulture) ?? "", Text); return;
         }

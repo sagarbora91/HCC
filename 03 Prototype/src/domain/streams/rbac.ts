@@ -55,7 +55,7 @@ export const rbacCanRequestClosedCorrection=(s:State,uid:string)=>can(s,uid,'clo
 //    never settle (cash, card, UPI or charge to a room), decide a void or see the day sales. The server enforces the same (PERM-POS-*). ──
 export const rbacIsRestaurant=(s:State,uid:string)=>rbacIsRole(s,uid,'Restaurant');
 /** Pages of the Restaurant role: the POS and the own shifts & pay (DEC-061). */
-export const RBAC_RESTAURANT_PAGES:readonly string[]=['pos','my-hr'];
+export const RBAC_RESTAURANT_PAGES:readonly string[]=['pos','my-hr','kds']; // F8-QW-KDS (f8-int): kitchen display
 /** Settle a POS check (outlet tender or room folio). */
 export const rbacPosCanSettle=(s:State,uid:string)=>!rbacIsRestaurant(s,uid)&&can(s,uid,['payments','billing']);
 /** The outlet day summary (sales, tenders, top items) and today's closed bills. */

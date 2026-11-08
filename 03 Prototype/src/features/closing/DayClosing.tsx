@@ -81,7 +81,7 @@ export function DayClosing(){
   const actionsBar=(children:React.ReactNode)=><div className="card-footer f-actions">{children}</div>;
 
   let body:React.ReactNode;
-  if(step==='preflight')body=panel(step,closed?<p className="muted">Completed before close.</p>:<><NightAuditPanel/><ul className="f-checks">{general.map(c=><li key={c.id} className={c.items.length?'bad':'ok'}>
+  if(step==='preflight')body=panel(step,closed?<p className="muted">Completed before close.</p>:<><NightAuditPanel/>{/* F8-QW-NS (integrator: inlined) */}<NoShowList/><div style={{height:12}}/><ul className="f-checks">{general.map(c=><li key={c.id} className={c.items.length?'bad':'ok'}>
       <div><strong>{c.items.length?'✗':'✓'} {c.title}</strong><small>{c.items.length?`${c.items.length} to resolve · ${c.hint}`:'All clear'}</small>
         {!!c.items.length&&<ul>{c.items.map((it,i)=><li key={i}><button className="text-btn" onClick={()=>drill(it)}>{it.label} <ArrowUpRight size={13}/></button></li>)}</ul>}</div>
       {c.page&&!!c.items.length&&<button className="btn small-btn" onClick={()=>go(c.page!)}>Open</button>}</li>)}</ul></>);
@@ -118,8 +118,7 @@ export function DayClosing(){
       {closed?<p className="muted">Open next business day is the first button in the page header.</p>:<span className="f-why">Close today first.</span>}</>);
   // ReopenDay renders the Owner's reopen form or the reopened day's panel (everyone), else nothing: then Corrections takes the whole body.
   else body=reopened||user.role==='Owner'?<div className="fit-cols f-fit-even"><div><ReopenDay/></div><div><Corrections/></div></div>:<Corrections/>;
-  // F8-QW-NS · Due no-shows (QWQ-7) join the preflight step; shown after fd.noShowTime, marking is one click, nothing is posted
-  if(step==='preflight'&&!closed)body=panel(step,<><NoShowList/><div style={{height:12}}/>{(body as React.ReactElement<{children:React.ReactElement<{children:React.ReactNode}>}>).props.children.props.children}</>);
+  // F8-QW-NS · Due no-shows (QWQ-7) join the preflight step after the night-audit panel (inlined in the preflight body above by f8-int)
   // F8-QW-NS end
 
   return <FitPage title="Day closing" sub="Finish the day with confidence: resolve exceptions, post room nights, reconcile cash, then close." layout="steps"

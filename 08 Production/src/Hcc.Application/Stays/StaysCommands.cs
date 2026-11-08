@@ -20,7 +20,7 @@ namespace Hcc.Application.Stays;
 /// without the service a number is refused (never stored in clear).
 /// </summary>
 public sealed class StaysCommands(ICommandRunner runner, IAccessPolicy policy, IStaysStore store, IStayFolioPort folios, TimeProvider clock,
-    GuestIdService? guestIds = null, DeskFieldService? desk = null)
+    GuestIdService? guestIds = null, DeskFieldService? desk = null, IStaySplitCheckoutPort? split = null) // F8-INT: split = split-folio checkout
 {
     public const string OpRegisterGuest = "RegisterGuest";
     public const string OpCheckIn = "CheckIn";
@@ -217,7 +217,10 @@ public sealed class StaysCommands(ICommandRunner runner, IAccessPolicy policy, I
             var bd = await store.BusinessDateAsync(tx, ctx.PropertyId, c).ConfigureAwait(false);
 
             if (desk is not null && (req.Desk || req.LateCharge is not null)) await desk.EnsureLateDecisionAsync(tx, ctx, stay, req.LateCharge, req.LateReason, UtcNow, bd, c).ConfigureAwait(false); // LF A6: late check-out decision
-            await folios.AssertCheckoutSettledAsync(tx, new CheckoutFolioCheck(stay.FolioId, stay.ReservationId, stay.Arrival, stay.Departure, req.CompanyCreditApprovalId), c).ConfigureAwait(false);
+            var check = new CheckoutFolioCheck(stay.FolioId, stay.ReservationId, stay.Arrival, stay.Departure, req.CompanyCreditApprovalId);
+            // F8-INT: a split stay settles every folio (null = single folio: today's path, I1)
+            var splitFolios = split is null ? null : await split.SettleSplitAsync(tx, check, req.CreditApprovalIds, c).ConfigureAwait(false);
+            if (splitFolios is null) await folios.AssertCheckoutSettledAsync(tx, check, c).ConfigureAwait(false);
 
             var version = await store.CheckOutStayAsync(tx, stay.StayId, expected, bd, ctx.PrincipalId, UtcNow, c).ConfigureAwait(false);
             await store.SetReservationStatusAsync(tx, res.ReservationId, res.Version, ReservationStatus.Departed, c).ConfigureAwait(false);
@@ -226,7 +229,9 @@ public sealed class StaysCommands(ICommandRunner runner, IAccessPolicy policy, I
                 $"reservation {res.ReservationId} · departed; room {room.RoomNo} dirty · business date {StayDates.ToWire(bd)}", c).ConfigureAwait(false);
             var outboxId = await tx.PublishAsync(StaysEvents.StayDeparted, stay.StayId,
                 new StayDepartedEvent(stay.StayId, res.ReservationId, ctx.PropertyId, room.RoomId, StayDates.ToWire(bd)), c).ConfigureAwait(false);
-            return new CheckoutStayResult(stay.StayId, res.ReservationId, room.RoomId, room.RoomNo, RoomHk.Dirty, StayDates.ToWire(bd), outboxId, VersionToken.ToWire(version));
+            // F8-INT: the folio invoices of a split stay in the same transaction, after Departed (FolioInvoiceSource needs a checked-out folio)
+            var invoiceNos = splitFolios is null ? null : await split!.IssueFolioInvoicesAsync(tx, splitFolios, c).ConfigureAwait(false);
+            return new CheckoutStayResult(stay.StayId, res.ReservationId, room.RoomId, room.RoomNo, RoomHk.Dirty, StayDates.ToWire(bd), outboxId, VersionToken.ToWire(version), invoiceNos);
         }, ct).ConfigureAwait(false);
     }
 

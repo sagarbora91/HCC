@@ -7,7 +7,13 @@ public static class NightAuditEndpoints
 {
     public static IServiceCollection AddNightAuditModule(this IServiceCollection services)
     {
-        services.AddSingleton(sp => new NightAuditService(sp.GetRequiredService<ClosingService>()));
+        // F8 (f8-int): keys + last good backup signals from SQL (QW-NA integration item).
+        services.AddSingleton(sp => new Hcc.Infrastructure.SqlServer.Closing.SqlNightAuditSignals(sp.GetRequiredService<Hcc.Infrastructure.SqlServer.SqlPlatform>().Connections));
+        services.AddSingleton(sp =>
+        {
+            var signals = sp.GetRequiredService<Hcc.Infrastructure.SqlServer.Closing.SqlNightAuditSignals>();
+            return new NightAuditService(sp.GetRequiredService<ClosingService>(), (p, d, ct) => signals.ReadAsync(p, d, ct));
+        });
         return services;
     }
 

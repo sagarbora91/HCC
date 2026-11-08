@@ -94,6 +94,21 @@ public static class MeasDailyRules
         return r;
     }
 
+    /// <summary>F8-INT · R6: high-balance reasons of a split stay with a company folio. The company folio's balance is tested against the company
+    /// limit (the deposit is on folio A, not counted); the guest folios' balance against the threshold; red if either is over.</summary>
+    public static IReadOnlyList<string> HighBalanceSplitReasons(long companyFolioBalance, long limit, long guestBalance, long threshold, int daysInHouse)
+    {
+        var r = new List<string>();
+        if (companyFolioBalance > limit) r.Add("Company folio above its credit limit");
+        if (guestBalance > threshold) r.Add($"Guest folio balance above {Rupees(threshold)} rupees");
+        if (daysInHouse > HighBalanceDays) r.Add("Balance older than 2 nights");
+        return r;
+    }
+
+    /// <summary>F8-INT · R6: over-by of a split stay = the larger excess of the two tests.</summary>
+    public static long HighBalanceSplitOverBy(long companyFolioBalance, long limit, long guestBalance, long threshold) =>
+        Math.Max(0, Math.Max(companyFolioBalance - limit, guestBalance - threshold));
+
     /// <summary>F12-MEAS2-A · L3: a paise amount as rupees for a rule text (en-IN grouping); paise are kept when there are any (500050 → "5,000.50").</summary>
     public static string Rupees(long paise) => (paise / 100m).ToString(paise % 100 == 0 ? "N0" : "N2", CultureInfo.GetCultureInfo("en-IN"));
 

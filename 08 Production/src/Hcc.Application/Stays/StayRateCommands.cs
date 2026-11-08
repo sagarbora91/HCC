@@ -74,7 +74,7 @@ public interface IStayRateStore
 /// </summary>
 public sealed class StayRateCommands(ICommandRunner runner, IAccessPolicy policy, IStayRateStore rates, IStayChangeStore stays, IBillingStore billing,
     IGstRateResolver gst, IStayNightPricer pricer, TimeProvider clock, IGstChargeSnapshots? gstSnapshots = null, IBusinessDayGuard? days = null,
-    Hcc.Application.Configuration.ISettingsReader? settings = null)
+    Hcc.Application.Configuration.ISettingsReader? settings = null, Hcc.Application.Billing.ISplitFolioStore? split = null) // F8-INT: split = the stay's folios (re-post on each night's own folio)
 {
     public const string OpChangeStayRate = "ChangeStayRate";
     public const string Permission = "PERM-STY-010";
@@ -192,7 +192,15 @@ public sealed class StayRateCommands(ICommandRunner runner, IAccessPolicy policy
         var over = rateMoves && StayRateRules.OverThreshold(rc.Agreed, rc.ThresholdBps, input.Rate);
         var agreedAfter = rc.OwnerSet && rateMoves ? input.Rate : rc.Agreed;
         bool Closed(DateOnly d) => d < bd;
-        var lines = await billing.LinesAsync(tx, s.FolioId, c).ConfigureAwait(false);
+        // F8-INT (SF-CONTRACT §3, R4): on a split stay the nights may sit on any folio; read them all and re-post each night on its own folio.
+        var folioOf = new Dictionary<long, long>();
+        var lines = new List<PostedLine>();
+        var splitStay = split is null ? null : await split.LockStayAsync(tx, propertyId, s.ReservationId, c).ConfigureAwait(false);
+        var folioIds = splitStay?.Snapshot.Folios.Count(f => !f.Removed) > 1 ? splitStay!.Snapshot.Folios.OrderBy(f => f.Seq).Select(f => f.FolioId).ToList() : [s.FolioId];
+        foreach (var fid in folioIds)
+            foreach (var l in await billing.LinesAsync(tx, fid, c).ConfigureAwait(false)) { lines.Add(l); folioOf[l.ChargeId] = fid; }
+        var explicitFolio = folioIds.Count > 1;
+        var touched = new HashSet<long>();
         var reversed = lines.Where(l => l.ReversesChargeId is not null).Select(l => l.ReversesChargeId!.Value).ToHashSet();
         var nights = lines.Where(l => l.Kind == ChargeKind.Room && l.ReversesChargeId is null)
             .Select(l => new StayRoomNight(l.ChargeId, l.ServiceDate, l.Amount, reversed.Contains(l.ChargeId))).ToList();
@@ -203,13 +211,15 @@ public sealed class StayRateCommands(ICommandRunner runner, IAccessPolicy policy
         foreach (var n in plan)
         {
             var original = lines.Single(l => l.ChargeId == n.ChargeId);
-            var reversal = new NewCharge(s.FolioId, ChargeKind.Correction, bd, Clip($"Reversal · rate change · {original.Label}"), -original.Amount, original.TaxBps,
-                -original.Tax, original.ChargeId, approvalId, changedBy, now);
+            var nightFolio = folioOf[original.ChargeId];
+            touched.Add(nightFolio);
+            var reversal = new NewCharge(nightFolio, ChargeKind.Correction, bd, Clip($"Reversal · rate change · {original.Label}"), -original.Amount, original.TaxBps,
+                -original.Tax, original.ChargeId, approvalId, changedBy, now, ExplicitFolio: explicitFolio);
             var reversalId = await billing.InsertChargeAsync(tx, reversal, c).ConfigureAwait(false);
             await ReversalGstAsync(tx, original, reversalId, reversal.Tax, c).ConfigureAwait(false);
             var g = await gst.RoomNightAsync(tx, propertyId, n.Night, input.Rate, c).ConfigureAwait(false);
-            var line = new NewCharge(s.FolioId, ChargeKind.Room, n.Night, FolioStatement.RoomNightLabel(n.Night), input.Rate, g.Bps, GstMath.LineTax(input.Rate, g.Bps),
-                null, approvalId, changedBy, now);
+            var line = new NewCharge(nightFolio, ChargeKind.Room, n.Night, FolioStatement.RoomNightLabel(n.Night), input.Rate, g.Bps, GstMath.LineTax(input.Rate, g.Bps),
+                null, approvalId, changedBy, now, ExplicitFolio: explicitFolio);
             var lineId = await billing.InsertChargeAsync(tx, line, c).ConfigureAwait(false);
             if (gstSnapshots is not null)
             {
@@ -217,8 +227,8 @@ public sealed class StayRateCommands(ICommandRunner runner, IAccessPolicy policy
                 await gstSnapshots.RecordAsync(tx, new GstChargeSnapshot(lineId, g.Category, g.Bps, g.Itc, line.Tax, split.Cgst, split.Sgst, g.Rule), c).ConfigureAwait(false);
             }
 
-            await tx.PublishAsync("ChargePosted", s.FolioId, new { folioId = s.FolioId, chargeId = reversalId, kind = "correction", serviceDate = bd, amountPaise = reversal.Amount.Value, taxPaise = reversal.Tax.Value }, c).ConfigureAwait(false);
-            await tx.PublishAsync("ChargePosted", s.FolioId, new { folioId = s.FolioId, chargeId = lineId, kind = "room", serviceDate = n.Night, amountPaise = line.Amount.Value, taxPaise = line.Tax.Value }, c).ConfigureAwait(false);
+            await tx.PublishAsync("ChargePosted", nightFolio, new { folioId = nightFolio, chargeId = reversalId, kind = "correction", serviceDate = bd, amountPaise = reversal.Amount.Value, taxPaise = reversal.Tax.Value }, c).ConfigureAwait(false);
+            await tx.PublishAsync("ChargePosted", nightFolio, new { folioId = nightFolio, chargeId = lineId, kind = "room", serviceDate = n.Night, amountPaise = line.Amount.Value, taxPaise = line.Tax.Value }, c).ConfigureAwait(false);
             reposted.Add(new RepostedNight(n.Night, reversalId, lineId));
         }
 
@@ -226,7 +236,7 @@ public sealed class StayRateCommands(ICommandRunner runner, IAccessPolicy policy
         var priceFrom = from < bd ? bd : from;
         if (priceFrom < s.Departure)
             await stays.WriteNightPricesAsync(tx, s.ReservationId, await pricer.PriceAsync(propertyId, priceFrom, s.Departure, input.Rate.Value, c).ConfigureAwait(false), c).ConfigureAwait(false);
-        if (reposted.Count > 0) await billing.TouchFolioAsync(tx, s.FolioId, c).ConfigureAwait(false);
+        foreach (var fid in touched) await billing.TouchFolioAsync(tx, fid, c).ConfigureAwait(false); // F8-INT: every folio that got a re-post (single folio: s.FolioId)
 
         var json = JsonSerializer.Serialize(reposted.Select(r => new { reversal = N(r.ReversalChargeId), line = N(r.NewChargeId), night = r.Night.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) }));
         var changeId = await rates.InsertChangeAsync(tx, new StayRateChangeRow(propertyId, s.StayId, s.ReservationId, s.CurrentRoomId, bd, now, changedBy, approvalId, approvedBy,

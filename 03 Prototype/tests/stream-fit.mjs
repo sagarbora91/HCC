@@ -104,7 +104,9 @@ export async function register({test,M,assert}){
       '03 Prototype/src/mobile/admin/sheets.tsx',   // AF-SMALL (UX-05): the audit-filter sheet clears its unsaved-changes flag on submit (behaviour fix, not FIT layout)
       '03 Prototype/src/mobile/money/logic.ts',   // AF2 (O8): phone payment check refuses a retired or unknown method like the server (behaviour change, not FIT layout)
       '03 Prototype/src/mobile/money/Payment.tsx',   // AF-INT (PAY-08): phone payment sheet confirms a suspected duplicate receipt (behaviour change, not FIT layout)
-      '03 Prototype/src/features/hall/HallMobile.tsx']);   // F6-H3: hall booking phone page (new feature, not FIT)
+      '03 Prototype/src/features/hall/HallMobile.tsx',   // F6-H3: hall booking phone page (new feature, not FIT)
+      // F8 (f8-int): new features on phone screens, not FIT layout changes: qw-pm PM calendar tab, qw-na night-audit cards, sf-ui split-folio chips / settle-all sheet
+      '03 Prototype/src/features/maintenance/MaintenanceMobile.tsx','03 Prototype/src/mobile/admin/Closing.tsx','03 Prototype/src/mobile/money/Checkout.tsx','03 Prototype/src/mobile/money/Folio.tsx']);
       // F5-int: phone OTA banner   // F4-T1: tariff card phone cards + its sheet (new feature, not FIT)
     const bad=out.split('\n').map(s=>s.trim()).filter(Boolean).filter(phone).filter(f=>!FROM_MAIN.has(f));
     assert.deepEqual(bad,[],'phone-layout files changed since '+FIT_BASE);

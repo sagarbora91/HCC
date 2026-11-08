@@ -33,6 +33,8 @@ public sealed class XlsxRenderer : IReportRenderer
         DateOnly d => d,
         bool b => b ? "Yes" : "No",
         _ when c.Type == ReportColumnType.Money => new XlsxMoney(Convert.ToInt64(v, CultureInfo.InvariantCulture)),
+        // F8-INT (rpt-p2-c finding): a fractional value in an Int column (half a leave day, 0.5) is written as a plain number (General format), not as text / money.
+        decimal or double or float when c.Type == ReportColumnType.Int && Convert.ToDecimal(v, CultureInfo.InvariantCulture) is var iv && iv != decimal.Truncate(iv) => (double)iv,
         _ when c.Type == ReportColumnType.Percent => new XlsxPercent((double)(Convert.ToDecimal(v, CultureInfo.InvariantCulture) / 100m)), // F7-R4: decimal division, so 57.1 writes 0.571 (not 0.5710000000000001)
         _ => v,
     };

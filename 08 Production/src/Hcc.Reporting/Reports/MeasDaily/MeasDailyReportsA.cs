@@ -378,10 +378,14 @@ public sealed class HighBalanceReport(SqlPlatform platform, ISettingsReader? set
         [ReportFormat.Screen, ReportFormat.Xlsx, ReportFormat.Pdf], ReportPhone.Yes);
 
     private static readonly string Sql = $$"""
-        SELECT rm.room_no, COALESCE(g.full_name, r.guest_name), COALESCE(co.name, N''), CASE WHEN r.company_id IS NULL THEN 0 ELSE 1 END,
+        SELECT rm.room_no, COALESCE(g.full_name, r.guest_name), COALESCE(cco.name, co.name, N''), CASE WHEN r.company_id IS NULL THEN 0 ELSE 1 END,
                DATEDIFF(DAY, r.arrival, @bd), {{GuestsSql.BalanceExpr}},
                ISNULL((SELECT SUM(CASE WHEN x.kind = 'deposit' THEN x.amount_paise WHEN x.kind = 'deposit-return' THEN -x.amount_paise ELSE 0 END) FROM pay.receipt x WHERE x.folio_id = f.folio_id), 0),
-               ISNULL(co.credit_limit_paise, 0)
+               ISNULL(COALESCE(cco.credit_limit_paise, co.credit_limit_paise), 0),
+               cf.folio_id,
+               ISNULL((SELECT SUM(c.amount_paise + c.tax_paise) FROM bill.charge c WHERE c.folio_id = cf.folio_id), 0)
+               - ISNULL((SELECT SUM(CASE WHEN x.kind IN ('payment','deposit-apply','company-credit','ota-credit','guest-credit') THEN x.amount_paise WHEN x.kind = 'refund' THEN -x.amount_paise ELSE 0 END)
+                           FROM pay.receipt x WHERE x.folio_id = cf.folio_id), 0)
           FROM inv.reservation r
           JOIN bill.folio f ON f.reservation_id = r.reservation_id AND f.folio_seq = 1 -- F8-SF-SERVER: one row per reservation
           JOIN gst.stay s ON s.reservation_id = r.reservation_id AND s.status = 'InHouse'
@@ -389,6 +393,10 @@ public sealed class HighBalanceReport(SqlPlatform platform, ISettingsReader? set
           JOIN inv.room rm ON rm.room_id = sg.room_id
           JOIN gst.guest g ON g.guest_id = s.guest_id
           LEFT JOIN grp.company_account co ON co.company_id = r.company_id
+          -- F8-INT · R6: the live company folio of a split stay (one per reservation, filtered unique index of migration 4350)
+          OUTER APPLY (SELECT TOP (1) y.folio_id, y.payer_company_id FROM bill.folio y
+                        WHERE y.reservation_id = r.reservation_id AND y.payer_kind = 'company' AND y.removed_utc IS NULL) cf
+          LEFT JOIN grp.company_account cco ON cco.company_id = cf.payer_company_id
          WHERE r.property_id = @p AND r.status = 'InHouse'
          ORDER BY RIGHT('0000000000' + rm.room_no, 10), r.reservation_id;
         """;
@@ -415,10 +423,15 @@ public sealed class HighBalanceReport(SqlPlatform platform, ISettingsReader? set
             long balance = rd.GetInt64(5), deposit = rd.GetInt64(6), limit = rd.GetInt64(7);
             if (balance <= 0) continue;
             var allowed = hasCo ? deposit + limit : threshold;
+            // F8-INT · R6: a split stay with a company folio tests that folio against the limit and the rest (guest folios) against the threshold.
+            var split = !rd.IsDBNull(8);
+            var cfBalance = split ? rd.GetInt64(9) : 0;
+            var overBy = split ? MeasDailyRules.HighBalanceSplitOverBy(cfBalance, limit, balance - cfBalance, threshold) : Math.Max(0, balance - allowed);
+            var reasons = split ? MeasDailyRules.HighBalanceSplitReasons(cfBalance, limit, balance - cfBalance, threshold, days) : MeasDailyRules.HighBalanceReasons(hasCo, balance, deposit, limit, threshold, days);
             rows.Add(Row(new Dictionary<string, object?>(StringComparer.Ordinal)
             {
                 ["room"] = rd.GetString(0), ["guest"] = GuestsSql.Str(rd, 1), ["company"] = GuestsSql.Str(rd, 2), ["daysInHouse"] = (long)days, ["balance"] = balance, ["deposit"] = deposit, ["limit"] = limit,
-                ["overBy"] = Math.Max(0, balance - allowed), ["exception"] = string.Join("; ", MeasDailyRules.HighBalanceReasons(hasCo, balance, deposit, limit, threshold, days)),
+                ["overBy"] = overBy, ["exception"] = string.Join("; ", reasons),
             }));
         }
 

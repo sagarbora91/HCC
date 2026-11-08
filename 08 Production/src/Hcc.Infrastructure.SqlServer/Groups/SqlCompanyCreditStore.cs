@@ -74,6 +74,12 @@ public sealed class SqlCompanyCreditStore(SqlConnectionFactory connections) : IC
          ORDER BY c.charge_id;
         SELECT n.reservation_id, n.night, n.rate_paise, n.tax_bps
           FROM inv.reservation_night n JOIN @s s ON s.reservation_id = n.reservation_id AND s.room_routed = 1
+         -- F8-INT: on a split stay a night already posted on ANY folio (e.g. on A before room was routed to the company folio) is not an
+         -- unposted night of the company folio (no double count; single-folio stays unchanged: folio_id NULL).
+         WHERE s.folio_id IS NULL
+            OR NOT EXISTS (SELECT 1 FROM bill.charge x JOIN bill.folio xf ON xf.folio_id = x.folio_id
+                            WHERE xf.reservation_id = n.reservation_id AND x.kind = 'room' AND x.service_date = n.night
+                              AND x.reverses_charge_id IS NULL AND NOT EXISTS (SELECT 1 FROM bill.charge y WHERE y.reverses_charge_id = x.charge_id))
          ORDER BY n.reservation_id, n.night;
         -- F8-SF-DOMAIN end
         SELECT g.group_id FROM grp.group_account g WHERE g.company_id = @c AND g.property_id = @p AND g.status = 'Open' ORDER BY g.group_id;

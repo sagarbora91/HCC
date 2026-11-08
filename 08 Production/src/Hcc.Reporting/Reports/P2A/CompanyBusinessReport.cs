@@ -1,6 +1,6 @@
 // F8-RPT-P2-A · rpt.guests.company-business — Business from company (A12). Server twin of p2-a/company-business.ts.
-// Attribution (SF-CONTRACT R8): the whole stay of a reservation billed to the company account. The company-folio-only rule for split stays needs the folio payer
-// tables of sf-server (sfCompanyLines twin); until they merge the whole stay is used (listed in the DONE file under Integration needed).
+// Attribution (SF-CONTRACT R8, sfCompanyLines twin, F8-INT): a split stay with a live company folio counts only that folio's lines, for the company the folio
+// names; any other stay counts whole for the reservation's company account (inv.reservation.company_id).
 using System.Data;
 using Hcc.Application.Billing;
 using Hcc.Application.Reporting.Rpt;
@@ -28,9 +28,11 @@ public sealed class CompanyBusinessReport(SqlPlatform platform) : IReportSelecto
           FROM bill.charge c
           JOIN bill.folio f ON f.folio_id = c.folio_id
           JOIN inv.reservation r ON r.reservation_id = f.reservation_id
-          JOIN grp.company_account co ON co.company_id = r.company_id
+          OUTER APPLY (SELECT TOP (1) cf.folio_id, cf.payer_company_id FROM bill.folio cf
+                        WHERE cf.reservation_id = r.reservation_id AND cf.payer_kind = 'company' AND cf.removed_utc IS NULL) cf
+          JOIN grp.company_account co ON co.company_id = COALESCE(cf.payer_company_id, r.company_id)
           LEFT JOIN gst.registration reg ON reg.reservation_id = r.reservation_id
-         WHERE r.property_id = @p AND c.service_date BETWEEN @from AND @to;
+         WHERE r.property_id = @p AND c.service_date BETWEEN @from AND @to AND (cf.folio_id IS NULL OR c.folio_id = cf.folio_id);
         """;
 
     private sealed class Acc { public string Name = ""; public readonly HashSet<string> Guests = []; public long Nights, Tariff, Other; }

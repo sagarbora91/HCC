@@ -223,6 +223,99 @@
   "side": "both"
  },
  {
+  "id": "rpt.acc.asset-register",
+  "title": "Fixed-asset register",
+  "area": "acc",
+  "priority": "P2",
+  "status": "built",
+  "moneyFlag": true,
+  "moneyGate": "PERM-ACC-001",
+  "viewPerms": [
+   "PERM-EXP-004",
+   "PERM-ACC-001"
+  ],
+  "deskPerms": [],
+  "exportPerm": "PERM-RPT-003",
+  "dateClass": "D-ASOF",
+  "params": [
+   "asOf"
+  ],
+  "columns": [
+   {
+    "key": "no",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "name",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "ledger",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "vendor",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "bought",
+    "type": "date",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "cost",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "itc",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "putToUse",
+    "type": "date",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "disposal",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   }
+  ],
+  "formats": [
+   "screen",
+   "xlsx",
+   "pdf",
+   "csv"
+  ],
+  "phone": "yes",
+  "layout": "table",
+  "side": "both"
+ },
+ {
   "id": "rpt.acc.balance-sheet",
   "title": "Balance sheet",
   "area": "acc",
@@ -783,6 +876,91 @@
   "side": "prototype"
  },
  {
+  "id": "rpt.admin.cancelled-lines",
+  "title": "Cancelled folio lines",
+  "area": "admin",
+  "priority": "P2",
+  "status": "built",
+  "moneyFlag": true,
+  "moneyGate": "PERM-RPT-002",
+  "viewPerms": [
+   "PERM-RPT-002"
+  ],
+  "deskPerms": [],
+  "exportPerm": "PERM-RPT-003",
+  "dateClass": "D-B",
+  "params": [
+   "from",
+   "to"
+  ],
+  "columns": [
+   {
+    "key": "date",
+    "type": "date",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "booking",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "room",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "item",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "qty",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "amount",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "by",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "reason",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   }
+  ],
+  "formats": [
+   "screen",
+   "xlsx",
+   "pdf"
+  ],
+  "phone": "no",
+  "layout": "table",
+  "side": "both"
+ },
+ {
   "id": "rpt.admin.config-history",
   "title": "Configuration and masters history",
   "area": "admin",
@@ -935,6 +1113,106 @@
   "side": "prototype"
  },
  {
+  "id": "rpt.admin.rate-sheet",
+  "title": "Rate sheet, publish log and change history",
+  "area": "admin",
+  "priority": "P2",
+  "status": "built",
+  "moneyFlag": true,
+  "moneyGate": "PERM-YLD-001",
+  "viewPerms": [
+   "PERM-YLD-001"
+  ],
+  "deskPerms": [],
+  "exportPerm": "PERM-RPT-003",
+  "dateClass": "D-FWD",
+  "params": [
+   "view",
+   "from",
+   "to"
+  ],
+  "columns": [
+   {
+    "key": "roomType",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "plan",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "rate",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "night",
+    "type": "date",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "type",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "before",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "after",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "when",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "who",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "reason",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   }
+  ],
+  "formats": [
+   "screen",
+   "xlsx",
+   "pdf"
+  ],
+  "phone": "yes",
+  "layout": "table",
+  "side": "both"
+ },
+ {
   "id": "rpt.admin.report-dictionary",
   "title": "Report dictionary",
   "area": "admin",
@@ -981,6 +1259,149 @@
   "phone": "yes",
   "layout": "table",
   "side": "prototype"
+ },
+ {
+  "id": "rpt.admin.scheduled-runs",
+  "title": "Scheduled runs",
+  "area": "admin",
+  "priority": "P2",
+  "status": "built",
+  "moneyFlag": false,
+  "moneyGate": null,
+  "viewPerms": [
+   "PERM-ADM-004"
+  ],
+  "deskPerms": [],
+  "exportPerm": "PERM-RPT-003",
+  "dateClass": "D-B",
+  "params": [
+   "from",
+   "to"
+  ],
+  "columns": [
+   {
+    "key": "schedule",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "report",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "runAt",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "recipients",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "result",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "error",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   }
+  ],
+  "formats": [
+   "screen",
+   "xlsx",
+   "pdf"
+  ],
+  "phone": "yes",
+  "layout": "table",
+  "side": "both"
+ },
+ {
+  "id": "rpt.guests.company-business",
+  "title": "Business from company",
+  "area": "guests",
+  "priority": "P2",
+  "status": "built",
+  "moneyFlag": true,
+  "moneyGate": "PERM-RPT-002",
+  "viewPerms": [
+   "PERM-RPT-002"
+  ],
+  "deskPerms": [],
+  "exportPerm": "PERM-RPT-003",
+  "dateClass": "D-F",
+  "params": [
+   "from",
+   "to",
+   "company"
+  ],
+  "columns": [
+   {
+    "key": "company",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "guests",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "roomNights",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "tariff",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "other",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "total",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   }
+  ],
+  "formats": [
+   "screen",
+   "xlsx",
+   "pdf"
+  ],
+  "phone": "summary",
+  "layout": "table",
+  "side": "both"
  },
  {
   "id": "rpt.guests.daily-ops",
@@ -1426,6 +1847,106 @@
    "pdf"
   ],
   "phone": "no",
+  "layout": "table",
+  "side": "both"
+ },
+ {
+  "id": "rpt.guests.guest-tariff",
+  "title": "Guest tariff detail",
+  "area": "guests",
+  "priority": "P2",
+  "status": "built",
+  "moneyFlag": true,
+  "moneyGate": "PERM-RPT-002",
+  "viewPerms": [
+   "PERM-RPT-002"
+  ],
+  "deskPerms": [],
+  "exportPerm": "PERM-RPT-003",
+  "dateClass": "D-F",
+  "params": [
+   "party",
+   "from",
+   "to"
+  ],
+  "columns": [
+   {
+    "key": "stay",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "room",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "roomType",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "plan",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "standard",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "rateSource",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "agreed",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "extras",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "discount",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "netTariff",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   }
+  ],
+  "formats": [
+   "screen",
+   "xlsx",
+   "pdf"
+  ],
+  "phone": "yes",
   "layout": "table",
   "side": "both"
  },
@@ -2282,6 +2803,123 @@
   "side": "both"
  },
  {
+  "id": "rpt.guests.reservations-register",
+  "title": "Reservations register",
+  "area": "guests",
+  "priority": "P2",
+  "status": "built",
+  "moneyFlag": true,
+  "moneyGate": "PERM-RPT-002",
+  "viewPerms": [
+   "PERM-RPT-001"
+  ],
+  "deskPerms": [],
+  "exportPerm": "PERM-RPT-003",
+  "dateClass": "D-FWD",
+  "params": [
+   "from",
+   "to",
+   "status",
+   "source",
+   "search"
+  ],
+  "columns": [
+   {
+    "key": "booking",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "created",
+    "type": "date",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "guest",
+    "type": "text",
+    "money": false,
+    "mask": "guestName",
+    "computed": null
+   },
+   {
+    "key": "arrival",
+    "type": "date",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "departure",
+    "type": "date",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "roomType",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "rooms",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "plan",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "source",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "status",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "advance",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "quoted",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   }
+  ],
+  "formats": [
+   "screen",
+   "xlsx",
+   "pdf",
+   "csv"
+  ],
+  "phone": "yes",
+  "layout": "table",
+  "side": "both"
+ },
+ {
   "id": "rpt.guests.satisfaction",
   "title": "Guest satisfaction and NPS",
   "area": "guests",
@@ -2379,6 +3017,115 @@
    "csv"
   ],
   "phone": "yes",
+  "layout": "table",
+  "side": "both"
+ },
+ {
+  "id": "rpt.guests.service-lines",
+  "title": "Room service and extras lines",
+  "area": "guests",
+  "priority": "P2",
+  "status": "built",
+  "moneyFlag": true,
+  "moneyGate": "PERM-RPT-002",
+  "viewPerms": [
+   "PERM-RPT-002"
+  ],
+  "deskPerms": [],
+  "exportPerm": "PERM-RPT-003",
+  "dateClass": "D-B",
+  "params": [
+   "from",
+   "to",
+   "group",
+   "item"
+  ],
+  "columns": [
+   {
+    "key": "date",
+    "type": "date",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "room",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "guest",
+    "type": "text",
+    "money": false,
+    "mask": "guestName",
+    "computed": null
+   },
+   {
+    "key": "item",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "group",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "qty",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "rate",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "amount",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "tax",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "source",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "billRef",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   }
+  ],
+  "formats": [
+   "screen",
+   "xlsx",
+   "pdf",
+   "csv"
+  ],
+  "phone": "no",
   "layout": "table",
   "side": "both"
  },
@@ -2568,6 +3315,86 @@
    "csv"
   ],
   "phone": "yes",
+  "layout": "table",
+  "side": "both"
+ },
+ {
+  "id": "rpt.guests.userwise-activity",
+  "title": "User-wise check-in and check-out",
+  "area": "guests",
+  "priority": "P2",
+  "status": "built",
+  "moneyFlag": false,
+  "moneyGate": null,
+  "viewPerms": [
+   "PERM-ADM-004"
+  ],
+  "deskPerms": [],
+  "exportPerm": "PERM-RPT-003",
+  "dateClass": "D-B",
+  "params": [
+   "from",
+   "to",
+   "user",
+   "action"
+  ],
+  "columns": [
+   {
+    "key": "user",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "at",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "action",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "booking",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "room",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "guest",
+    "type": "text",
+    "money": false,
+    "mask": "guestName",
+    "computed": null
+   },
+   {
+    "key": "billNo",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   }
+  ],
+  "formats": [
+   "screen",
+   "xlsx",
+   "pdf"
+  ],
+  "phone": "no",
   "layout": "table",
   "side": "both"
  },
@@ -4601,6 +5428,76 @@
   "side": "both"
  },
  {
+  "id": "rpt.people.leave-balances",
+  "title": "Leave balances",
+  "area": "people",
+  "priority": "P2",
+  "status": "built",
+  "moneyFlag": false,
+  "moneyGate": null,
+  "viewPerms": [
+   "PERM-HR-001"
+  ],
+  "deskPerms": [],
+  "exportPerm": "PERM-RPT-003",
+  "dateClass": "D-ASOF",
+  "params": [
+   "asOf"
+  ],
+  "columns": [
+   {
+    "key": "employee",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "type",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "entitlement",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "used",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "pending",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "balance",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   }
+  ],
+  "formats": [
+   "screen",
+   "xlsx",
+   "pdf"
+  ],
+  "phone": "yes",
+  "layout": "table",
+  "side": "both"
+ },
+ {
   "id": "rpt.people.staff-productivity",
   "title": "Staff per occupied room, overtime, absenteeism",
   "area": "people",
@@ -5030,6 +5927,157 @@
   "phone": "yes",
   "layout": "table",
   "side": "prototype"
+ },
+ {
+  "id": "rpt.rest.sales-by-item",
+  "title": "Sales by item",
+  "area": "rest",
+  "priority": "P2",
+  "status": "built",
+  "moneyFlag": true,
+  "moneyGate": "PERM-POS-004",
+  "viewPerms": [
+   "PERM-POS-004"
+  ],
+  "deskPerms": [],
+  "exportPerm": "PERM-RPT-003",
+  "dateClass": "D-B",
+  "params": [
+   "from",
+   "to",
+   "outlet"
+  ],
+  "columns": [
+   {
+    "key": "item",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "category",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "qty",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "value",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "share",
+    "type": "pct",
+    "money": false,
+    "mask": null,
+    "computed": null
+   }
+  ],
+  "formats": [
+   "screen",
+   "xlsx",
+   "pdf",
+   "csv"
+  ],
+  "phone": "yes",
+  "layout": "table",
+  "side": "both"
+ },
+ {
+  "id": "rpt.rest.voids",
+  "title": "POS voids",
+  "area": "rest",
+  "priority": "P2",
+  "status": "built",
+  "moneyFlag": true,
+  "moneyGate": "PERM-POS-004",
+  "viewPerms": [
+   "PERM-POS-004"
+  ],
+  "deskPerms": [],
+  "exportPerm": "PERM-RPT-003",
+  "dateClass": "D-B",
+  "params": [
+   "from",
+   "to"
+  ],
+  "columns": [
+   {
+    "key": "time",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "check",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "item",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "qty",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "value",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "reason",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "by",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "approvedBy",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   }
+  ],
+  "formats": [
+   "screen",
+   "xlsx",
+   "pdf"
+  ],
+  "phone": "no",
+  "layout": "table",
+  "side": "both"
  },
  {
   "id": "rpt.revenue.demand-calendar",
@@ -5569,6 +6617,274 @@
    "xlsx",
    "pdf",
    "csv"
+  ],
+  "phone": "no",
+  "layout": "table",
+  "side": "both"
+ },
+ {
+  "id": "rpt.rooms.allocation-grid",
+  "title": "Room allocation grid",
+  "area": "rooms",
+  "priority": "P2",
+  "status": "built",
+  "moneyFlag": false,
+  "moneyGate": null,
+  "viewPerms": [
+   "PERM-RPT-001"
+  ],
+  "deskPerms": [],
+  "exportPerm": "PERM-RPT-003",
+  "dateClass": "D-S",
+  "params": [
+   "from",
+   "to",
+   "roomType"
+  ],
+  "columns": [
+   {
+    "key": "room",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "roomType",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "d01",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "d02",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "d03",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "d04",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "d05",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "d06",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "d07",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "d08",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "d09",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "d10",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "d11",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "d12",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "d13",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "d14",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "d15",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "d16",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "d17",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "d18",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "d19",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "d20",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "d21",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "d22",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "d23",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "d24",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "d25",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "d26",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "d27",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "d28",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "d29",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "d30",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "d31",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "nights",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   }
+  ],
+  "formats": [
+   "screen",
+   "xlsx",
+   "pdf"
   ],
   "phone": "no",
   "layout": "table",
@@ -6190,6 +7506,164 @@
   "side": "both"
  },
  {
+  "id": "rpt.rooms.room-wise-revenue",
+  "title": "Room-wise and room-type revenue",
+  "area": "rooms",
+  "priority": "P2",
+  "status": "built",
+  "moneyFlag": true,
+  "moneyGate": "PERM-RPT-002",
+  "viewPerms": [
+   "PERM-RPT-002"
+  ],
+  "deskPerms": [],
+  "exportPerm": "PERM-RPT-003",
+  "dateClass": "D-F",
+  "params": [
+   "from",
+   "to",
+   "groupBy"
+  ],
+  "columns": [
+   {
+    "key": "name",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "nights",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "tariff",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "extra",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "other",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "total",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "avg",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   }
+  ],
+  "formats": [
+   "screen",
+   "xlsx",
+   "pdf"
+  ],
+  "phone": "summary",
+  "layout": "table",
+  "side": "both"
+ },
+ {
+  "id": "rpt.rooms.rooms-left",
+  "title": "Rooms left by type",
+  "area": "rooms",
+  "priority": "P2",
+  "status": "built",
+  "moneyFlag": false,
+  "moneyGate": null,
+  "viewPerms": [
+   "PERM-RPT-001"
+  ],
+  "deskPerms": [],
+  "exportPerm": "PERM-RPT-003",
+  "dateClass": "D-FWD",
+  "params": [
+   "from",
+   "to",
+   "roomType"
+  ],
+  "columns": [
+   {
+    "key": "date",
+    "type": "date",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "roomType",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "total",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "occupied",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "held",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "ooo",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "free",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   }
+  ],
+  "formats": [
+   "screen",
+   "xlsx",
+   "pdf"
+  ],
+  "phone": "yes",
+  "layout": "table",
+  "side": "both"
+ },
+ {
   "id": "rpt.rooms.utilities-per-room",
   "title": "Energy, water and LPG per occupied room-night",
   "area": "rooms",
@@ -6470,6 +7944,93 @@
   "phone": "yes",
   "layout": "table",
   "side": "prototype"
+ },
+ {
+  "id": "rpt.stock.grn-register",
+  "title": "Goods received (GRN) register",
+  "area": "stock",
+  "priority": "P2",
+  "status": "built",
+  "moneyFlag": true,
+  "moneyGate": "PERM-STK-004",
+  "viewPerms": [
+   "PERM-STK-004"
+  ],
+  "deskPerms": [],
+  "exportPerm": "PERM-RPT-003",
+  "dateClass": "D-B",
+  "params": [
+   "from",
+   "to",
+   "supplier"
+  ],
+  "columns": [
+   {
+    "key": "grn",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "date",
+    "type": "date",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "supplier",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "item",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "qty",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "rate",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "amount",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "bill",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   }
+  ],
+  "formats": [
+   "screen",
+   "xlsx",
+   "pdf",
+   "csv"
+  ],
+  "phone": "no",
+  "layout": "table",
+  "side": "both"
  },
  {
   "id": "rpt.stock.laundry",

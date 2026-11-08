@@ -138,7 +138,7 @@ public sealed class SqlAnalyticsInputSource(SqlPlatform platform, TimeProvider? 
           FROM inv.reservation r
           LEFT JOIN gst.stay s ON s.reservation_id = r.reservation_id
           LEFT JOIN gst.guest g ON g.guest_id = s.guest_id
-          LEFT JOIN bill.folio f ON f.reservation_id = r.reservation_id AND f.folio_seq = 1 -- F8-SF-SERVER: one row per reservation (amounts of folios B-D: f8-int, see DONE)
+          LEFT JOIN bill.folio f ON f.reservation_id = r.reservation_id AND f.folio_seq = 1 -- F8-SF-SERVER: one row per reservation; F8-INT: LiveChargeSql / LiveReceiptSql key every folio's amounts by this primary folio
           LEFT JOIN inv.room rm ON rm.room_id = r.room_id
           LEFT JOIN mst.purpose_of_visit pv ON pv.property_id = r.property_id AND pv.code = r.purpose_code
           OUTER APPLY (SELECT TOP (1) x.room_no FROM gst.stay_segment sg JOIN inv.room x ON x.room_id = sg.room_id WHERE sg.stay_id = s.stay_id ORDER BY sg.seq DESC) seg
@@ -151,7 +151,7 @@ public sealed class SqlAnalyticsInputSource(SqlPlatform platform, TimeProvider? 
     // the line it reverses (k.kind): a re-posted night's room revenue = the new rate only, and "other" is not pushed negative. Bill totals are unchanged.
     // M5/N1 (owner 7 Nov): charged nights = live room lines above zero, the same rule as the flash ADR divisor.
     private const string LiveChargeSql = """
-        SELECT c.folio_id,
+        SELECT pf.folio_id,
                SUM(CASE WHEN k.kind = 'room' THEN c.amount_paise ELSE 0 END),
                SUM(CASE WHEN k.kind = 'food' THEN c.amount_paise ELSE 0 END),
                SUM(CASE WHEN k.kind IN ('service','correction') THEN c.amount_paise ELSE 0 END),
@@ -162,13 +162,17 @@ public sealed class SqlAnalyticsInputSource(SqlPlatform platform, TimeProvider? 
           FROM bill.charge c JOIN bill.folio f ON f.folio_id = c.folio_id JOIN inv.reservation r ON r.reservation_id = f.reservation_id
           LEFT JOIN bill.charge o ON c.kind = 'correction' AND o.charge_id = c.reverses_charge_id
          CROSS APPLY (SELECT COALESCE(o.kind, c.kind) AS kind) k
+         -- F8-INT (R1 / R9): every folio of a split stay is summed under the stay's primary folio (folio_seq = 1, the one LiveStaySql joins),
+         -- so the stay's billed total is counted once; a single-folio stay is unchanged (its primary folio is its folio).
+         CROSS APPLY (SELECT TOP (1) p1.folio_id FROM bill.folio p1 WHERE p1.reservation_id = f.reservation_id ORDER BY p1.folio_seq) pf
          WHERE r.property_id = @p
-         GROUP BY c.folio_id;
+         GROUP BY pf.folio_id;
         """;
 
     private const string LiveReceiptSql = """
-        SELECT x.receipt_id, x.folio_id, x.kind, x.method, x.amount_paise, x.business_date
+        SELECT x.receipt_id, pf.folio_id, x.kind, x.method, x.amount_paise, x.business_date
           FROM pay.receipt x JOIN bill.folio f ON f.folio_id = x.folio_id JOIN inv.reservation r ON r.reservation_id = f.reservation_id
+         CROSS APPLY (SELECT TOP (1) p1.folio_id FROM bill.folio p1 WHERE p1.reservation_id = f.reservation_id ORDER BY p1.folio_seq) pf -- F8-INT: receipts of every folio under the stay
          WHERE r.property_id = @p
          ORDER BY x.business_date, x.receipt_id;
         """;

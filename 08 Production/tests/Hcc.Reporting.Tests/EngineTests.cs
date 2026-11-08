@@ -62,6 +62,21 @@ public sealed class EngineTests
         new Hcc.Reporting.Reports.MeasHk.HkProductivityReport(null!), new Hcc.Reporting.Reports.MeasHk.OooDaysReport(null!), new Hcc.Reporting.Reports.MeasHk.PpmComplianceReport(null!),
         new Hcc.Reporting.Reports.MeasHk.UtilitiesPerRoomReport(null!), new Hcc.Reporting.Reports.MeasHk.LinenCostReport(null!), new Hcc.Reporting.Reports.MeasHk.AssetLifeReport(null!),
         // F12-RPT-HK end
+        // F8-RPT-P2-A (f8-int)
+        new Hcc.Reporting.Reports.P2A.ReservationsRegisterReport(null!), new Hcc.Reporting.Reports.P2A.GuestTariffReport(null!), new Hcc.Reporting.Reports.P2A.CompanyBusinessReport(null!),
+        new Hcc.Reporting.Reports.P2A.UserwiseActivityReport(null!), new Hcc.Reporting.Reports.P2A.ServiceLinesReport(null!), new Hcc.Reporting.Reports.P2A.RoomWiseRevenueReport(null!),
+        new Hcc.Reporting.Reports.P2A.RoomsLeftReport(null!), new Hcc.Reporting.Reports.P2A.AllocationGridReport(null!),
+        // F8-RPT-P2-A end
+        // F8-RPT-P2-B (f8-int)
+        new Hcc.Reporting.Reports.P2B.CashCountSheetReport(null!, null!, null!), new Hcc.Reporting.Reports.P2B.CounterBillsReport(null!), new Hcc.Reporting.Reports.P2B.RefundsReport(null!, null!),
+        new Hcc.Reporting.Reports.P2B.DiscountLogReport(null!, null!), new Hcc.Reporting.Reports.P2B.BankBookReport(null!, null!), new Hcc.Reporting.Reports.P2B.CompanyCreditReport(null!, null!, null!),
+        new Hcc.Reporting.Reports.P2B.LicenceExpiryReport(null!),
+        // F8-RPT-P2-B end
+        // F8-RPT-P2-C (f8-int)
+        new Hcc.Reporting.Reports.P2C.AssetRegisterReport(null!), new Hcc.Reporting.Reports.P2C.LeaveBalancesReport(null!), new Hcc.Reporting.Reports.P2C.GrnRegisterReport(null!),
+        new Hcc.Reporting.Reports.P2C.SalesByItemReport(null!, null!), new Hcc.Reporting.Reports.P2C.PosVoidsReport(null!), new Hcc.Reporting.Reports.P2C.ScheduledRunsReport(null!, null!, null!),
+        new Hcc.Reporting.Reports.P2C.CancelledLinesReport(null!), new Hcc.Reporting.Reports.P2C.RateSheetReport(null!, null!, null!),
+        // F8-RPT-P2-C end
     ]).All;
 
     // F12-RPT-GUEST

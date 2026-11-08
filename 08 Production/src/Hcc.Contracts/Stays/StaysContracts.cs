@@ -48,9 +48,11 @@ public sealed record CheckInRequest(long ReservationId, string ExpectedVersion, 
 public sealed record CheckInResult(long StayId, long ReservationId, long FolioId, int RoomId, string RoomNo, string BusinessDate, string StayVersion);
 
 /// <summary>CheckoutStay K V. <c>ExpectedVersion</c> = the stay's version. Company credit is executed by Billing (P4).</summary>
-public sealed record CheckoutStayRequest(long StayId, string ExpectedVersion, long? CompanyCreditApprovalId = null, string? LateCharge = null, string? LateReason = null, bool Desk = false);   // LF A6: Desk = a front-desk form (the late check-out rule applies to it, like the prototype)
+public sealed record CheckoutStayRequest(long StayId, string ExpectedVersion, long? CompanyCreditApprovalId = null, string? LateCharge = null, string? LateReason = null, bool Desk = false,
+    IReadOnlyList<long>? CreditApprovalIds = null);   // F8-INT: split stay = the company / guest credit approvals of its folios (each settles the folio it was requested on)   // LF A6: Desk = a front-desk form (the late check-out rule applies to it, like the prototype)
 
-public sealed record CheckoutStayResult(long StayId, long ReservationId, int RoomId, string RoomNo, string RoomHk, string BusinessDate, long OutboxId, string StayVersion);
+public sealed record CheckoutStayResult(long StayId, long ReservationId, int RoomId, string RoomNo, string RoomHk, string BusinessDate, long OutboxId, string StayVersion,
+    IReadOnlyList<string>? InvoiceNos = null); // F8-INT: split stay = the folio invoices issued at checkout in letter order (null on a single-folio stay)
 
 /// <summary>
 /// Guest profile as the reader may see it (field masks applied server-side; <c>Masked</c> = ID restricted). Never carries the full ID

@@ -32,6 +32,25 @@ public interface IStayFolioPort
 
 public sealed record CheckoutFolioCheck(long FolioId, long ReservationId, DateOnly Arrival, DateOnly Departure, long? CompanyCreditApprovalId);
 
+// F8-INT · split folio checkout (SF-CONTRACT §4 CHECKOUT, §5). Implemented by Hcc.Application.Billing.SplitCheckoutPort; optional in StaysCommands
+// (absent = today's single-folio path for every stay).
+/// <summary>One settled folio of a split stay at checkout, in seq (letter) order.</summary>
+public sealed record SplitCheckoutFolio(long FolioId, int Seq, long TotalPaise, string? PayerName, string? PayerGstin);
+
+public interface IStaySplitCheckoutPort
+{
+    /// <summary>Null when the reservation has one live folio (the caller keeps <see cref="IStayFolioPort.AssertCheckoutSettledAsync"/>).
+    /// Otherwise settles EVERY live folio (the named credit approvals executed on their own folio, balance 0, deposit returned, nothing pending,
+    /// agreed nights over all folios) and returns the folios.</summary>
+    Task<IReadOnlyList<SplitCheckoutFolio>?> SettleSplitAsync(ICommandTransaction tx, CheckoutFolioCheck check, IReadOnlyList<long>? creditApprovalIds, CancellationToken ct = default);
+
+    /// <summary>After the reservation is Departed: one tax invoice per folio whose total is not 0, in letter order, from the one INV series
+    /// (I7, SFQ-8), the buyer = the folio payer (B2B when it carries a GSTIN). Returns the numbers issued (empty when the hotel cannot number
+    /// a tax invoice yet: the folios are then invoiced later with IssueInvoice).</summary>
+    Task<IReadOnlyList<string>> IssueFolioInvoicesAsync(ICommandTransaction tx, IReadOnlyList<SplitCheckoutFolio> folios, CancellationToken ct = default);
+}
+// F8-INT end
+
 public sealed record ReservationRecord(
     long ReservationId,
     int PropertyId,

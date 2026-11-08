@@ -401,7 +401,8 @@ public sealed class CatalogueCommands(ICommandRunner runner, IAccessPolicy polic
                     ? await gst.RoomNightAsync(tx, ctx.PropertyId, date, new Paise(x.RoomAmountPaise) + amount, c).ConfigureAwait(false)
                     : await gst.ChargeAsync(tx, ctx.PropertyId, date, GstCategory.Food, c).ConfigureAwait(false);
                 var label = CatalogueRules.PlanLineLabel(x.PlanCode, x.Guests, each, date);
-                var line = new NewCharge(x.FolioId, ChargeKind.Service, date, label, amount, g.Bps, GstMath.LineTax(amount, g.Bps), null, null, ctx.PrincipalId, Now);
+                var line = new NewCharge(x.FolioId, ChargeKind.Service, date, label, amount, g.Bps, GstMath.LineTax(amount, g.Bps), null, null, ctx.PrincipalId, Now,
+                    ExplicitFolio: true); // F8-INT: SF-CONTRACT §3 / SFQ-3 — the plan line sits on its room night's folio (x.FolioId = the folio of that night's room line)
                 var chargeId = await billing.InsertChargeAsync(tx, line, c).ConfigureAwait(false);
                 if (!await store.InsertPlanNightAsync(tx, x.FolioId, date, chargeId, c).ConfigureAwait(false))
                     throw new HccException(HccErrorCode.STALE_VERSION, "Plan lines were posted at the same time. Run again.");

@@ -21,7 +21,7 @@ public static class OtaEndpoints
         services.AddSingleton<OtaQueries>();
         services.AddSingleton<OtaService>();
         services.AddSingleton(sp => new OtaChannelManagerProjector(sp.GetRequiredService<SqlPlatform>().Outbox, sp.GetRequiredService<SqlPlatform>().Connections,
-            sp.GetRequiredService<TimeProvider>()));
+            sp.GetRequiredService<TimeProvider>(), sp.GetService<Hcc.Application.Configuration.ISettingsReader>())); // F8-QW-NS (f8-int): overbooking cap on the automatic push
         services.AddHostedService<OtaChannelManagerWorker>();
         return services;
     }

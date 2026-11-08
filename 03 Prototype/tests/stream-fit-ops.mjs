@@ -84,7 +84,7 @@ export function register({test,assert}){
   test('[FIT-OPS] sub-screen registry: the FIT-OPS block lists exactly the maintenance, handover and inventory tab ids',()=>{
     const mine=F.SUB_SCREENS.filter(x=>['maintenance','handover','inventory','housekeeping'].includes(x.page));
     const ids=p=>mine.filter(x=>x.page===p).map(x=>x.id);
-    assert.deepEqual(ids('maintenance'),['orders','pm','assets','spares','vendors','reports']);
+    assert.deepEqual(ids('maintenance'),['orders','pm','assets','spares','vendors','reports','pm-calendar'] /* F8-QW-PM tab (f8-int) */);
     assert.deepEqual(ids('handover'),['checklists','handover','dashboard','templates']);
     assert.deepEqual(ids('inventory'),['stock','laundry','counts','losses','consumption','par-minimums','movements']);
     assert.deepEqual(ids('housekeeping'),[]);

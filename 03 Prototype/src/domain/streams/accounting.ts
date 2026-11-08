@@ -269,7 +269,7 @@ export function accLiveVouchers(s:State,date:string,mapping=accMapping(s)):ACCVo
   }
   for(const b of s.bookings){
     for(const r of b.receipts.filter(r=>r.date===date&&r.amount!==0)){
-      const miss:string[]=[],src={kind:'receipt' as const,id:`${b.id}/${r.id}`,sub:r.kind,booking:b.id},ctx:ACCPartyCtx={method:r.method,company:b.company?.account};
+      const miss:string[]=[],src={kind:'receipt' as const,id:`${b.id}/${r.id}`,sub:r.kind,booking:b.id},ctx:ACCPartyCtx={method:r.method,company:(r.folio&&b.folios?.find(f=>f.id===r.folio&&f.payer.kind==='company')?.payer.ref)??b.company?.account}; // F8-INT (I5): a split stay's company-credit receipt goes to its folio payer's company
       // ── ACC-2 flows (contract §4) · deposit applied at check-out (A6a): Journal Dr 2000 (receipt:deposit) · Cr 1100; the folio balance
       // to the OTA (A13): Journal Dr 1115/<channel> (receipt:ota) · Cr 1100 — the channel is the booking's connected source. ──
       if(r.kind==='deposit-apply'){push({date,type:'Journal',narration:`Deposit applied at check-out · ${r.reference} · ${b.guest}`,source:src},miss,[dr(map('receipt:deposit',miss),r.amount),cr(map('folio:guest',miss),r.amount)]);continue;}

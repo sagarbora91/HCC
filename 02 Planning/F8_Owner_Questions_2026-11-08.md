@@ -47,3 +47,15 @@
 | QWQ-7 | No-show: after the cut-off time (today 23:00), should the system mark no-shows by itself? | **No.** After the cut-off the desk sees a "Due no-shows" list and marks each one with one click; the no-show charge of the booking's policy is **shown, not posted** (as decided for the masters, DEC-MA-5b). | §13 |
 
 **Count:** 18 SFQ + 2 RPQ + 7 QWQ = **27 questions**, all with defaults.
+
+## D. Raised by the lanes (f8-int, 8 Nov 2026)
+
+| Id | Question | Default | Contract |
+|---|---|---|---|
+| RPQ-3 | Report "Payment corrections" (`rpt.money.payment-corrections`): HCC has no command that changes a receipt's payment type after entry, so there is nothing to list. Add such a command (entered as / corrected to / by / reason / time)? | **Not built**; the report stays `planned` until a correction command exists (a wrong receipt is refunded and entered again, as today). | §12 |
+| RPQ-4 | Asset register: per-asset depreciation and written-down value columns. HCC keeps no depreciation rate per asset; DEC-138 / DEC-140 leave depreciation to the CA in Tally. | **Columns not built**; the register shows cost (bill less ITC, net of returns). The CA gives the rates (block-wise, Income-tax Act) if the owner wants them in HCC. | §12 |
+| RPQ-5 | Rate sheet (`rpt.admin.rate-sheet`) needs permission PERM-YLD-001, which the prototype matrix does not list: F8 grants it to **Owner and Manager** (as the server seed 3700). Confirm? | **Owner + Manager.** | §12 |
+| RPQ-6 | Licence expiry and Company credit reports follow their permission codes (PERM-CMP-001 = Owner + Accountant, so a Manager is refused licence expiry; PERM-GRP-001 also admits Reception and Cashier to company credit), not the role text in the catalogue ("Owner, Manager, Accountant"). Which wins? | **The permission codes** (as built); the catalogue text is corrected at close. | §12 |
+| SFQ-19 | Split stay checked out on the server when the hotel GSTIN is not yet set: the folio invoices cannot be numbered. | Check-out goes ahead; the invoices are issued afterwards per folio with **Issue invoice** (numbers then follow the order they are issued). | §5 |
+
+**Count after f8-int:** 19 SFQ + 6 RPQ + 7 QWQ = **32 questions**, all with defaults.
