@@ -136,6 +136,11 @@ public interface IBillingStore
     /// <summary>The reservation's folio id, or null when it has none.</summary>
     Task<long?> FolioIdForReservationAsync(ICommandTransaction tx, long reservationId, CancellationToken ct);
 
+    /// <summary>F8-FIX: every folio of the reservation (seq order, removed ones included: a removed folio holds no money); empty when it has none.
+    /// The default reads the primary only (a store without split folios).</summary>
+    async Task<IReadOnlyList<long>> FolioIdsForReservationAsync(ICommandTransaction tx, long reservationId, CancellationToken ct)
+        => await FolioIdForReservationAsync(tx, reservationId, ct).ConfigureAwait(false) is { } f ? [f] : [];
+
     /// <summary>The stay's reservation and folio (P3 gst.stay) inside the command transaction; null when the stay is unknown at the property.</summary>
     Task<(long ReservationId, long FolioId)?> StayFolioAsync(ICommandTransaction tx, int propertyId, long stayId, CancellationToken ct);
 

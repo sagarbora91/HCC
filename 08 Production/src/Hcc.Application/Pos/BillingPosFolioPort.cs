@@ -16,7 +16,7 @@ namespace Hcc.Application.Pos;
 /// Like Billing's own lines it stores the per-charge GST record (category food, CGST / SGST, <c>tax.charge_gst</c>) and publishes
 /// <c>ChargePosted</c>, the ONE event Accounting books a room-posted outlet bill from (it skips <c>PosBillSettled</c> with mode folio).
 /// </summary>
-public sealed class BillingPosFolioPort(IBillingStore store, IGstChargeSnapshots? gstSnapshots = null) : IPosFolioPort
+public sealed class BillingPosFolioPort(IBillingStore store, IGstChargeSnapshots? gstSnapshots = null, ISplitFolioStore? split = null) : IPosFolioPort // F8-FIX M2
 {
     public async Task<PosFolioCharge> PostServiceChargeAsync(ICommandTransaction tx, int propertyId, long folioId, DateOnly businessDate, string label,
         Paise net, GstRate rate, DateTime utc, CancellationToken ct = default)
@@ -28,7 +28,9 @@ public sealed class BillingPosFolioPort(IBillingStore store, IGstChargeSnapshots
         ArgumentNullException.ThrowIfNull(rate);
         var line = new NewCharge(f.FolioId, ChargeKind.Food, businessDate, label, net.EnsureFieldRange(), rate.Bps, GstMath.LineTax(net, rate.Bps), null, null,
             tx.Context.PrincipalId, utc);
+        var d7 = await CompanyFolioPostingGuard.BeforeAsync(split, tx, propertyId, f.ReservationId, ct).ConfigureAwait(false); // F8-FIX M2
         var chargeId = await store.InsertChargeAsync(tx, line, ct).ConfigureAwait(false);
+        await CompanyFolioPostingGuard.AfterAsync(split, tx, propertyId, d7, ct).ConfigureAwait(false); // F8-FIX M2: food routed to a company folio (SFQ-7)
         if (gstSnapshots is not null)
         {
             var split = GstMath.Split(line.Tax);

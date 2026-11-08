@@ -21,7 +21,8 @@ public static class CatalogueEndpoints
         services.AddSingleton<ICatalogueReadStore>(sp => new SqlCatalogueReadStore(sp.GetRequiredService<SqlPlatform>().Connections));
         services.AddSingleton(sp => new CatalogueCommands(sp.GetRequiredService<Application.Commands.ICommandRunner>(), sp.GetRequiredService<Application.Access.IAccessPolicy>(),
             sp.GetRequiredService<ICatalogueStore>(), sp.GetRequiredService<IMastersStore>(), sp.GetRequiredService<Application.Billing.IBillingStore>(),
-            sp.GetRequiredService<IGstRateResolver>(), sp.GetRequiredService<TimeProvider>(), sp.GetService<IGstChargeSnapshots>()));
+            sp.GetRequiredService<IGstRateResolver>(), sp.GetRequiredService<TimeProvider>(), sp.GetService<IGstChargeSnapshots>(),
+            sp.GetService<Application.Billing.ISplitFolioStore>())); // F8-FIX M2: D7 on a split stay's company folio (absent in partial hosts)
         services.AddSingleton<CatalogueQueries>();
         services.AddSingleton<Application.Closing.IMealPlanNightPoster, MealPlanNightPoster>();          // MA-11: close night step posts plan lines
         services.AddSingleton<Application.Billing.IRoomNightBundle, Infrastructure.SqlServer.Catalogue.SqlRoomNightBundle>(); // MA-11: bundled slab

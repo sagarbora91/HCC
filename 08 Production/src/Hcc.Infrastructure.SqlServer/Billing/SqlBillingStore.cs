@@ -70,6 +70,17 @@ public sealed class SqlBillingStore(SqlConnectionFactory connections) : IBilling
         return await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false) as long?;
     }
 
+    /// <summary>F8-FIX: every folio of the reservation in seq order (split stay: A–D; the cancel guard sums them all).</summary>
+    public async Task<IReadOnlyList<long>> FolioIdsForReservationAsync(ICommandTransaction tx, long reservationId, CancellationToken ct)
+    {
+        await using var cmd = Cmd(tx, "SELECT folio_id FROM bill.folio WHERE reservation_id = @r ORDER BY folio_seq;");
+        cmd.Parameters.Add("@r", SqlDbType.BigInt).Value = reservationId;
+        var ids = new List<long>();
+        await using var rd = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+        while (await rd.ReadAsync(ct).ConfigureAwait(false)) ids.Add(rd.GetInt64(0));
+        return ids;
+    }
+
     public async Task<(long ReservationId, long FolioId)?> StayFolioAsync(ICommandTransaction tx, int propertyId, long stayId, CancellationToken ct)
     {
         await using var cmd = Cmd(tx, "SELECT reservation_id, folio_id FROM gst.stay WHERE stay_id = @s AND property_id = @p;");

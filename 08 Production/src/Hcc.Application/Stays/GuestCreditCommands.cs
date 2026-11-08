@@ -12,7 +12,9 @@ using Hcc.Domain.Stays;
 namespace Hcc.Application.Stays;
 
 /// <summary>POST /api/v1/stays/{id}/guest-credit (LF-CONTRACT §7).</summary>
-public sealed record GuestCreditRequestBody(long StayId, string Reason);
+/// <remarks>F8-FIX (SF-CONTRACT §3 receipt table, §2.2 udhaar, deviation 8): <c>FolioId</c> names the folio of a split stay (from the folio summary) —
+/// folio A or an Udhaar folio of the same reservation; absent = the stay's primary folio A, as before.</remarks>
+public sealed record GuestCreditRequestBody(long StayId, string Reason, long? FolioId = null);
 
 public sealed record GuestCreditRequestResult(long ApprovalId, string ApprovalVersion, long AmountPaise, string FolioVersion);
 
@@ -39,7 +41,7 @@ public interface IGuestCreditStore
 /// the guest / folio / receipt, 4691); accounting: Journal Dr 1120/UD-&lt;customer key&gt; · Cr 1100 (SourceRules.FolioReceipt).
 /// </summary>
 public sealed class GuestCreditCommands(ICommandRunner runner, IAccessPolicy policy, IBillingStore billing, IGuestCreditStore store, ILfGuestMoneyStore accounts,
-    TimeProvider clock) : IGuestCreditReceivables, ILfApprovalHandler
+    TimeProvider clock, ISplitFolioStore? split = null) : IGuestCreditReceivables, ILfApprovalHandler // F8-FIX: split = guest credit on an Udhaar folio
 {
     public const string OpRequest = "RequestGuestCredit";
 
@@ -57,7 +59,8 @@ public sealed class GuestCreditCommands(ICommandRunner runner, IAccessPolicy pol
         return await runner.RunAsync(ctx with { Operation = OpRequest }, req, async (tx, c) =>
         {
             var folioId = await billing.StayFolioAsync(tx, ctx.PropertyId, req.StayId, c).ConfigureAwait(false) ?? throw new HccException(HccErrorCode.NOT_FOUND, "Stay not found.");
-            var f = await billing.LockFolioAsync(tx, folioId.FolioId, c).ConfigureAwait(false) ?? throw new HccException(HccErrorCode.NOT_FOUND, "Folio not found.");
+            var f = await billing.LockFolioAsync(tx, await TargetFolioAsync(tx, ctx.PropertyId, folioId.ReservationId, folioId.FolioId, req.FolioId, c).ConfigureAwait(false), c).ConfigureAwait(false)
+                ?? throw new HccException(HccErrorCode.NOT_FOUND, "Folio not found.");
             if (f.ReservationStatus != "InHouse") throw new HccException(HccErrorCode.INVALID_TRANSITION, "This stay is not in house.");
             var figures = FolioStatement.Compute(await billing.LinesAsync(tx, f.FolioId, c).ConfigureAwait(false), await billing.ReceiptsAsync(tx, f.FolioId, c).ConfigureAwait(false));
             if (figures.Balance <= Paise.Zero) throw new HccException(HccErrorCode.INVALID_TRANSITION, "There is no outstanding balance to place on guest credit.");
@@ -135,6 +138,21 @@ public sealed class GuestCreditCommands(ICommandRunner runner, IAccessPolicy pol
             $"Guest credit · folio {N(folio.FolioId)} · reservation {N(folio.ReservationId)}", caller.PrincipalId, Now, ct).ConfigureAwait(false);
         await tx.AuditAsync("GUEST_CREDIT_RAISED", "folio-" + N(folio.FolioId), $"receivable UD-{N(id)} · {amount.Value} paise · party 1120/UD-{key}", ct).ConfigureAwait(false);
         return id;
+    }
+
+    /// <summary>
+    /// F8-FIX: the folio the guest credit is requested on. Without <paramref name="requested"/> (or naming the primary) the stay's folio A, as before.
+    /// Otherwise it must be a live folio of the same reservation that may take a guest-credit receipt (SF-CONTRACT §3: folio A or an Udhaar folio;
+    /// <see cref="SplitFolioRules.EnsureReceiptFolio"/>); the limit is then the Udhaar payer's credit account (GuestOfFolioAsync, review H9).
+    /// </summary>
+    private async Task<long> TargetFolioAsync(ICommandTransaction tx, int propertyId, long reservationId, long primaryFolioId, long? requested, CancellationToken ct)
+    {
+        if (requested is not { } want || want == primaryFolioId) return primaryFolioId;
+        var stay = split is null ? null : await split.LockStayAsync(tx, propertyId, reservationId, ct).ConfigureAwait(false);
+        var me = stay?.Snapshot.Folios.FirstOrDefault(x => x.FolioId == want && !x.Removed)
+            ?? throw SplitFolioRules.Refuse(HccErrorCode.NOT_FOUND, SplitFolioRules.FolioUnknown, "This stay has no such open folio.");
+        SplitFolioRules.EnsureReceiptFolio(stay!.Snapshot, "guest-credit", null, me.Seq);
+        return me.FolioId;
     }
 
     private static string N(long v) => v.ToString(CultureInfo.InvariantCulture);

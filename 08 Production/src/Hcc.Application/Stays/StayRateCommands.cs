@@ -200,6 +200,7 @@ public sealed class StayRateCommands(ICommandRunner runner, IAccessPolicy policy
         foreach (var fid in folioIds)
             foreach (var l in await billing.LinesAsync(tx, fid, c).ConfigureAwait(false)) { lines.Add(l); folioOf[l.ChargeId] = fid; }
         var explicitFolio = folioIds.Count > 1;
+        var d7 = await Hcc.Application.Billing.CompanyFolioPostingGuard.BeforeAsync(split, tx, propertyId, s.ReservationId, c).ConfigureAwait(false); // F8-FIX M2
         var touched = new HashSet<long>();
         var reversed = lines.Where(l => l.ReversesChargeId is not null).Select(l => l.ReversesChargeId!.Value).ToHashSet();
         var nights = lines.Where(l => l.Kind == ChargeKind.Room && l.ReversesChargeId is null)
@@ -237,6 +238,8 @@ public sealed class StayRateCommands(ICommandRunner runner, IAccessPolicy policy
         if (priceFrom < s.Departure)
             await stays.WriteNightPricesAsync(tx, s.ReservationId, await pricer.PriceAsync(propertyId, priceFrom, s.Departure, input.Rate.Value, c).ConfigureAwait(false), c).ConfigureAwait(false);
         foreach (var fid in touched) await billing.TouchFolioAsync(tx, fid, c).ConfigureAwait(false); // F8-INT: every folio that got a re-post (single folio: s.FolioId)
+        // F8-FIX M2 (SF-CONTRACT §7.3): a higher rate on nights routed to the company folio is refused when that folio goes over the company's limit
+        await Hcc.Application.Billing.CompanyFolioPostingGuard.AfterAsync(split, tx, propertyId, d7, c).ConfigureAwait(false);
 
         var json = JsonSerializer.Serialize(reposted.Select(r => new { reversal = N(r.ReversalChargeId), line = N(r.NewChargeId), night = r.Night.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) }));
         var changeId = await rates.InsertChangeAsync(tx, new StayRateChangeRow(propertyId, s.StayId, s.ReservationId, s.CurrentRoomId, bd, now, changedBy, approvalId, approvedBy,

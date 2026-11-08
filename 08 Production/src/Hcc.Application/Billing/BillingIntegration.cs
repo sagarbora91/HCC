@@ -62,9 +62,13 @@ public sealed class BillingReservationMoney(IBillingStore store) : IReservationM
 {
     public async Task<bool> HasUnsettledMoneyAsync(ICommandTransaction tx, long reservationId, CancellationToken ct = default)
     {
-        var folioId = await store.FolioIdForReservationAsync(tx, reservationId, ct).ConfigureAwait(false);
-        if (folioId is not { } f) return false;
-        var figures = FolioStatement.Compute(await store.LinesAsync(tx, f, ct).ConfigureAwait(false), await store.ReceiptsAsync(tx, f, ct).ConfigureAwait(false));
-        return figures.Paid != Paise.Zero || figures.Deposit != Paise.Zero;
+        // F8-FIX: on a split stay money may sit on any folio (an advance paid on folio B before arrival): sum every folio of the reservation.
+        // Any folio holding net payments or a deposit blocks the cancel. A single-folio stay reads its one folio exactly as before (I1).
+        foreach (var f in await store.FolioIdsForReservationAsync(tx, reservationId, ct).ConfigureAwait(false))
+        {
+            var figures = FolioStatement.Compute(await store.LinesAsync(tx, f, ct).ConfigureAwait(false), await store.ReceiptsAsync(tx, f, ct).ConfigureAwait(false));
+            if (figures.Paid != Paise.Zero || figures.Deposit != Paise.Zero) return true;
+        }
+        return false;
     }
 }
