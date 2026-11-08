@@ -1,0 +1,22 @@
+[
+ {
+  "scale": 1,
+  "vp": "phone",
+  "role": "maint",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "phone",
+  "role": "owner",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ }
+]

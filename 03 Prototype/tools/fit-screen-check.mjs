@@ -33,7 +33,9 @@ const VIEWPORTS=[
   {id:'lap-1366',w:1366,h:657},
   {id:'lap-1280',w:1280,h:720},
   {id:'desk-1920',w:1920,h:969},
-].filter(v=>!opt('--viewports')||opt('--viewports').split(',').includes(v.id));
+  // F8D-FIT: the phone layout (narrow window, no Capacitor mock). Opt-in only (--viewports phone): the page scrolls naturally there (DEC-213 applies to the desktop layout), so only sideways overflow, errors and not-reached are checked.
+  {id:'phone',w:390,h:844,touch:true,phone:true},
+].filter(v=>opt('--viewports')?opt('--viewports').split(',').includes(v.id):!v.phone);
 const ROLES=(opt('--roles')||(RECORD?'owner,manager,reception,housekeeper,maint,accountant':'owner,manager,reception,cashier,supervisor,housekeeper,accountant,maint,techadmin')).split(',');
 // Page ids: navmap.ts PAGE_CATEGORY (a test enforces every nav page is listed) + overview + Modules Home + the ten category pages.
 const navSrc=readFileSync(join(ROOT,'src','app','navmap.ts'),'utf8');
@@ -149,7 +151,7 @@ for(const pass of PASSES){
       const ctx=await browser.newContext({viewport:{width:vp.w,height:vp.h},deviceScaleFactor:1,hasTouch:!!vp.touch,isMobile:false});
       await ctx.addInitScript(({role,PREF,vp})=>{
         try{localStorage.setItem('hcc-session',role);localStorage.setItem('hcc-display-mode','auto');localStorage.setItem('hcc-prefs-1',JSON.stringify({v:1,p:PREF}));}catch{/* blocked */}
-        if(vp.touch){ // the Capacitor mock of tests/check-tablet-back.mjs: native platform + tablet-sized screen
+        if(vp.touch&&!vp.phone){ // the Capacitor mock of tests/check-tablet-back.mjs: native platform + tablet-sized screen
           Object.defineProperty(screen,'width',{get:()=>vp.screen[0]});Object.defineProperty(screen,'height',{get:()=>vp.screen[1]});
           window.Capacitor={isNativePlatform:()=>true,registerPlugin:()=>({addListener:async()=>({remove(){}}),setOverlaysWebView:async()=>{},setBackgroundColor:async()=>{},setStyle:async()=>{}})};
         }
@@ -182,9 +184,9 @@ for(const pass of PASSES){
           }
           const catLabel=id.startsWith('cat:')?CAT_LABEL[id.slice(4)]:null; // category pages have no page label in the title: look for the category name in the content
           const reached=id==='home'||extra||(catLabel?m.contentText.includes(catLabel):!/^Hotel Control Centre$/.test(m.title));
-          const f=baseFails(m);
+          const f=vp.phone?(m.docW>m.vw+1?[`page-sideways ${m.docW}/${m.vw}`]:[]):baseFails(m);
           if(!reached)f.push('not-reached (in the drawer but the app showed Modules Home)');
-          if(pass.full){
+          if(pass.full&&!vp.phone){
             if(!m.fitRoot)f.push('not-converted');
             const cramped=m.panels.filter(p=>p.kind!=='legacy'&&!p.sideways&&p.h<160);if(cramped.length)f.push(`cramped ${cramped.map(p=>p.h).join(',')}`);
             // A size the page never had for this kind on main is explained only when every element of it shows a text that main showed at that
@@ -218,7 +220,7 @@ for(const pass of PASSES){
         }
       }
       // Modal sample (check 8): open, checks 1 and 5 (+ the box inside the viewport), close.
-      for(const md of MODALS.filter(x=>!x.roles||x.roles.includes(role))){
+      for(const md of MODALS.filter(x=>!vp.phone&&(!x.roles||x.roles.includes(role)))){
         if(!allowed.has(md.page))continue;
         await openPage(page,md.page,md.tab);
         const name='modal:'+(md.label||md.opener||md.selector);
