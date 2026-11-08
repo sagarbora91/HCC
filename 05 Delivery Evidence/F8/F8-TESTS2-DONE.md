@@ -35,3 +35,7 @@ SFQ-6 night posting never refused; SFQ-11 bill correction refused on a split sta
 
 ## Not written (still owed from the F8-INT list)
 `stream-sf-golden.mjs`/`SfGoldenTests.cs` fixture bind scenario; server SQL tests for H6, H7, H8 (ExplicitFolio flag), H9, R6, R8, R9 (`SqlAnalyticsInputSource` ₹11,300, `SqlStudyPackFacts`), per-folio DocumentSql print, night-audit signals endpoint, no-show-due endpoint, OTA overbooking cap; folio-join audit on the movement register, desk folios and MEAS daily (only the four HTTP lists above are covered); prototype H2 is covered, M5/M6 are covered.
+
+## Update after the lock freed (8 Nov, merged claude/f8 incl. f8-fix)
+Fixed in the tests: using Hcc.Contracts.Inventory; variant (c) un-skipped (M2 is fixed by F8-FIX CompanyFolioPostingGuard); a Manager's limit change is a request (GRP_LIMIT_SET), not GRP_COMPANY_SAVE; POS golden uses 50 teas so folio A is not overpaid; M6 settles folio B by UPI in advance (company credit cannot be pre-approved for a line posted at checkout); M3 gives folio A a line (a zero folio gets no invoice); variant (d) passes a real folio version.
+Run: prototype `HCC_TEST_ONLY=f8-tests2 node tests/run.mjs` = 67/67 (includes the base tests m1 loads); server `dotnet test tests/Hcc.Integration.Tests -maxcpucount:1 --filter "F8Tests2|F8Fix|F8IntSplitGolden"` = 10/10.

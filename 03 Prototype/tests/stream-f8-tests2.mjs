@@ -34,7 +34,7 @@ export async function register({test,M,assert}){
     if(pos){
       s=execute(s,'reception',{type:'POS_ORDER_OPEN',outlet:'room-service',room:room.id});
       posId=M.posSlice(s).orders.at(-1).id;
-      s=execute(s,'reception',{type:'POS_ITEM_ADD',id:posId,item:'m-tea',qty:2});
+      s=execute(s,'reception',{type:'POS_ITEM_ADD',id:posId,item:'m-tea',qty:50});
       s=execute(s,'reception',{type:'POS_KOT_SEND',id:posId});
       s=execute(s,'reception',{type:'POS_SETTLE',id:posId,mode:'folio'});
     }else s=execute(s,'owner',{type:'CHARGE',id,label:'Room service food',amount:120000,gst:'food'});
@@ -42,7 +42,8 @@ export async function register({test,M,assert}){
   }
   function settle({s,id},split=true){
     if(split){
-      s=execute(s,'owner',{type:'PAYMENT',id,amount:totals(M.sfView(bk(s,id),'A')).balance,method:'Cash',folio:'A'});
+      const balA=totals(M.sfView(bk(s,id),'A')).balance;
+      if(balA>0)s=execute(s,'owner',{type:'PAYMENT',id,amount:balA,method:'Cash',folio:'A'});
       s=execute(s,'reception',{type:'COMPANY_CREDIT_REQUEST',id});
       s=execute(s,'manager',{type:'APPROVAL',id:s.approvals.at(-1).id,approve:true});
     }else s=execute(s,'owner',{type:'PAYMENT',id,amount:totals(bk(s,id)).balance,method:'Cash'});
@@ -66,7 +67,9 @@ export async function register({test,M,assert}){
     // checkout stays blocked (folio B owes) and nothing is posted
     assert.equal(err(()=>execute(s,'owner',{type:'CHECKOUT',id})).code,'INVALID_TRANSITION');
     // a payment on B (no cash: DEC-076) is the other way out; and raising the limit (Owner only) lets the credit through
-    assert.equal(err(()=>execute(s,'manager',{type:'GRP_COMPANY_SAVE',id:co,name:'Deccan Agro Ltd (fictional)',gstin:'27AAPFU0939F1ZV',creditLimit:5000000}))?.code,'FORBIDDEN','a Manager cannot raise a limit');
+    const req=execute(s,'manager',{type:'GRP_LIMIT_SET',company:co,limit:5000000,reason:'Guest is waiting'});
+    assert.equal(req.groupsX.companies.find(c=>c.id===co).creditLimit,900000,'a Manager only raises a request (DEC-076), the limit does not move');
+    assert.ok(req.groupsX.requests.some(r=>r.company===co&&r.status==='Pending'));
     s=withLimit(s,co,5000000);
     s=execute(s,'reception',{type:'COMPANY_CREDIT_REQUEST',id});s=execute(s,'manager',{type:'APPROVAL',id:s.approvals.at(-1).id,approve:true});
     s=execute(s,'owner',{type:'CHECKOUT',id});
@@ -247,14 +250,14 @@ export async function register({test,M,assert}){
     assert.equal(bk(s,id).lines.find(l=>l.label==='Laundry').folio,'B','extras routed to the company folio');
     // the guest folio pays the night; the company folio takes laundry on credit; then the limit is lowered to exactly the laundry
     s=execute(s,'owner',{type:'PAYMENT',id,amount:totals(M.sfView(bk(s,id),'A')).balance,method:'UPI',reference:'UPI-LATE-A',folio:'A'});
-    s=execute(s,'reception',{type:'COMPANY_CREDIT_REQUEST',id});s=execute(s,'manager',{type:'APPROVAL',id:s.approvals.at(-1).id,approve:true});
-    s=withLimit(s,co,totals(M.sfView(bk(s,id),'B')).total);
+    // the company folio pays by UPI (no cash on a company folio) the laundry and, in advance, the late half day (as LF-DESK does on one folio);
+    // the limit is far below what folio B ends up carrying, so a D7 posting check at CHECKOUT would refuse the late line (review M6)
+    s=withLimit(s,co,100);
     const late=structuredClone(s);late.clock='2026-10-25T13:15';
     const lc=M.stayLateCheckout(late,bk(late,id));
     assert.equal(lc.late,true);
-    // the late half day falls on the company folio (extras route); its payment on B by UPI (no cash on a company folio)
     const half=lc.halfDay.amount+Math.round(lc.halfDay.amount*lc.halfDay.taxBps/10000);
-    let t=execute(late,'owner',{type:'PAYMENT',id,amount:half,method:'UPI',reference:'UPI-LATE-B',folio:'B'});
+    let t=execute(late,'owner',{type:'PAYMENT',id,amount:totals(M.sfView(bk(late,id),'B')).balance+half,method:'UPI',reference:'UPI-LATE-B',folio:'B'});
     t=execute(t,'reception',{type:'CHECKOUT',id,lateCharge:'half-day'});
     const b=bk(t,id);
     assert.equal(b.status,'Departed');

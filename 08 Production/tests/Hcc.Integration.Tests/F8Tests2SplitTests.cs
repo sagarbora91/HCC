@@ -5,6 +5,7 @@ using Hcc.Contracts;
 using Hcc.Contracts.Access;
 using Hcc.Contracts.Billing;
 using Hcc.Contracts.Groups;
+using Hcc.Contracts.Inventory;
 using Hcc.Contracts.Reservations;
 using Hcc.Contracts.Stays;
 using Hcc.Integration.Tests.Harness;
@@ -14,8 +15,7 @@ namespace Hcc.Integration.Tests;
 /// <summary>
 /// [F8-TESTS2] Server side of the split-folio cross-check tests listed in F8-INT-DONE: golden variants (b) and (d), the bill-correction
 /// refusal (M3), M1 (a night posted on A, then the room routed to B), the folio-join audit on the real HTTP lists (a split stay is not
-/// listed twice) and the DEC-061 walk for Housekeeping, Supervisor and Maintenance. Variant (c) is written against SF-CONTRACT §5.7c and
-/// skipped by design: the server has no posting-time D7 check on the company folio (F8-INT-DONE, money review M2). Tests only, no product
+/// listed twice) and the DEC-061 walk for Housekeeping, Supervisor and Maintenance. Variant (c) (SF-CONTRACT §5.7c) relies on the posting-time D7 check of F8-FIX (M2). Tests only, no product
 /// code. Fictional data; company GSTIN 27AAPFU0939F1ZV (valid check digit). Owner-question defaults used: SFQ-6 (night posting is never
 /// refused), SFQ-11 (bill correction refused on a split stay), SFQ-13 (Manager credit limit ₹10,000 per company folio).
 /// </summary>
@@ -124,8 +124,7 @@ public sealed class F8Tests2SplitTests
     }
 
     // ── variant (c): an extra posted to B over the limit (SF-CONTRACT §5.7c) ─────────────────────────────────────
-    [Fact(Skip = "BUG (money review M2, F8-INT-DONE 'Open items'): the server has no posting-time D7 check when a charge is posted to the company folio; "
-               + "company credit is only re-checked at request / approval / checkout. Remove this Skip when the check exists: the extra ₹600 onto B over the limit must be refused, the same onto A must pass.")]
+    [Fact]
     public async Task F8_TESTS2_variant_c_extra_onto_B_over_limit_refused_same_onto_A_passes()
     {
         await using var s = await HccServer.StartAsync(Seed, Ct);
@@ -172,6 +171,8 @@ public sealed class F8Tests2SplitTests
         for (var d = new DateOnly(2026, 10, 24); d < new DateOnly(2026, 10, 27); d = d.AddDays(1)) await PostNightAsync(staff, sp, d);
         var till = await Wire.CommandAsync<TillResult>(staff.Owner, "CreateTill", new CreateTillRequest("FD-1", "Front desk"), Ct);
         await Wire.CommandAsync<ShiftResult>(staff.Reception, "OpenShift", new OpenShiftRequest(till.TillId, 500000), Ct);
+        await Wire.CommandAsync<ChargeResult>(staff.Owner, "PostCharge", new PostChargeRequest(sp.FolioA, "Laundry", 50000, "laundry"), Ct); // folio A needs a line, else it gets no invoice (SFQ-8)
+        await Wire.CommandAsync<ReceiptResult>(staff.Reception, "RecordReceipt", new RecordReceiptRequest(sp.FolioA, "payment", "Cash", 59000, null, till.TillId), Ct);
         var fb = await Wire.GetAsync<FolioView>(staff.Reception, $"/folios/{sp.FolioB}", Ct);
         var req = await Wire.CommandAsync<AdjustmentResult>(staff.Reception, "RequestAdjustment", new RequestAdjustmentRequest("credit", sp.FolioB, null, 945000, "Bill to Deccan Agro (fictional)", fb.Version), Ct);
         await Wire.CommandAsync<ApprovalResult>(staff.Owner, "DecideApproval", new DecideApprovalRequest(req.ApprovalId!.Value, true, "Company account", req.ApprovalVersion!), Ct);
@@ -203,6 +204,7 @@ public sealed class F8Tests2SplitTests
         clients.Add(("SUP", sup));
         clients.Add(("MNT", mnt));
 
+        var folioBVersion = (await Wire.GetAsync<FolioView>(staff.Owner, $"/folios/{sp.FolioB}", Ct)).Version;
         foreach (var (who, c) in clients)
         {
             // the folio summary endpoint grants (the split dialog, the folio switcher, the settle sheet and the phone folio read these)
@@ -218,7 +220,7 @@ public sealed class F8Tests2SplitTests
             await Wire.CommandFailsAsync(c, "RemoveFolio", new RemoveFolioRequest(sp.ReservationId, 2), HttpStatusCode.Forbidden, "FORBIDDEN", Ct);
             await Wire.CommandFailsAsync(c, "RecordReceipt", new RecordReceiptRequest(sp.FolioB, "payment", "UPI", 100, "UPI-X", null), HttpStatusCode.Forbidden, "FORBIDDEN", Ct);
             await Wire.CommandFailsAsync(c, "PostCharge", new PostChargeRequest(sp.FolioB, "x", 100, "laundry"), HttpStatusCode.Forbidden, "FORBIDDEN", Ct);
-            await Wire.CommandFailsAsync(c, "RequestAdjustment", new RequestAdjustmentRequest("credit", sp.FolioB, null, 100, "x", "0"), HttpStatusCode.Forbidden, "FORBIDDEN", Ct);
+            await Wire.CommandFailsAsync(c, "RequestAdjustment", new RequestAdjustmentRequest("credit", sp.FolioB, null, 100, "x", folioBVersion), HttpStatusCode.Forbidden, "FORBIDDEN", Ct);
             await Wire.CommandFailsAsync(c, "CheckoutStay", new CheckoutStayRequest(sp.StayId, sp.StayVersion), HttpStatusCode.Forbidden, "FORBIDDEN", Ct);
         }
         // the same reads are open to the Owner (the walk is not refusing everything)
