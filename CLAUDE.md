@@ -6,6 +6,8 @@ Internal hotel-operations app for the owner's hotel business in India (owner: Sa
 
 **Update 5 Nov 2026 (documents only, no code or commits):** seven legacy-data workbooks (revenue, occupancy, operations x2, year comparison, receivables, zero-rate) built in `E:\Projects\HCC\Existing Software\Reports\` from `LG-EXTRACT\20261101-0531`; owner rulings **DEC-265** (all legacy receivables are bad debts, not loaded as opening receivables) and **DEC-266** (explicit complimentary stay type with approver and reason; room shifts are room changes, not free nights); details in HANDOFF Session 14. Knowledge graph and Obsidian vault refreshed 5 Nov (48,182 nodes, SQL layer included, evidence screenshots skipped). The code status above is unchanged.
 
+**Training media (TRN, 7-8 Nov 2026): the HCC training course (25 desktop chapters, 8 phone chapters, English + Hinglish videos, 10 role cards, trainer's guide) is on `claude/training`, outputs in `E:\Projects\HCC\Builds\2026-11-08\training-hcc\`, sources and README in `06 Training/`; branch pushed, not merged (HANDOFF Session 15).**
+
 **Location (work PC since 25 Oct 2026):** `E:\Projects\HCC\Hotel Control Centre`. Older documents say `V:\Codex\Hotel Control Centre` (old PC) — read that as this folder. Use Node 25 (`E:\Tools\nodejs`, now first on the machine PATH; `E:\Program Files\nodejs` v24 is still installed further down PATH, so in a shell that inherited an older PATH check `node -v` or put `E:\Tools\nodejs` first). SCC rule sources: `E:\Projects\HCC\Migration data on 25 oct\HCC-Migration-2026-10-25\reference-inputs\SCC-modules`. ETP source is on this PC at `E:\ETP\Code` (old documents say `V:\ETP`; read that as `E:\ETP\Code`).
 
 ## Read first
