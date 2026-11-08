@@ -27,8 +27,11 @@ public interface ISplitFolioStore
 
     Task<SplitFolioCompany?> CompanyAsync(ICommandTransaction tx, int propertyId, long companyId, CancellationToken ct);
 
-    /// <summary>True when the customer key names a guest with an active LF B2 credit account.</summary>
-    Task<bool> CreditGuestActiveAsync(ICommandTransaction tx, int propertyId, string customerKey, CancellationToken ct);
+    /// <summary>
+    /// The name of the guest whose active LF B2 credit account the customer key names, or null when there is none. F8D-LOW: the Udhaar folio's
+    /// payer name (SF-CONTRACT §2.2: the invoice party is the customer, not the stay guest).
+    /// </summary>
+    Task<string?> CreditGuestNameAsync(ICommandTransaction tx, int propertyId, string customerKey, CancellationToken ct);
 
     Task<long> InsertFolioAsync(ICommandTransaction tx, long reservationId, int seq, string payerKind, long? companyId, string? customerKey, string? payerName,
         string? payerGstin, int by, DateTime utc, CancellationToken ct);
@@ -93,8 +96,11 @@ public sealed class SplitFolioService(ICommandRunner runner, IAccessPolicy polic
             }
             else if (kind == "udhaar")
             {
-                if (!await store.CreditGuestActiveAsync(tx, ctx.PropertyId, req.CustomerKey!.Trim(), c).ConfigureAwait(false))
-                    throw new HccException(HccErrorCode.NOT_FOUND, "Choose a guest with an active credit account to pay this folio on Udhaar.");
+                var customer = await store.CreditGuestNameAsync(tx, ctx.PropertyId, req.CustomerKey!.Trim(), c).ConfigureAwait(false)
+                    ?? throw new HccException(HccErrorCode.NOT_FOUND, "Choose a guest with an active credit account to pay this folio on Udhaar.");
+                // F8D-LOW (SF-CONTRACT §2.2): the payer is the credit customer; a name sent by the desk is kept, else the customer's own name.
+                if (string.IsNullOrWhiteSpace(name)) name = customer;
+                if (name.Length > 120) throw HccException.Validation("Keep the payer name to 120 characters.");
             }
             else if (string.IsNullOrWhiteSpace(name) || name.Length > 120) throw HccException.Validation("Enter the name of the person who pays this folio.");
             if (gstin is { Length: > 0 } && gstin.Length != 15) throw HccException.Validation("Enter a 15-character GSTIN or leave it blank.");

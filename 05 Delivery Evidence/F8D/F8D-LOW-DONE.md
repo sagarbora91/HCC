@@ -1,6 +1,6 @@
 # F8D-LOW DONE (lane f8d-low), 8 Nov 2026
 
-Worktree `E:\Projects\HCC\worktrees\f8d-low`, branch `claude/f8d-low`, cut from `claude/f8c` 0af7a992. Code commit **0d12db13**; this file is the next commit. Nothing was pushed; `main` was not touched.
+Worktree `E:\Projects\HCC\worktrees\f8d-low`, branch `claude/f8d-low`, cut from `claude/f8c` 0af7a992. Code commit **0d12db13** (L2–L9), then 12261dde (this report). The follow-up commit (Udhaar payer name, PostExtra L6) is described at the end. Nothing was pushed; `main` was not touched.
 
 The review text came from the coordinator's `F8-MONEY-REVIEW.md` (not committed; it was in the coordinator's scratchpad). Items are L2, L3, L4, L5, L6 and L9 from `05 Delivery Evidence/F8/F8-INT-DONE.md` (open items).
 
@@ -40,14 +40,26 @@ The review text came from the coordinator's `F8-MONEY-REVIEW.md` (not committed;
 
 ## Notes, not stopped
 - **L3:** prototype approvals stay bound to the stay's version (the prototype has no per-folio version). So deciding one folio's request makes another folio's open request stale, and it must be requested again. This already happens after any posting on the stay. The server binds to the folio version. A per-folio version in the prototype would need a state field; it is not built.
-- **L6:** CatalogueCommands PostExtra (`CatalogueCommands.cs:345`) still returns the addressed folio. PostedOnAsync is private to BillingService. The same one-line change applies there if wanted.
+- **L6:** CatalogueCommands PostExtra now follows the same rule (follow-up commit, below).
 - **L4:** on single-folio stays the twins already differed before this lane (prototype: room rate; server: 0). Not changed.
 - No golden was regenerated; the company-business golden still passes.
 
 ## Stopped
 None of L2–L9.
 
-**Extra item from the coordinator, not done (no time left; the coordinator asked for the report now):** `SplitFolioService.OpenAsync` (`SplitFolioService.cs:94-98`) saves an Udhaar payer's name only when the request sends `PayerName`. It does not look the credit customer's name up from `CustomerKey`, so the invoice (`FolioPartyAsync` falls back to the guest) and the folio print show the stay guest (SF-CONTRACT §2.2 wants the customer). The fix still to write: when no name is sent, read `gst.guest.full_name` through `gst.guest_credit_account` by customer key, plus a SQL/HTTP test.
+Nothing (the coordinator's extra item is done in the follow-up below).
+
+## Follow-up (coordinator's extra items)
+| Item | Fix | Where |
+|---|---|---|
+| Udhaar payer name (SF-CONTRACT §2.2) | OpenFolio on an Udhaar folio now reads the credit customer's name from the customer key. If the desk sends no name, the folio's `payer_name` is that customer's name, so the invoice (`FolioPartyAsync`) and the folio print show the customer, not the stay guest. A name the desk sends is kept, and an unknown or inactive key is still refused (NOT_FOUND). The store port `CreditGuestActiveAsync` (bool) is replaced by `CreditGuestNameAsync` (name or null); it has one implementation. | `08 Production/src/Hcc.Application/Billing/SplitFolioService.cs` (ISplitFolioStore, OpenAsync), `Hcc.Infrastructure.SqlServer/Billing/SqlSplitFolioStore.cs` |
+| L6 on PostExtra | PostExtra returns the routed folio and its version, the same rule as PostCharge. | `08 Production/src/Hcc.Application/Catalogue/CatalogueCommands.cs` (PostExtraAsync) |
+
+Tests, run through `Invoke-Serialized` on the follow-up code. The build had 0 warnings.
+- `Hcc.Integration.Tests`, filtered to F8dLowChargeFolioTests, F8IntSplitGoldenTests, F8cSyncWireTests, F8Tests2SplitTests and F8FixTests: **13/13** passed. This includes the new fact `F8D_LOW_udhaar_folio_payer_name_is_the_credit_customers_when_none_is_sent` and the PostExtra step added to the L6 fact.
+- `Hcc.Catalogue.Tests`: **15/15** passed.
+- `Hcc.Billing.Tests`: **81/81** passed.
+- No prototype file changed in the follow-up, so the prototype tests were not re-run. The full solution was not run.
 
 ## Screenshots
 None (no UI change).

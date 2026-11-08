@@ -141,12 +141,16 @@ public sealed class SqlSplitFolioStore(SqlConnectionFactory connections, IBillin
         return await rd.ReadAsync(ct).ConfigureAwait(false) ? new SplitFolioCompany(companyId, rd.GetString(0), rd.IsDBNull(1) ? null : rd.GetString(1).Trim(), rd.GetBoolean(2)) : null;
     }
 
-    public async Task<bool> CreditGuestActiveAsync(ICommandTransaction tx, int propertyId, string customerKey, CancellationToken ct)
+    public async Task<string?> CreditGuestNameAsync(ICommandTransaction tx, int propertyId, string customerKey, CancellationToken ct) // F8D-LOW: the customer's name
     {
-        await using var cmd = Sql(tx).Command("SELECT 1 FROM gst.guest_credit_account WHERE property_id = @p AND customer_key = @k AND active = 1;");
+        await using var cmd = Sql(tx).Command("""
+            SELECT TOP (1) COALESCE(g.full_name, N'') FROM gst.guest_credit_account ca
+              LEFT JOIN gst.guest g ON g.guest_id = ca.guest_id
+            WHERE ca.property_id = @p AND ca.customer_key = @k AND ca.active = 1;
+            """);
         P(cmd, "@p", SqlDbType.Int, propertyId);
         P(cmd, "@k", SqlDbType.VarChar, customerKey, 40);
-        return await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false) is not null;
+        return await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false) is string n ? n.Trim() : null;
     }
 
     public async Task<long> InsertFolioAsync(ICommandTransaction tx, long reservationId, int seq, string payerKind, long? companyId, string? customerKey, string? payerName,
