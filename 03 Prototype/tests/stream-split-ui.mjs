@@ -129,4 +129,16 @@ export async function register({test,M,assert}){
     const single=stay();
     assert.equal(L.sfDocBooking(bk(single.s,single.id),'A'),single.id);
   });
+
+  // F8C-SCREENS: the split screens had no stylesheet at all until a browser look (8 Nov 2026). Source-level render guard.
+  test('[F8C-SCREENS] every sf-* class used by Split.tsx is styled in folio.css, with tokens only, and the settle sheet shows no duplicate totals',()=>{
+    const tsx=readFileSync('src/features/folio/Split.tsx','utf8'),css=readFileSync('src/styles/folio.css','utf8');
+    const used=new Set([...tsx.matchAll(/className=\{?['"`]([^'"`]*)['"`]/g)].flatMap(m=>m[1].split(/\s+/)).filter(c=>/^sf-/.test(c)));
+    assert.ok(used.size>=8,'the component uses its sf-* classes');
+    for(const c of used)assert.ok(css.includes('.'+c),`.${c} has a rule in folio.css`);
+    const block=css.slice(css.indexOf('F8C-SCREENS'));
+    assert.equal(/#[0-9a-fA-F]{3,8}/.test(block),false,'no hex colour in the split block (tokens only)');
+    assert.equal(/Net payments \(all folios\)|Charges including GST \(all folios\)/.test(tsx),false,'totals already shown by the check-out summary are not repeated');
+    assert.ok(/aria-label=\{`Routing of folio/.test(tsx)&&/aria-label=\{`Save routing of folio/.test(tsx),'routing controls carry folio-specific accessible names');
+  });
 }

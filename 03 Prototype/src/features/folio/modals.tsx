@@ -18,6 +18,7 @@ import {useCashBlock} from '../../clients/sync/cashier-ui';
 import {recentEqualReceipt,onFolioDuplicate} from '../../domain/streams/folio'; // AF-PAY08
 // F8-SF-UI
 import {sfIsSplit,sfView} from '../../services/mock';
+import {gstAdjustmentMixed,GST_ADJUSTMENT_MIXED_MSG} from '../../domain/gst'; // F8C
 import {SfSwitcher,SfFolioBar,SfCheckoutSheet,SfInvoiceList} from './Split';
 import {sfCurrent,sfFolioOfModal,sfOpen,sfWithFolio,sfSettleSheet,sfFolioPayer,sfDocBooking} from './SplitLogic';
 // F8-SF-UI end
@@ -277,10 +278,11 @@ export function CreditNoteModal({id}:{id?:string}){
   const {b,s,run,booking,modal,busy}=useBooking(id??'');
   if(!b)return <Missing/>;
   const cnf=sfFolioOfModal(b,modal?.room)??(sfIsSplit(b)?'A':undefined),cv=cnf?sfView(b,cnf):b; // F8-SF-UI: the folio whose invoice is credited
+  const cnMixed=gstAdjustmentMixed(cv); // F8C: a mixed-rate folio with no room night has no credit-note rate (SFQ-20): say so up front, the command refuses it
   return <><div className="modal-heading"><div className="eyebrow">{bookingRef(b)} · {b.guest}{cv.invoiceNo?' · '+cv.invoiceNo:''}</div><h2>Request a sample credit note{cnf&&sfIsSplit(b)?` · folio ${cnf}`:''}</h2><p>Net charges {money(totals(cv).net)}</p></div>
     <form className="form" onSubmit={e=>submit(e,f=>run(sfWithFolio(b,cnf,{type:'CREDIT_NOTE',id:b.id,amount:amount(f),reason:field(f,'reason'),key:modal!.key}),'Credit note requested — awaiting approval',{after:()=>booking(b.id)}))}>
       <label>Credit amount before GST (₹)<input name="amount" type="number" min="0.01" step="0.01" required/></label>
       <label>Reason<input name="reason" required maxLength={120} placeholder="e.g. Service recovery after departure"/></label>
-      <div className="info-note"><ShieldCheck size={16}/>Needs approval by another user. On approval a sample number from DEMO-CN/2026-27/ is issued with GST at the stay’s room-night rate ({gstPct(gstForFolioAdjustment(s,b,s.date).bps)}, CGST + SGST); a refund against the resulting credit can then be requested.</div>
-      <div className="modal-actions"><button type="button" className="btn" onClick={()=>booking(b.id)}>Back</button><button className="btn primary" disabled={busy}>Submit credit note request</button></div></form></>;
+      {cnMixed?<div className="info-note folio-blockers" role="status"><AlertTriangle size={16}/><div>{GST_ADJUSTMENT_MIXED_MSG}</div></div>:<div className="info-note"><ShieldCheck size={16}/>Needs approval by another user. On approval a sample number from DEMO-CN/2026-27/ is issued with GST at {cnf&&sfIsSplit(b)?`the rate of folio ${cnf}`:'the stay’s room-night rate'} ({gstPct(gstForFolioAdjustment(s,cv,s.date).bps)}, CGST + SGST); a refund against the resulting credit can then be requested.</div>}
+      <div className="modal-actions"><button type="button" className="btn" onClick={()=>booking(b.id)}>Back</button><button className="btn primary" disabled={busy||cnMixed}>Submit credit note request</button></div></form></>;
 }
