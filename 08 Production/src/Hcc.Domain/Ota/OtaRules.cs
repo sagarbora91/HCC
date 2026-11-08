@@ -14,6 +14,9 @@ public static partial class OtaRules
     public const int MaxCommissionBps = 3000;
     public const int MaxMarkupBps = 2500;
     public const int PushDays = 7;
+
+    /// <summary>F8-QW-NS (QWQ-2): rooms offered to a channel = sellable + the Owner's yld.overbook.&lt;type&gt; cap (default 0 = unchanged; negative caps count as 0).</summary>
+    public static int PushAvail(int sellable, int overbookCap) => Math.Max(0, sellable) + Math.Max(0, overbookCap);
     public const int MaxStayNights = 60;
 
     [GeneratedRegex("^[A-Z0-9-]{2,20}$")]

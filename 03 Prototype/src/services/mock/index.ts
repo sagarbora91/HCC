@@ -175,6 +175,7 @@ export {sfFail,sfAfterCommand} from './handlers/folio-split';
 export * from '../../domain/streams/night-audit'; // naChecklist, naAutoTicks, naTicksToSend, NA_TEMPLATE (night-audit lines, show only)
 // F8-QW-NA end
 // F8-QW-NS
+export * from '../../domain/streams/noshow';
 // F8-QW-NS end
 // F8-QW-KDS
 // F8-QW-KDS end
