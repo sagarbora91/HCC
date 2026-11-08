@@ -16,6 +16,11 @@ import {CompanyCreditPanel} from '../groups/credit';
 import {ApplyDepositPanel,useOtaCredit} from './deposit'; // ACC-2
 import {useCashBlock} from '../../clients/sync/cashier-ui';
 import {recentEqualReceipt,onFolioDuplicate} from '../../domain/streams/folio'; // AF-PAY08
+// F8-SF-UI
+import {sfIsSplit,sfView} from '../../services/mock';
+import {SfSwitcher,SfFolioBar,SfCheckoutSheet,SfInvoiceList} from './Split';
+import {sfCurrent,sfFolioOfModal,sfOpen,sfWithFolio,sfSettleSheet,sfFolioPayer,sfDocBooking} from './SplitLogic';
+// F8-SF-UI end
 const useBooking=(id:string)=>{const c=useHcc();return {...c,b:c.s.bookings.find(b=>b.id===id)};};
 /** Production only (W4 D1): issue the tax invoice for a departed stay that has none — the step after checkout was refused (e.g. no hotel
  *  GSTIN yet) or the checkout user could not issue invoices. Maps to IssueInvoice (sync/money.ts INVOICE_ISSUE) with a stable key. */
@@ -58,40 +63,44 @@ export function FolioApprovalRow({a,showGuest=false}:{a:Approval;showGuest?:bool
 
 export function BookingModal({id}:{id:string}){
   const {b,s,uid,permission,act,open,run,busy}=useBooking(id);
+  const [chosen,setChosen]=useState('A'); // F8-SF-UI: shown folio
   if(!b)return <Missing/>;
   if(!rbacCanViewFolios(s,uid))return <Empty title="Access denied" body="Your role cannot open guest folios."/>;
+  const fol=sfCurrent(b,chosen),v=sfIsSplit(b)?sfView(b,fol):b; // F8-SF-UI: v = the shown folio (identity on a single-folio stay)
   const readOnly=!permission(['billing','reservations']); // DEC-063 G4: the Accountant checks folios read-only
   const canCorrect=rbacCanRequestCorrection(s,uid);
-  const t=totals(b),active=['Confirmed','In house'].includes(b.status),n=folioNights(b);
+  const t=totals(v),active=['Confirmed','In house'].includes(b.status),n=folioNights(b); // F8-SF-UI: t = shown folio
   const approvals=folioApprovalsFor(s,b.id);
   const closed=(d:string)=>s.closedDates.includes(d);
   return <><div className="modal-heading"><div className="eyebrow">{bookingRef(b)} · ROOM {b.room}{b.invoiceNo?` · INVOICE ${b.invoiceNo}`:''}</div><h2>{b.guest}</h2>
       <div className="inline">{(()=>{const st=resStatus(s,b);return <Pill tone={st==='In house'?'green':st==='Confirmed'?'blue':st==='Held'?'orange':'neutral'}>{st}</Pill>;})()}<span>{shortDate(b.arrival)} — {shortDate(b.departure)} · {plural(nights(b.arrival,b.departure),'night')} · {plural(b.people,'guest')}</span>
         <span className={'folio-nights '+(n.posted<n.agreed?'short':'')} title="Room nights are posted by the nightly audit">Nights posted {n.posted} of {n.agreed} agreed</span></div>
       {b.company&&<p className="folio-company"><Building2 size={14}/>{b.company.name}{b.company.gstin?` · ${process.env.HCC_BUILD==='production'?'GSTIN':'GSTIN (placeholder)'} ${b.company.gstin}`:''}</p>}</div>
+    <SfSwitcher b={b} value={fol} onChange={setChosen}/>{/* F8-SF-UI */}
+    <SfFolioBar b={b} folio={fol}/>{/* F8-SF-UI */}
     <div className="booking-actions">
       {b.status==='Confirmed'&&act('reservations',()=>open({type:'cancel',id:b.id}),'Cancel / no-show','btn subtle')}
       {b.status==='In house'&&act('checkout',()=>open({type:'checkout',id:b.id}),'Checkout','btn primary')}
       {active&&act('reservations',()=>open({type:b.status==='In house'?'stay-move':'move',id:b.id}),b.status==='In house'?'Move / extend stay':'Change dates / room','btn subtle')}
-      {b.status==='Departed'&&canCorrect&&<button className="btn subtle" disabled={busy} onClick={()=>open({type:'credit-note',id:b.id})}>Request credit note</button>}
+      {b.status==='Departed'&&canCorrect&&<button className="btn subtle" disabled={busy} onClick={()=>open(sfOpen(b,'credit-note',fol))}>Request credit note</button>}
       <IssueInvoiceAction b={b}/>
       {bookingActionSlots.map((Slot,i)=><Slot key={i} b={b}/>)}
     </div>
     {readOnly&&<div className="info-note"><Info size={16}/>Read-only check (Accountant). You can request a correction or credit note; the Owner approves it.</div>}
     <div className="folio-totals"><div><span>Charges + tax</span><strong>{money(t.total)}</strong></div><div><span>Net paid / advance</span><strong>{money(t.paid)}</strong></div><div><span>Deposit held</span><strong>{money(t.deposit)}</strong></div><div className={t.balance>0?'balance-due':'balance-clear'}><span>{t.balance<0?'Credit balance':'Balance due'}</span><strong>{money(t.balance)}</strong></div></div>
-    <div className="section-title compact"><h3>Guest folio</h3><div className="inline">{active&&act('billing',()=>open({type:'charge',id:b.id}),'Add charge','text-btn')}{active&&rbacCanDiscount(s,uid)&&<button className="text-btn" disabled={busy} onClick={()=>open({type:'discount',id:b.id})}>Discount</button>}{!['Held','Expired','Cancelled','No show'].includes(resStatus(s,b))&&act('payments',()=>open({type:'payment',id:b.id}),'Record payment','btn small-btn')}</div></div>
-    <div className="table-wrap folio-table"><table><thead><tr><th>Description</th><th>Service date</th><th>Net amount</th><th>GST</th><th><span className="sr-only">Actions</span></th></tr></thead><tbody>{b.lines.map(l=>{const reversed=folioLineReversed(b,l.id);
+    <div className="section-title compact"><h3>{sfIsSplit(b)?`Folio ${fol}`:'Guest folio'}</h3><div className="inline">{active&&act('billing',()=>open(sfOpen(b,'charge',fol)),'Add charge','text-btn')}{active&&rbacCanDiscount(s,uid)&&<button className="text-btn" disabled={busy} onClick={()=>open(sfOpen(b,'discount',fol))}>Discount</button>}{!['Held','Expired','Cancelled','No show'].includes(resStatus(s,b))&&act('payments',()=>open(sfOpen(b,'payment',fol)),'Record payment','btn small-btn')}</div></div>
+    <div className="table-wrap folio-table"><table><thead><tr><th>Description</th><th>Service date</th><th>Net amount</th><th>GST</th><th><span className="sr-only">Actions</span></th></tr></thead><tbody>{v.lines.map(l=>{const reversed=folioLineReversed(b,l.id);
       return <tr key={l.id} className={reversed||l.reversalOf?'folio-line-muted':''}><td><strong>{l.label}</strong><small>{l.kind}{l.reversalOf?' · reverses '+l.reversalOf:''}{reversed?' · reversed':''}{closed(l.date)?' · closed date (read-only)':''}</small></td><td>{shortDate(l.date)}</td><td className="number">{money(l.amount)}</td><td className="number">{money(lineTax(l))}<small>{gstPct(l.taxBps)}</small></td>
-        <td>{reversed?<Pill>Reversed</Pill>:l.reversalOf?<Pill tone="blue">Reversal</Pill>:active&&canCorrect&&folioLineCorrectable(s,b,l)?<button className="text-btn" disabled={busy} onClick={()=>open({type:'correction',id:b.id,room:l.id})}>Correct</button>:null}</td></tr>;})}</tbody></table>{!b.lines.length&&<Empty title="No charges yet" body="Room nights are posted by the nightly audit. Add a service charge if needed."/>}</div>
+        <td>{reversed?<Pill>Reversed</Pill>:l.reversalOf?<Pill tone="blue">Reversal</Pill>:active&&canCorrect&&folioLineCorrectable(s,b,l)?<button className="text-btn" disabled={busy} onClick={()=>open({type:'correction',id:b.id,room:l.id})}>Correct</button>:null}</td></tr>;})}</tbody></table>{!v.lines.length&&<Empty title="No charges yet" body="Room nights are posted by the nightly audit. Add a service charge if needed."/>}</div>
     <div className="section-title compact"><h3>Receipts & deposits</h3><span className="muted">Manual demonstration records</span></div>
-    <div className="receipt-list">{b.receipts.map(r=>{const refundable=r.kind==='payment'?folioRefundable(s,b,r.id):0,refunded=r.kind==='payment'?folioRefunded(b,r.id):0;
+    <div className="receipt-list">{v.receipts.map(r=>{const refundable=r.kind==='payment'?folioRefundable(s,b,r.id):0,refunded=r.kind==='payment'?folioRefunded(b,r.id):0;
       return <div key={r.id}><span className="receipt-icon"><Receipt size={16}/></span><div><strong>{folioReceiptLabel[r.kind]??r.kind} · {r.method}</strong><small>{r.id} · {shortDate(r.date)} · {r.reference}{r.refundOf?' · refund of '+r.refundOf:''}{r.tenderGroup?' · mixed tender '+r.tenderGroup:''}{refunded?' · refunded '+money(refunded):''}{r.actor?` · by ${userName(s,r.actor)}`:''}</small></div>
         <strong className="number">{['refund','deposit-return'].includes(r.kind)?'−':''}{money(r.amount)}</strong>
         <DocPrintButton doc="doc.receipt" params={{booking:b.id,receipt:r.id}} label="Receipt" className="text-btn"/>{/* F7-R7 */}
         {refundable>0&&permission('payments')&&(()=>{const locked=cbIsLocked(s,r.date),why=cbLockedMessage(r.date,'a refund against receipt '+r.id);return <><button className="text-btn" disabled={busy||locked} title={locked?why:undefined} onClick={()=>open({type:'refund',id:b.id,room:r.id})}><RotateCcw size={13}/> Request refund</button>{locked&&<small className="f-why">{why}</small>}</>;})()} {/* DEC-065 */}</div>;})}
-      {!b.receipts.length&&<p className="muted padded">No receipts recorded.</p>}</div>
+      {!v.receipts.length&&<p className="muted padded">No receipts recorded.</p>}</div>
     {approvals.length>0&&<><div className="section-title compact"><h3>Folio requests</h3><span className="muted">No one approves their own request</span></div><div className="request-list folio-requests">{approvals.map(a=><FolioApprovalRow key={a.id} a={a}/>)}</div></>}
-    <div className="modal-actions"><span className="footnote">GST per line at its snapshot rate (illustrative — CA to confirm). No real guest documents stored.</span><button className="btn" disabled={busy} onClick={()=>open({type:'invoice',id:b.id})}><Printer size={16}/>{b.invoiceNo?(process.env.HCC_BUILD==='production'?'Invoice ':'Sample invoice ')+b.invoiceNo:'Folio preview'}</button></div></>;
+    <div className="modal-actions"><span className="footnote">GST per line at its snapshot rate (illustrative — CA to confirm). No real guest documents stored.</span><button className="btn" disabled={busy} onClick={()=>open(sfOpen(b,'invoice',fol))}><Printer size={16}/>{v.invoiceNo?(process.env.HCC_BUILD==='production'?'Invoice ':'Sample invoice ')+v.invoiceNo:sfIsSplit(b)?`Folio ${fol} preview`:'Folio preview'}</button></div></>;
 }
 type Row={method:string;amount:string;reference:string};
 const paise=(v:string)=>Math.round(Number(v||0)*100);
@@ -100,7 +109,8 @@ export function PaymentModal({id}:{id:string}){
   const {s,b,run,booking,modal,busy}=useBooking(id);
   const [dup,setDup]=useState<{receiptId:string;message:string}|null>(null),[confirmDup,setConfirmDup]=useState(false); // AF-PAY08
   useEffect(()=>onFolioDuplicate(modal?.key,setDup),[modal?.key]); // AF-PAY08: the shell announces a refused equal receipt for this dialog's key
-  const t=b?totals(b):undefined;
+  const pf=sfFolioOfModal(b,modal?.room),bv=b&&pf?sfView(b,pf):b; // F8-SF-UI: the folio this payment is for
+  const t=bv?totals(bv):undefined;
   const [kind,setKind]=useState('payment');
   // MA-3: methods from the payment-methods master (front desk); reference rule and drawer effect from the row.
   const methods=mnyNames(s,'frontdesk'),needsRef=(m:string)=>!!mnyMethod(s,m)?.needsReference;
@@ -127,13 +137,14 @@ export function PaymentModal({id}:{id:string}){
   };
   const next=(e:React.FormEvent)=>{e.preventDefault();const p=check();setProblem(p);if(!p)setStep('confirm');};
   const post=()=>{
-    const base=single?{type:'PAYMENT',id:b.id,amount:target,kind,method:effective[0].method,reference:effective[0].reference.trim(),key:modal!.key}
+    const base0=single?{type:'PAYMENT',id:b.id,amount:target,kind,method:effective[0].method,reference:effective[0].reference.trim(),key:modal!.key}
       :{type:'PAYMENT',id:b.id,amount:target,kind,tenders:effective.map(r=>({method:r.method,amount:paise(r.amount),reference:r.reference.trim()})),key:modal!.key};
+    const base=sfWithFolio(b,pf,base0); // F8-SF-UI
     const cmd=dup&&confirmDup?{...base,confirmDuplicate:true}:base; // AF-PAY08: the same dialog, the same key; the cashier ticked "second, separate payment"
     run(cmd,single?'Receipt recorded once':`${rows.length} receipts recorded once`,{after:()=>booking(b.id)});
   };
   // AF-PAY08: early amber note (receipts carry their time in the demo; the server enforces the same 10-minute rule on its own clock) and, after a refusal, the confirmation tick.
-  const early=recentEqualReceipt(b,effective.map(r=>({method:r.method,amount:paise(r.amount)})),s.clock,kind);
+  const early=recentEqualReceipt(bv!,effective.map(r=>({method:r.method,amount:paise(r.amount)})),s.clock,kind);
   const dupNote=<>{early&&!dup&&<div className="info-note folio-dup-note" role="note"><AlertTriangle size={16}/><span>A {money(early.receipt.amount)} {early.receipt.method} receipt was recorded at {((early.receipt as {at?:string}).at??'').slice(11,16)}. Post again only for a second, separate payment.</span></div>}
     {dup&&<div className="info-note folio-dup-confirm" role="alert"><AlertTriangle size={16}/><span><strong className="folio-dup-title">Needs your confirmation</strong>{dup.message}</span></div>}
     {dup&&<label className="folio-dup-tick"><input type="checkbox" checked={confirmDup} onChange={e=>setConfirmDup(e.target.checked)}/><span>This is a second, separate payment</span></label>}</>;
@@ -146,7 +157,7 @@ export function PaymentModal({id}:{id:string}){
     {dupNote}
     <div className="info-note folio-unverified"><AlertTriangle size={16}/><span><strong>Manual entry — bank/UPI transaction not verified</strong>. This is a fictional demonstration receipt; no money moves. Retrying after an unclear result reuses the same request and never creates a second receipt.</span></div>
     <div className="modal-actions"><button type="button" className="btn" disabled={busy} onClick={()=>setStep('form')}>Edit</button><button className="btn primary" disabled={busy||(!!dup&&!confirmDup)} onClick={post}>{busy?'Posting…':'Post '+(single?'receipt':rows.length+' receipts')} <Check size={16}/></button></div></>;
-  return <><div className="modal-heading"><div className="eyebrow">{bookingRef(b)} · {b.guest}</div><h2>Record a payment</h2><p>Balance {money(t.balance)} · Deposit held {money(t.deposit)}</p></div>
+  return <><div className="modal-heading"><div className="eyebrow">{bookingRef(b)} · {b.guest}</div><h2>Record a payment{pf?` · folio ${pf}`:''}</h2><p>Balance {money(t.balance)} · Deposit held {money(t.deposit)}</p></div>
     <form className="form" onSubmit={next} noValidate>
       <label>Entry type<select name="kind" value={kind} onChange={e=>{setKind(e.target.value);if(e.target.value==='deposit-return')setRows(rows.slice(0,1));}}>{Object.entries(kindLabel).map(([k,v])=><option key={k} value={k}>{v}</option>)}</select></label>
       <label>Amount (₹)<input type="number" name="amount" min="0.01" step="0.01" value={total} onChange={e=>setTotal(e.target.value)} required/></label>
@@ -170,9 +181,10 @@ export function PaymentModal({id}:{id:string}){
 export function ChargeModal({id,discount}:{id:string;discount:boolean}){
   const {b,s,uid,run,booking,modal,busy}=useBooking(id);
   if(!b)return <Missing/>;
+  const cf=sfFolioOfModal(b,modal?.room); // F8-SF-UI
   const lim=rbacDiscountLimit(s,uid); // DEC-063 G1: limit of the signed-in role (undefined = Owner, no limit)
-  return <><div className="modal-heading"><h2>{discount?'Add a discount':'Add a service charge'}</h2><p>{b.guest} · {bookingRef(b)}</p></div>
-    <form className="form" onSubmit={e=>submit(e,f=>run(discount?{type:'DISCOUNT',id:b.id,amount:amount(f),reason:field(f,'description'),key:modal!.key}:{type:'CHARGE',id:b.id,amount:amount(f),label:field(f,'description'),...(field(f,'gst')?{gst:field(f,'gst')}:{}),key:modal!.key},discount?'Discount recorded or submitted for approval':'Service charge posted',{after:()=>booking(b.id)}))}>
+  return <><div className="modal-heading"><h2>{discount?'Add a discount':'Add a service charge'}{cf?` · folio ${cf}`:''}</h2><p>{b.guest} · {bookingRef(b)}{cf?` · posts to folio ${cf}`:sfIsSplit(b)?' · posts by routing':''}</p></div>
+    <form className="form" onSubmit={e=>submit(e,f=>run(sfWithFolio(b,cf,discount?{type:'DISCOUNT',id:b.id,amount:amount(f),reason:field(f,'description'),key:modal!.key}:{type:'CHARGE',id:b.id,amount:amount(f),label:field(f,'description'),...(field(f,'gst')?{gst:field(f,'gst')}:{}),key:modal!.key}),discount?'Discount recorded or submitted for approval':'Service charge posted',{after:()=>booking(b.id)}))}>
       <label>{discount?'Reason for discount':'Service description'}<input required name="description" maxLength={120} placeholder={discount?'e.g. Service recovery':'e.g. Laundry service'}/></label>
       <label>Amount before GST (₹)<input name="amount" type="number" min="0.01" step="0.01" required/></label>
       {!discount&&<label>GST category<select name="gst" defaultValue=""><option value="">Automatic (from the description)</option>{GST_CHARGE_CATEGORIES.map(c=><option key={c.id} value={c.id}>{c.label}</option>)}</select></label>}
@@ -184,29 +196,32 @@ export function CheckoutModal({id}:{id:string}){
   const {b,s,run,booking,open,busy,permission}=useBooking(id);
   const ota=useOtaCredit(b);
   if(!b)return <Missing/>;
-  const t=totals(b),n=folioNights(b),blockers=folioCheckoutBlockers(s,b,t);
+  const split=sfIsSplit(b); // F8-SF-UI: a split stay settles every folio on one sheet
+  const t=totals(b),n=folioNights(b),blockers=split?sfSettleSheet(s,b).blockers:folioCheckoutBlockers(s,b,t);
   const pending=folioApprovalsFor(s,b.id).filter(a=>folioApprovalStatus(s,a)==='Pending');
   return <><div className="modal-heading"><h2>Ready to say goodbye?</h2><p>Review {b.guest}’s folio before releasing Room {b.room}.</p></div>
     <div className="summary-list"><div><span>Room nights posted / agreed</span><strong>{n.posted} of {n.agreed}</strong></div><div><span>Total charges including GST</span><strong>{money(t.total)}</strong></div><div><span>Net payments</span><strong>{money(t.paid)}</strong></div><div><span>Outstanding balance</span><strong>{money(t.balance)}</strong></div><div><span>Deposit to return</span><strong>{money(t.deposit)}</strong></div><div><span>Pending approvals</span><strong>{pending.length?pending.map(a=>a.id).join(', '):'None'}</strong></div></div>
-    <ApplyDepositPanel b={b}/>
+    {split?<><SfCheckoutSheet b={b}/><ApplyDepositPanel b={sfView(b,'A')}/></>:<><ApplyDepositPanel b={b}/>
     {ota.node}
-    <CompanyCreditPanel b={b}/>
-    {blockers.length>0?<div className="info-note folio-blockers" role="status"><AlertTriangle size={17}/><div><strong>Checkout is blocked until:</strong><ul>{blockers.map(x=><li key={x}>{x}</li>)}</ul></div></div>
-      :<div className="info-note"><Info size={17}/>Checkout preserves all stay charges, marks the room dirty, creates exactly one housekeeping task and {process.env.HCC_BUILD==='production'?'then issues the tax invoice':'allocates a sample invoice number once'}. Repeating checkout returns the same result.</div>}
+    <CompanyCreditPanel b={b}/></>}{/* F8-SF-UI */}
+    {blockers.length>0&&!split?<div className="info-note folio-blockers" role="status"><AlertTriangle size={17}/><div><strong>Checkout is blocked until:</strong><ul>{blockers.map(x=><li key={x}>{x}</li>)}</ul></div></div>
+      :blockers.length>0?null:<div className="info-note"><Info size={17}/>Checkout preserves all stay charges, marks the room dirty, creates exactly one housekeeping task and {process.env.HCC_BUILD==='production'?'then issues the tax invoice':'allocates a sample invoice number once'}. Repeating checkout returns the same result.</div>}
     <FeedbackSheet booking={b.id}/>{/* F4-T3 */}
     <div className="modal-actions"><button className="btn" onClick={()=>booking(b.id)}>Review folio</button>
-      {permission('payments')&&(t.balance>0||t.deposit>0)&&<button className="btn subtle" disabled={busy} onClick={()=>open({type:'payment',id:b.id})}>Settle / return deposit</button>}
-      <button className="btn primary" disabled={busy} onClick={()=>run({type:'CHECKOUT',id:b.id,...(ota.on?{otaCredit:true}:{}),key:'checkout:'+b.id+(ota.on?':ota':'')},'Checkout completed. Housekeeping task created.',{after:()=>booking(b.id)})}>Confirm checkout <ArrowRight size={16}/></button></div></>;
+      {permission('payments')&&(split?t.deposit>0:t.balance>0||t.deposit>0)&&<button className="btn subtle" disabled={busy} onClick={()=>open(sfOpen(b,'payment','A'))}>{split?'Return deposit':'Settle / return deposit'}</button>}
+      <button className="btn primary" disabled={busy} onClick={()=>run({type:'CHECKOUT',id:b.id,...(ota.on&&!split?{otaCredit:true}:{}),key:'checkout:'+b.id+(ota.on&&!split?':ota':'')},'Checkout completed. Housekeeping task created.',{after:()=>split?open(sfOpen(b,'invoice','A')):booking(b.id)})}>Confirm checkout <ArrowRight size={16}/></button></div></>;
 }
 export function InvoiceModal({id}:{id:string}){
-  const {b,s,booking}=useBooking(id);
-  if(!b)return <Missing/>;
+  const {b:b0,s,booking,modal}=useBooking(id);
+  const [chosen,setChosen]=useState(sfFolioOfModal(b0,modal?.room)??'A'); // F8-SF-UI: one document per folio
+  if(!b0)return <Missing/>;
+  const fol=sfCurrent(b0,chosen),b=sfIsSplit(b0)?sfView(b0,fol):b0; // F8-SF-UI: the shown folio (identity on a single-folio stay)
   const t=totals(b);
-  return <><div className="invoice"><div className="invoice-top"><Hotel size={34}/><div><h2>{s.settings.hotel}</h2><p>{process.env.HCC_BUILD==='production'?'Hotel Control Centre':'Hotel Control Centre · Fictional property'}</p></div></div>
+  return <><SfSwitcher b={b0} value={fol} onChange={setChosen}/><SfInvoiceList b={b0}/><div className="invoice"><div className="invoice-top"><Hotel size={34}/><div><h2>{s.settings.hotel}</h2><p>{process.env.HCC_BUILD==='production'?'Hotel Control Centre':'Hotel Control Centre · Fictional property'}</p></div></div>
     {process.env.HCC_BUILD==='production'?<div className="invoice-stamp">Folio summary — the tax invoice is issued and kept on the hotel server</div>
       :<div className="invoice-stamp" aria-label="Demonstration — not a tax invoice">Demonstration — not a tax invoice · fictional records only</div>}
     <PrintTitle doc="invoice"/>
-    <div className="invoice-meta"><div><small>GUEST</small><h3>{b.guest}</h3><p>Room {b.room} · {plural(b.people,'guest')}</p>{b.company&&<p>Bill to: {b.company.name}{b.company.gstin?<><br/>GSTIN (placeholder): {b.company.gstin}</>:null}</p>}</div>
+    <div className="invoice-meta"><div><small>GUEST</small><h3>{sfIsSplit(b0)?sfFolioPayer(b0,fol):b.guest}</h3><p>Room {b.room} · {plural(b.people,'guest')}{sfIsSplit(b0)?` · folio ${fol}`:''}</p>{b.company&&<p>Bill to: {b.company.name}{b.company.gstin?<><br/>GSTIN (placeholder): {b.company.gstin}</>:null}</p>}</div>
       <div><small>{b.invoiceNo?(process.env.HCC_BUILD==='production'?'TAX INVOICE NO.':'SAMPLE INVOICE NO.'):'FOLIO PREVIEW'}</small><h3>{b.invoiceNo??'Not yet issued'}</h3><p>{process.env.HCC_BUILD==='production'?(b.invoiceNo?'Issued by the hotel server':'Issued after checkout'):b.invoiceNo?'Allocated once at checkout':'A number is allocated once at checkout'}</p><IssueInvoiceAction b={b} className="btn small-btn no-print"/><p>{shortDate(b.arrival)} — {shortDate(b.departure)} · {b.id}</p></div></div>
     <table><thead><tr><th>Description</th><th>Date</th><th>Net</th><th>GST rate</th><th>CGST</th><th>SGST</th></tr></thead><tbody>{b.lines.map(l=>{const g=gstLineSplit(l);return <tr key={l.id}><td>{l.label}</td><td>{shortDate(l.date)}</td><td>{money(l.amount)}</td><td>{gstPct(l.taxBps)}</td><td>{money(g.cgst)} <small>@{gstHalfPct(l.taxBps)}</small></td><td>{money(g.sgst)} <small>@{gstHalfPct(l.taxBps)}</small></td></tr>;})}</tbody></table>
     <div className="summary-list invoice-summary"><div><span>Net charges</span><strong>{money(t.net)}</strong></div><div><span>CGST</span><strong>{money(gstSplitLines(b.lines).cgst)}</strong></div><div><span>SGST</span><strong>{money(gstSplitLines(b.lines).sgst)}</strong></div><div><span>Total including GST</span><strong>{money(t.total)}</strong></div><div><span>Net receipts applied</span><strong>{money(t.paid)}</strong></div>
@@ -217,7 +232,7 @@ export function InvoiceModal({id}:{id:string}){
     <PrintNotes doc="invoice"/>
     <FeedbackBillLine/>{/* F4-T3 */}
     {!!b.creditNotes?.length&&<PrintNotes doc="credit-note"/>}
-    <div className="modal-actions no-print"><button className="btn" onClick={()=>booking(b.id)}>Back to folio</button>{/* F7-R7 */}<DocPrintButton doc={b.invoiceNo?'doc.invoice':'doc.folio'} params={{booking:b.id}} label={b.invoiceNo?'Print invoice (Lodge look)':'Print folio (Lodge look)'}/>{(b.creditNotes??[]).map(c=><DocPrintButton key={c.id} doc="doc.credit-note" params={{booking:b.id,creditNote:c.id}} label={`Credit note ${c.no}`}/>)}{/* F7-R7 end */}<button className="btn primary" onClick={()=>{void printDocument();}}><Printer size={16}/> Print / save PDF</button></div></>;
+    <div className="modal-actions no-print"><button className="btn" onClick={()=>booking(b.id)}>Back to folio</button>{/* F7-R7 */}<DocPrintButton doc={b.invoiceNo?'doc.invoice':'doc.folio'} params={{booking:sfDocBooking(b0,fol)}} label={b.invoiceNo?'Print invoice (Lodge look)':'Print folio (Lodge look)'}/>{(b.creditNotes??[]).map(c=><DocPrintButton key={c.id} doc="doc.credit-note" params={{booking:b.id,creditNote:c.id}} label={`Credit note ${c.no}`}/>)}{/* F7-R7 end */}<button className="btn primary" onClick={()=>{void printDocument();}}><Printer size={16}/> Print / save PDF</button></div></>;
 }
 
 /** Refund request (open with {type:'refund', id: bookingId, room: receiptId}). */
@@ -261,8 +276,9 @@ export function CorrectionModal({id,room}:{id?:string;room?:string}){
 export function CreditNoteModal({id}:{id?:string}){
   const {b,s,run,booking,modal,busy}=useBooking(id??'');
   if(!b)return <Missing/>;
-  return <><div className="modal-heading"><div className="eyebrow">{bookingRef(b)} · {b.guest}{b.invoiceNo?' · '+b.invoiceNo:''}</div><h2>Request a sample credit note</h2><p>Net charges {money(totals(b).net)}</p></div>
-    <form className="form" onSubmit={e=>submit(e,f=>run({type:'CREDIT_NOTE',id:b.id,amount:amount(f),reason:field(f,'reason'),key:modal!.key},'Credit note requested — awaiting approval',{after:()=>booking(b.id)}))}>
+  const cnf=sfFolioOfModal(b,modal?.room)??(sfIsSplit(b)?'A':undefined),cv=cnf?sfView(b,cnf):b; // F8-SF-UI: the folio whose invoice is credited
+  return <><div className="modal-heading"><div className="eyebrow">{bookingRef(b)} · {b.guest}{cv.invoiceNo?' · '+cv.invoiceNo:''}</div><h2>Request a sample credit note{cnf&&sfIsSplit(b)?` · folio ${cnf}`:''}</h2><p>Net charges {money(totals(cv).net)}</p></div>
+    <form className="form" onSubmit={e=>submit(e,f=>run(sfWithFolio(b,cnf,{type:'CREDIT_NOTE',id:b.id,amount:amount(f),reason:field(f,'reason'),key:modal!.key}),'Credit note requested — awaiting approval',{after:()=>booking(b.id)}))}>
       <label>Credit amount before GST (₹)<input name="amount" type="number" min="0.01" step="0.01" required/></label>
       <label>Reason<input name="reason" required maxLength={120} placeholder="e.g. Service recovery after departure"/></label>
       <div className="info-note"><ShieldCheck size={16}/>Needs approval by another user. On approval a sample number from DEMO-CN/2026-27/ is issued with GST at the stay’s room-night rate ({gstPct(gstForFolioAdjustment(s,b,s.date).bps)}, CGST + SGST); a refund against the resulting credit can then be requested.</div>

@@ -1,4 +1,5 @@
 // Arrivals page, guided check-in stepper and walk-in flow (SCR-06, REQ-STAY-001, WF-STAY-001).
+import {SfRoutingEditor} from '../folio/Split'; // F8-SF-UI
 import React,{useState,useRef,useEffect} from 'react';
 import {bookingRef} from '../../domain/bookingRef';
 import {Check,ArrowRight,ArrowLeft,DoorOpen,AlertCircle,BedDouble,Printer,UserPlus,Info,Loader2,X} from 'lucide-react';
@@ -126,6 +127,7 @@ export function CheckinModal({id}:{id?:string}){
   else if(b&&step===6){const missing=done.slice(0,4).map((x,i)=>x?null:stepNames[i]).filter(Boolean);
     body=<><div className="summary-list"><div><span>Guest</span><strong>{b.guest}</strong></div><div><span>Room</span><strong>{b.room} · {room?.type}</strong></div><div><span>Stay</span><strong>{shortDate(b.arrival)} — {shortDate(b.departure)}</strong></div><div><span>Tariff</span><strong>{money(b.rate)}/night</strong></div></div>
       {desk.node}
+      <SfRoutingEditor b={b}/>{/* F8-SF-UI: bill routing at check-in */}
       {missing.length>0&&<div className="gs-deny" role="alert"><AlertCircle size={18}/><div><strong>Complete these steps first:</strong> {missing.join(', ')}.</div></div>}
       <div className="modal-actions">{prev}<button type="button" className="btn primary" disabled={busy||missing.length>0||!!desk.problem} onClick={()=>run({type:'CHECKIN',id:b.id,...desk.payload(),key:'checkin:'+b.id},`Checked in to room ${b.room}. Room board updated.`)}><DoorOpen size={16}/>Check in</button></div></>;}
   return <><div className="modal-heading"><div className="eyebrow">ARRIVALS · GUIDED CHECK-IN{b?' · '+bookingRef(b):''}</div><h2>{b?b.guest:'Find the reservation'}</h2>{b&&<p>Room {b.room} · {shortDate(b.arrival)} — {shortDate(b.departure)} · {b.people} guest{b.people>1?'s':''}</p>}{b&&b.status!=='In house'&&<PartyIdChips g={g}/>}</div>
