@@ -174,6 +174,7 @@ export * from '../../domain/streams/folio-split'; // F8 SF split folio: SFFolio 
 // F8-QW-NS
 // F8-QW-NS end
 // F8-QW-KDS
+export * from '../../domain/streams/kds'; // F8 QW-KDS: kdsCards, thresholds
 // F8-QW-KDS end
 // F8-QW-ADV
 // F8-QW-ADV end

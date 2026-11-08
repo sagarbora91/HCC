@@ -63,6 +63,7 @@ import {registration as measCaptureUi} from '../features/reports/MeasCaptureRegi
 // F8-SF-UI
 // F8-SF-UI end
 // F8-QW-KDS
+import {registration as kdsUi} from '../features/pos/KdsRegister';
 // F8-QW-KDS end
 // F8-QW-ADV
 // F8-QW-ADV end
@@ -114,6 +115,7 @@ export const registrations:FeatureRegistration[]=[reservations,guests,customers,
   // F8-SF-UI
   // F8-SF-UI end
   // F8-QW-KDS
+  kdsUi,
   // F8-QW-KDS end
   // F8-QW-ADV
   // F8-QW-ADV end
