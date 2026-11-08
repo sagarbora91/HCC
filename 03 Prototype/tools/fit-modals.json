@@ -15,6 +15,7 @@
   {"page":"cashier","opener":"Owner drawing","lane":"fit-cash-a","roles":["owner"]},
   {"page":"pos","selector":".pos-spot","label":"POS table (open check)","lane":"fit-cash-b","roles":["owner","manager","reception","cashier"]},
   {"page":"expenses","selector":".exp-register td .text-btn","label":"expense row Text","lane":"fit-cash-b","roles":["owner","manager","accountant"]},
+  {"page":"maintenance","tab":"pm-calendar","selector":"[aria-label='Preventive maintenance calendar'] button.text-btn:has-text('Scheduled')","label":"PM plan (calendar occurrence)","lane":"f8d-fit","roles":["owner","manager","supervisor"]},
   {"page":"maintenance","opener":"New work order","lane":"fit-ops","roles":["owner","manager","supervisor"]},
   {"page":"inventory","opener":"Issue / use","lane":"fit-ops","roles":["owner","manager","supervisor","housekeeper"]},
   {"page":"handover","opener":"Write handover note","lane":"fit-ops","roles":["owner","manager","reception"],"tab":"handover"},

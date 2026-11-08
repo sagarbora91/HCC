@@ -31,4 +31,11 @@ export function register({test,assert}){
   assert.ok(!/font-?[sS]ize/.test(src),'no font-size in the page file');
   });
 
+  test(`${tag} F8D-FIT: PM plan modal opener in fit-modals.json; fit tool has an opt-in phone viewport`,()=>{
+  const m=JSON.parse(read('tools/fit-modals.json')).find(x=>x.page==='maintenance'&&x.tab==='pm-calendar');
+  assert.ok(m&&m.selector.includes('Preventive maintenance calendar'),'pm-calendar occurrence opener present');
+  const t=read('tools/fit-screen-check.mjs');
+  assert.ok(/id:'phone'/.test(t)&&t.includes('!v.phone'),'phone viewport only on --viewports phone');
+  });
+
 }
