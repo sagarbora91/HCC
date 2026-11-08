@@ -18,7 +18,7 @@ export function AdvancesHeld(){
     <div className="padded inline adv-head"><span><strong>{rows.length}</strong> booking{rows.length===1?'':'s'} · <strong>{money(tot.held)}</strong> held</span>
       {tot.red>0&&<Pill tone="red">{tot.red} red</Pill>}
       <span className="muted">Red: cancelled, no-show or departed with money held, or an advance older than {ADV_RED_DAYS} days.</span>
-      <button className="btn small-btn" aria-label="Download advances held as CSV" onClick={()=>{void saveCsv(`advances-held_${s.date}.csv`,advCsv(rows));}}><Download size={14}/> CSV</button></div>
+      <button className="btn" aria-label="Download advances held as CSV" onClick={()=>{void saveCsv(`advances-held_${s.date}.csv`,advCsv(rows));}}><Download size={14}/> CSV</button></div>
     <div className="table-wrap"><table><thead><tr><th>Booking</th><th>Status</th><th>Stay</th><th className="number">Advance</th><th className="number">Deposit</th><th className="number">Refunded</th><th className="number">Held</th><th className="number">Age</th><th>Folio</th><th>Actions</th></tr></thead><tbody>
       {pg.shown.map(r=><tr key={r.booking} className={r.red?'adv-red':undefined}>
         <td><button className="text-btn" onClick={()=>booking(r.booking)}>{r.guest} · {r.ref}</button></td>
