@@ -145,3 +145,13 @@ button.mf-agenda:active{background:var(--sand-2)}
 .modal .mf-inline .pill,.modal .mf-stay-main .pill,.modal .m-lc-right .pill{font-size:13px}
 .modal .mf-link,.modal .mf-dup .text-btn,.modal .mf-hist .text-btn{font-size:15px;min-height:44px}
 .mf-strip em{font-size:12px}
+/* F8C phone: "Who pays" card of the check-in review step */
+.mf-route{display:flex;flex-direction:column;gap:10px;padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:var(--surface);margin:0 0 12px}
+.mf-route-head{display:flex;align-items:center;gap:8px;font-size:16px}
+.mf-route-rows{display:flex;flex-direction:column;gap:6px}
+.mf-route-row{display:flex;justify-content:space-between;gap:12px;align-items:baseline;font-size:16px;min-height:32px}
+.mf-route-row strong{text-align:right;overflow-wrap:anywhere}
+.mf-route select{min-height:48px;font-size:16px}
+.mf-route .mf-inline{display:flex;gap:10px}.mf-route .mf-inline .btn{flex:1;min-height:48px}
+.mf-route-hint{font-size:13px;color:var(--muted)}
+.mf-route select{width:100%;text-overflow:ellipsis}

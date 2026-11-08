@@ -18,6 +18,7 @@ import {bookingIdLookup} from '../../domain/streams/customers';
 import {statusTone} from '../../features/guests/GuestProfile';
 import {PrintListButton} from '../../features/guests/FrontDeskList';
 import {useDeskFields} from '../../features/guests/DeskFields'; // LF-DESK
+import {MfBillRouting} from './BillRouting'; // F8C-PHONE
 
 /** Waits until React has re-rendered with the result of the last run() (the context's state is per render). */
 function useSettle(){const renders=useRef(0);renders.current++;
@@ -112,6 +113,7 @@ export function MfCheckin({id}:{id?:string}){
   else if(b&&step===6){
     body=<><MfRows rows={[['Guest',b.guest],['Room',`${b.room} · ${room?.type||''}`],['Stay',`${shortDate(b.arrival)} – ${shortDate(b.departure)}`],['Tariff',money(b.rate)+' / night']]}/>
       {desk.node}
+      <MfBillRouting b={b}/>{/* F8C-PHONE: who pays room / extras */}
       {st.missing.length>0&&<div className="mf-deny" role="alert"><AlertCircle size={18}/><div><strong>Complete these steps first:</strong> {st.missing.join(', ')}.</div></div>}
       {fail&&<div className="mf-recover" role="alert"><AlertCircle size={18}/><div><strong>Check-in was not completed — nothing was changed.</strong><p>{fail}</p>
         <div className="mf-inline"><button className="btn small-btn primary" disabled={busy} onClick={checkin}><RotateCcw size={15}/>Retry</button>
