@@ -1,0 +1,43 @@
+{
+ "id": "rpt.stock.grn-register",
+ "cases": [
+  {
+   "uid": "owner",
+   "scenario": "BASE",
+   "params": {},
+   "tables": [
+    {
+     "key": "lines",
+     "title": "Receipts",
+     "columns": ["grn","date","supplier","item","qty","rate","amount","bill"],
+     "rows": []
+    },
+    {
+     "key": "suppliers",
+     "title": "Totals per supplier",
+     "columns": ["supplier","grns","qty","amount"],
+     "rows": []
+    }
+   ]
+  },
+  {
+   "uid": "owner",
+   "scenario": "FY26",
+   "params": {},
+   "tables": [
+    {
+     "key": "lines",
+     "title": "Receipts",
+     "columns": ["grn","date","supplier","item","qty","rate","amount","bill"],
+     "rows": []
+    },
+    {
+     "key": "suppliers",
+     "title": "Totals per supplier",
+     "columns": ["supplier","grns","qty","amount"],
+     "rows": []
+    }
+   ]
+  }
+ ]
+}

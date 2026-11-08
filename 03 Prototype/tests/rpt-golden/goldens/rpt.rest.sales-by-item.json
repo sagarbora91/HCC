@@ -1,0 +1,49 @@
+{
+ "id": "rpt.rest.sales-by-item",
+ "cases": [
+  {
+   "uid": "owner",
+   "scenario": "BASE",
+   "params": {},
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["item","category","qty","value","share"],
+     "rows": [
+      ["row","Masala dosa","Breakfast",2,44000,37.3],
+      ["row","Kanda poha","Breakfast",2,30000,25.4],
+      ["row","Idli sambar (3)","Breakfast",1,16000,13.6],
+      ["subtotal","Breakfast total",null,5,90000,76.3],
+      ["row","Filter coffee","Beverages",2,16000,13.6],
+      ["row","Masala chai","Beverages",2,12000,10.2],
+      ["subtotal","Beverages total",null,4,28000,23.7],
+      ["total","Total",null,9,118000,100]
+     ]
+    }
+   ]
+  },
+  {
+   "uid": "owner",
+   "scenario": "FY26",
+   "params": {},
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["item","category","qty","value","share"],
+     "rows": [
+      ["row","Masala dosa","Breakfast",2,44000,37.3],
+      ["row","Kanda poha","Breakfast",2,30000,25.4],
+      ["row","Idli sambar (3)","Breakfast",1,16000,13.6],
+      ["subtotal","Breakfast total",null,5,90000,76.3],
+      ["row","Filter coffee","Beverages",2,16000,13.6],
+      ["row","Masala chai","Beverages",2,12000,10.2],
+      ["subtotal","Beverages total",null,4,28000,23.7],
+      ["total","Total",null,9,118000,100]
+     ]
+    }
+   ]
+  }
+ ]
+}

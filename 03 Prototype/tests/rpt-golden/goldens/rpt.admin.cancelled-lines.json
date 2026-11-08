@@ -1,0 +1,31 @@
+{
+ "id": "rpt.admin.cancelled-lines",
+ "cases": [
+  {
+   "uid": "owner",
+   "scenario": "BASE",
+   "params": {},
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["date","booking","room","item","qty","amount","by","reason"],
+     "rows": []
+    }
+   ]
+  },
+  {
+   "uid": "owner",
+   "scenario": "FY26",
+   "params": {},
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["date","booking","room","item","qty","amount","by","reason"],
+     "rows": []
+    }
+   ]
+  }
+ ]
+}

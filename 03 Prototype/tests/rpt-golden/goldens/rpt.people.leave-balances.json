@@ -1,0 +1,105 @@
+{
+ "id": "rpt.people.leave-balances",
+ "cases": [
+  {
+   "uid": "owner",
+   "scenario": "BASE",
+   "params": {},
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["employee","type","entitlement","used","pending","balance"],
+     "rows": [
+      ["row","Aarav Joshi","Casual Leave",12,0,0,12],
+      ["row","Aarav Joshi","Sick Leave",7,0,0,7],
+      ["row","Aarav Joshi","Earned Leave",15,0,0,15],
+      ["row","Balu Jadhav","Casual Leave",12,0,0,12],
+      ["row","Balu Jadhav","Sick Leave",7,0,0,7],
+      ["row","Balu Jadhav","Earned Leave",15,0,0,15],
+      ["row","Farhan Qureshi","Casual Leave",12,0,0,12],
+      ["row","Farhan Qureshi","Sick Leave",7,0,0,7],
+      ["row","Farhan Qureshi","Earned Leave",15,0,0,15],
+      ["row","Ganesh More","Casual Leave",12,0,0,12],
+      ["row","Ganesh More","Sick Leave",7,0,0,7],
+      ["row","Ganesh More","Earned Leave",15,0,0,15],
+      ["row","Imran Shaikh","Casual Leave",12,0,0,12],
+      ["row","Imran Shaikh","Sick Leave",7,0,0,7],
+      ["row","Imran Shaikh","Earned Leave",15,0,0,15],
+      ["row","Joseph D’Souza","Casual Leave",12,0,0,12],
+      ["row","Joseph D’Souza","Sick Leave",7,0,0,7],
+      ["row","Joseph D’Souza","Earned Leave",15,0,0,15],
+      ["row","Kavya Patil","Casual Leave",12,0,2,12],
+      ["row","Kavya Patil","Sick Leave",7,0,0,7],
+      ["row","Kavya Patil","Earned Leave",15,0,0,15],
+      ["row","Meera Kulkarni","Casual Leave",12,0,0,12],
+      ["row","Meera Kulkarni","Sick Leave",7,0,0,7],
+      ["row","Meera Kulkarni","Earned Leave",15,0,0,15],
+      ["row","Neha Gaikwad","Casual Leave",12,0,0.5,12],
+      ["row","Neha Gaikwad","Sick Leave",7,0,0,7],
+      ["row","Neha Gaikwad","Earned Leave",15,0,0,15],
+      ["row","Priya Nair","Casual Leave",12,0,0,12],
+      ["row","Priya Nair","Sick Leave",7,0,0,7],
+      ["row","Priya Nair","Earned Leave",15,0,0,15],
+      ["row","Ravi Shinde","Casual Leave",12,2,0,10],
+      ["row","Ravi Shinde","Sick Leave",7,0,0,7],
+      ["row","Ravi Shinde","Earned Leave",15,0,0,15],
+      ["row","Suresh Pawar","Casual Leave",12,0,0,12],
+      ["row","Suresh Pawar","Sick Leave",7,0,0,7],
+      ["row","Suresh Pawar","Earned Leave",15,0,0,15]
+     ]
+    }
+   ]
+  },
+  {
+   "uid": "owner",
+   "scenario": "FY26",
+   "params": {},
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["employee","type","entitlement","used","pending","balance"],
+     "rows": [
+      ["row","Aarav Joshi","Casual Leave",12,0.5,0,11.5],
+      ["row","Aarav Joshi","Sick Leave",7,0,0,7],
+      ["row","Aarav Joshi","Earned Leave",15,0,0,15],
+      ["row","Balu Jadhav","Casual Leave",12,0,0,12],
+      ["row","Balu Jadhav","Sick Leave",7,0,0,7],
+      ["row","Balu Jadhav","Earned Leave",15,1,0,14],
+      ["row","Farhan Qureshi","Casual Leave",12,1,0,11],
+      ["row","Farhan Qureshi","Sick Leave",7,1,0,6],
+      ["row","Farhan Qureshi","Earned Leave",15,0,0,15],
+      ["row","Ganesh More","Casual Leave",12,1,0,11],
+      ["row","Ganesh More","Sick Leave",7,1,0,6],
+      ["row","Ganesh More","Earned Leave",15,0,0,15],
+      ["row","Imran Shaikh","Casual Leave",12,0,0,12],
+      ["row","Imran Shaikh","Sick Leave",7,0,0,7],
+      ["row","Imran Shaikh","Earned Leave",15,0,0,15],
+      ["row","Joseph D’Souza","Casual Leave",12,1,0,11],
+      ["row","Joseph D’Souza","Sick Leave",7,0,0,7],
+      ["row","Joseph D’Souza","Earned Leave",15,1,0,14],
+      ["row","Kavya Patil","Casual Leave",12,0.5,2,11.5],
+      ["row","Kavya Patil","Sick Leave",7,0,0,7],
+      ["row","Kavya Patil","Earned Leave",15,0,0,15],
+      ["row","Meera Kulkarni","Casual Leave",12,0.5,0,11.5],
+      ["row","Meera Kulkarni","Sick Leave",7,0,0,7],
+      ["row","Meera Kulkarni","Earned Leave",15,0,0,15],
+      ["row","Neha Gaikwad","Casual Leave",12,1.5,0.5,10.5],
+      ["row","Neha Gaikwad","Sick Leave",7,0,0,7],
+      ["row","Neha Gaikwad","Earned Leave",15,0,0,15],
+      ["row","Priya Nair","Casual Leave",12,2.5,0,9.5],
+      ["row","Priya Nair","Sick Leave",7,0,0,7],
+      ["row","Priya Nair","Earned Leave",15,0,0,15],
+      ["row","Ravi Shinde","Casual Leave",12,2,0,10],
+      ["row","Ravi Shinde","Sick Leave",7,0,0,7],
+      ["row","Ravi Shinde","Earned Leave",15,0,0,15],
+      ["row","Suresh Pawar","Casual Leave",12,1.5,0,10.5],
+      ["row","Suresh Pawar","Sick Leave",7,0,0,7],
+      ["row","Suresh Pawar","Earned Leave",15,0,0,15]
+     ]
+    }
+   ]
+  }
+ ]
+}
