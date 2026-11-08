@@ -1,0 +1,39 @@
+{
+ "id": "rpt.money.company-credit",
+ "cases": [
+  {
+   "uid": "owner",
+   "scenario": "FY26",
+   "params": {},
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["company","contact","rates","limit","used","remaining","status"],
+     "rows": [
+      ["row","Deccan Pharma Distributors (fictional)","Rahul Joshi · +91 90000 00011","Classic 1750.00; Deluxe 2600.00; Suite 4000.00",15000000,7060000,7940000,"Within limit"],
+      ["row","Godavari Agro Inputs (fictional)","Sunita Patil · +91 90000 00022","Classic 1800.00; Deluxe 2700.00",10000000,8800000,1200000,"Near limit (≥ 80%)"],
+      ["row","Sahyadri Infra Projects (fictional)","Imran Shaikh · +91 90000 00033","Classic 1700.00; Deluxe 2500.00; Suite 3800.00",20000000,0,20000000,"Within limit"]
+     ]
+    }
+   ]
+  },
+  {
+   "uid": "accountant",
+   "scenario": "FY26",
+   "params": {},
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["company","contact","rates","limit","used","remaining","status"],
+     "rows": [
+      ["row","Deccan Pharma Distributors (fictional)","Rahul Joshi · +91 90000 00011","Classic 1750.00; Deluxe 2600.00; Suite 4000.00",15000000,7060000,7940000,"Within limit"],
+      ["row","Godavari Agro Inputs (fictional)","Sunita Patil · +91 90000 00022","Classic 1800.00; Deluxe 2700.00",10000000,8800000,1200000,"Near limit (≥ 80%)"],
+      ["row","Sahyadri Infra Projects (fictional)","Imran Shaikh · +91 90000 00033","Classic 1700.00; Deluxe 2500.00; Suite 3800.00",20000000,0,20000000,"Within limit"]
+     ]
+    }
+   ]
+  }
+ ]
+}

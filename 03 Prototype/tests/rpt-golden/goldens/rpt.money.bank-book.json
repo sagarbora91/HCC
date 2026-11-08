@@ -1,0 +1,37 @@
+{
+ "id": "rpt.money.bank-book",
+ "cases": [
+  {
+   "uid": "accountant",
+   "scenario": "ACC-RULEBOOK",
+   "params": {
+    "account": "1030",
+    "from": "2026-04-01",
+    "to": "2026-04-30"
+   },
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["date","voucher","narration","counter","debit","credit","balance"],
+     "rows": [
+      ["subtotal",null,null,"Opening balance · Bank accounts — Dr",null,null,null,30000000],
+      ["row","2026-04-05","PMT/20260405/001","HDFC term loan EMI, April (fictional) · EMI-DEMO-0405 · manual MV-1479","Bank loans (secured) · HDFC term loan, Interest on loans",0,5500000,24500000],
+      ["row","2026-04-10","RCT/20260410/001","Company payment received · Deccan Agro Ltd · Bank transfer · NEFT-DEMO-0410 · payment GCP-1755","Company receivables (city ledger) · Deccan Agro Ltd",4000000,0,28500000],
+      ["row","2026-04-15","PMT/20260415/001","State Electricity Board (fictional) · Utilities · Bank transfer","Electricity, water & fuel",0,4500000,24000000],
+      ["row","2026-04-18","PMT/20260418/002","Vendor payment · Morning Supplies · Bank transfer · NEFT-DEMO-0418 · payment VP-2014","Vendor payables · Morning Supplies",0,6000000,18000000],
+      ["row","2026-04-25","JRN/20260425/001","Cash deposited in bank · HDFC · slip SLIP-20260425 · deposit BNK-2151","Cash in hand · Front-desk cash drawer",15000000,0,33000000],
+      ["row","2026-04-27","CTR/20260427/001","UPI settlements to HDFC, April (fictional) · UPI-SETTLE-APR · manual MV-2180","UPI clearing",21300000,0,54300000],
+      ["row","2026-04-27","JRN/20260427/001","Card settlement less MDR 1 % and GST 18 % (fictional) · CARD-SETTLE-APR · manual MV-2182","Bank & card charges, Card clearing",14823000,0,69123000],
+      ["row","2026-04-28","PMT/20260428/001","Owner drawing from the bank (fictional) · DRAW-DEMO-0428 · manual MV-2203","Owner's drawings",0,5000000,64123000],
+      ["row","2026-04-29","RCT/20260429/001","OTA payout · Goibibo · statement GOI-STMT-2026-04-A · 1 booking(s) · payout CHPO-2224","OTA commission, GST electronic cash ledger, OTA receivables · Goibibo",1736000,0,65859000],
+      ["row","2026-04-30","PMT/20260430/001","Net pay paid · Bank transfer · Bank file 1 · April 2026 · run HR-PAY-2254 · paid 2026-05-01","Salaries payable (net)",0,21350000,44509000],
+      ["row","2026-04-30","PMT/20260430/002","Bank charges ₹500 + GST ₹90, April (fictional) · BANKCHG-DEMO-0430 · manual MV-2247","Bank & card charges",0,59000,44450000],
+      ["row","2026-04-30","RCT/20260430/001","Company payment received · Deccan Agro Ltd · Bank transfer · NEFT-DEMO-0430 · payment GCP-2245 · TDS ₹6000.00 deducted","TDS receivable, Company receivables (city ledger) · Deccan Agro Ltd",5700000,0,50150000],
+      ["total",null,null,"Closing balance — Dr",null,62559000,42409000,50150000]
+     ]
+    }
+   ]
+  }
+ ]
+}

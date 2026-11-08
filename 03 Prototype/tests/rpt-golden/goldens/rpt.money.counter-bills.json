@@ -1,0 +1,18 @@
+{
+ "id": "rpt.money.counter-bills",
+ "cases": [
+  {
+   "uid": "owner",
+   "scenario": "BASE",
+   "params": {},
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["date","billNo","customer","item","qty","rate","amount","tax","tender"],
+     "rows": []
+    }
+   ]
+  }
+ ]
+}
