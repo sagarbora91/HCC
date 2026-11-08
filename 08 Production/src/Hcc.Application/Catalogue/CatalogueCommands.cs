@@ -31,7 +31,8 @@ namespace Hcc.Application.Catalogue;
 /// Every command runs through <see cref="ICommandRunner"/> (Idempotency-Key, audit and outbox in the same transaction).
 /// </summary>
 public sealed class CatalogueCommands(ICommandRunner runner, IAccessPolicy policy, ICatalogueStore store, IMastersStore history, IBillingStore billing,
-    IGstRateResolver gst, TimeProvider clock, IGstChargeSnapshots? snapshots = null)
+    IGstRateResolver gst, TimeProvider clock, IGstChargeSnapshots? snapshots = null,
+    Hcc.Application.Billing.ISplitFolioStore? split = null) // F8-FIX M2: D7 on a split stay's company folio when an extra is posted
 {
     public const string OpSaveMealPlan = "SaveMealPlan";
     public const string OpRetireMealPlan = "RetireMealPlan";
@@ -330,7 +331,9 @@ public sealed class CatalogueCommands(ICommandRunner runner, IAccessPolicy polic
             // ACC-2 parity (contract §8): an extra of GST class food is an F&B line (charge kind food → line:food, 4200); every other class stays service.
             var kind = category == GstCategory.Food ? ChargeKind.Food : ChargeKind.Service;
             var line = new NewCharge(f.FolioId, kind, f.BusinessDate, label, amount, g.Bps, GstMath.LineTax(amount, g.Bps), null, null, ctx.PrincipalId, Now);
+            var d7 = await Hcc.Application.Billing.CompanyFolioPostingGuard.BeforeAsync(split, tx, ctx.PropertyId, f.ReservationId, c).ConfigureAwait(false); // F8-FIX M2
             var chargeId = await billing.InsertChargeAsync(tx, line, c).ConfigureAwait(false);
+            await Hcc.Application.Billing.CompanyFolioPostingGuard.AfterAsync(split, tx, ctx.PropertyId, d7, c).ConfigureAwait(false); // F8-FIX M2 (SFQ-7)
             await RecordGstAsync(tx, chargeId, g, line.Tax, c).ConfigureAwait(false);
             await store.LinkChargeAsync(tx, chargeId, item.Id, null, null, qty, c).ConfigureAwait(false);
             var version = await billing.TouchFolioAsync(tx, f.FolioId, c).ConfigureAwait(false);

@@ -115,7 +115,9 @@ public sealed class BillingService(ICommandRunner runner, IBillingStore store, I
             var bps = g.Bps;
             var line = new NewCharge(f.FolioId, ChargeKind.Service, date, label, amount, bps, GstMath.LineTax(amount, bps), null, null, caller.PrincipalId, Now,
                 req.ExplicitFolio); // F8-INT: ExplicitFolio = post on this folio exactly (SF-CONTRACT §3 CHARGE {folio}); otherwise routed as extras
+            var d7 = await CompanyFolioPostingGuard.BeforeAsync(split, tx, caller.PropertyId, f.ReservationId, ct2).ConfigureAwait(false); // F8-FIX M2
             var id = await store.InsertChargeAsync(tx, line, ct2).ConfigureAwait(false);
+            await CompanyFolioPostingGuard.AfterAsync(split, tx, caller.PropertyId, d7, ct2).ConfigureAwait(false); // F8-FIX M2: D7 on the company folio (SFQ-7)
             await RecordGstAsync(tx, id, g, line.Tax, ct2).ConfigureAwait(false);
             var version = await store.TouchFolioAsync(tx, f.FolioId, ct2).ConfigureAwait(false);
             await tx.AuditAsync("CHARGE_POSTED", Target("folio", f.FolioId), $"{label} · {amount} + tax {line.Tax}" + (date != f.BusinessDate ? $" · on reopened day {date:yyyy-MM-dd} (DEC-077)" : ""), ct2).ConfigureAwait(false);
@@ -571,6 +573,7 @@ public sealed class BillingService(ICommandRunner runner, IBillingStore store, I
             if (f.ReservationStatus != "InHouse") throw Invalid("This stay is not in house.");
             if (figures.Balance != a.Amount || a.TargetVersion != f.Version) throw Stale("The folio changed after this approval. Request guest credit again.");
             if (guestCredit is null) throw Invalid("Guest credit is not available.");
+            await EnsureReceiptFolioAsync(tx, caller, f, "guest-credit", null, ct2).ConfigureAwait(false); // F8-FIX: split stay → folio A or an Udhaar folio only
             await guestCredit.EnsureWithinLimitAsync(tx, caller, f, a.Amount, ct2).ConfigureAwait(false);
             receipt = new NewReceipt(f.FolioId, ReceiptKind.GuestCredit, GuestCreditTender, a.Amount, null, f.BusinessDate, null, null,
                 $"Guest credit · approval {a.ApprovalId}", a.ApprovalId, caller.PrincipalId, now);
