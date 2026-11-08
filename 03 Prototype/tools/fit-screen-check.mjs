@@ -159,7 +159,8 @@ for(const pass of PASSES){
       const page=await ctx.newPage();const errs=[];page.on('pageerror',e=>errs.push(String(e.message)));
       await page.goto(BASE);await page.waitForSelector('.topbar',{timeout:30000}).catch(()=>{});await sleep(800);
       lastId='';
-      const allowed=await drawerPages(page);
+      // F8E-FIT: the phone shell has no drawer (bottom bar + More): with --pages the listed pages are opened as given (a page the role cannot open shows as not-reached).
+      const allowed=vp.phone&&opt('--pages')?new Set(PAGES):await drawerPages(page);
       const tag=r=>({scale:pass.scale,vp:vp.id,role,...r});
       for(const id of PAGES){
         if(!allowed.has(id)&&!EXTRA_PAGES.includes(id))continue; // the role cannot open this page (not in its drawer)
