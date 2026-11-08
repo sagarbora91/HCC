@@ -70,7 +70,12 @@ function request(k:Kit,x:Booking,fields:Pick<Approval,'amount'|'reason'|'kind'>&
   clean(a as unknown as Record<string,unknown>);if(a.meta)clean(a.meta);
   k.s.approvals.push(a);return a;
 }
-const pendingOf=(k:Kit,bookingId:string,kind:string)=>k.s.approvals.some(a=>a.booking===bookingId&&folioKind(a)===kind&&a.status==='Pending'&&!folioApprovalExpired(k.s,a));
+/** A pending, unexpired request of `kind` on the stay. F8D-LOW (money review L3): on a split stay with `folio`, only a request on that folio
+ *  (meta.folio, absent = A) blocks: each folio keeps its own one-pending-request rule (the server keeps approvals per folio). The approval is
+ *  still bound to the stay's version, so deciding one folio's request makes another folio's open request stale (re-request), as any other
+ *  posting on the stay does today. CHECKOUT still refuses while any folio has a pending request (SF-CONTRACT §4). */
+const pendingOf=(k:Kit,x:Booking,kind:string,folio?:string)=>k.s.approvals.some(a=>a.booking===x.id&&folioKind(a)===kind&&a.status==='Pending'&&!folioApprovalExpired(k.s,a)
+  &&(folio===undefined||!sfIsSplit(x)||metaFolio(a)===folio));
 /** MA-3: the method must be an active payment method usable at the front desk (money masters; seed = the old FOLIO_TENDERS).
  *  A refund may go back through the original receipt's method even if it was retired since (`original`). Returns the stored name. */
 const validMethod=(k:Kit,method:unknown,reference:unknown,original?:string):string=>{
@@ -183,7 +188,7 @@ const DISCOUNT:Handler=k=>{
   assert(!gstAdjustmentMixed(xv),GST_ADJUSTMENT_MIXED_MSG); // F8-INT (H2)
   const limit=rbacDiscountLimit(s,uid);
   if(limit!==undefined&&cmd.amount>limit){
-    assert(!pendingOf(k,x.id,'discount'),'A discount request is already pending.','INVALID_TRANSITION');
+    assert(!pendingOf(k,x,'discount',fol),'A discount request is already pending.','INVALID_TRANSITION');
     request(k,x,{amount:cmd.amount,reason:cmd.reason,kind:undefined,...(sfIsSplit(x)?{meta:{command:'APPROVAL',folio:fol}}:{})}); // F8-SF-DOMAIN: meta.folio
     return x.id+' · approval requested';
   }
@@ -202,7 +207,7 @@ const REFUND_REQUEST:Handler=k=>{
   assert(!cbIsLocked(s,r!.date),cbLockedMessage(r!.date,'a refund against receipt '+r!.id),'DAY_CLOSED'); // DEC-065
   const remaining=folioRefundable(s,x,r!.id);
   assert(cmd.amount<=remaining,`Refund cannot exceed the refundable remainder of ${r!.id} (${money(remaining)}).`);
-  if(x.status==='Departed')assert(cmd.amount<=Math.max(0,-totals(sfView(x,r!.folio??SF_PRIMARY)).balance)-folioOutstandingRefunds(s,x.id),DEPARTED_REFUND_MSG,'INVALID_TRANSITION'); // F8-SF-DOMAIN: that folio's balance
+  if(x.status==='Departed')assert(cmd.amount<=Math.max(0,-totals(sfView(x,r!.folio??SF_PRIMARY)).balance)-folioOutstandingRefunds(s,x.id,'',x,r!.folio??SF_PRIMARY),DEPARTED_REFUND_MSG,'INVALID_TRANSITION'); // F8-SF-DOMAIN: that folio's balance; F8D-LOW (L2): that folio's outstanding refunds
   const a=request(k,x,{amount:cmd.amount,reason:String(cmd.reason).trim(),kind:'refund',target:r!.id});
   return `${x.id} · refund of ${money(cmd.amount)} against ${r!.id} requested · ${a.id}`;
 };
@@ -221,7 +226,7 @@ const REFUND_EXECUTE:Handler=k=>{
   const r=x!.receipts.find(r=>r.id===a!.target);assert(r,'The original receipt no longer exists.','NOT_FOUND');
   assert(!cbIsLocked(s,r!.date),cbLockedMessage(r!.date,'executing a refund against receipt '+r!.id),'DAY_CLOSED'); // DEC-065
   assert(a!.amount<=folioRefundable(s,x!,r!.id,a!.id),'Refund cannot exceed the refundable remainder of this receipt.','INVALID_TRANSITION');
-  if(x!.status==='Departed')assert(a!.amount<=Math.max(0,-totals(sfView(x!,r!.folio??SF_PRIMARY)).balance)-folioOutstandingRefunds(s,x!.id,a!.id),DEPARTED_REFUND_MSG,'INVALID_TRANSITION'); // F8-SF-DOMAIN: that folio's balance
+  if(x!.status==='Departed')assert(a!.amount<=Math.max(0,-totals(sfView(x!,r!.folio??SF_PRIMARY)).balance)-folioOutstandingRefunds(s,x!.id,a!.id,x!,r!.folio??SF_PRIMARY),DEPARTED_REFUND_MSG,'INVALID_TRANSITION'); // F8-SF-DOMAIN: that folio's balance; F8D-LOW (L2): that folio's outstanding refunds
   const method=validMethod(k,cmd.method||r!.method,cmd.reference??('Refund of '+r!.id),r!.method);
   const rid=id('RCPT');
   x!.receipts.push({id:rid,amount:a!.amount,method,date:s.date,kind:'refund',reference:String(cmd.reference??'').trim()||('Refund of '+r!.id),actor:uid,refundOf:r!.id,approvalId:a!.id});
@@ -241,7 +246,7 @@ const COMPANY_CREDIT_REQUEST:Handler=k=>{
     if(!cf||fol!==cf.id)sfFail('VALIDATION','SF_COMPANY_FOLIO','Company credit goes on the company folio only. Open a company folio (Split bill) first.');
     const bal=totals(sfView(x,fol)).balance;
     assert(bal>0,'There is no outstanding balance to place on company credit.','INVALID_TRANSITION');
-    assert(!pendingOf(k,x.id,'company-credit'),'A company-credit request is already pending.','INVALID_TRANSITION');
+    assert(!pendingOf(k,x,'company-credit',fol),'A company-credit request is already pending.','INVALID_TRANSITION');
     sfCompanyCreditCheck(k,x,fol,bal);
     const a=request(k,x,{amount:bal,reason:String(cmd.reason??'').trim()||('Company credit · '+cf!.payer.name),kind:'company-credit',meta:{command:'APPROVAL',company:cf!.payer.name,gstin:cf!.payer.gstin,folio:fol}});
     return `${x.id} · folio ${fol} · company credit ${money(bal)} requested for ${cf!.payer.name} · ${a.id}`;
@@ -251,7 +256,7 @@ const COMPANY_CREDIT_REQUEST:Handler=k=>{
   assert(company,'Add a company to this booking before requesting company credit.');
   const bal=totals(x).balance;
   assert(bal>0,'There is no outstanding balance to place on company credit.','INVALID_TRANSITION');
-  assert(!pendingOf(k,x.id,'company-credit'),'A company-credit request is already pending.','INVALID_TRANSITION');
+  assert(!pendingOf(k,x,'company-credit'),'A company-credit request is already pending.','INVALID_TRANSITION');
   companyCreditCheck(k,x,bal);
   const a=request(k,x,{amount:bal,reason:String(cmd.reason??'').trim()||('Company credit · '+company),kind:'company-credit',meta:{command:'APPROVAL',company:company!,gstin:x.company?.gstin??account?.gstin}});
   return `${x.id} · company credit ${money(bal)} requested for ${company} · ${a.id}`;
@@ -279,7 +284,7 @@ const CREDIT_NOTE:Handler=k=>{
   const fol=sfIsSplit(x)?cmdFolio(k,x):SF_PRIMARY,xv=sfView(x,fol);
   assert(cmd.amount<=totals(xv).net,'Credit note cannot exceed the net charges on this folio.');
   assert(!gstAdjustmentMixed(xv),GST_ADJUSTMENT_MIXED_MSG); // F8-INT (H2)
-  assert(!pendingOf(k,x.id,'credit-note'),'A credit-note request is already pending.','INVALID_TRANSITION');
+  assert(!pendingOf(k,x,'credit-note',fol),'A credit-note request is already pending.','INVALID_TRANSITION');
   if(sfIsSplit(x))assert(xv.invoiceNo,`Folio ${fol} has no tax invoice (a ₹0 folio is not invoiced): nothing to credit.`,'INVALID_TRANSITION');
   const a=request(k,x,{amount:cmd.amount,reason:String(cmd.reason).trim(),kind:'credit-note',target:xv.invoiceNo,...(sfIsSplit(x)?{meta:{command:'APPROVAL',folio:fol}}:{})});
   // F8-SF-DOMAIN end

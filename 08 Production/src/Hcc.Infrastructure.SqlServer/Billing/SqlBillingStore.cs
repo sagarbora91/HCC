@@ -198,6 +198,15 @@ public sealed class SqlBillingStore(SqlConnectionFactory connections) : IBilling
         return id;
     }
 
+    public async Task<(long FolioId, string Version)?> ChargeFolioAsync(ICommandTransaction tx, long chargeId, CancellationToken ct) // F8D-LOW (L6)
+    {
+        await using var cmd = Cmd(tx, "SELECT c.folio_id, f.row_ver FROM bill.charge c JOIN bill.folio f ON f.folio_id = c.folio_id WHERE c.charge_id = @c;");
+        cmd.Parameters.Add("@c", SqlDbType.BigInt).Value = chargeId;
+        await using var rd = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+        if (!await rd.ReadAsync(ct).ConfigureAwait(false)) return null;
+        return (rd.GetInt64(0), SqlValues.RowVersionToWire((byte[])rd.GetValue(1)));
+    }
+
     public async Task<long> InsertReceiptAsync(ICommandTransaction tx, NewReceipt r, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(r);

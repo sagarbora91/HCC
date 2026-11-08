@@ -3,19 +3,15 @@
 import type {Booking,Line,State} from '../../types';
 import {registerReport} from '../catalogue';
 import {grpSlice} from '../../streams/groups';
-import {sfIsSplit,sfFolios,sfView} from '../../streams/folio-split';
+import {sfCompanyLines} from '../../streams/folio-split';
 import {guestNameOf} from '../guests/shared';
 import {T,I,M,row,plural,isLiveNight} from './common';
 
 export const COMPANY_COLS=[T('company','Company'),I('guests','Guests'),I('roomNights','Room-nights'),M('tariff','Tariff'),M('other','Other charges'),M('total','Total business')];
 
-/** Lines of a stay that belong to a company (R8). Until sf-domain merges sfCompanyLines this calls sfView / sfFolios directly. */
-export function companyLinesOf(b:Booking,companyId:string):Line[]{
-  if(sfIsSplit(b)){
-    return sfFolios(b).filter(f=>f.payer.kind==='company'&&f.payer.ref===companyId).flatMap(f=>sfView(b,f.id).lines);
-  }
-  return b.company?.account===companyId?b.lines:[];
-}
+/** Lines of a stay that belong to a company (R8). F8D-LOW (money review L5): the shared sfCompanyLines — on a split stay the company folio's
+ *  lines only; on any other stay every line when it is billed to the company (its own link or a bill-to-company block, as grpAccountOf). */
+export function companyLinesOf(s:State,b:Booking,companyId:string):Line[]{return sfCompanyLines(s,b,companyId);}
 const guestKey=(s:State,b:Booking)=>b.guestId??guestNameOf(s,b);
 
 export const companyBusiness=registerReport({
@@ -32,7 +28,7 @@ export const companyBusiness=registerReport({
       if(q&&!c.name.toLowerCase().includes(q)&&c.id.toLowerCase()!==q)continue;
       const guests=new Set<string>();let nights=0,tariff=0,other=0;
       for(const b of s.bookings){
-        const lines=companyLinesOf(b,c.id).filter(l=>l.date>=p.from!&&l.date<=p.to!);
+        const lines=companyLinesOf(s,b,c.id).filter(l=>l.date>=p.from!&&l.date<=p.to!);
         if(!lines.length)continue;
         guests.add(guestKey(s,b));
         for(const l of lines){

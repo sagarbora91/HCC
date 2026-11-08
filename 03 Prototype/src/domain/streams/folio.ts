@@ -3,6 +3,7 @@
 // (re-exported by services/mock/index.ts for UI and tests). Export names are prefixed `folio`/`FOLIO_` to avoid clashes.
 import type {Approval,Booking,Line,Receipt,State} from '../types';
 import {addMinutes} from '../money';
+import {sfIsSplit,SF_PRIMARY} from './folio-split'; // F8D-LOW (L2)
 
 /** Payment tenders accepted by PAYMENT (SCR-09). Company credit is applied only via an approved request at checkout. */
 /** LEGACY (MA-3): seed of the front-desk payment methods; read mnyNames(s,'frontdesk') (money masters). */
@@ -41,9 +42,15 @@ export function folioRefundable(s:State,b:Booking,receiptId:string,exceptApprova
 }
 /** Amount already refunded against a receipt. */
 export function folioRefunded(b:Booking,receiptId:string){return b.receipts.filter(x=>x.kind==='refund'&&x.refundOf===receiptId).reduce((a,x)=>a+x.amount,0);}
-/** Outstanding (Pending/Approved) refund requests on a booking, excluding one. Used for the departed-stay credit check. */
-export function folioOutstandingRefunds(s:State,bookingId:string,exceptApproval=''){
-  return s.approvals.filter(a=>a.id!==exceptApproval&&a.booking===bookingId&&a.kind==='refund'&&(a.status==='Pending'||a.status==='Approved')&&!folioApprovalExpired(s,a)).reduce((a,x)=>a+x.amount,0);
+/** Outstanding (Pending/Approved) refund requests on a booking, excluding one. Used for the departed-stay credit check.
+ *  F8D-LOW (money review L2, SF-CONTRACT §6): with `folio` on a split stay `b`, only the requests whose target receipt sits on that folio count
+ *  (the departed check runs on that folio's balance); a receipt without `folio` is on A. Without `folio` (every single-folio stay): unchanged. */
+export function folioOutstandingRefunds(s:State,bookingId:string,exceptApproval='',b?:Booking,folio?:string){
+  const onFolio=(a:Approval)=>{
+    if(!b||folio===undefined||!sfIsSplit(b))return true;
+    const r=b.receipts.find(x=>x.id===a.target);return (r?.folio??SF_PRIMARY)===folio;
+  };
+  return s.approvals.filter(a=>a.id!==exceptApproval&&a.booking===bookingId&&a.kind==='refund'&&(a.status==='Pending'||a.status==='Approved')&&!folioApprovalExpired(s,a)&&onFolio(a)).reduce((a,x)=>a+x.amount,0);
 }
 /** Agreed nights vs posted room-night lines (BL-017 header). */
 export function folioNights(b:Booking){
