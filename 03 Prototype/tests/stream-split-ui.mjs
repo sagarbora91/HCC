@@ -4,7 +4,8 @@ import {build} from 'esbuild';
 import {readFileSync} from 'node:fs';
 export async function register({test,M,assert}){
   await build({entryPoints:['src/features/folio/SplitLogic.ts'],bundle:true,platform:'node',format:'esm',outfile:'tests/.generated/split-logic.mjs',logLevel:'error'});
-  const L=await import('./.generated/split-logic.mjs?'+Date.now());
+  await build({entryPoints:['src/domain/reports/documents/folio.ts'],bundle:true,platform:'node',format:'esm',outfile:'tests/.generated/split-folio-doc.mjs',logLevel:'error'});
+  const L=await import('./.generated/split-logic.mjs?'+Date.now()),D=await import('./.generated/split-folio-doc.mjs?'+Date.now());
   const {seed,execute,totals}=M;
   const addDays=(d,n)=>{const x=new Date(d+'T00:00:00Z');x.setUTCDate(x.getUTCDate()+n);return x.toISOString().slice(0,10);};
   const bk=(s,id)=>s.bookings.find(b=>b.id===id);
@@ -120,8 +121,8 @@ export async function register({test,M,assert}){
     let {s,id,co}=stay();
     s=split(s,id,co);s=execute(s,'owner',{type:'POST_NIGHTS',id});
     s=execute(s,'owner',{type:'CHARGE',id,label:'Laundry',amount:50000,gst:'laundry'});
-    const b=bk(s,id),dA=M.folioDocument(s,'owner',L.sfDocBooking(b,'A'),'folio'),dB=M.folioDocument(s,'owner',L.sfDocBooking(b,'B'),'folio');
-    const net=d=>d.tables[0].rows.at(-1).net;
+    const b=bk(s,id),dA=D.folioDocument(s,'owner',L.sfDocBooking(b,'A'),'folio'),dB=D.folioDocument(s,'owner',L.sfDocBooking(b,'B'),'folio');
+    const net=d=>d.tables[0].rows.at(-1).cells.net;
     assert.equal(net(dA),totals(M.sfView(b,'A')).net);assert.equal(net(dB),totals(M.sfView(b,'B')).net);
     assert.equal(net(dA)+net(dB),totals(b).net);
     assert.ok(dB.pairs.some(p=>p[0]==='Bill to'&&/Deccan/.test(p[1])));
