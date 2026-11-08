@@ -6,6 +6,7 @@ import {available,rateFor} from '../selectors';
 import {gstForRoomNight,gstStayTax} from '../gst';
 import {addDays,nights,money} from '../money';
 import {resCapacity,resHoldActive} from './reservations';
+import {yldOverbookAllowed} from './yield'; // F8-QW-NS
 
 export type CHNChannelStatus='Connected'|'Paused'|'Error'|'Disconnected';
 export type CHNChannel={id:string;name:string;status:CHNChannelStatus;
@@ -80,7 +81,9 @@ export function chnPushPreview(s:State,channelId:string,days=CHN_PUSH_DAYS){
     if(!code){unmapped.push(type);continue;}
     const room=s.rooms.find(r=>r.type===type)!;
     for(const date of dates){
-      const avail=chnAvailOn(s,type,date);
+      // F8-QW-NS · the Owner's overbooking cap (yld.overbook.<type>, default 0 = no change) is honoured only here, at the channel push (QWQ-2)
+      const avail=chnAvailOn(s,type,date)+yldOverbookAllowed(s,type);
+      // F8-QW-NS end
       const rate=Math.round(rateFor(s,room,date)*(10000+c.markupBps)/10000);
       const stop=c.stopSell.includes(type);
       rows.push({type,code,date,avail,rate,closed:stop||avail===0,why:stop?'Stop-sell':avail===0?'Sold out':undefined});

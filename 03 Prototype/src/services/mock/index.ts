@@ -172,6 +172,7 @@ export * from '../../domain/streams/folio-split'; // F8 SF split folio: SFFolio 
 // F8-QW-NA
 // F8-QW-NA end
 // F8-QW-NS
+export * from '../../domain/streams/noshow';
 // F8-QW-NS end
 // F8-QW-KDS
 // F8-QW-KDS end

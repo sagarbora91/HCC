@@ -10,6 +10,7 @@
 import type {Handler,Kit} from '../commands';
 import type {Booking} from '../../../domain/types';
 import {available,rateFor,totals} from '../../../domain/selectors';
+import {nsReason} from '../../../domain/streams/noshow'; // F8-QW-NS
 import {nights,addMinutes,money} from '../../../domain/money';
 import {resCapacity,resHoldActive,resSweepHolds,RES_HOLD_MINUTES,RES_GSTIN,RES_PHONE} from '../../../domain/streams/reservations';
 import {rmsCapacity} from '../../../domain/streams/roommasters';
@@ -128,7 +129,11 @@ export const handlers:Record<string,Handler>={
     assert(!totals(x).deposit&&totals(x).paid===0,'Refund the advance and return any deposit before cancelling.','INVALID_TRANSITION');
     resSweepHolds(s);
     x.status=cmd.noShow?'No show':'Cancelled';
-    const reason=String(cmd.reason??'').trim();if(reason)x.cancelReason=reason.slice(0,200);
+    let reason=String(cmd.reason??'').trim();
+    // F8-QW-NS · the reason carries the shown policy charge (DEC-MA-5b: shown, never posted)
+    if(cmd.noShow)reason=nsReason(s,x,reason).slice(0,200);
+    // F8-QW-NS end
+    if(reason)x.cancelReason=reason.slice(0,200);
     if(held)delete x.holdUntil;
     x.version++;return x.id+(held?' · hold released':'')+(reason?' · '+reason:'');
   },

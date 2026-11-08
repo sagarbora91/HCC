@@ -13,6 +13,7 @@ import {Corrections} from './Corrections';
 import {ReopenDay} from './ReopenDay';
 import {usePaged,ShowMore} from '../../components/ShowMore';
 import {DayPackButton} from '../exports/DayPack';
+import {NoShowList} from '../reservations/NoShowList'; // F8-QW-NS
 
 type StepState='done'|'current'|'blocked'|'waiting';
 /** Step ids = SUB_SCREENS 'closing' (kebab-case of the labels). */
@@ -114,6 +115,9 @@ export function DayClosing(){
       {closed?<p className="muted">Open next business day is the first button in the page header.</p>:<span className="f-why">Close today first.</span>}</>);
   // ReopenDay renders the Owner's reopen form or the reopened day's panel (everyone), else nothing: then Corrections takes the whole body.
   else body=reopened||user.role==='Owner'?<div className="fit-cols f-fit-even"><div><ReopenDay/></div><div><Corrections/></div></div>:<Corrections/>;
+  // F8-QW-NS · Due no-shows (QWQ-7) join the preflight step; shown after fd.noShowTime, marking is one click, nothing is posted
+  if(step==='preflight'&&!closed)body=panel(step,<><NoShowList/><div style={{height:12}}/>{(body as React.ReactElement<{children:React.ReactElement<{children:React.ReactNode}>}>).props.children.props.children}</>);
+  // F8-QW-NS end
 
   return <FitPage title="Day closing" sub="Finish the day with confidence: resolve exceptions, post room nights, reconcile cash, then close." layout="steps"
       actions={<>{closed?nextBtn:closeBtn}{reportBtn}</>}
