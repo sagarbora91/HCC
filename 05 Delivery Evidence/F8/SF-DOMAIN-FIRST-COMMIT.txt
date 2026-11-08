@@ -1,5 +1,5 @@
 F8 sf-domain STEP 1 commit (sf-server and sf-ui: git merge this commit on claude/f8-sf-domain)
-hash: PENDING
+hash: e6021c85 (branch claude/f8-sf-domain; tsc 0 errors, dotnet build Hcc.Infrastructure.SqlServer 0 errors / 0 warnings)
 Contents: migrations 4350 sf_folio_payer + 4351 sf_folio_route (lock + Hcc.slnx F8-SF-DOMAIN block);
 server Hcc.Domain/Billing/FolioRouting.cs, SplitFolioRules.cs, Hcc.Contracts/Billing/SplitFolioContracts.cs,
 Hcc.Application/Billing/SplitFolioService.cs (ISplitFolioStore port — SQL adapter is sf-server's);
