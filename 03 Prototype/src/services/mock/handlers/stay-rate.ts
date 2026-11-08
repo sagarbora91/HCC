@@ -4,6 +4,7 @@ import type {Handler,Kit} from '../commands';
 import type {Approval,Booking,GuestAgreedRate,STRRateChange} from '../../../domain/types';
 import {money} from '../../../domain/money';
 import {gstForRoomNight} from '../../../domain/gst';
+import {sfLineFolio} from '../../../domain/streams/folio-split'; // F8-SF-DOMAIN
 import {folioExpiresAt,folioKind,folioApprovalExpired} from '../../../domain/streams/folio';
 import {strRefusal,strCanDirect,strPlan,strEffectiveFrom,strNightClosed,strState,strAgreedRate,strThresholdBps,strTariff,strOverThreshold,strReductionBps,strJudgedText,type STRScope} from '../../../domain/streams/stay-rate';
 
@@ -24,7 +25,7 @@ export function strApply(k:Kit,x:Booking,c:STRInput,approval?:Approval):STRRateC
       const rev=id('reversal'),nl=id('line');
       x.lines.push({id:rev,label:`Reversal · ${l.label} · rate change`,amount:-l.amount,date:s.date,kind:'adjustment',taxBps:l.taxBps,reversalOf:l.id,...(approval?{approvalId:approval.id}:{})});
       // DEC-069: GST slab of that night's actual (new) price, on that night's date.
-      x.lines.push({id:nl,label:`Room night · ${l.date} · rate ${money(c.rate)}`,amount:c.rate,date:l.date,kind:'room',taxBps:gstForRoomNight(s,l.date,c.rate).bps});
+      x.lines.push({id:nl,label:`Room night · ${l.date} · rate ${money(c.rate)}`,amount:c.rate,date:l.date,kind:'room',taxBps:gstForRoomNight(s,l.date,c.rate).bps,...(x.folios?.length?{folio:sfLineFolio(x,l)}:{})}); // F8-SF-DOMAIN: re-post on the original night's folio (I4)
       reposted.push({reversal:rev,line:nl,night:l.date});
     }
   }

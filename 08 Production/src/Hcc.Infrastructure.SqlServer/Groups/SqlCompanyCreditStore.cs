@@ -40,27 +40,42 @@ public sealed class SqlCompanyCreditStore(SqlConnectionFactory connections) : IC
           FROM grp.company_payment cp JOIN grp.company_account a ON a.company_id = cp.company_id
          WHERE cp.company_id = @c AND a.property_id = @p
          ORDER BY cp.payment_id;
-        DECLARE @s TABLE(reservation_id BIGINT PRIMARY KEY);
-        INSERT @s(reservation_id)
-          SELECT r.reservation_id FROM inv.reservation r
-           WHERE r.company_id = @c AND r.property_id = @p AND r.status IN ('Held', 'Confirmed', 'InHouse')
-             AND NOT EXISTS (SELECT 1 FROM grp.group_account g
-                              WHERE g.company_id = @c AND g.property_id = @p AND g.status = 'Open'
-                                AND ((g.group_block_id IS NOT NULL AND g.group_block_id = r.group_block_id)
-                                     OR EXISTS (SELECT 1 FROM grp.member m WHERE m.group_id = g.group_id AND m.reservation_id = r.reservation_id)));
+        -- F8-SF-DOMAIN · D7 per company folio (SF-CONTRACT §7.2, migration 4350): a stay with a live company folio counts ONLY that folio
+        -- (and only for the company it names); its other folios never count. folio_id NULL = the whole stay, exactly as before F8.
+        -- Agreed unposted nights count for the company folio only while room is routed to it (bill.folio_route, highest seq).
+        DECLARE @s TABLE(reservation_id BIGINT PRIMARY KEY, folio_id BIGINT NULL, room_routed BIT NOT NULL);
+        INSERT @s(reservation_id, folio_id, room_routed)
+          SELECT r.reservation_id, cf.folio_id,
+                 CASE WHEN cf.folio_id IS NULL THEN 1
+                      WHEN (SELECT TOP (1) fr.folio_id FROM bill.folio_route fr WHERE fr.reservation_id = r.reservation_id AND fr.category = 'room' ORDER BY fr.seq DESC) = cf.folio_id THEN 1
+                      ELSE 0 END
+            FROM inv.reservation r
+            OUTER APPLY (SELECT TOP (1) f.folio_id, f.payer_company_id FROM bill.folio f
+                          WHERE f.reservation_id = r.reservation_id AND f.payer_kind = 'company' AND f.removed_utc IS NULL) cf
+           WHERE r.property_id = @p AND r.status IN ('Held', 'Confirmed', 'InHouse')
+             AND ((cf.folio_id IS NULL AND r.company_id = @c
+                   AND NOT EXISTS (SELECT 1 FROM grp.group_account g
+                                    WHERE g.company_id = @c AND g.property_id = @p AND g.status = 'Open'
+                                      AND ((g.group_block_id IS NOT NULL AND g.group_block_id = r.group_block_id)
+                                           OR EXISTS (SELECT 1 FROM grp.member m WHERE m.group_id = g.group_id AND m.reservation_id = r.reservation_id))))
+                  OR cf.payer_company_id = @c);
         SELECT r.reservation_id, r.public_no, r.guest_name, r.status,
                ISNULL((SELECT SUM(CASE rc.kind WHEN 'payment' THEN rc.amount_paise WHEN 'refund' THEN -rc.amount_paise ELSE 0 END)
-                         FROM pay.receipt rc JOIN bill.folio f ON f.folio_id = rc.folio_id WHERE f.reservation_id = r.reservation_id), 0),
+                         FROM pay.receipt rc JOIN bill.folio f ON f.folio_id = rc.folio_id
+                        WHERE f.reservation_id = r.reservation_id AND (s.folio_id IS NULL OR f.folio_id = s.folio_id)), 0),
                ISNULL((SELECT SUM(rc.amount_paise)
-                         FROM pay.receipt rc JOIN bill.folio f ON f.folio_id = rc.folio_id WHERE f.reservation_id = r.reservation_id AND rc.kind = 'company-credit'), 0)
+                         FROM pay.receipt rc JOIN bill.folio f ON f.folio_id = rc.folio_id
+                        WHERE f.reservation_id = r.reservation_id AND rc.kind = 'company-credit' AND (s.folio_id IS NULL OR f.folio_id = s.folio_id)), 0)
           FROM @s s JOIN inv.reservation r ON r.reservation_id = s.reservation_id
          ORDER BY r.public_no;
         SELECT f.reservation_id, c.charge_id, c.kind, c.service_date, c.label, c.amount_paise, c.tax_bps, c.tax_paise, c.reverses_charge_id
-          FROM bill.charge c JOIN bill.folio f ON f.folio_id = c.folio_id JOIN @s s ON s.reservation_id = f.reservation_id
+          FROM bill.charge c JOIN bill.folio f ON f.folio_id = c.folio_id
+          JOIN @s s ON s.reservation_id = f.reservation_id AND (s.folio_id IS NULL OR f.folio_id = s.folio_id)
          ORDER BY c.charge_id;
         SELECT n.reservation_id, n.night, n.rate_paise, n.tax_bps
-          FROM inv.reservation_night n JOIN @s s ON s.reservation_id = n.reservation_id
+          FROM inv.reservation_night n JOIN @s s ON s.reservation_id = n.reservation_id AND s.room_routed = 1
          ORDER BY n.reservation_id, n.night;
+        -- F8-SF-DOMAIN end
         SELECT g.group_id FROM grp.group_account g WHERE g.company_id = @c AND g.property_id = @p AND g.status = 'Open' ORDER BY g.group_id;
         """;
 

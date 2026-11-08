@@ -467,6 +467,48 @@ public sealed class BillingService(ICommandRunner runner, IBillingStore store, I
             throw Invalid("Decide the pending approval requests on this folio before checkout.");
     }
 
+    // F8-SF-DOMAIN · checkout of a split stay (SF-CONTRACT §4 CHECKOUT, §5): settle EVERY live folio in one transaction. Per folio: the named
+    // company / guest credit is executed (D7 re-checked by ExecuteCoreAsync on that folio's balance), its balance must be 0 and nothing pending;
+    // the agreed nights are checked over all folios together (a night is one line on one folio); the deposit is held on A only (SFQ-12).
+    // Returns the folios in seq order with their totals, so the caller (CheckoutStay) issues one tax invoice per folio whose total ≠ 0 in letter
+    // order through the existing FolioInvoiceSource (SFQ-8: a ₹0 folio gets none). A single-folio stay keeps calling SettleForCheckoutAsync.
+    public async Task<IReadOnlyList<(long FolioId, int Seq, Paise Total)>> SettleSplitForCheckoutAsync(ICommandTransaction tx, Caller caller,
+        IReadOnlyList<(long FolioId, int Seq, long? CreditApprovalId)> folios, DateOnly arrival, DateOnly departure, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(tx);
+        ArgumentNullException.ThrowIfNull(caller);
+        ArgumentNullException.ThrowIfNull(folios);
+        if (folios.Count == 0 || folios.All(x => x.Seq != FolioRouting.PrimarySeq)) throw Invalid("The stay's primary folio is missing.");
+        var nights = new HashSet<DateOnly>();
+        var totals = new List<(long, int, Paise)>();
+        var now = Now;
+        foreach (var (folioId, seq, approvalId) in folios.OrderBy(x => x.Seq))
+        {
+            var f = await RequireFolioAsync(tx, caller, folioId, ct).ConfigureAwait(false);
+            if (approvalId is { } aid)
+            {
+                var peek = await store.PeekApprovalAsync(tx, aid, ct).ConfigureAwait(false);
+                if (peek is null || peek.PropertyId != caller.PropertyId || peek.FolioId != f.FolioId) throw NotFound($"Credit approval not found for folio {FolioRouting.Letter(seq)}.");
+                if (peek.Action is not (AdjustmentAction.Credit or AdjustmentAction.GuestCredit)) throw Invalid("The approval named at checkout is not a company or guest credit.");
+                await ExecuteCoreAsync(tx, caller, new ExecuteAdjustmentRequest(aid, peek.Version, null, null, null), checkVersion: false, ct).ConfigureAwait(false);
+            }
+            var lines = await store.LinesAsync(tx, f.FolioId, ct).ConfigureAwait(false);
+            var reversed = lines.Where(l => l.ReversesChargeId is not null).Select(l => l.ReversesChargeId!.Value).ToHashSet();
+            foreach (var l in lines.Where(l => l.Kind == ChargeKind.Room && l.ReversesChargeId is null && !reversed.Contains(l.ChargeId))) nights.Add(l.ServiceDate);
+            var figures = FolioStatement.Compute(lines, await store.ReceiptsAsync(tx, f.FolioId, ct).ConfigureAwait(false));
+            if (figures.Balance != Paise.Zero) throw Invalid($"Settle folio {FolioRouting.Letter(seq)} exactly before checkout. Refund any excess receipt.");
+            if (figures.Deposit != Paise.Zero) throw Invalid("Return the refundable deposit before checkout.");
+            var approvals = await store.ApprovalsForFolioAsync(tx, f.FolioId, ct).ConfigureAwait(false);
+            if (approvals.Any(a => a.Status == ApprovalStatus.Pending && !ApprovalRules.IsExpired(a.Status, a.Action, a.ExpiresUtc, now)))
+                throw Invalid($"Decide the pending approval requests on folio {FolioRouting.Letter(seq)} before checkout.");
+            totals.Add((f.FolioId, seq, figures.Total));
+        }
+        for (var d = arrival; d < departure; d = d.AddDays(1))
+            if (!nights.Contains(d)) throw Invalid("Post all agreed stay charges before checkout.");
+        return totals;
+    }
+    // F8-SF-DOMAIN end
+
     private async Task<ApprovalResult> ExecuteCoreAsync(ICommandTransaction tx, Caller caller, ExecuteAdjustmentRequest req, bool checkVersion, CancellationToken ct2)
     {
         var peek = await store.PeekApprovalAsync(tx, req.ApprovalId, ct2).ConfigureAwait(false);

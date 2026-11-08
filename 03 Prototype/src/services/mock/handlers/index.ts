@@ -102,6 +102,7 @@ import {handlers as measForecast} from './meas-forecast'; // F12 meas-forecast: 
 // F12-FORECAST end
 // F8 lanes (SF-CONTRACT / F8_Briefs): one import line inside your own block, then spread it inside the same block of `const F8` below.
 // F8-SF-DOMAIN
+import {handlers as splitFolio} from './folio-split';
 // F8-SF-DOMAIN end
 // F8-QW-NA
 // F8-QW-NA end
@@ -186,6 +187,7 @@ const F12:Record<string,Handler>={ // F12 lanes (MEAS-CONTRACT §6): spread your
 const F8:Record<string,Handler>={ // F8 lanes (F8_Briefs): spread your NEW commands inside your own block. Changes to existing commands
   // (PAYMENT, CHARGE, CHECKOUT, BOOK, CANCEL, DAY_CLOSE …) are made inside an // F8-<LANE> block in the command's own handler file instead.
   // F8-SF-DOMAIN
+  ...splitFolio,
   // F8-SF-DOMAIN end
   // F8-QW-NA
   // F8-QW-NA end
