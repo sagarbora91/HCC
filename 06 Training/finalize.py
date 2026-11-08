@@ -67,5 +67,6 @@ for dp, _, fs in os.walk(DEST):
         p = os.path.join(dp, f); h = hashlib.sha256(); fh = open(p, 'rb')
         for blk in iter(lambda: fh.read(1 << 20), b''): h.update(blk)
         lines.append('%s  %s' % (h.hexdigest(), os.path.relpath(p, DEST).replace('\\', '/')))
-open(os.path.join(DEST, 'SHA256.txt'), 'w', encoding='utf-8').write('\n'.join(sorted(lines, key=lambda x: x.split('  ')[1])) + '\n')
+open(os.path.join(DEST, 'SHA256.txt'), 'w', encoding='utf-8', newline='
+').write('\n'.join(sorted(lines, key=lambda x: x.split('  ')[1])) + '\n')
 print('copied', len(lines), 'files to', DEST)
