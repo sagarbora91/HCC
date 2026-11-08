@@ -176,7 +176,7 @@ export function register({test,M,assert}){
 
   // ── slice / schema ──
   test('[F12-CAP-HK] an old save without measX works; SCHEMA stays 15; the seed is not changed by this lane',()=>{
-    const s=fresh();assert.equal(s.measX,undefined);assert.equal(M.SCHEMA,15);
+    const s=fresh();assert.equal(s.measX,undefined);assert.equal(M.SCHEMA,16); /* F8 setup: 15 → 16 split folio (this lane still changes no shape) */
     const next=reading(s,'maint','MTR-ELEC',5);assert.equal(s.measX,undefined,'the input state is never mutated');assert.ok(next.measX);
     assert.equal(M.metrics(s).occupied,8);
   });

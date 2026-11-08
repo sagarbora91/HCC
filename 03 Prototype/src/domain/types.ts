@@ -74,6 +74,10 @@ export type Line={id:string;label:string;amount:number;date:string;kind:'room'|'
   planCode?:string;
   /** Discount reason code (CAT_DISCOUNT); absent on a free-text reason. */
   discountReason?:string;
+  // F8
+  /** F8 SF split folio (SCHEMA 16, SF-CONTRACT §2): the folio letter this line is on ('A'…'D'); absent = 'A'. Set once at posting, never edited. */
+  folio?:string;
+  // F8 end
 };
 export type Receipt={id:string;amount:number;method:string;date:string;kind:'payment'|'deposit'|'deposit-return'|'refund'|'company-credit'|'deposit-apply'|'ota-credit'|'guest-credit';reference:string;actor:string; // ACC-2 flows (contract §4): deposit applied at check-out (A6a), folio balance to the OTA (A13)
   // ── Receipt · stream A fields (add below this line) ──
@@ -98,6 +102,10 @@ export type Receipt={id:string;amount:number;method:string;date:string;kind:'pay
   /** A `deposit-apply` receipt that applies an advance carried in the opening balance (no deposit receipt on the folio, rulebook T5a). */
   depositSource?:'opening';
   // ── Receipt · LF (contract §7 B2): kind 'guest-credit' = folio balance moved to the guest's Udhaar account at check-out ──
+  // F8
+  /** F8 SF split folio (SCHEMA 16, SF-CONTRACT §2): the folio letter this receipt settles; absent = 'A'. */
+  folio?:string;
+  // F8 end
 };
 export type BookingStatus='Held'|'Expired'|'Confirmed'|'In house'|'Departed'|'Cancelled'|'No show';
 export type Booking={id:string;guest:string;email:string;people:number;room:string;arrival:string;departure:string;rate:number;source:string;status:BookingStatus;registered:boolean;lines:Line[];receipts:Receipt[];version:number;notes:string;
@@ -132,7 +140,8 @@ export type Booking={id:string;guest:string;email:string;people:number;room:stri
   /** Sample invoice number, allocated once at checkout (DEMO/2026-27/NNNN). */
   invoiceNo?:string;
   /** Sample credit notes issued after departure. */
-  creditNotes?:{id:string;no:string;amount:number;reason:string;date:string;approvalId:string;lineId:string}[];
+  creditNotes?:{id:string;no:string;amount:number;reason:string;date:string;approvalId:string;lineId:string;
+    /** F8 SF (SCHEMA 16): the folio whose invoice this credit note reduces; absent = 'A'. */ folio?:string}[];
 
   // ── Booking · stream D fields (add below this line) ──
 
@@ -158,6 +167,11 @@ export type Booking={id:string;guest:string;email:string;people:number;room:stri
   rateSource?:'tariff'|'agreed';
   /** A2: earlier invoice revisions of this stay; `invoiceNo` is always the current one. */
   invoiceRevisions?:{no:string;date:string;supersedes:string}[];
+  // F8
+  /** F8 SF split folio (SCHEMA 16, SF-CONTRACT §2): the stay's folios A…D with payer and routing; absent = one implicit folio A (today's stay).
+   *  On a split stay `invoiceNo` is the first folio invoice issued (back-compat); each folio keeps its own in SFFolio.invoiceNo. */
+  folios?:import('./streams/folio-split').SFFolio[];
+  // F8 end
 };
 export type Task={id:string;room:string;booking?:string;assignee:string;status:'To do'|'In progress'|'Inspection'|'Done';checked:boolean[];
   // ── Task · stream A fields (add below this line) ──
@@ -418,7 +432,7 @@ export type State={
   shift?:import('./streams/closing').ShiftRecord;
 };
 export type Command={type:string;key?:string;[field:string]:any};
-export const SCHEMA=15; // 15 = ADM-2 custom roles (new optional rolesX slice and User.customRole — v14 saves need nothing). 14 = F6 hall booking (optional hallX slice, Booking.hallEventId; v13 saves need nothing). 13 = LF legacy parity (docObjectsX image slice — v12 saves move billPhoto / complianceFilesX into it; new optional LF slices and fields). 12 = ACC-2 (manual vouchers, purchases / vendor payments, TDS, GST month end, OTA payouts; new optional fields only — v11 saves need nothing). 11 = ACC-1 (accounting chart as a master, party ledgers, opening balances; new optional fields on accountingX — v10 saves need nothing). 10 = SCC port wave (leave one record per date, SCC compliance slice, SCC expense registers; v9 saves migrate by shape). 9 = masters wave MA-1…MA-7 (new optional slices / fields; v8 saves migrate, masters seed lazily)
+export const SCHEMA=16; // 16 = F8 split folio (optional Booking.folios, Line.folio, Receipt.folio, creditNotes[].folio — v15 saves need nothing: absent = folio A). 15 = ADM-2 custom roles (new optional rolesX slice and User.customRole — v14 saves need nothing). 14 = F6 hall booking (optional hallX slice, Booking.hallEventId; v13 saves need nothing). 13 = LF legacy parity (docObjectsX image slice — v12 saves move billPhoto / complianceFilesX into it; new optional LF slices and fields). 12 = ACC-2 (manual vouchers, purchases / vendor payments, TDS, GST month end, OTA payouts; new optional fields only — v11 saves need nothing). 11 = ACC-1 (accounting chart as a master, party ledgers, opening balances; new optional fields on accountingX — v10 saves need nothing). 10 = SCC port wave (leave one record per date, SCC compliance slice, SCC expense registers; v9 saves migrate by shape). 9 = masters wave MA-1…MA-7 (new optional slices / fields; v8 saves migrate, masters seed lazily)
 
 // ════ LF (wave claude/lf, contract 02 Planning/agents/LF-CONTRACT.md §11) — declared by the setup commit; lanes import (or re-export) these, never redeclare ════
 /** §1.10 */

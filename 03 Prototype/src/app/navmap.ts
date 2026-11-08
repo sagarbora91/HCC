@@ -72,6 +72,8 @@ export const PAGE_CATEGORY:Record<string,CategoryId>={
   // F12-INT
   'meas-events':'revenue','meas-rateshop':'revenue','meas-displacement':'revenue',
   // F12-INT end
+  // F8-QW-KDS
+  // F8-QW-KDS end
   access:'admin',settings:'admin',approvals:'admin',backup:'admin',roadmap:'admin',
 };
 
@@ -120,6 +122,8 @@ export const PAGE_BLURB:Record<string,string>={
   'meas-rateshop':'Competitor rates entered by hand each week, for the rate parity report',
   'meas-displacement':'Does a group pay more than the guests it would push out? Break-even group rate',
   // F6-H3 end
+  // F8-QW-KDS
+  // F8-QW-KDS end
 };
 
 /** Extra words people type for a page (synonyms, hotel jargon, Hindi-English habits). The label and category are matched too. */
@@ -175,6 +179,8 @@ export const PAGE_KEYWORDS:Record<string,string[]>={
   'meas-rateshop':['rate shop','competitor','competitors','parity','comp set','market rate'],
   'meas-displacement':['displacement','group','group quote','transient','break-even','break even'],
   // F12-KEYWORDS end
+  // F8-QW-KDS
+  // F8-QW-KDS end
   'desk-alerts':['reminder','reminders','alert','alerts','wake up','wake-up','wakeup','alarm','alert days','due date'], // LF-ALERTS
   roadmap:['roadmap','future','planned','modules','phases'],
   prefs:['appearance','display','text size','font','font size','bigger text','larger text','zoom','motion','animation','density','compact','start page','home page','page size','rows','toast','messages','preferences','my settings','theme'],

@@ -100,6 +100,19 @@ import {handlers as measPeople} from './meas-people';
 // F12-FORECAST
 import {handlers as measForecast} from './meas-forecast'; // F12 meas-forecast: MEAS_EVENT_*, MEAS_OTB_SNAPSHOT, MEAS_COMPETITOR_SAVE, MEAS_RATESHOP_ADD
 // F12-FORECAST end
+// F8 lanes (SF-CONTRACT / F8_Briefs): one import line inside your own block, then spread it inside the same block of `const F8` below.
+// F8-SF-DOMAIN
+// F8-SF-DOMAIN end
+// F8-QW-NA
+// F8-QW-NA end
+// F8-QW-NS
+// F8-QW-NS end
+// F8-QW-KDS
+// F8-QW-KDS end
+// F8-QW-ADV
+// F8-QW-ADV end
+// F8-QW-PM
+// F8-QW-PM end
 // F4-T1
 import {handlers as tariffCard} from './tariffcard';
 // F4-T1 end
@@ -170,7 +183,22 @@ const F12:Record<string,Handler>={ // F12 lanes (MEAS-CONTRACT §6): spread your
   ...measForecast,
   // F12-FORECAST end
 };
-const registry0:Record<string,Handler>={...ACC1,...ACC2,...reservations,...guests,...folio,...housekeeping,...admin,...closing,...expenses,...yieldMod,...groups,...channels,...maintenance,...inventory,...handover,...services,...messaging,...pos,...staff,...accounting,...assistant,...compliance,...cashbook,...cashout,...masters,...credentials,...syshealth,...roommasters,...keys,...roles,...LF,...F4,...egress /* F5-E1 */,...catalogue,...accountingYear,...accountingBank /* F5-A1 */,...F6,...F12};
+const F8:Record<string,Handler>={ // F8 lanes (F8_Briefs): spread your NEW commands inside your own block. Changes to existing commands
+  // (PAYMENT, CHARGE, CHECKOUT, BOOK, CANCEL, DAY_CLOSE …) are made inside an // F8-<LANE> block in the command's own handler file instead.
+  // F8-SF-DOMAIN
+  // F8-SF-DOMAIN end
+  // F8-QW-NA
+  // F8-QW-NA end
+  // F8-QW-NS
+  // F8-QW-NS end
+  // F8-QW-KDS
+  // F8-QW-KDS end
+  // F8-QW-ADV
+  // F8-QW-ADV end
+  // F8-QW-PM
+  // F8-QW-PM end
+};
+const registry0:Record<string,Handler>={...ACC1,...ACC2,...reservations,...guests,...folio,...housekeeping,...admin,...closing,...expenses,...yieldMod,...groups,...channels,...maintenance,...inventory,...handover,...services,...messaging,...pos,...staff,...accounting,...assistant,...compliance,...cashbook,...cashout,...masters,...credentials,...syshealth,...roommasters,...keys,...roles,...LF,...F4,...egress /* F5-E1 */,...catalogue,...accountingYear,...accountingBank /* F5-A1 */,...F6,...F12,...F8};
 // F5-A1 — ACC-4 §1.2: after the year lock every post / edit / void dated in the year is refused ACC_YEAR_LOCKED (day reopen and month unlock
 // included); the year / bank commands and exports check for themselves. A correction is a journal in the new year: ACC_MANUAL_SAVE takes
 // `refersToFy` (G4), kept on the saved voucher.

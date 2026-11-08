@@ -162,6 +162,23 @@ export {measFcEventsSeed,measFcCompetitorsSeed,measFcRateShopSeed,measFcLegacySa
 // F12-RPT-DAILY
 export * from '../../domain/reports/meas-daily'; // pure exception functions for the digest (flashRows, rateVarianceRows, … cashierRows, regretsRows)
 // F12-RPT-DAILY end
+// F8-SETUP
+export * from '../../domain/streams/folio-split'; // F8 SF split folio: SFFolio types, sfFolios, sfView, sfLineFolio, sfRouteTarget, sfInvoiceDocs (SF-CONTRACT §2)
+// F8-SETUP end
+// F8-SF-DOMAIN
+// F8-SF-DOMAIN end
+// F8-SF-TESTS
+// F8-SF-TESTS end
+// F8-QW-NA
+// F8-QW-NA end
+// F8-QW-NS
+// F8-QW-NS end
+// F8-QW-KDS
+// F8-QW-KDS end
+// F8-QW-ADV
+// F8-QW-ADV end
+// F8-QW-PM
+// F8-QW-PM end
 // F4-T1
 export * from '../../domain/streams/tariffcard';
 // F4-T1 end

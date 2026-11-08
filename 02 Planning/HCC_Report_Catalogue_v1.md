@@ -5029,3 +5029,12 @@ Only business choices. Each has a recommendation.
 <!-- F12-INT -->
 Status 7 Nov 2026 (f12-int): all 54 section 3.10 entries are built in code on both sides (prototype `src/domain/reports/*`, server `Hcc.Reporting/Reports/Meas*` and `MeasStudy*`); ids unchanged. Money flag corrected to y: rpt.revenue.overbooking-wash, rpt.rooms.ooo-days, rpt.rooms.utilities-per-room, rpt.stock.linen-cost. Report SQL is compiled; only part of it is executed by tests (see `05 Delivery Evidence/Measurement/MEAS-DONE.md`).
 <!-- F12-INT end -->
+
+
+<!-- F8 (SF-CONTRACT §12): P2 report lanes write their status lines inside their own block. -->
+<!-- F8-RPT-P2-A -->
+<!-- F8-RPT-P2-A end -->
+<!-- F8-RPT-P2-B -->
+<!-- F8-RPT-P2-B end -->
+<!-- F8-RPT-P2-C -->
+<!-- F8-RPT-P2-C end -->

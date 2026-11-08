@@ -229,6 +229,27 @@ public static class HccComposition
         // F12-DIGEST
         services.AddSingleton<Hcc.Application.Reporting.IMeasDigestSource>(sp => new Hcc.Reporting.Reports.MeasDigest.MeasReportDigestSource(sp, sp.GetRequiredService<Hcc.Infrastructure.SqlServer.SqlPlatform>())); // f12-int-an: Owner digest Measurement block (review M2)
         // F12-DIGEST end
+        // F8 lanes (F8_Briefs): services / AddReport<...>() lines inside your own block (append only).
+        // F8-SF-DOMAIN
+        // F8-SF-DOMAIN end
+        // F8-SF-SERVER
+        // F8-SF-SERVER end
+        // F8-RPT-P2-A
+        // F8-RPT-P2-A end
+        // F8-RPT-P2-B
+        // F8-RPT-P2-B end
+        // F8-RPT-P2-C
+        // F8-RPT-P2-C end
+        // F8-QW-NA
+        // F8-QW-NA end
+        // F8-QW-NS
+        // F8-QW-NS end
+        // F8-QW-KDS
+        // F8-QW-KDS end
+        // F8-QW-ADV
+        // F8-QW-ADV end
+        // F8-QW-PM
+        // F8-QW-PM end
         // F4 lanes: ONE services.Add<Lane>Module(); line inside your own block (append only).
         // F4-T1
         services.AddTariffCardModule();                 // F4-T1 tariff card (PERM-TRF-001…003)
@@ -433,6 +454,27 @@ public static class HccComposition
         // F12-STUDY-PACK end
         // F12-DIGEST
         // F12-DIGEST end
+        // F8 lanes: endpoint Map...() lines inside your own block (append only).
+        // F8-SF-DOMAIN
+        // F8-SF-DOMAIN end
+        // F8-SF-SERVER
+        // F8-SF-SERVER end
+        // F8-RPT-P2-A
+        // F8-RPT-P2-A end
+        // F8-RPT-P2-B
+        // F8-RPT-P2-B end
+        // F8-RPT-P2-C
+        // F8-RPT-P2-C end
+        // F8-QW-NA
+        // F8-QW-NA end
+        // F8-QW-NS
+        // F8-QW-NS end
+        // F8-QW-KDS
+        // F8-QW-KDS end
+        // F8-QW-ADV
+        // F8-QW-ADV end
+        // F8-QW-PM
+        // F8-QW-PM end
         // F4-T1
         api.MapTariffCardEndpoints();    // F4-T1 tariff card
         // F4-T1 end

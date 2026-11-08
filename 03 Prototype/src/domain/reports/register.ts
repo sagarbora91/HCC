@@ -105,4 +105,10 @@ import './study-pack/management-pack';
 // F12-DIGEST
 import './meas-digest-wiring';
 // F12-DIGEST end
+// F8-RPT-P2-A
+// F8-RPT-P2-A end
+// F8-RPT-P2-B
+// F8-RPT-P2-B end
+// F8-RPT-P2-C
+// F8-RPT-P2-C end
 export {};

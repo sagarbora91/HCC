@@ -213,6 +213,14 @@ export const SUB_SCREENS:SubScreen[]=[
   {page:'hall-booking',id:'menus',label:'Menus',keywords:['per plate','package','halls master','hall rates']},
   {page:'hall-booking',id:'templates',label:'Templates',keywords:['terms','t&c','conditions','clauses']},
   // F6-H3 end
+  // F8-SF-UI
+  // F8-SF-UI end
+  // F8-QW-ADV
+  // F8-QW-ADV end
+  // F8-QW-PM
+  // F8-QW-PM end
+  // F8-QW-KDS
+  // F8-QW-KDS end
 ];
 
 /** Review S3: sub-screens a role's page never shows (the page falls back to its default tab) are not listed in the search palette for that

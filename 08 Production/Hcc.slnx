@@ -354,6 +354,28 @@
     <!-- F12-STUDY-PACK end -->
     <!-- F12-DIGEST -->
     <!-- F12-DIGEST end -->
+    <!-- F8-SF-DOMAIN -->
+    <!-- F8-SF-DOMAIN end -->
+    <!-- F8-SF-SERVER -->
+    <!-- F8-SF-SERVER end -->
+    <!-- F8-RPT-P2-A -->
+    <!-- F8-RPT-P2-A end -->
+    <!-- F8-RPT-P2-B -->
+    <!-- F8-RPT-P2-B end -->
+    <!-- F8-RPT-P2-C -->
+    <!-- F8-RPT-P2-C end -->
+    <!-- F8-QW-NA -->
+    <!-- F8-QW-NA end -->
+    <!-- F8-QW-NS -->
+    <!-- F8-QW-NS end -->
+    <!-- F8-QW-KDS -->
+    <!-- F8-QW-KDS end -->
+    <!-- F8-QW-ADV -->
+    <!-- F8-QW-ADV end -->
+    <!-- F8-QW-PM -->
+    <!-- F8-QW-PM end -->
+    <!-- F8-INT -->
+    <!-- F8-INT end -->
     <!-- AF-CRM -->
     <File Path="database/migrations/4900_crm_customer_key_secret.sql" />
     <File Path="database/migrations/4910_crm_customer_list_indexes.sql" />

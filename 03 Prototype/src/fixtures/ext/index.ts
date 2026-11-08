@@ -20,4 +20,6 @@ import * as assistant from './assistant';
 import * as compliance from './compliance';
 import * as lfParity from './lf-parity'; // LF-ui lf-tests
 import * as customRoles from './roles'; // ADM-2
+// F8-SF-TESTS (scenario SF-GOLDEN: one import here; its name appended to the end of `extensions` below)
+// F8-SF-TESTS end
 export const extensions=[reservations,guests,folio,housekeeping,admin,closing,yieldMod,groups,channels,maintenance,inventory,handover,services,messaging,pos,staff,accounting,accountingRulebook,assistant,compliance,lfParity,customRoles];

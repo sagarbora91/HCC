@@ -59,6 +59,15 @@ import {registration as measDeskUi} from '../features/reservations/TurnawayRegis
 import {registration as measGuestUi} from '../features/services/SurveyRegister';
 import {registration as measCaptureUi} from '../features/reports/MeasCaptureRegister';
 // F12-INT end
+// F8 lanes: ONE import line inside your own block; the registration name inside your block in `registrations` below.
+// F8-SF-UI
+// F8-SF-UI end
+// F8-QW-KDS
+// F8-QW-KDS end
+// F8-QW-ADV
+// F8-QW-ADV end
+// F8-QW-PM
+// F8-QW-PM end
 export type ModalProps={id?:string;room?:string};
 export type FeatureRegistration={
   /** Page components by page ID (shown when the nav item with this ID is selected). */
@@ -102,6 +111,14 @@ export const registrations:FeatureRegistration[]=[reservations,guests,customers,
   // F12-INT
   measDeskUi,measGuestUi,measCaptureUi,
   // F12-INT end
+  // F8-SF-UI
+  // F8-SF-UI end
+  // F8-QW-KDS
+  // F8-QW-KDS end
+  // F8-QW-ADV
+  // F8-QW-ADV end
+  // F8-QW-PM
+  // F8-QW-PM end
 ];
 export const mobilePages=Object.assign({},...registrations.map(r=>r.mobile?.pages||{})) as Record<string,React.ComponentType>;
 export const mobileModals=Object.assign({},...registrations.map(r=>r.mobile?.modals||{})) as Record<string,React.ComponentType<ModalProps>>;

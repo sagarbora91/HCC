@@ -140,6 +140,19 @@ import {reportsHub} from './reports-hub'; // OPS-03 report favourites / schedule
 // AF-NETSET
 import {egress} from './egress';
 // AF-NETSET end
+// F8 lanes (F8_Briefs): one import inside your own block; your SyncArea name inside the same block of AREAS below.
+// F8-SF-SERVER
+// F8-SF-SERVER end
+// F8-QW-NA
+// F8-QW-NA end
+// F8-QW-NS
+// F8-QW-NS end
+// F8-QW-KDS
+// F8-QW-KDS end
+// F8-QW-ADV
+// F8-QW-ADV end
+// F8-QW-PM
+// F8-QW-PM end
 export const AREAS:SyncArea[]=[
   core,
   reservations,
@@ -237,4 +250,16 @@ export const AREAS:SyncArea[]=[
   // AF-NETSET
   egress,
   // AF-NETSET end
+  // F8-SF-SERVER
+  // F8-SF-SERVER end
+  // F8-QW-NA
+  // F8-QW-NA end
+  // F8-QW-NS
+  // F8-QW-NS end
+  // F8-QW-KDS
+  // F8-QW-KDS end
+  // F8-QW-ADV
+  // F8-QW-ADV end
+  // F8-QW-PM
+  // F8-QW-PM end
 ];
