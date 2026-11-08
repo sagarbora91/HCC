@@ -135,11 +135,10 @@ public sealed class F8dTestsBTests
     }
 
     /// <summary>
-    /// The print of the company folio B should name the payer (Bill to = Deccan Agro Ltd, Buyer GSTIN) and not the stay's guest.
-    /// <c>DocumentSql.FolioHeaderAsync</c> builds <c>FolioHeader</c> from five reservation columns only (DocumentSql.cs:36) and never sets BillTo / BuyerGstin / InvoiceNo,
-    /// so every folio prints "Bill to = guest name", an empty Buyer GSTIN and "Not yet issued". See F8D-TESTS-B-DONE bug B1.
+    /// The print of the company folio B names the payer (Bill to = Deccan Agro Ltd, Buyer GSTIN), not the stay's guest; the guest folio A keeps the guest
+    /// and no GSTIN. Bug B1 (F8D-TESTS-B-DONE), fixed in lane f8d-b1: <c>DocumentSql.FolioHeaderAsync</c> reads the folio payer and its issued invoice.
     /// </summary>
-    [Fact(Skip = "BUG B1: DocumentSql.cs:36 never sets FolioHeader.BillTo / BuyerGstin / InvoiceNo, so a company folio prints the guest as payer (F8D-TESTS-B-DONE).")]
+    [Fact]
     public async Task F8D_B_per_folio_print_company_folio_names_the_company_as_payer()
     {
         await using var s = await HccServer.StartAsync(Seed, Ct);
@@ -149,6 +148,65 @@ public sealed class F8dTestsBTests
         var (_, b) = await GetTextAsync(staff.Owner, $"/documents/folio/{sp.FolioB}?format=html");
         Assert.Contains("Deccan Agro Ltd", b);
         Assert.Contains(CompanyGstin, b);
+        Assert.Contains("Not yet issued", b);
+        var (_, a) = await GetTextAsync(staff.Owner, $"/documents/folio/{sp.FolioA}?format=html");
+        Assert.Contains("F8D Split Guest", a);
+        Assert.DoesNotContain("Deccan Agro Ltd", a);
+        Assert.DoesNotContain(CompanyGstin, a);
+    }
+
+    /// <summary>[F8D-B1] After check-out each folio prints its own issued tax invoice number (one invoice per non-zero folio, letter order), not "Not yet issued".</summary>
+    [Fact]
+    public async Task F8D_B1_per_folio_print_shows_each_folio_issued_invoice_number()
+    {
+        await using var s = await HccServer.StartAsync(Seed, Ct);
+        using var staff = await EndToEndTests.SignInStaffAsync(s);
+        var sp = await SplitInHouseAsync(s, staff);
+        await Wire.CommandAsync<ChargeResult>(staff.Owner, "PostCharge", new PostChargeRequest(sp.FolioA, "Laundry", 50000, "laundry"), Ct);
+        for (var d = new DateOnly(2026, 10, 24); d < new DateOnly(2026, 10, 27); d = d.AddDays(1)) await PostNightAndCloseAsync(staff, sp, d);
+
+        // Guest pays A (₹590) in cash on Reception's shift; Deccan Agro takes B (₹9,450) on company credit approved by the Owner.
+        var till = await Wire.CommandAsync<TillResult>(staff.Owner, "CreateTill", new CreateTillRequest("FD-1", "Front desk"), Ct);
+        await Wire.CommandAsync<ShiftResult>(staff.Reception, "OpenShift", new OpenShiftRequest(till.TillId, 500000), Ct);
+        await Wire.CommandAsync<ReceiptResult>(staff.Reception, "RecordReceipt", new RecordReceiptRequest(sp.FolioA, "payment", "Cash", 59000, null, till.TillId), Ct);
+        var fb = await Wire.GetAsync<FolioView>(staff.Reception, $"/folios/{sp.FolioB}", Ct);
+        var req = await Wire.CommandAsync<AdjustmentResult>(staff.Reception, "RequestAdjustment", new RequestAdjustmentRequest("credit", sp.FolioB, null, 945000, "Bill to Deccan Agro (fictional)", fb.Version), Ct);
+        await Wire.CommandAsync<ApprovalResult>(staff.Owner, "DecideApproval", new DecideApprovalRequest(req.ApprovalId!.Value, true, "Company account", req.ApprovalVersion!), Ct);
+        var checkout = await Wire.CommandAsync<CheckoutStayResult>(staff.Reception, "CheckoutStay", new CheckoutStayRequest(sp.StayId, sp.StayVersion, req.ApprovalId.Value), Ct);
+        Assert.NotNull(checkout.InvoiceNos);
+        Assert.Equal(2, checkout.InvoiceNos.Count);
+
+        string NoOf(long f) => (string)s.ScalarAsync($"SELECT invoice_no FROM ivc.invoice WHERE source_kind = 'folio' AND source_id = {f}", Ct).GetAwaiter().GetResult()!;
+        var (noA, noB) = (NoOf(sp.FolioA), NoOf(sp.FolioB));
+        Assert.Equal(new[] { noA, noB }, checkout.InvoiceNos);
+
+        var (_, a) = await GetTextAsync(staff.Owner, $"/documents/folio/{sp.FolioA}?format=html");
+        var (_, b) = await GetTextAsync(staff.Owner, $"/documents/folio/{sp.FolioB}?format=html");
+        Assert.Contains(noA, a);
+        Assert.DoesNotContain(noB, a);
+        Assert.DoesNotContain("Not yet issued", a);
+        Assert.DoesNotContain(CompanyGstin, a);
+        Assert.Contains(noB, b);
+        Assert.DoesNotContain(noA, b);
+        Assert.DoesNotContain("Not yet issued", b);
+        Assert.Contains("Deccan Agro Ltd", b);
+        Assert.Contains(CompanyGstin, b);
+    }
+
+    /// <summary>[F8D-B1] A single-folio stay prints as before: Bill to = the guest, no buyer GSTIN, "Not yet issued" until an invoice exists.</summary>
+    [Fact]
+    public async Task F8D_B1_single_folio_print_is_unchanged()
+    {
+        await using var s = await HccServer.StartAsync(Seed, Ct);
+        using var staff = await EndToEndTests.SignInStaffAsync(s);
+        var sp = await SplitInHouseAsync(s, staff, "F8D Single Guest (fictional)", "9800000302", split: false);
+        await PostNightAndCloseAsync(staff, sp, new DateOnly(2026, 10, 24));
+        var (st, a) = await GetTextAsync(staff.Owner, $"/documents/folio/{sp.FolioA}?format=html");
+        Assert.Equal(HttpStatusCode.OK, st);
+        Assert.True(Occurrences(a, "F8D Single Guest (fictional)") >= 2, "Guest and Bill to both name the guest"); // Guest + Bill to
+        Assert.Contains("Not yet issued", a);
+        Assert.DoesNotContain(CompanyGstin, a);
+        Assert.Contains("Room night", a);
     }
 
     // ── night-audit endpoint and its key-card / backup signals ───────────────────────────────────────────────────

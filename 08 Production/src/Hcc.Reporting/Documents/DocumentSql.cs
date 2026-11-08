@@ -15,15 +15,23 @@ namespace Hcc.Reporting.Documents;
 
 public sealed class DocumentSql(SqlPlatform platform, IAccessPolicy policy, IGstRateResolver gst)
 {
+    // F8D-B1 · the buyer and the invoice of THIS folio (SF-CONTRACT §2.2, §5): once the folio's tax invoice is issued (ivc.invoice, source 'folio' =
+    // folio_id, latest revision) the print shows that invoice's number, buyer and buyer GSTIN; before that, the folio payer (payer_name / payer_gstin,
+    // the same columns FolioPartyAsync gives the invoice at checkout: company = name + GSTIN, Udhaar = the customer's name, guest = the guest).
     private const string HeaderSql = """
-        SELECT r.public_no, r.guest_name, COALESCE(rm.room_no, ''), r.arrival, r.departure
+        SELECT r.public_no, r.guest_name, COALESCE(rm.room_no, ''), r.arrival, r.departure,
+               i.invoice_no, COALESCE(i.buyer_name, f.payer_name), CASE WHEN i.invoice_no IS NULL THEN f.payer_gstin ELSE i.buyer_gstin END
           FROM bill.folio f
           JOIN inv.reservation r ON r.reservation_id = f.reservation_id
           LEFT JOIN inv.room rm ON rm.room_id = r.room_id
+          OUTER APPLY (SELECT TOP (1) iv.invoice_no, iv.buyer_name, iv.buyer_gstin FROM ivc.invoice iv
+                        WHERE iv.property_id = r.property_id AND iv.source_kind = 'folio' AND iv.source_id = f.folio_id ORDER BY iv.revision DESC) i
          WHERE f.folio_id = @f AND r.property_id = @p;
         """;
 
-    /// <summary>Header facts of the folio's reservation (the folio itself is read, with its right, by BillingQueries).</summary>
+    private static string? Text(SqlDataReader rd, int i) => rd.IsDBNull(i) || rd.GetString(i).Trim() is not { Length: > 0 } s ? null : s;
+
+    /// <summary>Header facts of the folio's reservation (the folio itself is read, with its right, by BillingQueries), with the folio's own payer and issued invoice.</summary>
     public async Task<FolioHeader> FolioHeaderAsync(Caller c, long folioId, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(c);
@@ -33,7 +41,8 @@ public sealed class DocumentSql(SqlPlatform platform, IAccessPolicy policy, IGst
         cmd.Parameters.Add("@p", SqlDbType.Int).Value = c.PropertyId;
         await using var rd = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
         if (!await rd.ReadAsync(ct).ConfigureAwait(false)) throw new HccException(HccErrorCode.NOT_FOUND, "No such folio.");
-        return new FolioHeader(rd.GetString(1), rd.GetString(2), rd.GetString(0), DateOnly.FromDateTime(rd.GetDateTime(3)), DateOnly.FromDateTime(rd.GetDateTime(4)));
+        return new FolioHeader(rd.GetString(1), rd.GetString(2), rd.GetString(0), DateOnly.FromDateTime(rd.GetDateTime(3)), DateOnly.FromDateTime(rd.GetDateTime(4)),
+            Text(rd, 5), Text(rd, 6), Text(rd, 7));
     }
 
     private const string QuoteSql = """
