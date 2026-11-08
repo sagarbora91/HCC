@@ -155,7 +155,7 @@ public sealed class SfGoldenTests
         using var staff = await EndToEndTests.SignInStaffAsync(s);
         await RunAsync(s, staff, fx, checkout: true);
 
-        using var resp = await staff.Owner.GetAsync(ApiConventions.BasePath + "/reports/rpt.guests.company-business?from=2026-10-24&to=2026-10-31&all=true", Ct);
+        using var resp = await staff.Owner.GetAsync(ApiConventions.BasePath + "/reports/rpt.guests.company-business?from=2026-10-24&to=2026-10-27&all=true", Ct);
         var body = await resp.Content.ReadAsStringAsync(Ct);
         Assert.True(resp.IsSuccessStatusCode, body);
         var rows = JsonNode.Parse(body)!["rows"]!.AsArray();
