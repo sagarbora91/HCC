@@ -32,7 +32,9 @@ public sealed class SqlCompanyCreditStore(SqlConnectionFactory connections) : IC
     private const string FactsSql = """
         SET NOCOUNT ON;
         SELECT business_date FROM inv.property WHERE property_id = @p;
-        SELECT rc.receipt_id, r.reservation_id, r.public_no, rc.business_date, rc.amount_paise
+        -- F8E-R8 (F8-INT L1): the invoice number of the receipt's own folio (the company folio of a split stay) for the P2-B statement.
+        SELECT rc.receipt_id, r.reservation_id, r.public_no, rc.business_date, rc.amount_paise,
+               (SELECT TOP (1) i.invoice_no FROM ivc.invoice i WHERE i.source_kind = 'folio' AND i.source_id = rc.folio_id ORDER BY i.invoice_id)
           FROM pay.receipt rc JOIN bill.folio f ON f.folio_id = rc.folio_id JOIN inv.reservation r ON r.reservation_id = f.reservation_id
          WHERE rc.company_id = @c AND rc.kind = 'company-credit' AND r.property_id = @p
          ORDER BY rc.receipt_id;
@@ -107,7 +109,7 @@ public sealed class SqlCompanyCreditStore(SqlConnectionFactory connections) : IC
         await rd.NextResultAsync(ct).ConfigureAwait(false);
         var credits = new List<CompanyCreditReceiptRow>();
         while (await rd.ReadAsync(ct).ConfigureAwait(false))
-            credits.Add(new CompanyCreditReceiptRow(rd.GetInt64(0), rd.GetInt64(1), rd.GetString(2), D(rd, 3), new Paise(rd.GetInt64(4))));
+            credits.Add(new CompanyCreditReceiptRow(rd.GetInt64(0), rd.GetInt64(1), rd.GetString(2), D(rd, 3), new Paise(rd.GetInt64(4)), S(rd, 5)));
         await rd.NextResultAsync(ct).ConfigureAwait(false);
         var payments = new List<CompanyPaymentRow>();
         while (await rd.ReadAsync(ct).ConfigureAwait(false))

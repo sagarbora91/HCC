@@ -35,13 +35,20 @@ Tests only. No product code changed.
 - **SFQ-6:** the night is posted, the report shows red / over, and company credit is refused until the Owner raises the limit.
 - **SFQ-13:** not exercised. The approvals here are by the Manager in the prototype (945000 is under ₹10,000) and by the Owner on the server.
 
-## Stopped / reported, not pinned (twin divergences on this report; not guessed)
-1. **Statement "Bill or reference" differs between the twins.**
-   - The prototype shows the company folio's own invoice number (`company-credit.ts:19`, F8-INT L1).
-   - The server shows the reservation's `public_no` (`SqlCompanyCreditStore.cs:35` selects `r.public_no`; `P2BReports.cs:260` uses it as `Ref` and in the narration).
-   - `F8-INT-DONE.md` (row H1) says the P2-B statement shows the folio's invoice number, so the server looks like it was missed.
-   - The server test therefore does not assert the ref. The prototype test pins the invoice number.
-2. **Statement opening balance differs.**
+## Follow-up fix (coordinator instruction): server statement reference
+- **Before:** the server statement's "Bill or reference" showed the reservation `public_no`. The prototype shows the company folio's own invoice number (F8-INT H1 / L1).
+- **Fixed in three places:**
+  - `08 Production/src/Hcc.Application/Groups/CompanyCredit.cs:16-17`: `CompanyCreditReceiptRow` gains an optional `InvoiceNo`.
+  - `08 Production/src/Hcc.Infrastructure.SqlServer/Groups/SqlCompanyCreditStore.cs:35-37,112`: the facts SQL also reads the invoice of the receipt's own folio (`ivc.invoice`, `source_kind = 'folio'`).
+  - `08 Production/src/Hcc.Reporting/Reports/P2B/P2BReports.cs:260`: `Ref = InvoiceNo ?? PublicNo`. The narration and the exposure items keep `PublicNo`.
+- **Test:** `F8eR8CompanyCreditTests` (after check-out) now asserts that ref = folio B's invoice number, which differs from folio A's and from the reservation number.
+- **Runs (filtered, through the lock):**
+  - Hcc.Integration.Tests, F8eR8CompanyCreditTests + SfGoldenTests + F8IntSplitGoldenTests: **7/7**.
+  - Hcc.Reporting.Tests `~P2B`: **11/11**.
+  - Hcc.Groups.Tests `~CompanyCredit|~CompanyRetire`: **12/12**.
+
+## Open item (left as is, per coordinator)
+1. **Statement opening balance differs.**
    - The prototype starts at `c.openingOutstanding` (`company-credit.ts:22`).
    - The server always starts at 0 (`P2BReports.cs:264`, `long run = 0`).
    - The golden company has no opening balance, so neither test is affected. This is not part of R8 and was left for a decision.

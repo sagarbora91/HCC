@@ -107,6 +107,13 @@ public sealed class F8eR8CompanyCreditTests
         Assert.Equal(0L, Money(st[0]["cells"]!, "balance"));
         var credit = Assert.Single(st, x => KindOf(x) == "Row")["cells"]!;
         Assert.Equal(bTotal, Money(credit, "credit"));
+        // "Bill or reference" = folio B's own invoice number (prototype twin, F8-INT L1), not folio A's and not the reservation number
+        var invB = (string)(await s.ScalarAsync($"SELECT invoice_no FROM ivc.invoice WHERE source_kind = 'folio' AND source_id = {r.FolioB}", Ct))!;
+        var invA = (string)(await s.ScalarAsync($"SELECT invoice_no FROM ivc.invoice WHERE source_kind = 'folio' AND source_id = {r.FolioA}", Ct))!;
+        var publicNo = (string)(await s.ScalarAsync($"SELECT public_no FROM inv.reservation WHERE reservation_id = {r.ReservationId}", Ct))!;
+        Assert.Equal(invB, (string?)credit["ref"]);
+        Assert.NotEqual(invA, invB);
+        Assert.NotEqual(publicNo, (string?)credit["ref"]);
         Assert.Null(Money(credit, "payment"));
         Assert.Equal(bTotal, Money(credit, "balance"));
         var close = st[^1];

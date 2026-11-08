@@ -13,7 +13,8 @@ using Hcc.Domain.Money;
 namespace Hcc.Application.Groups;
 
 /// <summary>A company-credit receipt attributed to the company (checkout to company credit): the stay's balance the company owes.</summary>
-public sealed record CompanyCreditReceiptRow(long ReceiptId, long ReservationId, string PublicNo, DateOnly BusinessDate, Paise Amount);
+/// <param name="InvoiceNo">F8E-R8: the tax invoice of the folio the receipt sits on (the company folio of a split stay), null before one is issued.</param>
+public sealed record CompanyCreditReceiptRow(long ReceiptId, long ReservationId, string PublicNo, DateOnly BusinessDate, Paise Amount, string? InvoiceNo = null);
 
 /// <summary>Money received from the company against its company-credit receivable (<c>grp.company_payment</c>). ACC-2 tds: <paramref name="Tds"/> = TDS
 /// the company deducted (<c>tds_paise</c>, migration 4242); Amount + Tds settle the receivable.</summary>

@@ -257,7 +257,7 @@ public sealed class CompanyCreditReport(ICompanyStore companies, CompanyCredit c
 
     public static IReadOnlyList<ReportRow> Statement(CompanyCreditFacts f)
     {
-        var ev = f.Credits.Select(c => (c.BusinessDate, Ord: 0, Ref: c.PublicNo, Narr: "Company credit · " + c.PublicNo, Credit: c.Amount.Value, Pay: 0L))
+        var ev = f.Credits.Select(c => (c.BusinessDate, Ord: 0, Ref: c.InvoiceNo ?? c.PublicNo /* F8E-R8: the folio's own invoice (prototype twin, F8-INT L1) */, Narr: "Company credit · " + c.PublicNo, Credit: c.Amount.Value, Pay: 0L))
             .Concat(f.Payments.Select(p => (p.BusinessDate, Ord: 1, Ref: p.Reference.Length > 0 ? p.Reference : "GCP-" + p.PaymentId.ToString(CultureInfo.InvariantCulture),
                 Narr: "Payment · " + p.Tender + (p.Tds.Value > 0 ? " (incl. TDS)" : string.Empty), Credit: 0L, Pay: p.Settled.Value)))
             .OrderBy(e => e.BusinessDate).ThenBy(e => e.Ord).ThenBy(e => e.Ref, StringComparer.Ordinal).ToList();
