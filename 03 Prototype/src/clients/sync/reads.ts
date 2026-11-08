@@ -66,6 +66,8 @@ export const READS={
   'GET /rooms/status':RES,
   'GET /housekeeping/tasks':BOARD,
   'GET /folios/by-reservation/:id':one(wide('PERM-FOL-001',true)),
+  'GET /folios/by-reservation/:id/summary':one(wide('PERM-FOL-001',true)), // F8C-SYNC: split folio summary (SplitFolioEndpoints, FolioView)
+  'GET /folios/:id':one(wide('PERM-FOL-001',true)), // F8C-SYNC: folios B–D of a split stay (BillingQueries.GetFolioAsync, FolioView)
   'GET /invoices/by-source/folio/:id':one(wide('PERM-INV-001',true)),
   'GET /credit-note-requests':one(wide('PERM-INV-001',true)),
   'GET /cashier/desk':one(anyScope('PERM-SHF-001')),

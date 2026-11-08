@@ -142,6 +142,7 @@ import {egress} from './egress';
 // AF-NETSET end
 // F8 lanes (F8_Briefs): one import inside your own block; your SyncArea name inside the same block of AREAS below.
 // F8-SF-SERVER
+import {moneySplit} from './money-split'; // F8C-SYNC: SF_FOLIO_OPEN / SF_ROUTE_SET / SF_FOLIO_REMOVE (folios B–D load in money.ts)
 // F8-SF-SERVER end
 // F8-QW-NA
 // F8-QW-NA end
@@ -251,6 +252,7 @@ export const AREAS:SyncArea[]=[
   egress,
   // AF-NETSET end
   // F8-SF-SERVER
+  moneySplit,
   // F8-SF-SERVER end
   // F8-QW-NA
   // F8-QW-NA end

@@ -49,7 +49,8 @@ export type SrvGroupStatement={groupId:number;code:string;name:string;status:str
   members:{reservationId:number;publicNo:string;guest:string;room:string|null;status:string;arrival:string;departure:string;folioId:number|null}[];version:string};
 
 const LINE_KIND:Record<string,Line['kind']>={room:'room',service:'service',food:'food',discount:'discount',correction:'adjustment'}; // ACC-2: food (F&B on a folio) once the server sends it
-const RECEIPT_KIND=['payment','deposit','deposit-return','refund','company-credit','deposit-apply','ota-credit']; // ACC-2 flows: deposit applied (A6a), folio to the OTA (A13)
+const RECEIPT_KIND=['payment','deposit','deposit-return','refund','company-credit','deposit-apply','ota-credit', // ACC-2 flows: deposit applied (A6a), folio to the OTA (A13)
+  'guest-credit']; // F8C-SYNC: LF B2 guest credit executed at checkout (server ReceiptKind.GuestCredit; folio A or an Udhaar folio)
 /** Server tender of a deposit applied out of the opening balance (Hcc.Domain.Money.FolioTotals.OpeningAdvanceTender). */
 const OPENING_ADVANCE='Opening advance applied';
 
@@ -78,6 +79,7 @@ export function approvalFromServer(a:SrvApproval,bookingId:string):Approval{
     actor:protoUserId(a.requestedBy),version:1,expiresAt:utcToClock(a.expiresUtc)||undefined,meta:{command:'APPROVAL'}};
   if(a.action==='refund'){out.kind='refund';out.target=protoId(a.targetId);}
   else if(a.action==='credit')out.kind='company-credit';
+  else if(a.action==='guest-credit')out.kind='guest-credit'; // F8C-SYNC: LF B2 guest credit (RequestGuestCredit), the split checkout names it per folio
   else if(a.action==='correction'){out.kind='correction';out.target=protoId(a.targetId);}
   else if(a.action==='cash-difference')out.kind='cash-difference';
   if(a.decidedBy!=null)out.approver=protoUserId(a.decidedBy);
