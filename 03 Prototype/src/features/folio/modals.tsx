@@ -17,7 +17,7 @@ import {ApplyDepositPanel,useOtaCredit} from './deposit'; // ACC-2
 import {useCashBlock} from '../../clients/sync/cashier-ui';
 import {recentEqualReceipt,onFolioDuplicate} from '../../domain/streams/folio'; // AF-PAY08
 // F8-SF-UI
-import {sfIsSplit,sfView} from '../../services/mock';
+import {sfIsSplit,sfView,sfFolio} from '../../services/mock';
 import {gstAdjustmentMixed,GST_ADJUSTMENT_MIXED_MSG} from '../../domain/gst'; // F8C
 import {SfSwitcher,SfFolioBar,SfCheckoutSheet,SfInvoiceList} from './Split';
 import {sfCurrent,sfFolioOfModal,sfOpen,sfWithFolio,sfSettleSheet,sfFolioPayer,sfDocBooking} from './SplitLogic';
@@ -114,7 +114,8 @@ export function PaymentModal({id}:{id:string}){
   const t=bv?totals(bv):undefined;
   const [kind,setKind]=useState('payment');
   // MA-3: methods from the payment-methods master (front desk); reference rule and drawer effect from the row.
-  const methods=mnyNames(s,'frontdesk'),needsRef=(m:string)=>!!mnyMethod(s,m)?.needsReference;
+  const coFolio=!!b&&!!pf&&sfIsSplit(b)&&sfFolio(b,pf)?.payer.kind==='company'; // F8D-FOLIO: SF-CONTRACT 3/6: a company folio takes bank / UPI / card, never cash
+  const methods=mnyNames(s,'frontdesk').filter(m=>!(coFolio&&mnyIsDrawer(s,m))),needsRef=(m:string)=>!!mnyMethod(s,m)?.needsReference;
   const firstCash=methods.find(m=>mnyIsDrawer(s,m)),firstOther=methods.find(m=>!mnyIsDrawer(s,m))??methods[0]??'';
   const [total,setTotal]=useState(t&&t.balance>0?String(t.balance/100):'');
   const cashBlock=useCashBlock(); // APK12-3: production, no own cashier shift → cash tender disabled with a hint
@@ -172,6 +173,7 @@ export function PaymentModal({id}:{id:string}){
         <div className="inline">{kind!=='deposit-return'&&rows.length<4&&<button type="button" className="text-btn" onClick={()=>setRows(single?[{...rows[0],amount:total},{method:firstOther,amount:'',reference:''}]:[...rows,{method:firstOther,amount:'',reference:''}])}><Plus size={14}/> Split across another tender</button>}
           {!single&&<span className={'muted '+(sum!==target?'folio-mismatch':'')}>Allocated {money(sum)} of {money(target||0)}{sum!==target?` · ${money(target-sum)} left`:' ✓'}</span>}</div>
       </fieldset>
+      {coFolio&&<div className="info-note" role="note"><Info size={16}/>This folio belongs to the company: bank transfer, UPI or card only, never cash (DEC-076). It is otherwise settled on company credit at check-out.</div>}
       {cashBlock&&<div className="info-note" role="status"><Info size={16}/>{cashBlock}</div>}
       {early&&dupNote}
       {[...new Set(rows.map(r=>mnyMethod(s,r.method)).filter(m=>m&&Number(m.surchargePct)>0))].map(m=><div key={m!.id} className="info-note" role="note"><Info size={16}/>{m!.name}: surcharge {Number(m!.surchargePct)/100} % (payment methods master) — not added automatically; post it as a charge if the hotel applies it.</div>)}
@@ -201,13 +203,16 @@ export function CheckoutModal({id}:{id:string}){
   const t=totals(b),n=folioNights(b),blockers=split?sfSettleSheet(s,b).blockers:folioCheckoutBlockers(s,b,t);
   const pending=folioApprovalsFor(s,b.id).filter(a=>folioApprovalStatus(s,a)==='Pending');
   return <><div className="modal-heading"><h2>Ready to say goodbye?</h2><p>Review {b.guest}’s folio before releasing Room {b.room}.</p></div>
-    <div className="summary-list"><div><span>Room nights posted / agreed</span><strong>{n.posted} of {n.agreed}</strong></div><div><span>Total charges including GST</span><strong>{money(t.total)}</strong></div><div><span>Net payments</span><strong>{money(t.paid)}</strong></div><div><span>Outstanding balance</span><strong>{money(t.balance)}</strong></div><div><span>Deposit to return</span><strong>{money(t.deposit)}</strong></div><div><span>Pending approvals</span><strong>{pending.length?pending.map(a=>a.id).join(', '):'None'}</strong></div></div>
+    <div className="summary-list co-summary"><div><span>Room nights posted / agreed</span><strong>{n.posted} of {n.agreed}</strong></div><div><span>Total charges including GST</span><strong>{money(t.total)}</strong></div><div><span>Net payments</span><strong>{money(t.paid)}</strong></div><div><span>Outstanding balance</span><strong>{money(t.balance)}</strong></div><div><span>Deposit to return</span><strong>{money(t.deposit)}</strong></div><div><span>Pending approvals</span><strong>{pending.length?pending.map(a=>a.id).join(', '):'None'}</strong></div></div>
+    <div className="co-grid"><div className="co-main">{/* F8D-FOLIO: two columns so the task fits without a body scroll */}
     {split?<><SfCheckoutSheet b={b}/><ApplyDepositPanel b={sfView(b,'A')}/></>:<><ApplyDepositPanel b={b}/>
     {ota.node}
     <CompanyCreditPanel b={b}/></>}{/* F8-SF-UI */}
+    </div><div className="co-side">
     {blockers.length>0&&!split?<div className="info-note folio-blockers" role="status"><AlertTriangle size={17}/><div><strong>Checkout is blocked until:</strong><ul>{blockers.map(x=><li key={x}>{x}</li>)}</ul></div></div>
       :blockers.length>0?null:<div className="info-note"><Info size={17}/>Checkout preserves all stay charges, marks the room dirty, creates exactly one housekeeping task and {process.env.HCC_BUILD==='production'?'then issues the tax invoice':'allocates a sample invoice number once'}. Repeating checkout returns the same result.</div>}
     <FeedbackSheet booking={b.id}/>{/* F4-T3 */}
+    </div></div>
     <div className="modal-actions"><button className="btn" onClick={()=>booking(b.id)}>Review folio</button>
       {permission('payments')&&(split?t.deposit>0:t.balance>0||t.deposit>0)&&<button className="btn subtle" disabled={busy} onClick={()=>open(sfOpen(b,'payment','A'))}>{split?'Return deposit':'Settle / return deposit'}</button>}
       <button className="btn primary" disabled={busy} onClick={()=>run({type:'CHECKOUT',id:b.id,...(ota.on&&!split?{otaCredit:true}:{}),key:'checkout:'+b.id+(ota.on&&!split?':ota':'')},'Checkout completed. Housekeeping task created.',{after:()=>split?open(sfOpen(b,'invoice','A')):booking(b.id)})}>Confirm checkout <ArrowRight size={16}/></button></div></>;

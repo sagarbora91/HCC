@@ -51,7 +51,7 @@ public static class CompanyCreditRules
 
     /// <summary>The refusal text (prototype <c>grpCreditRefusal</c>, same wording); figures in the prototype's ₹ format.</summary>
     public static string Message(string company, Paise limit, Paise used, Paise needed, string what)
-        => $"Credit limit exceeded for {company}: limit {limit}{(limit == Paise.Zero ? " (no credit)" : "")}, used {used}, remaining {Remaining(limit, used)}; "
+        => $"Credit limit exceeded for {company}: limit {limit}{(limit == Paise.Zero ? " (no credit)" : "")}, already used by other business {used}, headroom {Remaining(limit, used)}; "
             + $"this {what} needs {needed}. Only the Owner can raise the limit (Groups & corporate › Companies › Credit limit).";
 
     /// <summary>INVALID_TRANSITION with <c>details.reason = CREDIT_LIMIT</c> and the figures (paise), when <see cref="Exceeds"/>.</summary>

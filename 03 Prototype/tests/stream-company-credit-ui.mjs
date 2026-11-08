@@ -32,7 +32,7 @@ export function render(name:string,props:any,s:any,uid:string,mobile=false){
       const h=render('CompanyCreditPanel',{b:bk(s,'HCC-1044'),mobile},s,'reception',mobile),t=text(h);
       assert.match(t,/Company credit · Deccan Pharma Distributors \(fictional\)/);
       assert.match(t,/Credit ₹70,600 used of ₹66,350 · ₹0 left\./);
-      assert.match(t,/Credit limit exceeded for Deccan Pharma Distributors \(fictional\): limit ₹66,350, used ₹66,300, remaining ₹50; this stay on company credit needs ₹100\./);
+      assert.match(t,/Credit limit exceeded for Deccan Pharma Distributors \(fictional\): limit ₹66,350, already used by other business ₹66,300, headroom ₹50; this stay on company credit needs ₹100\./);
       assert.match(h,/<button[^>]*disabled=""[^>]*>Request company credit for ₹100<\/button>/);
     }
     const ok=text(render('CompanyCreditPanel',{b:bk(M.seed(),'HCC-1044')},M.seed(),'reception'));
@@ -48,7 +48,7 @@ export function render(name:string,props:any,s:any,uid:string,mobile=false){
   test('[CREDIT-UI] booking dialog account picker: remaining credit, or the refusal for the estimated stay',()=>{
     const s=M.seed();
     assert.match(text(render('CompanyAccountPicker',{value:'CO-2',onChange:()=>{},stay:630000},s,'reception')),/Credit ₹88,000 used of ₹1,00,000 · ₹12,000 left · this stay about ₹6,300 incl\. GST/);
-    assert.match(text(render('CompanyAccountPicker',{value:'CO-2',onChange:()=>{},stay:1575000,mobile:true},s,'reception',true)),/remaining ₹12,000; this booking needs ₹15,750\./);
+    assert.match(text(render('CompanyAccountPicker',{value:'CO-2',onChange:()=>{},stay:1575000,mobile:true},s,'reception',true)),/headroom ₹12,000; this booking needs ₹15,750\./);
   });
   test('[CREDIT-UI] company payment dialog and the Owner-only limit dialog',()=>{
     const s=M.seed();

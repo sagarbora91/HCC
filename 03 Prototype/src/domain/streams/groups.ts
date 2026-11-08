@@ -215,7 +215,7 @@ export function grpCredit(s:State,c:GRPCompany){
  */
 export function grpCreditRefusal(c:GRPCompany,used:number,needed:number,what:string):string|undefined{
   if(!(needed>0&&used+needed>c.creditLimit))return undefined;
-  return `Credit limit exceeded for ${c.name}: limit ${money(c.creditLimit)}${c.creditLimit===0?' (no credit)':''}, used ${money(used)}, remaining ${money(Math.max(0,c.creditLimit-used))}; `
+  return `Credit limit exceeded for ${c.name}: limit ${money(c.creditLimit)}${c.creditLimit===0?' (no credit)':''}, already used by other business ${money(used)}, headroom ${money(Math.max(0,c.creditLimit-used))}; `
     +`this ${what} needs ${money(needed)}. Only the Owner can raise the limit (Groups & corporate › Companies › Credit limit).`;
 }
 /**
