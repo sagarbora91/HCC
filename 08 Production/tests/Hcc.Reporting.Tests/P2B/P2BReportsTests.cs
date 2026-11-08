@@ -151,4 +151,31 @@ public sealed class P2BReportsTests
         Assert.Equal(1250, g.CoinsPaise);
         Assert.Null(SqlP2BReportSource.ParseGrid(3, null).Notes);
     }
+
+    [Fact]
+    public void Definitions_equal_the_prototype_catalogue_json_entries()
+    {
+        using var doc = System.Text.Json.JsonDocument.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "catalogue.json")));
+        var json = doc.RootElement.EnumerateArray().ToDictionary(e => e.GetProperty("id").GetString()!);
+        IReportSelector[] mine =
+        [
+            new CashCountSheetReport(null!, null!, null!), new CounterBillsReport(null!), new RefundsReport(null!, null!), new DiscountLogReport(null!, null!),
+            new BankBookReport(null!, null!), new CompanyCreditReport(null!, null!, null!), new LicenceExpiryReport(null!),
+        ];
+        Assert.False(json.ContainsKey("rpt.money.payment-corrections"));
+        foreach (var d in mine.Select(m => m.Definition))
+        {
+            var e = json[d.Id];
+            Assert.Equal(e.GetProperty("title").GetString(), d.Title);
+            Assert.Equal(e.GetProperty("status").GetString(), d.Status);
+            Assert.Equal(e.GetProperty("moneyFlag").GetBoolean(), d.MoneyFlag);
+            Assert.Equal(e.GetProperty("moneyGate").GetString(), d.MoneyGate);
+            Assert.Equal(e.GetProperty("viewPerms").EnumerateArray().Select(x => x.GetString()), d.ViewPerms);
+            Assert.Equal(e.GetProperty("params").EnumerateArray().Select(x => x.GetString()), d.Params.Select(p => p.Key));
+            Assert.Equal(e.GetProperty("formats").EnumerateArray().Select(x => x.GetString()), d.Formats.Select(f => f.ToString().ToLowerInvariant()));
+            Assert.Equal(e.GetProperty("phone").GetString(), d.Phone.ToString().ToLowerInvariant());
+            Assert.Equal(e.GetProperty("columns").EnumerateArray().Select(c => c.GetProperty("key").GetString()), d.Columns.Select(c => c.Key));
+            Assert.Equal(e.GetProperty("columns").EnumerateArray().Select(c => c.GetProperty("money").GetBoolean()), d.Columns.Select(c => c.Money));
+        }
+    }
 }

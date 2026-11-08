@@ -39,16 +39,16 @@ The catalogue names the "audit trail of receipt changes (existing)". No such cap
 - Licence expiry: the firm profile has no issue date, so Issued is blank; Renewal card = the card exists (expiry set).
 
 ## Tests
-Added: `03 Prototype/tests/stream-rpt-p2-b.mjs` (16 tests, tag `[F8-RPT-P2-B]`), goldens `tests/rpt-golden/goldens/<id>.json` for the 7 built ids (written by `node tests/rpt-golden/accept.mjs`; the other 101 goldens came out byte-identical), server `08 Production/tests/Hcc.Reporting.Tests/P2B/P2BReportsTests.cs` (9 tests).
+Added: `03 Prototype/tests/stream-rpt-p2-b.mjs` (16 tests, tag `[F8-RPT-P2-B]`), goldens `tests/rpt-golden/goldens/<id>.json` for the 7 built ids (written by `node tests/rpt-golden/accept.mjs`; the other 101 goldens came out byte-identical), server `08 Production/tests/Hcc.Reporting.Tests/P2B/P2BReportsTests.cs` (10 tests).
 
 ## Commands run and results
 - `tsc --noEmit` (03 Prototype): exit 0.
 - `node tools/rpt-catalogue.mjs`: wrote both catalogue.json files. `node tests/rpt-golden/accept.mjs`: 108 goldens written, only the 7 new files differ from the setup commit.
 - `npm test` with `HCC_TEST_ONLY='rpt-p2-b|rpt-engine|goldens'` (first run): 95/96 passed; the one failure (Cashier own-shift test used FY26 data with no Cashier-counted day) was fixed in the test after that run; the fixed test was NOT re-run. Full `npm test` NOT run.
-- Server: `dotnet test tests/Hcc.Reporting.Tests -maxcpucount:1`: run 1 failed to compile (missing usings, fixed), run 2 failed to compile (AccShared helpers, fixed), run 3 queued on the global heavy-job lock and had not started when this lane hit its turn cap. **The server code and its 9 tests have never compiled or run: unverified.**
+- Server: `dotnet test tests/Hcc.Reporting.Tests -maxcpucount:1 --logger trx` (via Invoke-Serialized): runs 1 and 2 failed to compile (missing usings; AccShared helpers; both fixed). Run 4 (final): 135 passed, 1 failed, 136 total. My 10 tests in `P2B/P2BReportsTests.cs` pass (9 builder tests + a check of my 7 definitions against catalogue.json). The one failure is `EngineTests.Catalogue_json_from_the_prototype_equals_the_server_registry`: that test lists every server selector by hand in `EngineTests.cs` (outside my ownership), so the 7 new reports are in catalogue.json but not in that list. **Integration needed:** add the 7 `new ...Report(null!, ...)` entries (CashCountSheetReport, CounterBillsReport, RefundsReport, DiscountLogReport, BankBookReport, CompanyCreditReport, LicenceExpiryReport) to the list in EngineTests.cs; the same applies to any other hand-kept registry test.
+- Full prototype `npm test`: NOT run (turn cap; the heavy-job lock queued each run 10-25 min). Only the filtered run above.
 
 ## Not done / unverified
 - payment-corrections (BLOCKED, above).
-- SQL queries in `P2BSource.cs` are compiled but not executed against SQL Server (no database test in this lane); the first hotel-PC gate exercises them. Column names were checked against migrations 0002, 0400, 2820, 4688.
+- SQL queries in `P2BSource.cs` are compiled (server project builds) but not executed against SQL Server (no database test in this lane); the first hotel-PC gate exercises them. Column names were checked against migrations 0002, 0400, 2820, 4688.
 - No UI hub changes (reports appear in the hub through the catalogue); phone layout follows the catalogue flag only.
-- Full `npm test` result: see above if a line says so; otherwise not run.
