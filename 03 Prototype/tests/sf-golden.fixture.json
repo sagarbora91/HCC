@@ -1,0 +1,12 @@
+{
+  "_comment": "SF-GOLDEN fixture (SF-CONTRACT 5.7): the one set of numbers both suites bind to. Prototype: tests/stream-sf-golden.mjs. Server: 08 Production/tests/Hcc.Integration.Tests/SfGoldenTests.cs. Fictional data. Money = integer paise. GSTIN is the valid fictional 27AAPFU0939F1ZV (contract deviation 8).",
+  "company": { "name": "Deccan Agro Ltd (fictional)", "gstin": "27AAPFU0939F1ZV", "creditLimitPaise": 5000000 },
+  "room": { "type": "Deluxe", "ratePaise": 300000, "nights": 3, "gstBps": 500 },
+  "postings": { "laundryPaise": 50000, "laundryGstBps": 1800, "foodPaise": 120000, "foodGstBps": 500 },
+  "payments": { "advanceUpiPaise": 100000, "cashAtCheckoutPaise": 85000, "companyCreditPaise": 945000 },
+  "folioA": { "supply": "B2C", "taxablePaise": 170000, "cgstPaise": 7500, "sgstPaise": 7500, "totalPaise": 185000 },
+  "folioB": { "supply": "B2B", "taxablePaise": 900000, "cgstPaise": 22500, "sgstPaise": 22500, "totalPaise": 945000 },
+  "stay": { "taxablePaise": 1070000, "cgstPaise": 30000, "sgstPaise": 30000, "totalPaise": 1130000 },
+  "invoices": 2,
+  "gstDocuments": 2
+}
