@@ -1,0 +1,20 @@
+{
+ "id": "rpt.guests.userwise-activity",
+ "cases": [
+  {
+   "uid": "owner",
+   "scenario": "BASE",
+   "params": {},
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["user","at","action","booking","room","guest","billNo"],
+     "rows": [
+      ["total","Total",null,null,"0 check-ins · 0 check-outs",null,null,null]
+     ]
+    }
+   ]
+  }
+ ]
+}

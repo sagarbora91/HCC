@@ -5033,6 +5033,14 @@ Status 7 Nov 2026 (f12-int): all 54 section 3.10 entries are built in code on bo
 
 <!-- F8 (SF-CONTRACT §12): P2 report lanes write their status lines inside their own block. -->
 <!-- F8-RPT-P2-A -->
+<!-- F8-RPT-P2-A --> rpt.guests.reservations-register: built on the engine (prototype src/domain/reports/p2-a + server Hcc.Reporting/Reports/P2A), PERM-RPT-001 + money PERM-RPT-002.
+<!-- F8-RPT-P2-A --> rpt.guests.guest-tariff: built on the engine (prototype src/domain/reports/p2-a + server Hcc.Reporting/Reports/P2A), PERM-RPT-002.
+<!-- F8-RPT-P2-A --> rpt.guests.company-business: built on the engine (prototype src/domain/reports/p2-a + server Hcc.Reporting/Reports/P2A), PERM-RPT-002.
+<!-- F8-RPT-P2-A --> rpt.guests.userwise-activity: built on the engine (prototype src/domain/reports/p2-a + server Hcc.Reporting/Reports/P2A), PERM-ADM-004, no money.
+<!-- F8-RPT-P2-A --> rpt.guests.service-lines: built on the engine (prototype src/domain/reports/p2-a + server Hcc.Reporting/Reports/P2A), PERM-RPT-002.
+<!-- F8-RPT-P2-A --> rpt.rooms.room-wise-revenue: built on the engine (prototype src/domain/reports/p2-a + server Hcc.Reporting/Reports/P2A), PERM-RPT-002.
+<!-- F8-RPT-P2-A --> rpt.rooms.rooms-left: built on the engine (prototype src/domain/reports/p2-a + server Hcc.Reporting/Reports/P2A), PERM-RPT-001, no money (class D-FWD so forward dates are allowed).
+<!-- F8-RPT-P2-A --> rpt.rooms.allocation-grid: built on the engine (prototype src/domain/reports/p2-a + server Hcc.Reporting/Reports/P2A), PERM-RPT-001, no money.
 <!-- F8-RPT-P2-A end -->
 <!-- F8-RPT-P2-B -->
 <!-- F8-RPT-P2-B end -->

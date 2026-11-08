@@ -1,0 +1,43 @@
+{
+ "id": "rpt.rooms.allocation-grid",
+ "cases": [
+  {
+   "uid": "owner",
+   "scenario": "BASE",
+   "params": {},
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["room","roomType","d01","nights"],
+     "rows": [
+      ["row","101","Classic","Ananya Rao",1],
+      ["row","102","Classic","Vikram Shah",1],
+      ["row","105","Classic","",0],
+      ["row","108","Classic","",0],
+      ["row","201","Classic","Arjun Kapoor",1],
+      ["row","202","Classic","Nisha Desai",1],
+      ["row","205","Classic","",0],
+      ["row","208","Classic","",0],
+      ["row","301","Classic","Tara Iyer",1],
+      ["row","302","Classic","Dev Malhotra",1],
+      ["row","305","Classic","",0],
+      ["row","308","Classic","OOO",0],
+      ["row","103","Deluxe","Ishaan Bose",1],
+      ["row","104","Deluxe","Riya Mehta",1],
+      ["row","107","Deluxe","",0],
+      ["row","203","Deluxe","",0],
+      ["row","204","Deluxe","",0],
+      ["row","207","Deluxe","Aditi Nair",1],
+      ["row","303","Deluxe","",0],
+      ["row","304","Deluxe","",0],
+      ["row","307","Deluxe","",0],
+      ["row","106","Suite","",0],
+      ["row","206","Suite","Kabir Sen",1],
+      ["row","306","Suite","",0]
+     ]
+    }
+   ]
+  }
+ ]
+}

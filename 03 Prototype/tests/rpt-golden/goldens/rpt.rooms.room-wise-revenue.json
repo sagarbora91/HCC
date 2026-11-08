@@ -1,0 +1,20 @@
+{
+ "id": "rpt.rooms.room-wise-revenue",
+ "cases": [
+  {
+   "uid": "owner",
+   "scenario": "BASE",
+   "params": {},
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["name","nights","tariff","extra","other","total","avg"],
+     "rows": [
+      ["total","Total · 0 rooms",0,0,0,0,0,0]
+     ]
+    }
+   ]
+  }
+ ]
+}
