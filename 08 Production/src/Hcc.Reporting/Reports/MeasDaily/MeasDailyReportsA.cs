@@ -383,7 +383,7 @@ public sealed class HighBalanceReport(SqlPlatform platform, ISettingsReader? set
                ISNULL((SELECT SUM(CASE WHEN x.kind = 'deposit' THEN x.amount_paise WHEN x.kind = 'deposit-return' THEN -x.amount_paise ELSE 0 END) FROM pay.receipt x WHERE x.folio_id = f.folio_id), 0),
                ISNULL(co.credit_limit_paise, 0)
           FROM inv.reservation r
-          JOIN bill.folio f ON f.reservation_id = r.reservation_id
+          JOIN bill.folio f ON f.reservation_id = r.reservation_id AND f.folio_seq = 1 -- F8-SF-SERVER: one row per reservation
           JOIN gst.stay s ON s.reservation_id = r.reservation_id AND s.status = 'InHouse'
           JOIN gst.stay_segment sg ON sg.stay_id = s.stay_id AND sg.to_date IS NULL
           JOIN inv.room rm ON rm.room_id = sg.room_id

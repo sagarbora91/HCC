@@ -17,9 +17,9 @@ internal static partial class GuestsSql
 
     /// <summary>Folio balance (net + tax − paid − credit) of folio <c>f</c>; the same arithmetic as FolioTotals / the revenue bridge.</summary>
     public const string BalanceExpr = """
-        (ISNULL((SELECT SUM(c.amount_paise + c.tax_paise) FROM bill.charge c WHERE c.folio_id = f.folio_id), 0)
+        (ISNULL((SELECT SUM(c.amount_paise + c.tax_paise) FROM bill.charge c WHERE c.folio_id IN (SELECT y.folio_id FROM bill.folio y WHERE y.reservation_id = f.reservation_id)), 0)
          - ISNULL((SELECT SUM(CASE WHEN x.kind IN ('payment','deposit-apply','company-credit','ota-credit','guest-credit') THEN x.amount_paise WHEN x.kind = 'refund' THEN -x.amount_paise ELSE 0 END)
-                     FROM pay.receipt x WHERE x.folio_id = f.folio_id), 0))
+                     FROM pay.receipt x WHERE x.folio_id IN (SELECT y.folio_id FROM bill.folio y WHERE y.reservation_id = f.reservation_id)), 0))
         """;
 
     public const string LateChargeExpr = "ISNULL((SELECT SUM(c.amount_paise + c.tax_paise) FROM bill.charge c WHERE c.folio_id = f.folio_id AND c.label = N'Late check-out · half day' AND c.reverses_charge_id IS NULL), 0)";

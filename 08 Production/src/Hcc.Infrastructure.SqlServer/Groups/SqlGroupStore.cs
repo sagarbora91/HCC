@@ -365,7 +365,7 @@ public sealed class SqlGroupStore(SqlConnectionFactory connections) : IGroupStor
             SELECT member_reservation_id, category, target FROM grp.routing_rule WHERE group_id = @g ORDER BY rule_id;
             SELECT r.reservation_id, r.public_no, r.guest_name, r.status, r.arrival, r.departure, COALESCE(sr.room_no, rr.room_no), f.folio_id, m.src, r.nightly_rate_paise
               FROM @m m JOIN inv.reservation r ON r.reservation_id = m.reservation_id
-              LEFT JOIN bill.folio f ON f.reservation_id = r.reservation_id
+              LEFT JOIN bill.folio f ON f.reservation_id = r.reservation_id AND f.folio_seq = 1 -- F8-SF-SERVER
               LEFT JOIN inv.room rr ON rr.room_id = r.room_id
               OUTER APPLY (SELECT TOP 1 rm.room_no FROM gst.stay st JOIN gst.stay_segment sg ON sg.stay_id = st.stay_id JOIN inv.room rm ON rm.room_id = sg.room_id
                             WHERE st.reservation_id = r.reservation_id ORDER BY sg.seq DESC) sr

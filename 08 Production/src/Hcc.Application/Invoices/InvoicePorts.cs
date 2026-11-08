@@ -79,7 +79,8 @@ public sealed record NewCreditNoteRequest(int PropertyId, long InvoiceId, Credit
     bool Direct, int RequestedBy, DateTime RequestedUtc, DateTime ExpiresUtc);
 
 /// <summary>Display facts of a folio for its invoice (booking number, guest, room, stay dates).</summary>
-public sealed record FolioParty(int PropertyId, string PublicNo, string GuestName, string? RoomNo, DateOnly Arrival, DateOnly Departure);
+public sealed record FolioParty(int PropertyId, string PublicNo, string GuestName, string? RoomNo, DateOnly Arrival, DateOnly Departure,
+    string? PayerKind = null, string? PayerGstin = null); // F8-SF-SERVER: GuestName is the folio payer's name on a split folio; PayerGstin = the buyer GSTIN of a company folio
 
 /// <summary>
 /// Invoice persistence (schema <c>ivc</c>, migration 2400). Methods with a transaction run inside the command; a null transaction reads

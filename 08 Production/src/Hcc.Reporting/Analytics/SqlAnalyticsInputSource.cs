@@ -138,7 +138,7 @@ public sealed class SqlAnalyticsInputSource(SqlPlatform platform, TimeProvider? 
           FROM inv.reservation r
           LEFT JOIN gst.stay s ON s.reservation_id = r.reservation_id
           LEFT JOIN gst.guest g ON g.guest_id = s.guest_id
-          LEFT JOIN bill.folio f ON f.reservation_id = r.reservation_id
+          LEFT JOIN bill.folio f ON f.reservation_id = r.reservation_id AND f.folio_seq = 1 -- F8-SF-SERVER: one row per reservation (amounts of folios B-D: f8-int, see DONE)
           LEFT JOIN inv.room rm ON rm.room_id = r.room_id
           LEFT JOIN mst.purpose_of_visit pv ON pv.property_id = r.property_id AND pv.code = r.purpose_code
           OUTER APPLY (SELECT TOP (1) x.room_no FROM gst.stay_segment sg JOIN inv.room x ON x.room_id = sg.room_id WHERE sg.stay_id = s.stay_id ORDER BY sg.seq DESC) seg
