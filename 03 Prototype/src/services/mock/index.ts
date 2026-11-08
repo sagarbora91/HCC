@@ -170,6 +170,7 @@ export * from '../../domain/streams/folio-split'; // F8 SF split folio: SFFolio 
 // F8-SF-TESTS
 // F8-SF-TESTS end
 // F8-QW-NA
+export * from '../../domain/streams/night-audit'; // naChecklist, naAutoTicks, naTicksToSend, NA_TEMPLATE (night-audit lines, show only)
 // F8-QW-NA end
 // F8-QW-NS
 // F8-QW-NS end

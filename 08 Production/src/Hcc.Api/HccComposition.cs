@@ -241,6 +241,7 @@ public static class HccComposition
         // F8-RPT-P2-C
         // F8-RPT-P2-C end
         // F8-QW-NA
+        services.AddNightAuditModule();
         // F8-QW-NA end
         // F8-QW-NS
         // F8-QW-NS end
@@ -466,6 +467,7 @@ public static class HccComposition
         // F8-RPT-P2-C
         // F8-RPT-P2-C end
         // F8-QW-NA
+        api.MapNightAuditEndpoints();
         // F8-QW-NA end
         // F8-QW-NS
         // F8-QW-NS end

@@ -13,6 +13,9 @@ import {Corrections} from './Corrections';
 import {ReopenDay} from './ReopenDay';
 import {usePaged,ShowMore} from '../../components/ShowMore';
 import {DayPackButton} from '../exports/DayPack';
+// F8-QW-NA
+import {NightAuditPanel} from './NightAuditPanel';
+// F8-QW-NA end
 
 type StepState='done'|'current'|'blocked'|'waiting';
 /** Step ids = SUB_SCREENS 'closing' (kebab-case of the labels). */
@@ -77,10 +80,10 @@ export function DayClosing(){
   const actionsBar=(children:React.ReactNode)=><div className="card-footer f-actions">{children}</div>;
 
   let body:React.ReactNode;
-  if(step==='preflight')body=panel(step,closed?<p className="muted">Completed before close.</p>:<ul className="f-checks">{general.map(c=><li key={c.id} className={c.items.length?'bad':'ok'}>
+  if(step==='preflight')body=panel(step,closed?<p className="muted">Completed before close.</p>:<><NightAuditPanel/><ul className="f-checks">{general.map(c=><li key={c.id} className={c.items.length?'bad':'ok'}>
       <div><strong>{c.items.length?'✗':'✓'} {c.title}</strong><small>{c.items.length?`${c.items.length} to resolve · ${c.hint}`:'All clear'}</small>
         {!!c.items.length&&<ul>{c.items.map((it,i)=><li key={i}><button className="text-btn" onClick={()=>drill(it)}>{it.label} <ArrowUpRight size={13}/></button></li>)}</ul>}</div>
-      {c.page&&!!c.items.length&&<button className="btn small-btn" onClick={()=>go(c.page!)}>Open</button>}</li>)}</ul>);
+      {c.page&&!!c.items.length&&<button className="btn small-btn" onClick={()=>go(c.page!)}>Open</button>}</li>)}</ul></>);
   else if(step==='post-room-nights')body=closed?panel(step,<p className="muted">Nights posted for {shortDate(s.date)}.</p>,
       canClose?actionsBar(<button className="btn subtle" disabled={busy} title="Demonstrates that a closed date cannot be posted again" onClick={()=>run({type:'CLOSE_RUN',key:'closerun-rerun:'+s.date+':'+s.sequence})}>Try posting again</button>):undefined)
     :panel(step,<>
