@@ -2660,6 +2660,85 @@
   "side": "both"
  },
  {
+  "id": "rpt.money.bank-book",
+  "title": "Bank book",
+  "area": "money",
+  "priority": "P2",
+  "status": "built",
+  "moneyFlag": true,
+  "moneyGate": "PERM-ACC-001",
+  "viewPerms": [
+   "PERM-ACC-001"
+  ],
+  "deskPerms": [],
+  "exportPerm": "PERM-RPT-003",
+  "dateClass": "D-F",
+  "params": [
+   "account",
+   "from"
+  ],
+  "columns": [
+   {
+    "key": "date",
+    "type": "date",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "voucher",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "narration",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "counter",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "debit",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "credit",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "balance",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   }
+  ],
+  "formats": [
+   "screen",
+   "xlsx",
+   "pdf",
+   "csv"
+  ],
+  "phone": "yes",
+  "layout": "table",
+  "side": "both"
+ },
+ {
   "id": "rpt.money.cash-book",
   "title": "Cash book",
   "area": "money",
@@ -2744,6 +2823,68 @@
   "phone": "yes",
   "layout": "table",
   "side": "prototype"
+ },
+ {
+  "id": "rpt.money.cash-count-sheet",
+  "title": "Cash count sheet",
+  "area": "money",
+  "priority": "P2",
+  "status": "built",
+  "moneyFlag": true,
+  "moneyGate": "PERM-RPT-002",
+  "viewPerms": [
+   "PERM-RPT-002"
+  ],
+  "deskPerms": [],
+  "exportPerm": "PERM-RPT-003",
+  "dateClass": "D-DAY",
+  "params": [
+   "from"
+  ],
+  "columns": [
+   {
+    "key": "denomination",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "count",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "value",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "expected",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "difference",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   }
+  ],
+  "formats": [
+   "pdf",
+   "screen"
+  ],
+  "phone": "yes",
+  "layout": "table",
+  "side": "both"
  },
  {
   "id": "rpt.money.cash-out-register",
@@ -3119,6 +3260,176 @@
   "side": "both"
  },
  {
+  "id": "rpt.money.company-credit",
+  "title": "Company credit and statement",
+  "area": "money",
+  "priority": "P2",
+  "status": "built",
+  "moneyFlag": true,
+  "moneyGate": "PERM-GRP-004",
+  "viewPerms": [
+   "PERM-GRP-001"
+  ],
+  "deskPerms": [],
+  "exportPerm": "PERM-RPT-003",
+  "dateClass": "D-NOW",
+  "params": [
+   "company"
+  ],
+  "columns": [
+   {
+    "key": "company",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "contact",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "rates",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "limit",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "used",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "remaining",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "status",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   }
+  ],
+  "formats": [
+   "screen",
+   "xlsx",
+   "pdf"
+  ],
+  "phone": "yes",
+  "layout": "table",
+  "side": "both"
+ },
+ {
+  "id": "rpt.money.counter-bills",
+  "title": "Counter bills",
+  "area": "money",
+  "priority": "P2",
+  "status": "built",
+  "moneyFlag": true,
+  "moneyGate": "PERM-RPT-002",
+  "viewPerms": [
+   "PERM-RPT-002"
+  ],
+  "deskPerms": [],
+  "exportPerm": "PERM-RPT-003",
+  "dateClass": "D-B",
+  "params": [
+   "from",
+   "to"
+  ],
+  "columns": [
+   {
+    "key": "date",
+    "type": "date",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "billNo",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "customer",
+    "type": "text",
+    "money": false,
+    "mask": "guestName",
+    "computed": null
+   },
+   {
+    "key": "item",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "qty",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "rate",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "amount",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "tax",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "tender",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   }
+  ],
+  "formats": [
+   "screen",
+   "xlsx",
+   "pdf",
+   "csv"
+  ],
+  "phone": "no",
+  "layout": "table",
+  "side": "both"
+ },
+ {
   "id": "rpt.money.credit-bills",
   "title": "Credit bills of the day",
   "area": "money",
@@ -3194,6 +3505,78 @@
    "pdf"
   ],
   "phone": "yes",
+  "layout": "table",
+  "side": "both"
+ },
+ {
+  "id": "rpt.money.discount-log",
+  "title": "Discounts given",
+  "area": "money",
+  "priority": "P2",
+  "status": "built",
+  "moneyFlag": true,
+  "moneyGate": "PERM-RPT-002",
+  "viewPerms": [
+   "PERM-RPT-002"
+  ],
+  "deskPerms": [],
+  "exportPerm": "PERM-RPT-003",
+  "dateClass": "D-B",
+  "params": [
+   "from",
+   "to",
+   "reason"
+  ],
+  "columns": [
+   {
+    "key": "date",
+    "type": "date",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "ref",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "guest",
+    "type": "text",
+    "money": false,
+    "mask": "guestName",
+    "computed": null
+   },
+   {
+    "key": "reason",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "amount",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "approvedBy",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   }
+  ],
+  "formats": [
+   "screen",
+   "xlsx",
+   "pdf"
+  ],
+  "phone": "no",
   "layout": "table",
   "side": "both"
  },
@@ -3673,6 +4056,91 @@
   "phone": "yes",
   "layout": "table",
   "side": "prototype"
+ },
+ {
+  "id": "rpt.money.refunds",
+  "title": "Refunds",
+  "area": "money",
+  "priority": "P2",
+  "status": "built",
+  "moneyFlag": true,
+  "moneyGate": "PERM-RPT-002",
+  "viewPerms": [
+   "PERM-RPT-002"
+  ],
+  "deskPerms": [],
+  "exportPerm": "PERM-RPT-003",
+  "dateClass": "D-B",
+  "params": [
+   "from",
+   "to"
+  ],
+  "columns": [
+   {
+    "key": "date",
+    "type": "date",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "refundNo",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "guest",
+    "type": "text",
+    "money": false,
+    "mask": "guestName",
+    "computed": null
+   },
+   {
+    "key": "billNo",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "amount",
+    "type": "money",
+    "money": true,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "tender",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "reason",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "approvedBy",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   }
+  ],
+  "formats": [
+   "screen",
+   "xlsx",
+   "pdf"
+  ],
+  "phone": "no",
+  "layout": "table",
+  "side": "both"
  },
  {
   "id": "rpt.money.revenue-by-category-tender",
@@ -8833,6 +9301,76 @@
    "pdf"
   ],
   "phone": "no",
+  "layout": "table",
+  "side": "both"
+ },
+ {
+  "id": "rpt.tax.licence-expiry",
+  "title": "Licence expiry",
+  "area": "tax",
+  "priority": "P2",
+  "status": "built",
+  "moneyFlag": false,
+  "moneyGate": null,
+  "viewPerms": [
+   "PERM-CMP-001"
+  ],
+  "deskPerms": [],
+  "exportPerm": "PERM-RPT-003",
+  "dateClass": "D-NOW",
+  "params": [
+   "within"
+  ],
+  "columns": [
+   {
+    "key": "licence",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "number",
+    "type": "text",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "issued",
+    "type": "date",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "expires",
+    "type": "date",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "daysLeft",
+    "type": "int",
+    "money": false,
+    "mask": null,
+    "computed": null
+   },
+   {
+    "key": "card",
+    "type": "bool",
+    "money": false,
+    "mask": null,
+    "computed": null
+   }
+  ],
+  "formats": [
+   "screen",
+   "xlsx",
+   "pdf"
+  ],
+  "phone": "yes",
   "layout": "table",
   "side": "both"
  },

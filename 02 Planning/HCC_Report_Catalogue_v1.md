@@ -5043,6 +5043,8 @@ Status 7 Nov 2026 (f12-int): all 54 section 3.10 entries are built in code on bo
 <!-- F8-RPT-P2-A --> rpt.rooms.allocation-grid: built on the engine (prototype src/domain/reports/p2-a + server Hcc.Reporting/Reports/P2A), PERM-RPT-001, no money.
 <!-- F8-RPT-P2-A end -->
 <!-- F8-RPT-P2-B -->
+F8 batch B (8 Nov 2026): rpt.money.cash-count-sheet, rpt.money.counter-bills, rpt.money.refunds, rpt.money.discount-log, rpt.money.bank-book (PERM-ACC-001), rpt.money.company-credit (partial -> built; PERM-GRP-001, money PERM-GRP-004), rpt.tax.licence-expiry (PERM-CMP-001 = Owner + Accountant): built on the engine (prototype + server), ids unchanged.
+F8 batch B: rpt.money.payment-corrections is BLOCKED - no audit trail of a receipt's payment type change exists in code (no command edits a receipt's method after entry); it stays planned until that capture is built.
 <!-- F8-RPT-P2-B end -->
 <!-- F8-RPT-P2-C -->
 <!-- F8-RPT-P2-C end -->

@@ -1,0 +1,89 @@
+{
+ "id": "rpt.money.discount-log",
+ "cases": [
+  {
+   "uid": "owner",
+   "scenario": "FY26",
+   "params": {
+    "from": "2026-04-01",
+    "to": "2026-10-23"
+   },
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["date","ref","guest","reason","amount","approvedBy"],
+     "rows": [
+      ["row","2026-04-24","HCC-H0196","Lata Sharma","Approved discount · Corporate rate match",75000,"Meera"],
+      ["row","2026-05-10","HCC-H0307","Kiran Bhosale","Approved discount · Corporate rate match",30000,"Meera"],
+      ["row","2026-06-07","HCC-H0447","Lata Deshmukh","Approved discount · Corporate rate match",30000,"Meera"],
+      ["row","2026-06-21","HCC-H0513","Suresh Patil","Approved discount · Corporate rate match",75000,"Meera"],
+      ["row","2026-07-21","HCC-H0662","Deepak Nair","Approved discount · Corporate rate match",30000,"Meera"],
+      ["row","2026-07-22","HCC-H0664","Vandana Zende","Approved discount · Corporate rate match",140000,"Meera"],
+      ["row","2026-08-09","HCC-H0750","Sachin Bhosale","Approved discount · Corporate rate match",105000,"Meera"],
+      ["subtotal",null,null,null,"Subtotal · Approved discount · Corporate rate match",485000,null],
+      ["row","2026-04-17","HCC-H0154","Uday Wagh","Approved discount · Late check-in goodwill",40000,"Meera"],
+      ["row","2026-04-21","HCC-H0167","Meena Kulkarni","Approved discount · Late check-in goodwill",50000,"Meera"],
+      ["row","2026-05-13","HCC-H0327","Farhan Yadav","Approved discount · Late check-in goodwill",30000,"Meera"],
+      ["row","2026-06-06","HCC-H0448","Bhavna Kamble","Approved discount · Late check-in goodwill",35000,"Meera"],
+      ["row","2026-06-16","HCC-H0481","Anil Yadav","Approved discount · Late check-in goodwill",70000,"Meera"],
+      ["row","2026-08-31","HCC-H0875","Nikhil Agarwal","Approved discount · Late check-in goodwill",30000,"Meera"],
+      ["row","2026-10-16","HCC-H1213","Jay Shinde","Approved discount · Late check-in goodwill",55000,"Meera"],
+      ["subtotal",null,null,null,"Subtotal · Approved discount · Late check-in goodwill",310000,null],
+      ["row","2026-04-23","HCC-H0198","Sana Chavan","Approved discount · Loyalty guest",30000,"Meera"],
+      ["row","2026-05-14","HCC-H0331","Sachin Mehta","Approved discount · Loyalty guest",35000,"Meera"],
+      ["row","2026-06-11","HCC-H0464","Suresh Rao","Approved discount · Loyalty guest",35000,"Meera"],
+      ["row","2026-06-30","HCC-H0571","Aditi Agarwal","Approved discount · Loyalty guest",30000,"Meera"],
+      ["row","2026-09-17","HCC-H0980","Anil Iyer","Approved discount · Loyalty guest",90000,"Meera"],
+      ["subtotal",null,null,null,"Subtotal · Approved discount · Loyalty guest",220000,null],
+      ["row","2026-06-05","HCC-H0433","Aditi Sharma","Approved discount · Service recovery",75000,"Meera"],
+      ["row","2026-06-12","HCC-H0458","Lata Deshmukh","Approved discount · Service recovery",70000,"Meera"],
+      ["row","2026-07-27","HCC-H0696","Alka Deshmukh","Approved discount · Service recovery",45000,"Meera"],
+      ["row","2026-08-24","HCC-H0832","Suresh Salunke","Approved discount · Service recovery",65000,"Meera"],
+      ["row","2026-10-05","HCC-H1103","Asha Kamble","Approved discount · Service recovery",50000,"Meera"],
+      ["row","2026-10-16","HCC-H1211","Divya Jadhav","Approved discount · Service recovery",40000,"Meera"],
+      ["subtotal",null,null,null,"Subtotal · Approved discount · Service recovery",345000,null],
+      ["row","2026-05-01","HCC-H0265","Alka Patil","Corporate rate match",25000,""],
+      ["row","2026-05-06","HCC-H0288","Sachin Zende","Corporate rate match",15000,""],
+      ["row","2026-05-22","HCC-H0365","Ananya Agarwal","Corporate rate match",25000,""],
+      ["row","2026-06-16","HCC-H0487","Divya Nair","Corporate rate match",25000,""],
+      ["row","2026-09-22","HCC-H1021","Kiran Iyer","Corporate rate match",20000,""],
+      ["subtotal",null,null,null,"Subtotal · Corporate rate match",110000,null],
+      ["row","2026-09-05","HCC-H0914","Rekha Joshi","Late check-in goodwill",15000,""],
+      ["subtotal",null,null,null,"Subtotal · Late check-in goodwill",15000,null],
+      ["row","2026-04-22","HCC-H0197","Arjun Thakur","Loyalty guest",25000,""],
+      ["row","2026-06-05","HCC-H0439","Rekha Deshmukh","Loyalty guest",25000,""],
+      ["row","2026-08-06","HCC-H0759","Neha Deshmukh","Loyalty guest",20000,""],
+      ["row","2026-08-26","HCC-H0859","Rahul Wagh","Loyalty guest",20000,""],
+      ["subtotal",null,null,null,"Subtotal · Loyalty guest",90000,null],
+      ["row","2026-06-22","HCC-H0526","Arjun Patil","Service recovery",25000,""],
+      ["row","2026-06-22","HCC-H0527","Sachin Shah","Service recovery",20000,""],
+      ["row","2026-06-25","HCC-H0546","Lata Chavan","Service recovery",20000,""],
+      ["subtotal",null,null,null,"Subtotal · Service recovery",65000,null],
+      ["total",null,null,null,"Total discounts",1640000,null]
+     ]
+    }
+   ]
+  },
+  {
+   "uid": "owner",
+   "scenario": "ACC-RULEBOOK",
+   "params": {
+    "from": "2026-04-01",
+    "to": "2026-04-30"
+   },
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["date","ref","guest","reason","amount","approvedBy"],
+     "rows": [
+      ["row","2026-04-11","HCC-1239","Guest M (fictional)","Service recovery (fictional)",1000000,""],
+      ["subtotal",null,null,null,"Subtotal · Service recovery (fictional)",1000000,null],
+      ["total",null,null,null,"Total discounts",1000000,null]
+     ]
+    }
+   ]
+  }
+ ]
+}

@@ -246,6 +246,14 @@ public static class HccComposition
         Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.P2A.AllocationGridReport>(services); // F8-RPT-P2-A
         // F8-RPT-P2-A end
         // F8-RPT-P2-B
+        services.AddSingleton<Hcc.Reporting.Reports.P2B.IP2BReportSource>(sp => new Hcc.Reporting.Reports.P2B.SqlP2BReportSource(sp.GetRequiredService<SqlPlatform>().Connections));
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.P2B.CashCountSheetReport>(services);
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.P2B.CounterBillsReport>(services);
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.P2B.RefundsReport>(services);
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.P2B.DiscountLogReport>(services);
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.P2B.BankBookReport>(services);
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.P2B.CompanyCreditReport>(services);
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.P2B.LicenceExpiryReport>(services);
         // F8-RPT-P2-B end
         // F8-RPT-P2-C
         // F8-RPT-P2-C end

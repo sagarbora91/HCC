@@ -1,0 +1,31 @@
+{
+ "id": "rpt.money.cash-count-sheet",
+ "cases": [
+  {
+   "uid": "owner",
+   "scenario": "FY26",
+   "params": {
+    "from": "2026-10-20"
+   },
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["denomination","count","value","expected","difference"],
+     "rows": [
+      ["row","₹500 notes",null,null,null,null],
+      ["row","₹200 notes",null,null,null,null],
+      ["row","₹100 notes",null,null,null,null],
+      ["row","₹50 notes",null,null,null,null],
+      ["row","₹20 notes",null,null,null,null],
+      ["row","₹10 notes",null,null,null,null],
+      ["row","Coins (rupee total)",null,null,null,null],
+      ["total","Total counted (grid not kept)",null,1558025,1558025,0],
+      ["row","Counted by (signature): ____________________",null,null,null,null],
+      ["row","Checked by (signature): ____________________",null,null,null,null]
+     ]
+    }
+   ]
+  }
+ ]
+}

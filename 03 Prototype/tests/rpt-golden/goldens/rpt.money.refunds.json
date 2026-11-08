@@ -1,0 +1,52 @@
+{
+ "id": "rpt.money.refunds",
+ "cases": [
+  {
+   "uid": "owner",
+   "scenario": "FY26",
+   "params": {
+    "from": "2026-04-01",
+    "to": "2026-10-23"
+   },
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["date","refundNo","guest","billNo","amount","tender","reason","approvedBy"],
+     "rows": [
+      ["row","2026-04-07","H-RC-00174","Nikhil Rao","HCC-H0083",240000,"Card","CARD-DEMO-00174",""],
+      ["row","2026-04-07","H-RC-00198","Prakash Agarwal","HCC-H0097",210000,"Card","CARD-DEMO-00198",""],
+      ["row","2026-04-20","H-RC-00330","Uday Jadhav","HCC-H0183",210000,"Card","CARD-DEMO-00330",""],
+      ["row","2026-04-25","H-RC-00370","Gauri Sharma","HCC-H0201",180000,"UPI","UPI-DEMO-00370",""],
+      ["row","2026-04-25","H-RC-00410","Isha Ghate","HCC-H0218",370000,"Cash","CASH-00410",""],
+      ["row","2026-04-28","H-RC-00447","Sneha Patil","HCC-H0236",260000,"UPI","UPI-DEMO-00447",""],
+      ["row","2026-05-19","H-RC-00658","Deepak Kale","HCC-H0342",150000,"Card","CARD-DEMO-00658",""],
+      ["row","2026-06-06","H-RC-00844","Manoj Mehta","HCC-H0445",210000,"Card","CARD-DEMO-00844",""],
+      ["row","2026-06-08","H-RC-00874","Sachin Salunke","HCC-H0459",160000,"Card","CARD-DEMO-00874",""],
+      ["row","2026-06-10","H-RC-00899","Prakash Nair","HCC-H0473",100000,"Cash","CASH-00899",""],
+      ["row","2026-07-08","H-RC-01153","Alka Nair","HCC-H0611",190000,"UPI","UPI-DEMO-01153",""],
+      ["row","2026-07-13","H-RC-01190","Farhan Sharma","HCC-H0631",140000,"Card","CARD-DEMO-01190",""],
+      ["row","2026-07-21","H-RC-01253","Divya Bhosale","HCC-H0665",180000,"UPI","UPI-DEMO-01253",""],
+      ["row","2026-08-01","H-RC-01355","Pooja Sharma","HCC-H0725",190000,"UPI","UPI-DEMO-01355",""],
+      ["row","2026-08-02","H-RC-01374","Meena Patil","HCC-H0733",140000,"UPI","UPI-DEMO-01374",""],
+      ["row","2026-08-03","H-RC-01397","Ananya Pawar","HCC-H0743",240000,"Card","CARD-DEMO-01397",""],
+      ["row","2026-08-05","H-RC-01394","Ananya Naik","HCC-H0741",150000,"UPI","UPI-DEMO-01394",""],
+      ["row","2026-08-10","H-RC-01443","Manoj Nair","HCC-H0766",150000,"Card","CARD-DEMO-01443",""],
+      ["row","2026-08-19","H-RC-01562","Prakash Yadav","HCC-H0827",380000,"UPI","UPI-DEMO-01562",""],
+      ["row","2026-08-25","H-RC-01584","Vandana Shah","HCC-H0840",380000,"UPI","UPI-DEMO-01584",""],
+      ["row","2026-09-01","H-RC-01652","Alka Iyer","HCC-H0878",230000,"Cash","CASH-01652",""],
+      ["row","2026-09-13","H-RC-01785","Aditi Sharma","HCC-H0954",170000,"UPI","UPI-DEMO-01785",""],
+      ["row","2026-09-15","H-RC-01816","Meena Pawar","HCC-H0970",470000,"UPI","UPI-DEMO-01816",""],
+      ["row","2026-09-16","H-RC-01850","Kiran More","HCC-H0989",260000,"UPI","UPI-DEMO-01850",""],
+      ["row","2026-09-29","H-RC-01987","Vandana Chavan","HCC-H1062",410000,"Card","CARD-DEMO-01987",""],
+      ["row","2026-10-03","H-RC-02042","Sneha Wagh","HCC-H1091",170000,"UPI","UPI-DEMO-02042",""],
+      ["row","2026-10-13","H-RC-02189","Aarav Yadav","HCC-H1180",300000,"UPI","UPI-DEMO-02189",""],
+      ["row","2026-10-14","H-RC-02219","Nikhil Joshi","HCC-H1197",170000,"UPI","UPI-DEMO-02219",""],
+      ["row","2026-10-18","H-RC-02306","Sana Shah","HCC-H1246",440000,"UPI","UPI-DEMO-02306",""],
+      ["total",null,"Total refunded",null,null,6850000,null,null,null]
+     ]
+    }
+   ]
+  }
+ ]
+}

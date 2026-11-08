@@ -116,6 +116,13 @@ import './p2-a/rooms-left';
 import './p2-a/allocation-grid';
 // F8-RPT-P2-A end
 // F8-RPT-P2-B
+import './p2-b/cash-count-sheet';
+import './p2-b/counter-bills';
+import './p2-b/refunds';
+import './p2-b/discount-log';
+import './p2-b/bank-book';
+import './p2-b/company-credit';
+import './p2-b/licence-expiry';
 // F8-RPT-P2-B end
 // F8-RPT-P2-C
 // F8-RPT-P2-C end

@@ -1,0 +1,18 @@
+{
+ "id": "rpt.tax.licence-expiry",
+ "cases": [
+  {
+   "uid": "owner",
+   "scenario": "BASE",
+   "params": {},
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["licence","number","issued","expires","daysLeft","card"],
+     "rows": []
+    }
+   ]
+  }
+ ]
+}
