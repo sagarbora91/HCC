@@ -235,6 +235,14 @@ public static class HccComposition
         // F8-SF-SERVER
         // F8-SF-SERVER end
         // F8-RPT-P2-A
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.P2A.ReservationsRegisterReport>(services); // F8-RPT-P2-A
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.P2A.GuestTariffReport>(services); // F8-RPT-P2-A
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.P2A.CompanyBusinessReport>(services); // F8-RPT-P2-A
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.P2A.UserwiseActivityReport>(services); // F8-RPT-P2-A
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.P2A.ServiceLinesReport>(services); // F8-RPT-P2-A
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.P2A.RoomWiseRevenueReport>(services); // F8-RPT-P2-A
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.P2A.RoomsLeftReport>(services); // F8-RPT-P2-A
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.P2A.AllocationGridReport>(services); // F8-RPT-P2-A
         // F8-RPT-P2-A end
         // F8-RPT-P2-B
         // F8-RPT-P2-B end

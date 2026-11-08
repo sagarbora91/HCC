@@ -106,6 +106,14 @@ import './study-pack/management-pack';
 import './meas-digest-wiring';
 // F12-DIGEST end
 // F8-RPT-P2-A
+import './p2-a/reservations-register';
+import './p2-a/guest-tariff';
+import './p2-a/company-business';
+import './p2-a/userwise-activity';
+import './p2-a/service-lines';
+import './p2-a/room-wise-revenue';
+import './p2-a/rooms-left';
+import './p2-a/allocation-grid';
 // F8-RPT-P2-A end
 // F8-RPT-P2-B
 // F8-RPT-P2-B end
