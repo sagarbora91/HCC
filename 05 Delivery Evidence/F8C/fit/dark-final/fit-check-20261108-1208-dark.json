@@ -1,0 +1,46 @@
+[
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "kds",
+  "tab": "",
+  "screens": 1,
+  "docH": 640,
+  "vh": 640,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "tab-land",
+  "role": "owner",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "kds",
+  "tab": "",
+  "screens": 1,
+  "docH": 657,
+  "vh": 657,
+  "result": "PASS",
+  "fails": []
+ },
+ {
+  "scale": 1,
+  "vp": "lap-1366",
+  "role": "owner",
+  "page": "(chrome)",
+  "tab": "drawer + user menu",
+  "screens": 0,
+  "result": "PASS",
+  "fails": []
+ }
+]

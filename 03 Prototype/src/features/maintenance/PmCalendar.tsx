@@ -22,7 +22,7 @@ function useOccurrenceClick(){
 const hint=(o:PmcOccurrence)=>o.workOrder?`Open ${o.workOrder}`:(o.state==='Overdue'||o.state==='Due')?'Generate the work order':'Open the plan';
 function OccButton({o,onClick,disabled}:{o:PmcOccurrence;onClick:()=>void;disabled?:boolean}){
   return <button type="button" className="text-btn" disabled={disabled} title={`${o.title} · ${o.assetName} · ${o.where} · ${o.state}${o.paused?' (plan paused)':''} · ${hint(o)}`}
-      style={{display:'block',width:'100%',textAlign:'left',padding:'2px 0',minHeight:0}} onClick={onClick}>
+      style={{display:'block',width:'100%',textAlign:'left',padding:'2px 0',minHeight:0,whiteSpace:'normal',overflowWrap:'anywhere',height:'auto'}} onClick={onClick}>
     <Pill tone={TONE[o.state]}>{o.state}</Pill> <span>{o.title}</span></button>;
 }
 
@@ -42,7 +42,7 @@ export function PmCalendar({phone}:{phone?:boolean}){
     const by=new Map(days.map(d=>[d.date,d.items])),cells:React.ReactNode[]=[];
     for(let i=0;i<lead;i++)cells.push(<div key={'l'+i}/>);
     for(let d=1;d<=n;d++){const date=`${month}-${String(d).padStart(2,'0')}`,items=by.get(date)??[];
-      cells.push(<div key={date} aria-label={dateLabel(date)} style={{border:'1px solid var(--line)',borderRadius:6,padding:4,minHeight:64,background:date===s.date?'var(--surface)':undefined}}>
+      cells.push(<div key={date} aria-label={dateLabel(date)} style={{border:'1px solid var(--line)',borderRadius:6,padding:4,minHeight:64,minWidth:0,overflow:'hidden',background:date===s.date?'var(--surface)':undefined}}>
         <small className="muted">{d}{date===s.date?' · today':''}</small>{items.map(o=><OccButton key={o.planId+o.due} o={o} disabled={b2} onClick={()=>click(o)}/>)}</div>);}
     return <div role="group" aria-label="Preventive maintenance calendar" style={{display:'grid',gridTemplateColumns:'repeat(7,minmax(0,1fr))',gap:4}}>
       {['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(w=><strong key={w} style={{textAlign:'center'}}>{w}</strong>)}{cells}</div>;

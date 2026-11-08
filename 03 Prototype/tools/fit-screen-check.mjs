@@ -1,7 +1,7 @@
 // FIT · fit-to-screen check (DEC-178…180, contract 02 Planning/agents/FIT-LAYOUT-CONTRACT.md §8). Playwright, by hand; not part of npm test.
 // Needs `npm run build` and a server: `PORT=4183 node serve.mjs` (or BASE=http://127.0.0.1:<port>/). Run through tools\Invoke-Serialized.ps1.
 //   node tools/fit-screen-check.mjs [--pages a,b] [--roles owner,reception] [--viewports tab-land,lap-1366] [--text-scale 1.3]
-//                                   [--out <dir>] [--no-shots] [--no-scale-pass] [--no-modals] [--record-baseline]
+//                                   [--theme light|dark|high-contrast] [--out <dir>] [--no-shots] [--no-scale-pass] [--no-modals] [--record-baseline]
 // Default run = pass A (text scale 1, every check, five viewports) + pass B (text scale 1.3 on tab-land and lap-1366, checks 1, 2, 5 only).
 // `--text-scale S` runs one pass at S (checks 1, 2, 5 only when S != 1). `--record-baseline` writes tools/fit-baseline/fonts-<viewport>.json
 // (roles default owner,manager,reception,housekeeper,maint,accountant; every page the role can open, every local tab of it clicked in turn, + the
@@ -59,7 +59,7 @@ const CHROME_KEYS=['.drawer a','.modal h2'];
 const ALLOW=existsSync(join(HERE,'fit-baseline','allow.json'))?JSON.parse(readFileSync(join(HERE,'fit-baseline','allow.json'),'utf8')):[];
 const allowedFont=(page,k,v)=>ALLOW.some(a=>a.kind===k&&a.size===v&&(!a.pages||a.pages.includes(page)));
 const PAGE_FONT_KEYS=Object.keys(FONT_SEL).filter(k=>!CHROME_KEYS.includes(k));
-const prefFor=scale=>({textScale:scale,honourSystemFont:true,reduceMotion:'system',density:'comfortable',startPage:'',listPageSize:100,toastSeconds:6.5,theme:'light'});
+const prefFor=scale=>({textScale:scale,honourSystemFont:true,reduceMotion:'system',density:'comfortable',startPage:'',listPageSize:100,toastSeconds:6.5,theme:opt('--theme')||'light'});
 
 // Passes: A = scale 1, all checks; B = scale 1.3 on tab-land + lap-1366, checks 1, 2, 5.
 const PASSES=opt('--text-scale')?[{scale:Number(opt('--text-scale')),vps:null}]
@@ -252,7 +252,7 @@ if(RECORD)process.exit(0);
 // Report: per page at each viewport the worst result over roles; per-role summary; every failing row.
 const fails=rows.filter(r=>r.result==='FAIL').length;
 const scaleTag=PASSES.length===1&&PASSES[0].scale!==1?`-text${PASSES[0].scale}`:'';
-const name=`fit-check-${stamp}${scaleTag}`;
+const name=`fit-check-${stamp}${scaleTag}${opt('--theme')?'-'+opt('--theme'):''}`;
 writeFileSync(join(OUT,name+'.json'),JSON.stringify(rows,null,1));
 const kindOf=s=>s.split(' ')[0];
 const kinds={};for(const r of rows)for(const x of r.fails||[])kinds[kindOf(x)]=(kinds[kindOf(x)]||0)+1;

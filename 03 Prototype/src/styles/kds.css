@@ -1,8 +1,8 @@
 /* F8 QW-KDS · kitchen display. Status colours always come with a text label (On time / Slow / Late). */
-.kds-card{background:var(--c-ffffff);border:1px solid var(--line);border-left:6px solid var(--c-cdb9a3);border-radius:8px;padding:12px 14px;margin-bottom:10px;color:var(--ink)}
+.kds-card{overflow-wrap:anywhere;background:var(--c-ffffff);border:1px solid var(--line);border-left:6px solid var(--c-cdb9a3);border-radius:8px;padding:12px 14px;margin-bottom:10px;color:var(--ink)}
 .kds-card.kds-amber{border-left-color:var(--c-b5841e);background:var(--c-faf0dc)}
 .kds-card.kds-red{border-left-color:var(--c-9a3b2a);background:var(--c-fbeae6)}
-.kds-card header{display:flex;justify-content:space-between;gap:8px;align-items:center}
+.kds-card header{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;align-items:center}
 .kds-card header strong{font-size:15px}
 .kds-spot{font-weight:600}
 .kds-time{margin:4px 0 6px}
@@ -10,6 +10,6 @@
 .kds-level-amber{background:var(--c-faf0dc);color:var(--c-6e4a0e)}
 .kds-level-red{background:var(--c-fbeae6);color:var(--c-9a3b2a)}
 .kds-card ul{margin:0 0 8px;padding-left:18px;font-size:15px}
-.kds-bump{min-height:48px;min-width:120px;font-size:15px}
+.kds-bump{min-height:48px;min-width:120px}
 .app-shell .fit-page .kds-seg{flex:none;margin:0 0 6px;overflow-x:auto;flex-wrap:nowrap;scrollbar-width:thin}
 .app-shell .fit-page .kds-seg button{flex:none;min-height:44px}
