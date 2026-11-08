@@ -1,0 +1,22 @@
+{
+ "id": "rpt.guests.reservations-register",
+ "cases": [
+  {
+   "uid": "owner",
+   "scenario": "BASE",
+   "params": {},
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["booking","created","guest","arrival","departure","roomType","rooms","plan","source","status","advance","quoted"],
+     "rows": [
+      ["row","HCC-1049",null,"Ishaan Bose","2026-10-24","2026-10-26","Deluxe",1,"","Direct","Confirmed",0,630000],
+      ["row","HCC-1050",null,"Aditi Nair","2026-10-24","2026-10-26","Deluxe",1,"","Phone","Confirmed",0,630000],
+      ["total","Total · 2 bookings",null,null,null,null,null,2,null,null,"Confirmed 2",0,1260000]
+     ]
+    }
+   ]
+  }
+ ]
+}

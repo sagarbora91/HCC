@@ -1,0 +1,20 @@
+{
+ "id": "rpt.guests.service-lines",
+ "cases": [
+  {
+   "uid": "owner",
+   "scenario": "BASE",
+   "params": {},
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["date","room","guest","item","group","qty","rate","amount","tax","source","billRef"],
+     "rows": [
+      ["total",null,null,null,"Total · 0 lines",null,0,null,0,0,null,null]
+     ]
+    }
+   ]
+  }
+ ]
+}

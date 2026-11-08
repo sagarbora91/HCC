@@ -22,7 +22,7 @@ public sealed class GuestTariffReport(SqlPlatform platform) : IReportSelector
     ];
 
     public ReportDefinition Definition { get; } = new(Id, "Guest tariff detail", "guests", "P2", "built", true, "PERM-RPT-002", ["PERM-RPT-002"], [], "PERM-RPT-003", ReportDateClass.Financial,
-        [new("party", "Guest or company", "text"), new("from", "From", "date", ReportDateClass.Financial), new("to", "To", "date", ReportDateClass.Financial)],
+        [new("party", "Guest or company", "text", null, null, null, true), new("from", "From", "date", ReportDateClass.Financial), new("to", "To", "date", ReportDateClass.Financial)],
         Columns, "Stays that are in house or departed, by arrival date; the guest or company is matched on the name (part of it is enough). Standard rate = the tariff card rate on arrival; rate source = agreed (the guest's agreed rate was used), manual (the rate differs from the standard rate) or standard. Net tariff = room-night charges less discount, before GST; extra charges = every other line, before GST.",
         [ReportFormat.Screen, ReportFormat.Xlsx, ReportFormat.Pdf], ReportPhone.Yes, false, ["A42"]);
 
