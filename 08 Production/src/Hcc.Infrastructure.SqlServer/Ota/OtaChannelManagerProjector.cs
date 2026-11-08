@@ -24,7 +24,7 @@ namespace Hcc.Infrastructure.SqlServer.Ota;
 /// own ChannelPushQueued and delivered by the handling above. While that push is still Queued, later changes are merged into it (coalesced).
 /// Nothing leaves the server.
 /// </summary>
-public sealed class OtaChannelManagerProjector(OutboxConsumer outbox, SqlConnectionFactory connections, TimeProvider clock)
+public sealed class OtaChannelManagerProjector(OutboxConsumer outbox, SqlConnectionFactory connections, TimeProvider clock, Hcc.Application.Configuration.ISettingsReader? settings = null)
 {
     public const string ConsumerName = "ota-channel-manager";
 
@@ -115,6 +115,10 @@ public sealed class OtaChannelManagerProjector(OutboxConsumer outbox, SqlConnect
         }
 
         var avail = await AvailabilityAsync(Cmd, e.PropertyId, e.RoomTypeId, from, to, ct).ConfigureAwait(false);
+        // F8-QW-NS (QWQ-2): the Owner's yld.overbook.<type code> cap (default 0 = no change) is added to the pushed availability, nowhere else.
+        var cap = await OverbookCapAsync(Cmd, e.PropertyId, e.RoomTypeId, ct).ConfigureAwait(false);
+        if (cap > 0) avail = avail.Select(a => (a.Night, Avail: OtaRules.PushAvail(a.Avail, cap))).ToList();
+        // F8-QW-NS end
         // F4-int: day-set aware (weekday / weekend card rows, TariffCardRules.Resolve = inv.fn_tariff_on)
         var tariffs = new List<Hcc.Domain.Tariff.TrcTariffRow>();
         var weekend = new Dictionary<long, IReadOnlyCollection<int>>();
@@ -180,6 +184,24 @@ public sealed class OtaChannelManagerProjector(OutboxConsumer outbox, SqlConnect
                     e.PropertyId, facts.PrincipalId, ct).ConfigureAwait(false);
         }
     }
+
+    // F8-QW-NS
+    private async Task<int> OverbookCapAsync(Func<string, SqlCommand> cmd, int propertyId, int roomTypeId, CancellationToken ct)
+    {
+        if (settings is null) return 0;
+        await using var q = cmd("SELECT code FROM inv.room_type WHERE room_type_id = @t AND property_id = @p;");
+        q.Parameters.Add("@t", SqlDbType.Int).Value = roomTypeId;
+        q.Parameters.Add("@p", SqlDbType.Int).Value = propertyId;
+        var code = await q.ExecuteScalarAsync(ct).ConfigureAwait(false) as string;
+        if (string.IsNullOrEmpty(code)) return 0;
+        try
+        {
+            var v = await settings.GetAsync(propertyId, Hcc.Application.Configuration.MeasurementCatalogue.OverbookKey(code), null, ct).ConfigureAwait(false);
+            return v.Kind == Hcc.Domain.Configuration.ConfigValueKind.Number ? (int)Math.Clamp(v.Number, 0, Hcc.Application.Configuration.MeasurementCatalogue.OverbookMax) : 0;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException) { return 0; }
+    }
+    // F8-QW-NS end
 
     private static async Task<TypeFacts?> FactsAsync(Func<string, SqlCommand> cmd, long outboxId, int propertyId, int roomTypeId, CancellationToken ct)
     {

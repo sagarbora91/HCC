@@ -243,6 +243,7 @@ public static class HccComposition
         // F8-QW-NA
         // F8-QW-NA end
         // F8-QW-NS
+        services.AddNoShowModule();
         // F8-QW-NS end
         // F8-QW-KDS
         // F8-QW-KDS end
@@ -468,6 +469,7 @@ public static class HccComposition
         // F8-QW-NA
         // F8-QW-NA end
         // F8-QW-NS
+        api.MapNoShowEndpoints();
         // F8-QW-NS end
         // F8-QW-KDS
         // F8-QW-KDS end

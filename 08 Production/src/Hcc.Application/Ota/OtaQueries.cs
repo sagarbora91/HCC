@@ -18,7 +18,7 @@ namespace Hcc.Application.Ota;
 /// the commission report (R9) and the reconciliation view.
 /// </summary>
 public sealed class OtaQueries(IOtaStore store, IInventoryStore inventoryStore, InventoryService inventory, ReservationService reservations,
-    IAccessPolicy access, TimeProvider clock)
+    IAccessPolicy access, TimeProvider clock, Hcc.Application.Configuration.ISettingsReader? settings = null)
 {
     private const string Restricted = AvailabilityReasons.Restricted;
 
@@ -148,6 +148,19 @@ public sealed class OtaQueries(IOtaStore store, IInventoryStore inventoryStore, 
         return new MessageCheckView(true, $"{d.PublicNo} keeps room {d.RoomNo} if free for the new dates, otherwise moves to another {d.RoomType} room", d.RoomNo, d.RoomId, null);
     }
 
+    // F8-QW-NS
+    private async Task<int> OverbookCapAsync(int propertyId, string typeCode, CancellationToken ct)
+    {
+        if (settings is null || string.IsNullOrEmpty(typeCode)) return 0;
+        try
+        {
+            var v = await settings.GetAsync(propertyId, Hcc.Application.Configuration.MeasurementCatalogue.OverbookKey(typeCode), null, ct).ConfigureAwait(false);
+            return v.Kind == Hcc.Domain.Configuration.ConfigValueKind.Number ? (int)Math.Clamp(v.Number, 0, Hcc.Application.Configuration.MeasurementCatalogue.OverbookMax) : 0;
+        }
+        catch (Exception e) when (e is not OperationCanceledException) { return 0; }
+    }
+    // F8-QW-NS end
+
     // ───────────── rate and availability push ─────────────
     public async Task<PushPreviewView> PushPreviewAsync(int propertyId, int principalId, int channelId, CancellationToken ct = default)
     {
@@ -166,6 +179,7 @@ public sealed class OtaQueries(IOtaStore store, IInventoryStore inventoryStore, 
         var rows = new List<PushRowDetail>();
         var unmapped = new List<string>();
         var first = true;
+        var caps = new Dictionary<string, int>(StringComparer.Ordinal); // F8-QW-NS: yld.overbook.<type code>, default 0
         for (var i = 0; i < OtaRules.PushDays; i++)
         {
             var night = property.BusinessDate.AddDays(i);
@@ -181,6 +195,10 @@ public sealed class OtaQueries(IOtaStore store, IInventoryStore inventoryStore, 
 
                 var rooms = av.Rooms.Where(r => r.RoomTypeId == t.RoomTypeId).ToList();
                 var avail = rooms.Count(r => r.Available || r.Reasons.All(x => x == Restricted));
+                // F8-QW-NS (QWQ-2): the Owner's overbooking cap is honoured at the channel push only; 0 changes nothing.
+                if (!caps.TryGetValue(t.Code, out var cap)) caps[t.Code] = cap = await OverbookCapAsync(propertyId, t.Code, ct).ConfigureAwait(false);
+                avail = OtaRules.PushAvail(avail, cap);
+                // F8-QW-NS end
                 var tariff = rooms.Count > 0 ? rooms[0].NightlyRatePaise : 0;
                 var stop = map.StopSell;
                 rows.Add(new PushRowDetail(t.RoomTypeId, t.Code, map.ChannelCode, night, avail, OtaRules.MarkedUpRate(tariff, c.MarkupBps), stop || avail == 0,
