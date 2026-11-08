@@ -178,7 +178,7 @@ public static class FeatureCatalog
         ]),
         new("pos", "Restaurant & POS", ConfigModuleIds.Pos, Coarse["pos"],
         [
-            F("pos.checks", "Outlets & checks", false, ["pos"], ["POS_ORDER_", "POS_ITEM_", "POS_KOT_", "POS_SETTLE", "POS_VOID_", "POS_INVOICE_"], "Checks, KOT, settlement and voids"),
+            F("pos.checks", "Outlets & checks", false, ["pos", "kds"] /* F8-QW-KDS */, ["POS_ORDER_", "POS_ITEM_", "POS_KOT_", "POS_SETTLE", "POS_VOID_", "POS_INVOICE_"], "Checks, KOT, settlement and voids"),
             F("pos.menu", "Menu & prices", false, [], ["POS_MENU_"], "Menu availability and price changes", requires: ["pos.checks"]),
         ]),
         new("housekeeping", "Housekeeping", null, Coarse["housekeeping"],

@@ -24,7 +24,11 @@ public static class StaysEndpoints
         services.AddSingleton<ILateCheckoutPoster>(sp => (Hcc.Application.Billing.BillingStayFolioPort)sp.GetRequiredService<IStayFolioPort>());
         services.AddSingleton(sp => new DeskFieldService(sp.GetRequiredService<IDeskFieldStore>(), sp.GetService<Hcc.Application.Configuration.ISettingsReader>(),
             sp.GetRequiredService<Hcc.Application.Access.IAccessPolicy>(), sp.GetService<ILateCheckoutPoster>()));
-        services.AddSingleton<IStaySplitCheckoutPort, Hcc.Application.Billing.SplitCheckoutPort>(); // F8-INT: split-folio checkout + folio invoices
+        // F8-INT: split-folio checkout + folio invoices; null (today's single-folio path) in a host without the split-folio / invoice modules
+        services.AddSingleton<IStaySplitCheckoutPort>(sp =>
+            sp.GetService<Hcc.Application.Billing.ISplitFolioStore>() is { } split && sp.GetService<Hcc.Application.Invoices.InvoiceService>() is { } invoices
+                ? new Hcc.Application.Billing.SplitCheckoutPort(split, sp.GetRequiredService<Hcc.Application.Billing.IBillingStore>(), sp.GetRequiredService<Hcc.Application.Billing.BillingService>(), invoices)
+                : null!);
         services.AddSingleton<StaysCommands>();
         services.AddSingleton<IStayChangeStore, SqlStayChangeStore>();   // W3-7 room move / extend / shorten / early departure
         services.AddSingleton<IStayNightPricer, InventoryStayNightPricer>();
