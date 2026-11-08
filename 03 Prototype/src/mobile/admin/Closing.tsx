@@ -4,6 +4,9 @@ import {usePaged,ShowMore} from '../../components/ShowMore';
 import React,{useState,useEffect} from 'react';
 import {BookOpen,Check,Printer,ArrowRight,AlertTriangle,Zap,RotateCcw,ChevronDown} from 'lucide-react';
 import {money,addDays,closingSummary,shiftExpected,closingReopened} from '../../services/mock';
+// F8-QW-NA
+import {naChecklist} from '../../services/mock';
+// F8-QW-NA end
 import {useHcc} from '../../app/context';
 import {navItems} from '../../app/nav';
 import {ListCard,StickyFooter} from '../../app/mobile/components';
@@ -42,7 +45,11 @@ export function MaClosing(){
   })();
   const body=(st:MaStep)=>{
     switch(st.id){
-      case 'preflight':return st.blockers.length?<Blockers list={st.blockers} onTap={drill}/>:<p className="ma-ok"><Check size={18}/>{st.summary}</p>;
+      case 'preflight':return <>
+        {/* F8-QW-NA: night-audit lines as a card list (show only) */}
+        <div role="list" aria-label="Night audit">{naChecklist(s).map(l=><div role="listitem" key={l.key}><ListCard tone={l.ok?'':'ma-blocker'} title={(l.ok?'✓ ':'✗ ')+l.label} sub={l.detail}/></div>)}</div>
+        {/* F8-QW-NA end */}
+        {st.blockers.length?<Blockers list={st.blockers} onTap={drill}/>:<p className="ma-ok"><Check size={18}/>{st.summary}</p>}</>;
       case 'nights':return <>
         {md.resume&&<div className="ma-warn" role="status"><AlertTriangle size={18}/><span>Night audit was interrupted after <b>{md.resume.posted} of {md.resume.total}</b> stays. Resume posts only the remaining {md.resume.remaining}; nothing is posted twice.</span></div>}
         <MaRows rows={[['In-house tonight',md.targets],['To post',md.toPost],['Already posted',md.targets-md.toPost]]}/>
