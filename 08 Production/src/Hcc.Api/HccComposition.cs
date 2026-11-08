@@ -239,6 +239,15 @@ public static class HccComposition
         // F8-RPT-P2-B
         // F8-RPT-P2-B end
         // F8-RPT-P2-C
+        services.AddSingleton<Hcc.Reporting.Reports.P2C.IP2CReportSource>(sp => new Hcc.Reporting.Reports.P2C.SqlP2CReportSource(sp.GetRequiredService<SqlPlatform>().Connections)); // F8-RPT-P2-C source
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.P2C.AssetRegisterReport>(services); // F8-RPT-P2-C
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.P2C.LeaveBalancesReport>(services); // F8-RPT-P2-C
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.P2C.GrnRegisterReport>(services); // F8-RPT-P2-C
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.P2C.SalesByItemReport>(services); // F8-RPT-P2-C
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.P2C.PosVoidsReport>(services); // F8-RPT-P2-C
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.P2C.ScheduledRunsReport>(services); // F8-RPT-P2-C
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.P2C.CancelledLinesReport>(services); // F8-RPT-P2-C
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.P2C.RateSheetReport>(services); // F8-RPT-P2-C
         // F8-RPT-P2-C end
         // F8-QW-NA
         // F8-QW-NA end

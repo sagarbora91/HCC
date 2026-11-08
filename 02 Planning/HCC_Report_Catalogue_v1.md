@@ -5037,4 +5037,5 @@ Status 7 Nov 2026 (f12-int): all 54 section 3.10 entries are built in code on bo
 <!-- F8-RPT-P2-B -->
 <!-- F8-RPT-P2-B end -->
 <!-- F8-RPT-P2-C -->
+Status 8 Nov 2026 (F8 rpt-p2-c): `rpt.acc.asset-register`, `rpt.people.leave-balances`, `rpt.stock.grn-register`, `rpt.rest.sales-by-item`, `rpt.rest.voids`, `rpt.admin.scheduled-runs`, `rpt.admin.cancelled-lines` and `rpt.admin.rate-sheet` are built on the engine, prototype and server (ids unchanged). Differences from the entries above: asset register has no per-asset Depreciation / Written-down value columns (no rate table in HCC, DEC-138 / DEC-140); rate sheet is three views (rate sheet / publish log / change history) with per-view columns; rest.voids Time is the void date, or date and time for a whole-check void; admin.cancelled-lines Qty is always 1 (a folio line has no quantity) and "Cancelled by" is the requester of the correction. Details in `05 Delivery Evidence/F8/F8-RPT-P2-C-DONE.md`.
 <!-- F8-RPT-P2-C end -->

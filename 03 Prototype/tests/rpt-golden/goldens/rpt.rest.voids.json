@@ -1,0 +1,31 @@
+{
+ "id": "rpt.rest.voids",
+ "cases": [
+  {
+   "uid": "owner",
+   "scenario": "BASE",
+   "params": {},
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["time","check","item","qty","value","reason","by","approvedBy"],
+     "rows": []
+    }
+   ]
+  },
+  {
+   "uid": "owner",
+   "scenario": "FY26",
+   "params": {},
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["time","check","item","qty","value","reason","by","approvedBy"],
+     "rows": []
+    }
+   ]
+  }
+ ]
+}

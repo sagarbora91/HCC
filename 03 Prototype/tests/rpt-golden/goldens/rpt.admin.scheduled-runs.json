@@ -1,0 +1,31 @@
+{
+ "id": "rpt.admin.scheduled-runs",
+ "cases": [
+  {
+   "uid": "owner",
+   "scenario": "BASE",
+   "params": {},
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["schedule","report","runAt","recipients","result","error"],
+     "rows": []
+    }
+   ]
+  },
+  {
+   "uid": "owner",
+   "scenario": "FY26",
+   "params": {},
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["schedule","report","runAt","recipients","result","error"],
+     "rows": []
+    }
+   ]
+  }
+ ]
+}

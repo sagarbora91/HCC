@@ -110,5 +110,13 @@ import './meas-digest-wiring';
 // F8-RPT-P2-B
 // F8-RPT-P2-B end
 // F8-RPT-P2-C
+import './p2-c/asset-register';
+import './p2-c/leave-balances';
+import './p2-c/grn-register';
+import './p2-c/sales-by-item';
+import './p2-c/voids';
+import './p2-c/scheduled-runs';
+import './p2-c/cancelled-lines';
+import './p2-c/rate-sheet';
 // F8-RPT-P2-C end
 export {};

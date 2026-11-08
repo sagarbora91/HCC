@@ -1,0 +1,31 @@
+{
+ "id": "rpt.acc.asset-register",
+ "cases": [
+  {
+   "uid": "owner",
+   "scenario": "BASE",
+   "params": {},
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["no","name","ledger","vendor","bought","cost","itc","putToUse","disposal"],
+     "rows": []
+    }
+   ]
+  },
+  {
+   "uid": "owner",
+   "scenario": "FY26",
+   "params": {},
+   "tables": [
+    {
+     "key": "main",
+     "title": null,
+     "columns": ["no","name","ledger","vendor","bought","cost","itc","putToUse","disposal"],
+     "rows": []
+    }
+   ]
+  }
+ ]
+}
