@@ -11,13 +11,20 @@ import {mmCheckoutChecklist,mmCheckoutCommand} from './logic';
 import {IssueInvoiceAction} from '../../features/folio/modals';
 import {CompanyCreditPanel} from '../../features/groups/credit';
 import {ApplyDepositPanel,useOtaCredit} from '../../features/folio/deposit'; // ACC-2
+// F8-SF-UI
+import {sfIsSplit,sfView} from '../../services/mock';
+import {SfSwitcher,SfCheckoutSheet,SfInvoiceList} from '../../features/folio/Split';
+import {sfSettleSheet,sfOpen,sfFolioOfModal,sfCurrent} from '../../features/folio/SplitLogic';
+// F8-SF-UI end
 
 export function MmCheckout({id}:{id?:string}){
   const {s,run,booking,open,busy,permission}=useHcc();
   const b=s.bookings.find(x=>x.id===id);
   const ota=useOtaCredit(b,true);
   if(!b)return <Empty title="This record is unavailable"/>;
-  const t=totals(b),c=mmCheckoutChecklist(s,b);
+  const split=sfIsSplit(b); // F8-SF-UI: a split stay settles every folio on one sheet
+  const sh=split?sfSettleSheet(s,b):undefined;
+  const t=totals(b),c=split?{items:[{id:'nights',label:'All folios settled',ok:sh!.rows.every(r=>r.status==='settled'||r.status==='company-credit'||r.status==='guest-credit'),detail:`${sh!.rows.length} folios · outstanding ${money(sh!.balance)}`},{id:'deposit',label:'Deposit returned',ok:sh!.deposit===0,detail:sh!.deposit===0?'No deposit held':'Deposit still held — return it first'},{id:'blockers',label:'Nothing else blocking',ok:sh!.clear,detail:sh!.blockers[0]??'Clear'}],clear:sh!.clear,blockers:sh!.blockers}:mmCheckoutChecklist(s,b);
   const canCheckout=permission('checkout');
   return <><div className="modal-heading"><div className="eyebrow">{bookingRef(b)} · ROOM {b.room}</div><h2>Checkout</h2><p>Review {b.guest}’s folio before releasing Room {b.room}.</p></div>
     <section className="mm-card mm-checklist" aria-label="Checkout checklist">
@@ -32,26 +39,28 @@ export function MmCheckout({id}:{id?:string}){
       <div className="mm-row"><div className="mm-row-main"><strong>Outstanding</strong></div><div className="mm-row-amt"><strong className="number">{money(t.balance)}</strong></div></div>
       <div className="mm-row"><div className="mm-row-main"><strong>Deposit to return</strong></div><div className="mm-row-amt"><strong className="number">{money(t.deposit)}</strong></div></div>
     </div>
-    <ApplyDepositPanel b={b} mobile/>
+    {split?<><SfCheckoutSheet b={b} mobile/><ApplyDepositPanel b={sfView(b,'A')} mobile/></>:<><ApplyDepositPanel b={b} mobile/>
     {ota.node}
-    <CompanyCreditPanel b={b} mobile/>
+    <CompanyCreditPanel b={b} mobile/></>}{/* F8-SF-UI */}
     {c.clear?<div className="info-note"><Info size={17}/>All clear. Checkout marks the room dirty, creates one housekeeping task and allocates a sample invoice number once.</div>
       :<p className="mm-why" role="status">Confirm is available when every item shows Done.{!canCheckout?' Your role cannot check guests out — reception or a manager does.':''}</p>}
     {!canCheckout&&c.clear&&<p className="mm-why">Your role cannot check guests out — reception or a manager does.</p>}
     <div className="mm-sheet-links">
-      {permission('payments')&&(t.balance>0||t.deposit>0)&&<button type="button" className="btn" disabled={busy} onClick={()=>open({type:'payment',id:b.id})}><Receipt size={18}/>{t.balance>0?'Settle balance':'Return deposit'}</button>}
-      <button type="button" className="btn" onClick={()=>open({type:'invoice',id:b.id})}><Printer size={18}/>Invoice preview</button>
+      {permission('payments')&&(split?t.deposit>0:t.balance>0||t.deposit>0)&&<button type="button" className="btn" disabled={busy} onClick={()=>open(sfOpen(b,'payment','A'))}><Receipt size={18}/>{t.balance>0&&!split?'Settle balance':'Return deposit'}</button>}
+      <button type="button" className="btn" onClick={()=>open(sfOpen(b,'invoice','A'))}><Printer size={18}/>Invoice preview</button>
     </div>
     <div className="modal-actions"><button className="btn" onClick={()=>booking(b.id)}>Folio</button>
-      <button className="btn primary mm-big" disabled={busy||!c.clear||!canCheckout} onClick={()=>run({...mmCheckoutCommand(b.id),...(ota.on?{otaCredit:true,key:'checkout:'+b.id+':ota'}:{})},'Checkout completed. Housekeeping task created.',{after:()=>open({type:'invoice',id:b.id})})}>Confirm checkout <ArrowRight size={18}/></button></div></>;
+      <button className="btn primary mm-big" disabled={busy||!c.clear||!canCheckout} onClick={()=>run({...mmCheckoutCommand(b.id),...(ota.on&&!split?{otaCredit:true,key:'checkout:'+b.id+':ota'}:{})},'Checkout completed. Housekeeping task created.',{after:()=>open(sfOpen(b,'invoice','A'))})}>Confirm checkout <ArrowRight size={18}/></button></div></>;
 }
 
 export function MmInvoice({id}:{id?:string}){
-  const {s,booking}=useHcc();
-  const b=s.bookings.find(x=>x.id===id);
-  if(!b)return <Empty title="This record is unavailable"/>;
+  const {s,booking,modal}=useHcc();
+  const [chosen,setChosen]=React.useState<string|undefined>(undefined); // F8-SF-UI: one document per folio
+  const b0=s.bookings.find(x=>x.id===id);
+  if(!b0)return <Empty title="This record is unavailable"/>;
+  const fol=sfCurrent(b0,chosen??sfFolioOfModal(b0,modal?.room)),b=sfIsSplit(b0)?sfView(b0,fol):b0; // F8-SF-UI
   const t=totals(b),cc=b.receipts.filter(r=>r.kind==='company-credit').reduce((a,r)=>a+r.amount,0);
-  return <><div className="invoice mm-invoice">
+  return <><SfSwitcher b={b0} value={fol} onChange={setChosen} mobile/><SfInvoiceList b={b0}/>{/* F8-SF-UI */}<div className="invoice mm-invoice">
       <div className="invoice-top mm-inv-top"><Hotel size={30}/><div><h2>{s.settings.hotel}</h2><p>{process.env.HCC_BUILD==='production'?'Hotel Control Centre':'Hotel Control Centre · Fictional property'}</p></div></div>
       {process.env.HCC_BUILD==='production'?<div className="invoice-stamp">Folio summary — the tax invoice is issued and kept on the hotel server</div>
         :<div className="invoice-stamp" aria-label="Demonstration — not a tax invoice">Demonstration — not a tax invoice · fictional records only</div>}

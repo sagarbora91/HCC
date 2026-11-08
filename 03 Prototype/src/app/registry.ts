@@ -61,6 +61,7 @@ import {registration as measCaptureUi} from '../features/reports/MeasCaptureRegi
 // F12-INT end
 // F8 lanes: ONE import line inside your own block; the registration name inside your block in `registrations` below.
 // F8-SF-UI
+import {registration as sfUi} from '../features/folio/SplitRegister';
 // F8-SF-UI end
 // F8-QW-KDS
 // F8-QW-KDS end
@@ -112,6 +113,7 @@ export const registrations:FeatureRegistration[]=[reservations,guests,customers,
   measDeskUi,measGuestUi,measCaptureUi,
   // F12-INT end
   // F8-SF-UI
+  sfUi,
   // F8-SF-UI end
   // F8-QW-KDS
   // F8-QW-KDS end

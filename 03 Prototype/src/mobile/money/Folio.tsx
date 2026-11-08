@@ -10,6 +10,11 @@ import {Pill,Empty,shortDate} from '../../components/ui';
 import {FolioApprovalRow} from '../../features/folio/modals';
 import {bookingActionSlots} from '../../app/registry';
 import {mmBalanceHero} from './logic';
+// F8-SF-UI
+import {sfIsSplit,sfView} from '../../services/mock';
+import {SfSwitcher,SfFolioBar} from '../../features/folio/Split';
+import {sfCurrent,sfOpen} from '../../features/folio/SplitLogic';
+// F8-SF-UI end
 
 const FILTERS=['All','In house','Due out','Balance due','Departed','Confirmed'] as const;
 type F=typeof FILTERS[number]|'Requests';
@@ -48,9 +53,11 @@ export function MmFolios(){
 export function MmFolioSheet({id}:{id?:string}){
   const {s,uid,permission,open,busy}=useHcc();
   const [tab,setTab]=useState<'charges'|'receipts'|'requests'>('charges');
-  const b=s.bookings.find(x=>x.id===id);
-  if(!b)return <Empty title="This record is unavailable" body="The booking may have been removed when a scenario was reloaded."/>;
+  const [chosen,setChosen]=useState('A'); // F8-SF-UI
+  const b0=s.bookings.find(x=>x.id===id);
+  if(!b0)return <Empty title="This record is unavailable" body="The booking may have been removed when a scenario was reloaded."/>;
   if(!rbacCanViewFolios(s,uid))return <Empty title="Access denied" body="Your role cannot open guest folios."/>;
+  const fol=sfCurrent(b0,chosen),b=sfIsSplit(b0)?sfView(b0,fol):b0; // F8-SF-UI: b = the shown folio (identity on a single-folio stay)
   const h=mmBalanceHero(b),n=folioNights(b),st=resStatus(s,b),active=['Confirmed','In house'].includes(b.status);
   const approvals=folioApprovalsFor(s,b.id);
   const canPay=permission('payments')&&!['Held','Expired','Cancelled','No show'].includes(st);
@@ -61,6 +68,8 @@ export function MmFolioSheet({id}:{id?:string}){
       <p className="mm-meta"><Pill tone={statusTone(st)}>{st}</Pill> {shortDate(b.arrival)} – {shortDate(b.departure)} · {plural(nights(b.arrival,b.departure),'night')} · {plural(b.people,'guest')}</p>
       <p className={'mm-meta '+(n.posted<n.agreed?'mm-warn-text':'')}>Nights posted {n.posted} of {n.agreed} agreed</p>
       {b.company&&<p className="mm-meta"><Building2 size={14}/> {b.company.name}</p>}</div>
+    <SfSwitcher b={b0} value={fol} onChange={setChosen} mobile/>{/* F8-SF-UI */}
+    <SfFolioBar b={b0} folio={fol} mobile/>{/* F8-SF-UI */}
     <section className={'mm-hero mm-hero-'+h.state} aria-label="Folio balance">
       <div className="mm-hero-main"><span>{h.label}</span><strong className="number">{money(Math.abs(h.balance))}</strong></div>
       <div className="mm-hero-sub"><div><span>Deposit held</span><strong className="number">{money(h.deposit)}</strong></div><div><span>Charges + tax</span><strong className="number">{money(h.total)}</strong></div><div><span>Net paid</span><strong className="number">{money(h.paid)}</strong></div></div>
@@ -86,32 +95,33 @@ export function MmFolioSheet({id}:{id?:string}){
         :<Empty title="No folio requests" body="Discounts above the limit, refunds and corrections appear here. No one approves their own request."/>)}
     </div>
     <div className="modal-actions mm-foot">
-      {canPay&&<button className="btn primary mm-foot-main" disabled={busy} onClick={()=>open({type:'payment',id:b.id})}><Receipt size={18}/>Record payment</button>}
-      {canCharge&&<button className="btn" disabled={busy} onClick={()=>open({type:'charge',id:b.id})}><Plus size={18}/>Add charge</button>}
-      <button className="btn" onClick={()=>open({type:'mm-folio-more',id:b.id})} aria-label="More folio actions"><MoreHorizontal size={18}/>More</button>
+      {canPay&&<button className="btn primary mm-foot-main" disabled={busy} onClick={()=>open(sfOpen(b0,'payment',fol))}><Receipt size={18}/>Record payment</button>}
+      {canCharge&&<button className="btn" disabled={busy} onClick={()=>open(sfOpen(b0,'charge',fol))}><Plus size={18}/>Add charge</button>}
+      <button className="btn" onClick={()=>open(sfOpen(b0,'mm-folio-more',fol))} aria-label="More folio actions"><MoreHorizontal size={18}/>More</button>
     </div></>;
 }
 
 /** 'mm-folio-more': discount, refund, correction, checkout, invoice, stay actions (+ other streams' booking actions). */
 export function MmFolioMore({id}:{id?:string}){
-  const {s,uid,permission,open,booking,run}=useHcc();
+  const {s,uid,permission,open,booking,run,modal}=useHcc();
   const b=s.bookings.find(x=>x.id===id);
   if(!b)return <Empty title="This record is unavailable"/>;
+  const fol=sfCurrent(b,modal?.room); // F8-SF-UI: the folio the sheet was opened for
   const active=['Confirmed','In house'].includes(b.status);
   const firstRefundable=b.receipts.find(r=>r.kind==='payment'&&folioRefundable(s,b,r.id)>0);
   const firstCorrectable=b.lines.find(l=>folioLineCorrectable(s,b,l));
   const item=(show:boolean,icon:React.ReactNode,title:string,sub:string,fn:()=>void)=>show?<ListCard key={title} title={<span className="m-lc-title">{icon}{title}</span>} sub={sub} onClick={fn}/>:null;
   return <><div className="modal-heading"><div className="eyebrow">{bookingRef(b)} · ROOM {b.room}</div><h2>More actions</h2><p>{b.guest} · balance {money(totals(b).balance)}</p></div>
     <div className="mm-more-list">
-      {item(active&&rbacCanDiscount(s,uid),<Percent size={20}/>,'Discount','Above the limit, another user approves',()=>open({type:'discount',id:b.id}))}
+      {item(active&&rbacCanDiscount(s,uid),<Percent size={20}/>,'Discount','Above the limit, another user approves',()=>open(sfOpen(b,'discount',fol)))}
       {item(!!firstRefundable&&permission('payments'),<RotateCcw size={20}/>,'Request refund',firstRefundable&&cbIsLocked(s,firstRefundable.date)?cbLockedMessage(firstRefundable.date,'a refund against receipt '+firstRefundable.id):`Against ${firstRefundable?.id} (pick another on the Receipts tab)`,()=>{if(!firstRefundable||cbIsLocked(s,firstRefundable.date))return;open({type:'refund',id:b.id,room:firstRefundable.id});})} {/* DEC-065: locked day = no-op, reason shown */}
       {item(active&&!!firstCorrectable&&rbacCanRequestCorrection(s,uid),<PencilLine size={20}/>,'Request correction',`Reverse “${firstCorrectable?.label}” (pick another on the Charges tab)`,()=>open({type:'correction',id:b.id,room:firstCorrectable!.id}))}
       {item(b.status==='In house'&&permission('checkout'),<LogOut size={20}/>,'Checkout','Checklist, then confirm',()=>open({type:'checkout',id:b.id}))}
       {item(active&&permission('reservations'),<CalendarRange size={20}/>,b.status==='In house'?'Move / extend stay':'Change dates / room','Shows conflicts before saving',()=>open({type:b.status==='In house'?'stay-move':'move',id:b.id}))}
       {item(b.status==='Confirmed'&&permission('reservations'),<XCircle size={20}/>,'Cancel / no-show','Refund advances first',()=>open({type:'cancel',id:b.id}))}
-      {item(b.status==='Departed'&&rbacCanRequestCorrection(s,uid),<FileMinus size={20}/>,'Request credit note','Departed stays only',()=>open({type:'credit-note',id:b.id}))}
+      {item(b.status==='Departed'&&rbacCanRequestCorrection(s,uid),<FileMinus size={20}/>,'Request credit note','Departed stays only',()=>open(sfOpen(b,'credit-note',fol)))}
       {item(process.env.HCC_BUILD==='production'&&b.status==='Departed'&&!b.invoiceNo&&permission('checkout'),<Receipt size={20}/>,'Issue invoice','Tax invoice for this departed stay',()=>{void run({type:'INVOICE_ISSUE',id:b.id,key:'invoice:'+b.id},'Tax invoice issued');})}
-      {item(true,<Printer size={20}/>,b.invoiceNo?(process.env.HCC_BUILD==='production'?'Invoice ':'Sample invoice ')+b.invoiceNo:'Folio preview','View and print (wireless printer)',()=>open({type:'invoice',id:b.id}))}
+      {item(true,<Printer size={20}/>,b.invoiceNo?(process.env.HCC_BUILD==='production'?'Invoice ':'Sample invoice ')+b.invoiceNo:'Folio preview','View and print (wireless printer)',()=>open(sfOpen(b,'invoice',fol)))}
     </div>
     {bookingActionSlots.length>0&&<div className="mm-slot-actions">{bookingActionSlots.map((Slot,i)=><Slot key={i} b={b}/>)}</div>}
     <div className="modal-actions"><button className="btn" onClick={()=>booking(b.id)}>Back to folio</button></div></>;
