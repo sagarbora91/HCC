@@ -9,16 +9,20 @@ import {FitPage,ScrollPanel,StepFlow,useFitTab} from '../../components/fit';
 import {ShiftCountForm} from './ShiftCount';
 import {OpenShiftForm,CashOutPanel,CashOutActions} from './CashOut';
 import {CreditGuests} from '../lfmoney/GuestMoney'; // LF-UI B2
+// F8-QW-ADV
+import {AdvancesHeld} from '../cashier/AdvancesHeld';
+import {advHeld,advTotals} from '../../services/mock';
+// F8-QW-ADV end
 
 /** Detail column of a drawer movement without a booking or outlet bill (Wave B1: banking, transfers, drawings). */
 const MOVE_KIND:Record<string,string>={'expense-reversal':'Reversal',expense:'Expense',banking:'Bank deposit','transfer-out':'Till transfer','transfer-in':'Till transfer','owner-drawing':'Owner drawing','staff-advance':'Salary advance'}; // ACC-2 integration: the parity lane's cash advance movement
 
 /** Step ids = SUB_SCREENS 'cashier' (kebab-case of the labels). */
-export const CASHIER_STEPS=['expected-cash','count-and-result','cash-movements','cash-out','credit-guests'] as const;
+export const CASHIER_STEPS=['expected-cash','count-and-result','cash-movements','cash-out','credit-guests','advances-held'] as const; // F8-QW-ADV
 type CashierStep=typeof CASHIER_STEPS[number];
 
 export function Cashier(){
-  const {s,go,booking,permission}=useHcc();
+  const {s,uid,go,booking,permission}=useHcc();
   const ex=shiftExpected(s),mv=shiftMovements(s),st=shiftStatus(s),closed=isDayClosed(s);
   const name=(id?:string)=>s.users.find(u=>u.id===id)?.name.split(' · ')[0]??id??'—';
   const row=(label:string,v:number,sign:'+'|'−'|'')=><div><span>{sign&&<b className="f-sign">{sign}</b>}{label}</span><strong>{money(v)}</strong></div>;
@@ -46,6 +50,9 @@ export function Cashier(){
     {id:'cash-movements',label:'Cash movements',status:'done' as const,summary:`${mv.length} movement${mv.length===1?'':'s'} · net ${net<0?'−':'+'}${money(Math.abs(net))}`},
     {id:'cash-out',label:'Cash out',status:pend?'current' as const:'done' as const,summary:pend?`${pend} awaiting a second person`:outToday?`${outToday} record${outToday===1?'':'s'} today`:'Nothing banked or drawn today'},
     {id:'credit-guests',label:'Credit guests',status:'done' as const,summary:`${udGuestOutstanding(s).filter(r=>r.open>0).length} guest(s) owing · ${money(udGuestOutstanding(s).reduce((a,r)=>a+r.open,0))}`},
+    // F8-QW-ADV
+    (()=>{const at=advTotals(advHeld(s,uid));return {id:'advances-held',label:'Advances held',status:at.red?'current' as const:'done' as const,summary:at.count?`${at.count} booking${at.count===1?'':'s'} · ${money(at.held)} held${at.red?` · ${at.red} red`:''}`:'No advances or deposits held'};})(),
+    // F8-QW-ADV end
   ];
   let body:React.ReactNode;
   if(step==='expected-cash')body=<ScrollPanel title="Expected cash" label="Shift status and expected cash" actions={<Wallet size={19}/>}>
@@ -74,6 +81,7 @@ export function Cashier(){
               <td>{name(m.actor)}</td><td className="number">{m.amount>=0?'+':'−'}{money(Math.abs(m.amount))}</td></tr>)}
           </tbody></table>{!mv.length&&<Empty title="No cash movements today" body="Cash receipts, deposits, returns, refunds, restaurant cash bills, posted cash expenses, bank deposits, till transfers and Owner drawings appear here."/>}</div>
         </ScrollPanel>;
+  else if(step==='advances-held')body=<ScrollPanel title="Advances held" label="Advances held"><AdvancesHeld/></ScrollPanel>; // F8-QW-ADV
   else if(step==='credit-guests')body=<ScrollPanel title="Credit guests" label="Credit guests"><CreditGuests/></ScrollPanel>;
   else body=<CashOutPanel fit/>;
   return <FitPage title="Cashier shift" sub={`One cash shift per business day · ${dateLabel(s.date)} · opening float carried from the last counted close`} layout="steps"

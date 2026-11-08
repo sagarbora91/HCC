@@ -216,6 +216,7 @@ export const SUB_SCREENS:SubScreen[]=[
   // F8-SF-UI
   // F8-SF-UI end
   // F8-QW-ADV
+  {page:'cashier',id:'advances-held',label:'Advances held',keywords:['advance','deposit','refund','held money']},
   // F8-QW-ADV end
   // F8-QW-PM
   // F8-QW-PM end

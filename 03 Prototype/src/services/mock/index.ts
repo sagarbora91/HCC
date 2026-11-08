@@ -176,6 +176,7 @@ export * from '../../domain/streams/folio-split'; // F8 SF split folio: SFFolio 
 // F8-QW-KDS
 // F8-QW-KDS end
 // F8-QW-ADV
+export * from '../../domain/streams/advances'; // F8 QW-ADV: advHeld, advTotals, advCsv
 // F8-QW-ADV end
 // F8-QW-PM
 // F8-QW-PM end
