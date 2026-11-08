@@ -98,4 +98,39 @@ export async function register({test,M,assert}){
     s=execute(s,'reception',{type:'CHECKIN',id});s=execute(s,'owner',{type:'POST_NIGHTS',id});
     assert.match(R.mfRoutingProblem(bk(s,id),{room:co,extras:'guest'}),/already has a company folio/);
   });
+
+  test('[F8D-PHONE] another guest in the party: extras to a named person (desk rules), GSTIN optional, round trip, group member untouched',()=>{
+    let {s,id,co}=stay();
+    const person=R.mfPersonKey('Meera Shah','');
+    assert.equal(R.mfRoutingProblem(bk(s,id),{room:'guest',extras:person}),'');
+    const plan=R.mfRoutingPlan(bk(s,id),{room:'guest',extras:person},'k');
+    assert.deepEqual(plan.map(c=>c.type),['SF_FOLIO_OPEN']);
+    assert.deepEqual(plan[0].payer,{kind:'guest',name:'Meera Shah'});assert.deepEqual(plan[0].routes,['extras']);
+    s=apply(s,id,{room:'guest',extras:person});
+    assert.deepEqual(R.mfCurrentRouting(bk(s,id)),{room:'guest',extras:person});
+    assert.equal(R.mfRoutingPlan(bk(s,id),{room:'guest',extras:person},'k').length,0,'unchanged choice plans nothing');
+    // company for the room next to the person for extras: two folios, both open
+    s=apply(s,id,{room:co,extras:person},'k2');
+    assert.equal(bk(s,id).folios.filter(f=>!f.removedAt).length,3);
+    // back to the guest removes the empty person folio
+    s=apply(s,id,{room:co,extras:'guest'},'k3');
+    assert.deepEqual(R.mfCurrentRouting(bk(s,id)),{room:co,extras:'guest'});
+    // GSTIN rules and name rules are the desk's
+    assert.match(R.mfRoutingProblem(bk(s,id),{room:'guest',extras:R.mfPersonKey('','')}),/name of the person/);
+    assert.match(R.mfRoutingProblem(bk(s,id),{room:'guest',extras:R.mfPersonKey('Meera','BADGSTIN')}),/15-character GSTIN/);
+    const f2=stay();const gp=R.mfRoutingPlan(bk(f2.s,f2.id),{room:R.mfPersonKey('Meera Shah','27aapfu0939f1zv'),extras:'guest'},'k');
+    assert.equal(gp[0].payer.gstin,'27AAPFU0939F1ZV');
+  });
+  test('[F8D-PHONE] the walk-in flow has the same routing step (billing-gated, opened after BOOK and REGISTER, before CHECKIN)',()=>{
+    const a=readFileSync('src/mobile/frontdesk/Arrivals.tsx','utf8');
+    assert.ok(/const canRoute=permission\('billing'\)/.test(a)&&/MfPayerFields/.test(a)&&/mfRoutingPlan\(cur,w,/.test(a));
+    assert.ok(a.indexOf("if(await doRoute(bid))await doCheckin(bid)")>a.indexOf("'Walk-in guest registered.'"));
+  });
+  test('[F8D-PHONE] walk-in: a plan built on the fresh reservation (Confirmed) opens the company folio before check-in',()=>{
+    let {s,id,co}=stay();
+    s=apply(s,id,{room:co,extras:R.mfPersonKey('Meera Shah')},'w');
+    s=execute(s,'reception',{type:'CHECKIN',id});s=execute(s,'owner',{type:'POST_NIGHTS',id});
+    assert.ok(bk(s,id).lines.filter(l=>l.kind==='room').every(l=>l.folio==='B'));
+  });
 }
+

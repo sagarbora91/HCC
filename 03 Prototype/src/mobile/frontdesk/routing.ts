@@ -11,7 +11,10 @@ export type MfRouting=Record<SFRouteCategory,MfPayerKey>;
 export const MF_CATEGORY_LABEL:Record<SFRouteCategory,string>={room:'Room (nights, meal plan, room discounts)',extras:'Extras (laundry, food to room, services)'};
 export const MF_GROUP_MESSAGE='This stay is a member of a group block: its billing is routed by the group (Groups & corporate › master folio), not split here.';
 
-export const mfPayerKey=(f:Pick<SFFolio,'payer'>):MfPayerKey=>f.payer.kind==='company'||f.payer.kind==='udhaar'?`${f.payer.kind}:${f.payer.ref??''}`:'guest';
+/** 'person:<gstin>|<name>' = another guest in the party who pays a folio directly (the desk dialog's guest payer on folios B-D; GSTIN optional). */
+export const mfPersonKey=(name:string,gstin=''):MfPayerKey=>`person:${gstin.trim().toUpperCase()}|${name.trim()}`;
+export const mfPersonOf=(k:MfPayerKey):{name:string;gstin:string}|null=>{if(!k.startsWith('person:'))return null;const r=k.slice(7),i=r.indexOf('|');return {gstin:r.slice(0,i),name:r.slice(i+1)};};
+export const mfPayerKey=(f:Pick<SFFolio,'payer'|'id'>):MfPayerKey=>f.payer.kind==='company'||f.payer.kind==='udhaar'?`${f.payer.kind}:${f.payer.ref??''}`:f.id!==SF_PRIMARY?mfPersonKey(f.payer.name,f.payer.gstin):'guest';
 /** Group members refuse any split (SF_GROUP_MEMBER). */
 export const mfIsGroupMember=(s:State,b:Booking):boolean=>grpSlice(s).blocks.some(blk=>blk.members.some(m=>m.booking===b.id));
 /** The payer now routed for each category (guest when the stay is not split). */
@@ -22,10 +25,20 @@ export function mfCurrentRouting(b:Booking):MfRouting{
   return out;
 }
 const kindRef=(k:MfPayerKey)=>{const i=k.indexOf(':');return i<0?{kind:k,ref:''}:{kind:k.slice(0,i),ref:k.slice(i+1)};};
+const payerOf=(k:MfPayerKey)=>{const p=mfPersonOf(k);if(p)return {kind:'guest',name:p.name,...(p.gstin?{gstin:p.gstin}:{})};const {kind,ref}=kindRef(k);return {kind,ref};};
 /** Why a choice cannot be applied (desk wording of SF_COMPANY_FOLIO), or ''. */
-export function mfRoutingProblem(b:Booking,want:MfRouting):string{
+export function mfWantProblem(want:MfRouting):string{
+  // Another guest in the party: desk rules (Split.tsx / SF_FOLIO_OPEN): a name of 2-120 characters, GSTIN blank or 15 characters.
+  for(const c of SF_ROUTE_CATEGORIES){const p=mfPersonOf(want[c]);if(!p)continue;
+    if(p.name.length<2||p.name.length>120)return 'Enter the name of the person who pays this folio (2 to 120 characters).';
+    if(p.gstin&&!/^[0-9]{2}[A-Z0-9]{13}$/.test(p.gstin))return 'Enter a 15-character GSTIN or leave it blank.';}
   const cos=new Set(SF_ROUTE_CATEGORIES.map(c=>want[c]).filter(k=>k.startsWith('company:')));
   if(cos.size>1)return 'A stay has at most one company folio. Choose the same company for room and extras.';
+  return '';
+}
+export function mfRoutingProblem(b:Booking,want:MfRouting):string{
+  const w=mfWantProblem(want);if(w)return w;
+  const cos=new Set(SF_ROUTE_CATEGORIES.map(c=>want[c]).filter(k=>k.startsWith('company:')));
   // The existing company folio stays when it has postings or still holds a category the clerk keeps on that company; an empty one is replaced.
   const keep=sfFolios(b).find(f=>f.id!==SF_PRIMARY&&f.payer.kind==='company'&&(b.lines.some(l=>l.folio===f.id)||b.receipts.some(r=>r.folio===f.id)||f.routes.some(c=>want[c]===mfPayerKey(f))));
   if(keep&&cos.size===1&&!cos.has(mfPayerKey(keep)))return 'This stay already has a company folio. A stay has at most one company folio.';
@@ -53,7 +66,7 @@ export function mfRoutingPlan(b:Booking,want:MfRouting,key:string,reason='Set at
   for(const [p,cats] of byPayer){
     const f=folios.find(x=>x.id!==SF_PRIMARY&&!gone.has(x.id)&&x.key===p);
     if(f){f.routes=[...f.routes,...cats];cmds.push({type:'SF_ROUTE_SET',id:b.id,folio:f.id,routes:[...f.routes],reason,key:`${key}:add:${f.id}`});}
-    else{const {kind,ref}=kindRef(p);cmds.push({type:'SF_FOLIO_OPEN',id:b.id,payer:{kind,ref},routes:cats,reason,key:`${key}:open:${p}`});}
+    else{cmds.push({type:'SF_FOLIO_OPEN',id:b.id,payer:payerOf(p),routes:cats,reason,key:`${key}:open:${p}`});}
   }
   return cmds;
 }

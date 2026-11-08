@@ -155,3 +155,15 @@ button.mf-agenda:active{background:var(--sand-2)}
 .mf-route .mf-inline{display:flex;gap:10px}.mf-route .mf-inline .btn{flex:1;min-height:48px}
 .mf-route-hint{font-size:13px;color:var(--muted)}
 .mf-route select{width:100%;text-overflow:ellipsis}
+/* F8D phone: person payer fields, DeskFields ("Stay details") phone layout, walk-in "Who pays" step */
+.mf-route-pick{display:flex;flex-direction:column;gap:6px}
+.mf-route-pick label{display:flex;flex-direction:column;gap:6px;font-size:14px;color:var(--ink)}
+.mf-route-pick input,.mf-route-pick select{width:100%;min-height:48px;font-size:16px;padding:10px 12px}
+.modal.m-sheet .ld-fields,.m-shell .ld-fields{display:flex;flex-direction:column;gap:12px;padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:var(--surface);margin:0 0 12px}
+.modal.m-sheet .ld-fields .gs-sub,.m-shell .ld-fields .gs-sub{margin:0;font-size:16px}
+.modal.m-sheet .ld-fields .form-row,.m-shell .ld-fields .form-row{display:flex;flex-direction:column;gap:12px;margin:0}
+.modal.m-sheet .ld-fields label,.m-shell .ld-fields label{display:flex;flex-direction:column;gap:6px;font-size:14px;color:var(--ink)}
+.modal.m-sheet .ld-fields input,.modal.m-sheet .ld-fields select,.m-shell .ld-fields input,.m-shell .ld-fields select{width:100%;min-height:48px;font-size:16px;padding:10px 12px;text-overflow:ellipsis}
+.modal.m-sheet .ld-fields small,.m-shell .ld-fields small{font-size:13px}
+.modal.m-sheet .ld-fields .ld-formc,.m-shell .ld-fields .ld-formc{display:flex;flex-direction:column;gap:12px;margin:0}
+.modal.m-sheet .ld-fields .gs-deny,.m-shell .ld-fields .gs-deny{font-size:14px}

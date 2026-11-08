@@ -4,7 +4,7 @@
 import {useStepBack} from '../../app/native';
 import {bookingRef} from '../../domain/bookingRef';
 import React,{useState,useRef} from 'react';
-import {Check,ArrowRight,ArrowLeft,DoorOpen,AlertCircle,Printer,UserPlus,Info,Loader2,X,RotateCcw} from 'lucide-react';
+import {Check,ArrowRight,ArrowLeft,DoorOpen,AlertCircle,Printer,UserPlus,Info,Loader2,X,RotateCcw,Split as SplitIcon} from 'lucide-react';
 import {useHcc} from '../../app/context';
 import {mstRows,Booking,money,nights,addDays,totals,gstForRoomNight,gstStayTax,gstPct,guestForBooking,stayArrivals,stayCheckinAlternatives,stayFreeRooms,staySegments,rmsRoomLine,rmsTypeName,mstFloorLabel} from '../../services/mock';
 import {Fab,ListCard,Stepper,NumberStepper} from '../../app/mobile/components';
@@ -18,6 +18,8 @@ import {bookingIdLookup} from '../../domain/streams/customers';
 import {statusTone} from '../../features/guests/GuestProfile';
 import {PrintListButton} from '../../features/guests/FrontDeskList';
 import {useDeskFields} from '../../features/guests/DeskFields'; // LF-DESK
+import {MfPayerFields} from './BillRouting';
+import {mfRoutingPlan,mfWantProblem,type MfRouting} from './routing';
 import {MfBillRouting} from './BillRouting'; // F8C-PHONE
 
 /** Waits until React has re-rendered with the result of the last run() (the context's state is per render). */
@@ -136,7 +138,11 @@ export function MfWalkin(){
   const [departure,setDeparture]=useState(addDays(s.date,1));const [people,setPeople]=useState(1);
   const free=departure>s.date?stayFreeRooms(s,s.date,departure):[];
   const [room,setRoom]=useState('');const chosen=free.some(r=>r.id===room)?room:free[0]?.id||'';
-  const [p,setP]=useState<{book:St;register:St;checkin:St;bid?:string;room?:string;msg?:string;note?:string}>({book:'pending',register:'pending',checkin:'pending'});
+  const [p,setP]=useState<{book:St;register:St;route:St;checkin:St;bid?:string;room?:string;msg?:string;note?:string}>({book:'pending',register:'pending',route:'pending',checkin:'pending'});
+  // F8D-PHONE: who pays the room / extras (same plan and commands as the check-in card; needs billing, DEC-061). The folio is opened after BOOK + REGISTER, before CHECKIN.
+  const canRoute=permission('billing');const [want,setWant]=useState<MfRouting>({room:'guest',extras:'guest'});
+  const routeWanted=canRoute&&(want.room!=='guest'||want.extras!=='guest');
+  const routeProblem=routeWanted?mfWantProblem(want):'';
   if(!permission('reservations')||!permission('checkin'))return <Empty title="Not permitted" body="A walk-in needs both reservation and check-in permissions."/>;
   const key=modal!.key;
   async function doCheckin(bid:string){
@@ -145,8 +151,20 @@ export function MfWalkin(){
     const now=live.current.s.bookings.find(b=>b.id===bid)?.status;
     if(ok||now==='In house')setP(x=>({...x,checkin:'done',note:ok?x.note:'The confirmation was lost, but the record shows the guest checked in.'}));else setP(x=>({...x,checkin:'failed',msg:live.current.error}));
   }
+  /** Applies the chosen routing to the new reservation; false = refused (the refusal text is kept, nothing after it is changed). */
+  async function doRoute(bid:string,w:MfRouting=want):Promise<boolean>{
+    if(w===want&&!routeWanted){setP(x=>({...x,route:'done'}));return true;}
+    setP(x=>({...x,route:'running',msg:undefined}));await settle();
+    const cur=live.current.s.bookings.find(x=>x.id===bid);
+    if(!cur){setP(x=>({...x,route:'failed',msg:'The reservation was not found.'}));return false;}
+    for(const cmd of mfRoutingPlan(cur,w,`${key}:route:${cur.version}`,'Set at phone walk-in')){
+      const ok=await live.current.run(cmd);await settle();
+      if(!ok){setP(x=>({...x,route:'failed',msg:(live.current.error||'The routing was not saved.')}));return false;}
+    }
+    setP(x=>({...x,route:'done'}));return true;
+  }
   async function start(d:ReturnType<typeof emptyDraft>,gid?:string){
-    setScreen(2);let bid=p.bid;
+    setScreen(3);let bid=p.bid;
     if(!bid){
       const known=new Set(s.bookings.map(b=>b.id));setP(x=>({...x,book:'running',msg:undefined}));
       const ok=await live.current.run({type:'BOOK',guest:d.name,email:d.email,people,room:chosen,arrival:s.date,departure,source:'Walk-in',purpose:purpose||undefined,notes:'Walk-in guest',key:key+':book'},'Walk-in reservation created.');
@@ -158,15 +176,15 @@ export function MfWalkin(){
     setP(x=>({...x,register:'running',msg:undefined}));await settle();
     const ok=await live.current.run({type:'REGISTER',id:bid,guest:d,guestId:gid,key:`${key}:register:${hashOf([d,gid])}`},'Walk-in guest registered.');await settle();
     if(!ok&&!live.current.s.bookings.find(b=>b.id===bid)?.registered){setP(x=>({...x,register:'failed',msg:live.current.error}));return;}
-    setP(x=>({...x,register:'done'}));await doCheckin(bid);
+    setP(x=>({...x,register:'done'}));if(await doRoute(bid))await doCheckin(bid);
   }
   const icon=(st:St)=>st==='done'?<Check size={16}/>:st==='running'?<Loader2 size={16} className="mf-spin"/>:st==='failed'?<X size={16}/>:<span className="mf-dot"/>;
   const label=(st:St)=>({pending:'Waiting',running:'In progress',done:'Done',failed:'Failed'})[st];
   const b=p.bid?s.bookings.find(x=>x.id===p.bid):undefined;
-  const failed=p.book==='failed'||p.register==='failed'||p.checkin==='failed';
-  const steps=['Stay','Guest','Check in'];
-  return <><div className="modal-heading"><div className="eyebrow">ARRIVALS · WALK-IN</div><h2>Walk-in guest</h2><p>Creates a reservation, registers the guest and checks in — three recorded steps.</p></div>
-    <Stepper steps={steps} current={screen}/>
+  const failed=p.book==='failed'||p.register==='failed'||p.route==='failed'||p.checkin==='failed';
+  const steps=canRoute?['Stay','Who pays','Guest','Check in']:['Stay','Guest','Check in'];const stepAt=canRoute||screen<2?screen:screen-1;
+  return <><div className="modal-heading"><div className="eyebrow">ARRIVALS · WALK-IN</div><h2>Walk-in guest</h2><p>Creates a reservation, registers the guest{canRoute?', sets who pays':''} and checks in — {canRoute?'recorded steps':'three recorded steps'}.</p></div>
+    <Stepper steps={steps} current={stepAt}/>
     {screen===0&&<><div className="form mf-form">
         <label>Departure<input type="date" value={departure} min={addDays(s.date,1)} max={addDays(s.date,30)} onChange={e=>setDeparture(e.target.value)}/></label>
         <label>Purpose of visit<select value={purpose} onChange={e=>setPurpose(e.target.value)}>{mstRows(s,'purposes').filter(r=>r.active).map(r=><option key={r.code} value={r.code}>{r.name}</option>)}</select></label>
@@ -178,18 +196,28 @@ export function MfWalkin(){
           <span><strong>{r.id} · {rmsTypeName(s,r.type)}</strong><small>{mstFloorLabel(s,r)}{permission('billing')?` · ${money(r.rate)}/night`:''}</small></span></label>)}</div>
         :<Empty title="No room available" body="No room is vacant, ready and free for these dates. Try a shorter stay."/>}
       <div className="modal-actions"><button type="button" className="btn" onClick={()=>open({type:'guest-checkin'})}>Has a reservation?</button>
-        <button type="button" className="btn primary" disabled={!chosen} onClick={()=>setScreen(1)}>Next <ArrowRight size={16}/></button></div></>}
-    {screen===1&&<div className="mf-guestform"><GuestForm initial={emptyDraft()} registration disabled={!chosen&&!p.bid} submitLabel={p.bid?'Retry':'Create & check in'} onSubmit={d=>start(d)} onUseExisting={x=>start(draftOf(x),x.id)}
-      secondary={!p.bid?<button type="button" className="btn" onClick={()=>setScreen(0)}><ArrowLeft size={16}/>Back</button>:<button type="button" className="btn" onClick={()=>setScreen(2)}>Progress</button>}/></div>}
-    {screen===2&&<><ol className="mf-seq" aria-live="polite">
-        {([['book','Create reservation'],['register','Register guest'],['checkin','Check in']] as const).map(([k,l])=><li key={k} className={'mf-seq-'+p[k]}>{icon(p[k])}<span>{l}</span><strong>{label(p[k])}</strong></li>)}</ol>
+        <button type="button" className="btn primary" disabled={!chosen} onClick={()=>setScreen(canRoute?1:2)}>Next <ArrowRight size={16}/></button></div></>}
+    {screen===1&&canRoute&&<><div className="mf-route"><div className="mf-route-head"><SplitIcon size={18}/><strong>Who pays</strong></div>
+        <div className="form mf-form"><MfPayerFields guest="The guest" cur={want} setCur={setWant}/></div>
+        <div className="info-note"><Info size={16}/>A company folio is bound by the company’s credit limit and is not paid in cash; an Udhaar folio goes on that guest’s credit account, within its limit. Folio A stays with the guest. The company limit is checked when the reservation exists; if it is refused you can retry or check in with the guest paying everything.</div>
+        {routeProblem&&<div className="mf-deny" role="alert"><AlertCircle size={18}/><div>{routeProblem}</div></div>}</div>
+      <div className="modal-actions"><button type="button" className="btn" onClick={()=>setScreen(0)}><ArrowLeft size={16}/>Back</button>
+        <button type="button" className="btn primary" disabled={!!routeProblem} onClick={()=>setScreen(2)}>Next <ArrowRight size={16}/></button></div></>}
+    {screen===2&&<div className="mf-guestform"><GuestForm initial={emptyDraft()} registration disabled={!chosen&&!p.bid} submitLabel={p.bid?'Retry':'Create & check in'} onSubmit={d=>start(d)} onUseExisting={x=>start(draftOf(x),x.id)}
+      secondary={!p.bid?<button type="button" className="btn" onClick={()=>setScreen(canRoute?1:0)}><ArrowLeft size={16}/>Back</button>:<button type="button" className="btn" onClick={()=>setScreen(3)}>Progress</button>}/></div>}
+    {screen===3&&<><ol className="mf-seq" aria-live="polite">
+        {([['book','Create reservation'],['register','Register guest'],...(routeWanted?[['route','Set who pays'] as const]:[]),['checkin','Check in']] as const).map(([k,l])=><li key={k} className={'mf-seq-'+p[k]}>{icon(p[k])}<span>{l}</span><strong>{label(p[k])}</strong></li>)}</ol>
       {p.note&&<div className="info-note"><Info size={16}/>{p.note}</div>}
       {failed&&<div className="mf-recover" role="alert"><AlertCircle size={18}/><div>
         {p.book==='failed'&&<><strong>No reservation was created.</strong><p>{p.msg} Go back, correct the details and try again.</p></>}
         {p.register==='failed'&&<><strong>Reservation {p.bid} was created for room {p.room}, but registration was not saved.</strong><p>{p.msg} Correct the guest details and retry, continue in guided check-in, or cancel the reservation.</p></>}
+        {p.route==='failed'&&<><strong>Reservation {p.bid} is registered, but who pays was not saved.</strong><p>{p.msg} Retry, change who pays, or check in with the guest paying everything (the routing can be set later from the folio).</p></>}
         {p.checkin==='failed'&&<><strong>Reservation {p.bid} is registered but not checked in.</strong><p>{p.msg} Retry, or continue in guided check-in to pick another eligible room.</p></>}
         <div className="mf-inline">
-          {(p.book==='failed'||p.register==='failed')&&<button className="btn small-btn primary" onClick={()=>setScreen(p.book==='failed'?0:1)}>Correct details</button>}
+          {(p.book==='failed'||p.register==='failed')&&<button className="btn small-btn primary" onClick={()=>setScreen(p.book==='failed'?0:2)}>Correct details</button>}
+          {p.route==='failed'&&<><button className="btn small-btn primary" disabled={busy} onClick={async()=>{if(await doRoute(p.bid!))await doCheckin(p.bid!);}}><RotateCcw size={15}/>Retry routing</button>
+            <button className="btn small-btn" onClick={()=>setScreen(1)}>Change who pays</button>
+            <button className="btn small-btn" disabled={busy} onClick={async()=>{const g:MfRouting={room:'guest',extras:'guest'};setWant(g);if(await doRoute(p.bid!,g)){setP(x=>({...x,note:'Checked in with the guest paying everything; set the routing later from the folio.'}));await doCheckin(p.bid!);}}}>Guest pays everything</button></>}
           {p.checkin==='failed'&&<button className="btn small-btn primary" disabled={busy} onClick={()=>doCheckin(p.bid!)}><RotateCcw size={15}/>Retry check-in</button>}
           {p.bid&&<button className="btn small-btn" onClick={()=>open({type:'guest-checkin',id:p.bid})}>Guided check-in</button>}
           {b?.status==='Confirmed'&&<button className="btn small-btn danger" disabled={busy} onClick={()=>c.run({type:'CANCEL',id:p.bid!,key:key+':cancel'},`Walk-in reservation ${p.bid} cancelled.`,{close:true})}>Cancel {p.bid}</button>}
