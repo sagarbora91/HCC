@@ -219,6 +219,7 @@ export const SUB_SCREENS:SubScreen[]=[
   {page:'cashier',id:'advances-held',label:'Advances held',keywords:['advance','deposit','refund','held money']},
   // F8-QW-ADV end
   // F8-QW-PM
+  {page:'maintenance',id:'pm-calendar',label:'PM calendar',keywords:['preventive','calendar','amc','cctv','dg','schedule']},
   // F8-QW-PM end
   // F8-QW-KDS
   // F8-QW-KDS end

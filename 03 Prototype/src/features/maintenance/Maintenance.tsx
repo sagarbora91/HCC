@@ -9,22 +9,24 @@ import {FitPage,FitTabs,useFitTab,ScrollPanel,StatStrip,FitNote} from '../../com
 import {mntSlice,mntVisibleOrders,mntCanManage,mntCanSeeCost,mntSort,mntSummary,mntPendingRepairs,mntPmDue,mntPmCompliance,mntMttr,mntAgeBuckets,
   mntDowntimeByRoom,mntByKind,mntMonthPartsCost,mntPlanState,mntAmcStatus,mntWhere,mntAsset,mntVendor,mntAssigneeLabel,mntDuration,mntAge,mntPartsCost,
   mntLowSpares,mntIsActive,mntSla,MNT_PRIORITIES,MNT_PRIORITY,money,type MNTWorkOrder,type MNTStatus} from '../../services/mock';
+import {PmCalendar} from './PmCalendar'; // F8-QW-PM
 import {MntStatus,MntPriority,MntSla,MntWoCard,mntWhen} from './shared';
 
-export type MntTab='orders'|'pm'|'assets'|'spares'|'vendors'|'reports';
-export const MNT_TABS:{id:MntTab;label:string}[]=[{id:'orders',label:'Work orders'},{id:'pm',label:'Preventive'},{id:'assets',label:'Assets'},{id:'spares',label:'Spares'},{id:'vendors',label:'Vendors & AMC'},{id:'reports',label:'Reports'}];
+export type MntTab='orders'|'pm'|'pm-calendar'|'assets'|'spares'|'vendors'|'reports';
+export const MNT_TABS:{id:MntTab;label:string}[]=[{id:'orders',label:'Work orders'},{id:'pm',label:'Preventive'},{id:'pm-calendar',label:'PM calendar'}, // F8-QW-PM
+  {id:'assets',label:'Assets'},{id:'spares',label:'Spares'},{id:'vendors',label:'Vendors & AMC'},{id:'reports',label:'Reports'}];
 
 export function MaintenancePage(){
   const {s,uid,user,open}=useHcc();
   const mgr=mntCanManage(s,uid);
-  const [tab,setTab]=useFitTab<MntTab>('maintenance',['orders','pm','assets','spares','vendors','reports'],'orders'); // FIT: same ids as before, remembered per session
+  const [tab,setTab]=useFitTab<MntTab>('maintenance',['orders','pm','pm-calendar','assets','spares','vendors','reports'],'orders'); // FIT: same ids as before, remembered per session
   if(user.role==='Maintenance')return <MntTechView/>;
   if(!mgr)return <MntHousekeeperView/>;
   const x=mntSlice(s);
   const counts:Partial<Record<MntTab,number>>={orders:x.orders.filter(mntIsActive).length,pm:mntPmDue(s).length,spares:mntLowSpares(s).length};
   return <FitPage title="Maintenance" sub="Assets, work orders and preventive care — so rooms stay sellable." actions={<button className="btn primary" onClick={()=>open({type:'mnt-new'})}><Plus size={16}/> New work order</button>}
       tabs={<FitTabs page="maintenance" value={tab} onChange={setTab} tabs={MNT_TABS.map(t=>({id:t.id,label:t.label,count:counts[t.id]||undefined}))}/>}>
-    {tab==='orders'&&<MntOrdersTab/>}{tab==='pm'&&<MntPmTab/>}{tab==='assets'&&<MntAssetsTab/>}{tab==='spares'&&<MntSparesTab/>}{tab==='vendors'&&<MntVendorsTab/>}{tab==='reports'&&<MntReportsFit/>}
+    {tab==='orders'&&<MntOrdersTab/>}{tab==='pm'&&<MntPmTab/>}{tab==='pm-calendar'&&<PmCalendar/>}{/* F8-QW-PM */}{tab==='assets'&&<MntAssetsTab/>}{tab==='spares'&&<MntSparesTab/>}{tab==='vendors'&&<MntVendorsTab/>}{tab==='reports'&&<MntReportsFit/>}
   </FitPage>;
 }
 

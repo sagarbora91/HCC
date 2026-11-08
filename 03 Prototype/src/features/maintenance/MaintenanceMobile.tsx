@@ -8,6 +8,7 @@ import {Pill,Empty,shortDate} from '../../components/ui';
 import {mntSlice,mntVisibleOrders,mntCanManage,mntCanSeeCost,mntSort,mntSummary,mntPendingRepairs,mntPmDue,mntPmCompliance,mntPlanState,mntAmcStatus,
   mntWhere,mntAsset,mntVendor,mntAssigneeLabel,mntDuration,mntAge,mntLowSpares,mntIsActive,money} from '../../services/mock';
 import {MntWoCard,MntStatus,MntPriority,MntSla,mntWhen} from './shared';
+import {PmCalendar} from './PmCalendar'; // F8-QW-PM
 import {MNT_TABS,mntReportData,type MntTab} from './Maintenance';
 
 export function MaintenanceMobile(){
@@ -66,6 +67,7 @@ function MntManagerMobile(){
       <h2 className="m-group">PM SCHEDULE</h2>
       {x.plans.map(p=>{const a=mntAsset(s,p.assetId),ps=mntPlanState(s,p);return <ListCard key={p.id} onClick={()=>open({type:'mnt-plan',id:p.id})} title={p.title} sub={`${a?.name??p.assetId} · every ${p.everyDays} d`} meta={`Next due ${shortDate(p.nextDue)}${p.lastDone?' · last '+shortDate(p.lastDone):''}`} right={<Pill tone={ps==='Overdue'?'mnt-red':ps==='Due'?'orange':ps==='Paused'?'neutral':'green'}>{ps}</Pill>}/>;})}
       <Fab label="Add plan" icon={Plus} onClick={()=>open({type:'mnt-plan'})}/></>;})()}
+    {tab==='pm-calendar'&&<PmCalendar phone/>}{/* F8-QW-PM */}
     {tab==='assets'&&<>{x.assets.map(a=><ListCard key={a.id} onClick={()=>open({type:'mnt-asset',id:a.id})} title={a.name} sub={`${a.kind} · ${mntWhere(s,a)}`} meta={`${a.make} ${a.model}${a.vendorId?' · '+mntVendor(s,a.vendorId)?.name:''}`} right={<Pill tone={a.status==='Working'?'green':a.status==='Faulty'?'orange':'neutral'}>{a.status}</Pill>}/>)}
       <Fab label="Add asset" icon={Plus} onClick={()=>open({type:'mnt-asset'})}/></>}
     {tab==='spares'&&<>{x.spares.map(p=><ListCard key={p.id} onClick={()=>open({type:'mnt-receive',id:p.id})} title={p.name} sub={`${p.stock} ${p.unit} in stock · reorder at ${p.reorderAt}`} meta={cost?`${money(p.cost)} each · tap to receive`:'Tap to receive stock'}

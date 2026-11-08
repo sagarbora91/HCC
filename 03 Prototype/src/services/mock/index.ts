@@ -184,6 +184,7 @@ export * from '../../domain/streams/kds'; // F8 QW-KDS: kdsCards, thresholds
 export * from '../../domain/streams/advances'; // F8 QW-ADV: advHeld, advTotals, advCsv
 // F8-QW-ADV end
 // F8-QW-PM
+export * from '../../domain/streams/pm-calendar';
 // F8-QW-PM end
 // F4-T1
 export * from '../../domain/streams/tariffcard';
