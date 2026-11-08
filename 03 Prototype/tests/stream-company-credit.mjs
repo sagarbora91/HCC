@@ -55,14 +55,14 @@ export function register({test,M,assert}){
     s=execute(s,'owner',{type:'GRP_LIMIT_SET',company:'CO-1',limit:6635000});
     const e=fails(()=>execute(s,'reception',{type:'COMPANY_CREDIT_REQUEST',id:'HCC-1044'}));
     assert.equal(e.code,'INVALID_TRANSITION');
-    assert.equal(e.message,'Credit limit exceeded for Deccan Pharma Distributors (fictional): limit ₹66,350, used ₹66,300, remaining ₹50; this stay on company credit needs ₹100.'+LIMIT_TAIL);
+    assert.equal(e.message,'Credit limit exceeded for Deccan Pharma Distributors (fictional): limit ₹66,350, already used by other business ₹66,300, headroom ₹50; this stay on company credit needs ₹100.'+LIMIT_TAIL);
     // CO-1 pays ₹100: used ₹66,200; 66,200 + 100 = 66,300 ≤ 66,350 → the request goes through, the approval re-checks and passes.
     s=execute(s,'cashier',{type:'GRP_COMPANY_PAYMENT',company:'CO-1',amount:10000,method:'UPI',reference:'UPI-CO1-1'});
     s=execute(s,'reception',{type:'COMPANY_CREDIT_REQUEST',id:'HCC-1044'});
     const a=s.approvals.at(-1);assert.deepEqual([a.kind,a.amount,a.meta.company],['company-credit',10000,'Deccan Pharma Distributors (fictional)']);
     // A ₹100 laundry charge on HCC-1048 (18 %: ₹118) raises the rest to ₹66,318: the approval is refused (re-check), remaining ₹32.
     const late=execute(s,'reception',{type:'CHARGE',id:'HCC-1048',label:'Laundry',amount:10000});
-    assert.match(fails(()=>execute(late,'manager',{type:'APPROVAL',id:a.id,approve:true})).message,/used ₹66,318, remaining ₹32; this stay on company credit needs ₹100\./);
+    assert.match(fails(()=>execute(late,'manager',{type:'APPROVAL',id:a.id,approve:true})).message,/already used by other business ₹66,318, headroom ₹32; this stay on company credit needs ₹100\./);
     assert.equal(execute(s,'manager',{type:'APPROVAL',id:a.id,approve:true}).approvals.at(-1).status,'Approved');
   });
 
@@ -97,17 +97,17 @@ export function register({test,M,assert}){
     const first=s.bookings.at(-1);
     assert.deepEqual(first.company,{name:'Godavari Agro Inputs (fictional)',gstin:'27ZZFIC0002F1Z4',account:'CO-2'});
     assert.equal(M.grpCredit(s,co(s,'CO-2')).exposure,9430000);
-    // A second ₹6,300 booking: used ₹94,300, remaining ₹5,700 → refused, nothing booked.
+    // A second ₹6,300 booking: already used by other business ₹94,300, headroom ₹5,700 → refused, nothing booked.
     const e=fails(()=>execute(s,'reception',{type:'BOOK',guest:'Dealer Two (fictional)',room:'104',arrival:'2026-11-10',departure:'2026-11-12',people:1,company:{account:'CO-2'}}));
-    assert.equal(e.message,'Credit limit exceeded for Godavari Agro Inputs (fictional): limit ₹1,00,000, used ₹94,300, remaining ₹5,700; this booking needs ₹6,300.'+LIMIT_TAIL);
+    assert.equal(e.message,'Credit limit exceeded for Godavari Agro Inputs (fictional): limit ₹1,00,000, already used by other business ₹94,300, headroom ₹5,700; this booking needs ₹6,300.'+LIMIT_TAIL);
     // Moving the first booking to 10–15 Nov (5 nights = ₹15,750): used ₹88,000 + 15,750 > ₹1,00,000 → refused; one night less always passes.
-    assert.match(fails(()=>execute(s,'reception',{type:'CHANGE_DATES',id:first.id,room:'103',arrival:'2026-11-10',departure:'2026-11-15'})).message,/used ₹88,000, remaining ₹12,000; this booking needs ₹15,750\./);
+    assert.match(fails(()=>execute(s,'reception',{type:'CHANGE_DATES',id:first.id,room:'103',arrival:'2026-11-10',departure:'2026-11-15'})).message,/already used by other business ₹88,000, headroom ₹12,000; this booking needs ₹15,750\./);
     s=execute(s,'reception',{type:'CHANGE_DATES',id:first.id,room:'103',arrival:'2026-11-10',departure:'2026-11-11'});
     assert.equal(M.grpCredit(s,co(s,'CO-2')).exposure,9115000);
     // A limit of 0 is no credit: CO-4-like zero accounts refuse even ₹1.
     const z=execute(seed(),'owner',{type:'GRP_LIMIT_SET',company:'CO-3',limit:0});
     assert.match(fails(()=>execute(z,'reception',{type:'BOOK',guest:'Site Engineer (fictional)',room:'105',arrival:'2026-11-10',departure:'2026-11-11',people:1,company:{account:'CO-3'}})).message,
-      /^Credit limit exceeded for Sahyadri Infra Projects \(fictional\): limit ₹0 \(no credit\), used ₹0, remaining ₹0; this booking needs ₹2,100\./);
+      /^Credit limit exceeded for Sahyadri Infra Projects \(fictional\): limit ₹0 \(no credit\), already used by other business ₹0, headroom ₹0; this booking needs ₹2,100\./);
   });
 
   test('[CREDIT] S4 checkout: company credit becomes the account receivable; re-checked at checkout; the company pays it',()=>{
@@ -116,7 +116,7 @@ export function register({test,M,assert}){
     s=execute(s,'reception',{type:'COMPANY_CREDIT_REQUEST',id});s=execute(s,'manager',{type:'APPROVAL',id:s.approvals.at(-1).id,approve:true});
     // The Owner lowers CO-4 to ₹5,000 before checkout: the checkout's re-check refuses the credit (nothing changes).
     const low=execute(s,'owner',{type:'GRP_LIMIT_SET',company:'CO-4',limit:500000});
-    assert.match(fails(()=>execute(low,'reception',{type:'CHECKOUT',id})).message,/limit ₹5,000, used ₹0, remaining ₹5,000; this stay on company credit needs ₹6,300\./);
+    assert.match(fails(()=>execute(low,'reception',{type:'CHECKOUT',id})).message,/limit ₹5,000, already used by other business ₹0, headroom ₹5,000; this stay on company credit needs ₹6,300\./);
     s=execute(s,'reception',{type:'CHECKOUT',id});
     assert.equal(bk(s,id).status,'Departed');assert.equal(totals(bk(s,id)).balance,0);
     const c=M.grpCredit(s,co(s,'CO-4'));assert.deepEqual([c.exposure,c.receivable,c.available],[630000,630000,4370000]);
@@ -131,7 +131,7 @@ export function register({test,M,assert}){
     for(const u of ['reception','manager','owner']){
       const e=fails(()=>execute(s,u,{type:'GRP_ROOMING',block:'GB-2',rows:rows(4),override:true,overrideReason:'Advance cheque received (simulated)'}));
       assert.equal(e.code,'INVALID_TRANSITION',u);
-      assert.equal(e.message,'Credit limit exceeded for Godavari Agro Inputs (fictional): limit ₹1,00,000, used ₹88,000, remaining ₹12,000; this rooming list needs ₹15,120.'+LIMIT_TAIL);
+      assert.equal(e.message,'Credit limit exceeded for Godavari Agro Inputs (fictional): limit ₹1,00,000, already used by other business ₹88,000, headroom ₹12,000; this rooming list needs ₹15,120.'+LIMIT_TAIL);
     }
     const n=execute(execute(s,'owner',{type:'GRP_LIMIT_SET',company:'CO-2',limit:12000000}),'reception',{type:'GRP_ROOMING',block:'GB-2',rows:rows(4)});
     assert.equal(M.grpSlice(n).overrides.length,0);assert.equal(M.grpCredit(n,co(n,'CO-2')).exposure,8800000+4*378000);
@@ -141,7 +141,7 @@ export function register({test,M,assert}){
     const c={name:'Deccan Pharma',creditLimit:440000};
     assert.equal(M.grpCreditRefusal(c,430000,10000,'stay on company credit'),undefined); // exactly the limit passes
     assert.equal(M.grpCreditRefusal(c,430000,10001,'stay on company credit'),
-      'Credit limit exceeded for Deccan Pharma: limit ₹4,400, used ₹4,300, remaining ₹100; this stay on company credit needs ₹100.01.'+LIMIT_TAIL);
+      'Credit limit exceeded for Deccan Pharma: limit ₹4,400, already used by other business ₹4,300, headroom ₹100; this stay on company credit needs ₹100.01.'+LIMIT_TAIL);
     assert.equal(M.grpCreditRefusal(c,900000,0,'booking'),undefined); // nothing added: never refused
   });
 }

@@ -14,7 +14,7 @@ const item=(id,over={})=>({reservationId:id,publicNo:'HCC-'+id,version:'V'+id,st
   roomTypeId:2,roomType:'Deluxe',arrival:'2026-10-24',departure:'2026-10-26',adults:2,children:0,source:'Corporate',nightlyRatePaise:200000,holdUntil:null,groupBlockId:null,
   restrictionOverride:null,cancelReason:null,notes:null,company:null,guestId:null,registered:false,stayId:null,stayVersion:null,stayStatus:null,checkedInDate:null,
   checkedOutDate:null,segments:[],...over});
-const REFUSAL='Credit limit exceeded for Kale Textiles (fictional): limit ₹5,000, used ₹4,200, remaining ₹800; this booking needs ₹4,200. Only the Owner can raise the limit (Groups & corporate › Companies › Credit limit).';
+const REFUSAL='Credit limit exceeded for Kale Textiles (fictional): limit ₹5,000, already used by other business ₹4,200, headroom ₹800; this booking needs ₹4,200. Only the Owner can raise the limit (Groups & corporate › Companies › Credit limit).';
 const ok=name=>({body})=>({name,ok:true,echo:body});
 
 export async function register({test,assert,M}){

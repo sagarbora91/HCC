@@ -24,7 +24,7 @@ public sealed class CompanyCreditRulesTests
         CompanyCreditRules.Ensure(7, "Deccan Pharma", R(4_400), R(4_300), R(100), "stay on company credit"); // 4,300 + 100 = 4,400
         var ex = Assert.Throws<HccException>(() => CompanyCreditRules.Ensure(7, "Deccan Pharma", R(4_400), R(4_300), new Paise(10_001), "stay on company credit"));
         Assert.Equal(HccErrorCode.INVALID_TRANSITION, ex.Code);
-        Assert.Equal("Credit limit exceeded for Deccan Pharma: limit ₹4,400, used ₹4,300, remaining ₹100; this stay on company credit needs ₹100.01. "
+        Assert.Equal("Credit limit exceeded for Deccan Pharma: limit ₹4,400, already used by other business ₹4,300, headroom ₹100; this stay on company credit needs ₹100.01. "
             + "Only the Owner can raise the limit (Groups & corporate › Companies › Credit limit).", ex.Message);
         Assert.Equal((7L, 440_000L, 430_000L, 10_000L, 10_001L), (ex.Details!["companyId"].GetInt64(), ex.Details["limitPaise"].GetInt64(), ex.Details["usedPaise"].GetInt64(),
             ex.Details["remainingPaise"].GetInt64(), ex.Details["neededPaise"].GetInt64()));
@@ -35,7 +35,7 @@ public sealed class CompanyCreditRulesTests
     {
         Assert.True(CompanyCreditRules.Exceeds(Paise.Zero, Paise.Zero, new Paise(1)));
         Assert.False(CompanyCreditRules.Exceeds(Paise.Zero, R(500), Paise.Zero)); // nothing added: never refused, even over the limit
-        Assert.StartsWith("Credit limit exceeded for Kale Textiles: limit ₹0 (no credit), used ₹0, remaining ₹0; this booking needs ₹6,300.",
+        Assert.StartsWith("Credit limit exceeded for Kale Textiles: limit ₹0 (no credit), already used by other business ₹0, headroom ₹0; this booking needs ₹6,300.",
             CompanyCreditRules.Message("Kale Textiles", Paise.Zero, Paise.Zero, R(6_300), "booking"), StringComparison.Ordinal);
     }
 
@@ -45,7 +45,7 @@ public sealed class CompanyCreditRulesTests
         // Limit Rs 4,400 lowered below an exposure of Rs 8,600: shortening a stay (8,600 → 6,500) passes, extending it (8,600 → 10,700) is refused.
         CompanyCreditRules.EnsureChange(1, "Deccan Pharma", R(4_400), R(8_600), R(6_500), R(2_200), "booking");
         var ex = Assert.Throws<HccException>(() => CompanyCreditRules.EnsureChange(1, "Deccan Pharma", R(4_400), R(8_600), R(10_700), R(6_400), "booking"));
-        Assert.Contains("used ₹4,300, remaining ₹100; this booking needs ₹6,400", ex.Message, StringComparison.Ordinal);
+        Assert.Contains("already used by other business ₹4,300, headroom ₹100; this booking needs ₹6,400", ex.Message, StringComparison.Ordinal);
     }
 
     [Fact]

@@ -111,7 +111,7 @@ public sealed class CompanyCreditSqlTests : IAsyncLifetime
         var none = await CompanyAsync("Zero Credit Traders (fictional)", 0);
         await _w.ExecAsync($"UPDATE inv.reservation SET company_id = {none}, status = 'InHouse' WHERE reservation_id = {_w.Res["HCC-1048"]};");
         var ex = await Expect.Fails(HccErrorCode.INVALID_TRANSITION, () => RequestCreditAsync("HCC-1048", 10_000));
-        Assert.Equal("Credit limit exceeded for Zero Credit Traders (fictional): limit ₹0 (no credit), used ₹0, remaining ₹0; this stay on company credit needs ₹100. "
+        Assert.Equal("Credit limit exceeded for Zero Credit Traders (fictional): limit ₹0 (no credit), already used by other business ₹0, headroom ₹0; this stay on company credit needs ₹100. "
             + "Only the Owner can raise the limit (Groups & corporate › Companies › Credit limit).", ex.Message);
     }
 
@@ -140,7 +140,7 @@ public sealed class CompanyCreditSqlTests : IAsyncLifetime
         //    4,300 + 159 = 4,459 > 4,400 → refused, remaining Rs 100.
         await LaundryAsync("HCC-1044", 5_000);
         var ex = await Expect.Fails(HccErrorCode.INVALID_TRANSITION, () => RequestCreditAsync("HCC-1044", 15_900));
-        Assert.Equal($"Credit limit exceeded for {Deccan}: limit ₹4,400, used ₹4,300, remaining ₹100; this stay on company credit needs ₹159. "
+        Assert.Equal($"Credit limit exceeded for {Deccan}: limit ₹4,400, already used by other business ₹4,300, headroom ₹100; this stay on company credit needs ₹159. "
             + "Only the Owner can raise the limit (Groups & corporate › Companies › Credit limit).", ex.Message);
         Assert.Equal(("CREDIT_LIMIT", 440_000L, 430_000L, 10_000L, 15_900L), (ex.Details!["reason"].GetString(), ex.Details["limitPaise"].GetInt64(),
             ex.Details["usedPaise"].GetInt64(), ex.Details["remainingPaise"].GetInt64(), ex.Details["neededPaise"].GetInt64()));
@@ -166,7 +166,7 @@ public sealed class CompanyCreditSqlTests : IAsyncLifetime
         await LaundryAsync("HCC-1048", 10_000);
         var late = await Expect.Fails(HccErrorCode.INVALID_TRANSITION,
             () => _w.CreditBilling.DecideApprovalAsync(_w.Caller("owner"), Key(), new DecideApprovalRequest(r2.ApprovalId!.Value, true, null, r2.ApprovalVersion!)));
-        Assert.Contains("used ₹4,318, remaining ₹82; this stay on company credit needs ₹159", late.Message, StringComparison.Ordinal);
+        Assert.Contains("already used by other business ₹4,318, headroom ₹82; this stay on company credit needs ₹159", late.Message, StringComparison.Ordinal);
         var book = await _w.CreditBook.BookAsync(_w.PropertyId, _w.Users["owner"]);
         Assert.Equal(paid.PaymentId, Assert.Single(book.Payments!).PaymentId);
     }
@@ -196,7 +196,7 @@ public sealed class CompanyCreditSqlTests : IAsyncLifetime
 
         // Room + its tax → master: the two 23 Oct nights = 2 × Rs 2,100 = Rs 4,200 > Rs 1,000 → refused, nothing routed.
         var ex = await Expect.Fails(HccErrorCode.INVALID_TRANSITION, () => _w.CreditGroups.ApplyRoutingAsync(_w.Ctx("reception"), new ApplyGroupRoutingRequest(g.GroupId)));
-        Assert.Equal($"Credit limit exceeded for {Deccan}: limit ₹1,000, used ₹0, remaining ₹1,000; this routing to group master {g.Code} needs ₹4,200. "
+        Assert.Equal($"Credit limit exceeded for {Deccan}: limit ₹1,000, already used by other business ₹0, headroom ₹1,000; this routing to group master {g.Code} needs ₹4,200. "
             + "Only the Owner can raise the limit (Groups & corporate › Companies › Credit limit).", ex.Message);
         Assert.Equal(0L, await _w.LongAsync($"SELECT COUNT(*) FROM grp.line_route WHERE group_id = {g.GroupId};"));
 

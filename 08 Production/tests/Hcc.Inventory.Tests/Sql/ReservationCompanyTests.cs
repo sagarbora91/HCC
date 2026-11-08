@@ -83,7 +83,7 @@ public sealed class ReservationCompanyTests(GoldenDatabaseFixture f) : IClassFix
         // A second Rs 4,200 booking: used Rs 4,200, remaining Rs 800 → refused, and nothing is booked.
         var ex = await Assert.ThrowsAsync<HccException>(() => BookAsync("302", "2027-06-07", "2027-06-09", new CompanyInput("Kale", null, co)));
         Assert.Equal(HccErrorCode.INVALID_TRANSITION, ex.Code);
-        Assert.Equal("Credit limit exceeded for Kale Textiles (fictional): limit ₹5,000, used ₹4,200, remaining ₹800; this booking needs ₹4,200. "
+        Assert.Equal("Credit limit exceeded for Kale Textiles (fictional): limit ₹5,000, already used by other business ₹4,200, headroom ₹800; this booking needs ₹4,200. "
             + "Only the Owner can raise the limit (Groups & corporate › Companies › Credit limit).", ex.Message);
         // The same company typed as invoice details only (no account) is the guest's bill: not credit-checked.
         var guestPays = await BookAsync("302", "2027-06-07", "2027-06-09", new CompanyInput("Kale Textiles (fictional)", Gstin));
@@ -92,7 +92,7 @@ public sealed class ReservationCompanyTests(GoldenDatabaseFixture f) : IClassFix
 
         // Amend: one more night (3 × Rs 2,100 = Rs 6,300 > Rs 5,000) is refused; one night less (Rs 2,100) always passes.
         var longer = await Assert.ThrowsAsync<HccException>(() => AmendAsync(first, "301", "2027-06-07", "2027-06-10", null));
-        Assert.Contains("used ₹0, remaining ₹5,000; this booking needs ₹6,300", longer.Message, StringComparison.Ordinal);
+        Assert.Contains("already used by other business ₹0, headroom ₹5,000; this booking needs ₹6,300", longer.Message, StringComparison.Ordinal);
         var shorter = (await AmendAsync(first, "301", "2027-06-07", "2027-06-08", null)).Value;
         Assert.Equal(210_000L, (await S.Credit.ExposureAsync(null, 1, co, Ct)).Total.Value);
         // Linking the guest-paid booking to the account: 2,100 + 4,200 = Rs 6,300 > Rs 5,000 → refused (it stays unlinked); unlinking is always allowed.
@@ -117,7 +117,7 @@ public sealed class ReservationCompanyTests(GoldenDatabaseFixture f) : IClassFix
         // The second: used Rs 4,200, remaining Rs 800, needs Rs 4,200 → refused; the booking keeps its free-text company.
         var ex = await Assert.ThrowsAsync<HccException>(() => Set(b, new CompanyInput("", null, co)));
         Assert.Equal(HccErrorCode.INVALID_TRANSITION, ex.Code);
-        Assert.Contains("used ₹4,200, remaining ₹800; this booking needs ₹4,200", ex.Message, StringComparison.Ordinal);
+        Assert.Contains("already used by other business ₹4,200, headroom ₹800; this booking needs ₹4,200", ex.Message, StringComparison.Ordinal);
         Assert.Equal(new ReservationCompany("Walk-in Co", null), (await DetailsAsync(b.ReservationId)).Company);
         // Unlinking (invoice details only) frees the credit; nothing changed → refused; a stale version → STALE_VERSION.
         var unlinked = (await Set(linked, new CompanyInput("Patil Logistics (fictional)", Gstin))).Value;

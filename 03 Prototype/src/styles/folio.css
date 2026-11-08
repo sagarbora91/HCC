@@ -64,3 +64,42 @@
 .sf-folio-edit .sf-routes label.checkbox-line{flex-direction:row;align-items:center;gap:8px;white-space:nowrap}
 .sf-folio-edit .sf-reason{display:flex;flex-direction:column;gap:4px}
 .sf-folio-edit .sf-reason input{width:100%;min-width:0}
+/* F8D-FOLIO · (1) the ordinary folio line table fits its pane (wraps, never shrinks text); (2) check-out dialog in two columns so the task fits; feedback block laid out. Tokens only. */
+.table-wrap.folio-table{overflow-x:auto}
+.fit-panel-body .table-wrap.folio-table,.fit-split-pane .table-wrap.folio-table{overflow-x:auto}
+.table-wrap.folio-table table{min-width:0;width:100%}
+.folio-table th,.folio-table td{overflow-wrap:anywhere;vertical-align:top}
+.folio-table td.number,.folio-table th:nth-child(3),.folio-table th:nth-child(4){white-space:nowrap}
+.table-wrap.folio-table th,.table-wrap.folio-table td{padding-left:6px;padding-right:6px}
+.co-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:0 24px;align-items:start}
+.co-main,.co-side{min-width:0}
+.co-main .sf-sheet{margin:0 0 10px}
+.co-side .fbk-sheet{margin:0 0 10px}
+.co-side .info-note{margin:0 0 10px}
+@media(min-width:760px){
+  .co-grid{grid-template-columns:minmax(0,1.15fr) minmax(0,1fr)}
+  .summary-list.co-summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 24px}
+}
+.fbk-sheet{display:grid;grid-template-columns:minmax(0,1fr);gap:8px 12px}
+.fbk-sheet>strong,.fbk-sheet>.fbk-stars,.fbk-sheet>.footnote,.fbk-sheet>small{grid-column:1/-1;margin:0}
+.fbk-sheet>label{display:flex;flex-direction:column;gap:4px;min-width:0}
+.fbk-sheet textarea,.fbk-sheet select{width:100%;min-width:0;box-sizing:border-box}
+.fbk-sheet>.btn{justify-self:start}
+.fbk-stars{flex-wrap:wrap}
+.modal.fit-modal:has(.co-grid){width:min(880px,100%)}
+.fbk-stars{display:grid;grid-template-columns:repeat(5,minmax(48px,1fr));gap:6px}
+@media(max-width:759px){.modal.fit-modal:has(.co-grid){width:100%}}
+/* F8D-FOLIO · where the dialog is short, the folio rows of the settle sheet scroll in their own panel; the dialog body itself never scrolls. */
+.summary-list.co-summary>div{padding-top:7px;padding-bottom:7px}
+.co-main .sf-sheet .summary-list>div.sf-row{padding-top:8px;padding-bottom:8px}
+@media(min-width:760px){
+  .modal.fit-modal:has(.co-grid)>.modal-body{display:flex;flex-direction:column;overflow:hidden}
+  .modal.fit-modal:has(.co-grid)>.modal-body>.modal-heading,.modal.fit-modal:has(.co-grid)>.modal-body>.summary-list,.modal.fit-modal:has(.co-grid)>.modal-body>.modal-actions{flex:none}
+  .modal.fit-modal:has(.co-grid)>.modal-body>.co-grid{flex:1 1 auto;min-height:0;overflow:hidden}
+  .co-main{display:flex;flex-direction:column;min-height:0;max-height:100%;overflow:hidden}
+  .co-main>*{flex:none}
+  .co-main>.sf-sheet{flex:1 1 auto;min-height:0;display:flex;flex-direction:column}
+  .co-main>.sf-sheet>.summary-list{flex:1 1 auto;min-height:96px;overflow:auto;scrollbar-width:thin}
+  .co-main>.sf-sheet>.section-title,.co-main>.sf-sheet>.folio-blockers{flex:none}
+  .co-side{min-height:0;max-height:100%;overflow:auto;scrollbar-width:thin}
+}
