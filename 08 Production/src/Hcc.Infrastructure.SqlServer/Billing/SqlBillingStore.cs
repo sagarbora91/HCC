@@ -21,8 +21,14 @@ namespace Hcc.Infrastructure.SqlServer.Billing;
 public sealed class SqlBillingStore(SqlConnectionFactory connections) : IBillingStore
 {
     private const string FolioColumns = """
-        f.folio_id, r.property_id, r.reservation_id, r.status, r.arrival, r.departure, p.business_date, f.row_ver, r.company_id
+        f.folio_id, r.property_id, r.reservation_id, r.status, r.arrival, r.departure, p.business_date, f.row_ver,
+        CASE WHEN f.payer_kind = 'company' THEN f.payer_company_id
+             WHEN EXISTS (SELECT 1 FROM bill.folio cf WHERE cf.reservation_id = f.reservation_id AND cf.folio_id <> f.folio_id
+                           AND cf.payer_kind = 'company' AND cf.removed_utc IS NULL) THEN NULL
+             ELSE r.company_id END
         """;
+    // F8-INT (SF-CONTRACT §3 receipts, §7): the company of a folio = its payer company on a company folio; NULL on the other folios of a stay
+    // that has a live company folio (company credit only on the company folio); otherwise the reservation's company account, as before.
     private const string LineColumns = "charge_id, kind, service_date, label, amount_paise, tax_bps, tax_paise, reverses_charge_id";
     private const string ReceiptColumns = "receipt_id, kind, method, amount_paise, business_date, refund_of, reference";
     private const string ApprovalColumns = """
@@ -136,7 +142,8 @@ public sealed class SqlBillingStore(SqlConnectionFactory connections) : IBilling
     {
         await using var cmd = Cmd(tx, $"""
             SELECT {LineColumns} FROM bill.charge WITH (UPDLOCK, HOLDLOCK)
-            WHERE folio_id = @f AND service_date = @d AND kind = 'room' AND reverses_charge_id IS NULL AND reversed_by_charge_id IS NULL;
+            WHERE folio_id IN (SELECT y.folio_id FROM bill.folio y WHERE y.reservation_id = (SELECT x.reservation_id FROM bill.folio x WHERE x.folio_id = @f)) -- F8-INT: a night is one line on ANY folio of the stay
+              AND service_date = @d AND kind = 'room' AND reverses_charge_id IS NULL AND reversed_by_charge_id IS NULL;
             """);
         cmd.Parameters.Add("@f", SqlDbType.BigInt).Value = folioId;
         cmd.Parameters.Add("@d", SqlDbType.Date).Value = serviceDate;

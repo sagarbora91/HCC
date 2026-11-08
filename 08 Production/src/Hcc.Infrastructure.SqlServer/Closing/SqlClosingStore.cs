@@ -131,7 +131,7 @@ public sealed class SqlClosingStore(SqlConnectionFactory connections) : IClosing
             SELECT r.reservation_id, r.public_no, r.guest_name, r.hold_until_utc
               FROM inv.reservation r WHERE r.property_id = @p AND r.status = 'Held' AND r.hold_until_utc < @now ORDER BY r.reservation_id;
             SELECT s.stay_id, s.folio_id, r.public_no, r.guest_name, rm.room_no,
-                   CASE WHEN EXISTS (SELECT 1 FROM bill.charge c WHERE c.folio_id = s.folio_id AND c.kind = 'room' AND c.service_date = @d AND c.reverses_charge_id IS NULL) THEN 1 ELSE 0 END
+                   CASE WHEN EXISTS (SELECT 1 FROM bill.charge c JOIN bill.folio cf ON cf.folio_id = c.folio_id WHERE cf.reservation_id = s.reservation_id AND c.kind = 'room' AND c.service_date = @d AND c.reverses_charge_id IS NULL) THEN 1 ELSE 0 END -- F8-INT: tonight's line may sit on any folio of a split stay
               FROM gst.stay s JOIN inv.reservation r ON r.reservation_id = s.reservation_id
               OUTER APPLY (SELECT TOP 1 room_id FROM gst.stay_segment g WHERE g.stay_id = s.stay_id ORDER BY g.seq DESC) sg
               LEFT JOIN inv.room rm ON rm.room_id = sg.room_id

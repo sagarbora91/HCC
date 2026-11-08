@@ -74,7 +74,8 @@ public sealed class SqlStayChangeStore : IStayChangeStore
     {
         await using var cmd = P3Sql.Sql(tx).Command("""
             SELECT c.service_date FROM bill.charge c
-            WHERE c.folio_id = @f AND c.kind = 'room' AND c.reverses_charge_id IS NULL
+            WHERE c.folio_id IN (SELECT y.folio_id FROM bill.folio y WHERE y.reservation_id = (SELECT x.reservation_id FROM bill.folio x WHERE x.folio_id = @f)) -- F8-INT: nights on any folio of a split stay
+              AND c.kind = 'room' AND c.reverses_charge_id IS NULL
               AND NOT EXISTS (SELECT 1 FROM bill.charge x WHERE x.reverses_charge_id = c.charge_id);
             """);
         cmd.Add("@f", SqlDbType.BigInt, folioId);

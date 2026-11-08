@@ -42,7 +42,7 @@ public sealed class EndToEndTests
         SELECT @p;
         """;
 
-    private sealed record Staff(HttpClient Owner, HttpClient Reception, HttpClient Housekeeper, int OwnerId, int ReceptionId, int HousekeeperId, string DeviceToken) : IDisposable
+    internal sealed record Staff(HttpClient Owner, HttpClient Reception, HttpClient Housekeeper, int OwnerId, int ReceptionId, int HousekeeperId, string DeviceToken) : IDisposable
     {
         public void Dispose()
         {
@@ -53,7 +53,7 @@ public sealed class EndToEndTests
     }
 
     /// <summary>First Owner on the server PC, then the Owner creates Reception + Housekeeper (PIN) and registers the shared tablet.</summary>
-    private static async Task<Staff> SignInStaffAsync(HccServer s)
+    internal static async Task<Staff> SignInStaffAsync(HccServer s) // F8-INT: internal, reused by F8IntSplitGoldenTests
     {
         var owner = s.CookieClient();
         using (var boot = await Wire.PostAsync(owner, "/auth/bootstrap-owner", new BootstrapOwnerRequest(s.PropertyId, OwnerLogin, "Sagar (Owner)", OwnerPassword), null, Ct))
@@ -122,7 +122,7 @@ public sealed class EndToEndTests
     }
 
     /// <summary>P6 day close over HTTP; returns once the next business date is open.</summary>
-    private static async Task CloseDayAsync(HttpClient owner, DateOnly date)
+    internal static async Task CloseDayAsync(HttpClient owner, DateOnly date)
     {
         var run = await Wire.CommandAsync<CloseRunResult>(owner, "RunBusinessDayClose", new RunBusinessDayCloseRequest(date, "e2e-" + date.ToString("yyyyMMdd", System.Globalization.CultureInfo.InvariantCulture)), Ct);
         Assert.Equal(("Completed", date.AddDays(1)), (run.Status, run.NextBusinessDate));
