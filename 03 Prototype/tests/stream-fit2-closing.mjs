@@ -54,7 +54,7 @@ export function register({test,assert}){
     const src=readFileSync('src/app/subscreens.ts','utf8');const block=src.slice(src.indexOf('// FIT2-CLOSING'),src.indexOf('// FIT-PEOPLE-B'));
     assert.equal((block.match(/page:'cashier'/g)||[]).length,4);
     const html=desk(h(F.Cashier),s,'owner','cashier');const r=rail(html);
-    assert.deepEqual(r.map(x=>x[0]),['Expected cash','Count & result','Cash movements','Cash out','Credit guests']);
+    assert.deepEqual(r.map(x=>x[0]),['Expected cash','Count & result','Cash movements','Cash out','Credit guests','Advances held']);
     assert.ok(r[0][1].includes('expected ₹')&&r[1][1].startsWith('Not counted yet')&&/^\d+ movements? · net [+−]₹/.test(r[2][1]),JSON.stringify(r));
     const base=F.seed();const done=F.execute(base,'owner',{type:'SHIFT_CLOSE',counted:F.shiftExpected(base).expected});
     assert.match(rail(desk(h(F.Cashier),done,'owner','cashier'))[1][1],/^Counted ₹[\d,.]+ · exact$/);
