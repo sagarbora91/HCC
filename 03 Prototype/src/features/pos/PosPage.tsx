@@ -16,7 +16,7 @@ export type PosView='orders'|'kitchen'|'summary';
  *  three columns — tables, menu, check — that scroll on their own, the check's KOT / Settle bar sticky at the bottom of its column. */
 const POS_VIEWS=['orders','kitchen','summary'] as const;
 export function PosPage(){
-  const {s,uid,open}=useHcc();const p=posSlice(s);
+  const {s,uid,open,go}=useHcc();const p=posSlice(s);
   const [tab,setView]=useFitTab<PosView>('pos',POS_VIEWS,'orders');
   const kitchenOpen=posKitchen(s).filter(x=>x.kot.status!=='Served').length;
   const sales=rbacPosSeesDaySales(s,uid); // DEC-079 D1: no day sales for the Restaurant role
@@ -26,7 +26,7 @@ export function PosPage(){
   const tabs:{id:PosView;label:string;count?:number}[]=[{id:'orders',label:'Orders',count:posOpenOrders(s).length},{id:'kitchen',label:'Kitchen (KOT)',count:kitchenOpen},
     ...(sales?[{id:'summary' as PosView,label:'Day summary'}]:[])];
   return <FitPage title="Restaurant & room service" sub={sub} layout="fill"
-      actions={<>{view==='summary'&&<button className="btn" onClick={()=>open({type:'pos-report'})}><Printer size={15}/> Print summary</button>}<span className="pos-sim"><Info size={14}/>KOT printer & card terminal simulated</span></>}
+      actions={<>{view==='summary'&&<button className="btn" onClick={()=>open({type:'pos-report'})}><Printer size={15}/> Print summary</button>}{/* F8-QW-KDS */}{view==='kitchen'&&<button className="btn" onClick={()=>go('kds')}>Open kitchen display</button>}{/* F8-QW-KDS end */}<span className="pos-sim"><Info size={14}/>KOT printer & card terminal simulated</span></>}
       toolbar={<>{isDayClosed(s)&&<FitNote text="The business day is closed — checks are read-only until the next day is opened."/>}<PosMasterLinks/></>}
       tabs={<FitTabs page="pos" value={view} onChange={setView} tabs={tabs}/>}>
     {view==='orders'&&<PosOrders/>}{view==='kitchen'&&<PosKitchenBoard/>}{view==='summary'&&sales&&<PosSummary/>}

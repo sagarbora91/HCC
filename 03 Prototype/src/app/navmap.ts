@@ -73,6 +73,7 @@ export const PAGE_CATEGORY:Record<string,CategoryId>={
   'meas-events':'revenue','meas-rateshop':'revenue','meas-displacement':'revenue',
   // F12-INT end
   // F8-QW-KDS
+  kds:'cash',
   // F8-QW-KDS end
   access:'admin',settings:'admin',approvals:'admin',backup:'admin',roadmap:'admin',
 };
@@ -123,6 +124,7 @@ export const PAGE_BLURB:Record<string,string>={
   'meas-displacement':'Does a group pay more than the guests it would push out? Break-even group rate',
   // F6-H3 end
   // F8-QW-KDS
+  kds:'Open kitchen tickets with elapsed time; mark Ready or Served',
   // F8-QW-KDS end
 };
 
@@ -180,6 +182,7 @@ export const PAGE_KEYWORDS:Record<string,string[]>={
   'meas-displacement':['displacement','group','group quote','transient','break-even','break even'],
   // F12-KEYWORDS end
   // F8-QW-KDS
+  kds:['kitchen display','kds','kot','tickets','chef','bump','kitchen screen'],
   // F8-QW-KDS end
   'desk-alerts':['reminder','reminders','alert','alerts','wake up','wake-up','wakeup','alarm','alert days','due date'], // LF-ALERTS
   roadmap:['roadmap','future','planned','modules','phases'],
