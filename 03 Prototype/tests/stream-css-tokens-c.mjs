@@ -5,6 +5,7 @@ import {execFileSync} from 'node:child_process';
 import {tokenizeColours,applyRoles,resolveTokens,SEMANTIC_TOKENS as SEMANTIC,TOKEN_SHEET,TOKEN_HEADER,parseTokenSheet} from '../tools/cssTokens.mjs';
 import {buildBundleCss} from '../tools/cssTextScale.mjs';
 import {ROLE_LIGHT} from '../tools/themes.mjs';
+import {withoutF8c} from '../tools/f8cAdded.mjs';
 
 const BASE='799e4cc';
 const FILES='admin closing folio guests history housekeeping reservations mobile-admin prefs restriction m-masters m-money-masters m-roommasters m-catalogue m-services m-exports'.split(' ').map(f=>`${f}.css`);
@@ -15,6 +16,8 @@ const norm=s=>canon(s).replace(/\s+/g,' ').trim();
 const BASE_OF={'m-masters.css':'2c1fc9c'};
 const orig=f=>execFileSync('git',['show',`${BASE_OF[f]??BASE}:03 Prototype/src/styles/${f}`],{encoding:'utf8',maxBuffer:1<<24});
 const cur=f=>readFileSync(`src/styles/${f}`,'utf8');
+// F8C: folio.css gained token-only blocks after the token pass; those inserted lines are exempt here (raw-hex check still covers them: see [CT-A] F8C test and the no-raw-hex test)
+const pinned=f=>withoutF8c('src/styles/'+f,cur(f));
 const sheet=readFileSync(TOKEN_SHEET,'utf8'); // CP-5: one merged sheet (0-tokens.css) and one tokenizer (tools/cssTokens.mjs)
 const defs=parseTokenSheet(sheet);
 const resolveMap=new Map([...defs,...ROLE_LIGHT]); // CP-5 role rewrites resolve to the hex they replaced
@@ -32,9 +35,9 @@ export function register({test,assert}){
   test('[CT-C] every token value is the hex its key spells (8-digit keeps alpha) and never a semantic colour',()=>{
     for(const [k,v] of defs){assert.equal(v,'#'+k.slice(4),k);assert.ok(![...SEMANTIC.values()].includes(v),k+' duplicates a semantic variable');}});
   test('[CT-C] all 16 files: resolving tokens gives back the original stylesheet (zero visible change)',()=>{
-    for(const f of FILES)assert.equal(norm(resolveTokens(cur(f),resolveMap)),norm(resolveTokens(orig(f),new Map())),f);});
+    for(const f of FILES)assert.equal(norm(resolveTokens(pinned(f),resolveMap)),norm(resolveTokens(orig(f),new Map())),f);});
   test('[CT-C] all 16 files: re-running the tokenizer (+ the CP-5 role rewrites) on the original reproduces the committed file exactly',()=>{
-    for(const f of FILES)assert.equal(applyRoles(tokenizeColours(orig(f)).css),cur(f),f);});
+    for(const f of FILES)assert.equal(applyRoles(tokenizeColours(orig(f)).css),pinned(f),f);});
   test('[CT-C] no raw hex colour remains outside url(...) and comments',()=>{
     for(const f of FILES)assert.deepEqual(stripUrls(cur(f)).match(/#[0-9a-fA-F]{3,8}\b/g)||[],[],f);});
   test('[CT-C] every var(--c-…) used by the 16 files is defined in 0-tokens.css (unused definitions: checked over every sheet in [CT-A])',()=>{
@@ -46,7 +49,7 @@ export function register({test,assert}){
     for(const [n,v] of SEMANTIC)assert.ok(root.includes(`${n}:${v}`),n);
     for(const f of FILES)for(const k of used(cur(f)))assert.ok(!SEMANTIC_HEX.has(k.slice(4)),f+' '+k);});
   test('[CT-C] the changed lines differ only in colour literals (selectors, order and other values untouched)',()=>{
-    for(const f of FILES){const a=orig(f).split('\n'),b=cur(f).split('\n');assert.equal(a.length,b.length,f);
+    for(const f of FILES){const a=orig(f).split('\n'),b=pinned(f).split('\n');assert.equal(a.length,b.length,f);
       for(let i=0;i<a.length;i++)if(a[i]!==b[i])assert.equal(norm(resolveTokens(b[i],resolveMap)),norm(resolveTokens(a[i],new Map())),f+':'+(i+1));}});
   test('[CT-C] line endings are unchanged (no CRLF introduced)',()=>{
     for(const f of FILES)assert.equal(/\r/.test(cur(f)),/\r/.test(orig(f)),f);});

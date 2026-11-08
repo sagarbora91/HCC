@@ -5,12 +5,15 @@ import {execFileSync} from 'node:child_process';
 import {tokenizeColours,resolveTokens,hexKey,SEMANTIC,TOKEN_SHEET,TOKEN_HEADER,parseTokenSheet} from '../tools/cssTokens.mjs';
 import {buildBundleCss} from '../tools/cssTextScale.mjs';
 import {ROLE_LIGHT} from '../tools/themes.mjs';
+import {withoutF8c,onlyF8c,F8C_FILES} from '../tools/f8cAdded.mjs';
 
 const BASE='799e4cc';
 const FILES=['src/styles.css',...['home','mobile','mobile-frontdesk','mobile-money','mobile-ops','search','demo','native','sync','y-a11y','z-tablet','z-touch','zz-print'].map(f=>'src/styles/'+f+'.css')];
 const SHEET=TOKEN_SHEET; // CP-5: the three CP-3 sheets are merged into src/styles/0-tokens.css
 const orig=f=>execFileSync('git',['show',`${BASE}:03 Prototype/${f}`],{maxBuffer:1<<26}).toString('utf8');
 const cur=f=>readFileSync(f,'utf8');
+// F8C: lines inserted by wave F8C after the token pass are exempt from the pinned-original comparisons (see tools/f8cAdded.mjs) and checked for raw hex below
+const pinned=f=>withoutF8c(f,cur(f));
 const ws=s=>s.replace(/\s+/g,' ').trim();
 /** lowercase every hex literal and expand #abc -> #aabbcc (the tokens always use the expanded key) */
 const hexNorm=s=>s.replace(/#([0-9a-fA-F]{3,8})\b/g,(m,h)=>'#'+hexKey(m));
@@ -38,13 +41,13 @@ function contrastPairs(css){
 export function register({test,assert}){
   for(const f of FILES){
     test(`[CT-A] ${f}: resolving the tokens gives back the original css (no visible change)`,()=>{
-      const o=orig(f),n=cur(f);
+      const o=orig(f),n=pinned(f);
       assert.equal(ws(hexNorm(resolveTokens(n,resolveMap))),ws(hexNorm(resolveTokens(o,defs))));
     });
   }
   test('[CT-A] line endings and line counts of every converted file are unchanged (only colour literals differ)',()=>{
     for(const f of FILES){
-      const o=orig(f),n=cur(f);
+      const o=orig(f),n=pinned(f);
       assert.equal(n.split('\n').length,o.split('\n').length,f);
       assert.equal((n.match(/\r/g)||[]).length,(o.match(/\r/g)||[]).length,f);
     }
@@ -56,6 +59,13 @@ export function register({test,assert}){
       const css=strip(cur(f)).replace(/url\([^)]*\)/g,'').replace(/"[^"]*"|'[^']*'/g,'""').replace(/--[\w-]+:#[0-9a-fA-F]{3,8}/g,'--def:x');
       assert.deepEqual(css.match(/:\s*[^;{}]*#[0-9a-fA-F]{3,8}\b/g)||[],[],f);
     }
+  });
+  test('[CT-A] F8C: the lines wave F8C inserted into converted sheets are pure insertions and contain no raw colour literal (tokens only)',()=>{
+    let seen=0;
+    for(const f of F8C_FILES){const add=onlyF8c(f,cur(f));assert.ok(add.length>0,f+' has F8C lines');seen++;
+      assert.equal(tokenizeColours(add).stats.hex,0,f+' F8C block has hex literals');
+      assert.deepEqual(strip(add).replace(/url\([^)]*\)/g,'').match(/#[0-9a-fA-F]{3,8}\b/g)||[],[],f);}
+    assert.equal(seen,2);
   });
   test('[CT-A] every var(--c-…) used in the converted files has a definition in 0-tokens.css, and none is unused by the stylesheets',()=>{
     const used=new Set(),any=new Set();
