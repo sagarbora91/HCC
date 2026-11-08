@@ -48,7 +48,7 @@ const EXTRA_PAGES=[];
 const PAGES=opt('--pages')?opt('--pages').split(','):[...ALL_PAGES,...EXTRA_PAGES.filter(p=>!ALL_PAGES.includes(p))];
 // Sub-screens from src/app/subscreens.ts (lane fit-shell); absent or empty before the wave.
 const subPath=join(ROOT,'src','app','subscreens.ts');
-const SUBS=existsSync(subPath)?[...readFileSync(subPath,'utf8').matchAll(/^\s*\{\s*page:\s*'([^']+)'\s*,\s*id:\s*'([^']+)'/gm)].map(m=>({page:m[1],id:m[2]})):[];
+const SUBS=existsSync(subPath)?[...readFileSync(subPath,'utf8').matchAll(/^\s*\{\s*page:\s*'([^']+)'\s*,\s*id:\s*'([^']+)'(?:\s*,\s*label:\s*'([^']+)')?/gm)].map(m=>({page:m[1],id:m[2],label:m[3]})):[];
 // Modal openers: [{page, opener:"button text" | selector:"css", label?, roles?:[..], tab?}]. Module lanes add theirs; the integrator appends them.
 const MODALS=!flag('--no-modals')&&!RECORD&&existsSync(join(HERE,'fit-modals.json'))?JSON.parse(readFileSync(join(HERE,'fit-modals.json'),'utf8')):[];
 // Contract §8 check 6: key = the name in the baseline file, value = the selector actually measured (first visible match).
@@ -166,6 +166,9 @@ for(const pass of PASSES){
         const tabs=RECORD?[undefined]:[undefined,...SUBS.filter(s=>s.page===id).map(s=>s.id)]; // the base build has no sub-screens (its local tabs are clicked instead)
         for(const tab of tabs){
           await openPage(page,id,tab);
+          // F8E-FIT: the phone shell ignores the sub-screen tab (its sections are chips, local state): click the chip with the sub-screen's label; no such chip = this page has no phone chip for it, skip.
+          if(vp.phone&&tab){const lab=SUBS.find(x=>x.page===id&&x.id===tab)?.label;const chip=lab?page.locator('.m-chips button').filter({hasText:new RegExp('^'+[...lab].map(c=>/[a-z0-9 ]/i.test(c)?c:'\\'+c).join(''))}).first():null;
+            if(!chip||!await chip.count())continue;await chip.click({timeout:2500}).catch(()=>{});await sleep(400);}
           const m=await measure(page,vp.touch);
           // a page with no drawer entry: measured only when the app really shows it for this role (FIT root, or on the base build a page title)
           const extra=EXTRA_PAGES.includes(id)&&!allowed.has(id);

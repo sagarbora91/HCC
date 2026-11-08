@@ -103,3 +103,23 @@
   .co-main>.sf-sheet>.section-title,.co-main>.sf-sheet>.folio-blockers{flex:none}
   .co-side{min-height:0;max-height:100%;overflow:auto;scrollbar-width:thin}
 }
+/* F8E-FIT · the folio line table stacks each line into a small card when its own panel is narrow (the folio pane beside the list at 1024 px, text 1.3): no sideways scroll, text never shrunk. */
+.table-wrap.folio-table{container-type:inline-size}
+@container (max-width:479px){
+  .folio-table table,.folio-table tbody,.folio-table tr,.folio-table td{display:block;width:100%}
+  .folio-table thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  .folio-table tr{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:2px 8px;padding:8px 0;border-bottom:1px solid var(--line)}
+  .folio-table tr>td{border:0;padding:2px 6px;min-width:0}
+  .folio-table tr>td:first-child,.folio-table tr>td:last-child{grid-column:1/-1}
+  .folio-table tr>td:last-child:empty{display:none}
+  .folio-table td[data-label]::before{content:attr(data-label);display:block;color:var(--muted)}
+}
+/* F8E-FIT · check-out sheet: each folio row keeps its action (Record payment / Settled) on the row's own line, so two folios fit the dialog without the list scrolling at 1024 x 768, text 1.3. */
+@media(min-width:760px){
+  .co-main .sf-sheet .summary-list>div.sf-row{grid-template-columns:minmax(0,1fr) auto auto}
+  .co-main .sf-sheet .sf-row .inline{grid-column:auto;justify-content:flex-end;flex-wrap:nowrap;gap:6px}
+  .co-main .sf-sheet .sf-row .inline:empty{display:none}
+}
+@media(min-width:760px){
+  .modal.fit-modal:has(.co-grid)>.modal-body>.modal-actions{margin-top:0;padding-top:10px}
+}
