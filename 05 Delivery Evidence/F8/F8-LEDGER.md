@@ -1,6 +1,6 @@
 # F8 wave ledger (split folio + P2 reports + quick wins)
 
-Setup commit: **see the `f8-setup` tag** on `claude/f8` (base local `main` 6699b4e4, MEAS F12 merged, tag `wave/meas`). Contract `02 Planning/agents/SF-CONTRACT.md`, briefs `02 Planning/agents/F8_Briefs.md`, owner questions `02 Planning/F8_Owner_Questions_2026-11-08.md` (27, all with defaults). SCHEMA 16 (bumped and re-pinned by the setup commit). **No lane launched: waiting for the owner's "go F8".**
+Setup commit: **037bd7bc** on `claude/f8` (tag `f8-setup`) (base local `main` 6699b4e4, MEAS F12 merged, tag `wave/meas`). Contract `02 Planning/agents/SF-CONTRACT.md`, briefs `02 Planning/agents/F8_Briefs.md`, owner questions `02 Planning/F8_Owner_Questions_2026-11-08.md` (27, all with defaults). SCHEMA 16 (bumped and re-pinned by the setup commit). **No lane launched: waiting for the owner's "go F8".**
 
 One line per lane; update at each DONE (lane → last commit → state). After a restart: check `E:\Projects\HCC\worktrees\_tools\PAUSE-LANE-BUILDS` (delete a stale one), read this table, relaunch only the lanes without a DONE file, each from its own branch head with a two-line resume note.
 
@@ -25,4 +25,6 @@ One line per lane; update at each DONE (lane → last commit → state). After a
 
 **Migration reservations (checked at the setup commit):** `node "08 Production/tools/migrations-lock.mjs"` → in step, 233 migrations, highest 4920; no file and no lock entry in 4350–4369 or 4450–4489. Every F8 migration is below 4920 and needs `--add --accept-out-of-order "F8 <lane>: reserved range (wave plan 1.4)"`.
 
-**Setup commit checks (run through `tools/Invoke-Serialized.ps1`, label f8-setup):** see the setup commit message for the exact results.
+**Setup commit checks (run through `tools/Invoke-Serialized.ps1`, label f8-setup):** `npx tsc --noEmit` exit 0; `npm test` on 037bd7bc **3166/3166** (log `.scratch\npm-test-2.log`, not committed); migrations lock in step. Server not built or tested (the setup's C# / slnx changes are comments only).
+
+**Lane worktrees cut 8 Nov 2026** from f8-setup (037bd7bc), all twelve with the `03 Prototype\node_modules` junction to `worktrees\fixwave-a`. No lane agent started.
