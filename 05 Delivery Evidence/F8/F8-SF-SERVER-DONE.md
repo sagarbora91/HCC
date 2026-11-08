@@ -27,5 +27,14 @@ Company-credit SQL (SqlCompanyCreditStore) is sf-domain's: not touched.
 ## Defaults relied on
 SFQ-1, 2, 3 (plan with its night, needs the integration edit above), 4, 8, 12, 13 as in sf-domain DONE.
 
-## Test status
-See the final line below (filled in when the runs finish).
+## Test status (actually run, through Invoke-Serialized label f8-sf-server; the lock was busy ~6 times, each retry waited)
+- `dotnet build src/Hcc.Api` / test builds: 0 compile errors after one fix (HccErrorCode using).
+- `dotnet test tests/Hcc.Billing.Tests --filter SplitFolio`: 11/11 passed (4 new [F8-SF-SERVER] + sf-domain's 7).
+- `dotnet test tests/Hcc.Invoices.Tests` (full): 57 passed, 1 failed (my new test: contract GSTIN has a bad check digit; fixed with a valid fictional one); re-run `--filter SplitFolio`: 1/1 passed. The other 57 were not re-run after the fix (unchanged code).
+- `dotnet test tests/Hcc.Reporting.Tests --filter Guests|MeasDaily`: 19/19 passed (movement register / guest register / MEAS daily SQL after the join fixes). Full Reporting.Tests NOT run.
+- NOT run: npm test / tsc (no prototype change by this lane), full Billing.Tests, other projects touched by the BalanceExpr change.
+
+## Findings to pass on
+- `ChargeResult.FolioId` returned by PostRoomNight / PostCharge is the folio the caller addressed, not the routed `bill.charge.folio_id` (BillingService, outside my row). The tests read the stored folio. The UI/sync must not trust `ChargeResult.FolioId` on a split stay.
+- The SF-CONTRACT golden GSTIN `27AAACD1111A1Z1` fails the GSTIN check digit; sf-tests must use a valid fictional one (e.g. `27AAPFU0939F1ZV`) for any server invoice test.
+- Prototype sync mappers (`clients/sync/money*.ts`, registry F8-SF-SERVER block) not written: next owner of that item should map folio letters <-> folio_seq and the SF_* commands to OpenFolio / SetFolioRouting / RemoveFolio and `GET /folios/by-reservation/{id}/summary`.

@@ -18,10 +18,10 @@ public class SplitFolioInvoiceTests
         var stay = await w.DepartedStayAsync("105", ac006: false, ct: Ct);
         var rid = await h.LongAsync($"SELECT reservation_id FROM bill.folio WHERE folio_id = {stay.FolioId}", Ct);
         var company = await h.LongAsync("INSERT grp.company_account(property_id, name, gstin, credit_limit_paise, created_by, created_utc) OUTPUT INSERTED.company_id VALUES ("
-            + h.PropertyId + ", N'Deccan Agro Ltd (fictional)', '27AAACD1111A1Z1', 5000000, 1, SYSUTCDATETIME());", Ct);
+            + h.PropertyId + ", N'Deccan Agro Ltd (fictional)', '27AAPFU0939F1ZV', 5000000, 1, SYSUTCDATETIME());", Ct);
         var fb = await h.LongAsync($"""
             INSERT bill.folio(reservation_id, folio_seq, payer_kind, payer_company_id, payer_name, payer_gstin, opened_by, opened_utc)
-            OUTPUT INSERTED.folio_id VALUES ({rid}, 2, 'company', {company}, N'Deccan Agro Ltd (fictional)', '27AAACD1111A1Z1', 1, SYSUTCDATETIME());
+            OUTPUT INSERTED.folio_id VALUES ({rid}, 2, 'company', {company}, N'Deccan Agro Ltd (fictional)', '27AAPFU0939F1ZV', 1, SYSUTCDATETIME());
             """, Ct);
         await h.LongAsync($"""
             INSERT bill.charge(folio_id, kind, service_date, label, amount_paise, tax_bps, tax_paise) VALUES ({fb}, 'service', '2026-10-23', N'Laundry service', 100000, 1800, 18000);
@@ -30,7 +30,7 @@ public class SplitFolioInvoiceTests
             """, Ct);
 
         var a = await w.IssueAsync(stay.FolioId, ct: Ct);
-        var b = await w.IssueAsync(fb, name: "Deccan Agro Ltd (fictional)", gstin: "27AAACD1111A1Z1", ct: Ct);
+        var b = await w.IssueAsync(fb, supply: "B2B", name: "Deccan Agro Ltd (fictional)", gstin: "27AAPFU0939F1ZV", ct: Ct);
         Assert.NotEqual(a.InvoiceId, b.InvoiceId);
         Assert.NotEqual(a.InvoiceNo, b.InvoiceNo);
         Assert.True(a.Created && b.Created);
@@ -39,7 +39,7 @@ public class SplitFolioInvoiceTests
         var va = await w.Queries.GetInvoiceAsync(h.PropertyId, h.Accountant, a.InvoiceId, Ct);
         var vb = await w.Queries.GetInvoiceAsync(h.PropertyId, h.Accountant, b.InvoiceId, Ct);
         Assert.StartsWith("Seed guest", va.Recipient.Name, StringComparison.Ordinal);
-        Assert.Equal(("B2B", "Deccan Agro Ltd (fictional)", "27AAACD1111A1Z1"), (vb.SupplyType, vb.Recipient.Name, vb.Recipient.Gstin));
+        Assert.Equal(("B2B", "Deccan Agro Ltd (fictional)", "27AAPFU0939F1ZV"), (vb.SupplyType, vb.Recipient.Name, vb.Recipient.Gstin));
         Assert.Equal(2L, await h.LongAsync($"SELECT COUNT(*) FROM ivc.invoice WHERE source_kind = 'folio' AND source_id IN ({stay.FolioId}, {fb})", Ct));
 
     }
