@@ -178,6 +178,7 @@ export * from '../../domain/streams/folio-split'; // F8 SF split folio: SFFolio 
 // F8-QW-ADV
 // F8-QW-ADV end
 // F8-QW-PM
+export * from '../../domain/streams/pm-calendar';
 // F8-QW-PM end
 // F4-T1
 export * from '../../domain/streams/tariffcard';
