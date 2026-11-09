@@ -1,0 +1,123 @@
+{
+  "steps": "steps.json",
+  "base_language": "en",
+  "app": {
+    "name": "Hotel Control Centre",
+    "url": "http://127.0.0.1:4173/?training=1&display=mobile&steps=/training/phone.json",
+    "cdp": {
+      "mode": "launch"
+    }
+  },
+  "viewport": {
+    "width": 412,
+    "height": 915,
+    "deviceScaleFactor": 2.6,
+    "mobile": true
+  },
+  "driver": {
+    "global": "TRAINING",
+    "replay": "replay",
+    "resolve": "resolve"
+  },
+  "capture": {
+    "hideSelectors": [
+      ".demo-toolbar",
+      ".fit-demo",
+      ".tr-coach",
+      ".m-demo-pill"
+    ],
+    "windowSelector": "[role=dialog]:not(#fit-demo-pop),dialog[open]",
+    "menuLeafPattern": "^__no_menuleaf__",
+    "menuTopTemplate": "menutop:{0}",
+    "settleMs": 2500,
+    "afterReplayMs": 300,
+    "color": "#e00000"
+  },
+  "output": {
+    "dir": "build",
+    "name": "HCC-Training-Phone"
+  },
+  "deck": {
+    "title": "Hotel Control Centre",
+    "subtitle": "HCC on the phone - eight short chapters",
+    "product": "Hotel Control Centre",
+    "footer": "HCC phone training - fictional demo hotel",
+    "disclaimer": "Training guest is fictional. Demo hotel (24 rooms, 101-308), demo users and fictional data only.",
+    "content": "content.json",
+    "include": [
+      "title",
+      "chapter",
+      "steps",
+      "recap",
+      "final"
+    ],
+    "min_pt": 18,
+    "font": "Calibri",
+    "navy": "5A1620",
+    "accent": "7A1F2B"
+  },
+  "languages": {
+    "en": {
+      "notes": "build/HCC-Training-Phone-notes.md",
+      "engine": "windows",
+      "voice": "Microsoft Zira Desktop",
+      "rate": 0,
+      "suffix": "",
+      "speak": "none"
+    },
+    "hi": {
+      "notes": "build/HCC-Training-Phone-notes-hinglish.md",
+      "engine": "edge",
+      "voice": "hi-IN-SwaraNeural",
+      "rate": "-5%",
+      "suffix": "-hi",
+      "speak": "hinglish",
+      "check": "hinglish",
+      "fallback": {
+        "engine": "windows",
+        "voice": "Microsoft Hemant",
+        "rate": 0
+      }
+    }
+  },
+  "glossary": [
+    "Dashboard",
+    "Modules Home",
+    "Check-in",
+    "Check-out",
+    "Folio",
+    "Reservation",
+    "Room board",
+    "Walk-in",
+    "Housekeeping",
+    "Maintenance",
+    "Invoice",
+    "Credit note",
+    "Cash book",
+    "Cashier",
+    "Day close",
+    "GST",
+    "CGST",
+    "SGST",
+    "Report",
+    "Settings",
+    "Approvals",
+    "Save",
+    "Cancel",
+    "Search",
+    "Booking",
+    "Arrivals",
+    "Customers",
+    "Payroll",
+    "Leave",
+    "Backup"
+  ],
+  "encode": {
+    "threads": 4,
+    "fps": 30,
+    "min_seconds": 4.0,
+    "pad_seconds": 1.0,
+    "audio_bitrate": "96k"
+  },
+  "tools": {}
+}

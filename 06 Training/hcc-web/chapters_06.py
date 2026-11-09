@@ -1,0 +1,37 @@
+chapter(6, 'Restaurant and room service', 'Open a table check, send the KOT, settle by UPI, void a check, and post a room-service dinner to the room folio.',
+        'Priya (Cashier)', 'cashier', menu='Cash & Billing > Restaurant & room service')
+read('You are Priya on Modules Home. This demo hotel has no separate Restaurant user, so the cashier runs the restaurant checks.', 'Restaurant sales, like every other sale, are part of the same day\'s cash and tax figures.', target='sel:.fit-home-grid', expect='Modules Home for Priya.')
+tile('Cash & Billing', 'Click the Cash & Billing tile.', 'The restaurant screen sits next to the folios and the cash book.', expect='The Cash & Billing page opens.')
+leaf('Cash & Billing', 'Restaurant & room service', 'Click the Restaurant & room service tile.', 'One screen handles tables and room service.', expect='The restaurant page opens.', check="ctx.page==='pos'")
+read('The Orders tab shows tables T1 to T8 and the open and settled checks of the day. The Kitchen (KOT) tab lists orders sent to the kitchen, and Day summary totals the day. Restaurant and Room service switch between table and room checks.',
+     'The cashier sees the whole outlet on one page.', target='tab:Orders', expect='The restaurant page with the eight tables.')
+click('btn:Table T4Free', 'Click the free table T4.', 'A table that is free shows Tap to open a check.', expect='The Open a check dialog opens for Table T4.', check="has('Open a check')")
+typ('field:Guest / reference', 'Rahul Deshmukh guests', 'Type a reference for the check: Rahul Deshmukh guests. Covers is 2.', 'The reference helps the waiter and the cashier find the check later.', expect='Reference filled.')
+click('modalbtn:Open check', 'Click Open check.', 'An open check collects dishes until the guest asks for the bill.', expect='The check for Table T4 is open.', check="has('Send KOT')")
+click('btn:Breakfast', 'Click the Breakfast chip to show the breakfast dishes.', 'The chips group the menu: Beverages, Breakfast, Starters, Mains, Breads & rice, Desserts.', expect='The breakfast dishes are listed.')
+click('btn:Add Masala dosa', 'Click Add Masala dosa, Rs 220.', 'Each click adds one portion to the check.', expect='One Masala dosa is on the check.')
+click('btn:Increase Masala dosa', 'Click Increase on the Masala dosa line to make it two.', 'Plus and minus buttons change the quantity without adding a new line.', expect='Two Masala dosa are on the check.')
+click('btn:Beverages', 'Click the Beverages chip.', 'Drinks are on a separate chip.', expect='The drinks are listed.')
+click('btn:Add Masala chai', 'Click Add Masala chai, Rs 60, twice for two cups.', 'The check keeps one line per dish with the quantity.', expect='Masala chai is on the check.', also=['click:btn:Add Masala chai'])
+click('btn:Send KOT', 'Click Send KOT.', 'The kitchen order ticket tells the kitchen what to cook. Items are fixed after the KOT; changes later go through a void.', expect='The KOT is sent to the kitchen.', msgText='KOT sent to the kitchen')
+click('tab:Kitchen', 'Open the Kitchen (KOT) tab.', 'The kitchen sees each ticket with its table and items, and marks them Preparing and Ready.', expect='The KOT list opens with the ticket for Table T4.')
+step('Go back to Orders and open the check of Table T4.', 'The cashier works from the Orders tab.', target='btn:Settle', auto=['click:tab:Orders', 'click:btn:Table T4Rahul Deshmukh'], action='click', expect='The T4 check is shown with the Settle button.', check="has('Settle')")
+click('btn:Settle', 'Click Settle. The guests ask for the bill.', 'Settling closes the check, issues the bill number and records the payment.', expect='The Settle dialog opens.', check="has('Cash received')")
+tick('field:UPI', 'Choose UPI as the payment method.', 'Cash, UPI, card and room folio are the four ways; each joins its own cashier total.', expect='UPI is chosen.')
+typ('field:Demonstration transaction reference', 'UPI-DEMO-6001', 'Type the UPI reference shown on the phone of the guest.', 'The reference is needed for UPI and card payments so the accountant can match the bank statement.', expect='Reference filled.')
+click('modalbtn:Settle ₹', 'Click the Settle button with the amount.', 'The bill carries 5 per cent GST for the restaurant, split into CGST and SGST, and gets the next number of the POS series.', expect='The check is settled and a bill number is issued.', check="has('No open check')")
+step('Another table, T5: a guest orders a dosa and then leaves. Open T5, add a Masala dosa and send the KOT.', 'Sometimes a check must be cancelled; that is what Void bill is for.', target='btn:Void bill',
+     auto=['click:btn:Table T5Free', 'click:modalbtn:Open check', 'click:btn:Breakfast', 'click:btn:Add Masala dosa', 'click:btn:Send KOT'], action='click', expect='The T5 check shows Void bill.', check="has('Void bill')")
+click('btn:Void bill', 'Click Void bill.', 'A void needs a written reason and is kept in the audit log with the user and the time.', expect='The Void the whole bill dialog opens.', check="has('Void now')")
+typ('field:Reason', 'Guest left before the food came', 'Type the reason: Guest left before the food came.', 'A clear reason lets the manager check the void in the day report.', expect='Reason filled.')
+click('modalbtn:Void now', 'Click Void now.', 'The check disappears from the open list but not from the records.', expect='The check is voided.', msgText='Voided')
+step('Now room service. Click Room service and open the check of room 107, where Rahul Deshmukh stays.', 'A room-service check is charged to the room, not paid at the table.', target='btn:Room 107Rahul Deshmukh',
+     auto=['click:btn:Room service'], action='click', expect='The rooms with guests are listed.', check="has('Room 107')")
+step('Click Room 107, open the check and add Aloo paratha with curd, Jeera rice and two Butter naan.', 'The dishes are the guest\'s dinner order.', target='btn:Send KOT',
+     auto=['click:btn:Room 107Rahul Deshmukh', 'click:modalbtn:Open check', 'click:btn:Breakfast', 'click:btn:Add Aloo paratha', 'click:btn:Breads & rice', 'click:btn:Add Jeera rice', 'click:btn:Add Butter naan', 'click:btn:Add Butter naan'], action='click',
+     expect='The room-service check has four lines.', check="has('Send KOT')")
+click('btn:Send KOT', 'Click Send KOT.', 'The kitchen cooks and the order goes up to the room.', expect='The KOT is sent.', msgText='KOT sent to the kitchen')
+click('btn:Settle', 'Click Settle.', 'For a room guest the payment method is Room folio.', expect='The Settle dialog opens.', check="has('Room folio')")
+tick('field:Room folio', 'Choose Room folio.', 'The amount is posted to the guest\'s folio and paid at check-out with everything else.', expect='Room folio is chosen.')
+click('modalbtn:Post to room folio', 'Click Post to room folio.', 'The dinner is posted to the folio of room 107 with 5 per cent GST.', expect='The dinner is on the folio of Rahul Deshmukh.', check="has('No open check')")
+click('tab:Day summary', 'Open the Day summary tab.', 'It totals the day\'s restaurant sales by payment method, and shows the bill and KOT numbers issued.', expect='The restaurant day summary opens.')

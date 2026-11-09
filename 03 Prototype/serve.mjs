@@ -7,6 +7,9 @@ const port=Number(process.env.PORT||4173),host=lan?'0.0.0.0':'127.0.0.1';
 http.createServer(async(req,res)=>{
   try{
     const path=(req.url||'/').split('?')[0];
+    // Wave TRN: the training driver (?training=1, prototype build) reads the course steps from the pipeline folders (dev server only).
+    const tr={'/training/steps.json':'../06 Training/hcc-web/steps.json','/training/phone.json':'../06 Training/hcc-phone/steps.json'}[path];
+    if(tr){res.setHeader('Content-Type','application/json; charset=utf-8');res.setHeader('Cache-Control','no-store');res.end(await readFile(new URL(tr,import.meta.url)));return;}
     if(path!=='/'&&path!=='/index.html'){res.writeHead(404);res.end('Not found');return;}
     res.setHeader('Content-Type','text/html; charset=utf-8');res.setHeader('Cache-Control','no-store');
     res.end(await readFile(new URL('./dist/index.html',import.meta.url)));

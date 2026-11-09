@@ -1,0 +1,26 @@
+MT = ['key:Escape', 'user:maint', 'click:menutop:Housekeeping & Maintenance', 'click:menuleaf:Maintenance']
+MGR = ['key:Escape', 'user:manager', 'click:menutop:Housekeeping & Maintenance', 'click:menuleaf:Maintenance']
+chapter(10, 'Maintenance', 'Follow a repair from the housekeeping request to a closed work order, book a spare part, and see the manager\'s view: preventive plans, assets, spares, vendors and AMC. Money stays hidden from the maintenance team.',
+        'Joseph (Maintenance)', 'maint', menu='Housekeeping & Maintenance > Maintenance')
+step('Joseph is the maintenance technician. On Modules Home he has the Housekeeping & Maintenance module; like housekeeping he sees no hotel money.', 'Maintenance staff work on faults and parts, not on prices.', target='sel:.fit-home-grid',
+     auto=['key:Escape', 'user:maint'], action='read', expect='Modules Home for Joseph.', check="ctx.uid==='maint'")
+tile('Housekeeping & Maintenance', 'Click the Housekeeping & Maintenance tile.', 'Housekeeping, Maintenance and Checklists & handover are the three screens.', expect='The module page opens with three tiles.')
+leaf('Housekeeping & Maintenance', 'Maintenance', 'Click the Maintenance tile.', 'For a technician the page is called My work orders.', expect='My work orders opens.', check="ctx.page==='maintenance'")
+read('The page lists Joseph\'s open work orders, and below them the repair requests that housekeeping has reported for him. The request Room 107, Air conditioner noisy, compressor rattle came from the housekeeping board in chapter 9.',
+     'A request is only a report; a work order is the tracked job with a priority, a time target and parts.', target='sel:main h2', expect='My work orders and the repair requests.')
+click('btnin:Room 107|Create work order', 'Click Create work order on the request for room 107.', 'The work order gets a number, a priority and a service-level clock from the moment it exists.', expect='The work order is created from the request.', msgText='Work order created from the repair request')
+click('btnin:Air conditioner noisy|Start work', 'Click Start work on the new work order.', 'Starting tells the front desk that somebody is on the job, and moves the clock from waiting to working.', expect='The work order is In progress.', msgText='Work started')
+click('btnin:Air conditioner noisy|Add part', 'Click Add part to book a spare used on the job.', 'Parts are booked against the work order so stock and cost stay right.', expect='The Add part used dialog opens.', check="has('Book part')")
+read('Choose the spare from the list and the quantity. Joseph sees the part names and the stock left, but never the price.', 'The accountant sees the cost in the reports; the technician does not need it.', target='dialog:', expect='The spare and quantity form.')
+step('Choose the first spare in the list and book one piece.', 'Booking reduces the spares stock at once.', target='modalbtn:Book part', auto=['select:field:Spare|AC filter mesh'], action='select', expect='The spare is selected with quantity 1.')
+click('modalbtn:Book part', 'Click Book part.', 'The part is listed on the work order.', expect='The part is booked.')
+click('btnin:Air conditioner noisy|Complete', 'Click Complete when the repair is done.', 'A complete work order is closed with a note, never silently.', expect='The Complete work dialog opens.', check="has('Mark complete')")
+typ('field:What did you do', 'Tightened compressor mount and replaced the filter mesh. Noise gone.', 'Write what you did: Tightened compressor mount and replaced the filter mesh. Noise gone.', 'The note is the history of the room\'s air conditioner for the next technician.', expect='The note is filled.')
+click('modalbtn:Mark complete', 'Click Mark complete.', 'The work order moves to Done, awaiting the supervisor\'s check.', expect='The work order is complete and waits for a check.')
+step('Meera, the Manager, opens Maintenance. She sees every work order, the repair requests and six tabs.', 'The manager watches priorities and the service-level times of the whole hotel.', target='sel:main h1', auto=MGR, action='click',
+     menu='Housekeeping & Maintenance > Maintenance', expect='The manager\'s Maintenance page opens on Work orders.', check="has('Repair requests from housekeeping')")
+click('tab:Preventive', 'Open the Preventive tab.', 'A preventive plan, for example Geyser service, creates work orders on a schedule so that machines are serviced before they fail.', expect='The PM schedule lists the plans.')
+click('tab:Assets', 'Open the Assets tab.', 'Every machine of the hotel has a record: air conditioners, geysers, the lift and the fire pump, each with its room.', expect='The asset register is listed.')
+click('tab:Spares', 'Open the Spares tab.', 'Spares show what is in stock and when to reorder.', expect='The spares list opens.')
+click('tab:Vendors', 'Open the Vendors & AMC tab.', 'Annual maintenance contracts show which contractor services which machine and until when.', expect='Vendors and AMC contracts are listed.')
+click('tab:Reports', 'Open the Reports tab.', 'The reports show work orders by status, repeat faults and room downtime.', expect='The maintenance reports open.')

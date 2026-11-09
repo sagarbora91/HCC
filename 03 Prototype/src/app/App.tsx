@@ -12,6 +12,7 @@ import {navItems} from './nav';
 import {HOME_PAGE,parseCatPage,navFilterModules,pagesOfCategory} from './navmap';
 import {Breadcrumb,ModulesHome,CategoryPage,SignIn} from './ModulesHome';
 import {DemoPill} from './demo/DemoToolbar';
+import {setTrainingHooks} from './demo/training/hooks'; // wave TRN: prototype build only (guarded below)
 import {FitNavContext,type FitNav} from '../components/fit'; // FIT (DEC-194…196): sub-screen tab + breadcrumb tab crumb for desktop pages
 import {useReadOnly,READ_ONLY_HINT} from '../clients/react';
 import {LanHealth} from './LanHealth'; // F4-T3
@@ -248,6 +249,7 @@ function AppShell({initial,server}:{initial:Restored;/** Production only: state,
   const roomStatus=(r:Room)=>statusOf(s,r);
 
   const ctx:Ctx={s,uid,user,m,page:current,go,modal,open,closeModal,booking,error,busy,run,toast,permission,act,search,setSearch,filter,setFilter,tab,setTab,arrivals,departures,pending,taskList,roomStatus,switchUser,fault,setFault,loadScenario,resetScenario,display,setDirty,openSearch:()=>{cancelBackFallback();setSearchOpen(true);},openMenu:()=>{cancelBackFallback();setMenuOpen(true);},signOut,prefs:prefsApi};
+  if(process.env.HCC_BUILD!=='production')setTrainingHooks({ctx,signedIn,signIn}); // wave TRN: the driver (?training=1) reads the live context
   const pages:Record<string,()=>React.ReactNode>={overview:()=><Overview/>,rooms:()=><RoomBoard/>,reservations:()=><Reservations/>,folios:()=><Reservations folio/>,housekeeping:()=><Housekeeping/>,expenses:()=><Expenses/>,closing:()=><DayClosing/>,reports:()=><Reports/>,access:()=><AccessControl/>,settings:()=><HotelSettings/>};
   for(const [id,Page] of Object.entries(extraPages))pages[id]=()=><Page/>;
   // LF-ALERTS · A8 function keys (contract §9.3): desktop layout only; inert with a dialog open, without the permission, or when the target is not available

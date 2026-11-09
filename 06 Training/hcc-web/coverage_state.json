@@ -1,0 +1,38 @@
+{
+ "done": [
+  0,
+  1,
+  2,
+  3,
+  4,
+  5,
+  6,
+  7,
+  8,
+  9,
+  10,
+  11,
+  12,
+  13,
+  14,
+  15,
+  16,
+  17,
+  18,
+  19,
+  20,
+  21,
+  22,
+  23,
+  24
+ ],
+ "notes": {
+  "time travel": "chapter 8 uses the driver act closeday (REGISTER/CHECKIN pending arrivals, approve pending expense, settle open POS checks, NIGHT_POST, SHIFT_CLOSE, DAY_CLOSE, NEXT_DAY, SHIFT_OPEN through ctx.run) twice so Rahul can leave on 26 Oct; chapters 9+ run on 26 Oct 2026",
+  "ch2 keys": "encoder brought online by Meera in the Encoder tab (demo), card issued then lost-card re-issue",
+  "feedback": "revenue.feedback (guest feedback and QR) is shown as the star box in the check-out dialog (chapter 8) and the QR mention on the booking site preview (chapter 14); the build has no separate page",
+  "crm": "customers.crm: notes and preferences shown (Edit profile); tags and merge are not offered by the build (duplicates are only flagged), see TRAINING_NOTES F18",
+  "payroll": "people.payroll: September locked run and payslips; October cannot be run before the month ends (F16)",
+  "hall quotations": "revenue.quotations: quotation created, overridden, sent and accepted in chapter 15; revision and discount buttons are read, not clicked",
+  "steps": "589 steps in 25 chapters (plan estimate about 460)"
+ }
+}

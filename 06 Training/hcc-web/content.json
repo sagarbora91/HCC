@@ -1,0 +1,629 @@
+{
+ "recap": {
+  "0": {
+   "learned": [
+    "Modules Home shows only the modules your role may use; the red number is work waiting.",
+    "The top bar shows the business date, the clock and who is signed in; Ctrl K opens search.",
+    "Appearance & display changes text size and theme on this device only."
+   ],
+   "quiz": [
+    {
+     "q": "What does the red number on a module tile mean?",
+     "a": "Work waiting in that module, for example arrivals to check in."
+    },
+    {
+     "q": "Which key opens the search box?",
+     "a": "Control and K."
+    },
+    {
+     "q": "Does a text-size change affect other computers?",
+     "a": "No. It belongs to this device only and is not hotel data."
+    }
+   ]
+  },
+  "1": {
+   "learned": [
+    "A reservation is confirmed with Confirm reservation or kept for two hours with Hold 2 hours.",
+    "The Calendar shows rooms against nights; an empty cell starts a booking.",
+    "A confirmed booking with money on it cannot be cancelled until the advance is refunded."
+   ],
+   "quiz": [
+    {
+     "q": "Which button keeps a room for a guest who has not decided?",
+     "a": "Hold 2 hours."
+    },
+    {
+     "q": "Who may give a company a credit limit?",
+     "a": "The Owner."
+    },
+    {
+     "q": "What must happen before a booking with an advance can be cancelled?",
+     "a": "The advance must be refunded first."
+    }
+   ]
+  },
+  "2": {
+   "learned": [
+    "Guided check-in has six steps: find the reservation, verify the guest, room eligibility, confirm the tariff, advance, check in.",
+    "The ID is checked and shown masked afterwards; the purpose of visit is compulsory.",
+    "A walk-in guest is registered and checked in in one step; key cards are made from the booking."
+   ],
+   "quiz": [
+    {
+     "q": "How many steps does the guided check-in have?",
+     "a": "Six."
+    },
+    {
+     "q": "How is the Aadhaar number shown after saving?",
+     "a": "Masked, for example XXXX XXXX 4321."
+    },
+    {
+     "q": "Where do you make a key card?",
+     "a": "In the booking dialog, with the Room key button."
+    }
+   ]
+  },
+  "3": {
+   "learned": [
+    "Each room card shows the number, type, guest and the date it is busy until.",
+    "The chips Occupied, Ready, Dirty, Cleaning, Inspection and Blocked filter the board.",
+    "Only a manager blocks or unblocks a room."
+   ],
+   "quiz": [
+    {
+     "q": "What does Dirty mean on the board?",
+     "a": "The room needs cleaning."
+    },
+    {
+     "q": "Can Reception block a room?",
+     "a": "No. A manager or owner does it."
+    },
+    {
+     "q": "Why return the filter to All?",
+     "a": "An old filter hides rooms from the next person."
+    }
+   ]
+  },
+  "4": {
+   "learned": [
+    "In-house stays lists every guest in the hotel; a room move keeps the booking and the folio.",
+    "Requests, wake-up calls and complaints are logged, assigned and timed.",
+    "Messages are queued in the Outbox and sent only to guests who gave consent; sending is simulated in the demo."
+   ],
+   "quiz": [
+    {
+     "q": "Which tab handles a noisy air conditioner complaint?",
+     "a": "Complaints in Guest services."
+    },
+    {
+     "q": "Who sees My guest requests?",
+     "a": "The housekeeper or other staff the request is assigned to."
+    },
+    {
+     "q": "Does a queued message leave the hotel in the demo?",
+     "a": "No. Delivery is simulated."
+    }
+   ]
+  },
+  "5": {
+   "learned": [
+    "Charges are posted from the catalogue so price and GST are right: laundry at 18 per cent, rooms at 5 per cent.",
+    "A discount is requested by the front desk and approved by the manager; at most 25 per cent of the charges.",
+    "A rate or guest change needs a reason and an approval."
+   ],
+   "quiz": [
+    {
+     "q": "What GST rate does laundry carry?",
+     "a": "18 per cent."
+    },
+    {
+     "q": "Who approves a service-recovery discount?",
+     "a": "The manager."
+    },
+    {
+     "q": "Which action changes the meal plan of a stay?",
+     "a": "The Meal plan button on the folio."
+    }
+   ]
+  },
+  "6": {
+   "learned": [
+    "A table check is opened, dishes are added, the KOT is sent and the check is settled.",
+    "UPI and card settlements need a reference; room service is settled to the room folio.",
+    "A void needs a written reason and stays in the audit log."
+   ],
+   "quiz": [
+    {
+     "q": "What does Send KOT do?",
+     "a": "It sends the kitchen order ticket to the kitchen."
+    },
+    {
+     "q": "How is a room-service dinner paid?",
+     "a": "It is posted to the room folio and paid at check-out."
+    },
+    {
+     "q": "What is required to void a bill?",
+     "a": "A written reason."
+    }
+   ]
+  },
+  "7": {
+   "learned": [
+    "The cashier shift shows the expected cash and the opening float; the count is compared at once.",
+    "A bank deposit needs a photo of the slip; a till transfer moves cash between tills.",
+    "A cash receipt joins the drawer total immediately; the cash book lists each account."
+   ],
+   "quiz": [
+    {
+     "q": "What does the Difference box show?",
+     "a": "Counted cash minus expected cash."
+    },
+    {
+     "q": "What is required to record a bank deposit?",
+     "a": "A photo of the deposit slip."
+    },
+    {
+     "q": "Where do you see cash by account?",
+     "a": "In the Cash book."
+    }
+   ]
+  },
+  "8": {
+   "learned": [
+    "Check-out needs every room night posted and a zero balance; the invoice number is allocated once.",
+    "A company guest's balance moves to the company receivable after a manager approves it.",
+    "After the invoice only a credit note, approved by the Owner, can reduce it."
+   ],
+   "quiz": [
+    {
+     "q": "Who approves a company credit of Rs 4,725?",
+     "a": "A manager, because it is below Rs 10,000."
+    },
+    {
+     "q": "Which GST rate applies to a room at Rs 3,000 a night?",
+     "a": "5 per cent, split into equal CGST and SGST."
+    },
+    {
+     "q": "Who approves a credit note?",
+     "a": "The Owner."
+    }
+   ]
+  },
+  "9": {
+   "learned": [
+    "The housekeeping board has four columns: To do, In progress, Awaiting inspection and Done.",
+    "An attendant ticks the whole checklist before Complete cleaning works; the supervisor inspects and releases the room.",
+    "Housekeeping reports repairs from the room card and logs found items; no hotel money is shown."
+   ],
+   "quiz": [
+    {
+     "q": "Who makes a room Ready after cleaning?",
+     "a": "The supervisor, by Inspect & release."
+    },
+    {
+     "q": "What happens when an inspection fails?",
+     "a": "The room is returned for cleaning with a reason."
+    },
+    {
+     "q": "Does housekeeping see prices?",
+     "a": "No. Housekeeping and maintenance never see hotel money."
+    }
+   ]
+  },
+  "10": {
+   "learned": [
+    "A repair request from housekeeping becomes a work order with a priority and a service-level clock.",
+    "The technician starts the work, books spare parts and completes it with a note.",
+    "The manager sees preventive plans, assets, spares, vendors and AMC contracts."
+   ],
+   "quiz": [
+    {
+     "q": "What turns a repair request into a tracked job?",
+     "a": "Create work order."
+    },
+    {
+     "q": "Must a technician write a note when completing a work order?",
+     "a": "Yes. The note is required."
+    },
+    {
+     "q": "Where are annual maintenance contracts kept?",
+     "a": "On the Vendors & AMC tab."
+    }
+   ]
+  },
+  "11": {
+   "learned": [
+    "A shift checklist is ticked item by item; an item that needs proof asks for a photo or a note.",
+    "A submitted checklist cannot be changed.",
+    "The handover note tells the next shift about open issues, keys and guest notes."
+   ],
+   "quiz": [
+    {
+     "q": "What does Submit checklist do?",
+     "a": "It locks the checklist and shows it to the manager."
+    },
+    {
+     "q": "What does an item marked photo need?",
+     "a": "A photo; the demo simulates one."
+    },
+    {
+     "q": "Who reads the handover note?",
+     "a": "The next shift, who marks it done."
+    }
+   ]
+  },
+  "12": {
+   "learned": [
+    "Customers 360 shows contacts, stays, money, legacy stays and requests of one person.",
+    "Show ID is logged every time; preferences and notes travel with the guest.",
+    "Duplicate profiles are flagged and never merged automatically."
+   ],
+   "quiz": [
+    {
+     "q": "What does Show ID record?",
+     "a": "The view is logged with the user and the time."
+    },
+    {
+     "q": "Where do stays from the old Lodge software appear?",
+     "a": "On the Legacy tab."
+    },
+    {
+     "q": "Does HCC merge duplicate guests by itself?",
+     "a": "No. It only flags a Possible duplicate."
+    }
+   ]
+  },
+  "13": {
+   "learned": [
+    "The rate calendar shows the suggested and the live rate; only an approved publish changes the live rate.",
+    "The manager proposes, the Owner approves and publishes.",
+    "The tariff card is the printed price list valid from a date."
+   ],
+   "quiz": [
+    {
+     "q": "Who publishes new rates?",
+     "a": "The Owner, with Approve & publish."
+    },
+    {
+     "q": "What stops a rate going too low?",
+     "a": "The guardrails in the rules."
+    },
+    {
+     "q": "Does printing the tariff card change a price?",
+     "a": "No."
+    }
+   ]
+  },
+  "14": {
+   "learned": [
+    "A group block holds rooms with a cut-off date; the rooming list names the guests.",
+    "Company accounts carry a credit limit; limit changes go to the Owner.",
+    "OTA bookings are accepted only when the pre-check says Can accept; the direct site has no commission."
+   ],
+   "quiz": [
+    {
+     "q": "What is the cut-off date of a block?",
+     "a": "The last day the group may name its guests."
+    },
+    {
+     "q": "Why can an OTA booking be refused?",
+     "a": "The arrival is past, the party is too big or the room is not free."
+    },
+    {
+     "q": "Which bookings carry no commission?",
+     "a": "Direct bookings from the hotel website."
+    }
+   ]
+  },
+  "15": {
+   "learned": [
+    "A hall sale runs from enquiry to quotation to event: Moti Hall, Evening, 120 plates.",
+    "The quotation total was Rs 1,01,480 with 18 per cent GST; advances carry no GST.",
+    "Unfinished terms need an Owner override with a reason before the quotation can be sent."
+   ],
+   "quiz": [
+    {
+     "q": "Which GST rate applies to hall hire and menus?",
+     "a": "18 per cent."
+    },
+    {
+     "q": "Who can send a quotation with unfinished terms?",
+     "a": "The Owner, by recording an override with a reason."
+    },
+    {
+     "q": "Is GST charged on an advance?",
+     "a": "No. GST is on the tax invoice."
+    }
+   ]
+  },
+  "16": {
+   "learned": [
+    "Linen is issued to a floor pantry against a written issue; a delivery is received with a GRN.",
+    "Tabs show laundry, counts, losses, consumption, par levels and movements.",
+    "The supervisor sees quantities, never prices."
+   ],
+   "quiz": [
+    {
+     "q": "What records goods that arrive?",
+     "a": "A goods received note, GRN, with Receive stock."
+    },
+    {
+     "q": "What triggers a reorder alert?",
+     "a": "Stock below the minimum."
+    },
+    {
+     "q": "Where are purchase bills kept?",
+     "a": "In Accounting, by the accountant."
+    }
+   ]
+  },
+  "17": {
+   "learned": [
+    "An expense is entered with vendor, category, amount and the GST on the bill, and sent for approval.",
+    "A different person approves; only then does the money leave the drawer.",
+    "Recurring templates, budgets and the month lock belong to the Owner."
+   ],
+   "quiz": [
+    {
+     "q": "Who approves an expense entered by Reception?",
+     "a": "The Manager."
+    },
+    {
+     "q": "Why is the GST on the bill recorded?",
+     "a": "To claim input tax credit."
+    },
+    {
+     "q": "Who makes recurring templates?",
+     "a": "The Owner."
+    }
+   ]
+  },
+  "18": {
+   "learned": [
+    "The staff register feeds the roster, the attendance and the payroll.",
+    "Leave is approved by someone else, and the quota is checked again at approval.",
+    "Payroll runs belong to the Owner; each employee sees only their own pay under My shifts & pay."
+   ],
+   "quiz": [
+    {
+     "q": "Who may approve Kavya's leave?",
+     "a": "Meera, the Manager; nobody approves their own leave."
+    },
+    {
+     "q": "How many open advances can one person have?",
+     "a": "One."
+    },
+    {
+     "q": "What does an employee see under My shifts & pay?",
+     "a": "Shifts, leave balance and payslip."
+    }
+   ]
+  },
+  "19": {
+   "learned": [
+    "The Day closing page has seven steps from Preflight to Reopen & corrections.",
+    "The close is blocked while overdue departures, open checks or an unclosed cash shift remain.",
+    "A reopened day is closed again and the reopening is recorded."
+   ],
+   "quiz": [
+    {
+     "q": "How many steps does the day close have?",
+     "a": "Seven."
+    },
+    {
+     "q": "What blocks the close on 26 Oct in the demo?",
+     "a": "Ten overdue departures."
+    },
+    {
+     "q": "Who can reopen a closed day?",
+     "a": "The Owner, with a reason."
+    }
+   ]
+  },
+  "20": {
+   "learned": [
+    "Reports show a period, can be exported to CSV or Excel and printed, and trace figures to source rows.",
+    "The Report library has search, favourites, scheduled runs and an export log.",
+    "The owner digest is yesterday on one page."
+   ],
+   "quiz": [
+    {
+     "q": "What logs every export?",
+     "a": "The export log."
+    },
+    {
+     "q": "How do you keep a report at hand?",
+     "a": "Add it to favourites."
+    },
+    {
+     "q": "What is the owner digest?",
+     "a": "A one-page summary of the chosen business date."
+    }
+   ]
+  },
+  "21": {
+   "learned": [
+    "HCC posts vouchers from the hotel's work; manual vouchers such as a contra or an owner drawing need approval.",
+    "The accountant reads the trial balance, statements, profit and loss, balance sheet, ageing, GST and TDS.",
+    "Year end is explained, never run in a demo."
+   ],
+   "quiz": [
+    {
+     "q": "Who approves a manual voucher?",
+     "a": "Another user, here the Owner."
+    },
+    {
+     "q": "What does a contra do?",
+     "a": "It moves money between cash and bank without income or expense."
+    },
+    {
+     "q": "Which tab shows the money owed by companies?",
+     "a": "Outstanding, the ageing."
+    }
+   ]
+  },
+  "22": {
+   "learned": [
+    "The compliance calendar lists the obligations of the year with due dates and an Action Center.",
+    "The firm profile drives which cards apply.",
+    "The assistant answers from the hotel's own data and flags anomalies."
+   ],
+   "quiz": [
+    {
+     "q": "What does the Action Center show?",
+     "a": "Overdue and due-soon obligations with the amount payable."
+    },
+    {
+     "q": "Does the assistant use the internet?",
+     "a": "No. It uses the hotel's own data."
+    },
+    {
+     "q": "What does Go there do?",
+     "a": "It opens the screen behind a flag."
+    }
+   ]
+  },
+  "23": {
+   "learned": [
+    "Users get roles; custom roles start from a base role and are adjusted per sub-function.",
+    "A sub-function can be switched off and on; the data is kept.",
+    "Master configuration, backups, system health, legacy import and the roadmap are the Owner's and Tech admin's pages."
+   ],
+   "quiz": [
+    {
+     "q": "Is data lost when a sub-function is switched off?",
+     "a": "No. The data is kept."
+    },
+    {
+     "q": "Who changes money and tax settings?",
+     "a": "The Owner only."
+    },
+    {
+     "q": "What does a dry run of the legacy import do?",
+     "a": "It reports what would be loaded without changing anything."
+    }
+   ]
+  },
+  "24": {
+   "learned": [
+    "F2, F3, F4, F6, F7, F8, F10 and Alt+B open the main screens; Alt+/ lists the keys you may use.",
+    "Ctrl K searches pages and actions from anywhere.",
+    "Sign out when you leave the desk."
+   ],
+   "quiz": [
+    {
+     "q": "Which key opens the Room board?",
+     "a": "F6."
+    },
+    {
+     "q": "Which keys list the shortcuts?",
+     "a": "Alt and the slash key."
+    },
+    {
+     "q": "Why sign out when leaving the desk?",
+     "a": "Everything is recorded under the signed-in name."
+    }
+   ]
+  }
+ },
+ "fkeys": [
+  [
+   "F2",
+   "New booking"
+  ],
+  [
+   "F3",
+   "Arrivals & check-in"
+  ],
+  [
+   "F4",
+   "In-house stays"
+  ],
+  [
+   "F6",
+   "Room board"
+  ],
+  [
+   "F7",
+   "Guests & folios"
+  ],
+  [
+   "F8",
+   "Check-out"
+  ],
+  [
+   "F9",
+   "Rate / guest change"
+  ],
+  [
+   "F10",
+   "Cashier shift"
+  ],
+  [
+   "Alt+B",
+   "Counter bill"
+  ],
+  [
+   "Alt+/",
+   "Keyboard shortcuts"
+  ],
+  [
+   "Ctrl K",
+   "Search pages and actions"
+  ]
+ ],
+ "menumap": [
+  [
+   "Front Desk",
+   "Room board, calendar, reservations, guests, room keys, arrivals & check-in"
+  ],
+  [
+   "Cash & Billing",
+   "Folios, counter bills, cashier shift, cash book, restaurant, expenses"
+  ],
+  [
+   "Housekeeping & Maintenance",
+   "Housekeeping board, maintenance work orders, shift handover"
+  ],
+  [
+   "Guests & Services",
+   "In-house stays, guest services, messages, document capture"
+  ],
+  [
+   "Customers",
+   "Customer 360 profiles and stay history"
+  ],
+  [
+   "Revenue & Sales",
+   "Tariff and yield, tariff card, groups, OTA, booking site, hall booking"
+  ],
+  [
+   "Stock & Purchasing",
+   "Linen, stock, purchases, assets"
+  ],
+  [
+   "People & Payroll",
+   "Staff, leave, payroll, my shifts and pay"
+  ],
+  [
+   "Accounts & Reports",
+   "Day closing, reports, report hub, accounting, compliance, assistant"
+  ],
+  [
+   "Admin & Setup",
+   "Users and roles, settings, masters, approvals, backup, system health"
+  ]
+ ],
+ "reference_lines": {
+  "keyboard": [
+   "Ctrl K - search pages and actions",
+   "Esc - close a dialog or the search box",
+   "F2 new booking, F3 arrivals, F6 room board, F7 folios, F10 cashier"
+  ],
+  "passwords": [
+   "Demo users: choose a name with Preview as. There are no passwords in the training build."
+  ],
+  "keyboard_narration": "Control K opens the search box, Escape closes a dialog. F2 is a new booking, F3 arrivals, F6 the room board, F7 folios and F10 the cashier shift.",
+  "passwords_narration": "The training build has demo users that you choose by name. There are no passwords."
+ }
+}
