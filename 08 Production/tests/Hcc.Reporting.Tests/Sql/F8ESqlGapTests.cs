@@ -157,7 +157,7 @@ public sealed class F8ESqlGapTests(ReportDatabase db) : IClassFixture<ReportData
             """);
         var src = new SqlP2CReportSource(db.Platform.Connections);
 
-        var facts = (await src.SalesAsync(p, new DateOnly(2026, 11, 10), new DateOnly(2026, 11, 15), Ct)).OrderBy(f => f.Item, StringComparer.Ordinal).ThenBy(f => f.Outlet, StringComparer.Ordinal).ToList();
+        var facts = (await src.SalesAsync(p, new DateOnly(2026, 11, 12), new DateOnly(2026, 11, 12), Ct)).OrderBy(f => f.Item, StringComparer.Ordinal).ThenBy(f => f.Outlet, StringComparer.Ordinal).ToList();
         Assert.Equal(
         [
             new SaleLineFact(snack.ToString(), "Chakli", "Snacks", 1, 8000, "Bar", own),
@@ -167,19 +167,19 @@ public sealed class F8ESqlGapTests(ReportDatabase db) : IClassFixture<ReportData
         ], facts);
 
         var def = new SalesByItemReport(src, null!).Definition;
-        var r = SalesByItemReport.Build(def, Bound(new DateOnly(2026, 11, 10), new DateOnly(2026, 11, 15)), facts);
+        var r = SalesByItemReport.Build(def, Bound(new DateOnly(2026, 11, 12), new DateOnly(2026, 11, 12)), facts);
         var total = r.Rows[^1];
         Assert.Equal((ReportRowKind.Total, 10L, 95000L), (total.Kind, total.Cells["qty"], total.Cells["value"]));   // 2+7+1 units, 50000+37000+8000 paise
         var teaRow = r.Rows.Single(x => x.Kind == ReportRowKind.Row && (string)x.Cells["item"]! == "Tea");
         Assert.Equal((7L, 37000L, 38.9), (teaRow.Cells["qty"], teaRow.Cells["value"], teaRow.Cells["share"]));     // 37000 / 95000 = 38.9 %
         Assert.Equal(["Mains total", "Drinks total", "Snacks total"], r.Rows.Where(x => x.Kind == ReportRowKind.Subtotal).Select(x => (string)x.Cells["item"]!).ToArray());
-        var barOnly = SalesByItemReport.Build(def, new BoundParams(new Dictionary<string, string> { ["outlet"] = "Bar" }, new DateOnly(2026, 11, 10), new DateOnly(2026, 11, 15)), facts);
+        var barOnly = SalesByItemReport.Build(def, new BoundParams(new Dictionary<string, string> { ["outlet"] = "Bar" }, new DateOnly(2026, 11, 12), new DateOnly(2026, 11, 12)), facts);
         Assert.Equal(30000L, barOnly.Rows[^1].Cells["value"]);
 
-        // Edge: empty period (nothing settled 13th–19th) -> no rows, no total; the later-date bill appears only when the range reaches it.
-        var empty = await src.SalesAsync(p, new DateOnly(2026, 11, 13), new DateOnly(2026, 11, 19), Ct);
+        // Edge: empty period (nothing settled on the 13th; the voids test bills the 14th, so ranges stay one day wide) -> no rows, no total; the later-date bill appears only when the range reaches it.
+        var empty = await src.SalesAsync(p, new DateOnly(2026, 11, 13), new DateOnly(2026, 11, 13), Ct);
         Assert.Empty(empty);
-        Assert.Empty(SalesByItemReport.Build(def, Bound(new DateOnly(2026, 11, 13), new DateOnly(2026, 11, 19)), empty).Rows);
+        Assert.Empty(SalesByItemReport.Build(def, Bound(new DateOnly(2026, 11, 13), new DateOnly(2026, 11, 13)), empty).Rows);
         Assert.Equal(25000L, Assert.Single(await src.SalesAsync(p, new DateOnly(2026, 11, 20), new DateOnly(2026, 11, 20), Ct)).ValuePaise);
     }
 
