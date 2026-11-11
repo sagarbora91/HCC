@@ -13,7 +13,7 @@ import {col,rowOf,rangeParams,userName} from '../money/common';
 const A4='PERM-ADM-004';
 
 export const AUDIT_COLS:RptColumn[]=[col('at','Time','text'),col('actor','Actor','text'),col('action','Action','text'),col('detail','Detail','text'),col('id','Id','text')];
-export const auditLog=registerReport({serverMirror:false,
+export const auditLog=registerReport({
   id:'rpt.admin.audit-log',title:'Audit log',area:'admin',priority:'P1',status:'built',moneyFlag:false,viewPerms:[A4],dateClass:'D-B',
   params:[...rangeParams('D-B'),{key:'actor',label:'Actor',type:'text'},{key:'action',label:'Action',type:'text'},{key:'text',label:'Contains',type:'text'}],columns:AUDIT_COLS,
   dateBasis:'Audit events by the date they were recorded, newest first. Detail is shown only to roles with audit detail; money in a detail is masked for roles that never see hotel money (DEC-061).',

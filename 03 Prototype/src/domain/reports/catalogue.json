@@ -873,7 +873,7 @@
   ],
   "phone": "yes",
   "layout": "table",
-  "side": "prototype"
+  "side": "both"
  },
  {
   "id": "rpt.admin.cancelled-lines",
@@ -1487,7 +1487,7 @@
   ],
   "phone": "yes",
   "layout": "table",
-  "side": "prototype"
+  "side": "both"
  },
  {
   "id": "rpt.guests.desk-timing",
@@ -3649,7 +3649,7 @@
   ],
   "phone": "yes",
   "layout": "table",
-  "side": "prototype"
+  "side": "both"
  },
  {
   "id": "rpt.money.cash-count-sheet",
@@ -4733,7 +4733,7 @@
   ],
   "phone": "yes",
   "layout": "table",
-  "side": "prototype"
+  "side": "both"
  },
  {
   "id": "rpt.money.high-balance",

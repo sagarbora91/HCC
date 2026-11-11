@@ -14,7 +14,7 @@ const FIN={moneyFlag:true as const,moneyGate:GATE,viewPerms:[GATE],dateClass:'D-
 
 export const DAILY_OPS_COLS:RptColumn[]=[col('date','Business date','date'),col('status','Day status','text'),col('arrivals','Arrivals','int'),col('departures','Departures','int'),
   col('occupied','Occupied room-nights','int'),col('netRevenue','Net revenue','money',true),col('netReceipts','Net receipts','money',true),col('expenses','Expenses','money',true)];
-export const dailyOps=registerReport({serverMirror:false,
+export const dailyOps=registerReport({
   id:'rpt.guests.daily-ops',title:'Daily operations',area:'guests',priority:'P1',status:'built',...FIN,params:rangeParams('D-F'),
   columns:DAILY_OPS_COLS,legacyIds:[],
   dateBasis:'Charges by service date, receipts by receipt date, expenses by business date (the closing report pack, tab Daily operations). Total row = the tab tiles.',
@@ -63,7 +63,7 @@ export const receiptsDeposits=registerReport({serverMirror:false,
 
 export const EXPCASH_COLS:RptColumn[]=[col('date','Business date','date'),col('day','Day','text'),col('opening','Opening float','money',true),col('expected','Expected cash','money',true),
   col('counted','Counted','money',true),col('difference','Difference','money',true),col('cashExpenses','Cash expenses','money',true)];
-export const expensesCash=registerReport({serverMirror:false,
+export const expensesCash=registerReport({
   id:'rpt.money.expenses-cash',title:'Expenses and cash',area:'money',priority:'P1',status:'built',...FIN,params:rangeParams('D-F'),
   columns:EXPCASH_COLS,
   dateBasis:'Expenses by business date, split by what they settle to; drawer opening, expected, counted and difference from the closing record (open day: the live shift). Cash in / out by receipt date.',
