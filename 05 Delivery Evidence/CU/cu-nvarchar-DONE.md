@@ -22,7 +22,7 @@ Tests: `tests/Hcc.Customers.Tests/Sql/CustomersUnicodeKeyTests.cs` (new, 5 tests
 - `dotnet test tests/Hcc.Customers.Tests -maxcpucount:1`: Passed 121, Failed 0 (116 existing + 5 new).
 - `dotnet test tests/Hcc.Legacy.Tests -maxcpucount:1`: first run 37/38 (the truncation test above), after the BulkAsync fix Passed 38, Failed 0.
 - `dotnet test tests/Hcc.Masters.Tests -maxcpucount:1` (checks Hcc.slnx lists every migration): Passed 36, Failed 0.
-- `dotnet test tests/Hcc.Platform.Tests -maxcpucount:1` (migration lock test): see PLATFORM below.
+- `dotnet test tests/Hcc.Platform.Tests -maxcpucount:1` (migration lock test): Passed 80, Failed 0.
 - Line endings: `git diff --stat` equals `--ignore-cr-at-eol` for all edited files.
 
 ## Not verified
