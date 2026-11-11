@@ -17,7 +17,7 @@
     PublishDir      self-contained publish output, including web\index.html
     OpsDir          deployment\windows (the .ps1 scripts, samples, INSTALL.md)
     TemplatesDir    08 Production\deployment\import-templates
-    SqlMediaDir     the SQL Server Express media folder; NOT defined when the SQL payload is skipped (use #ifdef SqlMediaDir)
+    SqlMediaDir     staged folder with exactly SQLEXPR_x64_ENU.exe, MsSqlCmdLnUtils.msi, msodbcsql17.msi (hashes checked against sql-media.manifest.json when present); NOT defined when the SQL payload is skipped (use #ifdef SqlMediaDir)
     ClientSetupExe  full path of the client setup exe just built (the server installer ships it inside the client kit)
     OutputDir       where the compiled setup is written (-OutDir)
 
@@ -183,12 +183,34 @@ try {
         if (-not (Test-Path -LiteralPath $dir -PathType Container)) {
             throw "SQL media folder not found: $dir. Pass -SqlPayloadDir <folder> or -SkipSqlPayload."
         }
-        $sqlMedia = [IO.Path]::GetFullPath($dir)
-        if (-not (Get-ChildItem -LiteralPath $sqlMedia -Filter 'SQLEXPR*_x64_*.exe' -File -ErrorAction SilentlyContinue)) { throw "No SQL Server Express package (SQLEXPR*_x64_*.exe) in: $sqlMedia" }
-        foreach ($n in @('MsSqlCmdLnUtils.msi', 'msodbcsql17.msi')) {
-            if (-not (Test-Path -LiteralPath (Join-Path $sqlMedia $n) -PathType Leaf)) { throw "$n is missing in the SQL media folder: $sqlMedia" }
+        $sqlSource = [IO.Path]::GetFullPath($dir)
+        # Only these three files ship (ODBC 18 msodbcsql.msi and SqlLocalDB.msi stay out); they are staged into a build folder.
+        $sqlFiles = @('SQLEXPR_x64_ENU.exe', 'MsSqlCmdLnUtils.msi', 'msodbcsql17.msi')
+        foreach ($n in $sqlFiles) {
+            if (-not (Test-Path -LiteralPath (Join-Path $sqlSource $n) -PathType Leaf)) { throw "$n is missing in the SQL media folder: $sqlSource" }
         }
-        Write-Host "SQL media: $sqlMedia"
+        $manifestFile = Join-Path $winDir 'sql-media.manifest.json'
+        if (Test-Path -LiteralPath $manifestFile) {
+            $manifest = Get-Content -Raw -LiteralPath $manifestFile | ConvertFrom-Json
+            foreach ($n in $sqlFiles) {
+                $entry = @($manifest.files | Where-Object { $_.name -eq $n }) | Select-Object -First 1
+                if (-not $entry) { throw "sql-media.manifest.json has no entry for $n." }
+                $actual = (Get-FileHash -LiteralPath (Join-Path $sqlSource $n) -Algorithm SHA256).Hash
+                if ($actual -ne ([string]$entry.sha256).ToUpperInvariant()) { throw "SQL media file $n does not match sql-media.manifest.json (SHA-256 differs). Wrong or damaged media: $sqlSource" }
+            }
+            Write-Host 'The three SQL media files match sql-media.manifest.json.'
+        } else {
+            Write-Warning 'sql-media.manifest.json is not present in this branch: the SQL media hashes were NOT verified.'
+        }
+        $sqlMedia = Join-Path $WorkDir 'sqlmedia'
+        if ($DryRun) {
+            Write-Host "(dry run) would stage $($sqlFiles -join ', ') into $sqlMedia"
+        } else {
+            New-Item -ItemType Directory -Path $sqlMedia -Force | Out-Null
+            Get-ChildItem -LiteralPath $sqlMedia -File | Where-Object { $sqlFiles -notcontains $_.Name } | Remove-Item -Force
+            foreach ($n in $sqlFiles) { Copy-Item -LiteralPath (Join-Path $sqlSource $n) -Destination (Join-Path $sqlMedia $n) -Force }
+        }
+        Write-Host "SQL media (staged): $sqlMedia"
     }
 
     Step 'Signing'
