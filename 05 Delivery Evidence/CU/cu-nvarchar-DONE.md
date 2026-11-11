@@ -40,3 +40,10 @@ Tests: `tests/Hcc.Customers.Tests/Sql/CustomersUnicodeKeyTests.cs` (new, 5 tests
 
 ## Shared files touched
 `08 Production/Hcc.slnx`, `08 Production/database/migrations.lock.json`. No SCHEMA / APK bump needed.
+
+## Fix round (audit ac09d898, verdict FIX on tests only)
+- FIX 1 done. `CustomersUnicodeKeyTests.cs` now uses the pair राम पाटील / शाम पाटील (same UTF-16 shape; both are stored `n:??? ?????` as VARCHAR) in the tag / note / preference test and the pending-merge / alias test, so those tests fail on the old schema for the real reason. Wrong comment corrected. The downgrade test now proves the defect once: on the VARCHAR schema the stored key reads `n:??? ?????` and the second tag insert for the other name fails with SQL 2627; after migrations 4930-4932 both tags fit under their own keys.
+- N3 done. `08 Production/database/checks/cu-nvarchar-question-mark-keys.sql` (new folder `database/checks`, one read-only SELECT over all 11 converted columns, expected 0 rows) plus a test that it returns 0 on a fresh migrated database and finds a planted `n:??? ?????` row (`Question_mark_key_check_returns_nothing_on_a_clean_database_and_finds_a_planted_row`).
+- Open (not changed, as the auditor said no lane change needed): N1 collation edge (`Latin1_General_CI_AS` has no weight for newer Unicode characters; a later `_100_` / BIN2 collation option), N2 80-character key cut (pre-existing; consider hashing over-long keys in `CustomerRules.KeyOf`), N4 Python extractor vs C# `NormName` for Devanagari legacy names not compared.
+- Merge order: merge before `pay-b` (migration 4935); after merging with `cu-per` re-run Hcc.Customers.Tests.
+- Fix-round test run: dotnet test tests/Hcc.Customers.Tests -maxcpucount:1 = Passed 122, Failed 0 (121 + the new check-script test).

@@ -13,7 +13,8 @@ namespace Hcc.Customers.Tests.Sql;
 [Trait("Category", "Sql")]
 public class CustomersUnicodeKeyTests : IAsyncLifetime
 {
-    private const string Ram = "राम पाटील", Sita = "सीता जोशी", Geeta = "गीता देशमुख";
+    // Ram and Shyam have the same UTF-16 shape: as VARCHAR both keys were stored as 'n:??? ?????' and collided (same tag row, same pending merge).
+    private const string Ram = "राम पाटील", Shyam = "शाम पाटील", Geeta = "गीता देशमुख";
 
     private CrmWorld _w = null!;
 
@@ -37,7 +38,7 @@ public class CustomersUnicodeKeyTests : IAsyncLifetime
     private async Task Seed()
     {
         await AddBooking("HCC-D1", Ram);
-        await AddBooking("HCC-D2", Sita);
+        await AddBooking("HCC-D2", Shyam);
         await AddBooking("HCC-D3", Geeta);
     }
 
@@ -46,8 +47,8 @@ public class CustomersUnicodeKeyTests : IAsyncLifetime
     {
         await Seed();
         var kRam = KeyOfName(Ram);
-        var kSita = KeyOfName(Sita);
-        Assert.NotEqual(kRam, kSita);
+        var kShyam = KeyOfName(Shyam);
+        Assert.NotEqual(kRam, kShyam);
         Assert.DoesNotContain('?', kRam);
 
         await _w.Commands.AddTagAsync(_w.Ctx("reception", Key()), new AddCustomerTagRequest(await Token(kRam), "vip"), Ct);
@@ -55,22 +56,22 @@ public class CustomersUnicodeKeyTests : IAsyncLifetime
         await _w.Commands.SetPreferencesAsync(_w.Ctx("reception", Key()), new SetCustomerPreferencesRequest(await Token(kRam), "Quiet room"), Ct);
 
         var ram = await Profile(kRam);
-        var sita = await Profile(kSita);
+        var shyam = await Profile(kShyam);
         Assert.Equal(["vip"], ram.Tags);
         Assert.Single(ram.Notes);
         Assert.Equal("Quiet room", ram.Preferences);
-        Assert.Empty(sita.Tags);
-        Assert.Empty(sita.Notes);
-        Assert.NotEqual("Quiet room", sita.Preferences);
+        Assert.Empty(shyam.Tags);
+        Assert.Empty(shyam.Notes);
+        Assert.NotEqual("Quiet room", shyam.Preferences);
 
         // the stored key is the real Devanagari text, one row per customer
         Assert.Equal(1, await _w.CountAsync($"SELECT COUNT(*) FROM crm.customer_tag WHERE customer_key = N'{kRam}'", Ct));
-        Assert.Equal(0, await _w.CountAsync($"SELECT COUNT(*) FROM crm.customer_tag WHERE customer_key = N'{kSita}'", Ct));
+        Assert.Equal(0, await _w.CountAsync($"SELECT COUNT(*) FROM crm.customer_tag WHERE customer_key = N'{kShyam}'", Ct));
         Assert.Equal(0, await _w.CountAsync("SELECT COUNT(*) FROM crm.customer_tag WHERE customer_key LIKE '%?%'", Ct));
-        // a tag on the second customer is a second row (as VARCHAR both keys read 'n:????? ?????' and the primary key refused it)
-        await _w.Commands.AddTagAsync(_w.Ctx("reception", Key()), new AddCustomerTagRequest(await Token(kSita), "vip"), Ct);
+        // a tag on the second customer is a second row (as VARCHAR both keys read 'n:??? ?????' and the primary key refused the second insert)
+        await _w.Commands.AddTagAsync(_w.Ctx("reception", Key()), new AddCustomerTagRequest(await Token(kShyam), "vip"), Ct);
         Assert.Equal(2, await _w.CountAsync("SELECT COUNT(*) FROM crm.customer_tag WHERE tag = N'vip'", Ct));
-        Assert.Equal(["vip"], (await Profile(kSita)).Tags);
+        Assert.Equal(["vip"], (await Profile(kShyam)).Tags);
         Assert.Empty((await Profile(KeyOfName(Geeta))).Tags);
     }
 
@@ -81,7 +82,7 @@ public class CustomersUnicodeKeyTests : IAsyncLifetime
         var vik = CrmWorld.VikramPhone;
         var m1 = (await _w.Commands.ProposeMergeAsync(_w.Ctx("manager", Key()), new ProposeCustomerMergeRequest(await Token(KeyOfName(Ram)), await Token(vik), "same guest as Vikram"), Ct)).Value;
         // a different source name is a different pending proposal (UX_crm_merge_pending is per source key)
-        var m2 = (await _w.Commands.ProposeMergeAsync(_w.Ctx("manager", Key()), new ProposeCustomerMergeRequest(await Token(KeyOfName(Sita)), await Token(vik), "also Vikram"), Ct)).Value;
+        var m2 = (await _w.Commands.ProposeMergeAsync(_w.Ctx("manager", Key()), new ProposeCustomerMergeRequest(await Token(KeyOfName(Shyam)), await Token(vik), "also Vikram"), Ct)).Value;
         Assert.NotEqual(m1.MergeId, m2.MergeId);
         Assert.Equal(2, await _w.CountAsync("SELECT COUNT(*) FROM crm.customer_merge WHERE status = 'Pending'", Ct));
         Assert.Equal(1, await _w.CountAsync($"SELECT COUNT(*) FROM crm.customer_merge WHERE source_key = N'{KeyOfName(Ram)}'", Ct));
@@ -90,14 +91,14 @@ public class CustomersUnicodeKeyTests : IAsyncLifetime
         var done = (await _w.Commands.DecideMergeAsync(_w.Ctx("owner", Key()), new DecideCustomerMergeRequest(m1.MergeId, true, m1.Version), Ct)).Value;
         Assert.Equal("Approved", done.Status);
         Assert.Equal(1, await _w.CountAsync($"SELECT COUNT(*) FROM crm.customer_alias WHERE alias_key = N'{KeyOfName(Ram)}'", Ct));
-        Assert.Equal(0, await _w.CountAsync($"SELECT COUNT(*) FROM crm.customer_alias WHERE alias_key = N'{KeyOfName(Sita)}'", Ct));
+        Assert.Equal(0, await _w.CountAsync($"SELECT COUNT(*) FROM crm.customer_alias WHERE alias_key = N'{KeyOfName(Shyam)}'", Ct));
         Assert.Equal(0, await _w.CountAsync($"SELECT COUNT(*) FROM crm.customer_alias WHERE alias_key LIKE '%?%'", Ct));
         Assert.Equal("Pending", (await _w.Queries.MergesAsync(_w.PropertyId, _w.Users["owner"], "Pending", Ct)).Merges.Single().Status);
 
         // a second pending proposal for the same Devanagari source is still refused
-        var sitaTok = await Token(KeyOfName(Sita));
+        var shyamTok = await Token(KeyOfName(Shyam));
         var vikTok = await Token(vik);
-        await Assert.ThrowsAsync<Hcc.Domain.Errors.HccException>(() => _w.Commands.ProposeMergeAsync(_w.Ctx("manager", Key()), new ProposeCustomerMergeRequest(sitaTok, vikTok, "again"), Ct));
+        await Assert.ThrowsAsync<Hcc.Domain.Errors.HccException>(() => _w.Commands.ProposeMergeAsync(_w.Ctx("manager", Key()), new ProposeCustomerMergeRequest(shyamTok, vikTok, "again"), Ct));
     }
 
     [Fact]
@@ -215,8 +216,18 @@ public class CustomersUnicodeKeyTests : IAsyncLifetime
         await _w.ExecAsync(Downgrade, Ct);
         Assert.Equal("varchar", (string)(await _w.ScalarAsync("SELECT t.name FROM sys.columns c JOIN sys.types t ON t.user_type_id = c.user_type_id WHERE c.object_id = OBJECT_ID('crm.customer_tag') AND c.name = 'customer_key'", Ct))!);
 
-        // rows written the old way (ASCII keys only: that is all a VARCHAR column can hold)
         var p = _w.PropertyId;
+        // the defect itself: on the VARCHAR schema two different Devanagari names collapse to the same stored key and the second tag is refused
+        var kRam = KeyOfName(Ram);
+        var kShyam = KeyOfName(Shyam);
+        Assert.NotEqual(kRam, kShyam);
+        await _w.ExecAsync($"INSERT crm.customer_tag(property_id, customer_key, tag, added_by, added_utc) VALUES ({p}, N'{kRam}', N'vip', 1, SYSUTCDATETIME());", Ct);
+        Assert.Equal("n:??? ?????", (string)(await _w.ScalarAsync("SELECT customer_key FROM crm.customer_tag", Ct))!);
+        var clash = await Assert.ThrowsAsync<SqlException>(() => _w.ExecAsync($"INSERT crm.customer_tag(property_id, customer_key, tag, added_by, added_utc) VALUES ({p}, N'{kShyam}', N'vip', 1, SYSUTCDATETIME());", Ct));
+        Assert.Equal(2627, clash.Number);
+        await _w.ExecAsync("DELETE crm.customer_tag;", Ct);
+
+        // rows written the old way (ASCII keys only: that is all a VARCHAR column can hold)
         await _w.ExecAsync($"""
             INSERT crm.customer_tag(property_id, customer_key, tag, added_by, added_utc) VALUES ({p}, '9820011111', N'vip', 1, SYSUTCDATETIME()), ({p}, 'n:vikram shah', N'corp', 1, SYSUTCDATETIME());
             INSERT crm.customer_note(property_id, customer_key, body, author_id, created_utc) VALUES ({p}, '9820011111', N'note', 1, SYSUTCDATETIME());
@@ -237,9 +248,30 @@ public class CustomersUnicodeKeyTests : IAsyncLifetime
         await AssertSchema();
         Assert.Equal(2, await _w.CountAsync("SELECT COUNT(*) FROM crm.customer_tag", Ct));
 
-        // and a Devanagari key now fits where the old column would have turned it into question marks
-        var k = KeyOfName(Ram);
-        await _w.ExecAsync($"INSERT crm.customer_tag(property_id, customer_key, tag, added_by, added_utc) VALUES ({p}, N'{k}', N'vip', 1, SYSUTCDATETIME());", Ct);
-        Assert.Equal(1, await _w.CountAsync($"SELECT COUNT(*) FROM crm.customer_tag WHERE customer_key = N'{k}'", Ct));
+        // and the same two names no longer collide: both tags fit, each under its own key
+        await _w.ExecAsync($"INSERT crm.customer_tag(property_id, customer_key, tag, added_by, added_utc) VALUES ({p}, N'{kRam}', N'vip', 1, SYSUTCDATETIME()), ({p}, N'{kShyam}', N'vip', 1, SYSUTCDATETIME());", Ct);
+        Assert.Equal(1, await _w.CountAsync($"SELECT COUNT(*) FROM crm.customer_tag WHERE customer_key = N'{kRam}'", Ct));
+        Assert.Equal(1, await _w.CountAsync($"SELECT COUNT(*) FROM crm.customer_tag WHERE customer_key = N'{kShyam}'", Ct));
+    }
+
+    private static string CheckScript()
+    {
+        var d = new DirectoryInfo(AppContext.BaseDirectory);
+        while (d is not null && !File.Exists(Path.Combine(d.FullName, "database", "checks", "cu-nvarchar-question-mark-keys.sql"))) d = d.Parent;
+        return File.ReadAllText(Path.Combine(d?.FullName ?? throw new InvalidOperationException("database/checks not found"), "database", "checks", "cu-nvarchar-question-mark-keys.sql")).Trim().TrimEnd(';');
+    }
+
+    [Fact]
+    public async Task Question_mark_key_check_returns_nothing_on_a_clean_database_and_finds_a_planted_row()
+    {
+        await Seed();
+        await _w.Commands.AddTagAsync(_w.Ctx("reception", Key()), new AddCustomerTagRequest(await Token(KeyOfName(Ram)), "vip"), Ct);
+        var script = CheckScript();
+        Assert.Equal(0, await _w.CountAsync($"SELECT COUNT(*) FROM ({script}) x", Ct));
+
+        // a collapsed key as the old VARCHAR column wrote it
+        await _w.ExecAsync($"INSERT crm.customer_tag(property_id, customer_key, tag, added_by, added_utc) VALUES ({_w.PropertyId}, N'n:??? ?????', N'vip', 1, SYSUTCDATETIME());", Ct);
+        Assert.Equal(1, await _w.CountAsync($"SELECT COUNT(*) FROM ({script}) x", Ct));
+        Assert.Equal("crm.customer_tag.customer_key", (string)(await _w.ScalarAsync($"SELECT TOP 1 key_column FROM ({script}) x", Ct))!);
     }
 }
