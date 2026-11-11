@@ -28,7 +28,7 @@ export const dailyOps=registerReport({serverMirror:false,
 
 export const OCCUPANCY_COLS:RptColumn[]=[col('date','Business date','date'),col('sellable','Sellable','int'),col('occupied','Occupied','int'),col('occupancy','Occupancy','text'),
   col('roomRevenue','Room revenue','money',true),col('adr','ADR','text',true),col('revpar','RevPAR','text',true)];
-export const occupancyReport=registerReport({serverMirror:false,
+export const occupancyReport=registerReport({
   id:'rpt.rooms.occupancy',title:'Occupancy, ADR and RevPAR',area:'rooms',priority:'P1',status:'built',...FIN,params:rangeParams('D-F'),
   columns:OCCUPANCY_COLS,legacyIds:['A35'],
   dateBasis:'Occupancy = occupied ÷ sellable room-nights; ADR = room revenue ÷ occupied; RevPAR = room revenue ÷ sellable (rounded half-up, dash when the divisor is zero). The total row recomputes the ratios from the totals.',
@@ -43,7 +43,7 @@ export const occupancyReport=registerReport({serverMirror:false,
 
 /** One column per tender is dynamic (the tenders found in the range); the definition lists the fixed ones. */
 export const RECEIPTS_COLS:RptColumn[]=[col('date','Receipt date','date'),col('net','Net receipts','money',true),col('depositsIn','Deposits in','money',true),col('depositsOut','Deposits out','money',true)];
-export const receiptsDeposits=registerReport({serverMirror:false,
+export const receiptsDeposits=registerReport({
   id:'rpt.money.receipts-deposits',title:'Receipts and deposits',area:'money',priority:'P1',status:'built',...FIN,params:rangeParams('D-F'),
   columns:RECEIPTS_COLS,legacyIds:['C2.PreviousAdvance'],
   dateBasis:'Payments minus refunds by receipt date, one column per tender; deposits received and returned by receipt date. Totals per tender; deposits held now is a point-in-time figure in the second block.',

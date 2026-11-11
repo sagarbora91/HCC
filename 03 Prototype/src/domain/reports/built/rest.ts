@@ -13,7 +13,7 @@ export const REST_OUTLET_COLS:RptColumn[]=[col('outlet','Outlet','text'),col('bi
 export const REST_SETTLE_COLS:RptColumn[]=[col('settlement','Settlement','text'),col('amount','Amount','money',true)];
 export const REST_TOP_COLS:RptColumn[]=[col('item','Top item','text'),col('qty','Item qty','int'),col('value','Item value','money',true)];
 export const REST_OPEN_COLS:RptColumn[]=[col('open','Open checks','text'),col('count','Checks','int'),col('value','Value','money',true)];
-export const restDaySummary=registerReport({serverMirror:false,
+export const restDaySummary=registerReport({
   id:'rpt.rest.day-summary',title:'Outlet day summary',area:'rest',priority:'P1',status:'built',moneyFlag:true,moneyGate:GATE,viewPerms:[GATE],dateClass:'D-DAY',params:dayParam,
   columns:REST_OUTLET_COLS,
   dateBasis:'Settled checks by settlement date; open checks as of now. Posted to room folios = checks settled to a stay (a charge, not a receipt).',

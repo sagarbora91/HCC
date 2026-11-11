@@ -11,7 +11,7 @@ const kindLabel=(k:string)=>INV_KINDS.find(x=>x.id===k)?.label??k;
 const base={area:'stock' as const,viewPerms:[V],phone:'yes' as const};
 
 export const STOCK_SHEET_COLS:RptColumn[]=[col('item','Item','text'),col('kind','Kind','text'),col('unit','Unit','text'),...INV_LOCS.map(l=>col(l.id,l.short,'int')),col('total','Total','int'),col('cost','Unit cost','money',true),col('value','Value','money',true)];
-export const stockSheet=registerReport({serverMirror:false,...base,id:'rpt.stock.stock-sheet',title:'Stock by location',priority:'P1',status:'built',moneyFlag:true,moneyGate:G,params:[],columns:STOCK_SHEET_COLS,formats:['screen','xlsx','pdf'],
+export const stockSheet=registerReport({...base,id:'rpt.stock.stock-sheet',title:'Stock by location',priority:'P1',status:'built',moneyFlag:true,moneyGate:G,params:[],columns:STOCK_SHEET_COLS,formats:['screen','xlsx','pdf'],
   dateBasis:'The stock held now: pieces per location, total, unit cost and value (total × standard cost).',
   select:(s,_u,p)=>{
     const items=invSlice(s).items;
