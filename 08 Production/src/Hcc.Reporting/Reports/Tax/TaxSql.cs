@@ -56,7 +56,14 @@ internal static class TaxSql
 
     private sealed record Extra(string Room, bool Corrected, bool Cancelled, long Cash, long CardUpi, long Credit);
 
+    // CU-PAY-B: "cash" = a payment method that settles to a till (mst.payment_method -> mst.bank_account kind 'till'), by its current name or an earlier name
+    // (mst.master_history); a property without a methods list keeps the literal Cash. Records store the method NAME, which changes when the Owner renames the row.
     private const string ExtraSql = """
+        WITH cash_names(n) AS (
+            SELECT m.name FROM mst.payment_method m JOIN mst.bank_account a ON a.bank_account_id = m.settles_to_id AND a.kind = 'till' WHERE m.property_id = @p
+            UNION SELECT h.old_value FROM mst.master_history h JOIN mst.payment_method m ON m.payment_method_id = h.row_id JOIN mst.bank_account a ON a.bank_account_id = m.settles_to_id AND a.kind = 'till'
+                   WHERE h.property_id = @p AND h.master = 'paymentMethods' AND h.field = 'name' AND h.old_value IS NOT NULL
+            UNION SELECT N'Cash' WHERE NOT EXISTS (SELECT 1 FROM mst.payment_method WHERE property_id = @p))
         SELECT i.invoice_id,
                CASE WHEN i.source_kind = 'folio' THEN ISNULL((SELECT TOP (1) rm.room_no FROM bill.folio f JOIN inv.reservation r ON r.reservation_id = f.reservation_id
                                                               JOIN inv.room rm ON rm.room_id = r.room_id WHERE f.folio_id = i.source_id), '') ELSE '' END,
@@ -65,17 +72,17 @@ internal static class TaxSql
                       OR (i.source_kind = 'counter' AND EXISTS (SELECT 1 FROM ctr.bill b WHERE b.invoice_id = i.invoice_id AND b.status = 'Credited')) THEN 1 ELSE 0 END,
                CASE i.source_kind
                  WHEN 'folio' THEN CASE WHEN i.revision = (SELECT MAX(x.revision) FROM ivc.invoice x WHERE x.property_id = i.property_id AND x.source_kind = i.source_kind AND x.source_id = i.source_id)
-                      THEN ISNULL((SELECT SUM(CASE WHEN LOWER(r.method) = 'cash' AND r.kind IN ('payment','deposit-apply') THEN r.amount_paise WHEN LOWER(r.method) = 'cash' AND r.kind = 'refund' THEN -r.amount_paise ELSE 0 END)
-                                     FROM pay.receipt r WHERE r.folio_id = i.source_id), 0) ELSE 0 END
-                 WHEN 'pos' THEN ISNULL((SELECT SUM(CASE WHEN b.tender = 'Cash' THEN b.total_paise ELSE 0 END) FROM pos.bill b WHERE b.bill_id = i.source_id), 0)
-                 WHEN 'counter' THEN ISNULL((SELECT SUM(CASE WHEN b.settlement_mode = 'paid' AND LOWER(b.method) = 'cash' THEN b.total_paise ELSE 0 END) FROM ctr.bill b WHERE b.invoice_id = i.invoice_id), 0)
+                      THEN ISNULL((SELECT SUM(CASE WHEN cn.n IS NOT NULL AND r.kind IN ('payment','deposit-apply') THEN r.amount_paise WHEN cn.n IS NOT NULL AND r.kind = 'refund' THEN -r.amount_paise ELSE 0 END)
+                                     FROM pay.receipt r LEFT JOIN cash_names cn ON cn.n = r.method WHERE r.folio_id = i.source_id), 0) ELSE 0 END
+                 WHEN 'pos' THEN ISNULL((SELECT SUM(CASE WHEN cn.n IS NOT NULL THEN b.total_paise ELSE 0 END) FROM pos.bill b LEFT JOIN cash_names cn ON cn.n = b.tender WHERE b.bill_id = i.source_id), 0)
+                 WHEN 'counter' THEN ISNULL((SELECT SUM(CASE WHEN b.settlement_mode = 'paid' AND cn.n IS NOT NULL THEN b.total_paise ELSE 0 END) FROM ctr.bill b LEFT JOIN cash_names cn ON cn.n = b.method WHERE b.invoice_id = i.invoice_id), 0)
                  ELSE 0 END,
                CASE i.source_kind
                  WHEN 'folio' THEN CASE WHEN i.revision = (SELECT MAX(x.revision) FROM ivc.invoice x WHERE x.property_id = i.property_id AND x.source_kind = i.source_kind AND x.source_id = i.source_id)
-                      THEN ISNULL((SELECT SUM(CASE WHEN LOWER(r.method) <> 'cash' AND r.kind IN ('payment','deposit-apply') THEN r.amount_paise WHEN LOWER(r.method) <> 'cash' AND r.kind = 'refund' THEN -r.amount_paise ELSE 0 END)
-                                     FROM pay.receipt r WHERE r.folio_id = i.source_id), 0) ELSE 0 END
-                 WHEN 'pos' THEN ISNULL((SELECT SUM(CASE WHEN b.tender <> 'Cash' THEN b.total_paise ELSE 0 END) FROM pos.bill b WHERE b.bill_id = i.source_id), 0)
-                 WHEN 'counter' THEN ISNULL((SELECT SUM(CASE WHEN b.settlement_mode = 'paid' AND LOWER(b.method) <> 'cash' THEN b.total_paise ELSE 0 END) FROM ctr.bill b WHERE b.invoice_id = i.invoice_id), 0)
+                      THEN ISNULL((SELECT SUM(CASE WHEN (cn.n IS NULL AND r.method IS NOT NULL) AND r.kind IN ('payment','deposit-apply') THEN r.amount_paise WHEN (cn.n IS NULL AND r.method IS NOT NULL) AND r.kind = 'refund' THEN -r.amount_paise ELSE 0 END)
+                                     FROM pay.receipt r LEFT JOIN cash_names cn ON cn.n = r.method WHERE r.folio_id = i.source_id), 0) ELSE 0 END
+                 WHEN 'pos' THEN ISNULL((SELECT SUM(CASE WHEN (cn.n IS NULL AND b.tender IS NOT NULL) THEN b.total_paise ELSE 0 END) FROM pos.bill b LEFT JOIN cash_names cn ON cn.n = b.tender WHERE b.bill_id = i.source_id), 0)
+                 WHEN 'counter' THEN ISNULL((SELECT SUM(CASE WHEN b.settlement_mode = 'paid' AND (cn.n IS NULL AND b.method IS NOT NULL) THEN b.total_paise ELSE 0 END) FROM ctr.bill b LEFT JOIN cash_names cn ON cn.n = b.method WHERE b.invoice_id = i.invoice_id), 0)
                  ELSE 0 END,
                CASE i.source_kind
                  WHEN 'folio' THEN CASE WHEN i.revision = (SELECT MAX(x.revision) FROM ivc.invoice x WHERE x.property_id = i.property_id AND x.source_kind = i.source_kind AND x.source_id = i.source_id)
