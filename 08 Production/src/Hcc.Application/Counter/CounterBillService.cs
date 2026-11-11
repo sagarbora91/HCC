@@ -234,7 +234,7 @@ public sealed class CounterBillService(ICommandRunner runner, IAccessPolicy poli
 
             await store.SetSettlementAsync(tx, billId, cash ? s.TillId : null, movementId, udhaarId, c).ConfigureAwait(false);
             await tx.AuditAsync("COUNTER_BILL_ISSUED", "counter-" + N(billId),
-                PhoneDigitsScrub.Scrub($"{issued.InvoiceNo} · {name} · {priced.Count} line(s) · net {totals.Net.Value} + tax {totals.Tax.Value} = {totals.Total.Value} · {mode}" + (discount.Value > 0 ? $" · discount {discount.Value}" : "")), c).ConfigureAwait(false);
+                $"{issued.InvoiceNo} · {PhoneDigitsScrub.Scrub(name)} · {priced.Count} line(s) · net {totals.Net.Value} + tax {totals.Tax.Value} = {totals.Total.Value} · {mode}" + (discount.Value > 0 ? $" · discount {discount.Value}" : ""), c).ConfigureAwait(false);
             await tx.PublishAsync(EventIssued, billId, Posted(billId, issued.InvoiceNo, bd, mode, tender, name, phone, companyId, priced, discount, totals), c).ConfigureAwait(false);
             return new CounterBillResult(billId, issued.InvoiceNo, totals.Net.Value, totals.Tax.Value, totals.Cgst.Value, totals.Sgst.Value, totals.Total.Value, mode, udhaarId, "Issued");
         }, ct).ConfigureAwait(false);

@@ -62,7 +62,9 @@ public sealed class ImportService(
     private static Task AuditScrubbed(ICommandTransaction tx, string action, string target, string detail, CancellationToken ct) =>
         tx.AuditAsync(action, Hcc.Domain.Audit.PhoneDigitsScrub.Scrub(target), Hcc.Domain.Audit.PhoneDigitsScrub.Scrub(detail), ct);
 
-    private static string Clip(string s, int max) => s.Length <= max ? s : s[..(max - 1)] + "…";
+    private static string Clip(string s, int max) => Clip2(Hcc.Domain.Audit.PhoneDigitsScrub.Scrub(s), max); // CU digits: scrub first, clip after, so a phone cut at the limit cannot leak
+
+    private static string Clip2(string s, int max) => s.Length <= max ? s : s[..(max - 1)] + "…";
 
     private static ImportMasterSpec Spec(string? master) =>
         ImportMasters.Find(master) ?? throw HccException.Validation("Choose what to import: " + string.Join(", ", ImportMasters.All.Select(m => m.Wire)) + ".");
@@ -269,7 +271,7 @@ public sealed class ImportService(
         var users = new List<ImportCreatedUser>();
         var tag = $"batch {b.BatchId.ToString(CultureInfo.InvariantCulture)}";
         async Task AuditRow(string action, string target, ImportPlanItem i) =>
-            await AuditScrubbed(tx, action, Clip(Hcc.Domain.Audit.PhoneDigitsScrub.Scrub(target), 60), Clip(Hcc.Domain.Audit.PhoneDigitsScrub.Scrub($"{i.Action} · {i.Key} · {i.Detail} · {tag}"), 1000), ct).ConfigureAwait(false);
+            await AuditScrubbed(tx, action, Clip(target, 60), Clip($"{i.Action} · {i.Key} · {i.Detail} · {tag}", 1000), ct).ConfigureAwait(false);
 
         switch (spec.Master)
         {
