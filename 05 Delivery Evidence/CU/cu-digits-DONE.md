@@ -13,7 +13,7 @@ Lane digits / Sonnet / branch claude/cu-digits / worktree E:\Projects\HCC\worktr
 - New `tests/Hcc.Counter.Tests/Sql/CuDigitsCounterTests.cs` (scrub theory x7 + mapper test + SQL test: Udhaar bill with phone, bill whose name is a phone; audit + outbox hold no 10-digit run, mask keeps last 4, `ctr.bill.party_phone` and receivable mobile still raw).
 - New `tests/Hcc.Accounting.Tests/Sql/CuDigitsCounterProjectionTests.cs`: masked payload published, projector lands on party `UD-9820005555`, payload has no number.
 - New `tests/Hcc.Import.Tests/Sql/CuDigitsImportTests.cs`: guest import (two phones) -> no 10-digit run in any IMPORT_* audit row.
-- Results: Import `--filter CuDigits` 1/1 passed; Accounting `--filter CuDigits` 1/1 passed; Counter: see final section below.
+- Results: Import `--filter CuDigits` 1/1 passed; Accounting `--filter CuDigits` 1/1 passed; Counter: full project run 96 passed / 2 failed (both failures were mistakes in my new test: a regex check on an unmasked date line, and the stored bill phone is `919820005555` with country code, not 10 digits); after fixing the test, `--filter CuDigits` 9/9 passed. All 96 existing Counter tests passed in the full run (no code change since, only the test file).
 - Red check (tests fail without the fix) was not run separately; the leak path (`phone|name` key in the audit detail, raw `PartyPhone` in payload) was confirmed by reading the code.
 
 ## NOT verified

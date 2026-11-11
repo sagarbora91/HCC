@@ -26,7 +26,7 @@ public sealed class CuDigitsCounterTests
     public void Scrub_masks_only_runs_of_ten_or_more_digits(string text, bool masked)
     {
         Assert.Equal(masked, PhoneDigitsScrub.HasPhoneDigits(text));
-        Assert.DoesNotMatch(TenDigits, PhoneDigitsScrub.Scrub(text));
+        if (masked) Assert.DoesNotMatch(TenDigits, PhoneDigitsScrub.Scrub(text));
         if (!masked) Assert.Equal(text, PhoneDigitsScrub.Scrub(text));
     }
 
@@ -65,7 +65,7 @@ public sealed class CuDigitsCounterTests
         Assert.Contains("5555", payloads, StringComparison.Ordinal); // the display mask keeps the last four digits
 
         // what the customer-facing bill and the Udhaar receivable hold is unchanged
-        Assert.Equal("9820005555", (string?)await h.ScalarAsync($"SELECT party_phone FROM ctr.bill WHERE bill_id = {ud.Value.BillId}", Ct));
+        Assert.Equal("919820005555", (string?)await h.ScalarAsync($"SELECT party_phone FROM ctr.bill WHERE bill_id = {ud.Value.BillId}", Ct));
         Assert.Equal("9820006666", (string?)await h.ScalarAsync($"SELECT party_phone FROM ctr.bill WHERE bill_id = {named.Value.BillId}", Ct));
         Assert.Equal(1, await h.LongAsync($"SELECT COUNT(*) FROM ops.udhaar_receivable WHERE receivable_id = {ud.Value.UdhaarId} AND mobile = '9820005555'", Ct));
     }
