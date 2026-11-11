@@ -220,7 +220,7 @@ function Copy-HccPublishFiltered {
 
 function Remove-HccGitWorktree {
     param([string]$Repo, [string]$Path)
-    if (-not (Test-Path -LiteralPath $Path)) { return }
+    if (-not (Test-Path -LiteralPath $Path)) { Invoke-HccNative -File $script:Git -Arguments @('-C', $Repo, 'worktree', 'prune') | Out-Null; return }
     # junction first (node_modules), never follow it
     $nm = Join-Path $Path '03 Prototype\node_modules'
     if (Test-Path -LiteralPath $nm) {
