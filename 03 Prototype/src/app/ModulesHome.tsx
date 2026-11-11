@@ -17,8 +17,8 @@ export function Breadcrumb({page,label,tab}:{page:string;label:string;tab?:strin
 }
 
 /** Page tile → opens the page. Count shows open work where there is some. */
-function Tile({icon:Icon,label,blurb,badge,onClick}:{icon:React.ComponentType<{size?:number}>;label:string;blurb:string;badge?:number;onClick:()=>void}){
-  return <button type="button" className="tile" onClick={onClick}>
+function Tile({icon:Icon,label,blurb,badge,onClick,pageId}:{icon:React.ComponentType<{size?:number}>;label:string;blurb:string;badge?:number;onClick:()=>void;pageId?:string}){
+  return <button type="button" className="tile" data-page={pageId} onClick={onClick}>
     <span className="tile-ic" aria-hidden="true"><Icon size={26}/></span>
     <span className="tile-text"><strong>{label}</strong><small>{blurb}</small></span>
     {!!badge&&badge>0&&<b className="tile-badge" aria-label={badge+' open'}>{badge}</b>}
@@ -59,11 +59,11 @@ export function CategoryPage({page}:{page:string}){
   const items=navFilterModules(s,navItems,uid).filter(n=>pagesOfCategory(cat.id).includes(n.id)&&permission(n.p));
   if(!display.isMobile)return <FitGrid title={cat.label} sub={cat.blurb} subText={cat.blurb} label={cat.label+' pages'}
     empty={!items.length?<Empty title="Nothing here for this user" body="Your role has no pages in this module."/>:null}>
-    {items.map(n=><div role="listitem" key={n.id}><Tile icon={n.icon} label={n.label} blurb={PAGE_BLURB[n.id]??''} onClick={()=>go(n.id)}/></div>)}</FitGrid>;
+    {items.map(n=><div role="listitem" key={n.id}><Tile icon={n.icon} label={n.label} blurb={PAGE_BLURB[n.id]??''} pageId={n.id} onClick={()=>go(n.id)}/></div>)}</FitGrid>;
   return <div className="home">
     <div className="home-head"><h1>{cat.label}</h1><p>{cat.blurb}</p></div>
     {!items.length&&<Empty title="Nothing here for this user" body="Your role has no pages in this module."/>}
-    <div className="tiles" role="list">{items.map(n=><div role="listitem" key={n.id}><Tile icon={n.icon} label={n.label} blurb={PAGE_BLURB[n.id]??''} onClick={()=>go(n.id)}/></div>)}</div>
+    <div className="tiles" role="list">{items.map(n=><div role="listitem" key={n.id}><Tile icon={n.icon} label={n.label} blurb={PAGE_BLURB[n.id]??''} pageId={n.id} onClick={()=>go(n.id)}/></div>)}</div>
   </div>;
 }
 

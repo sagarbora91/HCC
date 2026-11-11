@@ -30,6 +30,9 @@ export async function register({test,M,assert}){
     banner:{js:"import {createRequire as __r} from 'node:module';const require=__r(import.meta.url);"}});
   const X=await import(new URL('./.generated/cu-admin-ui.mjs',import.meta.url).href);
   const base=M.seed();
+  // Restaurant (POS only) and a custom role (copy of Manager's grants under its own name) join the seeded roles.
+  base.users.push({id:'cu-rest',name:'Rina · Restaurant',role:'Restaurant',enabled:true},{id:'cu-duty',name:'Dev · Duty Manager',role:'Duty Manager',enabled:true});
+  base.grants.Restaurant=['billing'];base.grants['Duty Manager']=[...base.grants.Manager];
   const esc=t=>t.replace(/&/g,'&amp;');
   const roles=[...new Map(base.users.filter(u=>u.enabled).map(u=>[u.role,u.id])).values()];
   const adminRoles=['Owner','Tech admin'].map(r=>base.users.find(u=>u.role===r&&u.enabled).id);
@@ -42,7 +45,7 @@ export async function register({test,M,assert}){
     for(const c of X.NAV_CATEGORIES){const h=X.render('NavDrawer',base,uid,X.catPage(c.id));for(const m of h.matchAll(/data-page="([^"]+)"/g))if(m[1]!=='admin-setup')got.add(m[1]);}
     if(X.render('NavDrawer',base,uid).includes('data-page="admin-setup"')){
       const h=X.render('CategoryPage',base,uid,X.catPage('admin'));
-      for(const n of X.navItems)if(X.PAGE_CATEGORY[n.id]==='admin'&&h.includes(esc(n.label)))got.add(n.id);
+      for(const m of h.matchAll(/data-page="([^"]+)"/g))got.add(m[1]);
     }
     return got;};
 
@@ -60,7 +63,7 @@ export async function register({test,M,assert}){
       const adminPages=X.navItems.filter(n=>X.PAGE_CATEGORY[n.id]==='admin'&&allowedOf(uid).has(n.id));
       assert.ok(adminPages.length>=5,uid+' admin pages '+adminPages.length);
       const h=X.render('CategoryPage',base,uid,X.catPage('admin'));
-      for(const n of adminPages)assert.ok(h.includes(esc(n.label)),uid+' lacks '+n.id);
+      for(const n of adminPages)assert.ok(h.includes('data-page="'+n.id+'"'),uid+' lacks '+n.id);
     }
   });
   test('[CU-ADMIN-UI] no role loses a page: reachable pages equal the pages the role may open',()=>{
@@ -84,5 +87,13 @@ export async function register({test,M,assert}){
     assert.ok(m,'marked block');
     assert.ok(/@media\(max-width:480px\)/.test(m[0])&&m[0].includes('.fit-topbar')&&m[0].includes('.fit-demo-pill')&&m[0].includes('.crumbs'));
     assert.ok(!/#[0-9a-fA-F]{3,8}\b/.test(m[0]),'no hex colours');
+    // Business date + Open/Closed stay visible; only the clock chip, the words "Business date" and the chip's icon go; text is never shrunk (except the DEMO pill's word).
+    const rules=[...m[0].matchAll(/([^{}@]+)\{([^}]*)\}/g)].map(r=>[r[1].trim(),r[2]]);
+    const hiddenSel=rules.filter(([,b])=>/display:none/.test(b)).flatMap(([sel])=>sel.split(',').map(x=>x.trim()));
+    assert.ok(!hiddenSel.some(x=>/\.today/.test(x)&&!/fit-date-text|>svg/.test(x)),'business date chip is not hidden');
+    assert.ok(rules.some(([sel,b])=>/\.today:not\(\.fit-clock\)/.test(sel)&&/display:flex!important/.test(b)),'date chip forced visible');
+    assert.ok(hiddenSel.some(x=>/fit-date-text/.test(x)),'only the words "Business date" are dropped');
+    assert.ok(!rules.some(([sel,b])=>/font-size/.test(b)&&!/fit-demo-pill/.test(sel)),'no text shrinking');
+    assert.ok(!hiddenSel.some(x=>/crumbs li:last-child$/.test(x)),'current crumb stays');
   });
 }
