@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "description": "Offline SQL Server Express media for the HCC installer. Bootstrap-HccSql.ps1 refuses any file whose name or SHA-256 differs. The files themselves are never committed.",
+  "source": "ETP payload folder 'SQL payload for the ETP installer (2025 + ODBC 17)' (prepared 26 Sep 2026); hashes computed 12 Nov 2026",
+  "files": [
+    { "name": "SQLEXPR_x64_ENU.exe",  "role": "engine",  "bytes": 748772024, "sha256": "74aa90c11202a5524e769b9bc22531baef22d91e9b2d2e8c3cb99e89a65c5297" },
+    { "name": "MsSqlCmdLnUtils.msi",  "role": "sqlcmd",  "bytes": 2129920,   "sha256": "d011be31d356c40992f91267bd11680423aca9d1f4e058119e033cd5088fb8a5" },
+    { "name": "msodbcsql17.msi",      "role": "odbc17",  "bytes": 3670016,   "sha256": "b46c46f5644e6b34894ab2f98c74bede9af226013e193e791d362e649083bcd8" },
+    { "name": "msodbcsql.msi",        "role": "odbc18",  "bytes": 4747264,   "sha256": "b0fe5feb86975837c3297bf09e843c30241512aac4d10a4d40377c54039016bb" },
+    { "name": "SqlLocalDB.msi",       "role": "unused",  "bytes": 68452352,  "sha256": "c8cf7455b79f4018c895098392bb80c2b5cba0d1e3ecfa22dd6fad7873894561" }
+  ]
+}
