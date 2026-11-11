@@ -39,6 +39,10 @@ public sealed class ExportLogReportTests(ReportDatabase db) : IClassFixture<Repo
                   ({{p}}, '2026-10-23 19:00', {{mgr}}, 'rpt.admin.export-log', @h, N'{"from":"2026-10-23","to":"2026-10-24"}', 'print', 5, NULL, 0),
                   ({{p}}, '2026-10-23 06:30', {{own}}, 'rpt.gone.unknown', @h, N'{}', 'pdf', 0, N'c.pdf', 0),
                   ({{p}}, '2026-10-20 04:30', {{own}}, 'rpt.admin.report-dictionary', @h, N'{}', 'csv', 12, N'd.csv', 0);
+                -- another property's log row never shows
+                INSERT inv.property(code, name, time_zone, business_date) VALUES ('ZZ2', N'Other Hotel', 'Asia/Kolkata', '2026-10-24');
+                INSERT rpt.export_log(property_id, at_utc, principal_id, report_id, params_hash, params, format, row_count, file_name, provisional)
+                  VALUES (SCOPE_IDENTITY(), '2026-10-23 05:00', {{own}}, 'rpt.admin.report-dictionary', @h, N'{}', 'pdf', 99, NULL, 0);
                 SELECT 1;
                 """);
             _seeded = true;

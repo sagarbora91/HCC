@@ -1,6 +1,6 @@
 // FX-RPT-C · rpt.money.closing-records — one row per closed business date of a financial year, newest first, from the stored closing record (cls.closing_snapshot, the current
 // record of the date; one replaced by a re-close is history and not listed). Server twin of built/money.ts `closingRecords`. View PERM-CLS-001, money gate PERM-RPT-002.
-// Cash difference = counted - expected (0 when no count was stored, as the prototype record always carries a count). Corrections = how many times the Owner reopened the date.
+// Cash difference = the stored record's figures.drawer.differencePaise (the sum over every closed shift of counted - expected, what the production client shows), 0 when absent. Corrections = how many times the Owner reopened the date.
 using System.Data;
 using Hcc.Application.Billing;
 using Hcc.Application.Reporting.Rpt;
@@ -30,7 +30,7 @@ public sealed class ClosingRecordsReport(SqlPlatform platform) : IReportSelector
         var rows = new List<ReportRow>();
         await using var conn = await platform.Connections.OpenAsync(ct).ConfigureAwait(false);
         await using var cmd = new SqlCommand("""
-            SELECT s.business_date, s.closed_by, s.closed_utc, s.net_revenue_paise, s.net_receipts_paise, s.cash_expected_paise, s.cash_counted_paise,
+            SELECT s.business_date, s.closed_by, s.closed_utc, s.net_revenue_paise, s.net_receipts_paise, ISNULL(CAST(JSON_VALUE(s.record_json, '$.figures.drawer.differencePaise') AS BIGINT), 0),
                    (SELECT COUNT(*) FROM cls.day_reopen r WHERE r.property_id = s.property_id AND r.business_date = s.business_date)
               FROM cls.closing_snapshot s
              WHERE s.property_id = @p AND s.superseded_utc IS NULL AND s.business_date BETWEEN @from AND @to
@@ -42,10 +42,9 @@ public sealed class ClosingRecordsReport(SqlPlatform platform) : IReportSelector
         await using var rd = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
         while (await rd.ReadAsync(ct).ConfigureAwait(false))
         {
-            var expected = rd.GetInt64(5);
-            var difference = rd.IsDBNull(6) ? 0L : rd.GetInt64(6) - expected;
+            var difference = rd.GetInt64(5);
             rows.Add(FxCSupport.Row(ReportRowKind.Row, ("date", DateOnly.FromDateTime(rd.GetDateTime(0))), ("closedBy", FxCSupport.NameOf(names, rd.GetInt32(1))), ("closedAt", IstText(rd.GetDateTime(2))),
-                ("netRevenue", rd.GetInt64(3)), ("netReceipts", rd.GetInt64(4)), ("cashDifference", difference), ("corrections", (long)rd.GetInt32(7))));
+                ("netRevenue", rd.GetInt64(3)), ("netReceipts", rd.GetInt64(4)), ("cashDifference", difference), ("corrections", (long)rd.GetInt32(6))));
         }
 
         return new ReportResult(Id, Definition.Title, parameters, Columns, rows, FxCSupport.About(Definition, parameters));

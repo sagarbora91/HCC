@@ -63,6 +63,11 @@ public sealed class ClosedBillsReportTests(ReportDatabase db) : IClassFixture<Re
                     inter_state, taxable_paise, cgst_paise, sgst_paise, igst_paise, total_paise, amount_words, issued_by, issued_utc)
                   SELECT @p, 'RST', 'RST/2627/0000001', '2627', 1, '2026-10-23', 'pos', bill_id, 'POS/2610/0001', 'B2C', '27', N'Test Hotel', '27AAAAA0000A1Z5', '27', 0, 60000, 1500, 1500, 0, 63000, N'Rupees', {own}, '2026-10-23 13:00'
                     FROM pos.bill WHERE bill_no = 'POS/2610/0001';
+                -- the second bill was corrected: invoices revision 1 and 2; only the latest number is shown, once
+                INSERT ivc.invoice(property_id, doc_type, invoice_no, fy_code, seq, invoice_date, source_kind, source_id, source_ref, supply_type, place_of_supply, supplier_name, supplier_gstin, supplier_state,
+                    inter_state, taxable_paise, cgst_paise, sgst_paise, igst_paise, total_paise, amount_words, issued_by, issued_utc, revision)
+                  SELECT @p, 'RST', v.no, '2627', v.seq, '2026-10-23', 'pos', bill_id, 'POS/2610/0002', 'B2C', '27', N'Test Hotel', '27AAAAA0000A1Z5', '27', 0, 30000, 750, 750, 0, 31500, N'Rupees', {own}, '2026-10-23 14:00', v.seq - 1
+                    FROM pos.bill CROSS JOIN (VALUES ('RST/2627/0000002', 2), ('RST/2627/0000003', 3)) v(no, seq) WHERE bill_no = 'POS/2610/0002';
                 SELECT 1;
                 """);
             _seeded = true;
@@ -80,7 +85,7 @@ public sealed class ClosedBillsReportTests(ReportDatabase db) : IClassFixture<Re
     {
         var r = await Run(db, Runner(), "OWN", ClosedBillsReport.Id, ("from", "2026-10-23"));
         var bills = r.Rows.Where(x => x.Kind == ReportRowKind.Row).ToList();
-        Assert.Equal(["RST/2627/0000001", "POS/2610/0002", "POS/2610/0003"], bills.Select(x => S(x, "check")));
+        Assert.Equal(["RST/2627/0000001", "RST/2627/0000003", "POS/2610/0003"], bills.Select(x => S(x, "check")));
         Assert.Equal(["Restaurant", "Restaurant", "Room service"], bills.Select(x => S(x, "outlet")));
         Assert.Equal(["Table T1", "Table T2", "Room 101"], bills.Select(x => S(x, "table")));
         Assert.Equal(["2026-10-23T18:30", "2026-10-23T19:30", "2026-10-23T20:30"], bills.Select(x => S(x, "closedAt")));
@@ -96,7 +101,7 @@ public sealed class ClosedBillsReportTests(ReportDatabase db) : IClassFixture<Re
     public async Task The_cashier_sees_only_their_own_bills_and_an_empty_day_has_no_total_row()
     {
         var r = await Run(db, Runner(), "CSH", ClosedBillsReport.Id, ("from", "2026-10-23"));
-        Assert.Equal(["POS/2610/0002", "Total"], r.Rows.Select(x => S(x, "check")));
+        Assert.Equal(["RST/2627/0000003", "Total"], r.Rows.Select(x => S(x, "check")));
         Assert.Equal(31500L, L(r.Rows[1], "total"));
         Assert.Empty((await Run(db, Runner(), "ACC", ClosedBillsReport.Id, ("from", "2026-10-22"))).Rows);
         Assert.Equal(HccErrorCode.VALIDATION, await Code(() => Run(db, Runner(), "OWN", ClosedBillsReport.Id, ("from", "2026-10-22"), ("to", "2026-10-23"))));
