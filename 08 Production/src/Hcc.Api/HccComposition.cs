@@ -272,6 +272,15 @@ public static class HccComposition
         Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.CuB.RoomsOccupancyReport>(services);
         Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.CuB.StockSheetReport>(services);
         // /CU-RPT-B
+        // FX-RPT-D
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.FxD.StockReorderReport>(services);
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.FxD.StockLaundryReport>(services);
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.FxD.StockCountsReport>(services);
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.FxD.StockLossesReport>(services);
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.FxD.StockConsumptionReport>(services);
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.FxD.StockParReport>(services);
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.FxD.StockMovementsReport>(services);
+        // /FX-RPT-D
         // F8-QW-NA
         services.AddNightAuditModule();
         // F8-QW-NA end

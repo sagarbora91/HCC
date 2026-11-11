@@ -85,6 +85,11 @@ public sealed class EngineTests
         new Hcc.Reporting.Reports.CuB.ReceiptsDepositsReport(null!, null!), new Hcc.Reporting.Reports.CuB.RestDaySummaryReport(null!, null!, null!),
         new Hcc.Reporting.Reports.CuB.RoomsOccupancyReport(null!), new Hcc.Reporting.Reports.CuB.StockSheetReport(null!),
         // /CU-RPT-B
+        // FX-RPT-D
+        new Hcc.Reporting.Reports.FxD.StockReorderReport(null!), new Hcc.Reporting.Reports.FxD.StockLaundryReport(null!), new Hcc.Reporting.Reports.FxD.StockCountsReport(null!, null!),
+        new Hcc.Reporting.Reports.FxD.StockLossesReport(null!, null!), new Hcc.Reporting.Reports.FxD.StockConsumptionReport(null!), new Hcc.Reporting.Reports.FxD.StockParReport(null!),
+        new Hcc.Reporting.Reports.FxD.StockMovementsReport(null!, null!),
+        // /FX-RPT-D
     ]).All;
 
     // F12-RPT-GUEST
