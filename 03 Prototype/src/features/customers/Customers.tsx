@@ -12,6 +12,7 @@ import {GuestMoneySections} from '../lfmoney/GuestMoney';
 import {GuestDetails,VerifiedPill,statusTone} from '../guests/GuestProfile';
 import {FitPage,FitTabs,ScrollPanel,SplitView,FitNote,useWideSplit,useFitTab} from '../../components/fit';
 import {ForeignerRegisterPanel} from '../guests/FormCPrint'; // LF-DESK
+import {MergePanel,useMergeView,mergeCount} from './Merge'; // FX-MERGE-UI
 
 type Tab='history'|'profile'|'service';
 const initials=(n:string)=>n.split(' ').map(p=>p[0]).slice(0,2).join('').toUpperCase();
@@ -22,7 +23,8 @@ export function CustomersPage(){const {display}=useHcc();return display.isMobile
 export function CustomerPanel(p:{c:Customer;onBack:()=>void;onLegacy:()=>void;initialTab?:InnerTab}){const {display}=useHcc();return display.isMobile?<CustomerPanelPhone {...p}/>:<CustomerPanelFit {...p}/>;}
 
 function CustomersPhonePage(){
-  const {s,uid,search,setSearch,display}=useHcc();
+  const {s,uid,search,setSearch,display,open}=useHcc();
+  const mv=useMergeView(); // FX-MERGE-UI
   const access=guestAccess(s,uid);
   const [legacyRev,setLegacyRev]=useState(0); // LG-UI: bumps when a profile read brought legacy stays (production)
   const all=useMemo(()=>customerIndex(s,getLegacyLookup()),[s.bookings,s.guests,s.date,legacyRev]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -34,6 +36,7 @@ function CustomersPhonePage(){
   const digitsOnly=search.trim()!==''&&!/[a-z]/i.test(search);
   return <>
     <PageTitle title="Customers" sub={`Everyone who has booked with us — ${all.length.toLocaleString('en-IN')} customers. Search by name or mobile number.`}/>
+    {mv.canMerge&&<button type="button" className="btn cmx-open" onClick={()=>open({type:'customer-merge'})}>Possible duplicates{mergeCount(mv)>0?` (${mergeCount(mv)})`:''}</button>}{/* FX-MERGE-UI */}
     <div className={'cust'+(c&&sel?' has-sel':'')}>
       <section className="card cust-list-card">
         <div className="toolbar"><SearchBox value={search} onChange={setSearch} placeholder={access.contact?'Search name or mobile number…':'Search by name…'}/>
@@ -137,7 +140,7 @@ function LegacyStays({c,lp,showMoney}:{c:Customer;lp:{shown:readonly Customer['l
     <ShowMore p={lp}/></>;
 }
 
-const CUST_TABS=['customers','foreigner-register'] as const; // LF-DESK
+const CUST_TABS=['customers','duplicates','foreigner-register'] as const; // LF-DESK + FX-MERGE-UI
 type CustTab=typeof CUST_TABS[number];
 function CustomersFitPage(){
   const {s,uid,search,setSearch}=useHcc();
@@ -153,14 +156,15 @@ function CustomersFitPage(){
   const digitsOnly=search.trim()!==''&&!/[a-z]/i.test(search);
   const sub=`Everyone who has booked with us — ${all.length.toLocaleString('en-IN')} customers. Search by name, mobile number or vehicle number.`;
   // LF-DESK · page tabs: Customers · Foreigner register (Form C stays), the register for roles with the ID-details right
-  const tabIds=access.idDetails?CUST_TABS:CUST_TABS.slice(0,1);
+  const mv=useMergeView(); // FX-MERGE-UI
+  const tabIds=CUST_TABS.filter(t=>t==='customers'||(t==='duplicates'?mv.canMerge:access.idDetails));
   const [pageTab,setPageTab]=useFitTab<CustTab>('customers',tabIds,'customers');
   // LF-DESK end
-  return <FitPage title="Customers" sub={sub} layout={pageTab==='customers'?'split':'fill'}
-      tabs={access.idDetails?<FitTabs<CustTab> page="customers" tabs={[{id:'customers',label:'Customers'},{id:'foreigner-register',label:'Foreigner register'}]} value={pageTab} onChange={setPageTab}/>:undefined}
+  return <FitPage title="Customers" sub={sub} layout={pageTab==='foreigner-register'?'fill':'split'}
+      tabs={tabIds.length>1?<FitTabs<CustTab> page="customers" tabs={[{id:'customers',label:'Customers'},...(mv.canMerge?[{id:'duplicates' as CustTab,label:'Possible duplicates',count:mergeCount(mv)||undefined}]:[]),...(access.idDetails?[{id:'foreigner-register' as CustTab,label:'Foreigner register'}]:[])]} value={pageTab} onChange={setPageTab}/>:undefined}
       toolbar={pageTab!=='customers'?undefined:<><SearchBox value={search} onChange={setSearch} placeholder={access.contact?'Search name, mobile or vehicle number…':'Search by name or vehicle number…'}/>
         {!access.contact&&<span className="muted"><Lock size={12}/> Mobile numbers are masked for your role</span>}</>}>
-    {pageTab==='foreigner-register'?<ForeignerRegisterPanel/>:<SplitView label="Customers" ratio="2fr 3fr" onCloseDetail={()=>setSel('')}
+    {pageTab==='foreigner-register'?<ForeignerRegisterPanel/>:pageTab==='duplicates'?<MergePanel/>:<SplitView label="Customers" ratio="2fr 3fr" onCloseDetail={()=>setSel('')}
       list={<ScrollPanel title="Customers" label="Customer list" actions={<span className="muted">{list.length.toLocaleString('en-IN')} shown</span>}
           footer={<><ShowMore p={paged}/><FitNote text="All customer records are fictional. Customers are matched by mobile number; the same person with two different numbers appears twice."/></>}>
         {list.length?<ul className="cust-list">{paged.shown.map(x=><li key={x.key}><button type="button" className={'cust-item'+(c?.key===x.key?' active':'')} aria-pressed={c?.key===x.key} onClick={()=>setSel(x.key)}>

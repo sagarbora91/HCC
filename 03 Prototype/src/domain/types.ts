@@ -358,6 +358,8 @@ export type State={
   handoverX?:import('./streams/handover').HOVState;
   /** KEYS room keys: lock mapping overrides, encoder state, job log, card ledger (optional; absent in old saves, no SCHEMA bump). */
   keysX?:import('./streams/keys').KEYSlice;
+  /** FX merge-ui: customer merge requests, aliases (merged-away key -> survivor) and dismissed duplicate pairs (optional; no SCHEMA bump). */
+  customerMergeX?:import('./streams/customer-merge').CMXSlice;
   servicesX?:import('./streams/services').GSVState;
   messagingX?:import('./streams/messaging').MSGState;
   posX?:import('./streams/pos').POSState;

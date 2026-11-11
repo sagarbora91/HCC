@@ -239,6 +239,8 @@ export const READS={
   'GET /guest-services/complaint-categories/history':one(wide('PERM-MST-001')),
   'GET /guest-services/lost-found-categories':always,
   'GET /guest-services/lost-found-categories/history':one(wide('PERM-MST-001')),
+  // FX-MERGE-UI: customer merge lists = PERM-CRM-003 (CustomerQueries.MergeAccessAsync: MergeDecide, else MergePropose; both are PERM-CRM-003, Owner and Manager)
+  'GET /customers/duplicates':one(wide('PERM-CRM-003')),'GET /customers/merges':one(wide('PERM-CRM-003')),
 } satisfies Record<string,(me:Me)=>boolean>;
 export type ReadRoute=keyof typeof READS;
 

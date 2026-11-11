@@ -10,12 +10,14 @@ import {hovIsManager} from '../domain/streams/handover';
 import {yldProposals} from '../domain/streams/yield';
 import {keyCanConfigure} from '../domain/streams/keys';
 import {guestAccess} from '../domain/streams/guests'; // LF-DESK
+import {cmxMayMerge} from '../domain/streams/customer-merge'; // FX-MERGE-UI
 import {hallTabOpen} from '../features/hall/access'; // F6-H3
 export type SubScreen={page:string;id:string;label:string;keywords?:string[]};
 export const SUB_SCREENS:SubScreen[]=[
   // FIT-FRONT
   // LF-DESK
   {page:'customers',id:'customers',label:'Customers'},
+  {page:'customers',id:'duplicates',label:'Possible duplicates',keywords:['merge','duplicate','same person','combine customers']}, // FX-MERGE-UI
   {page:'customers',id:'foreigner-register',label:'Foreigner register',keywords:['form c','foreign','immigration','passport','visa']},
   // LF-DESK end
   // FIT-FRONT-B: reservations, arrivals, inhouse, guests have no sub-screens (fill / split pages).
@@ -244,6 +246,7 @@ export const SUB_SCREEN_GATES:Record<string,(s:State,uid:string)=>boolean>={
   'pos:summary':rbacPosSeesDaySales,
   'messages:outbox':notTemplatesOnly,'messages:consent':notTemplatesOnly,
   'handover:dashboard':hovIsManager,'handover:templates':hovIsManager,
+  'customers:duplicates':(s,uid)=>cmxMayMerge(s,uid), // FX-MERGE-UI
   'customers:foreigner-register':(s,uid)=>guestAccess(s,uid).idDetails, // LF-DESK
   'keys:locks':(s,uid)=>keyCanConfigure(s,uid),'keys:encoder':(s,uid)=>keyCanConfigure(s,uid),
   // F6-H3

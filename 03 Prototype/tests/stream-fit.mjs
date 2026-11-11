@@ -109,7 +109,9 @@ export async function register({test,M,assert}){
       // F8 (f8-int): new features on phone screens, not FIT layout changes: qw-pm PM calendar tab, qw-na night-audit cards, sf-ui split-folio chips / settle-all sheet
       '03 Prototype/src/features/maintenance/MaintenanceMobile.tsx','03 Prototype/src/mobile/admin/Closing.tsx','03 Prototype/src/mobile/money/Checkout.tsx','03 Prototype/src/mobile/money/Folio.tsx',
       // F8C (claude/f8c): phone bill routing, the "Who pays" card at phone check-in (new feature, not FIT layout); its styles are token-only (guarded in [CT-A])
-      '03 Prototype/src/mobile/frontdesk/BillRouting.tsx','03 Prototype/src/mobile/frontdesk/routing.ts','03 Prototype/src/styles/mobile-frontdesk.css']);
+      '03 Prototype/src/mobile/frontdesk/BillRouting.tsx','03 Prototype/src/mobile/frontdesk/routing.ts','03 Prototype/src/styles/mobile-frontdesk.css',
+      // FX merge-ui: phone sheet of the customer merge screen (new feature, not FIT layout)
+      '03 Prototype/src/features/customers/MergeMobile.tsx']);
       // F5-int: phone OTA banner   // F4-T1: tariff card phone cards + its sheet (new feature, not FIT)
     const bad=out.split('\n').map(s=>s.trim()).filter(Boolean).filter(phone).filter(f=>!FROM_MAIN.has(f));
     assert.deepEqual(bad,[],'phone-layout files changed since '+FIT_BASE);

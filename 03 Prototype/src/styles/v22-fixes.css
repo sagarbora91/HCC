@@ -31,3 +31,36 @@ button.pill.cfg-switch:focus-visible{outline:3px solid var(--primary);outline-of
   .app-shell.fit-shell .fit-demo-pop{right:8px;width:calc(100vw - 16px)}
 }
 /* /CU-ADMIN-UI */
+/* FX-MERGE-UI: Customers 360 > Possible duplicates (desktop compare table + confirm, phone cards). Tokens only. */
+.cmx-detail{padding:14px 16px;margin:0}
+.cmx-detail h2,.cmx-confirm h3{margin:0 0 6px}
+.cmx-table{width:100%;border-collapse:collapse;margin:8px 0 12px;table-layout:fixed}
+.cmx-table th,.cmx-table td{text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid var(--line);overflow-wrap:anywhere}
+.cmx-table thead th{position:sticky;top:0;background:var(--surface)}
+.cmx-table tbody th{font-weight:600;color:var(--muted);width:22%}
+.cmx-table tr.differs td{background:var(--warn-bg)}
+.cmx-sug{color:var(--muted);font-weight:400}
+.cmx-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.cmx-moves{margin:8px 0;padding-left:20px;line-height:1.45}
+.cmx-warn{background:var(--warn-bg);border:1px solid var(--warn-border);color:var(--warn-text);border-radius:8px;padding:8px 10px;margin:8px 0}
+.cmx-err{color:var(--danger-text);margin:6px 0}
+.cmx-field{display:flex;flex-direction:column;gap:4px;margin:8px 0;font-weight:600}
+.cmx-field input{font:inherit;min-height:44px;padding:6px 10px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink)}
+.cmx-list{list-style:none;margin:0 0 8px;padding:0 12px;display:flex;flex-direction:column;gap:6px}
+.cmx-pending{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;border:1px solid var(--line);border-radius:10px;padding:8px 10px}
+.cmx-pending-main{display:flex;flex-direction:column;min-width:0;overflow-wrap:anywhere}
+.cmx-pending-main small{color:var(--muted)}
+.cmx-pairs{padding-top:0}
+.cmx-open{min-height:48px;margin:0 0 8px}
+.cmx-m{display:flex;flex-direction:column;gap:10px;min-width:0;max-width:100%}
+.cmx-m h2,.cmx-m h3{margin:0}
+.cmx-m-back,.cmx-m-switch{min-height:48px;align-self:flex-start}
+.cmx-m-card{padding:12px;margin:0;min-width:0}
+.cmx-m-dl{margin:6px 0 0;display:flex;flex-direction:column;gap:4px}
+.cmx-m-dl div{display:flex;flex-direction:column;padding:4px 6px;border-radius:6px;overflow-wrap:anywhere}
+.cmx-m-dl div.differs{background:var(--warn-bg)}
+.cmx-m-dl dt{color:var(--muted);font-size:14px}
+.cmx-m-dl dd{margin:0}
+.cmx-m-actions{display:flex;flex-direction:column;gap:8px}
+.cmx-m-actions .btn,.cmx-m .cmx-actions .btn{min-height:48px;white-space:normal}
+/* /FX-MERGE-UI */

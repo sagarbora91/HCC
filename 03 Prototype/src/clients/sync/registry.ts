@@ -154,6 +154,9 @@ import {moneySplit} from './money-split'; // F8C-SYNC: SF_FOLIO_OPEN / SF_ROUTE_
 // F8-QW-ADV end
 // F8-QW-PM
 // F8-QW-PM end
+// FX-MERGE-UI
+import {customerMerge} from './customer-merge';
+// FX-MERGE-UI end
 export const AREAS:SyncArea[]=[
   core,
   reservations,
@@ -264,4 +267,7 @@ export const AREAS:SyncArea[]=[
   // F8-QW-ADV end
   // F8-QW-PM
   // F8-QW-PM end
+  // FX-MERGE-UI
+  customerMerge,
+  // FX-MERGE-UI end
 ];

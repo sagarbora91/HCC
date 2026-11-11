@@ -202,6 +202,8 @@ const CMDS={
   ...Object.fromEntries(['HOV_ITEM','HOV_RUN_SUBMIT','HOV_NOTE_SUBMIT','HOV_NOTE_ACK','HOV_CARRY_DONE'].map(c=>[c,C('OWN MGR REC CSH SUP HKP MNT','Module 19 R1/R7')])),
   ...Object.fromEntries(['KEY_REQUEST','KEY_CANCEL','KEY_READ','KEY_MANUAL'].map(c=>[c,C('OWN MGR REC','KEYS PERM-KEY-001/002/003 (coarse: checkin / checkout)')])),
   ...Object.fromEntries(['KEY_LOCK_SAVE','KEY_ENCODER','KEY_SIM','KEY_AGENT_STEP','KEY_CLOCK'].map(c=>[c,C('OWN MGR','KEYS PERM-KEY-004 keys.configure (coarse: approve); the encoder switches are demo only')])),
+  // FX-MERGE-UI: customer merge (server PERM-CRM-003 for propose, decide and the lists = Owner, Manager; coarse: approve). Dismiss is demo only, same guard.
+  ...Object.fromEntries(['CUSTMERGE_PROPOSE','CUSTMERGE_DECIDE','CUSTMERGE_DISMISS'].map(c=>[c,C('OWN MGR','CRM PERM-CRM-003 customers.approve (coarse: approve)')])),
   // LF-money (L1 lf-money, contract §2–§7): rate change, agreed rate, bill correction, counter bills, guest credit.
   STAY_RATE_CHANGE:C('OWN MGR REC','LF PERM-STY-010'),GUEST_RATE_SET:C('OWN','LF PERM-GST-010 (Owner)'),GUEST_RATE_CLEAR:C('OWN','LF PERM-GST-010 (Owner)'),
   BILL_CORRECTION_REQUEST:C('OWN MGR REC CSH ACC','LF PERM-FOL-010 (FOL-005 holders)'),
