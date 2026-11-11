@@ -12,15 +12,15 @@ const G='PERM-POS-004';
 export const SALES_ITEM_COLS:RptColumn[]=[col('item','Item','text'),col('category','Category','text'),col('qty','Qty','int'),col('value','Value','money',true),col('share','Share','pct')];
 export const salesByItem=registerReport({
   id:'rpt.rest.sales-by-item',title:'Sales by item',area:'rest',priority:'P2',status:'built',moneyFlag:true,moneyGate:G,viewPerms:[G],ownShift:true,dateClass:'D-B',
-  params:[...rangeParams('D-B'),{key:'outlet',label:'Outlet',type:'text'}],columns:SALES_ITEM_COLS,
+  params:[...rangeParams('D-B'),{key:'outlet',label:'Outlet',type:'text'},{key:'cashier',label:'Cashier',type:'user'}],columns:SALES_ITEM_COLS,
   dateBasis:'Settled checks by settlement date; value = quantity x price before tax (voided lines are left out); share = the item value in the report total. Categories by value, items by value inside a category.',
   formats:['screen','xlsx','pdf','csv'],phone:'yes',
   select:(s,uid,p)=>{
     cap92(p);
-    const all=rptHolds(s,uid,G,false),q=String(p.outlet??'').trim().toLowerCase(),P=posSlice(s);
+    const all=rptHolds(s,uid,G,false),q=String(p.outlet??'').trim().toLowerCase(),cashier=String(p.cashier??'').trim(),P=posSlice(s); // CU-F8E-OPEN: cashier = the user who settled the check
     const byItem=new Map<string,{name:string;cat:string;qty:number;value:number}>();
     for(const o of P.orders){
-      const st=o.settlement;if(o.status!=='Settled'||!st||st.date<p.from!||st.date>p.to!||(!all&&st.by!==uid))continue;
+      const st=o.settlement;if(o.status!=='Settled'||!st||st.date<p.from!||st.date>p.to!||(!all&&st.by!==uid)||(cashier&&st.by!==cashier))continue;
       if(q&&o.outlet.toLowerCase()!==q&&(posOutlet(s,o.outlet)?.name??'').toLowerCase()!==q)continue;
       for(const l of posActiveLines(o)){
         const m=P.menu.find(x=>x.id===l.item),cat=m?posItemCategoryName(s,m):'Other';

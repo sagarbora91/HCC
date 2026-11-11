@@ -5945,7 +5945,8 @@
   "params": [
    "from",
    "to",
-   "outlet"
+   "outlet",
+   "cashier"
   ],
   "columns": [
    {

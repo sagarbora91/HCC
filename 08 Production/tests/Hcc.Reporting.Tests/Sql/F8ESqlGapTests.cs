@@ -397,6 +397,31 @@ public sealed class F8ESqlGapTests(ReportDatabase db) : IClassFixture<ReportData
         Assert.Empty(CounterBillsReport.Rows(none));
     }
 
+    // CU f8e-open: the company-credit counter bill (ctr.bill.settlement_mode = 'company') in the counter-bills report.
+    [Fact]
+    public async Task Counter_bills_report_shows_a_company_credit_bill_and_its_credited_state_with_exact_paise()
+    {
+        var p = db.PropertyId;
+        var rec = db.Users["REC"];
+        await db.ScalarAsync($"""
+            DECLARE @p INT = {p};
+            INSERT grp.company_account(property_id, name, credit_limit_paise, created_by, created_utc) VALUES (@p, N'Counter Credit Traders (fictional)', 500000, {rec}, SYSUTCDATETIME());
+            DECLARE @co BIGINT = SCOPE_IDENTITY();
+            INSERT ctr.bill(property_id, invoice_no, business_date, issued_utc, issued_by, party_name, company_id, discount_paise, net_paise, tax_paise, cgst_paise, sgst_paise, total_paise, settlement_mode, status)
+              VALUES (@p, 'HPE/2627/0201', '2026-12-05', '2026-12-05 05:00', {rec}, N'Counter Credit Traders (fictional)', @co, 0, 40000, 2000, 1000, 1000, 42000, 'company', 'Issued');
+            INSERT ctr.bill_line(bill_id, seq, label, qty, unit_paise, amount_paise, gst_category, tax_bps, sac) VALUES (SCOPE_IDENTITY(), 1, N'Dinner', 1, 40000, 40000, 'food', 500, '996331');
+            SELECT 1;
+            """);
+        var src = new SqlP2BReportSource(db.Platform.Connections);
+        var bills = await src.CounterBillsAsync(p, new DateOnly(2026, 12, 5), new DateOnly(2026, 12, 5), Ct);
+        var bill = Assert.Single(bills);
+        Assert.Equal(("HPE/2627/0201", "Company credit", 40000L, 2000L), (bill.No, bill.Tender, bill.NetPaise, bill.TaxPaise));
+        Assert.Equal([new CounterLineFact("Dinner", 1, 40000, 40000)], bill.Lines);
+        var grand = CounterBillsReport.Rows(bills)[^1];
+        Assert.Equal((ReportRowKind.Total, 40000L, 2000L), (grand.Kind, grand.Cells["amount"], grand.Cells["tax"]));
+        Assert.Equal("Company credit · credited HPE/CN/0009", SqlP2BReportSource.Tender("company", string.Empty, "Credited", "HPE/CN/0009"));
+    }
+
     // ── cash-count grids ─────────────────────────────────────────────────────────────────────────────────────────────────────────
 
     [Fact]
