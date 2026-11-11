@@ -101,3 +101,71 @@ Nothing indicates a real run: the DONE file says so, the tests only enumerate th
 11. `HccClient.iss` 28: x64 only. Fine if every hotel PC is 64-bit; say it in READ-ME.
 12. The real CA (`New-HccCertificate.ps1` 53, 60) permits `localhost` and `127.0.0.1`, so on every client PC the hotel CA can also vouch for any local HTTPS service. Server-lane / keys-session question, not this lane's; mention it to the orchestrator.
 13. The DONE file is honest and exact about what was not run (wizard, Pascal at runtime, real store writes, launcher, silent mode); items 2 and 4 need the trial machine.
+
+---
+
+# Second pass (fix round 817646f7, 12 Nov 2026)
+
+Scope: `git diff d0f79ce0..817646f7` only, checked against the code, not the DONE file. Same limits: non-elevated session, nothing installed, no store opened for writing, ISCC into the scratchpad only, no lane code edited.
+
+## Verdict: **FIX** (two small items; everything else from the first pass is fixed)
+
+## What I ran
+| Run | Result |
+|---|---|
+| `ISCC /Q /DAppVersion=0.0.1.0 /DOutputDir=<scratch>` | exit 0, `HCC-Client-Setup-0.0.1.0.exe` 2,068,656 bytes |
+| Full `tests\Test-HccDeployment.ps1`, Windows PowerShell 5.1 | exit 0, **Passed: 117 Failed: 0** (INST-CLIENT block 25 checks, all PASS) |
+| First-pass probe set (unchanged script), PS 5.1 and PS 7 | identical in both; every first-pass hole now refused (table below) |
+| New Name Constraints attack probe: 48 hand-built DER cases in in-memory certificates (`CertificateRequest`), PS 5.1 and PS 7, plus the `-Action Inspect` command line under strict mode | identical in both; results below |
+| `git check-ignore` on `08 Production/deployment/windows/installer/Output/x.exe` | ignored by `.gitignore:58 **/installer/Output/` |
+| `git diff --stat` vs `--ignore-cr-at-eol` | identical; the only removed test lines are the lane's own earlier live-store check inside its block |
+
+## The eight first-pass items
+| # | Status | Evidence |
+|---|---|---|
+| 1 Name-constraint content | **Fixed** | `Get-HccNameConstraintInfo` / `Test-HccHostPermitted` (`Hcc-ClientTrust.ps1` 144-212). Probe: non-critical, empty, excluded-only, `com/net/in` + `0.0.0.0/0`, host `bank.example` all refused; real-style CA accepted with "can vouch only for: hotel-pc, localhost, 192.168.1.10, 127.0.0.1". Kit refuses an uncovered `-ServerName` (`New-HccClientKit.ps1` 38-39). |
+| 2 Gating | **Fixed, with one regression (FIX 1 below)** | `NextButtonClick` 289-291 requires `InspectOk and ConfirmCheck.Checked` when not silent; `PrepareToInstall` 296-318 always re-inspects, silent needs `ExpectedKnown`, interactive needs the tick box; empty / null `caSha256` = no fingerprint (`Read-HccClientConfig` 269-272, probe 10 / 10c). |
+| 3 Circular fingerprint | **Fixed (wording)**; depends on lane `server` | Confirmation text (`HccClient.iss` 209-215) and READ-ME (`New-HccClientKit.ps1` 94-97) point at the SERVER PC and say the stick cannot prove anything; tick-box caption "The fingerprint matches the server PC". The text names "the last page of the HCC server setup, or its install log": that is true only once lane `server` shows the CA SHA-256 there (recorded as a dependency in the DONE file; the kit step's console output already prints it). The orchestrator must hold the merge of both lanes to that. |
+| 4 Removal bookkeeping | **Fixed**, guard missing (FIX 2 below) | `RecordTrusted` 331-363 (`<sha> added/already`, previous `added` CA offered for removal, default Yes); uninstall 381-414 offers only `added` entries and reports each result. |
+| 5 `.gitignore` | **Fixed** | `**/installer/Output/`, verified. |
+| 6 Store seam | **Fixed** | `-StoreFactory` on both functions; tests use an in-memory fake (`New-FakeRootStore`); the only live-store accesses left are the two read-only `Get-ChildItem Cert:\LocalMachine\Root` enumerations (lines 859, 1126). |
+| 7 File type / key | **Fixed** | `GetCertContentType -eq 'Cert'` before construction (so a PFX is never loaded and never persists a key container), `PRIVATE KEY` text refused, `HasPrivateKey` refused, BasicConstraints critical, keyCertSign, no SHA-1/MD5, RSA >= 2048. Probe: PKCS#7 bundles, PEM + key, KeyUsage without keyCertSign refused. |
+| 8 Hotel name | **Fixed** | `Test-HccHotelName` (`\p{Cc}\p{Cf}\p{Zl}\p{Zp}`, 1-100); the 5,039-character U+2028 name now shows as "(name not shown: not valid)". |
+
+## Attack on the DER reader (`Read-HccTlv`, `Get-HccNameConstraintInfo`)
+Every parse failure lands in the `catch` at line 178 or in an explicit refusal; nothing that fails to parse is treated as "no constraint". Same results under PS 5.1 and PS 7, and through the strict-mode `-Action Inspect` path.
+
+| Case | Result |
+|---|---|
+| truncated length; indefinite length `0x80`; 4-byte long form; trailing byte after the sequence; empty `GeneralSubtree`; high-tag-number form inside the list | refused ("cannot be read") |
+| non-minimal (BER) long-form length of a good constraint | accepted with the right names (the reader decodes it correctly; Windows decides on DER strictness, so this is not a widening) |
+| empty `SEQUENCE`; permitted `[0]` empty; excluded only; unknown part `[2]` alone | refused ("permits no host names") |
+| permitted only rfc822Name / URI / directoryName / otherName; dNSName sent as constructed `0xA2` | refused (no dNSName, so "permits no host names") - skipping other kinds never turns into "unconstrained" |
+| dNSName plus a URI subtree; unknown part `[2]` after valid parts; `minimum` = 1 / `maximum` = 2 | accepted; the extra parts are ignored (none can widen DNS / IP; Windows would refuse a non-conforming critical extension). Note A |
+| the same name permitted and excluded; host inside an excluded IP range | refused (excluded wins) |
+| IPv4-mapped IPv6 `::ffff:0:0/96`; `10.0.0.0/7`; `0.0.0.0/0`; public `8.8.8.8` | refused (outside private ranges) |
+| non-contiguous mask `255.0.255.255`; 5-byte IP constraint | refused ("bad address range") |
+| an address family neither permitted nor excluded as a whole; IPv4 excluded only by `/1` | refused ("does not limit IPv4") |
+| `fc00::/7`, `127.0.0.0/8`, `192.168.0.0/16`; host bits set in a range (`192.168.1.77/24`, masked to `.0/24`) | accepted (private) |
+| uppercase `HOTEL-PC` permitted, uppercase host | accepted, case-insensitive (correct) |
+| trailing dot `hotel-pc.`; raw UTF-8 IDN bytes; NUL inside the name; empty dNSName | refused |
+| `local` | refused (in the suffix list) |
+| single-label `intranet` | accepted (needed: the real CA's server name is a single label) |
+| permitted `hotel.lan`, host `evilhotel.lan` / `pms.hotel.lan` | refused / accepted (label boundary, not string end) |
+| real-style CA, host `evilhotel-pc` / `192.168.1.11` | refused |
+| host `3232235786` (decimal form of 192.168.1.10) | accepted as 192.168.1.10; browsers read it the same way, so no divergence |
+| permitted `sbi.co.in` or `github.io` (real public names that are not in the built-in list), host inside | **accepted**. Note B |
+| duplicated 2.5.29.30 extension (narrow + wide) | could not be built (.NET refuses a duplicate); the reader would use the first one. Note C |
+
+## FIX list (second pass)
+
+1. **`08 Production/deployment/windows/installer/HccClient.iss` 296-321: the trust step no longer uses the fingerprint the person confirmed.** `PrepareToInstall` re-runs `DoInspect`, which overwrites `ApprovedSha` / `ApprovedUrl` with whatever the files say now, while `ConfirmCheck.Checked` stays True from the earlier review. If the `.cer` (and the json) change between the confirmation page and Install (USB stick or network share swapped while the Ready page is open), a certificate the person never saw is trusted, provided it passes the checks. Before this round the trust step compared with the fingerprint shown on the page; that property is lost. Right: in `FillConfirmPage`, when `InspectOk`, keep `ShownSha := ApprovedSha` and `ShownUrl := ApprovedUrl`; in `PrepareToInstall` (not silent) after `DoInspect`, require `(ApprovedSha = ShownSha) and (ApprovedUrl = ShownUrl)`, else stop with "The files changed after you checked them. Nothing was installed." Add it to the trial-machine checklist (swap the `.cer` while the Ready page is open: must stop).
+
+2. **`08 Production/deployment/windows/Hcc-ClientTrust.ps1` 331-346: `Remove-HccTrustedRoot` removes any Root certificate with the given fingerprint; there is no guard against a Microsoft or public root.** `{app}\ca-trusted.txt` is in `{autopf}\HCC Client` (Program Files ACL: only administrators, SYSTEM and TrustedInstaller can write), so only an administrator can tamper with the list. But a corrupted or tampered list is removed silently on a silent re-run (`RecordTrusted` default answer Yes), and uninstall removes every `added` line. Right (cheap, defence in depth): before `Remove`, require each hit to be a self-signed CA whose `Get-HccNameConstraintInfo` is Ok (a CA with private-network-only name constraints; public and Microsoft roots have none), else return `refused: not an HCC hotel CA` and leave it in place. Also call `ShouldProcess` before `Open(ReadWrite)` (or open ReadOnly to search), so `-WhatIf` never needs write access to the store. Add a fake-store test: a list entry that names an unconstrained root is refused and the store is untouched.
+
+## Notes (no change required in this wave)
+- **A.** For strictness, refuse a constraint with an unknown top-level part, a subtree with more than the base name, or `minimum` / `maximum` present (RFC 5280: minimum MUST be 0, maximum absent). None of these can widen the constraint today.
+- **B.** The DNS check is a blocklist: a self-consistent tampered kit can still get a CA trusted for a real public name (`sbi.co.in`, `github.io`). The confirmation page now lists the permitted names and tells the person to compare the fingerprint with the server PC, which is the real defence. If every hotel server name is a single label or under `.lan` / `.local` / `.internal` / `.home.arpa`, an allow-list (single-label or a private suffix only) would close this. Owner / keys-session decision.
+- **C.** Refuse a certificate with more than one 2.5.29.30 extension (`$ext.Count -ne 1`) instead of reading the first.
+- **D.** `[UninstallDelete]` removes `ca-trusted.txt` even when the person keeps the certificate, so a later reinstall records it as `already` and never offers it again. Acceptable; mention in READ-ME that removal is then done in certlm.msc.
+- **E.** The fingerprint text on the confirmation page depends on lane `server` showing the CA SHA-256 on its finish page / install log (DONE-file dependency). Hold the wave merge to it.
