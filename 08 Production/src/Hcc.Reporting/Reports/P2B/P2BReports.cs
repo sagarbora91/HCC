@@ -232,7 +232,7 @@ public sealed class BankBookReport(AccQueries q, Hcc.Application.Accounting.IAcc
 }
 
 // ── rpt.money.company-credit ────────────────────────────────────────────────────────────────────────────────────────────────────
-public sealed class CompanyCreditReport(ICompanyStore companies, CompanyCredit credit, ICompanyCreditStore creditStore) : IReportSelector
+public sealed class CompanyCreditReport(ICompanyStore companies, CompanyCredit credit, ICompanyCreditStore creditStore, IOpeningEntryStore? openings = null) : IReportSelector
 {
     public const string Id = "rpt.money.company-credit";
 
@@ -255,13 +255,14 @@ public sealed class CompanyCreditReport(ICompanyStore companies, CompanyCredit c
     public static ReportRow CompanyRow(CompanyRow c, CompanyCreditView k) => Row(ReportRowKind.Row, null, ("company", c.Name), ("contact", string.Join(" · ", new[] { c.Contact, c.Phone }.Where(x => !string.IsNullOrEmpty(x)))),
         ("rates", RatesText(c.Rates)), ("limit", c.CreditLimitPaise), ("used", k.ExposurePaise), ("remaining", k.RemainingPaise), ("status", Level(c.CreditLimitPaise, k.ExposurePaise)));
 
-    public static IReadOnlyList<ReportRow> Statement(CompanyCreditFacts f)
+    /// <param name="opening">CU-F8E-OPEN: the company's opening outstanding (prototype <c>openingOutstanding</c>), in paise: the approved opening entry's debit minus credit on its party ledger 1110/CMP-id (signed: a credit line, an advance, is negative, as in the party ledger and ageing).</param>
+    public static IReadOnlyList<ReportRow> Statement(CompanyCreditFacts f, long opening = 0)
     {
         var ev = f.Credits.Select(c => (c.BusinessDate, Ord: 0, Ref: c.InvoiceNo ?? c.PublicNo /* F8E-R8: the folio's own invoice (prototype twin, F8-INT L1) */, Narr: "Company credit · " + c.PublicNo, Credit: c.Amount.Value, Pay: 0L))
             .Concat(f.Payments.Select(p => (p.BusinessDate, Ord: 1, Ref: p.Reference.Length > 0 ? p.Reference : "GCP-" + p.PaymentId.ToString(CultureInfo.InvariantCulture),
                 Narr: "Payment · " + p.Tender + (p.Tds.Value > 0 ? " (incl. TDS)" : string.Empty), Credit: 0L, Pay: p.Settled.Value)))
             .OrderBy(e => e.BusinessDate).ThenBy(e => e.Ord).ThenBy(e => e.Ref, StringComparer.Ordinal).ToList();
-        long run = 0;
+        long run = opening;
         var rows = new List<ReportRow> { Row(ReportRowKind.Subtotal, null, ("date", null), ("ref", null), ("narration", "Opening outstanding"), ("credit", null), ("payment", null), ("balance", run)) };
         foreach (var e in ev)
         {
@@ -271,6 +272,22 @@ public sealed class CompanyCreditReport(ICompanyStore companies, CompanyCredit c
 
         rows.Add(Row(ReportRowKind.Total, null, ("date", null), ("ref", null), ("narration", "Closing outstanding"), ("credit", ev.Sum(e => e.Credit)), ("payment", ev.Sum(e => e.Pay)), ("balance", run)));
         return rows;
+    }
+
+    /// <summary>Opening outstanding of one company: the APPROVED opening entry's net debit on its party ledger 1110/CMP-id (a draft never counts); 0 when none. Signed like the party ledger and the ageing report: a credit line (an advance) is a negative opening.</summary>
+    public static long OpeningOf(OpeningEntry? entry, long companyId)
+    {
+        if (entry is not { Approved: true }) return 0;
+        var ledger = "1110/" + Hcc.Domain.Accounting.PartyLedgers.Company(companyId);
+        var net = entry.Lines.Where(l => string.Equals(l.Account, ledger, StringComparison.Ordinal)).Sum(l => l.Debit - l.Credit);
+        return net;
+    }
+
+    private async Task<long> OpeningAsync(long companyId, int propertyId, CancellationToken ct)
+    {
+        // fail loudly: a host that forgot to register IOpeningEntryStore would otherwise show every statement opening at 0 (the defect this fixes)
+        var store = openings ?? throw new InvalidOperationException("CompanyCreditReport needs IOpeningEntryStore for the statement opening balance.");
+        return OpeningOf(await store.GetAsync(null, propertyId, ct).ConfigureAwait(false), companyId);
     }
 
     public async Task<ReportResult> SelectAsync(Caller caller, BoundParams parameters, CancellationToken ct = default)
@@ -291,7 +308,8 @@ public sealed class CompanyCreditReport(ICompanyStore companies, CompanyCredit c
         if (q.Length > 0 && list.Count == 1)
         {
             var facts = await creditStore.LoadAsync(null, caller.PropertyId, list[0].CompanyId, ct).ConfigureAwait(false);
-            sections = [new ReportTable("companies", null, Cols, rows), new ReportTable("statement", "Statement · " + list[0].Name, StatementCols, Statement(facts))];
+            var opening = await OpeningAsync(list[0].CompanyId, caller.PropertyId, ct).ConfigureAwait(false);
+            sections = [new ReportTable("companies", null, Cols, rows), new ReportTable("statement", "Statement · " + list[0].Name, StatementCols, Statement(facts, opening))];
         }
 
         return new ReportResult(Id, Definition.Title, parameters, Cols, rows, About(Definition, parameters), Sections: sections);

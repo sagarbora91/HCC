@@ -236,7 +236,7 @@ public sealed class SalesByItemReport(IP2CReportSource source, IAccessPolicy pol
     ];
 
     public ReportDefinition Definition { get; } = P2CRules.Def(Id, "Sales by item", "rest", true, "PERM-POS-004", ["PERM-POS-004"], ReportDateClass.Business,
-        [MoneyRules.Range(ReportDateClass.Business), MoneyRules.RangeTo(ReportDateClass.Business), new("outlet", "Outlet", "text")], Cols,
+        [MoneyRules.Range(ReportDateClass.Business), MoneyRules.RangeTo(ReportDateClass.Business), new("outlet", "Outlet", "text"), new("cashier", "Cashier", "user")], Cols,
         "Settled checks by settlement date; value = quantity x price before tax (voided lines are left out); share = the item value in the report total. Categories by value, items by value inside a category.",
         P2CRules.Sxpc, ReportPhone.Yes, ownShift: true);
 
@@ -253,7 +253,8 @@ public sealed class SalesByItemReport(IP2CReportSource source, IAccessPolicy pol
     public static ReportResult Build(ReportDefinition d, BoundParams p, IReadOnlyList<SaleLineFact> facts)
     {
         var q = MoneyRules.Param(p, "outlet").Trim();
-        var items = facts.Where(f => q.Length == 0 || string.Equals(f.Outlet, q, StringComparison.OrdinalIgnoreCase)).GroupBy(f => f.ItemKey)
+        var cashier = MoneyRules.Param(p, "cashier").Trim(); // CU-F8E-OPEN: the principal who settled the check
+        var items = facts.Where(f => (q.Length == 0 || string.Equals(f.Outlet, q, StringComparison.OrdinalIgnoreCase)) && (cashier.Length == 0 || f.SettledBy.ToString(CultureInfo.InvariantCulture) == cashier)).GroupBy(f => f.ItemKey)
             .Select(g => (Name: g.First().Item, Cat: g.First().Category, Qty: g.Sum(x => x.Qty), Value: g.Sum(x => x.ValuePaise))).ToList();
         var total = items.Sum(x => x.Value);
         var rows = new List<ReportRow>();
