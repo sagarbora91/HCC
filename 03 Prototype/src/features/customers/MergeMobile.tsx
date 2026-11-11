@@ -5,8 +5,8 @@ import {ArrowLeft} from 'lucide-react';
 import {useHcc} from '../../app/context';
 import {ListCard} from '../../app/mobile/components';
 import {Pill,Empty} from '../../components/ui';
-import {cmxRows,cmxReasonText,type CMXPair,type CMXMerge} from '../../domain/streams/customer-merge';
-import {useMergeView,MergeConfirm,inHouseNote,type MergeAsk} from './Merge';
+import {cmxRows,cmxReasonText,CMX_LIST_NOTE,type CMXPair,type CMXMerge} from '../../domain/streams/customer-merge';
+import {useMergeView,usePairProfiles,MergeConfirm,inHouseNote,type MergeAsk} from './Merge';
 
 function Cards({pair,showMoney}:{pair:CMXPair;showMoney:boolean}){
   const rows=cmxRows(pair,showMoney);
@@ -20,7 +20,7 @@ export function MergeMobile(){
   const v=useMergeView();
   const [sel,setSel]=useState('');
   const [ask,setAsk]=useState<MergeAsk|null>(null);
-  const pair=v.pairs.find(p=>p.id===sel);
+  const pair=usePairProfiles(v.pairs.find(p=>p.id===sel),v.server);
   if(!v.canMerge)return <div className="cmx-m"><Empty title="Not available" body="Only an Owner or Manager can merge customers."/></div>;
   const back=()=>{if(ask)setAsk(null);else if(sel)setSel('');else closeModal();};
   const pend=(m:CMXMerge)=>{const mine=m.proposedBy===uid;
@@ -41,6 +41,6 @@ export function MergeMobile(){
         {v.pending.some(m=>m.proposedBy!==uid)&&<p className="muted">Tap a request to approve or reject it.</p>}</>}
       {v.pairs.length?v.pairs.map(p=><ListCard key={p.id} title={`${p.a.name} · ${p.b.name}`} sub={cmxReasonText[p.reason]} onClick={()=>setSel(p.id)}/>)
         :<Empty title="No possible duplicates" body="No two customers share an e-mail address or a name without a mobile number."/>}
-      {v.recent.length>0&&<><h3>Recent decisions</h3>{v.recent.map(m=><ListCard key={m.id} title={`${m.sourceName} → ${m.targetName}`} sub={m.reason} right={<Pill tone={m.status==='Approved'?'green':'neutral'}>{m.status}</Pill>}/>)}</>}</>}
+      {v.recent.length>0&&<><h3>Recent decisions</h3>{v.recent.map(m=><ListCard key={m.id} title={`${m.sourceName} → ${m.targetName}`} sub={m.reason} right={<Pill tone={m.status==='Approved'?'green':'neutral'}>{m.status}</Pill>}/>)}{v.server&&v.recent.some(m=>m.status==='Approved')&&<p className="muted" role="note">{CMX_LIST_NOTE}</p>}</>}</>}
   </div>;
 }

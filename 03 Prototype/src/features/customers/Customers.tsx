@@ -27,7 +27,7 @@ function CustomersPhonePage(){
   const mv=useMergeView(); // FX-MERGE-UI
   const access=guestAccess(s,uid);
   const [legacyRev,setLegacyRev]=useState(0); // LG-UI: bumps when a profile read brought legacy stays (production)
-  const all=useMemo(()=>customerIndex(s,getLegacyLookup()),[s.bookings,s.guests,s.date,legacyRev]); // eslint-disable-line react-hooks/exhaustive-deps
+  const all=useMemo(()=>customerIndex(s,getLegacyLookup()),[s.bookings,s.guests,s.customerMergeX,s.date,legacyRev]); // eslint-disable-line react-hooks/exhaustive-deps
   const list=useMemo(()=>customerSearch(all,search,access.contact),[all,search,access.contact]);
   const paged=usePaged(list,display.isMobile?PHONE_PAGE:DESKTOP_PAGE);
   const [sel,setSel]=useState('');
@@ -146,7 +146,7 @@ function CustomersFitPage(){
   const {s,uid,search,setSearch}=useHcc();
   const access=guestAccess(s,uid);
   const [legacyRev,setLegacyRev]=useState(0); // LG-UI: bumps when a profile read brought legacy stays (production)
-  const all=useMemo(()=>customerIndex(s,getLegacyLookup()),[s.bookings,s.guests,s.date,legacyRev]); // eslint-disable-line react-hooks/exhaustive-deps
+  const all=useMemo(()=>customerIndex(s,getLegacyLookup()),[s.bookings,s.guests,s.customerMergeX,s.date,legacyRev]); // eslint-disable-line react-hooks/exhaustive-deps
   const list=useMemo(()=>customerSearch(all,search,access.contact),[all,search,access.contact]);
   const paged=usePaged(list,DESKTOP_PAGE);
   const wide=useWideSplit();

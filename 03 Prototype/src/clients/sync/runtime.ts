@@ -29,6 +29,8 @@ import {mayRead} from './reads';
 import {setLegacyFetcher} from '../../features/customers/legacy-source';
 import {setLegacyImportClient} from '../../features/admin/legacyImportModel';
 import {legacyStaysFromProfile,type SrvLegacyProfilePart} from './customers-legacy';
+import {setPairProfileFetcher} from '../../features/customers/profile-source'; // FX-MERGE-UI
+import {pairProfileFromServer,type SrvProfile} from './customer-merge'; // FX-MERGE-UI
 import {createLegacyImportClient} from './legacy-import';
 import {OWN_CREDENTIAL_CHANGE,MUST_CHANGE_REASON,mustChangeText} from '../../domain/credentials';
 
@@ -150,6 +152,7 @@ export function createSyncRuntime(o:SyncRuntimeOptions){
   const clients:HccClients&{adapter:typeof HTTP_ADAPTER_ID}={kind:'http',adapter:HTTP_ADAPTER_ID,reservations:createHttpReservationsClient(transport),system:createHttpSystemClient(transport),me:createHttpMeClient(transport)};
   // LG: legacy stays come from GET /customers/profile (contract §9); the importer page calls POST /commands/legacy.import and GET /legacy/runs.
   setLegacyFetcher(async key=>legacyStaysFromProfile(await transport.get<SrvLegacyProfilePart>('/customers/profile',{key})));
+  setPairProfileFetcher(async key=>pairProfileFromServer(await transport.get<SrvProfile>('/customers/profile',{key}))); // FX-MERGE-UI: the two profiles of an opened duplicate pair
   setLegacyImportClient(createLegacyImportClient(transport));
   const skeleton=(o.skeleton??emptyState)();
   const loaders:{area:string;l:SliceLoader;order:number}[]=[];

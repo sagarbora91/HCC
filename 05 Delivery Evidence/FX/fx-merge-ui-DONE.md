@@ -53,3 +53,14 @@ Customer merge screen inside Customers 360 (training finding F18): possible dupl
 
 ## Shared files touched
 `src/styles/v22-fixes.css` (marked block), `src/clients/sync/registry.ts` (marked lines), `src/app/subscreens.ts` (marked lines), `tests/stream-fit.mjs` (allow-list line), `tests/_sync-harness.mjs` (one default-route line), `src/services/mock/handlers/index.ts` and `services/mock/index.ts` (one line each, marked). No migration, no SCHEMA bump, no HANDOFF / CLAUDE.md edits. LF line endings kept.
+
+## Fix round (after audit 49f288d7, verdict FIX, 4 items)
+1. Profiles (full `npm test` after the round: 3409/3409 passed; own file 80/80; stream-fit 115/115; tsc clean): the loader no longer reads `GET /customers/profile`. The compare reads the two profiles of an opened pair on demand (`features/customers/profile-source.ts`, fetcher wired in `sync/runtime.ts`, remembered per key, cleared after a decision). Tests: a full load sends 0 profile GETs; opening a pair sends exactly 2; a failed read leaves "Not loaded"; the demo never reads.
+2. Phone reason field: `.cmx-m .cmx-field input{min-height:48px;font-size:16px}` inside the FX-MERGE-UI block, asserted in the CSS test.
+3. Production wording: the approve toast, a note in the approve confirm, the list footer and a note under "Recent decisions" (desktop and phone) say the Customers list on this device still shows both records until it is refreshed from the server. Markup test for both screens (demo says nothing) and for the toast text. The main list is not fed from the server.
+4. Chain test is real: A into B, then B into C, aliases `{A:C,B:C}`, C holds all four stays, A and B gone from the index, A cannot be proposed again.
+- N4 fixed: the confirm counts every stay that moves (`allStays`: all statuses plus old Lodge stays), wording "(upcoming and cancelled too)"; test added.
+- N5 fixed: production `proposedAt` / `decidedAt` go through `utcToClock` (asserted).
+- N2 (part): `s.customerMergeX` added to both Customers `useMemo` dependency lists.
+- Defaults used, added (audit N1): the demo's "busy customer" rule is stricter than the server's. The demo refuses a proposal when either customer is in any pending merge and hides those pairs; the server refuses only a second pending merge with the same source or a key that is already an alias. It narrows, never widens.
+- Open: N3 (`moved.legacy` is always 0 in the demo because the handler indexes without the legacy lookup; not displayed anywhere); N6 (`_role-reads.json` rows still hand-written, gate `RoleReadMatrixTests` must confirm); N7 already stated.

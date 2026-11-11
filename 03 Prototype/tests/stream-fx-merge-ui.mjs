@@ -28,6 +28,9 @@ export async function register({test,M,assert}){
     define:{'process.env.NODE_ENV':'"production"','process.env.HCC_BUILD':'"demo"'},loader:{'.css':'empty'},
     banner:{js:"import {createRequire as __r} from 'node:module';const require=__r(import.meta.url);"}});
   const X=await import(new URL('./.generated/fx-merge-ui.mjs',import.meta.url).href);
+  await writeFile('tests/.generated/fx-merge-ui-prof-entry.ts',`export {ensurePairProfiles,getPairProfile,setPairProfileFetcher} from '../../src/features/customers/profile-source';
+export {pairProfileFromServer} from '../../src/clients/sync/customer-merge';`);
+  await build({entryPoints:['tests/.generated/fx-merge-ui-prof-entry.ts'],bundle:true,platform:'node',format:'esm',outfile:'tests/.generated/fx-merge-ui-prof.mjs',logLevel:'error',define:{'process.env.HCC_BUILD':'"production"'}});
   const {execute,seed}=M;
   const code=f=>{try{f();return 'ok';}catch(e){return e.code??e.message;}};
 
@@ -104,7 +107,7 @@ export async function register({test,M,assert}){
     // the original input is untouched (copy on write)
     assert.equal(M.customerIndex(s).length,before.length);assert.equal(s.customerMergeX,undefined);
   });
-  test('[FX-MERGE-UI] merged-away legacy stays follow the survivor; a second merge into the survivor re-points earlier aliases',()=>{
+  test('[FX-MERGE-UI] merged-away legacy stays follow the survivor',()=>{
     let t=fixture();
     t=run(t,'owner',{type:'CUSTMERGE_PROPOSE',source:K.r1,target:K.r2,reason:'Same e-mail, same man'});
     t=run(t,'manager',{type:'CUSTMERGE_DECIDE',id:t.customerMergeX.merges[0].id,approve:true});
@@ -113,6 +116,25 @@ export async function register({test,M,assert}){
     assert.equal(r2.legacyStays.length,1);assert.equal(r2.legacyCount,1);assert.equal(r2.stays.length,3);
     assert.equal(r2.name,'R. Kulkarni','the survivor decides name and profile');
     assert.equal(t.guests.find(g=>g.id==='G-FR2').preferences,'Quiet room');
+  });
+  test('[FX-MERGE-UI] a chain A into B, then B into C re-points the earlier alias: aliases {A:C,B:C}, C holds every stay, neither A nor B is left',()=>{
+    let t=fixture();
+    const go=(src,tgt)=>{t=run(t,'owner',{type:'CUSTMERGE_PROPOSE',source:src,target:tgt,reason:'Same man, chain step'});
+      t=run(t,'manager',{type:'CUSTMERGE_DECIDE',id:t.customerMergeX.merges[0].id,approve:true});};
+    go(K.r1,K.r2);assert.deepEqual(t.customerMergeX.aliases,{[K.r1]:K.r2});
+    go(K.r2,K.meena);
+    assert.deepEqual(t.customerMergeX.aliases,{[K.r1]:K.meena,[K.r2]:K.meena});
+    const idx=M.customerIndex(t),c=idx.find(x=>x.key===K.meena);
+    assert.deepEqual(c.stays.map(b=>b.id).sort(),['FX-3','FX-4','FX-5','FX-6']);
+    assert.ok(!idx.some(x=>x.key===K.r1||x.key===K.r2));
+    assert.equal(code(()=>run(t,'owner',{type:'CUSTMERGE_PROPOSE',source:K.r1,target:K.asha,reason:'A is gone already'})),'NOT_FOUND');
+  });
+  test('[FX-MERGE-UI] the confirm counts every stay that moves (upcoming and cancelled too), not only completed ones',()=>{
+    const s=fixture();s.bookings.find(b=>b.id==='FX-5').status='Cancelled';s.bookings.find(b=>b.id==='FX-4').status='Confirmed';
+    const p=pairOf(s,K.r1,K.r2),drop=p.a.key===K.r1?p.a:p.b;
+    assert.equal(drop.stays,1);assert.equal(drop.allStays,1);
+    const other=p.a.key===K.r2?p.a:p.b;assert.equal(other.stays,0);assert.equal(other.allStays,2);
+    assert.match(M.cmxMoves(drop,other).join(' '),/all 2 stays \(upcoming and cancelled too\)/);
   });
   test('[FX-MERGE-UI] preferences follow the server rule: survivor kept, a different text of the other is saved as a note, empty is copied',()=>{
     let s=fixture();
@@ -200,6 +222,7 @@ export async function register({test,M,assert}){
   test('[FX-MERGE-UI] CSS: the screen styles sit in v22-fixes.css between the FX-MERGE-UI markers, token colours only',async()=>{
     const css=await readFile('src/styles/v22-fixes.css','utf8'),m=/\/\* FX-MERGE-UI[\s\S]*?\/\* \/FX-MERGE-UI \*\//.exec(css);
     assert.ok(m&&/\.cmx-table/.test(m[0])&&/\.cmx-m-card/.test(m[0]));
+    assert.match(m[0],/\.cmx-m \.cmx-field input\{min-height:48px;font-size:16px\}/,'the phone reason field is a 48 px target');
     assert.ok(!/#[0-9a-fA-F]{3,8}\b/.test(m[0].replace(/\/\*[\s\S]*?\*\//g,'')),'no hex colours');
   });
   test('[FX-MERGE-UI] FIT guard: the new phone file has its FROM_MAIN allow-list line',async()=>{
@@ -227,14 +250,35 @@ export async function register({test,M,assert}){
   const lowSrv=fakeServer({...routes(),'GET /me/capabilities':()=>capabilities({userId:7,displayName:'Reception',roles:['RCP'],grants:[['PERM-RES-001','A'],['PERM-GST-001','A']]})});
   const low=await startRuntime(S,lowSrv);
 
-  test('[FX-MERGE-UI] production loader: the server groups become pairs (suggested survivor against each member), merges and profiles are read, numbers stay masked',()=>{
+  test('[FX-MERGE-UI] production loader: the server groups become pairs (suggested survivor against each member), merges are read, numbers stay masked, and no profile is read by the load',()=>{
     assert.equal(x.server.canMerge,true);assert.equal(x.server.pairs.length,2);
     const p=x.server.pairs.find(q=>q.id==='ck_aaa|ck_bbb');
-    assert.equal(p.reason,'email');assert.equal(p.suggested,'ck_bbb');assert.equal(p.a.phone,'••••••2222');assert.equal(p.a.preferences,'High floor');assert.equal(p.a.notes,'Likes tea');
-    assert.deepEqual(p.b.tags.sort(),['Repeat','VIP']);assert.equal(p.b.stays,3);assert.equal(p.a.lifetime,undefined);
+    assert.equal(p.reason,'email');assert.equal(p.suggested,'ck_bbb');assert.equal(p.a.phone,'••••••2222');assert.equal(p.a.preferences,undefined,'preferences are not loaded with the list');
+    assert.deepEqual(p.b.tags,['VIP']);assert.equal(p.b.allStays,1,'all stays = the summary Stays + legacy');assert.equal(p.b.stays,3);assert.equal(p.a.lifetime,undefined);
     assert.deepEqual(x.merges.map(m=>[m.id,m.status]),[['41','Pending'],['40','Approved']]);assert.equal(x.merges[0].proposedBy,'3');
-    assert.ok(srv.gets('/customers/profile').length>=3,'one profile read per member');
+    assert.equal(srv.gets('/customers/profile').length,0,'a full load (sign-in) sends no GET /customers/profile');
+    assert.equal(x.merges[0].proposedAt,'2026-10-24T10:30','production times use the same clock format as the other mappers');
     const v=M.cmxView(rt.get().state,rt.get().state.users?.[0]?.id??'owner');assert.equal(v.server,true);
+  });
+  test('[FX-MERGE-UI] opening a pair reads exactly two profiles (preferences, notes, tags), remembered; a failed read leaves "Not loaded"',async()=>{
+    const P=await import(new URL('./.generated/fx-merge-ui-prof.mjs',import.meta.url).href);
+    const calls=[];
+    P.setPairProfileFetcher(async key=>{calls.push(key);if(key==='ck_bad')throw new Error('x');return P.pairProfileFromServer({preferences:key==='ck_aaa'?'High floor':null,notes:[{body:'Likes tea'}],tags:['Repeat']});});
+    assert.equal(await P.ensurePairProfiles(['ck_aaa','ck_bbb']),true);assert.deepEqual(calls,['ck_aaa','ck_bbb']);
+    assert.deepEqual(P.getPairProfile('ck_aaa'),{preferences:'High floor',notes:'Likes tea',tags:['Repeat']});assert.equal(P.getPairProfile('ck_bbb').preferences,'');
+    assert.equal(await P.ensurePairProfiles(['ck_aaa','ck_bbb']),false);assert.equal(calls.length,2,'remembered: no second read');
+    assert.equal(await P.ensurePairProfiles(['ck_bad','ck_aaa']),false);assert.equal(P.getPairProfile('ck_bad'),undefined);
+    P.setPairProfileFetcher(undefined);calls.length=0;assert.equal(await P.ensurePairProfiles(['ck_zzz']),false);assert.equal(calls.length,0,'the demo never reads');
+  });
+  test('[FX-MERGE-UI] production wording: the screen says the main Customers list still shows both records until refreshed; the demo does not say it',()=>{
+    const s=fixture(),prod={...s,customerMergeX:{aliases:{},dismissed:[],seq:0,server:{canMerge:true,pairs:[]},
+      merges:[{id:'41',source:'ck_a',target:'ck_b',sourceName:'Asha Rao',targetName:'Asha R',reason:'Same e-mail address',status:'Approved',proposedBy:'3',proposedAt:'2026-10-24T10:30',decidedBy:'2',version:'x'}]}};
+    for(const [name,mobile] of [['panel',false],['mobile',true]]){
+      const h=X.render(name,prod,'owner',mobile);assert.match(h,/still shows both records until it is refreshed from the server/,name);
+      assert.ok(!/still shows both records/.test(X.render(name,fixture(),'owner',mobile)),name+' demo');
+    }
+    assert.match(M.cmxApproveToast(true,{sourceName:'A',targetName:'B'}),/merged into B on the server\. The Customers list on this device still shows both records/);
+    assert.equal(M.cmxApproveToast(false,{sourceName:'A',targetName:'B'}),'A merged into B');
   });
   test('[FX-MERGE-UI] production commands: ProposeCustomerMerge sends the tokens and the reason; DecideCustomerMerge sends the loaded row version; nothing else is sent',()=>{
     assert.equal(prop.ok,true);assert.deepEqual(srv.commands('ProposeCustomerMerge')[0].body,{sourceKey:'ck_aaa',targetKey:'ck_bbb',reason:'Same e-mail address'});assert.equal(srv.commands('ProposeCustomerMerge')[0].key,'k-prop');
