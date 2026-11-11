@@ -833,6 +833,7 @@ Check 'DEP-01 Set-HccEgress -State Apply -WhatIf with the rule missing: no datab
 }
 
 # INST-SQL
+& {   # own scope: StrictMode, $ErrorActionPreference and the mock functions below must not reach the blocks merged after this one
 # Bootstrap-HccSql.ps1: dot-sourced (functions only). Every system seam is replaced by a mock; no installer, service, registry write or SQL connection happens.
 . (Join-Path $root 'Bootstrap-HccSql.ps1')
 $sqlT = Join-Path ([IO.Path]::GetTempPath()) ('hcc-sqlboot-' + [guid]::NewGuid().ToString('N'))
@@ -844,34 +845,40 @@ $sqlManifest = Join-Path $sqlT 'm.json'
 $sqlEntries = foreach ($k in $sqlFiles.Keys) { [ordered]@{ name = $sqlFiles[$k]; role = $k; sha256 = (Get-FileHash -LiteralPath (Join-Path $sqlMedia $sqlFiles[$k]) -Algorithm SHA256).Hash.ToLowerInvariant() } }
 (@{ version = 1; files = @($sqlEntries) } | ConvertTo-Json -Depth 5) | Set-Content -LiteralPath $sqlManifest -Encoding UTF8
 $sqlLog = Join-Path $sqlT 'install.log'
+$sqlWarn = Join-Path $sqlT 'warnings.json'
+$realNewScratch = ${function:New-HccProtectedScratchDirectory}
+$realIsAdmin = Test-HccAdministrator
 $script:sqlCalls = New-Object System.Collections.Generic.List[string]
-$script:sqlSvc = $null; $script:sqlCmdPath = $null; $script:sqlRestart = @(); $script:sqlProcExit = 0; $script:sqlAdmin = $true; $script:sqlSysadmin = $true; $script:sqlMajor = 17; $script:sqlOdbc = @(); $script:sqlMediaOk = $true
+$script:sqlSvc = $null; $script:sqlCmdPath = $null; $script:sqlRestart = @(); $script:sqlProcExit = 0; $script:sqlAdmin = $true; $script:sqlMediaOk = $true; $script:sqlOdbc = @(); $script:sqlMediaHook = $null; $script:sqlProbeThrows = $false; $script:sqlProbe = $null
+function SqlSvc([string]$Status, [string]$StartMode = 'Auto') { return [pscustomobject]@{ Name = 'MSSQL$SQLEXPRESS'; Status = $Status; StartMode = $StartMode } }
+function SqlProbeObj([bool]$Sysadmin = $true, [int]$Major = 17, [bool]$WindowsOnly = $true, $Tcp = $false, $Np = $false, [string[]]$Admins = @('BUILTIN\Administrators')) { return [pscustomobject]@{ IsSysadmin = $Sysadmin; MajorVersion = $Major; WindowsOnly = $WindowsOnly; TcpEnabled = $Tcp; NamedPipesEnabled = $Np; Admins = @($Admins) } }
 function Test-HccAdministrator { return $script:sqlAdmin }
 function Get-HccSqlServiceState { return $script:sqlSvc }
 function Get-HccSqlcmdPath { return $script:sqlCmdPath }
 function Get-HccRestartPendingReasons { return $script:sqlRestart }
 function Get-HccInstalledOdbcDrivers { return $script:sqlOdbc }
-function Test-HccPathAdminOnly { param([string]$Path) return $script:sqlMediaOk }
+function Get-HccMediaFolderProblems { param([string]$Path) if ($script:sqlMediaHook) { & $script:sqlMediaHook }; if ($script:sqlMediaOk) { return @() }; return @('The media folder can be changed by users.') }
 function New-HccProtectedScratchDirectory { $d = Join-Path $sqlT 'scratch'; New-Item -ItemType Directory -Path $d -Force | Out-Null; $script:sqlCalls.Add('scratch'); return $d }
 function Start-HccSetupProcess {
     param([string]$FilePath, [string[]]$Arguments = @())
     $leaf = Split-Path -Leaf $FilePath
     $script:sqlCalls.Add('proc:' + $leaf + ' ' + ($Arguments -join ' '))
     if ($leaf -eq 'SQLEXPR_x64_ENU.exe') { Set-Content -LiteralPath (Join-Path $sqlT 'scratch\setup.exe') -Value 'x' }
-    if ($leaf -eq 'setup.exe') { $script:sqlSvc = [pscustomobject]@{ Name = 'MSSQL$SQLEXPRESS'; Status = 'Running' } }
+    if ($leaf -eq 'setup.exe') { $script:sqlSvc = SqlSvc 'Running' }
     if ($leaf -eq 'msiexec.exe' -and ($Arguments -join ' ') -match 'MsSqlCmdLnUtils') { $script:sqlCmdPath = 'C:\fake\SQLCMD.EXE' }
     if ($leaf -eq 'setup.exe') { return $script:sqlProcExit }
     return 0
 }
 function Start-HccSqlService { $script:sqlCalls.Add('startsvc') }
-function Invoke-HccSqlProbe { param($Sqlcmd, $Attempts, $DelaySeconds) $script:sqlCalls.Add('probe'); return [pscustomobject]@{ IsSysadmin = $script:sqlSysadmin; MajorVersion = $script:sqlMajor; WindowsOnly = $true; TcpEnabled = $false } }
+function Invoke-HccSqlProbe { param($Sqlcmd, $Attempts, $DelaySeconds) $script:sqlCalls.Add('probe'); if ($script:sqlProbeThrows) { throw 'sqlcmd could not reach the instance (mock)' }; return $script:sqlProbe }
 function Add-HccSqlcmdToPath { param($Sqlcmd) }
 function SqlBoot([string]$Mode, [bool]$Plan = $false, [string]$Media = $sqlMedia) {
     $script:sqlCalls.Clear()
-    return (Invoke-HccSqlBootstrap -Mode $Mode -MediaDir $Media -PlanOnly $Plan -LogFile $sqlLog -ManifestPath $sqlManifest 6>$null)
+    return (Invoke-HccSqlBootstrap -Mode $Mode -MediaDir $Media -PlanOnly $Plan -LogFile $sqlLog -ManifestPath $sqlManifest -WarningsFile $sqlWarn 6>$null)
 }
-function SqlReset { $script:sqlSvc = $null; $script:sqlCmdPath = $null; $script:sqlRestart = @(); $script:sqlProcExit = 0; $script:sqlAdmin = $true; $script:sqlSysadmin = $true; $script:sqlMajor = 17; $script:sqlOdbc = @(); $script:sqlMediaOk = $true; Remove-Item -LiteralPath $sqlLog -ErrorAction SilentlyContinue }
-$sqlRunning = [pscustomobject]@{ Name = 'MSSQL$SQLEXPRESS'; Status = 'Running' }
+function SqlReset { $script:sqlSvc = $null; $script:sqlCmdPath = $null; $script:sqlRestart = @(); $script:sqlProcExit = 0; $script:sqlAdmin = $true; $script:sqlOdbc = @(); $script:sqlMediaOk = $true; $script:sqlMediaHook = $null; $script:sqlProbeThrows = $false; $script:sqlProbe = SqlProbeObj; Remove-Item -LiteralPath $sqlLog, $sqlWarn -ErrorAction SilentlyContinue }
+$sqlRunning = SqlSvc 'Running'
+SqlReset
 
 Check 'INST-SQL committed manifest: five files with roles engine / sqlcmd / odbc17 and valid hashes' {
     $m = Get-HccSqlMediaManifest -Path (Join-Path $root 'sql-media.manifest.json')
@@ -881,18 +888,20 @@ Check 'INST-SQL setup arguments: Windows authentication only (no SECURITYMODE), 
     $a = (Get-HccSqlSetupArguments) -join ' '
     $a -match '/INSTANCENAME=SQLEXPRESS' -and $a -match '/TCPENABLED=0' -and $a -match '/NPENABLED=0' -and $a -match '/SQLSYSADMINACCOUNTS=BUILTIN\\Administrators' -and $a -match '/QUIET' -and $a -notmatch 'SECURITYMODE|SAPWD'
 }
-Check 'INST-SQL media check: good files pass; wrong hash, missing file, unknown role and missing folder are reported' {
+Check 'INST-SQL media check: good files pass; wrong hash, wrong size, missing file, unknown role and missing folder are reported' {
     $m = Get-HccSqlMediaManifest -Path $sqlManifest
     $ok = @(Test-HccSqlMedia -MediaDir $sqlMedia -Manifest $m -Roles @('engine', 'sqlcmd', 'odbc17'))
     [IO.File]::WriteAllText((Join-Path $sqlMedia 'msodbcsql17.msi'), 'tampered')
     $bad = @(Test-HccSqlMedia -MediaDir $sqlMedia -Manifest $m -Roles @('odbc17'))
     [IO.File]::WriteAllText((Join-Path $sqlMedia 'msodbcsql17.msi'), 'fake odbc17 (test only)')
+    $sized = @([pscustomobject]@{ name = 'msodbcsql17.msi'; role = 'odbc17'; sha256 = ($m | Where-Object role -eq 'odbc17').sha256; bytes = 5 })
+    $wrongSize = @(Test-HccSqlMedia -MediaDir $sqlMedia -Manifest $sized -Roles @('odbc17'))
     Remove-Item (Join-Path $sqlMedia 'MsSqlCmdLnUtils.msi')
     $miss = @(Test-HccSqlMedia -MediaDir $sqlMedia -Manifest $m -Roles @('sqlcmd'))
     [IO.File]::WriteAllText((Join-Path $sqlMedia 'MsSqlCmdLnUtils.msi'), 'fake sqlcmd (test only)')
     $unk = @(Test-HccSqlMedia -MediaDir $sqlMedia -Manifest $m -Roles @('nothing'))
     $nodir = @(Test-HccSqlMedia -MediaDir (Join-Path $sqlT 'nope') -Manifest $m -Roles @('engine'))
-    $ok.Count -eq 0 -and $bad.Count -eq 1 -and $bad[0] -match 'SHA-256' -and $miss.Count -eq 1 -and $miss[0] -match 'Missing' -and $unk.Count -eq 1 -and $nodir.Count -eq 1
+    $ok.Count -eq 0 -and $bad.Count -eq 1 -and $bad[0] -match 'SHA-256' -and $wrongSize.Count -eq 1 -and $wrongSize[0] -match 'wrong size' -and $miss.Count -eq 1 -and $miss[0] -match 'Missing' -and $unk.Count -eq 1 -and $nodir.Count -eq 1
 }
 Check 'INST-SQL plan: pure outcomes (adopt, install, refuse, restart) and the media each needs' {
     $a = Get-HccSqlBootstrapPlan -Mode InstallBundled -ServiceExists $true -SqlcmdPresent $true -Odbc17Present $true
@@ -902,15 +911,45 @@ Check 'INST-SQL plan: pure outcomes (adopt, install, refuse, restart) and the me
     $aw = Get-HccSqlBootstrapPlan -Mode InstallBundled -ServiceExists $true -SqlcmdPresent $true -Odbc17Present $true -RestartReasons @('Windows Update')
     $a.Outcome -eq 'Adopt' -and $a.Roles.Count -eq 0 -and $i.Outcome -eq 'Install' -and (($i.Roles -join ',') -eq 'engine,odbc17,sqlcmd') -and $r.Outcome -eq 'Refuse' -and $w.Outcome -eq 'RestartNeeded' -and $aw.Outcome -eq 'Adopt'
 }
+Check 'INST-SQL probe parser on real-looking sqlcmd output (CRLF, blank lines, several HCC_ rows): every field read from its own match' {
+    $real = "HCC_PROBE:1|17|1`r`nHCC_TCP:0`r`nHCC_NP:0`r`nHCC_ADMIN:BUILTIN\Administrators`r`nHCC_ADMIN:NT SERVICE\MSSQL`$SQLEXPRESS`r`n`r`n"
+    $p = ConvertFrom-HccSqlProbeOutput -Text $real
+    $mixed = ConvertFrom-HccSqlProbeOutput -Text "HCC_PROBE:1|16|0`r`nHCC_TCP:1`r`nHCC_NP:1`r`nHCC_ADMIN:HOTELPC\owner`r`n"
+    $non = ConvertFrom-HccSqlProbeOutput -Text "HCC_PROBE:0|17|1`r`n"
+    $p.IsSysadmin -eq $true -and $p.MajorVersion -eq 17 -and $p.WindowsOnly -eq $true -and $p.TcpEnabled -eq $false -and $p.NamedPipesEnabled -eq $false -and $p.Admins.Count -eq 2 -and
+    $mixed.IsSysadmin -eq $true -and $mixed.MajorVersion -eq 16 -and $mixed.WindowsOnly -eq $false -and $mixed.TcpEnabled -eq $true -and $mixed.NamedPipesEnabled -eq $true -and $mixed.Admins[0] -eq 'HOTELPC\owner' -and
+    $non.IsSysadmin -eq $false -and $non.MajorVersion -eq 17 -and $null -eq $non.TcpEnabled -and
+    $null -eq (ConvertFrom-HccSqlProbeOutput -Text 'Msg 18456, Level 14: Login failed') -and $null -eq (ConvertFrom-HccSqlProbeOutput -Text '')
+}
+Check 'INST-SQL adoption warnings: start type, mixed mode + TCP as one stronger warning, named pipes, other sysadmins; a clean instance gives none' {
+    $clean = @(Get-HccSqlAdoptionWarnings -Probe (SqlProbeObj) -StartMode 'Auto')
+    $both = @(Get-HccSqlAdoptionWarnings -Probe (SqlProbeObj -WindowsOnly $false -Tcp $true -Np $true -Admins @('BUILTIN\Administrators', 'NT SERVICE\MSSQL$SQLEXPRESS', 'HOTELPC\ownerx')) -StartMode 'Manual')
+    $codes = @($both | ForEach-Object Code)
+    $mixedOnly = @(Get-HccSqlAdoptionWarnings -Probe (SqlProbeObj -WindowsOnly $false) -StartMode 'Auto')
+    $clean.Count -eq 0 -and ($codes -contains 'StartTypeNotAutomatic') -and ($codes -contains 'TcpAndMixedMode') -and ($codes -notcontains 'MixedMode') -and ($codes -notcontains 'TcpEnabled') -and ($codes -contains 'NamedPipesEnabled') -and ($codes -contains 'OtherSysadmins') -and (($both | Where-Object Code -eq 'OtherSysadmins').Text -match 'HOTELPC\\ownerx') -and (($both | Where-Object Code -eq 'OtherSysadmins').Text -notmatch 'NT SERVICE') -and $mixedOnly.Count -eq 1 -and $mixedOnly[0].Code -eq 'MixedMode'
+}
 Check 'INST-SQL adopt path: instance running and sqlcmd present = exit 0, no installer, no service start, only the read-only probe' {
     SqlReset; $script:sqlSvc = $sqlRunning; $script:sqlCmdPath = 'C:\fake\SQLCMD.EXE'
     $e = SqlBoot 'InstallBundled'
     $e -eq 0 -and ($script:sqlCalls -join '|') -eq 'probe' -and (Get-Content -LiteralPath $sqlLog -Raw) -match 'adopted'
 }
 Check 'INST-SQL adopt path with the service stopped: starts it (no restart), exit 0, no installer' {
-    SqlReset; $script:sqlSvc = [pscustomobject]@{ Name = 'MSSQL$SQLEXPRESS'; Status = 'Stopped' }; $script:sqlCmdPath = 'C:\fake\SQLCMD.EXE'
+    SqlReset; $script:sqlSvc = SqlSvc 'Stopped'; $script:sqlCmdPath = 'C:\fake\SQLCMD.EXE'
     $e = SqlBoot 'UseExisting'
     $e -eq 0 -and ($script:sqlCalls -join '|') -eq 'startsvc|probe'
+}
+Check 'INST-SQL adopt path, service Disabled and stopped: plain exit 1, the service is not touched' {
+    SqlReset; $script:sqlSvc = SqlSvc 'Stopped' 'Disabled'; $script:sqlCmdPath = 'C:\fake\SQLCMD.EXE'
+    $e = SqlBoot 'UseExisting'
+    $e -eq 1 -and $script:sqlCalls.Count -eq 0 -and (Get-Content -LiteralPath $sqlLog -Raw) -match 'switched off'
+}
+Check 'INST-SQL adopt path writes the warnings file (start type Manual + mixed mode + TCP) and still exits 0 without changing anything' {
+    SqlReset; $script:sqlSvc = SqlSvc 'Running' 'Manual'; $script:sqlCmdPath = 'C:\fake\SQLCMD.EXE'
+    $script:sqlProbe = SqlProbeObj -WindowsOnly $false -Tcp $true
+    $e = SqlBoot 'UseExisting'
+    $j = Get-Content -LiteralPath $sqlWarn -Raw | ConvertFrom-Json
+    $codes = @($j.warnings | ForEach-Object code)
+    $e -eq 0 -and ($script:sqlCalls -join '|') -eq 'probe' -and ($codes -contains 'StartTypeNotAutomatic') -and ($codes -contains 'TcpAndMixedMode') -and (@($j.warnings)[0].text.Length -gt 20)
 }
 Check 'INST-SQL adopt path without sqlcmd installs only ODBC 17 + sqlcmd from verified media, never the engine' {
     SqlReset; $script:sqlSvc = $sqlRunning
@@ -920,8 +959,8 @@ Check 'INST-SQL adopt path without sqlcmd installs only ODBC 17 + sqlcmd from ve
 }
 Check 'INST-SQL adopt: a non-sysadmin account or a too-old SQL Server fails with exit 1; the instance is only probed' {
     SqlReset; $script:sqlSvc = $sqlRunning; $script:sqlCmdPath = 'C:\fake\SQLCMD.EXE'
-    $script:sqlSysadmin = $false; $e1 = SqlBoot 'UseExisting'; $c1 = $script:sqlCalls -join '|'
-    $script:sqlSysadmin = $true; $script:sqlMajor = 14; $e2 = SqlBoot 'UseExisting'
+    $script:sqlProbe = SqlProbeObj -Sysadmin $false; $e1 = SqlBoot 'UseExisting'; $c1 = $script:sqlCalls -join '|'
+    $script:sqlProbe = SqlProbeObj -Major 14; $e2 = SqlBoot 'UseExisting'
     $e1 -eq 1 -and $e2 -eq 1 -and $c1 -eq 'probe'
 }
 Check 'INST-SQL UseExisting with no instance: exit 1, nothing installed' {
@@ -944,6 +983,13 @@ Check 'INST-SQL install path: wrong-hash media is refused before any installer r
     [IO.File]::WriteAllText((Join-Path $sqlMedia 'SQLEXPR_x64_ENU.exe'), 'fake engine (test only)')
     $e -eq 1 -and $script:sqlCalls.Count -eq 0 -and (Get-Content -LiteralPath $sqlLog -Raw) -match 'not the expected file'
 }
+Check 'INST-SQL a file swapped AFTER the first check is caught by the hash taken right before it runs (no msiexec for it)' {
+    SqlReset
+    $script:sqlMediaHook = { [IO.File]::WriteAllText((Join-Path $sqlMedia 'msodbcsql17.msi'), 'swapped after the check') }
+    $e = SqlBoot 'InstallBundled'
+    [IO.File]::WriteAllText((Join-Path $sqlMedia 'msodbcsql17.msi'), 'fake odbc17 (test only)')
+    $e -eq 1 -and -not (@($script:sqlCalls) -like '*msodbcsql17*') -and (Get-Content -LiteralPath $sqlLog -Raw) -match 'not the expected file'
+}
 Check 'INST-SQL install path: missing media file, a folder non-administrators can write, and no folder at all are refused with nothing installed' {
     SqlReset
     Remove-Item (Join-Path $sqlMedia 'SQLEXPR_x64_ENU.exe')
@@ -965,12 +1011,41 @@ Check 'INST-SQL setup exit 3010 finishes the work and returns 2; exit 1603 retur
     SqlReset; $script:sqlAdmin = $false; $e3 = SqlBoot 'InstallBundled'; $n3 = $script:sqlCalls.Count
     $e1 -eq 2 -and $e2 -eq 1 -and $e3 -eq 1 -and $n3 -eq 0
 }
-Check 'INST-SQL -PlanOnly changes nothing: no process, no service start, no probe, no log file, exit 0 (install and adopt)' {
+Check 'INST-SQL setup exit 3010 and the probe then fails: exit 2 (restart, run again), not 1; without 3010 the same failure is exit 1' {
+    SqlReset; $script:sqlProcExit = 3010; $script:sqlProbeThrows = $true
+    $e1 = SqlBoot 'InstallBundled'; $w = Get-Content -LiteralPath $sqlWarn -Raw
+    SqlReset; $script:sqlProbeThrows = $true
+    $e2 = SqlBoot 'InstallBundled'
+    $e1 -eq 2 -and $w -match 'RestartRequested' -and $e2 -eq 1
+}
+Check 'INST-SQL scratch folder: the security handed to the creation call is owner Administrators, protected, SYSTEM + Administrators only' {
+    $sddl = (Get-HccScratchDirectorySecurity).GetSecurityDescriptorSddlForm('All')
+    $sddl -match '^O:BA' -and $sddl -match 'D:P' -and $sddl -match '\(A;OICI;FA;;;SY\)' -and $sddl -match '\(A;OICI;FA;;;BA\)' -and ([regex]::Matches($sddl, '\(A;')).Count -eq 2
+}
+Check 'INST-SQL scratch folder (real function, under TEMP): created with its protection (administrator) or refused and removed (non-administrator); an existing folder is never reused' {
+    $before = @(Get-ChildItem -LiteralPath $sqlT -Directory | ForEach-Object Name)
+    $made = $null; $threw = $false
+    try { $made = & $realNewScratch -BasePath $sqlT } catch { $threw = $true }
+    $left = @(Get-ChildItem -LiteralPath $sqlT -Directory -Filter 'HccSqlSetup-*')
+    $okAdmin = $false
+    if ($made) {
+        $acl = Get-Acl -LiteralPath $made
+        $okAdmin = $acl.AreAccessRulesProtected -and (@($acl.GetAccessRules($true, $true, [Security.Principal.SecurityIdentifier]) | Where-Object { @('S-1-5-18', 'S-1-5-32-544') -notcontains $_.IdentityReference.Value }).Count -eq 0)
+        Remove-Item -LiteralPath $made -Recurse -Force
+    }
+    if ($realIsAdmin) { $okAdmin -and -not $threw } else { $threw -and $left.Count -eq 0 }
+}
+Check 'INST-SQL sqlcmd is only taken from SQL Server client folders under Program Files; no PATH fallback in the script' {
+    $c = @(Get-HccSqlcmdCandidates)
+    $t = Get-Content -LiteralPath (Join-Path $root 'Bootstrap-HccSql.ps1') -Raw
+    $c.Count -ge 2 -and (@($c | Where-Object { $_ -notmatch 'Microsoft SQL Server\\Client SDK\\ODBC\\(170|180)\\Tools\\Binn\\SQLCMD\.EXE$' -or $_ -notmatch '(?i)Program Files' }).Count -eq 0) -and $t -notmatch 'Get-Command\s+sqlcmd'
+}
+Check 'INST-SQL -PlanOnly changes nothing: no process, no service start, no probe, no log file, no warnings file, exit 0 (install and adopt)' {
     SqlReset
     $e1 = SqlBoot 'InstallBundled' $true; $n1 = $script:sqlCalls.Count
-    $script:sqlSvc = [pscustomobject]@{ Name = 'MSSQL$SQLEXPRESS'; Status = 'Stopped' }
+    $script:sqlSvc = SqlSvc 'Stopped'
     $e2 = SqlBoot 'InstallBundled' $true; $n2 = $script:sqlCalls.Count
-    $e1 -eq 0 -and $n1 -eq 0 -and $e2 -eq 0 -and $n2 -eq 0 -and -not (Test-Path -LiteralPath $sqlLog)
+    $e1 -eq 0 -and $n1 -eq 0 -and $e2 -eq 0 -and $n2 -eq 0 -and -not (Test-Path -LiteralPath $sqlLog) -and -not (Test-Path -LiteralPath $sqlWarn)
 }
 Check 'INST-SQL -PlanOnly with bad media reports it (exit 1) and still changes nothing' {
     SqlReset
@@ -988,6 +1063,10 @@ Check 'INST-SQL script file handles no password: no SQL-login switches or creden
     $t -notmatch '(?i)\bSAPWD\b|SECURITYMODE=SQL|ConvertTo-SecureString|-Password'
 }
 Remove-Item -LiteralPath $sqlT -Recurse -Force -ErrorAction SilentlyContinue
+}
+Check 'INST-SQL the block leaks nothing: no mock functions, no strict-mode or error-preference change visible to the blocks after it' {
+    -not (Get-Command Get-HccMediaFolderProblems -ErrorAction SilentlyContinue) -and -not (Get-Command Start-HccSetupProcess -ErrorAction SilentlyContinue) -and -not (Get-Command SqlBoot -ErrorAction SilentlyContinue) -and $ErrorActionPreference -eq 'Stop'
+}
 # /INST-SQL
 
 Write-Host ''
