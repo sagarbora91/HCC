@@ -46,3 +46,14 @@ Branch `claude/cu-trn-fix` (base c45bbce3). Findings F14, F17, F8, F19 of `06 Tr
 ## Shared files touched
 
 `src/domain/selectors.ts` (exports only), `src/domain/streams/closing.ts`, `src/domain/streams/services.ts`, `tests/stream-perf-store.mjs` and `tests/stream-masters-fixture.mjs` (FY26 hash re-pin on one line each). Not touched: `pos.ts`, `accounting.ts`, `lfmoney.ts`, hall payment code, HANDOFF, CLAUDE.md, migrations, `v22-fixes.css`.
+
+## Fix round (audit f3171139, verdict FIX)
+
+- **FIX 1.** The role-name rule in `gsvCanWork` is removed; it decides by grants only again (in step with the server's PERM-GSV-002).
+- **FIX 2 (the real F8 defect).** The wake-up banner offered Done to the Cashier (training chapter 8 starts as Priya), who the command refuses. `DeskAlerts.tsx`, `DeskAlertsPage.tsx` (wake detail) and `alerts/Mobile.tsx` now show Done and Snooze only when `gsvCanWork(s,uid,request)` is true; otherwise the text "Ask Reception to make the call". Tests: Reception, Manager, Owner with stock grants can complete; Cashier is false and refused; Reception with `reservations` revoked is false and refused; a source check that the three views use `gsvCanWork`. (The views are not rendered in a test; no browser check.)
+- **FIX 3.** New F14 tests through real commands, on BASE, plain and with Cash renamed to "Till cash" in the payment-method master: `CTR_BILL_ISSUE` (cash), `QUO_ACCEPT` + `HALL_ADVANCE_RECEIVE` (cash and UPI), `EXP_VENDOR_PAY` (cash and Bank transfer). Page figure = `drawer()` to the paise, the movement sums equal the cash amounts only, and `SHIFT_SUBMIT` with the page figure closes the shift. The earlier direct-state tests are kept.
+- **Note 5 applied:** "Other cash movements" now shows the sign of the amount (no "+ -Rs x"), same in the footnote; the phone formula text names vendor payments.
+- **Open (audit notes 4, 6, 7, left alone):** 4 the production sync mapper sends `templates:[]`, so the production Templates tab shows the seeded "OWNER TO REPLACE" terms; 6 each source is one netted movement per day; 7 CHM-F5 amount unchanged after the party cut, and any later lane changing FY26 must re-pin the two hash lines.
+- **New finding for the pay-b lane (not fixed, hall payment code is not mine):** `HALL_ADVANCE_RECEIVE` demands a reference for a renamed Cash method ("Till cash"), i.e. it recognises cash by the literal name "Cash". The test passes a reference in that variant.
+- `tests/stream-training.mjs` untouched. FY26 state not changed in this round, so no re-pin.
+- Tests this round: tsc clean; `stream-cu-trn-fix` 18/18; with cashbook, channels, fit2-closing, hall, lf-alerts, masters-fixture, perf-store, qw-alerts, services: 122 passed, 0 failed. Full `npm test` not re-run.

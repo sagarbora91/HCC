@@ -2,7 +2,7 @@
 import React,{useState} from 'react';
 import {Plus,Check,Clock,Pencil,X,AlarmClock,BellRing} from 'lucide-react';
 import {useHcc} from '../../app/context';
-import {rmdList,rmdWakeOpen,rmdWakeDone,rmdDueDate,rmdShowFrom,rmdRoleOf,rmdSlice,type RMDBucket,type RMDReminder,type GSVRequest} from '../../services/mock';
+import {rmdList,rmdWakeOpen,rmdWakeDone,rmdDueDate,rmdShowFrom,rmdRoleOf,rmdSlice,gsvCanWork,type RMDBucket,type RMDReminder,type GSVRequest} from '../../services/mock';
 import {FitPage,FitTabs,ScrollPanel,SplitView,FitNote,useFitTab,useWideSplit} from '../../components/fit';
 import {Pill,Empty,shortDate} from '../../components/ui';
 
@@ -31,12 +31,13 @@ export function ReminderDetail({r,onChanged}:{r:RMDReminder;onChanged?:()=>void}
   </div>;
 }
 export function WakeDetail({w}:{w:GSVRequest}){
-  const {s,run,busy}=useHcc();const due=!!w.wakeAt&&w.wakeAt<=s.clock;
+  const {s,uid,run,busy}=useHcc();const due=!!w.wakeAt&&w.wakeAt<=s.clock;
   return <div className="dk-detail"><h2>Wake-up · Room {w.room}</h2>
     <div className="inline"><Pill tone={w.status==='Done'?'green':due?'orange':'blue'}>{w.status==='Done'?'Done':due?'Due now':'Scheduled'}</Pill></div>
     <div className="dk-kv"><span>Guest</span><strong>{w.guest}</strong><span>Wake-up time</span><strong>{w.wakeAt?.replace('T',' ')}</strong><span>Booking</span><strong>{w.booking}</strong>
       {w.detail&&<><span>Detail</span><strong>{w.detail}</strong></>}{w.doneAt&&<><span>Done at</span><strong>{w.doneAt.replace('T',' ')}</strong></>}</div>
-    {w.status!=='Done'&&<div className="inline"><button type="button" className="btn primary" disabled={busy} onClick={()=>void run({type:'GSV_REQUEST_COMPLETE',id:w.id,note:'Wake-up call made'},`Wake-up call for room ${w.room} done.`)}><Check size={15}/> Done</button>
+    {w.status!=='Done'&&!gsvCanWork(s,uid,w)&&<p className="muted">Ask Reception to make the call.</p>}
+    {w.status!=='Done'&&gsvCanWork(s,uid,w)&&<div className="inline"><button type="button" className="btn primary" disabled={busy} onClick={()=>void run({type:'GSV_REQUEST_COMPLETE',id:w.id,note:'Wake-up call made'},`Wake-up call for room ${w.room} done.`)}><Check size={15}/> Done</button>
       <button type="button" className="btn" disabled={busy} onClick={()=>void run({type:'GSV_WAKE_SNOOZE',id:w.id},'Snoozed 5 minutes.')}><Clock size={15}/> Snooze 5 min</button></div>}
   </div>;
 }

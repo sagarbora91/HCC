@@ -2,7 +2,7 @@
 import React,{useState} from 'react';
 import {Plus,Check,Clock} from 'lucide-react';
 import {useHcc} from '../../app/context';
-import {rmdList,rmdWakeOpen,rmdDueDate,type RMDBucket} from '../../services/mock';
+import {rmdList,rmdWakeOpen,rmdDueDate,gsvCanWork,type RMDBucket} from '../../services/mock';
 import {Pill,Empty,shortDate} from '../../components/ui';
 import {ReminderDetail} from './DeskAlertsPage';
 
@@ -21,8 +21,8 @@ export function MfDeskAlerts(){
         <small> · {shortDate(rmdDueDate(r))}{r.time?' '+r.time:''}</small></button>{r.status==='open'&&rmdDueDate(r)<s.date&&<Pill tone="orange">Overdue</Pill>}
         {openId===r.id&&<ReminderDetail r={r} onChanged={()=>setOpenId('')}/>}</div>)}
       {wakes.map(w=><div key={w.id} className="dk-card"><strong>Room {w.room} · {w.wakeAt?.slice(11,16)}</strong><small> · {w.guest} · {w.wakeAt?.slice(0,10)}</small>
-        <div className="inline" style={{marginTop:8}}><button type="button" className="btn primary" style={{minHeight:48}} disabled={busy} onClick={()=>void run({type:'GSV_REQUEST_COMPLETE',id:w.id,note:'Wake-up call made'},'Wake-up call done.')}><Check size={15}/> Done</button>
-          <button type="button" className="btn" style={{minHeight:48}} disabled={busy} onClick={()=>void run({type:'GSV_WAKE_SNOOZE',id:w.id},'Snoozed 5 minutes.')}><Clock size={15}/> Snooze 5 min</button></div></div>)}
+        {!gsvCanWork(s,uid,w)?<p className="muted">Ask Reception to make the call.</p>:<div className="inline" style={{marginTop:8}}><button type="button" className="btn primary" style={{minHeight:48}} disabled={busy} onClick={()=>void run({type:'GSV_REQUEST_COMPLETE',id:w.id,note:'Wake-up call made'},'Wake-up call done.')}><Check size={15}/> Done</button>
+          <button type="button" className="btn" style={{minHeight:48}} disabled={busy} onClick={()=>void run({type:'GSV_WAKE_SNOOZE',id:w.id},'Snoozed 5 minutes.')}><Clock size={15}/> Snooze 5 min</button></div>}</div>)}
       {!list.length&&!wakes.length&&<Empty title="Nothing here" body={tab==='wake-ups'?'No wake-up calls are waiting.':'No reminders in this list.'}/>}
     </div></div>;
 }

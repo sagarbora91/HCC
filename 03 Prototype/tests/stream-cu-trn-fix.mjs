@@ -2,6 +2,7 @@
 import {build} from 'esbuild';
 import {pathToFileURL} from 'node:url';
 import {resolve} from 'node:path';
+import {hallFixtures} from './_hall.mjs';
 export async function register({test,M,assert}){
   const {seed,execute,loadScenario,drawer,shiftExpected,shiftMovements,shiftStatus}=M;
   const fy=()=>loadScenario('FY26');
@@ -32,6 +33,31 @@ export async function register({test,M,assert}){
     const s=withCash(seed());assert.match(String(code(()=>execute(s,'cashier',{type:'SHIFT_SUBMIT',counted:shiftExpected(s).expected+1}))),/reason|VALIDATION/);
   });
 
+  // F14 through the real commands: cash counter bill, hall advance in cash and UPI, vendor payment in cash and by bank, also with Cash renamed in the master.
+  for(const rename of [false,true])
+    test(`[CU-TRN] F14 real commands${rename?' (Cash renamed in the payment-method master)':''}: page figure = close command figure, to the paise`,()=>{
+      const {quote,at}=hallFixtures(M);
+      let s=seed(),cash='Cash';
+      if(rename){const row=s.mastersX?.paymentMethods?.find(r=>r.code==='CASH')??M.mstRows?.(s,'paymentMethods')?.find(r=>r.code==='CASH');
+        s=execute(s,'owner',{type:'MST_MASTER_SAVE',master:'paymentMethods',row:{...row,name:'Till cash'}});cash='Till cash';}
+      const d0=drawer(s),vend=M.mstRows(s,'expenseVendors')[0].code;
+      s=execute(s,'cashier',{type:'CTR_BILL_ISSUE',party:{name:'Walk-in Guest',phone:'+91 90000 11111'},lines:[{label:'Courier',unit:15000,gstCategory:'other'}],settlement:{mode:'paid',method:cash}});
+      const bill=s.counterX.bills.at(-1);assert.ok(bill.total>0);
+      let qid;[s,qid]=quote(s);
+      s=execute(s,'manager',{type:'QUO_ACCEPT',id:qid,version:1,advance:{amountPaise:2000000,method:'UPI',reference:'UPI-T-1'},key:'t-accept'});
+      const ev=s.hallX.events.at(-1).id;
+      s=execute(s,'cashier',{type:'HALL_ADVANCE_RECEIVE',eventId:ev,amountPaise:250013,method:cash,reference:'REF-T-CASH',key:'t-adv-cash'});
+      s=execute(s,'cashier',{type:'HALL_ADVANCE_RECEIVE',eventId:ev,amountPaise:310007,method:'UPI',reference:'UPI-T-2',key:'t-adv-upi'});
+      s=execute(s,'manager',{type:'EXP_VENDOR_PAY',vendor:vend,amount:120003,method:cash});
+      s=execute(s,'manager',{type:'EXP_VENDOR_PAY',vendor:vend,amount:90001,method:'Bank transfer',reference:'UTR-T-1'});
+      const ex=shiftExpected(s),mv=shiftMovements(s),sum=k=>mv.filter(m=>m.kind===k).reduce((a,m)=>a+m.amount,0);
+      assert.equal(ex.expected,drawer(s));assert.equal(ex.consistent,true);
+      assert.equal(sum('counter-bill'),bill.total);assert.equal(sum('hall-receipt'),250013);assert.equal(sum('vendor-payment'),-120003);
+      assert.equal(drawer(s)-d0,bill.total+250013-120003,'UPI hall advance and the bank vendor payment are not drawer cash');
+      s=execute(s,'cashier',{type:'SHIFT_SUBMIT',counted:ex.expected});
+      assert.equal(shiftStatus(s),'Closed');assert.equal(s.shiftClose.counted-s.shiftClose.expected,0);
+    });
+
   // ── F17 · hall terms are listed and editable in FY26 ──
   const out=resolve('tests/.generated/hall-logic.mjs');
   await build({entryPoints:['src/features/hall/logic.ts'],bundle:true,platform:'node',format:'esm',outfile:out,logLevel:'error'});
@@ -48,18 +74,27 @@ export async function register({test,M,assert}){
     assert.equal(L.hallTncFor(s,'CORPORATE').hasPlaceholder,true,'other templates untouched');
   });
 
-  // ── F8 · Reception and Manager mark a wake-up call Done ──
+  // ── F8 · the desk banner offers Done only to users the command will accept (same rule: gsvCanWork) ──
   const wake=s=>{const b=s.bookings.find(b=>b.status==='In house');
-    s=execute(s,'reception',{type:'GSV_REQUEST_CREATE',id:b.id,requestType:'Wake-up call',time:'06:30'});return [s,M.gsvSlice(s).requests.at(-1).id];};
+    s=execute(s,'reception',{type:'GSV_REQUEST_CREATE',id:b.id,requestType:'Wake-up call',time:'06:30'});const r=M.gsvSlice(s).requests.at(-1);return [s,r.id,r];};
   for(const u of ['reception','manager','owner'])
-    test(`[CU-TRN] F8: ${u} can mark a wake-up call Done, also when the coarse reservations grant is removed`,()=>{
-      let [s,id]=wake(fy());s.grants=JSON.parse(JSON.stringify(s.grants));
-      for(const r of ['Reception','Manager','Owner'])s.grants[r]=(s.grants[r]??[]).filter(p=>p!=='reservations');
+    test(`[CU-TRN] F8: ${u} with stock grants sees Done and the command succeeds`,()=>{
+      let [s,id,r]=wake(fy());assert.equal(M.gsvCanWork(s,u,r),true);
       s=execute(s,u,{type:'GSV_REQUEST_COMPLETE',id,note:'Wake-up call made'});
-      assert.equal(M.gsvSlice(s).requests.find(r=>r.id===id).status,'Done');
+      assert.equal(M.gsvSlice(s).requests.find(x=>x.id===id).status,'Done');
     });
-  test('[CU-TRN] F8: the rule is for the desk only - a Housekeeper is still refused',()=>{
-    const [s,id]=wake(fy());assert.equal(code(()=>execute(s,'housekeeper',{type:'GSV_REQUEST_COMPLETE',id,note:'Wake-up call made'})),'FORBIDDEN');
+  test('[CU-TRN] F8: the Cashier sees no Done (gsvCanWork false) and the command is refused',()=>{
+    const [s,id,r]=wake(fy());assert.equal(M.gsvCanWork(s,'cashier',r),false);
+    assert.equal(code(()=>execute(s,'cashier',{type:'GSV_REQUEST_COMPLETE',id,note:'Wake-up call made'})),'FORBIDDEN');
+  });
+  test('[CU-TRN] F8: a Reception user whose reservations grant is revoked sees no Done and is refused (as the server)',()=>{
+    const [s0,id,r]=wake(fy());const s=execute(s0,'owner',{type:'GRANT',role:'Reception',permission:'reservations'});
+    assert.equal(M.can(s,'reception','reservations'),false);assert.equal(M.gsvCanWork(s,'reception',r),false);
+    assert.equal(code(()=>execute(s,'reception',{type:'GSV_REQUEST_COMPLETE',id,note:'Wake-up call made'})),'FORBIDDEN');
+  });
+  test('[CU-TRN] F8: the three alert views gate Done / Snooze on gsvCanWork (source check)',async()=>{
+    const {readFile}=await import('node:fs/promises');
+    for(const f of ['src/app/DeskAlerts.tsx','src/features/alerts/DeskAlertsPage.tsx','src/features/alerts/Mobile.tsx'])assert.match(await readFile(f,'utf8'),/gsvCanWork\(s,uid,/,f);
   });
 
   // ── F19 · OTA inbox rows can be accepted in FY26, also after the day-close chapters moved the date on ──

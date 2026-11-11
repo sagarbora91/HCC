@@ -3,7 +3,7 @@
 import React,{useState} from 'react';
 import {BellRing,AlarmClock,Check,Clock} from 'lucide-react';
 import {useHcc} from './context';
-import {rmdDue,rmdDueDate} from '../services/mock';
+import {rmdDue,rmdDueDate,gsvCanWork} from '../services/mock';
 
 const KEY=(date:string)=>'hcc-desk-later:'+date;
 const readLater=(date:string):string[]=>{try{const v=JSON.parse(sessionStorage.getItem(KEY(date))||'[]');return Array.isArray(v)?v.map(String):[];}catch{return [];}};
@@ -21,8 +21,8 @@ export function DeskAlerts({phone=false}:{phone?:boolean}){
   return <section className={'dk-alerts'+(phone?' phone':'')} role="region" aria-label="Desk alerts" aria-live="polite">
     {shown.map(x=>x.kind==='wake'?<div key={x.id} className="dk-row dk-wake">
       <AlarmClock size={18} aria-hidden="true"/><div className="dk-main"><strong>Wake-up · Room {x.w.room} · {x.w.wakeAt!.slice(11,16)} · {x.w.guest}</strong>{x.w.detail&&<small>{x.w.detail}</small>}</div>
-      <div className="dk-act"><button type="button" className="btn small-btn primary" disabled={busy} onClick={()=>void run({type:'GSV_REQUEST_COMPLETE',id:x.w.id,note:'Wake-up call made'},`Wake-up call for room ${x.w.room} done.`)}><Check size={14}/> Done</button>
-        <button type="button" className="btn small-btn" disabled={busy} onClick={()=>void run({type:'GSV_WAKE_SNOOZE',id:x.w.id},`Wake-up for room ${x.w.room} snoozed 5 minutes.`)}><Clock size={14}/> Snooze 5 min</button></div></div>
+      <div className="dk-act">{!gsvCanWork(s,uid,x.w)?<small className="muted">Ask Reception to make the call</small>:<><button type="button" className="btn small-btn primary" disabled={busy} onClick={()=>void run({type:'GSV_REQUEST_COMPLETE',id:x.w.id,note:'Wake-up call made'},`Wake-up call for room ${x.w.room} done.`)}><Check size={14}/> Done</button>
+        <button type="button" className="btn small-btn" disabled={busy} onClick={()=>void run({type:'GSV_WAKE_SNOOZE',id:x.w.id},`Wake-up for room ${x.w.room} snoozed 5 minutes.`)}><Clock size={14}/> Snooze 5 min</button></>}</div></div>
       :<div key={x.id} className="dk-row dk-rmd">
       <BellRing size={18} aria-hidden="true"/><div className="dk-main"><strong>Reminder · {x.r.subject}</strong><small>{rmdDueDate(x.r)<s.date?'Was due ':'Due '}{rmdDueDate(x.r)}{x.r.time?' '+x.r.time:''}{x.r.note?' · '+x.r.note:''}</small></div>
       <div className="dk-act"><button type="button" className="btn small-btn primary" disabled={busy} onClick={()=>void run({type:'RMD_DONE',id:x.r.id},'Reminder done.')}><Check size={14}/> Done</button>
