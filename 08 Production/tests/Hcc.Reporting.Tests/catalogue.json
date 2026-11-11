@@ -7848,7 +7848,7 @@
   ],
   "phone": "yes",
   "layout": "table",
-  "side": "prototype"
+  "side": "both"
  },
  {
   "id": "rpt.stock.counts",
@@ -7944,7 +7944,7 @@
   ],
   "phone": "yes",
   "layout": "table",
-  "side": "prototype"
+  "side": "both"
  },
  {
   "id": "rpt.stock.grn-register",
@@ -8120,7 +8120,7 @@
   ],
   "phone": "yes",
   "layout": "table",
-  "side": "prototype"
+  "side": "both"
  },
  {
   "id": "rpt.stock.linen-cost",
@@ -8290,7 +8290,7 @@
   ],
   "phone": "yes",
   "layout": "table",
-  "side": "prototype"
+  "side": "both"
  },
  {
   "id": "rpt.stock.movements",
@@ -8377,7 +8377,7 @@
   ],
   "phone": "yes",
   "layout": "table",
-  "side": "prototype"
+  "side": "both"
  },
  {
   "id": "rpt.stock.par",
@@ -8452,7 +8452,7 @@
   ],
   "phone": "yes",
   "layout": "table",
-  "side": "prototype"
+  "side": "both"
  },
  {
   "id": "rpt.stock.reorder",
@@ -8520,7 +8520,7 @@
   ],
   "phone": "yes",
   "layout": "table",
-  "side": "prototype"
+  "side": "both"
  },
  {
   "id": "rpt.stock.stock-sheet",
