@@ -63,7 +63,7 @@ public sealed record HallAdvanceView(int Seq, string Label, int? PctBps, long? A
 
 public sealed record HallQuotationVersionView(int V, string Status, string EventType, IReadOnlyList<string> Dates, string Slot, int VenueId, string Setup, int Pax, int GuaranteedPax,
     string ValidUntil, string CreatedUtc, string? SentUtc, string? OverrideReason, IReadOnlyList<HallLineView> Lines, IReadOnlyList<HallAdvanceView> Advance,
-    string? TncTemplateCode = null, int? TncV = null); // FX-SMALL: the T&C version a sent quotation was locked to (null while a draft)
+    string? TncTemplateCode = null, int? TncV = null); // FX-SMALL: the T&C version the snapshot was taken from (set on create / revise / send; null only on rows older than migration 4332)
 
 public sealed record HallQuotationView(long QuotationId, string Number, string Fy, long EnquiryId, int CurrentVersion, string CustomerName, string CustomerPhone, long? CompanyId,
     IReadOnlyList<HallQuotationVersionView> Versions);

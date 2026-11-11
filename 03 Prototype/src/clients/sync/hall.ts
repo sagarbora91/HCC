@@ -113,8 +113,11 @@ export const hall:SyncArea={
     for(const q of r.enquiries)c.ids.learn('hallEnquiry','ENQ-'+q.enquiryId,q.enquiryId);
     for(const q of r.quotations)c.ids.learn('hallQuotation','QUO-'+q.quotationId,q.quotationId);
     for(const e of r.events){c.ids.learn('hallEvent','HEV-'+e.eventId,e.eventId);if(e.invoiceNo&&e.invoiceId!==null)c.ids.learn('hallInvoice',e.invoiceNo,e.invoiceId);}
-    // FX-SMALL: terms the Owner saved live in their own table; a role without the view keeps the seeded terms.
-    const tp=await c.api.get<SrvTncTemplate[]>('/hall/templates').catch(()=>[] as SrvTncTemplate[]);
+    // FX-SMALL: terms the Owner saved live in their own table. Only "not allowed" / "not there" (older server) leaves the seeded terms; any other failure fails the load
+    // so a network or server error never shows the placeholder terms in place of the saved wording (same rule as cashier.ts / admin.ts).
+    const tp=await c.api.get<SrvTncTemplate[]>('/hall/templates').catch((e:unknown)=>{
+      if(e instanceof HccClientError&&(e.wireCode==='FORBIDDEN'||e.wireCode==='NOT_FOUND'))return [] as SrvTncTemplate[];
+      throw e;});
     return hallFromServer(r,tp);}}],
   commands:[
     {type:'HALL_ENQUIRY_ADD',reload:['hallX'],async send(c){const k=c.cmd;

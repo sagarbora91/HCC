@@ -11,7 +11,7 @@ Branch `claude/fx-small` (base 9c5abf01).
 3. **Server cashier expected cash.** Checked: the shift page (`BillingQueries.GetShiftAsync`), the cash desk (`GetCashDeskAsync`) and the close command (`CashierService.ExpectedAsync` in `SubmitShiftCountAsync` and the approval stale check) all read the same `pay.cash_movement` rows (`MovementSql`) through `CashDrawer.Expected`; vendor payments, expenses, counter bills, hall and POS all post to that table through `ICashDrawerPort`. They already agree, no production change. Added tests that prove it to the paisa.
 
 ## Tests (exact)
-- Prototype: `HCC_TEST_ONLY='sync-hall|stream-fx-small' npm test` -> 63/63 passed (new: 2 `[HSYNC] FX-SMALL`, 2 `[FXS]`). `npx tsc --noEmit` clean.
+- Prototype: `HCC_TEST_ONLY='sync-hall|stream-fx-small' npm test` -> 63/63 passed (the name filter also pulls in the core tests; the two files hold 7 tests: 5 in `sync-hall.mjs` incl. 2 new, 2 in `stream-fx-small.mjs`). `npx tsc --noEmit` clean.
 - `dotnet test tests/Hcc.Hall.Tests --filter FullyQualifiedName~HallQuoteSqlTests` -> 3/3 passed (extended `Snapshot_unchanged_after_template_save...` with the new view fields and the template list).
 - `dotnet test tests/Hcc.Expenses.Tests --filter FullyQualifiedName~PurchaseSqlTests` -> 11/11 passed (2 new: shift page = cash desk = close command with a cash vendor payment and cash expense; exact count closes with no difference).
 
@@ -22,8 +22,8 @@ New / changed tests: `tests/sync-hall.mjs`, `tests/stream-fx-small.mjs` (new), `
 - The `[FIT]` test was not run: no phone-layout file changed.
 
 ## Defaults used
-- A role that cannot read `/hall/templates` silently keeps the seeded terms (better than failing the whole hall load).
-- A draft quotation version shows the version in force on its created date (the server only locks the version on SEND).
+- `/hall/templates` answering FORBIDDEN or NOT_FOUND (older server) leaves the seeded terms; any other error fails the hall load (audit fix, same rule as `cashier.ts` / `admin.ts`).
+- The server writes the T&C code / version when a draft is created, revised or sent, so every version uses the exact-version path. The "version in force on the created date" fallback runs only for rows older than migration 4332 (NULL code / version) or an empty database.
 
 ## Open questions / shared files
 None. Shared files touched: none of the marked-block files. No migration, no SCHEMA or APK bump needed.
