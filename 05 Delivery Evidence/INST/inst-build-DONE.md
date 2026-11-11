@@ -51,3 +51,6 @@ All with ISCC at `E:\Tools\Inno Setup 6\ISCC.exe` (Inno Setup 6.7.3). Nothing wa
 
 ## Shared files touched
 `INSTALL.md` (block `INST-BUILD`). No other shared file.
+
+## Finding: `dotnet publish -r win-x64` rewrites `packages.lock.json`
+The self-contained publish (runtime-specific restore) modified the eight `08 Production/src/*/packages.lock.json` files in the worktree (about 1,500 lines). I restored them to the base (final commit) because rule 4 forbids server changes. Whoever runs the real build in a repository checkout must discard those changes afterwards (`git checkout -- "08 Production/src/*/packages.lock.json"`), or build from a throw-away worktree. Under `CI=true` the restore is locked-mode and would instead FAIL for the same reason; a follow-up could add `-p:RestorePackagesWithLockFile=false` to the publish line (not done: it is a build-policy decision).
