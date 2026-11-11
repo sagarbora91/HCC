@@ -19,6 +19,14 @@ export function register({test,M,assert}){
     assert.deepEqual([tot({rows:st}).cells.credit,tot({rows:st}).cells.payment,tot({rows:st}).cells.balance],[0,32000,8000]);
   });
 
+  test(T+'company-credit statement: a credit opening (advance, -5000) opens the statement at -5000 and closes at -5000 with no movement, same as the server',()=>{
+    const s=structuredClone(M.seed());
+    s.groupsX={companies:[{id:'CO-CU2',name:'Advance Traders (fictional)',gstin:'',contact:'',phone:'',email:'',city:'Latur',rates:{},creditLimit:5000000,openingOutstanding:-5000,limitHistory:[]}],
+      blocks:[],requests:[],overrides:[],payments:[]};
+    const st=run(s,'owner',CR,{company:'CO-CU2'}).sections[1].rows;
+    assert.equal(st[0].cells.balance,-5000);assert.equal(st.at(-1).cells.balance,-5000);
+  });
+
   const line=(id,item,name,price,qty)=>({id,item,name,price,qty,kot:'K1'});
   const order=(id,outlet,by,date,lines)=>({id,outlet,table:'1',covers:2,date,openedAt:date+'T12:00',openedBy:by,status:'Settled',version:1,lines,kots:[],
     settlement:{mode:'outlet',billNo:'B-'+id,method:'Cash',net:0,taxBps:500,tax:0,total:0,date,at:date+'T13:00',by}});

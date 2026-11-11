@@ -202,7 +202,7 @@ public sealed class CounterBillService(ICommandRunner runner, IAccessPolicy poli
                     var company = await credit.LockAsync(tx, ctx.PropertyId, companyId.Value, c).ConfigureAwait(false);
                     var exposure = await credit.ExposureAsync(tx, ctx.PropertyId, companyId.Value, c).ConfigureAwait(false);
                     var open = await store.OpenCompanyBillsAsync(tx, ctx.PropertyId, companyId.Value, c).ConfigureAwait(false);
-                    CompanyCreditRules.Ensure(company.CompanyId, company.Name, new Paise(company.CreditLimitPaise), exposure.Total + open, totals.Total, "this counter bill");
+                    CompanyCreditRules.Ensure(company.CompanyId, company.Name, new Paise(company.CreditLimitPaise), exposure.Total + open, totals.Total, "counter bill on company credit");
                 }
             }
 

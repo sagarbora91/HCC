@@ -255,7 +255,7 @@ public sealed class CompanyCreditReport(ICompanyStore companies, CompanyCredit c
     public static ReportRow CompanyRow(CompanyRow c, CompanyCreditView k) => Row(ReportRowKind.Row, null, ("company", c.Name), ("contact", string.Join(" · ", new[] { c.Contact, c.Phone }.Where(x => !string.IsNullOrEmpty(x)))),
         ("rates", RatesText(c.Rates)), ("limit", c.CreditLimitPaise), ("used", k.ExposurePaise), ("remaining", k.RemainingPaise), ("status", Level(c.CreditLimitPaise, k.ExposurePaise)));
 
-    /// <param name="opening">CU-F8E-OPEN: the company's opening outstanding (prototype <c>openingOutstanding</c>), in paise: the approved opening entry's debit minus credit on its party ledger 1110/CMP-id, never below 0.</param>
+    /// <param name="opening">CU-F8E-OPEN: the company's opening outstanding (prototype <c>openingOutstanding</c>), in paise: the approved opening entry's debit minus credit on its party ledger 1110/CMP-id (signed: a credit line, an advance, is negative, as in the party ledger and ageing).</param>
     public static IReadOnlyList<ReportRow> Statement(CompanyCreditFacts f, long opening = 0)
     {
         var ev = f.Credits.Select(c => (c.BusinessDate, Ord: 0, Ref: c.InvoiceNo ?? c.PublicNo /* F8E-R8: the folio's own invoice (prototype twin, F8-INT L1) */, Narr: "Company credit · " + c.PublicNo, Credit: c.Amount.Value, Pay: 0L))
@@ -274,17 +274,21 @@ public sealed class CompanyCreditReport(ICompanyStore companies, CompanyCredit c
         return rows;
     }
 
-    /// <summary>Opening outstanding of one company: the APPROVED opening entry's net debit on its party ledger 1110/CMP-id (a draft never counts); 0 when none.</summary>
+    /// <summary>Opening outstanding of one company: the APPROVED opening entry's net debit on its party ledger 1110/CMP-id (a draft never counts); 0 when none. Signed like the party ledger and the ageing report: a credit line (an advance) is a negative opening.</summary>
     public static long OpeningOf(OpeningEntry? entry, long companyId)
     {
         if (entry is not { Approved: true }) return 0;
         var ledger = "1110/" + Hcc.Domain.Accounting.PartyLedgers.Company(companyId);
         var net = entry.Lines.Where(l => string.Equals(l.Account, ledger, StringComparison.Ordinal)).Sum(l => l.Debit - l.Credit);
-        return Math.Max(0, net);
+        return net;
     }
 
     private async Task<long> OpeningAsync(long companyId, int propertyId, CancellationToken ct)
-        => openings is null ? 0 : OpeningOf(await openings.GetAsync(null, propertyId, ct).ConfigureAwait(false), companyId);
+    {
+        // fail loudly: a host that forgot to register IOpeningEntryStore would otherwise show every statement opening at 0 (the defect this fixes)
+        var store = openings ?? throw new InvalidOperationException("CompanyCreditReport needs IOpeningEntryStore for the statement opening balance.");
+        return OpeningOf(await store.GetAsync(null, propertyId, ct).ConfigureAwait(false), companyId);
+    }
 
     public async Task<ReportResult> SelectAsync(Caller caller, BoundParams parameters, CancellationToken ct = default)
     {

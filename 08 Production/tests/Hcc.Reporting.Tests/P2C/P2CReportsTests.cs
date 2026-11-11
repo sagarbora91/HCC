@@ -224,6 +224,44 @@ public sealed class P2CReportsTests
         foreach (var who in new[] { 3, 6, 7, 8 }) Assert.Equal(HccErrorCode.FORBIDDEN, await Code(() => Run(run, who, SalesByItemReport.Id)));
     }
 
+    // CU f8e-open: the cashier filter (same figures as tests/stream-cu-f8e-open.mjs: principal 4 = "cashier", principal 2 = "manager")
+    private static readonly SaleLineFact[] CashierFacts =
+        [new("m-tea", "Tea", "Beverages", 4, 20000, "Cafe", 4), new("m-tea", "Tea", "Beverages", 6, 30000, "Cafe", 2), new("m-cake", "Cake", "Food", 2, 30000, "Cafe", 2)];
+
+    private static BoundParams CashierParams(string? cashier)
+    {
+        var v = new Dictionary<string, string>();
+        if (cashier is not null) v["cashier"] = cashier;
+        return new BoundParams(v, D1, D2);
+    }
+
+    [Fact]
+    public void SalesByItem_cashier_filter_keeps_only_checks_that_principal_settled()
+    {
+        var def = new SalesByItemReport(new FakeSource(), new PosPolicy()).Definition;
+        Assert.Contains(def.Params, x => x.Key == "cashier" && x.Type == "user");
+        static (object? Value, object? Qty, int Rows) Of(ReportResult r) =>
+            (r.Rows.Single(x => x.Kind == ReportRowKind.Total).Cells["value"], r.Rows.Single(x => x.Kind == ReportRowKind.Total).Cells["qty"], r.Rows.Count(x => x.Kind == ReportRowKind.Row));
+        Assert.Equal((80000L, 12L, 2), Of(SalesByItemReport.Build(def, CashierParams(null), CashierFacts)));
+        Assert.Equal((20000L, 4L, 1), Of(SalesByItemReport.Build(def, CashierParams("4"), CashierFacts)));
+        Assert.Equal((60000L, 8L, 2), Of(SalesByItemReport.Build(def, CashierParams("2"), CashierFacts)));
+        Assert.Empty(SalesByItemReport.Build(def, CashierParams("99"), CashierFacts).Rows);
+    }
+
+    [Fact]
+    public async Task SalesByItem_own_shift_caller_asking_for_another_cashier_gets_nothing()
+    {
+        var src = new FakeSource();
+        src.Sales.AddRange(CashierFacts);
+        var report = new SalesByItemReport(src, new PosPolicy());
+        var other = await report.SelectAsync(Rig.C(4), CashierParams("2"), Ct);          // principal 4 holds only the own-shift grant
+        Assert.Empty(other.Rows);
+        var own = await report.SelectAsync(Rig.C(4), CashierParams("4"), Ct);
+        Assert.Equal(20000L, own.Rows.Single(x => x.Kind == ReportRowKind.Total).Cells["value"]);
+        var all = await report.SelectAsync(Rig.C(2), CashierParams("4"), Ct);             // property-wide: sees the named cashier's checks
+        Assert.Equal(20000L, all.Rows.Single(x => x.Kind == ReportRowKind.Total).Cells["value"]);
+    }
+
     private static ReportRunner PosRunner(params IReportSelector[] selectors) =>
         new(new ReportCatalogue(selectors), new PosPolicyAdapter(), new FakeProperty(new DateOnly(2026, 10, 24)), [new FixedCodeEngine()], new FixedClock(Rig.Now));
 

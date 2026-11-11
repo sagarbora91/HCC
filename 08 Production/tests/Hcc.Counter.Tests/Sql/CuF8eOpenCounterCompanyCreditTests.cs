@@ -3,6 +3,8 @@ using Hcc.Application.Counter;
 using Hcc.Closing.Tests.Harness;
 using Hcc.Contracts;
 using Hcc.Domain.Errors;
+using Hcc.Domain.Groups;
+using Hcc.Domain.Money;
 
 namespace Hcc.Counter.Tests.Sql;
 
@@ -46,13 +48,20 @@ public sealed class CuF8eOpenCounterCompanyCreditTests
         // 84000 already open + 42000 = 126000 > 100000: refused, nothing written
         var before = await CountsAsync(h);
         var ex = await Assert.ThrowsAsync<HccException>(() => Issue(h, OnCompany(cid, "Walk-in Three (fictional)")));
-        Assert.Contains("Credit limit exceeded for Counter Credit Traders (fictional)", ex.Message, StringComparison.Ordinal);
-        Assert.Contains("this counter bill", ex.Message, StringComparison.Ordinal);
+        Assert.Equal(HccErrorCode.INVALID_TRANSITION, ex.Code);
+        // the exact sentence (prototype ctrCompanyRefusal wording: "this counter bill on company credit needs ..."), not the doubled "this this counter bill"
+        Assert.Equal(CompanyCreditRules.Message("Counter Credit Traders (fictional)", new Paise(100000), new Paise(84000), new Paise(42000), "counter bill on company credit"), ex.Message);
+        Assert.Contains("this counter bill on company credit needs", ex.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("this this", ex.Message, StringComparison.Ordinal);
+        Assert.Equal(("CREDIT_LIMIT", 100000L, 84000L, 42000L), (ex.Details!["reason"].GetString(), ex.Details["limitPaise"].GetInt64(), ex.Details["usedPaise"].GetInt64(), ex.Details["neededPaise"].GetInt64()));
         Assert.Equal(before, await CountsAsync(h));
 
         // raising the limit to exactly the three bills (126000) lets the third through to the paise; one paisa less would not
         await h.ScalarAsync($"UPDATE grp.company_account SET credit_limit_paise = 125999 WHERE company_id = {cid};", Ct);
-        await Assert.ThrowsAsync<HccException>(() => Issue(h, OnCompany(cid, "Walk-in Three (fictional)")));
+        var short1 = await Assert.ThrowsAsync<HccException>(() => Issue(h, OnCompany(cid, "Walk-in Three (fictional)")));
+        Assert.Equal(HccErrorCode.INVALID_TRANSITION, short1.Code);
+        Assert.Equal(CompanyCreditRules.Message("Counter Credit Traders (fictional)", new Paise(125999), new Paise(84000), new Paise(42000), "counter bill on company credit"), short1.Message);
+        Assert.Equal("CREDIT_LIMIT", short1.Details!["reason"].GetString());
         await h.ScalarAsync($"UPDATE grp.company_account SET credit_limit_paise = 126000 WHERE company_id = {cid};", Ct);
         var c = await Issue(h, OnCompany(cid, "Walk-in Three (fictional)"));
         Assert.Equal(42000L, c.Value.TotalPaise);
