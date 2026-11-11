@@ -142,6 +142,16 @@ export async function register({test,assert,M}){
     assert.equal(tills.revUpi.calls[0].body.tillId,undefined);assert.equal(tills.revUpi.out,undefined);
     assert.equal(tills.renamedNew.calls[0].body.expectedVersion,'EV1');
   });
+  // A Manager has no rename history (PERM-MST-002 is the Owner's): stored "Cash" after the rename must still be drawer cash.
+  const noHist={...base,mastersX:{...base.mastersX,history:[]}};
+  const nh={};
+  nh.appCash=await till('EXPENSE_APPROVE',noHist,exp('Cash'));nh.appLower=await till('EXPENSE_APPROVE',noHist,exp('cash'));
+  nh.revCash=await till('EXPENSE_REVERSE',noHist,exp('Cash'));nh.revLower=await till('EXPENSE_REVERSE',noHist,exp('cash'));
+  nh.appUpi=await till('EXPENSE_APPROVE',noHist,exp('UPI'));
+  test('[CU-PAY-A] expense approve / reverse without the rename history: stored "Cash" / "cash" still sends the till and reloads the cash slices',()=>{
+    for(const k of ['appCash','appLower','revCash','revLower']){assert.equal(nh[k].calls[0].body.tillId,3,k);assert.ok(nh[k].out.reload,k+': cash slices reload');}
+    assert.equal(nh.appUpi.calls[0].body.tillId,undefined,'a non-drawer method still sends no till');
+  });
   test('[CU-PAY-A] expense handler snapshot: an expense booked as Cash before a rename keeps "Cash"; a new one under the old name is stored under the current label',()=>{
     let s=M.execute({...M.seed(),shiftOpen:true},'owner',{type:'EXPENSE',description:'Test expense cu-pay-a',vendor:'Petty Stores',category:'Petty cash',method:'Cash',amount:42000,draft:false});
     const e1=s.expenses.at(-1);assert.equal(e1.method,'Cash');

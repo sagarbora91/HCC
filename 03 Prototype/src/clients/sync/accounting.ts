@@ -41,7 +41,7 @@ import {addDays} from '../../domain/money';
 import {HccClientError} from '../errors';
 import type {SyncArea,LoaderCtx,CommandCtx} from './types';
 import {serverId,protoUserId,utcToClock,paise,isoDate} from './map';
-import {CASH_SLICES,cashBlockedReason} from './money';
+import {CASH_SLICES,cashBlockedReason,folioIsDrawer} from './money';
 import {expPurchaseWire,purchaseFieldsFromServer} from './expenses-vendor'; // ACC-2 acc2-purchase: purchase fields on the expense wire
 import {saveTextFile,saveCsv} from '../../app/native';
 
@@ -368,14 +368,14 @@ export const accounting:SyncArea={
     {type:'EXPENSE_APPROVE',reload:['expenses','expensesX'],
       async send(c){const id=String(c.cmd.id),approve=!!c.cmd.approve,e=expenseOf(c);
         const r=await c.api.command<{budgetAlert?:string|null}>('DecideExpense',{expenseId:serverId(id,'Expense'),expectedVersion:loadedVersion(c,'expense',id,'This expense'),approve,
-          ...(!approve&&txt(c.cmd.reason)?{reason:txt(c.cmd.reason)}:{}),...(approve&&e&&mnyIsDrawer(c.state,e.method)?{tillId:currentTill(c)}:{}),...override(c.cmd)});
+          ...(!approve&&txt(c.cmd.reason)?{reason:txt(c.cmd.reason)}:{}),...(approve&&e&&folioIsDrawer(c.state,e.method)?{tillId:currentTill(c)}:{}),...override(c.cmd)});
         const warn=r?.budgetAlert?{warning:r.budgetAlert}:{};
-        return approve&&e&&mnyIsDrawer(c.state,e.method)?{reload:CASH_SLICES,...warn}:warn;}}, // cash left the drawer: money's cash desk + cash book
+        return approve&&e&&folioIsDrawer(c.state,e.method)?{reload:CASH_SLICES,...warn}:warn;}}, // cash left the drawer: money's cash desk + cash book
     {type:'EXPENSE_REVERSE',reload:['expenses'],precheck:cmd=>txt(cmd.reason)?undefined:'A reason is required to reverse an expense.',
       async send(c){const id=String(c.cmd.id),e=expenseOf(c);
         await c.api.command('ReverseExpense',{expenseId:serverId(id,'Expense'),expectedVersion:loadedVersion(c,'expense',id,'This expense'),reason:txt(c.cmd.reason),
-          ...(e&&mnyIsDrawer(c.state,e.method)?{tillId:currentTill(c)}:{}),...override(c.cmd)});
-        return e&&mnyIsDrawer(c.state,e.method)?{reload:CASH_SLICES}:undefined;}},
+          ...(e&&folioIsDrawer(c.state,e.method)?{tillId:currentTill(c)}:{}),...override(c.cmd)});
+        return e&&folioIsDrawer(c.state,e.method)?{reload:CASH_SLICES}:undefined;}},
     // ── DEC-120 · SCC expense features ──
     {type:'EXP_EDIT',reload:['expenses','expensesX'],precheck:cmd=>txt(cmd.reason)?undefined:'Reason required',
       async send(c){const m=c.cmd,id=String(m.id);

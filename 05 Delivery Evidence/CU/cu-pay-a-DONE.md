@@ -26,3 +26,10 @@ None. No SCHEMA bump, no migration.
 
 ## Shared files touched
 None.
+
+## Fix round (audit FIX 1)
+- `accounting.ts`: the four till decisions (EXPENSE_APPROVE tillId and reload, EXPENSE_REVERSE tillId and reload) now use AF2's `folioIsDrawer` from `./money` (master row via name / code / case, else the literal "Cash"), which works without the rename history that only the Owner loads. A Manager approving or reversing an expense stored as `Cash` after the Owner renamed Cash sends the till again.
+- New test in `tests/stream-cu-pay-a.mjs`: renamed master, empty history, stored `Cash` and `cash`: approve and reverse send `tillId` 3 and reload the cash slices; UPI sends none.
+- `pos.ts`: the same exact-text weakness does NOT apply. `send` first resolves the command's method through `mnyPick` (name, code in capitals, case, earlier name) to the master's current name and only then calls `mnyIsDrawer` on that current name, which is always a key. A stored value is never tested there.
+- Tests: `tsc --noEmit` clean; `stream-cu-pay-a` 12 tests; with the related POS / accounting / payment-method / money-master suites: 131 passed, 0 failed.
+- Not changed (audit notes 3-5): reference wording, in-memory expense retired wording, client-side drawer figures in closing / selectors.
