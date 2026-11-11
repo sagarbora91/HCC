@@ -14,7 +14,7 @@ export const CASHBOOK_COLS:RptColumn[]=[col('date','Business date','date'),col('
   col('payments','Payments (incl. banking)','money',true),col('closing','Closing (book)','money',true),col('counted','Counted','money',true),col('overShort','Over / short','money',true)];
 export const CASHBOOK_ENTRY_COLS:RptColumn[]=[col('date','Business date','date'),col('ref','Reference','text'),col('entry','Entry','text'),col('detail','Detail','text'),col('booking','Booking','text'),
   col('guest','Guest','text',false,{mask:'guestName'}),col('in','Receipt','money',true),col('out','Payment','money',true),col('balance','Balance','money',true),col('by','By','text')];
-export const cashBook=registerReport({serverMirror:false,
+export const cashBook=registerReport({
   id:'rpt.money.cash-book',title:'Cash book',area:'money',priority:'P1',status:'built',moneyFlag:true,moneyGate:GATE,viewPerms:[GATE],dateClass:'D-S',
   params:rangeParams('D-F').map(p=>({...p,dateClass:'D-S' as const})),columns:CASHBOOK_COLS,
   dateBasis:'One row per known business date: opening = the closing float, receipts and payments = the cashier-shift movements of that date (plus banking after the count), closing = book balance, counted and over / short from the closing record. Second block: every entry with the running balance.',

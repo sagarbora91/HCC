@@ -294,6 +294,12 @@ public static class HccComposition
         // F4-T3
         services.AddFeedbackModule();
         // F4-T3 end
+        // CU-RPT-A
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.CuA.AuditLogReport>(services); // CU-RPT-A
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.CuA.DailyOpsReport>(services); // CU-RPT-A
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.CuA.CashBookReport>(services); // CU-RPT-A
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.CuA.ExpensesCashReport>(services); // CU-RPT-A
+        // /CU-RPT-A
         return services;
     }
 

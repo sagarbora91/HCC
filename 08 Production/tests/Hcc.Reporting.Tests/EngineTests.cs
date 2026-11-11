@@ -77,6 +77,10 @@ public sealed class EngineTests
         new Hcc.Reporting.Reports.P2C.SalesByItemReport(null!, null!), new Hcc.Reporting.Reports.P2C.PosVoidsReport(null!), new Hcc.Reporting.Reports.P2C.ScheduledRunsReport(null!, null!, null!),
         new Hcc.Reporting.Reports.P2C.CancelledLinesReport(null!), new Hcc.Reporting.Reports.P2C.RateSheetReport(null!, null!, null!),
         // F8-RPT-P2-C end
+        // CU-RPT-A
+        new Hcc.Reporting.Reports.CuA.AuditLogReport(null!, null!, null!), new Hcc.Reporting.Reports.CuA.DailyOpsReport(null!, null!, null!),
+        new Hcc.Reporting.Reports.CuA.CashBookReport(null!, null!, null!), new Hcc.Reporting.Reports.CuA.ExpensesCashReport(null!, null!, null!, null!, null!),
+        // /CU-RPT-A
         // CU-RPT-B
         new Hcc.Reporting.Reports.CuB.ReceiptsDepositsReport(null!, null!), new Hcc.Reporting.Reports.CuB.RestDaySummaryReport(null!, null!, null!),
         new Hcc.Reporting.Reports.CuB.RoomsOccupancyReport(null!), new Hcc.Reporting.Reports.CuB.StockSheetReport(null!),
