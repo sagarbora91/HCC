@@ -59,3 +59,39 @@ Branch `claude/inst-client` (base c7438465). Executor: Sonnet. Nothing was insta
 
 ## Full suite result
 `powershell -NoProfile -File tests\Test-HccDeployment.ps1` (Windows PowerShell 5.1), whole file: **Passed: 109  Failed: 0** (90 existing + 19 INST-CLIENT; no existing assertion changed).
+
+
+---
+# Fix round (after the Opus audit, FIX with 8 items) - 12 Nov 2026
+
+All eight items done. Nothing run for real (ISCC compile, `-WhatIf`, in-memory test certificates and a fake store only).
+
+| # | Item | Done |
+|---|---|---|
+| 1 | Name Constraints really parsed | `Hcc-ClientTrust.ps1`: DER reader (`Read-HccTlv`), `Get-HccNameConstraintInfo`, `Test-HccHostPermitted`. Requires: extension critical; permitted subtrees non-empty; every permitted DNS name a plain host (no empty, no leading dot, no wildcard, no bare top-level domain or public suffix such as `com`, `in`, `co.in`, no 1-2 letter label); every permitted IP range inside 10/8, 172.16/12, 192.168/16, 127/8, ::1/128, fc00::/7; each address family either permitted (private) or excluded as a whole; the server host of the json / typed address / kit `-ServerName` inside the permitted names or ranges (not excluded). The permitted list is shown on the confirmation page and in READ-ME and in the kit's console output. Tests: a CA built exactly as `New-HccCertificate.ps1` builds it (`Get-HccCertificatePlan` + `New-HccNameConstraintsExtension`), refusals for non-critical, empty, excluded-only, `com`/`net`/`in`, `co.in`, `0.0.0.0/0`, public IP, wide private-looking range (172.0.0.0/8), leading-dot, wildcard, and a host outside the names (name and IP); kit refuses an uncovered `-ServerName`. |
+| 2 | Gating | `HccClient.iss`: `NextButtonClick(ConfirmPage)` returns False unless `InspectOk and ConfirmCheck.Checked` (a silent setup has no tick box, so `WizardSilent` is exempt there and decided in `PrepareToInstall`); `PrepareToInstall` always re-runs the checker, then requires the fingerprint when silent (empty / null `caSha256` = none; `Read-HccClientConfig` treats it so) or the tick box when not. |
+| 3 | Circular fingerprint | Confirmation text and READ-ME now say: the files on the stick cannot prove they are the hotel's; compare with the fingerprint shown on the SERVER PC (last page of the HCC server setup / its install log / the kit step output), not with a file on the stick. `New-HccClientKit.ps1` prints the CA SHA-256 prominently and returns it (`Sha256`, `Fingerprint`, `Permitted`). **Dependency for lane `server`:** the server installer's finish page and install log must show the CA SHA-256 (grouped `AA:BB:...`; the kit step output already prints it), and later an Owner page; add it to the owner's paper checklist. |
+| 4 | Removal bookkeeping | `{app}\ca-trusted.txt` lists `<sha256> added|already`. A different CA than a recorded `added` one: the setup offers to remove the previous (default Yes, silent Yes) and shows a failure. Uninstall offers removal only for `added` entries (default No, silent keeps), and shows the result per certificate (`removed` / `absent` / `failed: ...`), logged. |
+| 5 | `.gitignore` | `**/installer/Output/` (verified with `git check-ignore`). |
+| 6 | Store seam | `Add-HccTrustedRoot` / `Remove-HccTrustedRoot` take `-StoreFactory` (default the real `LocalMachine\Root`). Tests use an in-memory fake and never open the live store; before/after enumeration stays as a read-only backstop. The old live-store `-WhatIf` check was removed. New tests: add once / `already` / refusals and `-WhatIf` make no call / remove only the matching certificate / `absent`. |
+| 7 | File type and key | `GetCertContentType` must be `Cert` (PFX, PKCS#7, serialized refused), any `PRIVATE KEY` text refused, `HasPrivateKey` refused; also BasicConstraints critical, keyCertSign when KeyUsage is present, no SHA-1/MD5, RSA >= 2048. Tests: PFX, PEM + key, non-critical CA flag, no keyCertSign. |
+| 8 | Hotel name | `Test-HccHotelName` (1-100 characters, no `\p{Cc}\p{Cf}\p{Zl}\p{Zp}`), used by the kit and by the client; an invalid name from the json is shown as "(name not shown: not valid)" and does not refuse the setup. Tests for 101 chars, U+2028, BEL, U+200B, blank. |
+
+## Trial-machine checklist (can only be proven by running the setup on the disposable machine)
+1. `/VERYSILENT` with a kit whose `hcc-client.json` has `"caSha256": ""` (and with `null`, and with the property removed): must stop with a non-zero exit code, a message naming the missing fingerprint, **nothing trusted, no icon, no files** (the silent / simulated-Next path was reasoned from Inno's documentation, never run).
+2. `/VERYSILENT` with a correct kit: trusts, icons, exit 0; and with a fingerprint that differs: stops, nothing changed.
+3. Interactive: the Next button on the confirmation page stays disabled until the box is ticked; with a failing check the page says STOP and Next stays disabled; Back to the file page works.
+4. Kit files missing next to the setup: the address and file pages appear; the typed address is checked; the fingerprint line says nothing was compared.
+5. Real store write: certificate appears once in Local Machine > Trusted Root; second run says `already` and `ca-trusted.txt` keeps `added`.
+6. Second run with a different hotel CA kit: offers to remove the previous `added` one; Yes removes it; No keeps it.
+7. Uninstall: asks only if an `added` entry exists; Yes removes and reports `removed`; No keeps it; a certificate recorded `already` (e.g. on the server PC) is never offered; `/VERYSILENT` uninstall keeps the certificate.
+8. The icon opens an Edge app window with the own profile; Chrome fallback; default-browser fallback; the server check message for server off / wrong network / certificate not accepted.
+9. On a PC with a Group Policy execution policy: the setup should fail closed with "could not be checked".
+10. Wizard text on the confirmation page fits and is readable (memo height, long permitted list).
+
+## Results of this round
+See the last lines below (filled in after the runs).
+
+- ISCC: `ISCC /Q /DAppVersion=0.0.1.0 /DOutputDir=<temp> HccClient.iss` exit 0; the gating text is also asserted by a test, and the test suite compiles it again (and refuses without a version).
+- Full `tests\Test-HccDeployment.ps1`: Windows PowerShell 5.1 **Passed: 117 Failed: 0**; PowerShell 7 **Passed: 117 Failed: 0** (INST-CLIENT block now 25 checks).
+- Still NOT verified: everything in the trial-machine checklist above (Pascal at runtime, silent path, real store writes, launcher).

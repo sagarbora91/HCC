@@ -55,5 +55,5 @@ tools/legacy/__pycache__/
 06 Training/**/__pycache__/
 
 # INST-CLIENT
-installer/Output/
+**/installer/Output/
 # /INST-CLIENT

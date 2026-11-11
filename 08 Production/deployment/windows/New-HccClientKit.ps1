@@ -32,9 +32,11 @@ $name = $ServerName.Trim()
 $url = Test-HccServerUrl ("https://{0}:{1}/" -f $name, $Port)
 if (-not $url.Ok) { throw "Server name '$ServerName' / port $Port cannot be used: $($url.Error)" }
 $hotel = $HotelName.Trim()
-if (-not $hotel -or $hotel.Length -gt 100 -or $hotel -match '[\x00-\x1F\x7F]') { throw 'HotelName must be 1 to 100 characters, on one line.' }
+if (-not (Test-HccHotelName $hotel)) { throw 'HotelName must be 1 to 100 characters, on one line, without control or invisible formatting characters.' }
 $ca = Get-HccCaFileInfo $CaCer
 if (-not $ca.Ok) { throw "CaCer '$CaCer' cannot be used for the kit: $($ca.Error)" }
+$covered = Test-HccHostPermitted $ca.NameConstraints $url.Host
+if ($covered) { throw "ServerName '$ServerName' cannot be used with this CA: $covered" }
 
 function Find-HccClientSetupExe {
     if ($ClientSetupExe) {
@@ -63,7 +65,7 @@ if ($setup) { $setupNameOut = Split-Path -Leaf $setup }
 $plan = "Write the HCC client kit for '$hotel' ($($url.Url)) into $OutDir"
 if (-not $PSCmdlet.ShouldProcess($OutDir, $plan)) {
     Write-Host "DRY RUN plan: $plan"
-    Write-Host "DRY RUN plan: certificate $($ca.Subject), SHA-256 $fp, valid until $($ca.NotAfter), name-constrained: $($ca.NameConstrained)"
+    Write-Host "DRY RUN plan: certificate $($ca.Subject), SHA-256 $fp, valid until $($ca.NotAfter), can vouch only for: $($ca.Permitted)"
     Write-Host "DRY RUN plan: files $setupNameOut, HCC-Hotel-CA.cer, hcc-client.json, READ-ME.txt"
     return
 }
@@ -89,18 +91,22 @@ What to do on each PC (about two minutes)
   1. Copy this whole folder to the PC (USB stick). Keep the files together.
   2. Double-click $setupNameOut
   3. Windows asks for an administrator's permission. Say yes (an administrator of that PC must do this once).
-  4. The setup shows the hotel name, the server address and a certificate fingerprint. Check that the fingerprint is
-     the same as the one below. Tick the box and go on.
+  4. The setup shows the hotel name, the server address and a certificate fingerprint. Compare the fingerprint with the one
+     shown on the SERVER PC (the last page of the HCC server setup, or its install log, or the output of the client kit
+     step) - NOT with a file on this USB stick: the files on the stick cannot prove they are your hotel's.
+     If the fingerprints differ, press Cancel and call your technical person. If they match, tick the box and go on.
   5. Finish. The setup says whether it could already reach the server. If the server is off or the PC is on another network, that is
      only a message: the icon works as soon as the PC can reach the server.
 
-Certificate fingerprint (SHA-256) - this must be what the setup shows:
+Certificate fingerprint (SHA-256) written when this kit was made (it must equal the one on the server PC and the one the setup shows):
   $fp
 
 Hotel server address: $($url.Url)
 Certificate valid until: $($ca.NotAfter)
-The certificate can only vouch for the HCC server's own names and addresses (it is name-restricted), so trusting it does not
-let it vouch for other websites.
+This certificate can vouch only for: $($ca.Permitted)
+(it is name-restricted to the hotel server's own names and addresses), so trusting it does not let it vouch for other websites.
+If the setup says the files could not be checked on a PC managed by an IT department, ask them to allow the script. The setup
+needs 64-bit Windows.
 
 Removing: Settings > Apps > "HCC (client)" > Uninstall. It removes the icon and asks whether to remove the certificate too.
 Do not copy this kit to phones or to PCs outside the hotel. Phones and tablets: see ANDROID_SERVER_ADDRESS.md on the server PC.
@@ -108,5 +114,9 @@ Do not copy this kit to phones or to PCs outside the hotel. Phones and tablets: 
 [IO.File]::WriteAllText($readmeOut, ($readme -replace "`r?`n", "`r`n"), (New-Object Text.UTF8Encoding($true)))
 
 Write-Host "HCC client kit written to $OutDir"
-Write-Host "  setup: $setupNameOut   certificate fingerprint: $fp"
-[pscustomobject]@{ OutDir = $OutDir; Setup = $dest; Cer = $cerOut; Json = $jsonOut; ReadMe = $readmeOut; Sha256 = $ca.Sha256 }
+Write-Host ''
+Write-Host '  HOTEL CA CERTIFICATE FINGERPRINT (SHA-256) - compare it on each client PC with the setup screen:'
+Write-Host "  $fp"
+Write-Host ''
+Write-Host "  setup: $setupNameOut   certificate can vouch only for: $($ca.Permitted)"
+[pscustomobject]@{ OutDir = $OutDir; Setup = $dest; Cer = $cerOut; Json = $jsonOut; ReadMe = $readmeOut; Sha256 = $ca.Sha256; Fingerprint = $fp; Permitted = $ca.Permitted }

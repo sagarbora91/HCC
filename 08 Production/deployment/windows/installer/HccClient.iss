@@ -57,7 +57,7 @@ Name: "{commonprograms}\HCC"; Filename: "{sys}\wscript.exe"; Parameters: """{app
 
 [UninstallDelete]
 Type: files; Name: "{app}\server-url.txt"
-Type: files; Name: "{app}\ca-sha256.txt"
+Type: files; Name: "{app}\ca-trusted.txt"
 
 [Code]
 const
@@ -71,8 +71,8 @@ var
   ConfirmCheck: TNewCheckBox;
   KitCer, KitCfg: String;
   HaveCer, HaveCfg: Boolean;
-  Inspected, InspectOk: Boolean;
-  InspectError, ApprovedSha, ApprovedUrl, ApprovedHotel, ApprovedSubject, ApprovedDisplay, ApprovedUntil: String;
+  InspectOk: Boolean;
+  InspectError, ApprovedSha, ApprovedUrl, ApprovedHotel, ApprovedSubject, ApprovedDisplay, ApprovedUntil, ApprovedPermitted, TrustResult: String;
   ExpectedKnown: Boolean;
   PsExe: String;
 
@@ -84,12 +84,11 @@ begin
     if Pos(S[I], UrlChars) = 0 then Result := False;
 end;
 
-function RunTrustScript(const Params, OutFile: String): Boolean;
+function RunTrustScript(const ScriptPath, Params, OutFile: String): Boolean;
 var Rc: Integer;
 begin
-  ExtractTemporaryFile('Hcc-ClientTrust.ps1');
   DeleteFile(OutFile);
-  Result := Exec(PsExe, '-NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' + ExpandConstant('{tmp}\Hcc-ClientTrust.ps1') + '" ' + Params + ' -OutFile "' + OutFile + '"',
+  Result := Exec(PsExe, '-NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' + ScriptPath + '" ' + Params + ' -OutFile "' + OutFile + '"',
     '', SW_HIDE, ewWaitUntilTerminated, Rc);
   Log('Hcc-ClientTrust ' + Copy(Params, 1, 40) + ' exit=' + IntToStr(Rc));
   Result := Result and (Rc = 0);
@@ -115,6 +114,24 @@ begin
   end;
 end;
 
+function ShortFp(const Sha: String): String;
+begin
+  Result := Copy(Sha, 1, 8) + '...' + Copy(Sha, 57, 8);
+end;
+
+// Removes one certificate (by fingerprint) with the installed script. Returns removed / absent / a failure text.
+function UntrustSha(const Sha: String): String;
+var OutF: String;
+begin
+  OutF := ExpandConstant('{tmp}\untrust.txt');
+  if RunTrustScript(ExpandConstant('{app}\Hcc-ClientTrust.ps1'), '-Action Untrust -Sha256 "' + Sha + '"', OutF) then
+    Result := ReadResult(OutF, 'result')
+  else
+    Result := 'failed: ' + ReadResult(OutF, 'error');
+  if Result = '' then Result := 'failed: no answer';
+  Log('Untrust ' + ShortFp(Sha) + ': ' + Result);
+end;
+
 function CurrentCer: String;
 begin
   if HaveCer then Result := KitCer else Result := CerPage.Values[0];
@@ -125,12 +142,12 @@ begin
   Result := Trim(AskPage.Values[0]);
 end;
 
-// Checks the files (changes nothing). Sets InspectOk / InspectError and the approved values.
+// Checks the files (changes nothing). Sets InspectOk / InspectError and the approved values. Always re-runs the checker.
 procedure DoInspect;
 var OutF, P: String;
 begin
-  Inspected := True;
   InspectOk := False;
+  ExtractTemporaryFile('Hcc-ClientTrust.ps1');
   OutF := ExpandConstant('{tmp}\inspect.txt');
   P := '-Action Inspect -CerPath "' + CurrentCer + '"';
   if HaveCfg then P := P + ' -ConfigPath "' + KitCfg + '"'
@@ -142,7 +159,7 @@ begin
     end;
     P := P + ' -ServerUrl "' + CurrentUrl + '"';
   end;
-  RunTrustScript(P, OutF);
+  RunTrustScript(ExpandConstant('{tmp}\Hcc-ClientTrust.ps1'), P, OutF);
   InspectOk := ReadResult(OutF, 'ok') = '1';
   InspectError := ReadResult(OutF, 'error');
   if (not InspectOk) and (InspectError = '') then InspectError := 'The certificate and the address could not be checked.';
@@ -152,6 +169,7 @@ begin
   ApprovedHotel := ReadResult(OutF, 'hotel');
   ApprovedSubject := ReadResult(OutF, 'subject');
   ApprovedUntil := ReadResult(OutF, 'notAfter');
+  ApprovedPermitted := ReadResult(OutF, 'permitted');
   ExpectedKnown := ReadResult(OutF, 'expectedKnown') = '1';
   // The address goes into a script and a shortcut: only plain characters, whatever the checker said.
   if InspectOk and not CleanUrlChars(ApprovedUrl) then
@@ -188,13 +206,15 @@ begin
     if ApprovedHotel <> '' then T := T + ApprovedHotel else T := T + '(not given)';
     T := T + #13#10 + 'Server address: ' + ApprovedUrl + #13#10 + #13#10 +
          'Certificate: ' + ApprovedSubject + #13#10 + 'Valid until: ' + ApprovedUntil + #13#10 +
-         'SHA-256 fingerprint:' + #13#10 + ApprovedDisplay + #13#10 + #13#10;
+         'It can vouch only for: ' + ApprovedPermitted + #13#10 + #13#10 +
+         'SHA-256 fingerprint:' + #13#10 + ApprovedDisplay + #13#10 + #13#10 +
+         'CHECK THIS FIRST: the files on the USB stick cannot prove they are your hotel''s. Compare this fingerprint with the one shown on the SERVER PC (the last page of the HCC server setup, or its install log), not with a file on the stick. If they differ, press Cancel.';
     if ExpectedKnown then
-      T := T + 'The fingerprint is the one written in hcc-client.json. '
+      T := T + #13#10 + '(hcc-client.json carries the same fingerprint, so the files agree with each other.)'
     else
-      T := T + 'No fingerprint came with the files, so this setup cannot compare it. Compare the fingerprint above with the one printed on the server PC (READ-ME.txt of the kit) before you go on. ';
+      T := T + #13#10 + '(No fingerprint came with the files, so nothing was compared by this setup.)';
     T := T + #13#10 + #13#10 +
-         'This certificate will be added to "Trusted Root Certification Authorities" of this PC, and nothing else will be. It is limited to the HCC server''s own names and addresses (name-constrained), so it cannot vouch for other websites.';
+         'If you go on, this certificate is added to "Trusted Root Certification Authorities" of this PC, and nothing else is. It is limited to the HCC server''s own names and addresses listed above (name-constrained), so it cannot vouch for other websites.';
     ConfirmCheck.Enabled := True;
   end;
   ConfirmMemo.Text := T;
@@ -231,7 +251,7 @@ begin
   ConfirmCheck.Left := 0;
   ConfirmCheck.Top := ConfirmPage.SurfaceHeight - ScaleY(24);
   ConfirmCheck.Width := ConfirmPage.SurfaceWidth;
-  ConfirmCheck.Caption := 'Yes, this is my hotel''s server. Trust this certificate on this PC.';
+  ConfirmCheck.Caption := 'The fingerprint matches the server PC. Trust this certificate on this PC.';
   ConfirmCheck.OnClick := @ConfirmCheckClick;
 end;
 
@@ -266,35 +286,80 @@ begin
       Result := False;
     end;
   end;
+  // The decision itself, not only the button state. A silent setup has no tick box: PrepareToInstall decides there.
+  if (CurPageID = ConfirmPage.ID) and not WizardSilent then
+    if not (InspectOk and ConfirmCheck.Checked) then Result := False;
 end;
 
 // The certificate is trusted BEFORE any file is copied: if it fails nothing is left on the PC.
+// Whatever happened on the pages, everything is checked again here.
 function PrepareToInstall(var NeedsRestart: Boolean): String;
 var OutF: String;
 begin
   Result := '';
-  // A silent setup shows no confirmation page: it is allowed only with a kit whose json carries the fingerprint.
-  if not Inspected then
-  begin
-    DoInspect;
-    if InspectOk and not ExpectedKnown then
-    begin
-      InspectOk := False;
-      InspectError := 'A silent setup needs hcc-client.json with the certificate fingerprint next to it.';
-    end;
-  end;
+  DoInspect;
   if not InspectOk then
   begin
     Result := 'The HCC setup stopped and changed nothing. ' + InspectError;
     Exit;
   end;
+  if WizardSilent then
+  begin
+    // No person confirms a silent setup, so the kit must carry the fingerprint (an empty caSha256 counts as none).
+    if not ExpectedKnown then
+    begin
+      Result := 'The HCC setup stopped and changed nothing. A silent setup needs hcc-client.json with the certificate fingerprint (caSha256) next to it.';
+      Exit;
+    end;
+  end
+  else if not ConfirmCheck.Checked then
+  begin
+    Result := 'The HCC setup stopped and changed nothing. The certificate was not confirmed.';
+    Exit;
+  end;
   OutF := ExpandConstant('{tmp}\trust.txt');
-  if not RunTrustScript('-Action Trust -CerPath "' + CurrentCer + '" -ExpectedSha256 "' + ApprovedSha + '"', OutF) then
+  if not RunTrustScript(ExpandConstant('{tmp}\Hcc-ClientTrust.ps1'), '-Action Trust -CerPath "' + CurrentCer + '" -ExpectedSha256 "' + ApprovedSha + '"', OutF) then
   begin
     Result := 'The hotel certificate could not be trusted on this PC, so nothing was installed. ' + ReadResult(OutF, 'error');
     Exit;
   end;
-  Log('Hotel CA ' + ApprovedSha + ': ' + ReadResult(OutF, 'result'));
+  TrustResult := ReadResult(OutF, 'result');
+  Log('Hotel CA ' + ApprovedSha + ': ' + TrustResult);
+end;
+
+// {app}\ca-trusted.txt: one line per certificate this setup knows: "<sha256> added" (this setup put it there) or "<sha256> already".
+procedure RecordTrusted;
+var List: TStringList;
+    I, Found: Integer;
+    Sha, State, ListFile: String;
+begin
+  ListFile := ExpandConstant('{app}\ca-trusted.txt');
+  List := TStringList.Create;
+  try
+    if FileExists(ListFile) then List.LoadFromFile(ListFile);
+    // A different hotel CA than before: offer to remove the previous one that this setup added.
+    for I := List.Count - 1 downto 0 do
+    begin
+      Sha := Copy(List[I], 1, 64);
+      State := Copy(List[I], 66, Length(List[I]));
+      if (Sha <> ApprovedSha) and (State = 'added') then
+        if SuppressibleMsgBox('A different hotel certificate was installed on this PC earlier (' + ShortFp(Sha) + ').' + #13#10 + #13#10 +
+          'Remove the previous hotel certificate? Choose Yes if the hotel now uses the new one.', mbConfirmation, MB_YESNO, IDYES) = IDYES then
+        begin
+          State := UntrustSha(Sha);
+          if (State = 'removed') or (State = 'absent') then List.Delete(I)
+          else SuppressibleMsgBox('The previous certificate could not be removed (' + State + '). You can remove it later by uninstalling or in certlm.msc.', mbError, MB_OK, IDOK);
+        end;
+    end;
+    Found := -1;
+    for I := 0 to List.Count - 1 do
+      if Copy(List[I], 1, 64) = ApprovedSha then Found := I;
+    if Found < 0 then List.Add(ApprovedSha + ' ' + TrustResult)
+    else if (TrustResult = 'added') and (Copy(List[Found], 66, Length(List[Found])) <> 'added') then List[Found] := ApprovedSha + ' added';
+    List.SaveToFile(ListFile);
+  finally
+    List.Free;
+  end;
 end;
 
 procedure CurStepChanged(CurStep: TSetupStep);
@@ -303,9 +368,9 @@ begin
   if CurStep = ssPostInstall then
   begin
     SaveStringToFile(ExpandConstant('{app}\server-url.txt'), ApprovedUrl + #13#10, False);
-    SaveStringToFile(ExpandConstant('{app}\ca-sha256.txt'), ApprovedSha + #13#10, False);
+    RecordTrusted;
     OutF := ExpandConstant('{tmp}\check.txt');
-    RunTrustScript('-Action Check -ServerUrl "' + ApprovedUrl + '"', OutF);
+    RunTrustScript(ExpandConstant('{tmp}\Hcc-ClientTrust.ps1'), '-Action Check -ServerUrl "' + ApprovedUrl + '"', OutF);
     Msg := ReadResult(OutF, 'message');
     if Msg = '' then Msg := 'The server check did not run. The setup is complete.';
     Log('Server check: ' + ReadResult(OutF, 'kind') + ' - ' + Msg);
@@ -314,34 +379,37 @@ begin
 end;
 
 procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
-var Sha, OutF: String;
-    Lines: TStringList;
-    Rc: Integer;
+var Lines: TStringList;
+    I, Added: Integer;
+    Sha, Report, R: String;
 begin
   if CurUninstallStep = usUninstall then
   begin
-    Sha := '';
-    if FileExists(ExpandConstant('{app}\ca-sha256.txt')) then
-    begin
-      Lines := TStringList.Create;
-      try
-        Lines.LoadFromFile(ExpandConstant('{app}\ca-sha256.txt'));
-        if Lines.Count > 0 then Sha := Trim(Lines[0]);
-      finally
-        Lines.Free;
-      end;
-    end;
-    if Sha <> '' then
-    begin
-      // Silent uninstall keeps the certificate (default answer No): only a person who answers Yes removes it.
-      if SuppressibleMsgBox('The HCC icon is removed.' + #13#10 + #13#10 + 'Also remove the hotel certificate from this PC? Choose No if other HCC tools on this PC still need it.',
-        mbConfirmation, MB_YESNO or MB_DEFBUTTON2, IDNO) = IDYES then
-      begin
-        OutF := ExpandConstant('{tmp}\untrust.txt');
-        Exec(ExpandConstant('{sys}\WindowsPowerShell\v1.0\powershell.exe'),
-          '-NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' + ExpandConstant('{app}\Hcc-ClientTrust.ps1') + '" -Action Untrust -Sha256 "' + Sha + '" -OutFile "' + OutF + '"',
-          '', SW_HIDE, ewWaitUntilTerminated, Rc);
-      end;
+    PsExe := ExpandConstant('{sys}\WindowsPowerShell\v1.0\powershell.exe');
+    Lines := TStringList.Create;
+    try
+      if FileExists(ExpandConstant('{app}\ca-trusted.txt')) then Lines.LoadFromFile(ExpandConstant('{app}\ca-trusted.txt'));
+      Added := 0;
+      for I := 0 to Lines.Count - 1 do
+        if Copy(Lines[I], 66, Length(Lines[I])) = 'added' then Added := Added + 1;
+      // Only certificates this setup added are offered. One that was already trusted before stays.
+      // A silent uninstall keeps them (default answer No): only a person who answers Yes removes them.
+      if Added > 0 then
+        if SuppressibleMsgBox('The HCC icon is removed.' + #13#10 + #13#10 + 'Also remove the hotel certificate that this setup added to this PC? Choose No if other HCC tools on this PC still need it.',
+          mbConfirmation, MB_YESNO or MB_DEFBUTTON2, IDNO) = IDYES then
+        begin
+          Report := '';
+          for I := 0 to Lines.Count - 1 do
+            if Copy(Lines[I], 66, Length(Lines[I])) = 'added' then
+            begin
+              Sha := Copy(Lines[I], 1, 64);
+              R := UntrustSha(Sha);
+              Report := Report + ShortFp(Sha) + ': ' + R + #13#10;
+            end;
+          SuppressibleMsgBox('Hotel certificate result:' + #13#10 + Report, mbInformation, MB_OK, IDOK);
+        end;
+    finally
+      Lines.Free;
     end;
   end;
 end;
