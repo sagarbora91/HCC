@@ -74,8 +74,8 @@ public sealed class CustomerCommands(ICommandRunner runner, IAccessPolicy policy
         var targetHead = Find(src, index, keys, contact, req.TargetKey);
         if (sourceHead.Key == targetHead.Key) throw HccException.Validation("Choose two different customers.");
         var (both, _) = await src.CustomersAsync(reads, ctx.PropertyId, index, [sourceHead, targetHead], ct).ConfigureAwait(false);
-        var source = both[sourceHead.Key];
-        var target = both[targetHead.Key];
+        // CU-PER fix: a guest changed between the two reads (the key moved): same NOT_FOUND as an unknown key, never a 500.
+        if (!both.TryGetValue(sourceHead.Key, out var source) || !both.TryGetValue(targetHead.Key, out var target)) throw new HccException(HccErrorCode.NOT_FOUND, "Customer not found.");
         return await runner.RunAsync(ctx with { Operation = OpPropose }, req, async (tx, c) =>
         {
             var id = await store.InsertMergeAsync(tx, ctx.PropertyId, source.Key, target.Key, source.Name, target.Name, reason, ctx.PrincipalId, UtcNow, c).ConfigureAwait(false)
@@ -203,7 +203,7 @@ public sealed class CustomerCommands(ICommandRunner runner, IAccessPolicy policy
         ArgumentNullException.ThrowIfNull(ctx);
         ArgumentNullException.ThrowIfNull(req);
         var (keys, head, src, index) = await EditableAsync(ctx, req.CustomerKey, ct).ConfigureAwait(false);
-        var cust = (await src.CustomersAsync(reads, ctx.PropertyId, index, [head], ct).ConfigureAwait(false)).Customers[head.Key];
+        if (!(await src.CustomersAsync(reads, ctx.PropertyId, index, [head], ct).ConfigureAwait(false)).Customers.TryGetValue(head.Key, out var cust)) throw new HccException(HccErrorCode.NOT_FOUND, "Customer not found.");
         if (cust.GuestIds.Count == 0) throw new HccException(HccErrorCode.INVALID_TRANSITION, "This customer has no saved guest profile yet, so there is nothing to attach consent to.");
         return await runner.RunAsync(ctx with { Operation = OpConsent }, req, async (tx, c) =>
         {

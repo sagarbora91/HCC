@@ -206,6 +206,8 @@ public sealed class CustomerQueries(IAccessPolicy policy, ICustomerReadStore rea
         var groups = new List<DuplicateCandidate>();
         foreach (var g in found)
         {
+            // CU-PER fix: a member whose key moved between the reads gives NOT_FOUND, not a 500.
+            if (g.Keys.Any(k => !byKey.ContainsKey(k))) throw new HccException(HccErrorCode.NOT_FOUND, "Customer not found.");
             var members = g.Keys.Select(k => byKey[k]).ToList();
             groups.Add(new DuplicateCandidate(g.Reason, members.Select(c => CustomerViews.Summary(c, contact, money, [], keys, legacy.GetValueOrDefault(c.Key))).ToList(),
                 keys.TokenOf(members.Skip(1).Aggregate(members[0].Key, (best, c) => CustomerRules.SuggestSurvivor(byKey[best], c)))));

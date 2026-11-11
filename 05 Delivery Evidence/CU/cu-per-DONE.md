@@ -38,3 +38,13 @@ None. Lane nvarchar: no migrations, no SQL parameter types changed.
 
 ## Shared files touched
 None of the marked shared files (slnx, migrations lock, CSS, stream-fit). Line endings kept (CRLF in CustomerPorts.cs / CustomerQueries.cs).
+
+## Fix round (after audit 3b930ed3, PASS WITH NOTES)
+1. Cache key-set identity is now exact (same count, every current key present in the entry's key map, same distinct count) instead of an FNV sum; fingerprint code removed; class comment corrected. Test: a rename that keeps the customer count rebuilds, new link works, old link refused.
+2. Total key budget across properties (`TotalKeyBudget`, default 300,000, least recently used property evicted first; a property over the per-property or total limit still uses the plain scan and is not cached). Class comment now says raw keys and a copy of the secret stay in process memory until evicted. Test: eviction order, budget respected, evicted property rebuilt correctly, oversize property uncached.
+3. Merge proposal, consent and `DuplicatesAsync` return NOT_FOUND ("Customer not found.") instead of throwing when a customer's key moved between the two reads. Test with a read-store decorator whose detail read returns nothing (3 calls). `ListAsync` / `ProfileAsync` have the same PER-01 race with `full[...]` / `one[k]`; not changed (outside this lane).
+4. `cu-per-timing.md` re-run and headed with a plain statement that the "before" rows are reconstructions on the new code through a warm cache (understate the gain); the benchmark comment says the same; the promised forged-token row now exists (N=15,000: 51 ms p50, no hashing).
+5. Seed gained 11 guests: blank, padded, upper-case, dotted / plus-addressed Gmail, googlemail and no-at-sign e-mails; old and new duplicate groups are identical (JSON) and the expected groups are asserted.
+6. Left open: `GuestEmailsAsync` scans the guest table (email is not in `IX_guest_crm_head`); an `INCLUDE (email)` index would need a migration, lane `nvarchar` owns migrations.
+
+Tests: full `tests/Hcc.Customers.Tests` through the lock: **126 passed, 0 failed, 0 skipped** (was 122; +4 new facts). One first run failed on my own test (used a role without merge permission); fixed and rerun. No migrations, no SQL parameter type changes.

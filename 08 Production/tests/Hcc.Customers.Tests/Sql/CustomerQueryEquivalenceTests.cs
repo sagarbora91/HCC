@@ -139,7 +139,7 @@ public class CustomerQueryEquivalenceTests : IAsyncLifetime
             sql.Append(CultureInfo.InvariantCulture, $"INSERT gst.guest(property_id, full_name, phone, email, preferences, verified, origin, created_utc) VALUES ({p}, {S(Names[rnd.Next(Names.Length)])}, '{(rnd.Next(5) < 2 ? Phones[rnd.Next(Phones.Length)] : "98" + rnd.Next(100_000_000).ToString("D8", CultureInfo.InvariantCulture))}', {email}, {pref}, 1, 'manual', '2026-10-01'); INSERT @g VALUES ({i}, SCOPE_IDENTITY());\n");
         }
 
-        sql.Append("DECLARE @r BIGINT, @f BIGINT, @c BIGINT, @s BIGINT;\n");
+        sql.Append("DECLARE @r BIGINT, @f BIGINT, @c BIGINT, @s BIGINT, @gv BIGINT;\n");
         for (var i = 0; i < 300; i++)
         {
             var arr = new DateOnly(2026, 9, 20).AddDays(rnd.Next(50));
@@ -176,6 +176,21 @@ public class CustomerQueryEquivalenceTests : IAsyncLifetime
 
                     """);
             }
+        }
+
+        // CU-PER: e-mail variants for the duplicate finder: blank, padded, upper-case, dotted / plus-addressed Gmail, googlemail, no at sign
+        var variants = new (string Name, string Phone, string Email)[]
+        {
+            ("Gmail One", "9700000001", "asha.rao+x@gmail.com"), ("Gmail Two", "9700000002", " Asha.Rao@GMail.com "), ("Gmail Three", "9700000003", "asharao@googlemail.com"),
+            ("Blank One", "9700000004", ""), ("Blank Two", "9700000005", ""), ("Padded One", "9700000006", "  Same@Example.Test"), ("Padded Two", "9700000007", "same@example.test  "),
+            ("Upper One", "9700000008", "UPPER@EXAMPLE.TEST"), ("Upper Two", "9700000009", "upper@example.test"), ("No At One", "9700000010", "notanemail"), ("No At Two", "9700000011", "notanemail"),
+        };
+        for (var i = 0; i < variants.Length; i++)
+        {
+            var v = variants[i];
+            sql.Append(CultureInfo.InvariantCulture, $"INSERT gst.guest(property_id, full_name, phone, email, verified, origin, created_utc) VALUES ({p}, {S(v.Name)}, '{v.Phone}', {S(v.Email)}, 1, 'manual', '2026-10-01'); SET @gv = SCOPE_IDENTITY();\n");
+            sql.Append(CultureInfo.InvariantCulture, $"INSERT inv.reservation(property_id, public_no, guest_name, arrival, departure, status) VALUES ({p}, 'EV-{i:D3}', {S(v.Name)}, '2026-10-01', '2026-10-02', 'Departed'); SET @r = SCOPE_IDENTITY();\n");
+            sql.Append(CultureInfo.InvariantCulture, $"INSERT gst.registration(reservation_id, guest_id, registered_utc, registered_by) VALUES (@r, @gv, '2026-10-01', {rec});\n");
         }
 
         await _w.ExecAsync(sql.ToString(), Ct);
@@ -413,5 +428,115 @@ public class CustomerQueryEquivalenceTests : IAsyncLifetime
         var fresh = await _w.Queries.TokenAsync(_w.PropertyId, newKey, Ct);
         Assert.NotEqual(token, fresh);
         Assert.Equal(fresh, (await _w.Queries.ProfileAsync(_w.PropertyId, owner, fresh, Ct)).Key);
+    }
+
+    [Fact]
+    public async Task Email_variants_form_the_same_duplicate_groups_old_and_new()
+    {
+        var owner = _w.Users["owner"];
+        var oldJ = await Outcome(async () => await OldDuplicatesAsync(_w.PropertyId, owner));
+        var newJ = await Outcome(async () => await _w.Queries.DuplicatesAsync(_w.PropertyId, owner, Ct));
+        Assert.Equal(oldJ, newJ);
+        var groups = (await _w.Queries.DuplicatesAsync(_w.PropertyId, owner, Ct)).Groups.Where(g => g.Reason == CustomerRules.ReasonEmail).Select(g => g.Customers.Select(c => c.Name).Order(StringComparer.Ordinal).ToList()).ToList();
+        Assert.Contains(groups, g => g.SequenceEqual(["Gmail One", "Gmail Three", "Gmail Two"]));
+        Assert.Contains(groups, g => g.SequenceEqual(["Padded One", "Padded Two"]));
+        Assert.Contains(groups, g => g.SequenceEqual(["Upper One", "Upper Two"]));
+        Assert.DoesNotContain(groups, g => g.Contains("Blank One") || g.Contains("No At One"));
+    }
+
+    private sealed class EmptyDetailReads(ICustomerReadStore inner) : ICustomerReadStore
+    {
+        public Task<CrmSource> LoadAsync(int propertyId, CancellationToken ct = default) => inner.LoadAsync(propertyId, ct);
+
+        public Task<CrmHeadSource> HeadsAsync(int propertyId, CancellationToken ct = default) => inner.HeadsAsync(propertyId, ct);
+
+        // the guests changed between the key pass and the detail read: the heads' keys no longer exist
+        public Task<CrmDetail> LoadSomeAsync(int propertyId, IReadOnlyCollection<long> reservationIds, IReadOnlyCollection<long> guestIds, CancellationToken ct = default) =>
+            Task.FromResult(new CrmDetail([], []));
+
+        public Task<IReadOnlyDictionary<long, string>> GuestEmailsAsync(int propertyId, CancellationToken ct = default) => inner.GuestEmailsAsync(propertyId, ct);
+
+        public Task<CrmOverlay> OverlayAsync(int propertyId, string customerKey, CancellationToken ct = default) => inner.OverlayAsync(propertyId, customerKey, ct);
+
+        public Task<IReadOnlyDictionary<string, IReadOnlyList<string>>> TagsAsync(int propertyId, CancellationToken ct = default) => inner.TagsAsync(propertyId, ct);
+
+        public Task<IReadOnlyList<CrmMerge>> MergesAsync(int propertyId, string? status, CancellationToken ct = default) => inner.MergesAsync(propertyId, status, ct);
+
+        public Task<byte[]> KeySecretAsync(int propertyId, CancellationToken ct = default) => inner.KeySecretAsync(propertyId, ct);
+
+        public Task<IReadOnlyList<CrmLegacyStay>> LegacyStaysAsync(int propertyId, string customerKey, CancellationToken ct = default) => inner.LegacyStaysAsync(propertyId, customerKey, ct);
+
+        public Task<IReadOnlyDictionary<string, (int Stays, int Nights, long NetPaise, DateOnly First, DateOnly Last)>> LegacyRollupAsync(int propertyId, IEnumerable<string> keys, CancellationToken ct = default) =>
+            inner.LegacyRollupAsync(propertyId, keys, ct);
+    }
+
+    [Fact]
+    public async Task A_customer_that_changes_between_the_two_reads_gives_NOT_FOUND_not_an_exception()
+    {
+        var racing = new EmptyDetailReads(new SqlCustomerReadStore(_w.Platform.Connections));
+        var cmds = new CustomerCommands(_w.Platform.Commands, _w.Policy, new SqlCustomerStore(), racing, _w.Messaging, _w.Clock);
+        var queries = new CustomerQueries(_w.Policy, racing, _w.Messaging);
+        var asha = await _w.Queries.TokenAsync(_w.PropertyId, CrmWorld.Asha, Ct);
+        var vikram = await _w.Queries.TokenAsync(_w.PropertyId, CrmWorld.VikramName, Ct);
+        var e1 = await Assert.ThrowsAsync<HccException>(() => cmds.ProposeMergeAsync(_w.Ctx("manager", Guid.NewGuid().ToString("N")), new ProposeCustomerMergeRequest(vikram, asha, "Same person, race test"), Ct));
+        Assert.Equal(HccErrorCode.NOT_FOUND, e1.Code);
+        var e2 = await Assert.ThrowsAsync<HccException>(() => cmds.SetConsentAsync(_w.Ctx("reception", Guid.NewGuid().ToString("N")), new SetCustomerConsentRequest(asha, true, true, true, false), Ct));
+        Assert.Equal(HccErrorCode.NOT_FOUND, e2.Code);
+        var e3 = await Assert.ThrowsAsync<HccException>(() => queries.DuplicatesAsync(_w.PropertyId, _w.Users["owner"], Ct));
+        Assert.Equal(HccErrorCode.NOT_FOUND, e3.Code);
+    }
+
+    [Fact]
+    public async Task Token_cache_rename_that_keeps_the_count_rebuilds_and_the_new_link_works()
+    {
+        var owner = _w.Users["owner"];
+        await _w.ExecAsync($"INSERT inv.reservation(property_id, public_no, guest_name, arrival, departure, status) VALUES ({_w.PropertyId}, 'REN-1', N'Rename Before', '2026-10-20', '2026-10-21', 'Confirmed');", Ct);
+        var total = (await _w.Queries.ListAsync(_w.PropertyId, owner, null, null, 1, 100, Ct)).Total;
+        var oldTok = await _w.Queries.TokenAsync(_w.PropertyId, "n:rename before", Ct);
+        var newTok = await _w.Queries.TokenAsync(_w.PropertyId, "n:rename after", Ct);
+        Assert.Equal(oldTok, (await _w.Queries.ProfileAsync(_w.PropertyId, owner, oldTok, Ct)).Key);
+        var e0 = await Assert.ThrowsAsync<HccException>(() => _w.Queries.ProfileAsync(_w.PropertyId, owner, newTok, Ct)); // refused and remembered
+        Assert.Equal(HccErrorCode.NOT_FOUND, e0.Code);
+        await _w.ExecAsync("UPDATE inv.reservation SET guest_name = N'Rename After' WHERE public_no = 'REN-1';", Ct);
+        Assert.Equal(total, (await _w.Queries.ListAsync(_w.PropertyId, owner, null, null, 1, 100, Ct)).Total); // same number of customers
+        Assert.Equal(newTok, (await _w.Queries.ProfileAsync(_w.PropertyId, owner, newTok, Ct)).Key);
+        var e1 = await Assert.ThrowsAsync<HccException>(() => _w.Queries.ProfileAsync(_w.PropertyId, owner, oldTok, Ct));
+        Assert.Equal(HccErrorCode.NOT_FOUND, e1.Code);
+    }
+
+    [Fact]
+    public void Token_cache_total_key_budget_evicts_the_least_recently_used_property()
+    {
+        var secret = new byte[32];
+        var old = CustomerKeyTokenCache.TotalKeyBudget;
+        try
+        {
+            CustomerKeyTokenCache.Clear();
+            CustomerKeyTokenCache.TotalKeyBudget = 10;
+            static string[] Keys(string p) => Enumerable.Range(0, 4).Select(i => $"{p}{i}").ToArray();
+            string Tok(string k) => CustomerKeyToken.Make(secret, k);
+            Assert.Equal("a0", CustomerKeyTokenCache.Resolve(1, secret, Keys("a"), Tok("a0")));
+            Assert.Equal("b0", CustomerKeyTokenCache.Resolve(2, secret, Keys("b"), Tok("b0")));
+            Assert.Equal(2, CustomerKeyTokenCache.PropertyCount);
+            Assert.Equal("a1", CustomerKeyTokenCache.Resolve(1, secret, Keys("a"), Tok("a1"))); // property 1 is now the most recent
+            Assert.Equal("c0", CustomerKeyTokenCache.Resolve(3, secret, Keys("c"), Tok("c0"))); // 12 keys > 10: property 2 (least recent) goes
+            Assert.Equal(2, CustomerKeyTokenCache.PropertyCount);
+            Assert.True(CustomerKeyTokenCache.TotalKeys <= 10);
+            var hashes = CustomerKeyTokenCache.Hashes;
+            Assert.Equal("a2", CustomerKeyTokenCache.Resolve(1, secret, Keys("a"), Tok("a2"))); // still cached
+            Assert.Equal(hashes, CustomerKeyTokenCache.Hashes);
+            Assert.Equal("b1", CustomerKeyTokenCache.Resolve(2, secret, Keys("b"), Tok("b1"))); // evicted: rebuilt, still correct
+            Assert.True(CustomerKeyTokenCache.TotalKeys <= 10);
+            // a property larger than the whole budget is resolved by the plain scan and never cached
+            var big = Enumerable.Range(0, 11).Select(i => $"z{i}").ToArray();
+            Assert.Equal("z7", CustomerKeyTokenCache.Resolve(9, secret, big, Tok("z7")));
+            Assert.Null(CustomerKeyTokenCache.Resolve(9, secret, big, "ck_AAAAAAAAAAAAAAAAAAAAAA"));
+            Assert.True(CustomerKeyTokenCache.TotalKeys <= 10);
+        }
+        finally
+        {
+            CustomerKeyTokenCache.TotalKeyBudget = old;
+            CustomerKeyTokenCache.Clear();
+        }
     }
 }

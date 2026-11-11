@@ -94,9 +94,12 @@ public class CustomerQueryBenchmark
     }
 
     /// <summary>
-    /// CU-PER (HCC_PERF=1): the customer commands' key lookup and the duplicate finder, rewritten vs the pre-rewrite whole-property load (kept in
+    /// CU-PER (HCC_PERF=1): the customer commands' key lookup and the duplicate finder, rewritten vs the pre-rewrite whole-property load.
+    /// NOTE: the "(before)" rows are RECONSTRUCTIONS run on the new code (LoadAsync + Index; the key resolve goes through the new warm token cache, and
+    /// the duplicates row leaves out policy, secret, legacy and summary work the "after" row includes), not measurements of the old code. The old
+    /// lookup also paid one HMAC per customer key per call, so these rows UNDERSTATE the gain. Rows:
     /// <see cref="Sql.CustomerQueryEquivalenceTests"/> style: LoadAsync + Index). Rows: AddTag + RemoveTag pair (one key lookup each), DuplicatesAsync,
-    /// forged ck_ token profile lookup (cache warm). Sizes from HCC_PERF_N (default "1000,10000,15000"); appends to HCC_PERF_OUT.
+    /// forged ck_ token profile lookup (cache warm; refused from memory). Sizes from HCC_PERF_N (default "1000,10000,15000"); appends to HCC_PERF_OUT.
     /// </summary>
     [Fact]
     public async Task Customer_commands_and_duplicates_timings()
@@ -141,7 +144,7 @@ public class CustomerQueryBenchmark
                 await w.Commands.RemoveTagAsync(w.Ctx("owner", Guid.NewGuid().ToString("N")), new Hcc.Contracts.Customers.RemoveCustomerTagRequest(key, "perf"), Ct);
             });
             // before: the lookup both commands did (whole-property load, full index, key resolve), twice
-            await Row("key lookup x2 (before: LoadAsync + Index)", async () =>
+            await Row("key lookup x2 (reconstructed before, warm cache: LoadAsync + Index)", async () =>
             {
                 for (var i = 0; i < 2; i++)
                 {
@@ -152,8 +155,18 @@ public class CustomerQueryBenchmark
                     _ = index.First(c => c.Key == k);
                 }
             });
+            await Row("forged ck_ token ProfileAsync (cache warm, NOT_FOUND)", async () =>
+            {
+                try
+                {
+                    await w.Queries.ProfileAsync(w.PropertyId, owner, "ck_AAAAAAAAAAAAAAAAAAAAAA", Ct);
+                }
+                catch (Hcc.Domain.Errors.HccException)
+                {
+                }
+            });
             await Row("DuplicatesAsync (after)", async () => await w.Queries.DuplicatesAsync(w.PropertyId, owner, Ct));
-            await Row("DuplicatesAsync (before: LoadAsync + Index + FindDuplicates)", async () =>
+            await Row("DuplicatesAsync (reconstructed before: LoadAsync + Index + FindDuplicates only)", async () =>
             {
                 var src = await reads.LoadAsync(w.PropertyId, Ct);
                 var index = src.Index();
