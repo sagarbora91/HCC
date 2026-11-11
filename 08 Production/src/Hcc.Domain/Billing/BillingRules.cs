@@ -188,11 +188,11 @@ public static class DuplicateReceiptGuard
     public const string Reason = "DUPLICATE_SUSPECTED";
 
     /// <summary>The newest receipt of the same kind, tender (case-insensitive on the master's canonical name) and exact paise recorded within <see cref="Window"/> of <paramref name="nowUtc"/>, else null.</summary>
-    public static RecentReceipt? FindEqual(IEnumerable<RecentReceipt> recent, ReceiptKind kind, string tender, Paise amount, DateTime nowUtc)
+    public static RecentReceipt? FindEqual(IEnumerable<RecentReceipt> recent, ReceiptKind kind, string tender, Paise amount, DateTime nowUtc, Func<string, string, bool>? sameTender = null)
     {
         ArgumentNullException.ThrowIfNull(recent);
         return recent
-            .Where(x => x.Kind == kind && x.Amount == amount && string.Equals(x.Tender, tender, StringComparison.OrdinalIgnoreCase)
+            .Where(x => x.Kind == kind && x.Amount == amount && (string.Equals(x.Tender, tender, StringComparison.OrdinalIgnoreCase) || (sameTender is not null && sameTender(x.Tender, tender))) // CU-PAY-B: same master row after a rename
                 // AF-FIX2 F3: absolute difference, so a receipt that lies "in the future" after the server clock stepped back (NTP / manual change) still counts.
                 && (nowUtc - x.RecordedUtc).Duration() <= Window)
             .OrderByDescending(x => x.RecordedUtc).ThenByDescending(x => x.ReceiptId)

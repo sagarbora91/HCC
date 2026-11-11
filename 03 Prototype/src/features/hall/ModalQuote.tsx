@@ -11,7 +11,7 @@ import {money} from '../../domain/money';
 import {gstPct} from '../../domain/gst';
 import {hallSlice,hallLatest,HALL_EVENT_TYPES,HALL_SLOTS,type HallSetup,type HallEventType,type HallSlot,type Quotation,type QuoteVersion} from '../../domain/streams/hall';
 import {hallPrice,hallLineTaxable} from '../../domain/streams/hall-billing';
-import {mnyNames} from '../../domain/streams/money-master';
+import {mnyNames,mnyMethod} from '../../domain/streams/money-master';
 import {hallUi} from './access';
 import {hallDraftFromEnquiry,hallDraftFromVersion,hallSyncLines,hallAddMenu,hallAddExtra,hallSetRate,hallSetQty,hallRemoveLine,hallDraftPlan,hallDiscountState,hallTncFor,hallAvailability,
   EVENT_LABEL,SLOT_LABEL,SETUP_LABEL,QUOTE_TONE,dayLabel,type QuoteDraft} from './logic';
@@ -110,7 +110,7 @@ function Editor({q,enqId}:{q?:Quotation;enqId:string}){
       {panel==='accept'&&q&&<section className="hall-box"><h3>Accept quotation</h3><p className="muted">This creates the event and holds the hall. A clash is refused.</p><div className="hall-fields">
         <Field label="First advance received (₹, optional)"><input className="hall-rupee" inputMode="decimal" value={acc.amount} onChange={e=>setAcc(o=>({...o,amount:e.target.value}))}/></Field>
         <Field label="Paid by"><select value={acc.method} onChange={e=>setAcc(o=>({...o,method:e.target.value}))}>{mnyNames(s,'frontdesk').map(m=><option key={m}>{m}</option>)}</select></Field>
-        {acc.method!=='Cash'&&<Field label="Reference"><input value={acc.ref} onChange={e=>setAcc(o=>({...o,ref:e.target.value}))}/></Field>}
+        {!!mnyMethod(s,acc.method)?.needsReference&&<Field label="Reference"><input value={acc.ref} onChange={e=>setAcc(o=>({...o,ref:e.target.value}))}/></Field>}
         {boss&&<Field label="Manager reason (expired quotation)"><input value={acc.reason} onChange={e=>setAcc(o=>({...o,reason:e.target.value}))}/></Field>}
         {boss&&<Field label="Manager reason (above capacity)"><input value={acc.capReason} onChange={e=>setAcc(o=>({...o,capReason:e.target.value}))}/></Field>}</div>
         <button type="button" className="btn primary" disabled={busy||(!!acc.amount&&!toPaise(acc.amount))} onClick={()=>{const a=toPaise(acc.amount);

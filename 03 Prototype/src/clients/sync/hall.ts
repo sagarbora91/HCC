@@ -11,6 +11,15 @@ import {HccClientError} from '../errors';
 import type {SyncArea} from './types';
 import type {HallState,Venue,Enquiry,Quotation,QuoteVersion,QuoteLine,AdvanceRow,HallEvent,HallReceipt,HallInvoice} from '../../domain/streams/hall';
 import {hallSeed} from '../../fixtures/ext/hall';
+import {mnyPick} from '../../domain/streams/money-master';
+import type {State} from '../../domain/types';
+// CU-PAY-B: the hall method is checked against the payment-methods master before any request (the server checks again) and sent under its CURRENT name.
+const hallPay=(s:State,v:unknown,reference:unknown,allowRetired=false)=>{
+  const p=mnyPick(s,v,'frontdesk',reference,{allowRetired,requireReference:false});
+  if(!p.method)return {problem:p.problem};
+  if(p.method.needsReference&&String(reference??'').trim().length<3)return {problem:'Enter the payment reference (UPI / card / bank).'};
+  return {name:p.method.name};};
+const hallName=(c:{state:State},v:unknown,reference:unknown,allowRetired=false)=>hallPay(c.state,v,reference,allowRetired).name??String(v??'');
 import {gstLineTax,gstSplit} from '../../domain/gst';
 
 type SrvLine={seq:number;kind:string;refId:string|null;desc:string;qty:number;unit:string;ratePaise:number|null;listRatePaise:number|null;discountPaise:number|null;gstClass:string;taxBps:number|null;extra:boolean};
@@ -112,17 +121,21 @@ export const hall:SyncArea={
         reasonId:k.reasonId?String(k.reasonId):undefined,note:k.note?String(k.note):undefined});}})),
     {type:'HALL_TNC_TEMPLATE_SAVE',reload:['hallX'],async send(c){const k=c.cmd;
       await c.api.command('SaveTncTemplate',{eventType:String(k.eventType??''),clauses:(Array.isArray(k.clauses)?k.clauses:[]).map((x:any)=>({heading:String(x.heading??''),text:String(x.text??'')})),effectiveFrom:k.effectiveFrom?day(k.effectiveFrom):undefined});}},
-    {type:'QUO_ACCEPT',reload:['hallX'],async send(c){const k=c.cmd,a=k.advance as Record<string,any>|undefined;
+    {type:'QUO_ACCEPT',reload:['hallX'],
+      precheck(cmd,s){const a=cmd.advance as Record<string,any>|undefined;return a&&Number(a.amountPaise)>0?hallPay(s,a.method,a.reference).problem:undefined;},
+      async send(c){const k=c.cmd,a=k.advance as Record<string,any>|undefined;
       await c.api.command('AcceptQuotation',{quotationId:num(k.id,'QUO','quotation'),version:k.version===undefined?undefined:Number(k.version),reason:k.reason?String(k.reason):undefined,
-        capacityReason:k.capacityReason?String(k.capacityReason):undefined,advance:a&&Number(a.amountPaise)>0?{amountPaise:Number(a.amountPaise),method:String(a.method??''),reference:a.reference}:undefined});}},
-    {type:'HALL_ADVANCE_RECEIVE',reload:['hallX'],async send(c){const k=c.cmd;
-      await c.api.command('ReceiveHallAdvance',{eventId:num(k.eventId??k.id,'HEV','event'),amountPaise:Number(k.amountPaise),method:String(k.method??''),reference:k.reference?String(k.reference):undefined});}},
-    {type:'HALL_EVENT_CLOSE',reload:['hallX'],async send(c){const k=c.cmd,s=(k.settle??{}) as Record<string,any>;
+        capacityReason:k.capacityReason?String(k.capacityReason):undefined,advance:a&&Number(a.amountPaise)>0?{amountPaise:Number(a.amountPaise),method:hallName(c,a.method,a.reference),reference:a.reference}:undefined});}},
+    {type:'HALL_ADVANCE_RECEIVE',reload:['hallX'],precheck:(cmd,s)=>hallPay(s,cmd.method,cmd.reference).problem,async send(c){const k=c.cmd;
+      await c.api.command('ReceiveHallAdvance',{eventId:num(k.eventId??k.id,'HEV','event'),amountPaise:Number(k.amountPaise),method:hallName(c,k.method,k.reference),reference:k.reference?String(k.reference):undefined});}},
+    {type:'HALL_EVENT_CLOSE',reload:['hallX'],
+      precheck(cmd,s){const st=(cmd.settle??{}) as Record<string,any>;return String(st.mode??'')==='TENDER'&&String(st.method??'').trim()?hallPay(s,st.method,st.reference).problem:undefined;},
+      async send(c){const k=c.cmd,s=(k.settle??{}) as Record<string,any>;
       await c.api.command('CloseHallEvent',{eventId:num(k.eventId??k.id,'HEV','event'),actualPax:Number(k.actualPax),
         extras:(k.extras??[]).map((x:any)=>({desc:x.desc,qty:Number(x.qty),ratePaise:Number(x.ratePaise),listRatePaise:x.listRatePaise,kind:x.kind,unit:x.unit,gstClass:x.gstClass})),
-        settle:{mode:String(s.mode??'DUE'),method:s.method,reference:s.reference,companyId:s.company?num(s.company,'CO','company'):undefined}});}},
+        settle:{mode:String(s.mode??'DUE'),method:String(s.mode??'')==='TENDER'?hallName(c,s.method,s.reference):s.method,reference:s.reference,companyId:s.company?num(s.company,'CO','company'):undefined}});}},
     {type:'HALL_EVENT_CANCEL',reload:['hallX'],async send(c){await c.api.command('CancelHallEvent',{eventId:num(c.cmd.id??c.cmd.eventId,'HEV','event'),reason:String(c.cmd.reason??'')});}},
-    {type:'HALL_REFUND',reload:['hallX'],async send(c){await c.api.command('ApproveHallRefund',{eventId:num(c.cmd.id??c.cmd.eventId,'HEV','event'),method:String(c.cmd.method??''),reference:c.cmd.reference?String(c.cmd.reference):undefined});}},
+    {type:'HALL_REFUND',reload:['hallX'],precheck:(cmd,s)=>hallPay(s,cmd.method,cmd.reference,true).problem,async send(c){await c.api.command('ApproveHallRefund',{eventId:num(c.cmd.id??c.cmd.eventId,'HEV','event'),method:hallName(c,c.cmd.method,c.cmd.reference,true),reference:c.cmd.reference?String(c.cmd.reference):undefined});}},
     {type:'HALL_CREDIT_NOTE',reload:['hallX'],async send(c){
       const e=c.state.hallX?.events.find(x=>x.id===String(c.cmd.id??c.cmd.eventId)),invoiceId=e?.invoice?c.ids.server('hallInvoice',e.invoice.no):undefined;
       if(!invoiceId)throw new HccClientError('VALIDATION','Only a billed event has an invoice to credit.');

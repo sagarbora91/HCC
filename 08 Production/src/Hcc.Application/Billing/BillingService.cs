@@ -149,7 +149,8 @@ public sealed class BillingService(ICommandRunner runner, IBillingStore store, I
         var reference = BillingText.Optional(req.Reference, 120);
         // MA-11: the method comes from the Payment methods master (mst.payment_method; defaults when the list is empty); a method that settles
         // to a till is drawer cash (open shift, pay.cash_movement), every other method is not.
-        var method = PaymentMethodBook.Pick(await MethodsAsync(null, caller.PropertyId, ct).ConfigureAwait(false), req.Tender, MoneyMasterValues.FrontDesk, reference);
+        var methodList = await MethodsAsync(null, caller.PropertyId, ct).ConfigureAwait(false); // CU-PAY-B
+        var method = PaymentMethodBook.Pick(methodList, req.Tender, MoneyMasterValues.FrontDesk, reference);
         var tender = method.Name;
         var cash = method.SettlesToTill;
         if (cash && req.TillId is null) throw HccException.Validation("Choose the till that receives the cash.");
@@ -186,7 +187,7 @@ public sealed class BillingService(ICommandRunner runner, IBillingStore store, I
             {
                 var now = Now;
                 var recent = await store.RecentReceiptsAsync(tx, f.FolioId, now - DuplicateReceiptGuard.Window, ct2).ConfigureAwait(false);
-                var equal = DuplicateReceiptGuard.FindEqual(recent, kind, tender, amount, now);
+                var equal = DuplicateReceiptGuard.FindEqual(recent, kind, tender, amount, now, (a, b) => PaymentMethodBook.SameRow(methodList, a, b)); // CU-PAY-B: compare by master row, not label
                 if (equal is not null)
                 {
                     if (!req.ConfirmDuplicate) throw DuplicateReceiptGuard.Refusal(equal, kind == ReceiptKind.Payment ? "payment" : "deposit", now);

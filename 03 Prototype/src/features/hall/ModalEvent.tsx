@@ -10,7 +10,7 @@ import {money} from '../../domain/money';
 import {hallSlice,hallDaysBefore,type HallEvent,type QuoteLine} from '../../domain/streams/hall';
 import {hallCancelQuote,hallPaid,hallAdvancesDue} from '../../domain/streams/hall-billing';
 import {grpSlice,grpRoomTypes} from '../../domain/streams/groups';
-import {mnyNames} from '../../domain/streams/money-master';
+import {mnyNames,mnyMethod} from '../../domain/streams/money-master';
 import {hallUi} from './access';
 import {hallBeo,hallBillPreview,venueName,EVENT_TONE,EVENT_LABEL,SLOT_LABEL,dayLabel} from './logic';
 import {Field,RupeeInput,toPaise} from './ui';
@@ -24,7 +24,7 @@ export function HallEventModal({id}:ModalProps){
 
 function Body({e}:{e:HallEvent}){
   const {s,uid,run,busy,open,closeModal}=useHcc();const ui=hallUi(s,uid),x=hallSlice(s);
-  const beo=hallBeo(s,e,ui.seesMoney),confirmed=e.status==='CONFIRMED',methods=mnyNames(s,'frontdesk');
+  const beo=hallBeo(s,e,ui.seesMoney),confirmed=e.status==='CONFIRMED',methods=mnyNames(s,'frontdesk'),needsRef=(m:string)=>!!mnyMethod(s,m)?.needsReference; // CU-PAY-B: the master decides, not the literal "Cash"
   const [adv,setAdv]=useState({amount:'',method:methods[0]??'Cash',ref:''});
   const [pax,setPax]=useState(String(e.actualPax??e.guaranteedPax??0)),[extras,setExtras]=useState<{desc:string;qty:string;rate:string}[]>([]);
   const [settle,setSettle]=useState({mode:'TENDER',method:methods[0]??'Cash',ref:'',company:grpSlice(s).companies[0]?.id??''});
@@ -60,7 +60,7 @@ function Body({e}:{e:HallEvent}){
           {r.kind!=='BALANCE'&&<> <button type="button" className="btn subtle" onClick={()=>open({type:'hall-print',id:`receipt:${e.id}:${r.id}`})}><Printer size={14}/> Receipt</button></>}</li>)}</ul>}
         {confirmed&&ui.advance&&<div className="inline hall-add"><Field label="Advance received (₹)"><input className="hall-rupee" inputMode="decimal" value={adv.amount} onChange={ev=>setAdv(o=>({...o,amount:ev.target.value}))}/></Field>
           <Field label="Paid by"><select value={adv.method} onChange={ev=>setAdv(o=>({...o,method:ev.target.value}))}>{methods.map(m=><option key={m}>{m}</option>)}</select></Field>
-          {adv.method!=='Cash'&&<Field label="Reference"><input value={adv.ref} onChange={ev=>setAdv(o=>({...o,ref:ev.target.value}))}/></Field>}
+          {needsRef(adv.method)&&<Field label="Reference"><input value={adv.ref} onChange={ev=>setAdv(o=>({...o,ref:ev.target.value}))}/></Field>}
           <button type="button" className="btn primary" disabled={busy||!toPaise(adv.amount)} onClick={()=>run({type:'HALL_ADVANCE_RECEIVE',eventId:e.id,amountPaise:toPaise(adv.amount),method:adv.method,reference:adv.ref||undefined},'Advance recorded (no GST)',{close:false}).then(ok=>ok&&setAdv(o=>({...o,amount:'',ref:''})))}>Take advance</button></div>}</section>}
       {confirmed&&ui.accept&&<section className="hall-box"><h3><BedDouble size={16}/> Rooms for the guests</h3>
         {blockRow?<p>Room block <strong>{blockRow.id}</strong> ({Object.entries(blockRow.allot).map(([t,n])=>n+' '+t).join(', ')}) · {blockRow.arrival} to {blockRow.departure} · {blockRow.status}
@@ -82,7 +82,7 @@ function Body({e}:{e:HallEvent}){
         {preview&&preview.balancePaise>0&&<div className="inline hall-add"><Field label="Settle the balance"><select value={settle.mode} onChange={ev=>setSettle(o=>({...o,mode:ev.target.value}))}>
             <option value="TENDER">Pay now</option><option value="DUE">Leave due</option>{ui.role!=='Cashier'&&<option value="COMPANY">Company credit</option>}{(ui.role==='Owner'||ui.role==='Manager')&&<option value="UDHAAR">Udhaar</option>}</select></Field>
           {settle.mode==='TENDER'&&<Field label="Paid by"><select value={settle.method} onChange={ev=>setSettle(o=>({...o,method:ev.target.value}))}>{methods.map(m=><option key={m}>{m}</option>)}</select></Field>}
-          {settle.mode==='TENDER'&&settle.method!=='Cash'&&<Field label="Reference"><input value={settle.ref} onChange={ev=>setSettle(o=>({...o,ref:ev.target.value}))}/></Field>}
+          {settle.mode==='TENDER'&&needsRef(settle.method)&&<Field label="Reference"><input value={settle.ref} onChange={ev=>setSettle(o=>({...o,ref:ev.target.value}))}/></Field>}
           {settle.mode==='COMPANY'&&<Field label="Company account"><select value={settle.company} onChange={ev=>setSettle(o=>({...o,company:ev.target.value}))}>{grpSlice(s).companies.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></Field>}</div>}</section>}
       {confirmed&&ui.cancel&&<section className="hall-box"><h3>Cancel the event</h3>
         {cq&&<p className="muted">{hallDaysBefore(s.date,e.date)} days before the event: the hotel keeps {cq.keptBps/100} % of the quotation ({money(cq.keptPaise)} of the {money(cq.paidPaise)} received, with GST); {money(cq.refundPaise)} is refunded.</p>}
@@ -92,7 +92,7 @@ function Body({e}:{e:HallEvent}){
       {e.status==='CANCELLED'&&e.cancellation&&ui.seesMoney&&<section className="hall-box"><h3>Cancellation</h3>
         <p>{dayLabel(e.cancellation.date)} · {e.cancellation.daysBefore} days before · kept {money(e.cancellation.keptPaise)} ({e.cancellation.keptBps/100} %) · refund {money(e.cancellation.refundPaise)} ({e.cancellation.refund.toLowerCase()}) · {e.cancellation.reason}</p>
         {e.cancellation.refund==='PENDING'&&ui.refund&&<div className="inline"><Field label="Refund by"><select value={refund.method} onChange={ev=>setRefund(o=>({...o,method:ev.target.value}))}>{methods.map(m=><option key={m}>{m}</option>)}</select></Field>
-          {refund.method!=='Cash'&&<Field label="Reference"><input value={refund.ref} onChange={ev=>setRefund(o=>({...o,ref:ev.target.value}))}/></Field>}
+          {needsRef(refund.method)&&<Field label="Reference"><input value={refund.ref} onChange={ev=>setRefund(o=>({...o,ref:ev.target.value}))}/></Field>}
           <button type="button" className="btn primary" disabled={busy||e.cancellation.by===uid} title={e.cancellation.by===uid?'Another person approves the refund':undefined} onClick={()=>run({type:'HALL_REFUND',id:e.id,method:refund.method,reference:refund.ref||undefined},'Refund paid',{close:false})}>Approve and pay refund</button></div>}</section>}
       {e.status==='BILLED'&&e.invoice&&ui.seesMoney&&<section className="hall-box"><h3>Invoice {e.invoice.no}</h3>
         <p>{dayLabel(e.invoice.date)} · total {money(e.invoice.totalPaise)} · advances applied {money(e.invoice.advanceAppliedPaise)} · balance {money(e.invoice.balancePaise)} ({e.invoice.settle.mode.toLowerCase()})</p>

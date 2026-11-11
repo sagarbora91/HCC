@@ -101,13 +101,13 @@ export type FolioDupRow={method:string;amount:number};
 const dupAt=(r:Receipt)=>(r as Receipt&{at?:string}).at;
 const dupMinutes=(clock:string,at:string)=>Math.floor((Date.parse(clock+':00Z')-Date.parse(at+':00Z'))/60000);
 /** The newest receipt of this booking with the same kind, method and amount (paise) as one of `rows`, recorded within 10 minutes of `clock`. */
-export function recentEqualReceipt(b:Booking,rows:readonly FolioDupRow[],clock:string,kind:string='payment'):{receipt:Receipt;row:FolioDupRow;minutes:number}|undefined{
+export function recentEqualReceipt(b:Booking,rows:readonly FolioDupRow[],clock:string,kind:string='payment',same?:(a:string,b:string)=>boolean):{receipt:Receipt;row:FolioDupRow;minutes:number}|undefined{
   if(kind!=='payment'&&kind!=='deposit')return undefined; // refunds and deposit returns are never flagged
   let best:{receipt:Receipt;row:FolioDupRow;minutes:number}|undefined;
   for(const r of b.receipts){
     const at=dupAt(r);if(!at||r.kind!==kind)continue;
     const minutes=dupMinutes(clock,at);if(!(minutes>=0&&minutes<=FOLIO_DUP_WINDOW_MINUTES))continue;
-    const row=rows.find(x=>x.amount===r.amount&&x.method.toLowerCase()===r.method.toLowerCase());
+    const row=rows.find(x=>x.amount===r.amount&&(x.method.toLowerCase()===r.method.toLowerCase()||(same?.(x.method,r.method)??false))); // CU-PAY-B: same master row after a rename
     if(row&&(!best||minutes<best.minutes||(minutes===best.minutes&&r.id>best.receipt.id)))best={receipt:r,row,minutes};
   }
   return best;
