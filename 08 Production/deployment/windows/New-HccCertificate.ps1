@@ -41,6 +41,7 @@ param(
     [string]$CaPfx,
     [switch]$ExportCaPfx,                  # kept for older instructions: the CA key is now always exported and removed
     [string]$UpdateConfig,
+    [securestring]$CaPfxPassword,          # INST-SERVER: the installer passes the CA backup password here instead of the prompt (never on a command line)
     [ValidateRange(30, 825)][int]$ServerDays = 397
 )
 $ErrorActionPreference = 'Stop'
@@ -164,7 +165,7 @@ if ($mode -eq 'import') {
     $server = Import-PfxCertificate -FilePath $ImportPfx -CertStoreLocation 'Cert:\LocalMachine\My' -Password $pw
 }
 elseif ($mode -eq 'renew') {
-    $pw = Read-Host 'Password of the CA backup file' -AsSecureString
+    $pw = if ($CaPfxPassword) { $CaPfxPassword } else { Read-Host 'Password of the CA backup file' -AsSecureString }
     $ca = Import-PfxCertificate -FilePath $CaPfx -CertStoreLocation 'Cert:\LocalMachine\My' -Password $pw   # no -Exportable: the key cannot be copied out
     try {
         if (-not ($ca.Extensions | Where-Object { $_.Oid.Value -eq '2.5.29.30' })) { Write-Warning 'This CA has no Name Constraints (made before F-M04). Plan a new CA: run this script without -RenewServer and re-install HCC-Hotel-CA.cer on the devices.' }
@@ -183,7 +184,7 @@ else {
         $server = New-HccServerCertificate $ca
         Export-Certificate -Cert $ca -FilePath $cer -Type CERT | Out-Null
         Write-Host "CA certificate (public) exported: $cer"
-        $pw = Read-Host 'Password to protect the CA backup file (keep it in the safe)' -AsSecureString
+        $pw = if ($CaPfxPassword) { $CaPfxPassword } else { Read-Host 'Password to protect the CA backup file (keep it in the safe)' -AsSecureString }
         Export-PfxCertificate -Cert $ca -FilePath $CaPfxPath -Password $pw | Out-Null
         if (-not (Test-Path -LiteralPath $CaPfxPath)) { throw "The CA key was not written to $CaPfxPath." }
         Write-Host "CA private key exported: $CaPfxPath  (move it to a USB stick in the safe with its password; delete it from this PC)"
