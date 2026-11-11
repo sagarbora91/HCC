@@ -62,6 +62,21 @@ public sealed class RoomsOccupancyReportTests(ReportDatabase db) : IClassFixture
               (@fc, 'room', '2026-10-23', N'Room night', 150001, 0, 0),
               (@fa, 'service', '2026-10-24', N'Laundry', 50000, 0, 0), (@fa, 'discount', '2026-10-24', N'Discount', -10000, 0, 0);
             INSERT ops.room_block(property_id, room_id, from_date, to_date, reason, source, created_by, created_utc) VALUES (@p, @r104, '2026-10-23', NULL, N'Leak', 'manual', {own}, '2026-10-20');
+            -- 20-21 Oct: stay D in room 101 (20-22) with a split folio (A takes the 20th, B the 21st) and a correction on B that must stay out of room revenue; room 104 blocked 20-22 in inv.room_block
+            INSERT inv.reservation(property_id, public_no, guest_name, arrival, departure, status, room_id, room_type_id, adults, children, source) VALUES
+              (@p, 'HCC-2004', N'Ananya Rao', '2026-10-20', '2026-10-22', 'Departed', @r101, @t, 1, 0, 'Direct');
+            INSERT bill.folio(reservation_id) SELECT reservation_id FROM inv.reservation WHERE public_no = 'HCC-2004';
+            INSERT bill.folio(reservation_id, folio_seq) SELECT reservation_id, 2 FROM inv.reservation WHERE public_no = 'HCC-2004';
+            INSERT gst.registration(reservation_id, guest_id, registered_utc, registered_by) SELECT reservation_id, @g, '2026-10-19', {own} FROM inv.reservation WHERE public_no = 'HCC-2004';
+            INSERT gst.stay(property_id, reservation_id, guest_id, folio_id, status, arrival, departure, checked_in_date, checked_in_utc, checked_in_by, checked_out_date, checked_out_utc, checked_out_by)
+              SELECT @p, r.reservation_id, @g, f.folio_id, 'CheckedOut', r.arrival, r.departure, r.arrival, '2026-10-20T08:00:00', {own}, '2026-10-22', '2026-10-22T05:30:00', {own}
+                FROM inv.reservation r JOIN bill.folio f ON f.reservation_id = r.reservation_id AND f.folio_seq = 1 WHERE r.public_no = 'HCC-2004';
+            DECLARE @fd1 BIGINT = (SELECT f.folio_id FROM bill.folio f JOIN inv.reservation r ON r.reservation_id = f.reservation_id WHERE r.public_no = 'HCC-2004' AND f.folio_seq = 1),
+                    @fd2 BIGINT = (SELECT f.folio_id FROM bill.folio f JOIN inv.reservation r ON r.reservation_id = f.reservation_id WHERE r.public_no = 'HCC-2004' AND f.folio_seq = 2);
+            INSERT bill.charge(folio_id, kind, service_date, label, amount_paise, tax_bps, tax_paise) VALUES (@fd1, 'room', '2026-10-20', N'Room night', 100000, 0, 0), (@fd2, 'room', '2026-10-21', N'Room night', 80000, 0, 0);
+            INSERT bill.charge(folio_id, kind, service_date, label, amount_paise, tax_bps, tax_paise, reverses_charge_id)
+              SELECT @fd2, 'correction', '2026-10-21', N'Correction', -20000, 0, 0, charge_id FROM bill.charge WHERE folio_id = @fd2 AND kind = 'room';
+            INSERT inv.room_block(room_id, from_night, to_night, reason) VALUES (@r104, '2026-10-20', '2026-10-22', N'Repaint');
             SELECT 1;
             """);
     }
@@ -81,6 +96,18 @@ public sealed class RoomsOccupancyReportTests(ReportDatabase db) : IClassFixture
         var total = r.Rows.Single(x => x.Kind == ReportRowKind.Total);
         // 10 sellable, 6 occupied, 850,001 paise: ADR 850001 / 6 = 141,666.83 -> 141,667; RevPAR 850001 / 10 = 85,000.1 -> 85,000
         Assert.Equal((10L, 6L, "60.0%", 850001L, "₹1,416.67", "₹850"), (L(total, "sellable"), L(total, "occupied"), S(total, "occupancy"), L(total, "roomRevenue"), S(total, "adr"), S(total, "revpar")));
+    }
+
+    [Fact]
+    public async Task Split_folios_block_from_the_inventory_and_a_correction_are_counted_once()
+    {
+        var r = await Run(db, Runner(), "OWN", RoomsOccupancyReport.Id, ("from", "2026-10-20"), ("to", "2026-10-21"));
+        var d = Data(ReportRunner.Tables(r)[0]);
+        // room 104 is blocked by inv.room_block: 3 sellable; one stay over two folios: 1 occupied; the -200.00 correction is not room revenue
+        Assert.Equal((3L, 1L, "33.3%", 100000L, "₹1,000", "₹333.33"), (L(d[0], "sellable"), L(d[0], "occupied"), S(d[0], "occupancy"), L(d[0], "roomRevenue"), S(d[0], "adr"), S(d[0], "revpar")));
+        Assert.Equal((3L, 1L, "33.3%", 80000L, "₹800", "₹266.67"), (L(d[1], "sellable"), L(d[1], "occupied"), S(d[1], "occupancy"), L(d[1], "roomRevenue"), S(d[1], "adr"), S(d[1], "revpar")));
+        var total = r.Rows.Single(x => x.Kind == ReportRowKind.Total);
+        Assert.Equal((6L, 2L, "33.3%", 180000L, "₹900", "₹300"), (L(total, "sellable"), L(total, "occupied"), S(total, "occupancy"), L(total, "roomRevenue"), S(total, "adr"), S(total, "revpar")));
     }
 
     [Fact]

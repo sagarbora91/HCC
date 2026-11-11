@@ -83,4 +83,24 @@ public sealed class StockSheetReportTests(ReportDatabase db) : IClassFixture<Rep
         foreach (var role in new[] { "REC", "CSH", "HKP" })
             Assert.Equal(HccErrorCode.FORBIDDEN, await Code(() => Run(db, runner, role, StockSheetReport.Id)));
     }
+
+    [Fact]
+    public async Task An_empty_stock_list_shows_only_the_total_row()
+    {
+        // a property id with no items (the selector is property scoped)
+        var r = await new StockSheetReport(new SqlStockReadStore(db.Platform.Connections)).SelectAsync(new Caller(db.PropertyId + 1000, 1), new BoundParams(new Dictionary<string, string>()), Ct);
+        var only = Assert.Single(r.Rows);
+        Assert.Equal((ReportRowKind.Total, "Total value", 0L), (only.Kind, S(only, "item"), L(only, "value")));
+    }
+
+    [Fact]
+    public async Task At_the_hub_the_no_money_roles_are_refused_for_a_money_report_DEC_061()
+    {
+        var svc = Service(db, new StockSheetReport(new SqlStockReadStore(db.Platform.Connections)));
+        var none = new Dictionary<string, string?>();
+        foreach (var role in new[] { "HKP", "SUP" })
+            Assert.Equal(HccErrorCode.FORBIDDEN, await Code(() => svc.RunAsync(new Caller(db.PropertyId, db.Users[role]), StockSheetReport.Id, none, null, 50, true, Ct)));
+        var ok = await svc.RunAsync(new Caller(db.PropertyId, db.Users["OWN"]), StockSheetReport.Id, none, null, 50, true, Ct);
+        Assert.Contains(ok.Columns, c => c.Key == "value");
+    }
 }

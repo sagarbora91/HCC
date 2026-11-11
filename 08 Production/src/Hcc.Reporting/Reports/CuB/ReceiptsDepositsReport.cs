@@ -46,7 +46,7 @@ public sealed class ReceiptsDepositsReport(IReportSource source, SqlPlatform pla
         var methods = await CuBSupport.MethodNamesAsync(platform, caller.PropertyId, CuBSupport.Place.FrontDesk, ct).ConfigureAwait(false);
         if (methods.Count == 0) methods = Tenders.All; // a property whose master has no desk method yet: the seed list
         var receipts = data.Receipts.Where(r => r.BusinessDate >= from && r.BusinessDate <= to).ToList();
-        var found = receipts.Where(r => r.Kind is ReceiptKind.Payment or ReceiptKind.Refund).Select(r => r.Tender).Distinct().Where(t => !methods.Contains(t)).Order(StringComparer.Ordinal);
+        var found = receipts.Where(r => r.Kind is ReceiptKind.Payment or ReceiptKind.Refund).GroupBy(r => r.Tender).OrderBy(g => g.Min(r => r.ReceiptId)).Select(g => g.Key).Where(t => !methods.Contains(t)); // first seen, as the prototype
         var tenders = methods.Concat(found).ToList();
 
         long Net(IEnumerable<ReportReceipt> rs) => rs.Sum(r => r.Kind == ReceiptKind.Payment ? r.Amount.Value : -r.Amount.Value);
@@ -65,7 +65,7 @@ public sealed class ReceiptsDepositsReport(IReportSource source, SqlPlatform pla
             cells.AddRange(tenders.Select(t => ("t:" + t, (object?)Net(PayRefund(day).Where(r => r.Tender == t)))));
             cells.Add(("net", Net(PayRefund(day))));
             cells.Add(("depositsIn", Kind(day, ReceiptKind.Deposit)));
-            cells.Add(("depositsOut", Kind(day, ReceiptKind.DepositReturn)));
+            cells.Add(("depositsOut", -Kind(day, ReceiptKind.DepositReturn))); // a deposit returned leaves the hotel: negative, as the prototype receiptRow
             rows.Add(CuBSupport.Row(ReportRowKind.Row, [.. cells]));
         }
 
@@ -73,7 +73,7 @@ public sealed class ReceiptsDepositsReport(IReportSource source, SqlPlatform pla
         total.AddRange(tenders.Select(t => ("t:" + t, (object?)Net(PayRefund(receipts).Where(r => r.Tender == t)))));
         total.Add(("net", Net(PayRefund(receipts))));
         total.Add(("depositsIn", Kind(receipts, ReceiptKind.Deposit)));
-        total.Add(("depositsOut", Kind(receipts, ReceiptKind.DepositReturn)));
+        total.Add(("depositsOut", -Kind(receipts, ReceiptKind.DepositReturn)));
         rows.Add(CuBSupport.Row(ReportRowKind.Total, [.. total]));
 
         var held = await HeldNowAsync(caller.PropertyId, ct).ConfigureAwait(false);

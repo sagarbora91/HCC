@@ -5,6 +5,7 @@ using Hcc.Application.Billing;
 using Hcc.Application.Reporting.Rpt;
 using Hcc.Domain.Errors;
 using Hcc.Infrastructure.SqlServer.Access;
+using Hcc.Reporting;
 using Hcc.Reporting.Sql;
 using Hcc.Reporting.Tests.Sql;
 
@@ -18,6 +19,23 @@ internal static class CuBRig
     {
         var clock = new FixedClock(Rig.Now);
         return new ReportRunner(new ReportCatalogue(selectors), new SqlAccessPolicy(db.Platform.Connections, clock, []), new SqlReportStores(db.Platform.Connections), [new FixedCodeEngine()], clock);
+    }
+
+    private sealed class NoDelivery : IReportDelivery
+    {
+        public Task<bool> EnqueueAsync(int propertyId, long runId, IReadOnlyList<int> recipients, string fileRef, CancellationToken ct = default) => Task.FromResult(true);
+    }
+
+    /// <summary>The hub service (DEC-061 guard, rule V) over the real policy, stores and role reader.</summary>
+    public static ReportService Service(ReportDatabase db, params IReportSelector[] selectors)
+    {
+        var clock = new FixedClock(Rig.Now);
+        var policy = new SqlAccessPolicy(db.Platform.Connections, clock, []);
+        var stores = new SqlReportStores(db.Platform.Connections);
+        var cat = new ReportCatalogue(selectors);
+        var runner = new ReportRunner(cat, policy, stores, [new FixedCodeEngine()], clock);
+        return new ReportService(runner, cat, [new XlsxRenderer(), new PdfRenderer(), new CsvRenderer(), new PrintHtmlRenderer()], stores, stores, stores, stores, stores,
+            new SqlReportPrincipalRoles(db.Platform.Connections, clock), policy, new ReferenceOnlyFileStore(), new NoDelivery(), clock, stores);
     }
 
     public static async Task<ReportResult> Run(ReportDatabase db, ReportRunner runner, string role, string id, params (string K, string V)[] raw)

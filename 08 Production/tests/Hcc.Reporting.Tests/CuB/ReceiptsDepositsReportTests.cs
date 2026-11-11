@@ -52,6 +52,11 @@ public sealed class ReceiptsDepositsReportTests(ReportDatabase db) : IClassFixtu
               (@f1, 'deposit-return', 'Cash', 10000, '2026-10-23'), (@f1, 'company-credit', 'Company credit', 40000, '2026-10-23'),
               (@f1, 'payment', 'Card', 25000, '2026-10-24'),
               (@f2, 'deposit', 'UPI', 60000, '2026-10-22'), (@f2, 'deposit-apply', 'Cash', 20000, '2026-10-24'), (@f2, 'deposit-apply', 'Opening advance applied', 5000, '2026-10-24');
+            -- split stay: folio B (seq 2) of the same reservation takes a Card payment; a method once named "Paytm" (renamed to UPI in the master) keeps its own column, listed after Wallet (first seen)
+            INSERT bill.folio(reservation_id, folio_seq) SELECT reservation_id, 2 FROM inv.reservation WHERE public_no = 'HCC-3001';
+            INSERT pay.receipt(folio_id, kind, method, amount_paise, business_date)
+              SELECT folio_id, 'payment', 'Card', 3000, '2026-10-24' FROM bill.folio WHERE reservation_id = (SELECT reservation_id FROM inv.reservation WHERE public_no = 'HCC-3001') AND folio_seq = 2;
+            INSERT pay.receipt(folio_id, kind, method, amount_paise, business_date) VALUES (@f1, 'payment', 'Paytm', 10000, '2026-10-22');
             INSERT pay.receipt(folio_id, kind, method, amount_paise, refund_of, business_date)
               SELECT @f1, 'refund', 'Cash', 5000, receipt_id, '2026-10-23' FROM pay.receipt WHERE folio_id = @f1 AND kind = 'payment' AND method = 'Cash' AND amount_paise = 20000;
             SELECT 1;
@@ -67,20 +72,20 @@ public sealed class ReceiptsDepositsReportTests(ReportDatabase db) : IClassFixtu
         var r = await Run(db, Runner(), "OWN", ReceiptsDepositsReport.Id, ("from", "2026-10-22"), ("to", "2026-10-24"));
         var days = ReportRunner.Tables(r)[0];
         // master desk methods in list order (the retired "Old wallet" is out), then the tender found in the range
-        Assert.Equal(["date", "t:Cash", "t:UPI", "t:Card", "t:Bank transfer", "t:Wallet", "net", "depositsIn", "depositsOut"], days.Columns.Select(c => c.Key));
+        Assert.Equal(["date", "t:Cash", "t:UPI", "t:Card", "t:Bank transfer", "t:Wallet", "t:Paytm", "net", "depositsIn", "depositsOut"], days.Columns.Select(c => c.Key));
         Assert.All(days.Columns.Skip(1), c => Assert.True(c.Money));
         var d = Data(days);
         Assert.Equal(["2026-10-22", "2026-10-23", "2026-10-24"], d.Select(x => S(x, "date")));
-        Assert.Equal((100000L, 50000L, 0L, 0L, 0L, 150000L, 90000L, 0L), Cells(d[0]));
-        Assert.Equal((15000L, 0L, 0L, 0L, 7000L, 22000L, 0L, 10000L), Cells(d[1])); // Cash 200 - refund 50
-        Assert.Equal((0L, 0L, 25000L, 0L, 0L, 25000L, 0L, 0L), Cells(d[2]));
+        Assert.Equal((100000L, 50000L, 0L, 0L, 0L, 10000L, 160000L, 90000L, 0L), Cells(d[0]));
+        Assert.Equal((15000L, 0L, 0L, 0L, 7000L, 0L, 22000L, 0L, -10000L), Cells(d[1])); // Cash 200 - refund 50; the deposit returned is negative, as the prototype
+        Assert.Equal((0L, 0L, 28000L, 0L, 0L, 0L, 28000L, 0L, 0L), Cells(d[2])); // Card 250 on folio A + 30 on folio B of the split stay: counted once each
         var total = days.Rows.Single(x => x.Kind == ReportRowKind.Total);
-        Assert.Equal((115000L, 50000L, 25000L, 0L, 7000L, 197000L, 90000L, 10000L), Cells(total));
+        Assert.Equal((115000L, 50000L, 28000L, 0L, 7000L, 10000L, 210000L, 90000L, -10000L), Cells(total));
         Assert.Equal(d.Sum(x => L(x, "net")), L(total, "net"));
     }
 
-    private static (long, long, long, long, long, long, long, long) Cells(ReportRow x) =>
-        (L(x, "t:Cash"), L(x, "t:UPI"), L(x, "t:Card"), L(x, "t:Bank transfer"), L(x, "t:Wallet"), L(x, "net"), L(x, "depositsIn"), L(x, "depositsOut"));
+    private static (long, long, long, long, long, long, long, long, long) Cells(ReportRow x) =>
+        (L(x, "t:Cash"), L(x, "t:UPI"), L(x, "t:Card"), L(x, "t:Bank transfer"), L(x, "t:Wallet"), L(x, "t:Paytm"), L(x, "net"), L(x, "depositsIn"), L(x, "depositsOut"));
 
     [Fact]
     public async Task Second_block_has_company_credit_in_the_range_and_deposits_held_now()

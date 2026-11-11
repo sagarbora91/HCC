@@ -74,6 +74,13 @@ public sealed class RestDaySummaryReportTests(ReportDatabase db) : IClassFixture
               (@c2, @p, 'POS/2610/0002', 'outlet', N'Card', 30000, 500, 1500, 31500, '2026-10-23', '2026-10-23T14:00:00', {own}, NULL, NULL, 'Settled'),
               (@c3, @p, 'POS/2610/0003', 'folio', NULL, 10000, 500, 500, 10500, '2026-10-23', '2026-10-23T15:00:00', {own}, @f, @ch, 'Settled'),
               (@c4, @p, 'POS/2610/0004', 'outlet', N'Wallet', 20000, 500, 1000, 21000, '2026-10-23', '2026-10-23T16:00:00', {own}, NULL, NULL, 'Settled');
+            -- a settled bill that was voided later (status Void): out of every figure
+            INSERT pos.check_order(property_id, outlet_id, table_no, room_id, guest, covers, business_date, opened_utc, opened_by, status, void_reason, voided_by, voided_utc) VALUES
+              (@p, @o1, 'T6', NULL, NULL, 2, '2026-10-23', '2026-10-23T17:00:00', {own}, 'Void', N'Guest left', {own}, '2026-10-23T18:00:00');
+            DECLARE @c6 BIGINT = (SELECT order_id FROM pos.check_order WHERE table_no = 'T6');
+            INSERT pos.order_line(order_id, item_id, name, price_paise, qty) VALUES (@c6, @pan, N'Paneer', 25000, 4);
+            INSERT pos.bill(order_id, property_id, bill_no, mode, tender, net_paise, tax_bps, tax_paise, total_paise, business_date, settled_utc, settled_by, folio_id, charge_id, status, void_reason, voided_by, voided_utc) VALUES
+              (@c6, @p, 'POS/2610/0005', 'outlet', N'UPI', 100000, 500, 5000, 105000, '2026-10-23', '2026-10-23T17:30:00', {own}, NULL, NULL, 'Void', N'Guest left', {own}, '2026-10-23T18:00:00');
             SELECT 1;
             """);
     }
