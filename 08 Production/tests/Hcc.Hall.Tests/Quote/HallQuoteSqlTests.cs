@@ -121,6 +121,15 @@ public sealed class HallQuoteSqlTests
         Assert.Equal(2, saved.Version);
         Assert.Equal(before, await h.RowsAsync(snap, x => x.GetString(0), Ct));
 
+        // FX-SMALL: the read model names the T&C version a sent quotation is locked to and serves the saved templates, so the app prints the Owner's terms (not the seeded placeholders).
+        var qs = h.Get<HallQueries>();
+        var ver = Assert.Single((await qs.QuotationsAsync(h.PropertyId, h.Owner, null, q.QuotationId, Ct)).Single().Versions);
+        Assert.Equal(("T-RECEPTION", 1), (ver.TncTemplateCode, ver.TncV));
+        var tpl = (await qs.TncTemplatesAsync(h.PropertyId, h.Owner, Ct)).Single(t => t.Code == "T-RECEPTION");
+        Assert.Equal([1, 2], tpl.Versions.Select(x => x.V).ToArray());
+        Assert.Equal("Changed wording after sending.", tpl.Versions[1].Clauses.Single().Text);
+        Assert.NotEqual(tpl.Versions[1].Clauses.Single().Text, tpl.Versions[0].Clauses[0].Text);   // the sent quotation still resolves to v1, not the newer wording
+
         // accept (lane H1) → event + 25 / 50 / balance plan of the accepted total
         var acc = (await h.Get<HallBillingCommands>().AcceptAsync(h.Ctx(h.Manager, HallBillingCommands.OpAccept), new AcceptQuotationRequest(q.QuotationId), Ct)).Value;
         Assert.Equal("CONFIRMED", acc.Status);
