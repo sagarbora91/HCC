@@ -42,11 +42,13 @@ internal static class CustomerViews
 /// </summary>
 internal sealed class CustomerKeySpace
 {
+    private readonly int _propertyId;
     private readonly byte[] _secret;
     private readonly IEnumerable<string> _rawKeys;
 
-    private CustomerKeySpace(byte[] secret, IEnumerable<string> rawKeys)
+    private CustomerKeySpace(int propertyId, byte[] secret, IEnumerable<string> rawKeys)
     {
+        _propertyId = propertyId;
         _secret = secret;
         _rawKeys = rawKeys;
     }
@@ -59,7 +61,7 @@ internal sealed class CustomerKeySpace
     /// a list read only hashes its page rows.
     /// </summary>
     public static async Task<CustomerKeySpace> ForAsync(ICustomerReadStore reads, int propertyId, IEnumerable<string> rawKeys, CancellationToken ct) =>
-        new(await reads.KeySecretAsync(propertyId, ct).ConfigureAwait(false), rawKeys);
+        new(propertyId, await reads.KeySecretAsync(propertyId, ct).ConfigureAwait(false), rawKeys);
 
     public string TokenOf(string rawKey) => CustomerKeyToken.Make(_secret, rawKey);
 
@@ -67,7 +69,8 @@ internal sealed class CustomerKeySpace
     public string ResolveInbound(string? value, bool contact)
     {
         var v = (value ?? string.Empty).Trim();
-        if (CustomerKeyToken.IsToken(v)) return _rawKeys.FirstOrDefault(raw => string.Equals(TokenOf(raw), v, StringComparison.Ordinal)) ?? throw NotFound();
+        // CU-PER: the bounded token cache (secret and key-set checked) replaces one HMAC per customer key per request.
+        if (CustomerKeyToken.IsToken(v)) return CustomerKeyTokenCache.Resolve(_propertyId, _secret, _rawKeys, v) ?? throw NotFound();
         if (v.Length > 0 && v.All(char.IsAsciiDigit) && !contact) throw NotFound();
         return v;
     }
@@ -191,13 +194,17 @@ public sealed class CustomerQueries(IAccessPolicy policy, ICustomerReadStore rea
         await MergeAccessAsync(propertyId, principalId, ct).ConfigureAwait(false);
         var contact = await policy.HasAsync(propertyId, principalId, CustomerPermissions.Edit, null, ct).ConfigureAwait(false);
         var money = await policy.HasAsync(propertyId, principalId, CustomerPermissions.Money, null, ct).ConfigureAwait(false);
-        var src = await reads.LoadAsync(propertyId, ct).ConfigureAwait(false);
-        var index = src.Index();
-        var keys = await CustomerKeySpace.ForAsync(reads, propertyId, src, index, ct).ConfigureAwait(false);
-        var byKey = index.ToDictionary(c => c.Key);
-        var legacy = await LegacyRoll.ForAsync(reads, propertyId, byKey.Keys, src.Aliases, ct).ConfigureAwait(false);
+        // CU-PER: key pass on narrow rows, the guests' e-mail column, candidate groups on those; the full customer is read only for the members of a group.
+        var src = await reads.HeadsAsync(propertyId, ct).ConfigureAwait(false);
+        var index = src.Heads();
+        var found = CustomerRules.FindDuplicates(index.Heads, index.Emails(await reads.GuestEmailsAsync(propertyId, ct).ConfigureAwait(false)));
+        if (found.Count == 0) return new DuplicateList([]);
+        var memberKeys = found.SelectMany(g => g.Keys).ToHashSet(StringComparer.Ordinal);
+        var (byKey, _) = await src.CustomersAsync(reads, propertyId, index, index.Heads.Where(h => memberKeys.Contains(h.Key)).ToList(), ct).ConfigureAwait(false);
+        var keys = await CustomerKeySpace.ForAsync(reads, propertyId, [], ct).ConfigureAwait(false);
+        var legacy = await LegacyRoll.ForAsync(reads, propertyId, byKey.Keys.ToList(), src.Aliases, ct).ConfigureAwait(false);
         var groups = new List<DuplicateCandidate>();
-        foreach (var g in CustomerRules.FindDuplicates(index))
+        foreach (var g in found)
         {
             var members = g.Keys.Select(k => byKey[k]).ToList();
             groups.Add(new DuplicateCandidate(g.Reason, members.Select(c => CustomerViews.Summary(c, contact, money, [], keys, legacy.GetValueOrDefault(c.Key))).ToList(),

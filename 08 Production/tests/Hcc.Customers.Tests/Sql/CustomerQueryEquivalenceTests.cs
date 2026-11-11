@@ -297,4 +297,121 @@ public class CustomerQueryEquivalenceTests : IAsyncLifetime
         Assert.Equal([mine], d.Stays.Select(s => s.ReservationId));
         Assert.Equal(840_000, d.Stays[0].TotalPaise);
     }
+
+    // ---- CU-PER ----
+
+    /// <summary>The pre-rewrite duplicate finder, verbatim: whole-property load, full index, FindDuplicates on customers.</summary>
+    private async Task<DuplicateList> OldDuplicatesAsync(int propertyId, int principalId)
+    {
+        var reads = new SqlCustomerReadStore(_w.Platform.Connections);
+        var contact = await _w.Policy.HasAsync(propertyId, principalId, CustomerPermissions.Edit, null, Ct);
+        var money = await _w.Policy.HasAsync(propertyId, principalId, CustomerPermissions.Money, null, Ct);
+        if (!await _w.Policy.HasAsync(propertyId, principalId, CustomerPermissions.MergeDecide, null, Ct))
+            await _w.Policy.RequireAsync(propertyId, principalId, CustomerPermissions.MergePropose, null, null, Ct);
+        var src = await reads.LoadAsync(propertyId, Ct);
+        var index = src.Index();
+        var keys = await CustomerKeySpace.ForAsync(reads, propertyId, src, index, Ct);
+        var byKey = index.ToDictionary(c => c.Key);
+        var legacy = await LegacyRoll.ForAsync(reads, propertyId, byKey.Keys, src.Aliases, Ct);
+        var groups = new List<DuplicateCandidate>();
+        foreach (var g in CustomerRules.FindDuplicates(index))
+        {
+            var members = g.Keys.Select(k => byKey[k]).ToList();
+            groups.Add(new DuplicateCandidate(g.Reason, members.Select(c => CustomerViews.Summary(c, contact, money, [], keys, legacy.GetValueOrDefault(c.Key))).ToList(),
+                keys.TokenOf(members.Skip(1).Aggregate(members[0].Key, (best, c) => CustomerRules.SuggestSurvivor(byKey[best], c)))));
+        }
+
+        return new DuplicateList(groups.Where(g => g.Customers.Count > 0).ToList());
+    }
+
+    [Fact]
+    public async Task Duplicates_are_identical_to_the_pre_rewrite_finder_for_every_role()
+    {
+        var withGroups = 0;
+        foreach (var role in Roles)
+        {
+            var u = _w.Users[role];
+            var oldJ = await Outcome(async () => await OldDuplicatesAsync(_w.PropertyId, u));
+            var newJ = await Outcome(async () => await _w.Queries.DuplicatesAsync(_w.PropertyId, u, Ct));
+            Assert.True(oldJ == newJ, $"{role} old {oldJ} new {newJ}");
+            if (!oldJ.StartsWith("ERR", StringComparison.Ordinal) && oldJ.Contains("Reason", StringComparison.Ordinal)) withGroups++;
+        }
+
+        Assert.True(withGroups >= 2, "the seed must produce duplicate groups");
+        var all = await _w.Queries.DuplicatesAsync(_w.PropertyId, _w.Users["owner"], Ct);
+        Assert.Contains(all.Groups, g => g.Reason == CustomerRules.ReasonEmail);
+    }
+
+    [Fact]
+    public async Task Head_lookup_gives_the_same_key_name_stays_and_guest_ids_as_the_full_index_for_every_customer()
+    {
+        var reads = new SqlCustomerReadStore(_w.Platform.Connections);
+        var full = (await reads.LoadAsync(_w.PropertyId, Ct)).Index().ToDictionary(c => c.Key);
+        var hs = await reads.HeadsAsync(_w.PropertyId, Ct);
+        var idx = hs.Heads();
+        Assert.Equal(full.Count, idx.Heads.Count);
+        // a few at a time, like a merge proposal (two heads) and consent (one)
+        foreach (var chunk in idx.Heads.Chunk(2))
+        {
+            var (some, _) = await hs.CustomersAsync(reads, _w.PropertyId, idx, chunk, Ct);
+            foreach (var h in chunk)
+            {
+                var a = full[h.Key];
+                var b = some[h.Key];
+                Assert.Equal(a.Name, h.Name);
+                Assert.Equal(a.Name, b.Name);
+                Assert.Equal(a.Stays.Count, b.Stays.Count);
+                Assert.Equal(a.GuestIds, b.GuestIds);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task Head_emails_equal_the_full_index_emails()
+    {
+        var reads = new SqlCustomerReadStore(_w.Platform.Connections);
+        var full = (await reads.LoadAsync(_w.PropertyId, Ct)).Index().ToDictionary(c => c.Key);
+        var idx = (await reads.HeadsAsync(_w.PropertyId, Ct)).Heads();
+        var emails = idx.Emails(await reads.GuestEmailsAsync(_w.PropertyId, Ct));
+        foreach (var h in idx.Heads) Assert.Equal(full[h.Key].Email, emails[h.Slot]);
+    }
+
+    [Fact]
+    public async Task Token_cache_refuses_forged_tokens_and_does_not_rehash_on_repeats()
+    {
+        var owner = _w.Users["owner"];
+        var keys = (await new SqlCustomerReadStore(_w.Platform.Connections).LoadAsync(_w.PropertyId, Ct)).Index().Select(c => c.Key).ToList();
+        var good = await _w.Queries.TokenAsync(_w.PropertyId, keys[5], Ct);
+        CustomerKeyTokenCache.Clear();
+        Assert.Equal(good, (await _w.Queries.ProfileAsync(_w.PropertyId, owner, good, Ct)).Key);
+        var hashes = CustomerKeyTokenCache.Hashes;
+        for (var i = 0; i < 5; i++)
+        {
+            Assert.Equal(good, (await _w.Queries.ProfileAsync(_w.PropertyId, owner, good, Ct)).Key);
+            var e = await Assert.ThrowsAsync<HccException>(() => _w.Queries.ProfileAsync(_w.PropertyId, owner, "ck_AAAAAAAAAAAAAAAAAAAAAA", Ct));
+            Assert.Equal(HccErrorCode.NOT_FOUND, e.Code);
+        }
+
+        Assert.Equal(hashes, CustomerKeyTokenCache.Hashes);
+        Assert.True(CustomerKeyTokenCache.PropertyCount <= CustomerKeyTokenCache.MaxProperties);
+    }
+
+    [Fact]
+    public async Task Token_cache_sees_a_new_customer_after_a_refusal_and_a_rotated_secret_invalidates()
+    {
+        var owner = _w.Users["owner"];
+        var newKey = "n:cache newcomer";
+        var token = await _w.Queries.TokenAsync(_w.PropertyId, newKey, Ct);
+        var e1 = await Assert.ThrowsAsync<HccException>(() => _w.Queries.ProfileAsync(_w.PropertyId, owner, token, Ct)); // refused and remembered as unknown
+        Assert.Equal(HccErrorCode.NOT_FOUND, e1.Code);
+        await _w.ExecAsync($"INSERT inv.reservation(property_id, public_no, guest_name, arrival, departure, status) VALUES ({_w.PropertyId}, 'CACHE-1', N'Cache Newcomer', '2026-10-20', '2026-10-21', 'Confirmed');", Ct);
+        Assert.Equal(token, (await _w.Queries.ProfileAsync(_w.PropertyId, owner, token, Ct)).Key); // the new key set is not served from the old refusal
+
+        await _w.ExecAsync($"UPDATE crm.customer_key_secret SET secret = CAST(REPLICATE(CHAR(7), 32) AS VARBINARY(32)) WHERE property_id = {_w.PropertyId};", Ct);
+        var e2 = await Assert.ThrowsAsync<HccException>(() => _w.Queries.ProfileAsync(_w.PropertyId, owner, token, Ct)); // old token under the old secret
+        Assert.Equal(HccErrorCode.NOT_FOUND, e2.Code);
+        var fresh = await _w.Queries.TokenAsync(_w.PropertyId, newKey, Ct);
+        Assert.NotEqual(token, fresh);
+        Assert.Equal(fresh, (await _w.Queries.ProfileAsync(_w.PropertyId, owner, fresh, Ct)).Key);
+    }
 }

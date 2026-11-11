@@ -180,6 +180,18 @@ public sealed partial class SqlCustomerReadStore(SqlConnectionFactory connection
         return new CrmDetail(guests, stays);
     }
 
+    /// <summary>CU-PER: guest id and e-mail of every profile of the property that has an e-mail; nothing else is read (no name, mobile, preferences or notes).</summary>
+    public async Task<IReadOnlyDictionary<long, string>> GuestEmailsAsync(int propertyId, CancellationToken ct = default)
+    {
+        await using var conn = await connections.OpenAsync(ct).ConfigureAwait(false);
+        await using var cmd = connections.Command("SELECT guest_id, email FROM gst.guest WHERE property_id = @p AND email IS NOT NULL;", conn);
+        cmd.P("@p", SqlDbType.Int, propertyId);
+        var d = new Dictionary<long, string>();
+        await using var rd = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+        while (await rd.ReadAsync(ct).ConfigureAwait(false)) d[rd.GetInt64(0)] = rd.GetString(1);
+        return d;
+    }
+
     private static async Task<List<CrmGuest>> ReadGuestsAsync(SqlDataReader rd, CancellationToken ct)
     {
         var guests = new List<CrmGuest>();

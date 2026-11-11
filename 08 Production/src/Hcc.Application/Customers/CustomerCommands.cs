@@ -47,10 +47,19 @@ public sealed class CustomerCommands(ICommandRunner runner, IAccessPolicy policy
     /// Resolves a (possibly merged-away) key to the live customer or NOT_FOUND. AF-CRM (PR-01): the key arrives as a ck_ token or a raw n: key; a raw
     /// mobile key is accepted only from a reader who may see contact details.
     /// </summary>
-    private static Customer Find(CrmSource src, IReadOnlyList<Customer> index, CustomerKeySpace keys, bool contact, string? key)
+    private static CustomerHead Find(CrmHeadSource src, CustomerHeadIndex index, CustomerKeySpace keys, bool contact, string? key)
     {
         var k = CustomerRules.Resolve(keys.ResolveInbound(key, contact), src.Aliases);
-        return index.FirstOrDefault(c => c.Key == k) ?? throw new HccException(HccErrorCode.NOT_FOUND, "Customer not found.");
+        return index.Heads.FirstOrDefault(c => c.Key == k) ?? throw new HccException(HccErrorCode.NOT_FOUND, "Customer not found.");
+    }
+
+    /// <summary>CU-PER: the key pass (narrow rows) resolves the key; a command then reads the full customer only when it needs stays or guest ids.</summary>
+    private async Task<(CrmHeadSource Src, CustomerHeadIndex Index, CustomerKeySpace Keys)> KeyPassAsync(int propertyId, CancellationToken ct)
+    {
+        var src = await reads.HeadsAsync(propertyId, ct).ConfigureAwait(false);
+        var index = src.Heads();
+        var keys = await CustomerKeySpace.ForAsync(reads, propertyId, index.Heads.Select(h => h.Key).Concat(src.Aliases.Keys), ct).ConfigureAwait(false);
+        return (src, index, keys);
     }
 
     public async Task<CommandResult<MergeView>> ProposeMergeAsync(CommandContext ctx, ProposeCustomerMergeRequest req, CancellationToken ct = default)
@@ -59,13 +68,14 @@ public sealed class CustomerCommands(ICommandRunner runner, IAccessPolicy policy
         ArgumentNullException.ThrowIfNull(req);
         await policy.RequireAsync(ctx.PropertyId, ctx.PrincipalId, CustomerPermissions.MergePropose, null, null, ct).ConfigureAwait(false);
         var reason = CustomerRules.CleanReason(req.Reason);
-        var src = await reads.LoadAsync(ctx.PropertyId, ct).ConfigureAwait(false);
-        var index = src.Index();
-        var keys = await CustomerKeySpace.ForAsync(reads, ctx.PropertyId, src, index, ct).ConfigureAwait(false);
+        var (src, index, keys) = await KeyPassAsync(ctx.PropertyId, ct).ConfigureAwait(false);
         var contact = await policy.HasAsync(ctx.PropertyId, ctx.PrincipalId, CustomerPermissions.Edit, null, ct).ConfigureAwait(false);
-        var source = Find(src, index, keys, contact, req.SourceKey);
-        var target = Find(src, index, keys, contact, req.TargetKey);
-        if (source.Key == target.Key) throw HccException.Validation("Choose two different customers.");
+        var sourceHead = Find(src, index, keys, contact, req.SourceKey);
+        var targetHead = Find(src, index, keys, contact, req.TargetKey);
+        if (sourceHead.Key == targetHead.Key) throw HccException.Validation("Choose two different customers.");
+        var (both, _) = await src.CustomersAsync(reads, ctx.PropertyId, index, [sourceHead, targetHead], ct).ConfigureAwait(false);
+        var source = both[sourceHead.Key];
+        var target = both[targetHead.Key];
         return await runner.RunAsync(ctx with { Operation = OpPropose }, req, async (tx, c) =>
         {
             var id = await store.InsertMergeAsync(tx, ctx.PropertyId, source.Key, target.Key, source.Name, target.Name, reason, ctx.PrincipalId, UtcNow, c).ConfigureAwait(false)
@@ -82,11 +92,11 @@ public sealed class CustomerCommands(ICommandRunner runner, IAccessPolicy policy
         ArgumentNullException.ThrowIfNull(req);
         await policy.RequireAsync(ctx.PropertyId, ctx.PrincipalId, CustomerPermissions.MergeDecide, null, null, ct).ConfigureAwait(false);
         var expected = VersionToken.Parse(req.ExpectedVersion);
-        var decideSrc = await reads.LoadAsync(ctx.PropertyId, ct).ConfigureAwait(false);
-        var keys = await CustomerKeySpace.ForAsync(reads, ctx.PropertyId, decideSrc, decideSrc.Index(), ct).ConfigureAwait(false);
+        // CU-PER: the decision only turns stored keys into wire tokens (outbound), so it needs no customer read at all.
+        var keys = await CustomerKeySpace.ForAsync(reads, ctx.PropertyId, [], ct).ConfigureAwait(false);
         var note = string.IsNullOrWhiteSpace(req.Note) ? null : req.Note.Trim();
         if (note is { Length: > CustomerRules.ReasonMax }) throw HccException.Validation($"The note is limited to {CustomerRules.ReasonMax} characters.");
-        return await runner.RunAsync(ctx with { Operation = OpDecide }, req, async (tx, c) =>
+        var result = await runner.RunAsync(ctx with { Operation = OpDecide }, req, async (tx, c) =>
         {
             var m = await store.LockMergeAsync(tx, ctx.PropertyId, req.MergeId, c).ConfigureAwait(false) ?? throw new HccException(HccErrorCode.NOT_FOUND, "Merge proposal not found.");
             VersionToken.EnsureMatches(m.RowVer, expected, "This merge proposal");
@@ -109,22 +119,23 @@ public sealed class CustomerCommands(ICommandRunner runner, IAccessPolicy policy
             var fresh = (await store.LockMergeAsync(tx, ctx.PropertyId, req.MergeId, c).ConfigureAwait(false))!;
             return CustomerViews.Merge(fresh, keys);
         }, ct).ConfigureAwait(false);
+        if (req.Approve) CustomerKeyTokenCache.Invalidate(ctx.PropertyId); // CU-PER: a merge drops the cached key map of the property
+        return result;
     }
 
-    private async Task<(CustomerKeySpace Keys, Customer C)> EditableAsync(CommandContext ctx, string? key, CancellationToken ct)
+    // CU-PER: tag / note / preference commands need only the key and the display name, both on the head; consent loads the one full customer.
+    private async Task<(CustomerKeySpace Keys, CustomerHead C, CrmHeadSource Src, CustomerHeadIndex Index)> EditableAsync(CommandContext ctx, string? key, CancellationToken ct)
     {
         await policy.RequireAsync(ctx.PropertyId, ctx.PrincipalId, CustomerPermissions.Edit, null, null, ct).ConfigureAwait(false);
-        var src = await reads.LoadAsync(ctx.PropertyId, ct).ConfigureAwait(false);
-        var index = src.Index();
-        var keys = await CustomerKeySpace.ForAsync(reads, ctx.PropertyId, src, index, ct).ConfigureAwait(false);
-        return (keys, Find(src, index, keys, true, key));
+        var (src, index, keys) = await KeyPassAsync(ctx.PropertyId, ct).ConfigureAwait(false);
+        return (keys, Find(src, index, keys, true, key), src, index);
     }
 
     public async Task<CommandResult<CustomerChangeResult>> AddTagAsync(CommandContext ctx, AddCustomerTagRequest req, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(ctx);
         ArgumentNullException.ThrowIfNull(req);
-        var (keys, cust) = await EditableAsync(ctx, req.CustomerKey, ct).ConfigureAwait(false);
+        var (keys, cust, _, _) = await EditableAsync(ctx, req.CustomerKey, ct).ConfigureAwait(false);
         var tag = CustomerRules.CleanTag(req.Tag);
         return await runner.RunAsync(ctx with { Operation = OpAddTag }, req, async (tx, c) =>
         {
@@ -139,7 +150,7 @@ public sealed class CustomerCommands(ICommandRunner runner, IAccessPolicy policy
     {
         ArgumentNullException.ThrowIfNull(ctx);
         ArgumentNullException.ThrowIfNull(req);
-        var (keys, cust) = await EditableAsync(ctx, req.CustomerKey, ct).ConfigureAwait(false);
+        var (keys, cust, _, _) = await EditableAsync(ctx, req.CustomerKey, ct).ConfigureAwait(false);
         var tag = CustomerRules.CleanTag(req.Tag);
         return await runner.RunAsync(ctx with { Operation = OpRemoveTag }, req, async (tx, c) =>
         {
@@ -153,7 +164,7 @@ public sealed class CustomerCommands(ICommandRunner runner, IAccessPolicy policy
     {
         ArgumentNullException.ThrowIfNull(ctx);
         ArgumentNullException.ThrowIfNull(req);
-        var (keys, cust) = await EditableAsync(ctx, req.CustomerKey, ct).ConfigureAwait(false);
+        var (keys, cust, _, _) = await EditableAsync(ctx, req.CustomerKey, ct).ConfigureAwait(false);
         var body = CustomerRules.CleanNote(req.Body);
         return await runner.RunAsync(ctx with { Operation = OpAddNote }, req, async (tx, c) =>
         {
@@ -167,7 +178,7 @@ public sealed class CustomerCommands(ICommandRunner runner, IAccessPolicy policy
     {
         ArgumentNullException.ThrowIfNull(ctx);
         ArgumentNullException.ThrowIfNull(req);
-        var (keys, cust) = await EditableAsync(ctx, req.CustomerKey, ct).ConfigureAwait(false);
+        var (keys, cust, _, _) = await EditableAsync(ctx, req.CustomerKey, ct).ConfigureAwait(false);
         var text = CustomerRules.CleanPreferences(req.Preferences);
         byte[]? expected = req.ExpectedVersion is null ? null : VersionToken.Parse(req.ExpectedVersion);
         return await runner.RunAsync(ctx with { Operation = OpPreferences }, req, async (tx, c) =>
@@ -191,7 +202,8 @@ public sealed class CustomerCommands(ICommandRunner runner, IAccessPolicy policy
     {
         ArgumentNullException.ThrowIfNull(ctx);
         ArgumentNullException.ThrowIfNull(req);
-        var (keys, cust) = await EditableAsync(ctx, req.CustomerKey, ct).ConfigureAwait(false);
+        var (keys, head, src, index) = await EditableAsync(ctx, req.CustomerKey, ct).ConfigureAwait(false);
+        var cust = (await src.CustomersAsync(reads, ctx.PropertyId, index, [head], ct).ConfigureAwait(false)).Customers[head.Key];
         if (cust.GuestIds.Count == 0) throw new HccException(HccErrorCode.INVALID_TRANSITION, "This customer has no saved guest profile yet, so there is nothing to attach consent to.");
         return await runner.RunAsync(ctx with { Operation = OpConsent }, req, async (tx, c) =>
         {

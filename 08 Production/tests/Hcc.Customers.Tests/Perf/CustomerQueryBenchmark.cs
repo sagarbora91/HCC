@@ -93,6 +93,77 @@ public class CustomerQueryBenchmark
         Assert.True(failures.Count == 0, "PER-01 threshold exceeded:\n" + string.Join('\n', failures));
     }
 
+    /// <summary>
+    /// CU-PER (HCC_PERF=1): the customer commands' key lookup and the duplicate finder, rewritten vs the pre-rewrite whole-property load (kept in
+    /// <see cref="Sql.CustomerQueryEquivalenceTests"/> style: LoadAsync + Index). Rows: AddTag + RemoveTag pair (one key lookup each), DuplicatesAsync,
+    /// forged ck_ token profile lookup (cache warm). Sizes from HCC_PERF_N (default "1000,10000,15000"); appends to HCC_PERF_OUT.
+    /// </summary>
+    [Fact]
+    public async Task Customer_commands_and_duplicates_timings()
+    {
+        if (Environment.GetEnvironmentVariable("HCC_PERF") != "1") return;
+        var sizes = (Environment.GetEnvironmentVariable("HCC_PERF_N") ?? "1000,10000,15000").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(x => int.Parse(x, CultureInfo.InvariantCulture)).ToArray();
+        var outPath = Environment.GetEnvironmentVariable("HCC_PERF_OUT") is { Length: > 0 } o ? o : Path.Combine(Path.GetTempPath(), "hcc-cu-per.md");
+        foreach (var n in sizes)
+        {
+            await using var w = await CrmWorld.CreateAsync(Ct);
+            await SeedAsync(w, n);
+            var reads = new Hcc.Infrastructure.SqlServer.Customers.SqlCustomerReadStore(w.Platform.Connections);
+            var owner = w.Users["owner"];
+            var key = (await w.Queries.ListAsync(w.PropertyId, owner, null, null, 1, 1, Ct)).Customers[0].Key;
+            var md = new StringBuilder();
+            md.AppendLine(CultureInfo.InvariantCulture, $"### CU-PER N = {n:N0} guests");
+            md.AppendLine("| call | p50 ms | p95 ms | allocated MB / call |");
+            md.AppendLine("|---|---|---|---|");
+            async Task Row(string label, Func<Task> call)
+            {
+                for (var i = 0; i < 3; i++) await call();
+                var ms = new List<double>();
+                var bytes = new List<long>();
+                for (var i = 0; i < 10; i++)
+                {
+                    var b0 = GC.GetTotalAllocatedBytes(true);
+                    var t0 = Stopwatch.GetTimestamp();
+                    await call();
+                    ms.Add(Stopwatch.GetElapsedTime(t0).TotalMilliseconds);
+                    bytes.Add(GC.GetTotalAllocatedBytes(true) - b0);
+                }
+
+                ms.Sort();
+                bytes.Sort();
+                md.AppendLine(CultureInfo.InvariantCulture, $"| {label} | {ms[4]:F0} | {ms[9]:F0} | {bytes[4] / 1048576.0:F1} |");
+            }
+
+            await Row("AddTag + RemoveTag (after)", async () =>
+            {
+                await w.Commands.AddTagAsync(w.Ctx("owner", Guid.NewGuid().ToString("N")), new Hcc.Contracts.Customers.AddCustomerTagRequest(key, "perf"), Ct);
+                await w.Commands.RemoveTagAsync(w.Ctx("owner", Guid.NewGuid().ToString("N")), new Hcc.Contracts.Customers.RemoveCustomerTagRequest(key, "perf"), Ct);
+            });
+            // before: the lookup both commands did (whole-property load, full index, key resolve), twice
+            await Row("key lookup x2 (before: LoadAsync + Index)", async () =>
+            {
+                for (var i = 0; i < 2; i++)
+                {
+                    var src = await reads.LoadAsync(w.PropertyId, Ct);
+                    var index = src.Index();
+                    var keys = await Hcc.Application.Customers.CustomerKeySpace.ForAsync(reads, w.PropertyId, src, index, Ct);
+                    var k = Hcc.Domain.Customers.CustomerRules.Resolve(keys.ResolveInbound(key, true), src.Aliases);
+                    _ = index.First(c => c.Key == k);
+                }
+            });
+            await Row("DuplicatesAsync (after)", async () => await w.Queries.DuplicatesAsync(w.PropertyId, owner, Ct));
+            await Row("DuplicatesAsync (before: LoadAsync + Index + FindDuplicates)", async () =>
+            {
+                var src = await reads.LoadAsync(w.PropertyId, Ct);
+                var index = src.Index();
+                _ = Hcc.Domain.Customers.CustomerRules.FindDuplicates(index);
+            });
+            md.AppendLine();
+            await File.AppendAllTextAsync(outPath, md.ToString(), Ct);
+        }
+    }
+
     private static async Task SeedAsync(CrmWorld w, int n)
     {
         var names = string.Join(",", First.SelectMany(f => Last.Select(l => $"(N'{f} {l}')")));
