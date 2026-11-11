@@ -33,6 +33,16 @@ export async function register({test,assert,M}){
     s=adv(s,id,{method:'Paytm wallet',reference:'PTM-77'});assert.equal(lastReceipt(s,id).method,'Paytm wallet');
     s=adv(s,id,{method:'Room voucher',reference:undefined});assert.equal(lastReceipt(s,id).method,'Room voucher');
   });
+  test('[CU-PAY-B] hall: Cash renamed (Front till) - a cash advance needs no reference and moves the drawer; UPI still needs its reference',()=>{
+    const [s,id]=confirmed(),d0=M.drawer(s);
+    const s1=adv(s,id,{method:'Front till',amountPaise:100000,reference:undefined});
+    assert.equal(lastReceipt(s1,id).method,'Front till');assert.equal(M.drawer(s1),d0+100000,'the renamed cash row moves the drawer');
+    const s2=adv(s,id,{method:'PhonePe UPI',amountPaise:100000,reference:'UPI-77'});assert.equal(M.drawer(s2),d0,'a UPI advance does not');
+    assert.throws(()=>adv(s,id,{method:'PhonePe UPI',reference:undefined}),/Enter the payment reference/);
+    const pre=X.hall.commands.find(c=>c.type==='HALL_ADVANCE_RECEIVE').precheck;
+    assert.equal(pre({method:'Front till'},s),undefined,'device: no reference for the renamed cash row');
+    assert.match(pre({method:'PhonePe UPI'},s),/Enter the payment reference/);
+  });
   test('[CU-PAY-B] hall mock: an earlier name or the code resolves to the row and is stored under the CURRENT name',()=>{
     let [s,id]=confirmed();
     s=adv(s,id,{method:'UPI',reference:'REF-OLD'});assert.equal(lastReceipt(s,id).method,'PhonePe UPI');
@@ -45,22 +55,31 @@ export async function register({test,assert,M}){
     assert.throws(()=>adv(s,id,{method:'Zomato'}),/Select a payment method/);
     assert.throws(()=>adv(s,id,{method:'Paytm wallet',reference:'x'}),/Enter the payment reference/);
   });
-  test('[CU-PAY-B] hall mock: a refund may go back by a retired method; an old hall receipt keeps its stored label',()=>{
+  const cancelled=(method)=>{ // an event with a 50,000 advance taken by `method`, cancelled (refund pending); the master is applied AFTER the advance (Card retired)
     let [s0,qid]=quote(M.seed(),{dates:['2026-12-03']});
-    s0=M.execute(s0,'reception',{type:'QUO_ACCEPT',id:qid,advance:{amountPaise:5000000,method:'UPI',reference:'UPI-OLD'}});
+    s0=M.execute(s0,'reception',{type:'QUO_ACCEPT',id:qid,advance:{amountPaise:5000000,method,reference:'REF-OLD'}});
     const id=s0.hallX.events.at(-1).id;let s=withMaster(s0);
-    s=M.execute(s,'reception',{type:'HALL_EVENT_CANCEL',eventId:id,reason:'Date moved'});
+    s=M.execute(s,'reception',{type:'HALL_EVENT_CANCEL',eventId:id,reason:'Date moved'});return [s,id];};
+  test('[CU-PAY-B] hall mock: a retired method is allowed on a refund only when it is the row of one of the event receipts (DEC-MA-11a)',()=>{
+    let [s,id]=cancelled('Card'); // advance by Card, Card retired afterwards -> the original receipt's row
     s=M.execute(s,'manager',{type:'HALL_REFUND',eventId:id,method:'Card',reference:'CARD-R1'});
     const e=s.hallX.events.find(x=>x.id===id);
-    assert.equal(e.receipts.at(-1).kind,'REFUND');assert.equal(e.receipts.at(-1).method,'Card');
-    assert.equal(e.receipts[0].method,'UPI','the old receipt keeps the label it was stored under');
+    assert.equal(e.receipts.at(-1).kind,'REFUND');assert.equal(e.receipts.at(-1).method,'Card');assert.equal(e.receipts[0].method,'Card','the old receipt keeps its stored label');
+    const [s2,id2]=cancelled('UPI'); // advance by UPI: retired Card is another row -> refused
+    assert.throws(()=>M.execute(s2,'manager',{type:'HALL_REFUND',eventId:id2,method:'Card',reference:'CARD-R2'}),/Card is retired/);
+    assert.equal(s2.hallX.events.find(x=>x.id===id2).receipts.length,1,'nothing written');
+    s=M.execute(s2,'manager',{type:'HALL_REFUND',eventId:id2,method:'UPI',reference:'UPI-R2'}); // an active method is fine
+    assert.equal(s.hallX.events.find(x=>x.id===id2).receipts.at(-1).method,'PhonePe UPI','stored under the current name');
   });
   test('[CU-PAY-B] hall sync: advance / accept / close / refund prechecks read the master and the request carries the current name',async()=>{
     const [s,id]=confirmed(),cmd=t=>X.hall.commands.find(c=>c.type===t);
     assert.equal(cmd('HALL_ADVANCE_RECEIVE').precheck({method:'PhonePe UPI',reference:'R-1'},s),undefined);
     assert.match(cmd('HALL_ADVANCE_RECEIVE').precheck({method:'Card',reference:'R-1'},s),/retired/);
     assert.match(cmd('HALL_ADVANCE_RECEIVE').precheck({method:'Bitcoin'},s),/^Select a payment method/);
-    assert.equal(cmd('HALL_REFUND').precheck({method:'Card',reference:'R-1'},s),undefined,'a refund back by a retired method is allowed');
+    const [sc,idc]=cancelled('Card'),[su,idu]=cancelled('UPI');
+    assert.equal(cmd('HALL_REFUND').precheck({id:idc,method:'Card',reference:'R-1'},sc),undefined,'a refund back by the retired method of the original receipt is allowed');
+    assert.match(cmd('HALL_REFUND').precheck({id:idu,method:'Card',reference:'R-1'},su),/Card is retired/,'another retired row is refused');
+    assert.match(cmd('HALL_ADVANCE_RECEIVE').precheck({method:'Front till'},{...s,shiftOpen:false}),/shift is closed/,'a till method needs the open shift');
     assert.match(cmd('QUO_ACCEPT').precheck({advance:{amountPaise:5000,method:'Bank transfer',reference:''}},s),/Enter the payment reference/);
     assert.equal(cmd('QUO_ACCEPT').precheck({id:'x'},s),undefined);
     assert.match(cmd('HALL_EVENT_CLOSE').precheck({settle:{mode:'TENDER',method:'Zomato',reference:'R'}},s),/Select a payment method/);

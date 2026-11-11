@@ -11,15 +11,21 @@ import {HccClientError} from '../errors';
 import type {SyncArea} from './types';
 import type {HallState,Venue,Enquiry,Quotation,QuoteVersion,QuoteLine,AdvanceRow,HallEvent,HallReceipt,HallInvoice} from '../../domain/streams/hall';
 import {hallSeed} from '../../fixtures/ext/hall';
-import {mnyPick} from '../../domain/streams/money-master';
+import {mnyPick,mnySameMethod,mnyIsDrawer} from '../../domain/streams/money-master';
+import {shiftClosedText} from './money';
 import type {State} from '../../domain/types';
 // CU-PAY-B: the hall method is checked against the payment-methods master before any request (the server checks again) and sent under its CURRENT name.
-const hallPay=(s:State,v:unknown,reference:unknown,allowRetired=false)=>{
+// Refunds pass the event: a retired method is allowed only when it is the same master row as the tender of one of the event's ADVANCE / BALANCE receipts (DEC-MA-11a).
+const hallPay=(s:State,v:unknown,reference:unknown,refundOf?:unknown)=>{
+  const ev=refundOf===undefined?undefined:s.hallX?.events.find(e=>e.id===String(refundOf));
+  const allowRetired=!!ev&&(ev.receipts??[]).some(r=>r.kind!=='REFUND'&&!!r.method&&mnySameMethod(s,String(v??''),r.method));
   const p=mnyPick(s,v,'frontdesk',reference,{allowRetired,requireReference:false});
   if(!p.method)return {problem:p.problem};
   if(p.method.needsReference&&String(reference??'').trim().length<3)return {problem:'Enter the payment reference (UPI / card / bank).'};
+  // like the folio prechecks: a till (drawer) method needs the open shift before any request
+  if(mnyIsDrawer(s,p.method.name)&&!s.shiftOpen)return {problem:shiftClosedText(s)};
   return {name:p.method.name};};
-const hallName=(c:{state:State},v:unknown,reference:unknown,allowRetired=false)=>hallPay(c.state,v,reference,allowRetired).name??String(v??'');
+const hallName=(c:{state:State},v:unknown,reference:unknown,refundOf?:unknown)=>hallPay(c.state,v,reference,refundOf).name??String(v??'');
 import {gstLineTax,gstSplit} from '../../domain/gst';
 
 type SrvLine={seq:number;kind:string;refId:string|null;desc:string;qty:number;unit:string;ratePaise:number|null;listRatePaise:number|null;discountPaise:number|null;gstClass:string;taxBps:number|null;extra:boolean};
@@ -135,7 +141,7 @@ export const hall:SyncArea={
         extras:(k.extras??[]).map((x:any)=>({desc:x.desc,qty:Number(x.qty),ratePaise:Number(x.ratePaise),listRatePaise:x.listRatePaise,kind:x.kind,unit:x.unit,gstClass:x.gstClass})),
         settle:{mode:String(s.mode??'DUE'),method:String(s.mode??'')==='TENDER'?hallName(c,s.method,s.reference):s.method,reference:s.reference,companyId:s.company?num(s.company,'CO','company'):undefined}});}},
     {type:'HALL_EVENT_CANCEL',reload:['hallX'],async send(c){await c.api.command('CancelHallEvent',{eventId:num(c.cmd.id??c.cmd.eventId,'HEV','event'),reason:String(c.cmd.reason??'')});}},
-    {type:'HALL_REFUND',reload:['hallX'],precheck:(cmd,s)=>hallPay(s,cmd.method,cmd.reference,true).problem,async send(c){await c.api.command('ApproveHallRefund',{eventId:num(c.cmd.id??c.cmd.eventId,'HEV','event'),method:hallName(c,c.cmd.method,c.cmd.reference,true),reference:c.cmd.reference?String(c.cmd.reference):undefined});}},
+    {type:'HALL_REFUND',reload:['hallX'],precheck:(cmd,s)=>hallPay(s,cmd.method,cmd.reference,cmd.id??cmd.eventId).problem,async send(c){await c.api.command('ApproveHallRefund',{eventId:num(c.cmd.id??c.cmd.eventId,'HEV','event'),method:hallName(c,c.cmd.method,c.cmd.reference,c.cmd.id??c.cmd.eventId),reference:c.cmd.reference?String(c.cmd.reference):undefined});}},
     {type:'HALL_CREDIT_NOTE',reload:['hallX'],async send(c){
       const e=c.state.hallX?.events.find(x=>x.id===String(c.cmd.id??c.cmd.eventId)),invoiceId=e?.invoice?c.ids.server('hallInvoice',e.invoice.no):undefined;
       if(!invoiceId)throw new HccClientError('VALIDATION','Only a billed event has an invoice to credit.');

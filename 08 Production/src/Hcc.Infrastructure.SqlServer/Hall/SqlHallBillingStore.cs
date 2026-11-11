@@ -290,6 +290,16 @@ public sealed class SqlHallBillingStore : IHallBillingStore
         return row with { Lines = lines, Advance = adv };
     }
 
+    public async Task<IReadOnlyList<string>> PaidTendersAsync(ICommandTransaction tx, long eventId, CancellationToken ct)
+    {
+        await using var cmd = Cmd(tx, "SELECT DISTINCT tender FROM hall.event_receipt WHERE event_id = @e AND kind IN ('ADVANCE','BALANCE') AND tender IS NOT NULL;");
+        P(cmd, "@e", SqlDbType.BigInt, eventId);
+        var list = new List<string>();
+        await using var rd = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+        while (await rd.ReadAsync(ct).ConfigureAwait(false)) list.Add(rd.GetString(0));
+        return list;
+    }
+
     public async Task<long> InsertReceiptAsync(ICommandTransaction tx, HallReceiptIn r, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(r);
@@ -300,7 +310,7 @@ public sealed class SqlHallBillingStore : IHallBillingStore
         P(cmd, "@e", SqlDbType.BigInt, r.EventId);
         P(cmd, "@d", SqlDbType.Date, D(r.Date));
         P(cmd, "@k", SqlDbType.VarChar, r.Kind);
-        P(cmd, "@t", SqlDbType.VarChar, r.Tender);
+        P(cmd, "@t", SqlDbType.NVarChar, r.Tender); // CU-PAY-B: NVARCHAR(60) since 4935
         P(cmd, "@co", SqlDbType.BigInt, r.CompanyId);
         P(cmd, "@ud", SqlDbType.Bit, r.Udhaar);
         P(cmd, "@ref", SqlDbType.NVarChar, r.Reference);

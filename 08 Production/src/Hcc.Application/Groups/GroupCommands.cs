@@ -313,7 +313,9 @@ public sealed class GroupCommands(ICommandRunner runner, IGroupStore store, IAcc
         var reference = GroupText.Optional(req.Reference, 120) ?? string.Empty;
         // AF2-PAYMETHODS: the method comes from the Payment methods master (front desk; defaults without one): unknown, retired (MASTER_RETIRED; a refund
         // may go back by a retired method) and reference-less methods are refused; a method that settles to a till is not taken on the master folio.
-        var picked = Hcc.Domain.MoneyMasters.PaymentMethodBook.Pick(methods is null ? null : await methods.MethodsAsync(null, ctx.PropertyId, ct).ConfigureAwait(false),
+        // CU-PAY-B: a refund may go back by a retired method only when it is the same master row as the refunded receipt's tender (checked once the receipt is found, below).
+        var methodList = methods is null ? null : await methods.MethodsAsync(null, ctx.PropertyId, ct).ConfigureAwait(false);
+        var picked = Hcc.Domain.MoneyMasters.PaymentMethodBook.Pick(methodList,
             req.Tender, Hcc.Contracts.MoneyMasters.MoneyMasterValues.FrontDesk, reference, allowRetired: req.Kind == "refund");
         var tender = picked.Name;
         if (picked.SettlesToTill)
@@ -349,6 +351,8 @@ public sealed class GroupCommands(ICommandRunner runner, IGroupStore store, IAcc
                 {
                     var parent = s.Entries.FirstOrDefault(e => e.EntryId == req.RefundOf && e.Kind is "payment" or "deposit")
                         ?? throw NotFound("Select a payment or deposit of this group's master folio to refund.");
+                    if (!picked.Active && !Hcc.Domain.MoneyMasters.PaymentMethodBook.SameRow(methodList, req.Tender, parent.Tender))
+                        throw Hcc.Domain.Masters.MastersRules.Fail(Hcc.Contracts.Masters.MasterReasons.Retired, $"{picked.Name} is retired — choose another payment method.", "method");
                     var refunded = s.Entries.Where(e => e.Kind == "refund" && e.RefundOf == parent.EntryId).Aggregate(Paise.Zero, (a, e) => a + e.Amount);
                     if (amount > parent.Amount - refunded) throw HccException.Validation($"Refund cannot exceed the rest of receipt {N(parent.EntryId)} ({parent.Amount - refunded}).");
                     var credit = -ledger.Master.Balance;

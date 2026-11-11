@@ -39,3 +39,19 @@ Server:
 
 ## Shared files touched
 None of the marked-block shared files (no `Hcc.slnx`, no migrations lock, no registry, no CSS, no `stream-fit.mjs`).
+
+## Fix round (audit FIX 1 + coordinator items; migration 4935 approved)
+Note on wording (audit note 4): the PAY-08 guard matches when the labels are equal OR the two values are the same master row (a strict superset of the old guard), not "by row id only".
+
+- **FIX 1 (hall refund, retired method)**: a retired method is allowed on a hall refund only when it is the same master row (`mnySameMethod` / `PaymentMethodBook.SameRow`) as the tender of one of the event's ADVANCE / BALANCE receipts. `handlers/hall.ts` (`tender(..., e)`), `clients/sync/hall.ts` (`hallPay(..., refundOf)`), server `HallBillingCommands.TenderAsync(..., eventId)` with new store read `IHallBillingStore.PaidTendersAsync`. Tests: retired + original row accepted, retired + other row refused with `MASTER_RETIRED` and nothing written (prototype `stream-cu-pay-b.mjs`, server `HallPaymentMethodSqlTests`).
+- **WORK 2 (server hall on the master)**: migration `4935_hall_receipt_tender_master.sql` (re-runnable; drops `CK_hall_event_receipt_tender` / `_side` if present, widens `tender` to NVARCHAR(60) when not already, re-adds the tender check as length 1-60 and the side check exactly as 4320; rows untouched). Lock entry + `Hcc.slnx` line inside `CU-PAY-B` block. `HallBillingCommands`: `IPaymentMethodSource` injected (optional, defaults), `PaymentMethodBook.Pick` (front desk), 3-character reference rule kept, stores the current master name, drawer test = `SettlesToTill` (not the literal Cash), store parameter NVarChar. The old text "Choose a tender: Cash, UPI, Card or Bank transfer." is now the `PaymentMethodBook.Choose` wording; no existing server test pinned the old text.
+- **WORK 3 (group master-folio refund)**: `GroupCommands.RecordReceiptAsync`: a retired method on a refund is allowed only when it is the row of the refunded entry's tender (`MASTER_RETIRED` otherwise). New `GroupRefundRetiredMethodTests`.
+- **Renamed Cash in hall (coordinator item)**: the prototype hall paths decide reference by the master row's `needsReference` and the drawer by `mnyIsDrawer` (settles-to-till), not the literal "Cash" - the mock handler, the modals, and the device prechecks. New test: Cash renamed "Front till": a cash advance needs no reference and moves the drawer (`M.drawer`), a UPI one still needs its reference (mock and device precheck). Server equivalent: `Renamed_cash_row_still_moves_the_drawer...`.
+- **Audit note 2**: hall device prechecks refuse a till method when the shift is closed (`shiftClosedText`).
+
+Tests (through the lock): `npx tsc --noEmit` clean. `npm test` filtered `cu-pay-b|pay08|af2-paymethods|hall|sync-lf|sync-money`: 170/170; filtered `cu-pay-b`: 65/65 (10 stream tests). Server: `Hcc.Hall.Tests` full 36 tests (35 passed + my 1 test with a helper mistake, fixed, then `HallPaymentMethod` 5/5); `Hcc.Groups.Tests` filtered (GroupRefundRetiredMethod, PaymentMethodMasterGroup, GroupBooks) 4/4; `Hcc.Billing.Tests` DuplicateReceipt 8/8; `Hcc.Closing.Tests` PaymentMethodFolio + CuPayB 5/5; `Hcc.Platform.Tests` MigrationLock 9/9.
+
+Still open:
+- Audit note 3 (`PaymentMethodBook.Find` / `mnyMethodIndex.get` try the code before former names; a stored label can resolve to the wrong row in a rare code/rename clash): not changed, follow-up.
+- `SqlFlowsStore` (`CashParty.Hall`, outside this lane) sums hall cash by the literal `r.tender = 'Cash'`, so the per-event cash receipt limit misses a renamed cash row; follow-up (resolve through the master).
+- Full `npm test` and the full server suite were not run.

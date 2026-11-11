@@ -383,5 +383,8 @@
     <File Path="database/migrations/4910_crm_customer_list_indexes.sql" />
     <File Path="database/migrations/4920_rate_change_agreed_threshold.sql" /> <!-- AF2-CTL01 -->
     <!-- AF-CRM end -->
+    <!-- CU-PAY-B -->
+    <File Path="database/migrations/4935_hall_receipt_tender_master.sql" />
+    <!-- /CU-PAY-B -->
   </Folder>
 </Solution>

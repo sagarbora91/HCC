@@ -7,10 +7,12 @@ using Hcc.Application.Tax;
 using Hcc.Contracts;
 using Hcc.Contracts.Accounting;
 using Hcc.Contracts.Invoices;
+using Hcc.Contracts.MoneyMasters;
 using Hcc.Domain.Errors;
 using Hcc.Domain.Hall;
 using Hcc.Domain.Invoices;
 using Hcc.Domain.Money;
+using Hcc.Domain.MoneyMasters;
 using Hcc.Domain.Tax;
 
 namespace Hcc.Application.Hall;
@@ -100,6 +102,9 @@ public interface IHallBillingStore
 
     Task<long> InsertReceiptAsync(ICommandTransaction tx, HallReceiptIn r, CancellationToken ct);
 
+    /// <summary>CU-PAY-B: the tenders (as stored) of the event's ADVANCE and BALANCE receipts.</summary>
+    Task<IReadOnlyList<string>> PaidTendersAsync(ICommandTransaction tx, long eventId, CancellationToken ct);
+
     Task SetAdvancePaidAsync(ICommandTransaction tx, long eventId, IReadOnlyList<HallAdvanceRow> rows, CancellationToken ct);
 
     /// <summary>Writes the bill: actual pax, the extras as event lines, every line's tax snapshot, totals and the settlement mode; status BILLED.</summary>
@@ -126,11 +131,13 @@ public interface IHallBillingStore
 /// RBAC seed 4345 is lane H3's).
 /// </summary>
 public sealed class HallBillingCommands(ICommandRunner runner, IHallBillingStore store, IGstMasterStore gstStore, InvoiceService invoices, TimeProvider clock, IAccessPolicy policy, ICashDrawerPort? drawer = null,
-    Accounting.CashGuardService? cashGuard = null, Inventory.IInventoryStore? inventory = null, Inventory.GroupBlockOptions? groupBlocks = null)
+    Accounting.CashGuardService? cashGuard = null, Inventory.IInventoryStore? inventory = null, Inventory.GroupBlockOptions? groupBlocks = null,
+    MoneyMasters.IPaymentMethodSource? methods = null)
 {
     public const string OpAccept = "AcceptQuotation", OpAdvance = "ReceiveHallAdvance", OpClose = "CloseHallEvent", OpCancel = "CancelHallEvent", OpRefund = "ApproveHallRefund";
 
-    private static readonly string[] Tenders = ["Cash", "UPI", "Card", "Bank transfer"];
+    // CU-PAY-B (migration 4935): the tender comes from the Payment methods master (mst.payment_method; defaults when the list is empty), as for folio receipts.
+    private readonly MoneyMasters.IPaymentMethodSource _methods = methods ?? MoneyMasters.DefaultPaymentMethods.Instance;
 
     private DateTime Now => clock.GetUtcNow().UtcDateTime;
 
@@ -138,12 +145,17 @@ public sealed class HallBillingCommands(ICommandRunner runner, IHallBillingStore
 
     private static string Rs(long p) => "₹" + (p / 100m).ToString("0.00", CultureInfo.InvariantCulture);
 
-    private static string Tender(string? method, string? reference)
+    /// <summary>The method's CURRENT master name (an earlier name or the code resolves to the row); not usable at the front desk or retired is refused with the master words.
+    /// <paramref name="eventId"/> (refunds): a retired method is allowed only when it is the same master row as the tender of one of the event's advance / balance receipts (DEC-MA-11a).</summary>
+    private async Task<(string Name, bool Till)> TenderAsync(ICommandTransaction? tx, int propertyId, string? method, string? reference, CancellationToken c, long? eventId = null)
     {
-        var m = (method ?? "").Trim();
-        if (!Tenders.Contains(m)) throw HccException.Validation("Choose a tender: Cash, UPI, Card or Bank transfer.");
-        if (m != "Cash" && (reference ?? "").Trim().Length < 3) throw HccException.Validation("Enter the payment reference (UPI / card / bank).");
-        return m;
+        var list = await _methods.MethodsAsync(tx, propertyId, c).ConfigureAwait(false);
+        var allowRetired = false;
+        if (eventId is { } ev && tx is not null)
+            allowRetired = (await store.PaidTendersAsync(tx, ev, c).ConfigureAwait(false)).Any(t => PaymentMethodBook.SameRow(list, method, t));
+        var m = PaymentMethodBook.Pick(list, method, MoneyMasterValues.FrontDesk, reference, requireReference: false, allowRetired: allowRetired);
+        if (m.NeedsReference && (reference ?? "").Trim().Length < 3) throw HccException.Validation("Enter the payment reference (UPI / card / bank).");
+        return (m.Name, m.SettlesToTill);
     }
 
     private async Task<string> RoleAsync(ICommandTransaction tx, int principal, Func<string, bool> allowed, string what, CancellationToken ct)
@@ -155,7 +167,7 @@ public sealed class HallBillingCommands(ICommandRunner runner, IHallBillingStore
     /// <summary>F6-H3: a cash tender moves the drawer of the open shift (hall advance / balance = a desk receipt in, a cash refund = out); other tenders and a host without the till port do nothing.</summary>
     private async Task CashAsync(ICommandTransaction tx, CommandContext ctx, string? method, int? tillId, bool inward, long receiptId, Paise amount, string label, string? reference, CancellationToken c, long? eventId = null)
     {
-        if (method != "Cash" || drawer is null) return;
+        if (drawer is null || !PaymentMethodBook.SettlesToTill(await _methods.MethodsAsync(tx, ctx.PropertyId, c).ConfigureAwait(false), method)) return;
         if (inward && cashGuard is not null && eventId is { } ev) // F6-int: cash receipt limit per event (rulebook B9; CashParty "hall", this receipt excluded)
             await cashGuard.EnsureReceiptAsync(tx, ctx.PropertyId, new Accounting.CashParty(Accounting.CashParty.Hall, ev, receiptId.ToString(CultureInfo.InvariantCulture)),
                 amount.Value, await store.BusinessDateAsync(tx, ctx.PropertyId, c).ConfigureAwait(false), "this hall event", c).ConfigureAwait(false);
@@ -223,7 +235,7 @@ public sealed class HallBillingCommands(ICommandRunner runner, IHallBillingStore
             long? receiptId = null;
             if (req.Advance is { AmountPaise: > 0 } a)
             {
-                var m = Tender(a.Method, a.Reference);
+                var m = (await TenderAsync(tx, ctx.PropertyId, a.Method, a.Reference, c).ConfigureAwait(false)).Name;
                 receiptId = await AdvanceAsync(tx, ctx, eventId, q.CustomerName, plan, bd, new Paise(a.AmountPaise), m, a.Reference, a.TillId, now, c).ConfigureAwait(false);
             }
 
@@ -268,7 +280,7 @@ public sealed class HallBillingCommands(ICommandRunner runner, IHallBillingStore
         ArgumentNullException.ThrowIfNull(ctx);
         ArgumentNullException.ThrowIfNull(req);
         if (req.AmountPaise <= 0) throw HccException.Validation("Advance: enter whole paise greater than zero.");
-        var method = Tender(req.Method, req.Reference);
+        var method = (await TenderAsync(null, ctx.PropertyId, req.Method, req.Reference, ct).ConfigureAwait(false)).Name;
         await policy.RequireAsync(ctx.PropertyId, ctx.PrincipalId, HallPermissions.Accept, null, null, ct).ConfigureAwait(false);
         return await runner.RunAsync(ctx with { Operation = OpAdvance }, req, async (tx, c) =>
         {
@@ -317,7 +329,7 @@ public sealed class HallBillingCommands(ICommandRunner runner, IHallBillingStore
             var applied = paid < t.Total ? paid : t.Total;
             var balance = t.Total - applied;
             string? method = null;
-            if (balance.Value > 0 && mode == "TENDER") method = Tender(settle.Method, settle.Reference);
+            if (balance.Value > 0 && mode == "TENDER") method = (await TenderAsync(tx, ctx.PropertyId, settle.Method, settle.Reference, c).ConfigureAwait(false)).Name;
             var billed = HallBilling.BilledPax(e.GuaranteedPax, req.ActualPax);
             await store.BillAsync(tx, e.EventId, bd, new HallBill(req.ActualPax, billed, priced, t, applied, balance, balance.Value > 0 ? mode : "DUE"), extras, c).ConfigureAwait(false);
             var issued = await invoices.IssueInTransactionAsync(tx, new IssueInvoiceRequest(HallInvoiceSource.SourceKind, e.EventId,
@@ -399,7 +411,6 @@ public sealed class HallBillingCommands(ICommandRunner runner, IHallBillingStore
     {
         ArgumentNullException.ThrowIfNull(ctx);
         ArgumentNullException.ThrowIfNull(req);
-        var method = Tender(req.Method, req.Reference);
         await policy.RequireAsync(ctx.PropertyId, ctx.PrincipalId, HallPermissions.Bill, null, null, ct).ConfigureAwait(false);
         return await runner.RunAsync(ctx with { Operation = OpRefund }, req, async (tx, c) =>
         {
@@ -412,6 +423,7 @@ public sealed class HallBillingCommands(ICommandRunner runner, IHallBillingStore
             if (!roles.Any(r => HallBilling.RefundApprover(r, new Paise(refund))))
                 throw new HccException(HccErrorCode.FORBIDDEN, $"A refund above {Rs(HallBilling.RefundManagerLimitPaise)} needs the Owner.");
             _ = role;
+            var method = (await TenderAsync(tx, ctx.PropertyId, req.Method, req.Reference, c, e.EventId).ConfigureAwait(false)).Name; // CU-PAY-B: retired only if the original receipt's row
             var rid = await store.InsertReceiptAsync(tx, new HallReceiptIn(e.EventId, bd, "REFUND", method, null, false, Trim(req.Reference), new Paise(refund), ctx.PrincipalId, Now), c).ConfigureAwait(false);
             await CashAsync(tx, ctx, method, req.TillId, false, rid, new Paise(refund), $"Hall refund · {e.CustomerName}", Trim(req.Reference), c).ConfigureAwait(false);
             await store.MarkRefundedAsync(tx, e.EventId, ctx.PrincipalId, c).ConfigureAwait(false);
