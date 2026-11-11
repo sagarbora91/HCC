@@ -832,6 +832,183 @@ Check 'DEP-01 Set-HccEgress -State Apply -WhatIf with the rule missing: no datab
     $e.Exit -eq 1 -and $e.Out -match 'What if: Performing the operation "record detail = not applied: ' -and $e.Out -match 'ops\.egress_firewall_state' -and $e.Out -notmatch 'record applied_state'
 }
 
+# INST-CLIENT: client setup + client kit. Test certificates are made in memory with .NET and written as files in a temp folder
+# that is deleted afterwards; nothing is imported into any Windows certificate store, no setup is run.
+. (Join-Path $root 'Hcc-ClientTrust.ps1')   # functions only (no -Action)
+$ct = Join-Path ([IO.Path]::GetTempPath()) ('hcc-client-test-' + [guid]::NewGuid().ToString('N'))
+New-Item -ItemType Directory -Path $ct | Out-Null
+try {
+    function New-TestCert([string]$Subject, [bool]$IsCa, [bool]$NameConstraint, [int]$DaysValid = 30, [int]$StartDaysAgo = 1) {
+        $rsa = [Security.Cryptography.RSA]::Create(2048)
+        $req = New-Object Security.Cryptography.X509Certificates.CertificateRequest($Subject, $rsa, [Security.Cryptography.HashAlgorithmName]::SHA256, [Security.Cryptography.RSASignaturePadding]::Pkcs1)
+        $req.CertificateExtensions.Add((New-Object Security.Cryptography.X509Certificates.X509BasicConstraintsExtension($IsCa, $IsCa, 0, $true)))
+        if ($NameConstraint) { $req.CertificateExtensions.Add((New-HccNameConstraintsExtension -DnsNames @('hotel-pc', 'localhost') -IpNetworks @('192.168.1.10', '127.0.0.1'))) }
+        $c = $req.CreateSelfSigned([DateTimeOffset]::UtcNow.AddDays(-$StartDaysAgo), [DateTimeOffset]::UtcNow.AddDays($DaysValid))
+        return $c
+    }
+    function Save-Cer($c, [string]$name) { $p = Join-Path $ct $name; [IO.File]::WriteAllBytes($p, $c.RawData); return $p }
+    $caCert = New-TestCert 'CN=HCC Hotel CA' $true $true
+    $caFile = Save-Cer $caCert 'HCC-Hotel-CA.cer'
+    $caSha = Get-HccCertificateSha256 $caCert
+    $noNcFile = Save-Cer (New-TestCert 'CN=Plain CA' $true $false) 'plain-ca.cer'
+    $leafFile = Save-Cer (New-TestCert 'CN=hotel-pc' $false $false) 'leaf.cer'
+    $expiredFile = Save-Cer (New-TestCert 'CN=Old CA' $true $true -5 10) 'expired.cer'
+    $junkFile = Join-Path $ct 'junk.cer'; [IO.File]::WriteAllText($junkFile, 'this is not a certificate')
+    $pemFile = Join-Path $ct 'ca.pem'
+    [IO.File]::WriteAllText($pemFile, "-----BEGIN CERTIFICATE-----`n" + [Convert]::ToBase64String($caCert.RawData, 'InsertLineBreaks') + "`n-----END CERTIFICATE-----`n")
+    $storeBefore = @(Get-ChildItem Cert:\LocalMachine\Root | ForEach-Object { $_.Thumbprint })
+
+    Check 'INST-CLIENT url check: https only, plain host and port, normalised' {
+        (Test-HccServerUrl 'https://hotel-pc:5443/').Url -eq 'https://hotel-pc:5443/' -and (Test-HccServerUrl 'https://192.168.1.10:5443').Ok -and
+        (Test-HccServerUrl 'https://hotel-pc').Url -eq 'https://hotel-pc/' -and
+        -not (Test-HccServerUrl 'http://hotel-pc:5443/').Ok -and -not (Test-HccServerUrl 'hotel-pc:5443').Ok -and -not (Test-HccServerUrl '').Ok -and
+        -not (Test-HccServerUrl 'https://hotel-pc:5443/a?b=1').Ok -and -not (Test-HccServerUrl 'https://u:p@hotel-pc/').Ok -and
+        -not (Test-HccServerUrl 'https://hotel pc/').Ok -and -not (Test-HccServerUrl 'https://a"b/').Ok -and -not (Test-HccServerUrl 'https://hotel-pc:70000/').Ok
+    }
+    Check 'INST-CLIENT certificate check: accepts a name-constrained CA (DER and PEM), refuses non-CA, no name constraint, expired, junk, missing' {
+        $a = Get-HccCaFileInfo $caFile; $p = Get-HccCaFileInfo $pemFile
+        $a.Ok -and $a.Sha256 -eq $caSha -and $p.Ok -and $p.Sha256 -eq $caSha -and
+        -not (Get-HccCaFileInfo $leafFile).Ok -and (Get-HccCaFileInfo $leafFile).Error -match 'not a CA' -and
+        -not (Get-HccCaFileInfo $noNcFile).Ok -and (Get-HccCaFileInfo $noNcFile).Error -match 'name restriction' -and
+        -not (Get-HccCaFileInfo $expiredFile).Ok -and (Get-HccCaFileInfo $expiredFile).Error -match 'expired' -and
+        -not (Get-HccCaFileInfo $junkFile).Ok -and -not (Get-HccCaFileInfo (Join-Path $ct 'missing.cer')).Ok
+    }
+    Check 'INST-CLIENT fingerprint helpers' {
+        (ConvertTo-HccFingerprint ((Format-HccFingerprint $caSha).ToLowerInvariant())) -eq $caSha -and (ConvertTo-HccFingerprint 'abc') -eq '' -and
+        (Format-HccFingerprint 'AABBCC') -eq 'AA:BB:CC'
+    }
+
+    # --- the kit -------------------------------------------------------------------------------------------------------------------
+    $kit = Join-Path $ct 'kit'; $stub = Join-Path $ct 'HCC-Client-Setup-9.9.9.exe'; [IO.File]::WriteAllText($stub, 'stub')
+    $kitScript = Join-Path $root 'New-HccClientKit.ps1'
+    function RunKit([string[]]$KitArgs) {
+        $ErrorActionPreference = 'Continue'
+        # Windows PowerShell 5.1 passes arguments to a native exe without escaping embedded double quotes: escape them the way its parser expects.
+        if ($PSVersionTable.PSVersion.Major -lt 7) { $KitArgs = @($KitArgs | ForEach-Object { $_ -replace '"', '\"' }) }
+        $o = & $psExe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $kitScript @KitArgs 2>&1 | Out-String
+        return [pscustomobject]@{ Exit = $LASTEXITCODE; Out = $o }
+    }
+    Check 'INST-CLIENT kit -WhatIf writes nothing' {
+        $r = RunKit @('-ServerName', 'hotel-pc', '-Port', '5443', '-HotelName', 'Hotel Parth', '-CaCer', $caFile, '-OutDir', $kit, '-ClientSetupExe', $stub, '-WhatIf')
+        $r.Exit -eq 0 -and $r.Out -match 'DRY RUN plan' -and -not (Test-Path -LiteralPath $kit)
+    }
+    $hotelName = "Hotel ""Parth"" & Sons; 100% caf" + [char]0x00E9 + ' ' + [char]0x0939
+    Check 'INST-CLIENT kit contents and json shape (hotel name with quotes, &, ;, %, Unicode survives)' {
+        $r = RunKit @('-ServerName', 'hotel-pc', '-Port', '5443', '-HotelName', $hotelName, '-CaCer', $pemFile, '-OutDir', $kit, '-ClientSetupExe', $stub)
+        $names = @(Get-ChildItem -LiteralPath $kit | ForEach-Object { $_.Name } | Sort-Object)
+        $j = [IO.File]::ReadAllText((Join-Path $kit 'hcc-client.json'), [Text.Encoding]::UTF8) | ConvertFrom-Json
+        $props = @($j.PSObject.Properties | ForEach-Object { $_.Name })
+        $cer = Get-HccCaFileInfo (Join-Path $kit 'HCC-Hotel-CA.cer')
+        $readme = [IO.File]::ReadAllText((Join-Path $kit 'READ-ME.txt'), [Text.Encoding]::UTF8)
+        $r.Exit -eq 0 -and ($names -join '|') -eq ((@('HCC-Client-Setup-9.9.9.exe', 'HCC-Hotel-CA.cer', 'hcc-client.json', 'READ-ME.txt') | Sort-Object) -join '|') -and
+        ($props -join ',') -eq 'serverUrl,hotelName,caSha256' -and $j.serverUrl -eq 'https://hotel-pc:5443/' -and $j.hotelName -eq $hotelName -and
+        $j.caSha256 -eq $caSha -and $cer.Ok -and $cer.Sha256 -eq $caSha -and $readme.Contains((Format-HccFingerprint $caSha)) -and $readme.Contains('https://hotel-pc:5443/') -and
+        ([IO.File]::ReadAllBytes((Join-Path $kit 'HCC-Hotel-CA.cer'))[0] -eq 0x30)
+    }
+    Check 'INST-CLIENT kit is idempotent (second run, same result)' {
+        $before = (Get-Content -LiteralPath (Join-Path $kit 'hcc-client.json') -Raw)
+        $r = RunKit @('-ServerName', 'hotel-pc', '-Port', '5443', '-HotelName', $hotelName, '-CaCer', $caFile, '-OutDir', $kit, '-ClientSetupExe', $stub)
+        $r.Exit -eq 0 -and (Get-Content -LiteralPath (Join-Path $kit 'hcc-client.json') -Raw) -eq $before
+    }
+    Check 'INST-CLIENT kit refuses a non-CA certificate, no name constraint, a non-https-capable name, a bad hotel name and a missing setup exe' {
+        $bad = @(
+            @('-ServerName', 'hotel-pc', '-HotelName', 'H', '-CaCer', $leafFile),
+            @('-ServerName', 'hotel-pc', '-HotelName', 'H', '-CaCer', $noNcFile),
+            @('-ServerName', 'hotel pc;calc', '-HotelName', 'H', '-CaCer', $caFile),
+            @('-ServerName', 'https://hotel-pc', '-HotelName', 'H', '-CaCer', $caFile),
+            @('-ServerName', 'hotel-pc', '-HotelName', "a`r`nb", '-CaCer', $caFile)
+        )
+        $allRefused = $true
+        $n = 0
+        foreach ($b in $bad) { $n++; $o = Join-Path $ct "bad$n"; $r = RunKit ($b + @('-OutDir', $o, '-ClientSetupExe', $stub)); if ($r.Exit -eq 0 -or (Test-Path -LiteralPath $o)) { $allRefused = $false } }
+        $none = RunKit @('-ServerName', 'hotel-pc', '-HotelName', 'H', '-CaCer', $caFile, '-OutDir', (Join-Path $ct 'nosetup'))
+        $allRefused -and $none.Exit -ne 0 -and -not (Test-Path -LiteralPath (Join-Path $ct 'nosetup'))
+    }
+
+    # --- the setup's checks: fingerprint mismatch, non-https ------------------------------------------------------------------------
+    function Write-TestCfg([string]$Name, [string]$Url, [string]$Sha) {
+        $p = Join-Path $ct $Name
+        [IO.File]::WriteAllText($p, ([ordered]@{ serverUrl = $Url; hotelName = 'Hotel Parth'; caSha256 = $Sha } | ConvertTo-Json), (New-Object Text.UTF8Encoding($false)))
+        return $p
+    }
+    Check 'INST-CLIENT setup check passes for a matching kit and reports the fingerprint' {
+        $i = Test-HccClientInputs -CerPath $caFile -ConfigPath (Write-TestCfg 'ok.json' 'https://hotel-pc:5443/' $caSha)
+        $i.Ok -and $i.FingerprintMatches -and $i.ExpectedKnown -and $i.Sha256Display -eq (Format-HccFingerprint $caSha) -and $i.HotelName -eq 'Hotel Parth'
+    }
+    Check 'INST-CLIENT setup check refuses a fingerprint mismatch' {
+        $other = Get-HccCertificateSha256 (New-TestCert 'CN=Other CA' $true $true)
+        $i = Test-HccClientInputs -CerPath $caFile -ConfigPath (Write-TestCfg 'mismatch.json' 'https://hotel-pc:5443/' $other)
+        -not $i.Ok -and $i.Error -match 'does not match' -and -not $i.FingerprintMatches
+    }
+    Check 'INST-CLIENT setup check refuses a non-https address, a garbled fingerprint and a non-CA file' {
+        (-not (Test-HccClientInputs -CerPath $caFile -ConfigPath (Write-TestCfg 'http.json' 'http://hotel-pc:5443/' $caSha)).Ok) -and
+        (-not (Test-HccClientInputs -CerPath $caFile -ConfigPath (Write-TestCfg 'garble.json' 'https://hotel-pc:5443/' 'zz')).Ok) -and
+        (-not (Test-HccClientInputs -CerPath $leafFile -ConfigPath (Write-TestCfg 'ok2.json' 'https://hotel-pc:5443/' $caSha)).Ok) -and
+        (-not (Test-HccClientInputs -CerPath $caFile -ServerUrl 'http://x/').Ok) -and (Test-HccClientInputs -CerPath $caFile -ServerUrl 'https://hotel-pc:5443/').Ok
+    }
+    Check 'INST-CLIENT command-line Inspect writes the result file and exits 1 on a mismatch' {
+        $script = Join-Path $root 'Hcc-ClientTrust.ps1'
+        $outOk = Join-Path $ct 'inspect-ok.txt'; $outBad = Join-Path $ct 'inspect-bad.txt'
+        $ErrorActionPreference = 'Continue'
+        & $psExe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $script -Action Inspect -CerPath $caFile -ConfigPath (Join-Path $ct 'ok.json') -OutFile $outOk | Out-Null; $e1 = $LASTEXITCODE
+        & $psExe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $script -Action Inspect -CerPath $caFile -ConfigPath (Join-Path $ct 'mismatch.json') -OutFile $outBad | Out-Null; $e2 = $LASTEXITCODE
+        $ok = [IO.File]::ReadAllText($outOk, [Text.Encoding]::Unicode); $bad = [IO.File]::ReadAllText($outBad, [Text.Encoding]::Unicode)
+        $e1 -eq 0 -and $e2 -eq 1 -and $ok -match '(?m)^ok=1' -and $ok -match [regex]::Escape('url=https://hotel-pc:5443/') -and $bad -match '(?m)^ok=0' -and $bad -match 'error=The certificate file does not match'
+    }
+    Check 'INST-CLIENT Trust refuses an unapproved fingerprint and a non-CA file; -WhatIf and the refusals leave the Root store untouched' {
+        Add-HccTrustedRoot -CerPath $caFile -ApprovedSha256 $caSha -WhatIf | Out-Null
+        $r1 = Throws { Add-HccTrustedRoot -CerPath $caFile -ApprovedSha256 ('AB' * 32) }
+        $r2 = Throws { Add-HccTrustedRoot -CerPath $leafFile -ApprovedSha256 $caSha }
+        $r3 = Throws { Add-HccTrustedRoot -CerPath $caFile -ApprovedSha256 '' }
+        $script = Join-Path $root 'Hcc-ClientTrust.ps1'; $outW = Join-Path $ct 'trust-whatif.txt'
+        $ErrorActionPreference = 'Continue'
+        & $psExe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $script -Action Trust -CerPath $caFile -ExpectedSha256 $caSha -OutFile $outW -WhatIf | Out-Null; $e = $LASTEXITCODE
+        $after = @(Get-ChildItem Cert:\LocalMachine\Root | ForEach-Object { $_.Thumbprint })
+        $r1 -and $r2 -and $r3 -and $e -eq 0 -and ([IO.File]::ReadAllText($outW, [Text.Encoding]::Unicode) -match 'result=whatif') -and (($storeBefore -join ',') -eq ($after -join ',')) -and ($after -notcontains $caCert.Thumbprint)
+    }
+    Check 'INST-CLIENT reachability classification (mocked exceptions) and a closed local port answers "unreachable" without throwing' {
+        $trust = New-Object Net.WebException('x', $null, [Net.WebExceptionStatus]::TrustFailure, $null)
+        $conn = New-Object Net.WebException('Unable to connect to the remote server', $null, [Net.WebExceptionStatus]::ConnectFailure, $null)
+        $auth = New-Object Net.WebException('outer', (New-Object Security.Authentication.AuthenticationException('The remote certificate is invalid')))
+        $r = Test-HccServerReachable -Url 'https://127.0.0.1:1/' -TimeoutSec 3
+        (Get-HccReachabilityKind $trust) -eq 'certificate' -and (Get-HccReachabilityKind $conn) -eq 'unreachable' -and (Get-HccReachabilityKind $auth) -eq 'certificate' -and
+        (Get-HccReachabilityKind (New-Object InvalidOperationException('boom'))) -eq 'other' -and $r.Kind -eq 'unreachable' -and $r.Message -match 'setup is complete'
+    }
+
+    # --- the .iss ---------------------------------------------------------------------------------------------------------------------
+    $iss = Join-Path $root 'installer\HccClient.iss'
+    $issText = Get-Content -LiteralPath $iss -Raw
+    Check 'INST-CLIENT HccClient.iss layout: admin, own AppId/folder, no server files, root store only through the trust script, edge --app launcher' {
+        $issText -match 'PrivilegesRequired=admin' -and $issText -match 'DefaultDirName=\{autopf\}\\HCC Client' -and $issText -notmatch 'B6A3E3A2-6C54-4F0E-9B1A-2D8F4C7A0C11' -and
+        $issText -match '\{commondesktop\}\\HCC' -and $issText -match '\{commonprograms\}\\HCC' -and $issText -match '#ifndef AppVersion' -and $issText -match 'OutputDir=\{#OutputDir\}' -and
+        $issText -notmatch 'Hcc\.Api' -and $issText -notmatch 'Server\\' -and
+        (Get-Content -LiteralPath (Join-Path $root 'installer\Launch-HCC.vbs') -Raw) -match '--app=' -and (Get-Content -LiteralPath (Join-Path $root 'installer\Launch-HCC.vbs') -Raw) -match 'msedge\.exe' -and
+        (Get-Content -LiteralPath (Join-Path $root 'installer\Launch-HCC.vbs') -Raw) -match '--user-data-dir'
+    }
+    $iscc = Get-Command ISCC -ErrorAction SilentlyContinue
+    if (-not $iscc) { foreach ($c in 'E:\Tools\Inno Setup 6\ISCC.exe', "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe", "$env:ProgramFiles\Inno Setup 6\ISCC.exe") { if (Test-Path $c) { $iscc = Get-Item $c; break } } }
+    if ($iscc) {
+        $isccPath = if ($iscc.PSObject.Properties['Source']) { $iscc.Source } else { $iscc.FullName }
+        $isccOut = Join-Path $ct 'iscc'
+        Check 'INST-CLIENT ISCC compiles HccClient.iss and produces HCC-Client-Setup-<ver>.exe' {
+            $ErrorActionPreference = 'Continue'
+            & $isccPath /Q /DAppVersion=0.0.1.0 "/DOutputDir=$isccOut" $iss 2>&1 | Out-Null
+            $LASTEXITCODE -eq 0 -and (Test-Path -LiteralPath (Join-Path $isccOut 'HCC-Client-Setup-0.0.1.0.exe'))
+        }
+        Check 'INST-CLIENT ISCC refuses to compile without /DAppVersion' {
+            $ErrorActionPreference = 'Continue'
+            & $isccPath /Q "/DOutputDir=$isccOut" $iss 2>&1 | Out-Null
+            $LASTEXITCODE -ne 0
+        }
+    }
+    else { Write-Host 'SKIP INST-CLIENT ISCC compile checks (Inno Setup 6 not found)' }
+    Check 'INST-CLIENT nothing was added to the Root store by these tests' {
+        (@(Get-ChildItem Cert:\LocalMachine\Root | ForEach-Object { $_.Thumbprint }) -join ',') -eq ($storeBefore -join ',')
+    }
+}
+finally { Remove-Item -LiteralPath $ct -Recurse -Force -ErrorAction SilentlyContinue }
+# /INST-CLIENT
+
 Write-Host ''
 Write-Host "Passed: $script:passed  Failed: $script:failed"
 if ($script:failed -gt 0) { exit 1 }
