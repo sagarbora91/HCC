@@ -70,6 +70,9 @@ public interface ICustomerReadStore
     /// <summary>PER-01: full rows of these bookings (room, folio total, average room rate) and these guest profiles only; ids of other properties are ignored.</summary>
     Task<CrmDetail> LoadSomeAsync(int propertyId, IReadOnlyCollection<long> reservationIds, IReadOnlyCollection<long> guestIds, CancellationToken ct = default);
 
+    /// <summary>CU-PER: guest id to e-mail for every guest profile of the property that has an e-mail (the duplicate finder's only extra column; one narrow query).</summary>
+    Task<IReadOnlyDictionary<long, string>> GuestEmailsAsync(int propertyId, CancellationToken ct = default);
+
     Task<CrmOverlay> OverlayAsync(int propertyId, string customerKey, CancellationToken ct = default);
 
     /// <summary>Tags of every customer key (for list rows).</summary>

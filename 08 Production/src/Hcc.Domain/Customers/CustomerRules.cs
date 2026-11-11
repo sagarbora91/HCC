@@ -85,6 +85,39 @@ public sealed class CustomerHeadIndex
 
         return (res, guests.ToList());
     }
+
+    /// <summary>
+    /// CU-PER: the e-mail <see cref="CustomerRules.Index"/> would give each customer, by head slot, from the guests' e-mail column only (guest id to e-mail, ids
+    /// without an e-mail absent): the e-mail of the customer's profile (its newest booking that has one, else the first profile with the customer's mobile), else the
+    /// first non-empty e-mail among the profiles of its bookings, newest first. Null when there is none.
+    /// </summary>
+    public string?[] Emails(IReadOnlyDictionary<long, string> emailByGuest)
+    {
+        ArgumentNullException.ThrowIfNull(emailByGuest);
+        var perSlot = new List<int>?[_fallback.Length];
+        for (var i = 0; i < _stays.Count; i++)
+            if (_stayGuest[i] != 0) (perSlot[_staySlot[i]] ??= []).Add(i);
+        var result = new string?[_fallback.Length];
+        for (var slot = 0; slot < result.Length; slot++)
+        {
+            var mine = perSlot[slot];
+            long first = 0;
+            if (mine is not null)
+            {
+                // Index orders bookings by arrival then booking number, both descending and stable; the profiles are those of that order.
+                var ordered = mine.OrderByDescending(i => _stays[i].Arrival).ThenByDescending(i => _stays[i].PublicNo, StringComparer.Ordinal).ToList();
+                first = _stayGuest[ordered[0]];
+                string? any = null;
+                foreach (var i in ordered)
+                    if (emailByGuest.TryGetValue(_stayGuest[i], out var e) && !string.IsNullOrEmpty(e)) { any = e; break; }
+
+                result[slot] = emailByGuest.TryGetValue(first, out var own) ? own : any;
+            }
+            else if (_fallback[slot] != 0 && emailByGuest.TryGetValue(_fallback[slot], out var fb)) result[slot] = fb;
+        }
+
+        return result;
+    }
 }
 
 /// <summary>
@@ -386,13 +419,26 @@ public static class CustomerRules
     public static IReadOnlyList<DuplicateGroup> FindDuplicates(IReadOnlyList<Customer> list)
     {
         ArgumentNullException.ThrowIfNull(list);
+        return Duplicates(list, c => c.Key, c => c.Name, c => c.Email);
+    }
+
+    /// <summary>CU-PER: <see cref="FindDuplicates(IReadOnlyList{Customer})"/> on the key-pass heads; <paramref name="emailBySlot"/> is <see cref="CustomerHeadIndex.Emails"/>. Same groups, same order.</summary>
+    public static IReadOnlyList<DuplicateGroup> FindDuplicates(IReadOnlyList<CustomerHead> heads, IReadOnlyList<string?> emailBySlot)
+    {
+        ArgumentNullException.ThrowIfNull(heads);
+        ArgumentNullException.ThrowIfNull(emailBySlot);
+        return Duplicates(heads, c => c.Key, c => c.Name, c => emailBySlot[c.Slot]);
+    }
+
+    private static IReadOnlyList<DuplicateGroup> Duplicates<T>(IReadOnlyList<T> list, Func<T, string> key, Func<T, string> name, Func<T, string?> email)
+    {
         var groups = new List<DuplicateGroup>();
-        foreach (var g in list.Where(c => NormEmail(c.Email).Length > 0).GroupBy(c => NormEmail(c.Email), StringComparer.Ordinal).Where(g => g.Count() > 1))
-            groups.Add(new DuplicateGroup(ReasonEmail, g.Select(c => c.Key).OrderBy(k => k, StringComparer.Ordinal).ToList()));
-        var phoned = list.Where(c => !IsNameKey(c.Key)).GroupBy(c => NormName(c.Name), StringComparer.Ordinal).ToDictionary(g => g.Key, g => g.ToList(), StringComparer.Ordinal);
-        foreach (var c in list.Where(c => IsNameKey(c.Key)))
-            if (phoned.TryGetValue(NormName(c.Name), out var match) && match.Count == 1)
-                groups.Add(new DuplicateGroup(ReasonNameOnly, new[] { c.Key, match[0].Key }.OrderBy(k => k, StringComparer.Ordinal).ToList()));
+        foreach (var g in list.Where(c => NormEmail(email(c)).Length > 0).GroupBy(c => NormEmail(email(c)), StringComparer.Ordinal).Where(g => g.Count() > 1))
+            groups.Add(new DuplicateGroup(ReasonEmail, g.Select(key).OrderBy(k => k, StringComparer.Ordinal).ToList()));
+        var phoned = list.Where(c => !IsNameKey(key(c))).GroupBy(c => NormName(name(c)), StringComparer.Ordinal).ToDictionary(g => g.Key, g => g.ToList(), StringComparer.Ordinal);
+        foreach (var c in list.Where(c => IsNameKey(key(c))))
+            if (phoned.TryGetValue(NormName(name(c)), out var match) && match.Count == 1)
+                groups.Add(new DuplicateGroup(ReasonNameOnly, new[] { key(c), key(match[0]) }.OrderBy(k => k, StringComparer.Ordinal).ToList()));
         return groups.OrderBy(g => g.Keys[0], StringComparer.Ordinal).ThenBy(g => g.Reason, StringComparer.Ordinal).ToList();
     }
 
