@@ -13,7 +13,7 @@
   the script only writes into -OutDir and the work folder.
 
   /D defines passed to ISCC (the .iss files of lanes server and client use exactly these names):
-    AppVersion      x.y.z
+    AppVersion      x.y.z (the client setup gets x.y.z.0 because HccClient.iss needs four parts; its exe is renamed to x.y.z)
     PublishDir      self-contained publish output, including web\index.html
     OpsDir          deployment\windows (the .ps1 scripts, samples, INSTALL.md)
     TemplatesDir    08 Production\deployment\import-templates
@@ -230,7 +230,10 @@ try {
     $webSource = Join-Path $proto 'dist\production\index.html'
 
     $common = @("/DAppVersion=$Version", "/DOutputDir=$OutDir", "/O$OutDir")
-    $clientDefines = $common + @("/DOpsDir=$winDir")
+    # HccClient.iss validates a four-part version (VersionInfoVersion): it gets x.y.z.0 and its exe is renamed to the three-part name.
+    $clientVersion4 = "$Version.0"
+    $clientExe4 = Join-Path $OutDir ("HCC-Client-Setup-$clientVersion4.exe")
+    $clientDefines = @("/DAppVersion=$clientVersion4", "/DOutputDir=$OutDir", "/O$OutDir", "/DOpsDir=$winDir")
     $serverDefines = $common + @("/DPublishDir=$publishOut", "/DOpsDir=$winDir", "/DTemplatesDir=$templates", "/DClientSetupExe=$clientExe")
     if ($sqlMedia) { $serverDefines += "/DSqlMediaDir=$sqlMedia" }
 
@@ -290,9 +293,10 @@ try {
     Write-Host 'Hcc.Api.exe, hostfxr.dll (self-contained) and web\index.html are present.'
 
     Step 'Client setup'
-    if (Test-Path -LiteralPath $clientExe) { Remove-Item -LiteralPath $clientExe -Force }
+    foreach ($old in @($clientExe, $clientExe4)) { if (Test-Path -LiteralPath $old) { Remove-Item -LiteralPath $old -Force } }
     Invoke-HccIscc -Iscc $iscc -Script $ClientIss -Defines $clientDefines -What 'The client setup'
-    if (-not (Test-Path -LiteralPath $clientExe -PathType Leaf)) { throw "ISCC finished but $clientExe does not exist (the .iss must write OutputBaseFilename=HCC-Client-Setup-{#AppVersion})." }
+    if (Test-Path -LiteralPath $clientExe4 -PathType Leaf) { Move-Item -LiteralPath $clientExe4 -Destination $clientExe -Force }
+    if (-not (Test-Path -LiteralPath $clientExe -PathType Leaf)) { throw "ISCC finished but neither $clientExe4 nor $clientExe exists (the .iss must write OutputBaseFilename=HCC-Client-Setup-{#AppVersion})." }
     if ($signTool) { Invoke-HccSign -SignTool $signTool -File $clientExe }
 
     Step 'Server installer'
