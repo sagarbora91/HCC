@@ -7,7 +7,7 @@ import {FeedbackSheet,FeedbackBillLine} from '../guest-services/Feedback'; // F4
 import {bookingRef} from '../../domain/bookingRef';
 import React,{useState,useEffect} from 'react';
 import {Receipt,Printer,Info,ShieldCheck,Check,ArrowRight,Hotel,Plus,Trash2,RotateCcw,Building2,AlertTriangle} from 'lucide-react';
-import {resStatus,Approval,money,nights,totals,folioNights,folioRefundable,folioRefunded,folioLineReversed,folioLineCorrectable,folioApprovalsFor,folioApprovalStatus,folioKind,folioKindLabel,folioReceiptLabel,folioCompanyCreditState,folioCheckoutBlockers,FOLIO_MANAGER_CREDIT_LIMIT,mnyNames,mnyMethod,mnyIsDrawer,mnyPick,plural,rbacCanViewFolios,rbacCanDiscount,rbacCanRequestCorrection,rbacDiscountLimit,rbacApprovalLimit,RBAC_OWNER_DECIDES} from '../../services/mock';
+import {resStatus,Approval,money,nights,totals,mnySameMethod,folioNights,folioRefundable,folioRefunded,folioLineReversed,folioLineCorrectable,folioApprovalsFor,folioApprovalStatus,folioKind,folioKindLabel,folioReceiptLabel,folioCompanyCreditState,folioCheckoutBlockers,FOLIO_MANAGER_CREDIT_LIMIT,mnyNames,mnyMethod,mnyIsDrawer,mnyPick,plural,rbacCanViewFolios,rbacCanDiscount,rbacCanRequestCorrection,rbacDiscountLimit,rbacApprovalLimit,RBAC_OWNER_DECIDES} from '../../services/mock';
 import {useHcc} from '../../app/context';
 import {cbIsLocked,cbLockedMessage,lineTax,gstLineSplit,gstSplitLines,gstPct,gstHalfPct,gstForFolioAdjustment,GST_CHARGE_CATEGORIES} from '../../services/mock';
 import {Pill,Empty,field,amount,submit,shortDate} from '../../components/ui';
@@ -146,7 +146,7 @@ export function PaymentModal({id}:{id:string}){
     run(cmd,single?'Receipt recorded once':`${rows.length} receipts recorded once`,{after:()=>booking(b.id)});
   };
   // AF-PAY08: early amber note (receipts carry their time in the demo; the server enforces the same 10-minute rule on its own clock) and, after a refusal, the confirmation tick.
-  const early=recentEqualReceipt(bv!,effective.map(r=>({method:r.method,amount:paise(r.amount)})),s.clock,kind);
+  const early=recentEqualReceipt(bv!,effective.map(r=>({method:r.method,amount:paise(r.amount)})),s.clock,kind,(p,q)=>mnySameMethod(s,p,q));
   const dupNote=<>{early&&!dup&&<div className="info-note folio-dup-note" role="note"><AlertTriangle size={16}/><span>A {money(early.receipt.amount)} {early.receipt.method} receipt was recorded at {((early.receipt as {at?:string}).at??'').slice(11,16)}. Post again only for a second, separate payment.</span></div>}
     {dup&&<div className="info-note folio-dup-confirm" role="alert"><AlertTriangle size={16}/><span><strong className="folio-dup-title">Needs your confirmation</strong>{dup.message}</span></div>}
     {dup&&<label className="folio-dup-tick"><input type="checkbox" checked={confirmDup} onChange={e=>setConfirmDup(e.target.checked)}/><span>This is a second, separate payment</span></label>}</>;

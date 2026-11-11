@@ -132,6 +132,13 @@ export function mnyPick(s:State,value:unknown,place:MnyPlace,reference?:unknown,
   if(o.requireReference!==false&&r.needsReference&&!String(reference??'').trim())return {problem:'Enter the transaction reference for a non-cash payment.'};
   return {method:r};
 }
+/** CU-PAY-B (PAY-08): do two stored method values name the same master row? By row id (a renamed method matches under its earlier name, its code or its current name);
+ *  a value the master cannot resolve falls back to the label compared case-insensitively. */
+export function mnySameMethod(s:State,a:string,b:string):boolean{
+  const x=mnyMethod(s,a),y=mnyMethod(s,b);
+  if(x&&y)return x.id===y.id;
+  return String(a).trim().toLowerCase()===String(b).trim().toLowerCase();
+}
 /** Short label for phone chips / expense funding (old labels kept: Bank transfer → Bank; Cash → Drawer cash for expenses). */
 export function mnyShortLabel(s:State,name:string,place?:MnyPlace):string{
   const r=mnyMethod(s,name);if(!r)return name;

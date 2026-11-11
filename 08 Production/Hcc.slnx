@@ -388,5 +388,8 @@
     <File Path="database/migrations/4932_lgc_customer_key_unicode.sql" />
     <!-- /CU-NVARCHAR -->
     <!-- AF-CRM end -->
+    <!-- CU-PAY-B -->
+    <File Path="database/migrations/4935_hall_receipt_tender_master.sql" />
+    <!-- /CU-PAY-B -->
   </Folder>
 </Solution>

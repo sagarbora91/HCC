@@ -3,7 +3,7 @@
 import React,{useEffect,useState} from 'react';
 import {bookingRef} from '../../domain/bookingRef';
 import {Plus,Trash2,ArrowRight,Check,AlertTriangle,RefreshCw,Info} from 'lucide-react';
-import {money,totals,mnyIsDrawer,mnyMethod} from '../../services/mock';
+import {money,totals,mnyIsDrawer,mnyMethod,mnySameMethod} from '../../services/mock';
 import {recentEqualReceipt,onFolioDuplicate} from '../../domain/streams/folio'; // AF-PAY08
 import {useHcc} from '../../app/context';
 import {Empty} from '../../components/ui';
@@ -45,7 +45,7 @@ export function MmPayment({id}:{id?:string}){
   const post=async()=>{const cmd=mmPaymentCommand(b.id,kind,total,rows,key);const ok=await run(dup&&confirmDup?{...cmd,confirmDuplicate:true}:cmd,single?'Receipt recorded once':`${rows.length} receipts recorded once`,{after:()=>booking(b.id)});setFailed(!ok);};
   const kindLong=MM_PAY_KINDS.find(k=>k.id===kind)!.long;
   // AF-PAY08: early amber note (the demo receipts carry their time; the server enforces the 10-minute rule on its own clock) and, after a refusal, the 48 px confirmation tick.
-  const early=recentEqualReceipt(b,eff.map(r=>({method:r.method,amount:mmPaise(r.amount)})),s.clock,kind);
+  const early=recentEqualReceipt(b,eff.map(r=>({method:r.method,amount:mmPaise(r.amount)})),s.clock,kind,(p,q)=>mnySameMethod(s,p,q));
   const dupNote=<>{early&&!dup&&<div className="info-note folio-dup-note" role="note"><AlertTriangle size={18}/><span>A {money(early.receipt.amount)} {early.receipt.method} receipt was recorded at {((early.receipt as {at?:string}).at??'').slice(11,16)}. Post again only for a second, separate payment.</span></div>}
     {dup&&<div className="info-note folio-dup-confirm" role="alert"><AlertTriangle size={18}/><span><strong className="folio-dup-title">Needs your confirmation</strong>{dup.message}</span></div>}
     {dup&&<label className="folio-dup-tick"><input type="checkbox" checked={confirmDup} onChange={e=>setConfirmDup(e.target.checked)}/><span>This is a second, separate payment</span></label>}</>;

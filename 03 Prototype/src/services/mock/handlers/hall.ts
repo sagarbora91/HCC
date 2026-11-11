@@ -12,7 +12,7 @@ import {POS_FIXTURE_MENU} from '../../../fixtures/ext/pos';
 import {grpSlice} from '../../../domain/streams/groups';
 import {fdmAllocate} from '../../../domain/streams/frontdesk-master';
 import {addDays} from '../../../domain/money';
-import {mnyMethodFor} from '../../../domain/streams/money-master';
+import {mnyPick,mnySameMethod} from '../../../domain/streams/money-master';
 import {handlers as groupsH} from './groups'; // F6-H3: room blocks for an event reuse the group block rules
 import {grpEnsure} from '../../../domain/streams/groups';
 
@@ -22,8 +22,12 @@ const role=(k:Kit,list:Role[],what:string)=>{if(!list.includes(k.user.role))k.fa
 const txt=(v:unknown)=>String(v??'').trim();
 const paise=(k:Kit,v:unknown,what:string,allowZero=false)=>{const n=Number(v);k.assert(Number.isSafeInteger(n)&&(allowZero?n>=0:n>0)&&n<=10_000_000_000,`${what}: enter whole paise ${allowZero?'(0 or more)':'greater than zero'}.`);return n;};
 // The tender list comes from the money masters (payment methods usable at the front desk), never a hard-coded list (MA-3).
-const tender=(k:Kit,m:unknown,ref:unknown)=>{const method=txt(m);k.assert(mnyMethodFor(k.s,method,'frontdesk'),'Choose an active payment method (Cash, UPI, Card, Bank transfer …).');
-  if(method!=='Cash')k.assert(txt(ref).length>=3,'Enter the payment reference (UPI / card / bank).');return method;};
+// CU-PAY-B: resolved through mnyPick (same words as the server): an earlier name or the code resolves to the row, the receipt stores the CURRENT master name,
+// a retired row is refused (a refund back may use one), a row that needs a reference needs one, and "settles to a till" - not the literal "Cash" - decides.
+// allowRetired (refunds): only when the method is the same master row as the tender of one of the event's ADVANCE / BALANCE receipts (DEC-MA-11a).
+const tender=(k:Kit,m:unknown,ref:unknown,e?:HallEvent)=>{const allowRetired=!!e&&(e.receipts??[]).some(r=>r.kind!=='REFUND'&&!!r.method&&mnySameMethod(k.s,txt(m),r.method));
+  const p=mnyPick(k.s,m,'frontdesk',ref,{allowRetired,requireReference:false});k.assert(p.method,p.problem??'');
+  if(p.method!.needsReference)k.assert(txt(ref).length>=3,'Enter the payment reference (UPI / card / bank).');return p.method!.name;};
 const event=(k:Kit)=>{const e=hallEnsure(k.s).events.find(e=>e.id===txt(k.cmd.eventId??k.cmd.id));k.assert(e,'Hall event not found.','NOT_FOUND');return e!;};
 const receipt=(k:Kit,e:HallEvent,kind:HallReceipt['kind'],amountPaise:number,extra:Partial<HallReceipt>):HallReceipt=>{
   const x=hallEnsure(k.s),r:HallReceipt={id:hallNextId(x,'HRC'),eventId:e.id,date:k.s.date,kind,amountPaise,by:k.uid,at:k.s.clock,...extra};
@@ -212,7 +216,7 @@ export const handlers:Record<string,Handler>={
     const x=hallEnsure(k.s),e=event(k),c=e.cancellation;k.assert(c&&c.refund==='PENDING','No refund is waiting on this event.','INVALID_TRANSITION');
     k.assert(c!.by!==k.uid,'You cannot approve a refund on your own cancellation.','FORBIDDEN');
     if(!hallRefundApprover(x.settings,k.user.role,c!.refundPaise))k.fail('FORBIDDEN',`A refund above ₹${(x.settings.refundManagerLimitPaise/100).toLocaleString('en-IN')} needs the Owner.`);
-    const m=tender(k,k.cmd.method,k.cmd.reference);
+    const m=tender(k,k.cmd.method,k.cmd.reference,e);
     const r=receipt(k,e,'REFUND',c!.refundPaise,{method:m,...ref(k.cmd.reference)});
     e.cancellation={...c!,refund:'PAID',refundBy:k.uid,refundAt:k.s.clock,refundMethod:m};
     return `Hall refund ${rs(c!.refundPaise)} · ${m} · event ${e.id} · receipt ${r.id} (Dr 2000, Cr tender)`;

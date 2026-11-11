@@ -5,7 +5,7 @@ import {HccClientError} from '../errors';
 import {serverId,protoId,protoUserId,utcToClock} from './map';
 import type {BLCState,BLCCorrection,BLCChange,CTRState,CTRBill,STRState,GuestAgreedRate} from '../../domain/types';
 import type {SyncArea,SyncApi,CommandCtx} from './types';
-import {mnyIsDrawer,mnyMethod,mnyNames} from '../../domain/streams/money-master';
+import {mnyIsDrawer,mnyMethod,mnyPick} from '../../domain/streams/money-master';
 import {shiftClosedText} from './money';
 import {sfIsSplit,sfFolio,SF_PRIMARY} from '../../domain/streams/folio-split'; // F8C-SYNC
 import {sfLetter,sfFolioRef} from './money-split'; // F8C-SYNC
@@ -142,9 +142,9 @@ export const lfmoney:SyncArea={
         if(text(st.mode)==='company'&&!text(st.companyId))return 'Choose the company account.';
         if(text(st.mode)!=='paid')return undefined;
         const method=ctrMethod(s,st.method);
-        // AF-INT: the same words as the server refusals (PaymentMethodBook.Choose / Pick), so the phone and the server say one thing.
-        if(!method){const names=mnyNames(s,'frontdesk');return `Select a payment method (${names.length>1?names.slice(0,-1).join(', ')+' or '+names[names.length-1]:names[0]??'Cash'}).`;}
-        if(mnyMethod(s,method)?.needsReference&&!text(st.reference))return 'Enter the transaction reference for a non-cash payment.';
+        // CU-PAY-B: the master decides (mnyPick = the server's PaymentMethodBook.Pick, same words): unknown or not usable at the front desk, RETIRED (a retired
+        // method used to pass here and only the server refused it), and a missing reference are all refused before any request.
+        const pick=mnyPick(s,method,'frontdesk',st.reference);if(pick.problem)return pick.problem;
         if(mnyIsDrawer(s,method)&&!s.shiftOpen)return shiftClosedText(s);
         return undefined;},
       async send(c){const k=c.cmd as Record<string,any>; // eslint-disable-line @typescript-eslint/no-explicit-any

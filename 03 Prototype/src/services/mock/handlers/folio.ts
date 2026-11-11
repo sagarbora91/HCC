@@ -10,7 +10,7 @@ import {totals} from '../../../domain/selectors';
 import {gstForCharge,gstCategoryOfLabel,gstForFolioAdjustment,gstExactPieces,GST_CHARGE_CATEGORIES,gstAdjustmentMixed,GST_ADJUSTMENT_MIXED_MSG} from '../../../domain/gst'; // F8-INT: H2
 import {rbacCanDiscount,rbacDiscountLimit,rbacApprovalLimit,rbacCanRequestCorrection,RBAC_OWNER_DECIDES} from '../../../domain/streams/rbac';
 import {cbIsLocked,cbLockedMessage} from '../../../domain/streams/cashbook';
-import {mnyMethod,mnyMethodFor,mnyIsDrawer} from '../../../domain/streams/money-master';
+import {mnyMethod,mnyMethodFor,mnyIsDrawer,mnySameMethod} from '../../../domain/streams/money-master';
 import {mstFail} from '../../../domain/streams/masters';
 import {recentEqualReceipt,folioDupMessage,FOLIO_DUP_REASON,FOLIO_MANAGER_CREDIT_LIMIT,folioExpiresAt,folioKind,folioApprovalExpired,folioRefundable,folioOutstandingRefunds,folioLineCorrectable} from '../../../domain/streams/folio';
 import {fdmAllocate} from '../../../domain/streams/frontdesk-master';
@@ -95,7 +95,7 @@ const validMethod=(k:Kit,method:unknown,reference:unknown,original?:string):stri
 // AF-PAY08 (AF-DEC-1): the server's duplicate-receipt rule on s.clock; `confirmDuplicate` bypasses it. Runs after execute()'s idempotent same-key check.
 function dupGuard(k:Kit,x:Booking,kind:string,rows:{method:string;amount:number}[]){
   if(k.cmd.confirmDuplicate===true)return;
-  const hit=recentEqualReceipt(x,rows,k.s.clock,kind);if(!hit)return;
+  const hit=recentEqualReceipt(x,rows,k.s.clock,kind,(p,q)=>mnySameMethod(k.s,p,q));if(!hit)return;
   const at=(hit.receipt as Receipt&{at?:string}).at!;
   throw Object.assign(new HccError('VALIDATION',folioDupMessage(hit.receipt.method,kind,money(hit.receipt.amount),at,hit.minutes,hit.receipt.id)),{details:{reason:FOLIO_DUP_REASON,receiptId:hit.receipt.id}});
 }

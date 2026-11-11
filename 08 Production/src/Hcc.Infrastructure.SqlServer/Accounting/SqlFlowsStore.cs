@@ -63,7 +63,9 @@ public sealed class SqlFlowsStore(SqlConnectionFactory connections) : ICashFlowR
             CashParty.Hall => """
                 SELECT ISNULL(SUM(CASE WHEN r.business_date = @d THEN r.amount_paise ELSE 0 END), 0), ISNULL(SUM(r.amount_paise), 0)
                 FROM hall.event_receipt r JOIN hall.event e ON e.event_id = r.event_id
-                WHERE r.event_id = @id AND e.property_id = @p AND r.tender = 'Cash' AND r.kind IN ('ADVANCE','BALANCE')
+                WHERE r.event_id = @id AND e.property_id = @p AND r.kind IN ('ADVANCE','BALANCE')
+                  -- CU-PAY-B: cash = the receipt went into a till (one drawer movement per hall cash receipt), not the literal tender text: a renamed Cash row or a second till method counts
+                  AND EXISTS (SELECT 1 FROM pay.cash_movement m WHERE m.source_type = 'hall' AND m.source_id = r.receipt_id)
                   AND r.receipt_id <> ISNULL(TRY_CAST(@t AS BIGINT), 0);
                 """,
             _ => null,
