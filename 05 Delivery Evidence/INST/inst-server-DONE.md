@@ -106,7 +106,7 @@ Also: finish page says the hotel address and display name are set inside HCC; Fo
 
 ## Results
 - `powershell -NoProfile -File tests\Test-HccDeployment.ps1` (Windows PowerShell 5.1.26100): **Passed 213, Failed 0** (includes the SQL, CLIENT and SERVER blocks and the ISCC compiles with stub inputs).
-- PowerShell 7: PS7_PLACEHOLDER
+- PowerShell 7: **Passed 213, Failed 0** (pwsh 7, same test script).
 - ISCC compile of `Hcc.iss` with stub inputs (with and without SQL media): exit 0 (inside the test run); refuses a compile without `AppVersion` / `ClientSetupExe`.
 
 ## Still NOT verified (nothing was installed)
