@@ -382,6 +382,11 @@
     <File Path="database/migrations/4900_crm_customer_key_secret.sql" />
     <File Path="database/migrations/4910_crm_customer_list_indexes.sql" />
     <File Path="database/migrations/4920_rate_change_agreed_threshold.sql" /> <!-- AF2-CTL01 -->
+    <!-- CU-NVARCHAR -->
+    <File Path="database/migrations/4930_crm_merge_alias_key_unicode.sql" />
+    <File Path="database/migrations/4931_crm_tag_note_pref_key_unicode.sql" />
+    <File Path="database/migrations/4932_lgc_customer_key_unicode.sql" />
+    <!-- /CU-NVARCHAR -->
     <!-- AF-CRM end -->
   </Folder>
 </Solution>

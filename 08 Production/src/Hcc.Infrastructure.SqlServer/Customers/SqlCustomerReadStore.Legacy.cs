@@ -15,7 +15,7 @@ public sealed partial class SqlCustomerReadStore
              ORDER BY arrival_date DESC, stay_id DESC;
             """, conn);
         cmd.P("@p", SqlDbType.Int, propertyId);
-        cmd.P("@k", SqlDbType.VarChar, customerKey ?? string.Empty, 80);
+        cmd.P("@k", SqlDbType.NVarChar, customerKey ?? string.Empty, 80);
         var list = new List<CrmLegacyStay>();
         await using var rd = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
         while (await rd.ReadAsync(ct).ConfigureAwait(false))
@@ -33,7 +33,7 @@ public sealed partial class SqlCustomerReadStore
         await using var cmd = connections.Command("""
             SELECT v.customer_key, COUNT(*), SUM(v.nights), SUM(COALESCE(v.net_paise, 0)), MIN(v.arrival_date), MAX(v.arrival_date)
               FROM lgc.v_customer_stay v
-              JOIN (SELECT DISTINCT CAST(value AS VARCHAR(80)) AS k FROM STRING_SPLIT(@keys, '|')) x ON x.k = v.customer_key
+              JOIN (SELECT DISTINCT CAST(value AS NVARCHAR(80)) AS k FROM STRING_SPLIT(@keys, '|')) x ON x.k = v.customer_key
              WHERE v.property_id = @p
              GROUP BY v.customer_key;
             """, conn);

@@ -39,7 +39,7 @@ internal static class CrmSql
             SELECT alias_key FROM crm.customer_alias WHERE property_id = @p AND target_key = @k ORDER BY alias_key;
             """);
         cmd.P("@p", SqlDbType.Int, propertyId);
-        cmd.P("@k", SqlDbType.VarChar, key, 80);
+        cmd.P("@k", SqlDbType.NVarChar, key, 80);
         var tags = new List<string>();
         var notes = new List<CrmNote>();
         var from = new List<string>();
@@ -293,15 +293,15 @@ public sealed class SqlCustomerStore : ICustomerStore
             """))
         {
             chk.P("@p", SqlDbType.Int, propertyId);
-            chk.P("@s", SqlDbType.VarChar, source, 80);
-            chk.P("@t", SqlDbType.VarChar, target, 80);
+            chk.P("@s", SqlDbType.NVarChar, source, 80);
+            chk.P("@t", SqlDbType.NVarChar, target, 80);
             if ((int)(await chk.ExecuteScalarAsync(ct).ConfigureAwait(false))! > 0) return null;
         }
 
         await using (var pend = t.Command("SELECT COUNT(*) FROM crm.customer_merge WITH (UPDLOCK, HOLDLOCK) WHERE property_id = @p AND source_key = @s AND status = 'Pending';"))
         {
             pend.P("@p", SqlDbType.Int, propertyId);
-            pend.P("@s", SqlDbType.VarChar, source, 80);
+            pend.P("@s", SqlDbType.NVarChar, source, 80);
             if ((int)(await pend.ExecuteScalarAsync(ct).ConfigureAwait(false))! > 0) return null;
         }
 
@@ -310,8 +310,8 @@ public sealed class SqlCustomerStore : ICustomerStore
             OUTPUT INSERTED.merge_id VALUES (@p, @s, @t, @sn, @tn, @r, 'Pending', @by, @u);
             """);
         ins.P("@p", SqlDbType.Int, propertyId);
-        ins.P("@s", SqlDbType.VarChar, source, 80);
-        ins.P("@t", SqlDbType.VarChar, target, 80);
+        ins.P("@s", SqlDbType.NVarChar, source, 80);
+        ins.P("@t", SqlDbType.NVarChar, target, 80);
         ins.P("@sn", SqlDbType.NVarChar, sourceName, 200);
         ins.P("@tn", SqlDbType.NVarChar, targetName, 200);
         ins.P("@r", SqlDbType.NVarChar, reason, 300);
@@ -353,8 +353,8 @@ public sealed class SqlCustomerStore : ICustomerStore
         await using (var chk = t.Command("SELECT COUNT(*) FROM crm.customer_alias WITH (UPDLOCK, HOLDLOCK) WHERE property_id = @p AND alias_key IN (@s, @t);"))
         {
             chk.P("@p", SqlDbType.Int, pid);
-            chk.P("@s", SqlDbType.VarChar, merge.SourceKey, 80);
-            chk.P("@t", SqlDbType.VarChar, merge.TargetKey, 80);
+            chk.P("@s", SqlDbType.NVarChar, merge.SourceKey, 80);
+            chk.P("@t", SqlDbType.NVarChar, merge.TargetKey, 80);
             if ((int)(await chk.ExecuteScalarAsync(ct).ConfigureAwait(false))! > 0) return false;
         }
 
@@ -363,8 +363,8 @@ public sealed class SqlCustomerStore : ICustomerStore
         await using (var pr = t.Command("SELECT customer_key, preferences FROM crm.customer_pref WITH (UPDLOCK) WHERE property_id = @p AND customer_key IN (@s, @t);"))
         {
             pr.P("@p", SqlDbType.Int, pid);
-            pr.P("@s", SqlDbType.VarChar, merge.SourceKey, 80);
-            pr.P("@t", SqlDbType.VarChar, merge.TargetKey, 80);
+            pr.P("@s", SqlDbType.NVarChar, merge.SourceKey, 80);
+            pr.P("@t", SqlDbType.NVarChar, merge.TargetKey, 80);
             await using var rd = await pr.ExecuteReaderAsync(ct).ConfigureAwait(false);
             while (await rd.ReadAsync(ct).ConfigureAwait(false))
                 if (rd.GetString(0) == merge.SourceKey) srcPref = rd.GetString(1); else tgtPref = rd.GetString(1);
@@ -382,8 +382,8 @@ public sealed class SqlCustomerStore : ICustomerStore
             UPDATE crm.customer_merge SET status = 'Approved', decided_by = @by, decided_utc = @u, decision_note = @n WHERE merge_id = @m;
             """);
         cmd.P("@p", SqlDbType.Int, pid);
-        cmd.P("@s", SqlDbType.VarChar, merge.SourceKey, 80);
-        cmd.P("@t", SqlDbType.VarChar, merge.TargetKey, 80);
+        cmd.P("@s", SqlDbType.NVarChar, merge.SourceKey, 80);
+        cmd.P("@t", SqlDbType.NVarChar, merge.TargetKey, 80);
         cmd.P("@m", SqlDbType.BigInt, merge.MergeId);
         cmd.P("@u", SqlDbType.DateTime2, utc);
         cmd.P("@by", SqlDbType.Int, principalId);
@@ -403,7 +403,7 @@ public sealed class SqlCustomerStore : ICustomerStore
             ELSE BEGIN INSERT crm.customer_tag(property_id, customer_key, tag, added_by, added_utc) VALUES (@p, @k, @g, @by, @u); SELECT 1; END
             """);
         cmd.P("@p", SqlDbType.Int, propertyId);
-        cmd.P("@k", SqlDbType.VarChar, key, 80);
+        cmd.P("@k", SqlDbType.NVarChar, key, 80);
         cmd.P("@g", SqlDbType.NVarChar, tag, 30);
         cmd.P("@by", SqlDbType.Int, principalId);
         cmd.P("@u", SqlDbType.DateTime2, utc);
@@ -414,7 +414,7 @@ public sealed class SqlCustomerStore : ICustomerStore
     {
         await using var cmd = CrmSql.Sql(tx).Command("DELETE crm.customer_tag WHERE property_id = @p AND customer_key = @k AND tag = @g;");
         cmd.P("@p", SqlDbType.Int, propertyId);
-        cmd.P("@k", SqlDbType.VarChar, key, 80);
+        cmd.P("@k", SqlDbType.NVarChar, key, 80);
         cmd.P("@g", SqlDbType.NVarChar, tag, 30);
         return await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false) > 0;
     }
@@ -423,7 +423,7 @@ public sealed class SqlCustomerStore : ICustomerStore
     {
         await using var cmd = CrmSql.Sql(tx).Command("SELECT COUNT(*) FROM crm.customer_tag WITH (UPDLOCK, HOLDLOCK) WHERE property_id = @p AND customer_key = @k;");
         cmd.P("@p", SqlDbType.Int, propertyId);
-        cmd.P("@k", SqlDbType.VarChar, key, 80);
+        cmd.P("@k", SqlDbType.NVarChar, key, 80);
         return (int)(await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false))!;
     }
 
@@ -431,7 +431,7 @@ public sealed class SqlCustomerStore : ICustomerStore
     {
         await using var cmd = CrmSql.Sql(tx).Command("INSERT crm.customer_note(property_id, customer_key, body, author_id, created_utc) OUTPUT INSERTED.note_id VALUES (@p, @k, @b, @by, @u);");
         cmd.P("@p", SqlDbType.Int, propertyId);
-        cmd.P("@k", SqlDbType.VarChar, key, 80);
+        cmd.P("@k", SqlDbType.NVarChar, key, 80);
         cmd.P("@b", SqlDbType.NVarChar, body, 500);
         cmd.P("@by", SqlDbType.Int, principalId);
         cmd.P("@u", SqlDbType.DateTime2, utc);
@@ -442,7 +442,7 @@ public sealed class SqlCustomerStore : ICustomerStore
     {
         await using var cmd = CrmSql.Sql(tx).Command("SELECT preferences, row_ver FROM crm.customer_pref WITH (UPDLOCK, ROWLOCK) WHERE property_id = @p AND customer_key = @k;");
         cmd.P("@p", SqlDbType.Int, propertyId);
-        cmd.P("@k", SqlDbType.VarChar, key, 80);
+        cmd.P("@k", SqlDbType.NVarChar, key, 80);
         await using var rd = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
         return await rd.ReadAsync(ct).ConfigureAwait(false) ? new CrmPref(rd.GetString(0), (byte[])rd[1]) : null;
     }
@@ -456,7 +456,7 @@ public sealed class SqlCustomerStore : ICustomerStore
             ELSE INSERT crm.customer_pref(property_id, customer_key, preferences, updated_by, updated_utc) VALUES (@p, @k, @t, @by, @u);
             """);
         cmd.P("@p", SqlDbType.Int, propertyId);
-        cmd.P("@k", SqlDbType.VarChar, key, 80);
+        cmd.P("@k", SqlDbType.NVarChar, key, 80);
         cmd.P("@t", SqlDbType.NVarChar, text, 500);
         cmd.P("@by", SqlDbType.Int, principalId);
         cmd.P("@u", SqlDbType.DateTime2, utc);
