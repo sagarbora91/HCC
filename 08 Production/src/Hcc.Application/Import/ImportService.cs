@@ -58,6 +58,10 @@ public sealed class ImportService(
 
     private static string Iso(DateTime utc) => DateTime.SpecifyKind(utc, DateTimeKind.Utc).ToString("yyyy-MM-dd'T'HH:mm:ss.fff'Z'", CultureInfo.InvariantCulture);
 
+    /// <summary>CU digits: every audit row the import writes (target and text) passes the phone-digit scrub, so a guest key ("9876543210|name") or a name that is a number never reaches the trail.</summary>
+    private static Task AuditScrubbed(ICommandTransaction tx, string action, string target, string detail, CancellationToken ct) =>
+        tx.AuditAsync(action, Hcc.Domain.Audit.PhoneDigitsScrub.Scrub(target), Hcc.Domain.Audit.PhoneDigitsScrub.Scrub(detail), ct);
+
     private static string Clip(string s, int max) => s.Length <= max ? s : s[..(max - 1)] + "…";
 
     private static ImportMasterSpec Spec(string? master) =>
@@ -101,7 +105,7 @@ public sealed class ImportService(
             var plan = PlanText(spec, text, snap, asOf);
             var now = Now;
             var id = await store.InsertBatchAsync(tx, ctx.PropertyId, spec.Wire, fileName, sha, text, asOf, plan.Rows, plan.Errors.Count, ctx.PrincipalId, now, c).ConfigureAwait(false);
-            await tx.AuditAsync("IMPORT_UPLOAD", $"import:{id.ToString(CultureInfo.InvariantCulture)}",
+            await AuditScrubbed(tx, "IMPORT_UPLOAD", $"import:{id.ToString(CultureInfo.InvariantCulture)}",
                 Clip($"{spec.Title} · {fileName} · {plan.Rows} rows · {plan.Errors.Count} errors · {plan.Counts.Create} new, {plan.Counts.Update} changed, {plan.Counts.Unchanged} unchanged", 1000), c).ConfigureAwait(false);
             var batch = new ImportBatchRecord(id, ctx.PropertyId, spec.Wire, fileName, text, asOf, plan.Rows, plan.Errors.Count, "Uploaded", ctx.PrincipalId, now, null, null, null);
             return Report(batch, spec, plan);
@@ -243,7 +247,7 @@ public sealed class ImportService(
                 var result = new ImportCommitResult(b.BatchId, spec.Wire, req.DryRun, !req.DryRun, plan.Counts, PlanRows(plan), users, plan.DebitPaise, plan.CreditPaise);
                 await store.MarkCommittedAsync(tx, b.BatchId, ctx.PrincipalId, Now, JsonSerializer.Serialize(result with { DryRun = false, Committed = true }, CanonicalJson.SerializerOptions), c).ConfigureAwait(false);
                 var counts = plan.Counts;
-                await tx.AuditAsync("IMPORT_COMMIT", $"import:{b.BatchId.ToString(CultureInfo.InvariantCulture)}",
+                await AuditScrubbed(tx, "IMPORT_COMMIT", $"import:{b.BatchId.ToString(CultureInfo.InvariantCulture)}",
                     Clip($"{spec.Title} · {b.FileName} · {counts.Create} created, {counts.Update} updated, {counts.Unchanged} unchanged, {counts.Remove} removed"
                         + (plan.DebitPaise is { } dr ? $" · Dr {new Paise(dr)} = Cr {new Paise(plan.CreditPaise ?? 0)}" : string.Empty), 1000), c).ConfigureAwait(false);
                 await tx.PublishAsync("ImportCommitted", b.BatchId, new { batchId = b.BatchId, master = spec.Wire, created = counts.Create, updated = counts.Update, removed = counts.Remove }, c).ConfigureAwait(false);
@@ -265,7 +269,7 @@ public sealed class ImportService(
         var users = new List<ImportCreatedUser>();
         var tag = $"batch {b.BatchId.ToString(CultureInfo.InvariantCulture)}";
         async Task AuditRow(string action, string target, ImportPlanItem i) =>
-            await tx.AuditAsync(action, Clip(target, 60), Clip($"{i.Action} · {i.Key} · {i.Detail} · {tag}", 1000), ct).ConfigureAwait(false);
+            await AuditScrubbed(tx, action, Clip(Hcc.Domain.Audit.PhoneDigitsScrub.Scrub(target), 60), Clip(Hcc.Domain.Audit.PhoneDigitsScrub.Scrub($"{i.Action} · {i.Key} · {i.Detail} · {tag}"), 1000), ct).ConfigureAwait(false);
 
         switch (spec.Master)
         {
@@ -313,7 +317,7 @@ public sealed class ImportService(
                     var d = (StaffData)i.Data!;
                     var (id, version) = await access.CreateUserAsync(tx, p, d, actor, now, ct).ConfigureAwait(false);
                     users.Add(new ImportCreatedUser(id, d.Login, d.DisplayName, version, d.CredentialKind));
-                    await tx.AuditAsync("USER_CREATE", $"user:{id.ToString(CultureInfo.InvariantCulture)}",
+                    await AuditScrubbed(tx, "USER_CREATE", $"user:{id.ToString(CultureInfo.InvariantCulture)}",
                         Clip($"Created '{d.Login}' with roles {string.Join(",", d.Roles)} by import ({tag}); no credential until the Owner sets the first {(d.CredentialKind == "PASSWORD" ? "password" : "PIN")}.", 1000), ct).ConfigureAwait(false);
                 }
 
@@ -332,7 +336,7 @@ public sealed class ImportService(
                 {
                     var rows = plan.Items.Where(i => i.Data is OpeningData).Select(i => (OpeningData)i.Data!).ToList();
                     await store.ReplaceOpeningAsync(tx, p, b.AsOfDate!.Value, rows, b.BatchId, actor, now, ct).ConfigureAwait(false);
-                    await tx.AuditAsync("IMPORT_OPENING_TB", $"opening:{ImportValues.Wire(b.AsOfDate.Value)}",
+                    await AuditScrubbed(tx, "IMPORT_OPENING_TB", $"opening:{ImportValues.Wire(b.AsOfDate.Value)}",
                         Clip($"Opening trial balance as at {ImportValues.Wire(b.AsOfDate.Value)} · {rows.Count} ledgers · Dr {new Paise(plan.DebitPaise ?? 0)} = Cr {new Paise(plan.CreditPaise ?? 0)} · {tag}", 1000), ct).ConfigureAwait(false);
                 }
 
@@ -350,7 +354,7 @@ public sealed class ImportService(
                     var shift = await billing.InsertShiftAsync(tx, till.TillId, snap.BusinessDate, cash, null, actor, now, ct).ConfigureAwait(false);
                     await billing.UpdateShiftAsync(tx, shift.ShiftId, shift.Version, new ShiftUpdate("Closed", cash, cash, actor, now, OpeningShiftReason, null, actor, now), ct).ConfigureAwait(false);
                     await billing.InsertShiftCountAsync(tx, shift.ShiftId, cash, cash, null, OpeningShiftReason, null, actor, now, ct).ConfigureAwait(false);
-                    if (d.TillId is null) await tx.AuditAsync("TILL_CREATED", $"till:{till.TillId.ToString(CultureInfo.InvariantCulture)}", $"{d.Code} · {d.Name} · by import ({tag})", ct).ConfigureAwait(false);
+                    if (d.TillId is null) await AuditScrubbed(tx, "TILL_CREATED", $"till:{till.TillId.ToString(CultureInfo.InvariantCulture)}", $"{d.Code} · {d.Name} · by import ({tag})", ct).ConfigureAwait(false);
                     await AuditRow("IMPORT_TILL_CASH", $"shift:{shift.ShiftId.ToString(CultureInfo.InvariantCulture)}", i).ConfigureAwait(false);
                 }
 
@@ -374,7 +378,7 @@ public sealed class ImportService(
                     {
                         var o = await pos.InsertOutletAsync(tx, p, d.Code, d.Name, d.Kind, d.Tables, now, ct).ConfigureAwait(false);
                         outletId = o.OutletId;
-                        await tx.AuditAsync("POS_OUTLET_CREATED", $"outlet:{o.OutletId.ToString(CultureInfo.InvariantCulture)}", $"{d.Code} · {d.Name} · {d.Kind} · by import ({tag})", ct).ConfigureAwait(false);
+                        await AuditScrubbed(tx, "POS_OUTLET_CREATED", $"outlet:{o.OutletId.ToString(CultureInfo.InvariantCulture)}", $"{d.Code} · {d.Name} · {d.Kind} · by import ({tag})", ct).ConfigureAwait(false);
                     }
 
                     await lists.ApplyOutletAsync(tx, p, outletId, d, snap.BusinessDate, actor, now, ct).ConfigureAwait(false);
@@ -399,7 +403,7 @@ public sealed class ImportService(
                     }
 
                     await lists.ApplyMenuItemAsync(tx, p, item.ItemId, d, snap.BusinessDate, actor, now, ct).ConfigureAwait(false);
-                    await tx.AuditAsync("POS_MENU_SAVED", $"menu:{item.ItemId.ToString(CultureInfo.InvariantCulture)}", $"{d.Code} · {d.Name} · {price} · by import ({tag})", ct).ConfigureAwait(false);
+                    await AuditScrubbed(tx, "POS_MENU_SAVED", $"menu:{item.ItemId.ToString(CultureInfo.InvariantCulture)}", $"{d.Code} · {d.Name} · {price} · by import ({tag})", ct).ConfigureAwait(false);
                     await AuditRow("IMPORT_POS_MENU", "menu:" + d.Code, i).ConfigureAwait(false);
                 }
 
@@ -412,7 +416,7 @@ public sealed class ImportService(
                     var d = (DepartmentData)i.Data!;
                     await db.LockDepartmentAsync(p, d.Code, ct).ConfigureAwait(false);
                     await db.UpsertDepartmentAsync(p, new DepartmentRow(d.Code, d.Name, d.LeaveCap), ct).ConfigureAwait(false);
-                    await tx.AuditAsync("HR_DEPT_SAVED", "hr.dept:" + d.Code, $"{d.Code} · {d.Name} {(d.Exists ? "updated" : "added")}{(d.LeaveCap is { } x ? $" · max {x} off per day" : "")} · by import ({tag})", ct)
+                    await AuditScrubbed(tx, "HR_DEPT_SAVED", "hr.dept:" + d.Code, $"{d.Code} · {d.Name} {(d.Exists ? "updated" : "added")}{(d.LeaveCap is { } x ? $" · max {x} off per day" : "")} · by import ({tag})", ct)
                         .ConfigureAwait(false);
                     await AuditRow("IMPORT_DEPARTMENT", "dept:" + d.Code, i).ConfigureAwait(false);
                 }
@@ -432,14 +436,14 @@ public sealed class ImportService(
                     {
                         var row = await companies.LockAsync(tx, p, existing, ct).ConfigureAwait(false) ?? throw new HccException(HccErrorCode.NOT_FOUND, "Company account not found.");
                         await companies.UpdateAsync(tx, existing, row.Version, details, ct).ConfigureAwait(false);
-                        await tx.AuditAsync("COMPANY_UPDATED", $"company:{existing.ToString(CultureInfo.InvariantCulture)}", $"{d.Name} · by import ({tag})", ct).ConfigureAwait(false);
+                        await AuditScrubbed(tx, "COMPANY_UPDATED", $"company:{existing.ToString(CultureInfo.InvariantCulture)}", $"{d.Name} · by import ({tag})", ct).ConfigureAwait(false);
                         id = existing;
                         if (d.LimitChanged)
                         {
                             // The Owner commits the file (PERM-IMP-003), as the Owner sets a limit directly in the app (DEC-076); the limit is enforced where company billing happens.
                             await companies.SupersedePendingAsync(tx, id, actor, now, ct).ConfigureAwait(false);
                             await companies.SetLimitAsync(tx, id, d.CreditLimitPaise, ct).ConfigureAwait(false);
-                            await tx.AuditAsync("COMPANY_LIMIT_SET", $"company:{id.ToString(CultureInfo.InvariantCulture)}",
+                            await AuditScrubbed(tx, "COMPANY_LIMIT_SET", $"company:{id.ToString(CultureInfo.InvariantCulture)}",
                                 $"{d.Name} · credit limit {new Paise(row.CreditLimitPaise)} → {new Paise(d.CreditLimitPaise)} · by import ({tag})", ct).ConfigureAwait(false);
                         }
                     }
@@ -448,7 +452,7 @@ public sealed class ImportService(
                         var row = await companies.InsertAsync(tx, p, details, actor, now, ct).ConfigureAwait(false);
                         id = row.CompanyId;
                         if (d.CreditLimitPaise > 0) await companies.SetLimitAsync(tx, id, d.CreditLimitPaise, ct).ConfigureAwait(false);
-                        await tx.AuditAsync("COMPANY_CREATED", $"company:{id.ToString(CultureInfo.InvariantCulture)}",
+                        await AuditScrubbed(tx, "COMPANY_CREATED", $"company:{id.ToString(CultureInfo.InvariantCulture)}",
                             $"{d.Name}{(d.Gstin is null ? "" : " · GSTIN " + d.Gstin)}{(d.CreditLimitPaise > 0 ? $" · credit limit {new Paise(d.CreditLimitPaise)} set" : "")} · by import ({tag})", ct)
                             .ConfigureAwait(false);
                         await tx.PublishAsync("CompanyCreated", id, new { companyId = id, name = d.Name }, ct).ConfigureAwait(false);
@@ -474,7 +478,7 @@ public sealed class ImportService(
                         (id, _) = await maintenance.InsertVendorAsync(tx, p, new MntVendor(0, d.Name, d.Trade, d.Phone, []), ct).ConfigureAwait(false);
                     }
 
-                    await tx.AuditAsync("MNT_VENDOR", $"vendor-{id.ToString(CultureInfo.InvariantCulture)}", $"{d.Name} {(d.ExistingId is null ? "added" : "updated")} by import ({tag})", ct).ConfigureAwait(false);
+                    await AuditScrubbed(tx, "MNT_VENDOR", $"vendor-{id.ToString(CultureInfo.InvariantCulture)}", $"{d.Name} {(d.ExistingId is null ? "added" : "updated")} by import ({tag})", ct).ConfigureAwait(false);
                     await AuditRow("IMPORT_SUPPLIER", $"vendor:{id.ToString(CultureInfo.InvariantCulture)}", i).ConfigureAwait(false);
                 }
 
@@ -488,13 +492,13 @@ public sealed class ImportService(
                         var (created, _, _) = await stock.InsertItemAsync(tx, p, d.Code, d.Name, d.Kind, d.Unit, d.CostPaise, d.MinQty, d.ReorderQty, d.StdX100, d.LaundryPaise,
                             d.Supplier, now, ct).ConfigureAwait(false);
                         if (!created) throw new HccException(HccErrorCode.INVALID_TRANSITION, $"Stock item {d.Code} was added meanwhile; upload the file again.");
-                        await tx.AuditAsync("STOCK_ITEM_CREATE", "stock-item-" + d.Code, $"{d.Code} · {d.Name} added ({d.Kind}, {d.Unit}) by import ({tag})", ct).ConfigureAwait(false);
+                        await AuditScrubbed(tx, "STOCK_ITEM_CREATE", "stock-item-" + d.Code, $"{d.Code} · {d.Name} added ({d.Kind}, {d.Unit}) by import ({tag})", ct).ConfigureAwait(false);
                     }
                     else
                     {
                         var it = await stock.LockItemAsync(tx, p, d.Code, ct).ConfigureAwait(false) ?? throw new HccException(HccErrorCode.NOT_FOUND, "Stock item not found.");
                         await stock.UpdateItemAsync(tx, it.ItemId, it.Version, d.MinQty, d.ReorderQty, d.StdX100, null, ct).ConfigureAwait(false);
-                        await tx.AuditAsync("STOCK_ITEM_SET", "stock-item-" + d.Code, Clip($"{d.Code} · {i.Detail} · by import ({tag})", 1000), ct).ConfigureAwait(false);
+                        await AuditScrubbed(tx, "STOCK_ITEM_SET", "stock-item-" + d.Code, Clip($"{d.Code} · {i.Detail} · by import ({tag})", 1000), ct).ConfigureAwait(false);
                     }
 
                     await AuditRow("IMPORT_STOCK_ITEM", "stock-item:" + d.Code, i).ConfigureAwait(false);

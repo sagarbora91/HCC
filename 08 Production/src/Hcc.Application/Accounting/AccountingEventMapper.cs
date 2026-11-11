@@ -60,7 +60,7 @@ public static class AccountingEventMapper
         var settlement = e.Mode switch { "udhaar" => SourceRules.UdhaarKey, "company" => "receipt:company-credit", _ => "method:" + e.Tender };
         var p = (parties ?? PartyContext.None) with
         {
-            Udhaar = e.Mode == "udhaar" ? PartyLedgers.Udhaar(e.PartyName, e.PartyPhone) : null,
+            Udhaar = e.Mode == "udhaar" ? (parties?.Udhaar ?? PartyLedgers.Udhaar(e.PartyName, e.PartyPhone)) : null, // CU digits: the projector supplies the party; payloads of older events still carry the number
             Company = e.CompanyId is { } c ? PartyLedgers.Company(c) : null,
         };
         return SourceRules.WithParties(SourceRules.Counter((credit ? "counter-credit:" : "counter:") + N(e.BillId), credit, e.BusinessDate, settlement, e.FoodPaise, e.RoomPaise,
