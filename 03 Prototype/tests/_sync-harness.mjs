@@ -68,6 +68,7 @@ export function fakeServer(routes={}){
     'GET /meas/captures':()=>({turnaway:[],walked:[],allowanceReasons:[],bookingExtra:[],preference:[],taskTimes:[],offline:[],meters:[],readings:[],assetLife:[],discards:[],surveys:[],reviews:[],rootCauseList:[],rootCause:[],training:[],exit:[],pulse:[],events:[],otb:[],competitors:[],rateshop:[],restrictions:[]}),
     // Empty front-desk lists (W4-1): every runtime with the full registry reloads bookings / guests; area tests override them.
     'GET /reservations':()=>({businessDate:'2026-10-24',total:0,page:1,pageSize:500,items:[]}),'GET /guests':()=>({total:0,page:1,pageSize:500,items:[]}),
+    'GET /customers/duplicates':()=>({groups:[]}),'GET /customers/merges':()=>({merges:[]}), // FX-MERGE-UI: the duplicates loader (PERM-CRM-003 holders); area tests override them
     'GET /folios/by-reservation/:id/summary':()=>[], // F8C-SYNC: no folio rows = a single-folio stay (area tests of split stays override it)
     'GET /counter-bills':()=>[],'GET /guests/credit':()=>[],'GET /stays/rate-changes':()=>[],'GET /hall/snapshot':()=>({seesMoney:true,venues:[],enquiries:[],quotations:[],events:[],lostReasons:[]}),   // LF-finish list reads
     // MA-1: rooms-master fields read with the rooms (empty = no master data; floor from the room number) and the room masters' lists.

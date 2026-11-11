@@ -41,6 +41,7 @@ import {handlers as syshealth} from './syshealth';
 import {handlers as feedbackQw} from './feedback'; // F4-T3
 import {handlers as roommasters} from './roommasters';
 import {handlers as keys} from './keys'; // KEYS room keys
+import {handlers as customerMerge} from './customer-merge'; // FX-MERGE-UI
 import {handlers as roles} from './roles'; // ADM-2 custom roles (wraps USER_CREATE / USER_UPDATE: after admin)
 // LF lanes: ONE import line inside your own block (append only); spread it in the LF object below.
 // LF-DOCDB
@@ -200,7 +201,7 @@ const F8:Record<string,Handler>={ // F8 lanes (F8_Briefs): spread your NEW comma
   // F8-QW-PM
   // F8-QW-PM end
 };
-const registry0:Record<string,Handler>={...ACC1,...ACC2,...reservations,...guests,...folio,...housekeeping,...admin,...closing,...expenses,...yieldMod,...groups,...channels,...maintenance,...inventory,...handover,...services,...messaging,...pos,...staff,...accounting,...assistant,...compliance,...cashbook,...cashout,...masters,...credentials,...syshealth,...roommasters,...keys,...roles,...LF,...F4,...egress /* F5-E1 */,...catalogue,...accountingYear,...accountingBank /* F5-A1 */,...F6,...F12,...F8};
+const registry0:Record<string,Handler>={...ACC1,...ACC2,...reservations,...guests,...folio,...housekeeping,...admin,...closing,...expenses,...yieldMod,...groups,...channels,...maintenance,...inventory,...handover,...services,...messaging,...pos,...staff,...accounting,...assistant,...compliance,...cashbook,...cashout,...masters,...credentials,...syshealth,...roommasters,...keys,...customerMerge /* FX-MERGE-UI */,...roles,...LF,...F4,...egress /* F5-E1 */,...catalogue,...accountingYear,...accountingBank /* F5-A1 */,...F6,...F12,...F8};
 // F5-A1 — ACC-4 §1.2: after the year lock every post / edit / void dated in the year is refused ACC_YEAR_LOCKED (day reopen and month unlock
 // included); the year / bank commands and exports check for themselves. A correction is a journal in the new year: ACC_MANUAL_SAVE takes
 // `refersToFy` (G4), kept on the saved voucher.

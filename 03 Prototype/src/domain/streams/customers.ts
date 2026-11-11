@@ -39,30 +39,37 @@ const normName=(n:string)=>clean(n).normalize('NFKC').toLowerCase().replace(/[^\
 export const customerPhoneKey=(p?:string)=>{const d=String(p||'').replace(/\D/g,'');return d.length>=10?d.slice(-10):'';};
 const top=(xs:string[],n:number)=>{const m=new Map<string,number>();for(const x of xs)if(x)m.set(x,(m.get(x)||0)+1);return [...m].sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0])).slice(0,n).map(x=>x[0]);};
 
-let cache:{b:State['bookings'];g:State['guests'];date:string;legacy:LegacyLookup|undefined;list:Customer[]}|undefined;
+let cache:{b:State['bookings'];g:State['guests'];al:Record<string,string>|undefined;date:string;legacy:LegacyLookup|undefined;list:Customer[]}|undefined;
 /** All customers, most recent stay first. Cached until the bookings or profiles change. */
 export function customerIndex(s:State,legacy?:LegacyLookup):Customer[]{
-  if(cache&&cache.b===s.bookings&&cache.g===s.guests&&cache.date===s.date&&cache.legacy===legacy)return cache.list;
+  const aliases=s.customerMergeX?.aliases;
+  if(cache&&cache.b===s.bookings&&cache.g===s.guests&&cache.al===aliases&&cache.date===s.date&&cache.legacy===legacy)return cache.list;
   const guests=s.guests||[],byGuest=new Map(guests.map(g=>[g.id,g])),byPhone=new Map<string,CustomerGuest>();
   for(const g of guests){const k=customerPhoneKey(g.phone);if(k&&!byPhone.has(k))byPhone.set(k,g);}
-  const groups=new Map<string,Booking[]>();
+  const groups=new Map<string,Booking[]>(),rawOf=new Map<Booking,string>();
+  // FX merge-ui: a merged-away customer key resolves to its survivor (history kept); `rawOf` remembers each booking's own key.
+  const resolve=(k:string)=>{let n=0;while(aliases&&aliases[k]&&n++<20)k=aliases[k];return k;};
   for(const b of s.bookings){
     const g=b.guestId?byGuest.get(b.guestId):undefined;
-    const key=customerPhoneKey(b.phone)||customerPhoneKey(g?.phone)||'n:'+normName(g?.name||b.guest);
+    const raw=customerPhoneKey(b.phone)||customerPhoneKey(g?.phone)||'n:'+normName(g?.name||b.guest),key=resolve(raw);
+    rawOf.set(b,raw);
     (groups.get(key)||groups.set(key,[]).get(key)!).push(b);
   }
+  const merged=new Map<string,string[]>();
+  if(aliases)for(const k of Object.keys(aliases)){const t=resolve(k);if(t!==k)(merged.get(t)||merged.set(t,[]).get(t)!).push(k);}
   const out:Customer[]=[];
   for(const [key,bs] of groups){
     const stays=[...bs].sort((a,b)=>b.arrival.localeCompare(a.arrival)||b.id.localeCompare(a.id));
-    const guest=stays.map(b=>b.guestId?byGuest.get(b.guestId):undefined).find(Boolean)||(key.startsWith('n:')?undefined:byPhone.get(key));
+    const own=stays.filter(b=>rawOf.get(b)===key),head=own.length?own:stays; // the survivor's own stays decide name, phone and profile
+    const guest=head.map(b=>b.guestId?byGuest.get(b.guestId):undefined).find(Boolean)||stays.map(b=>b.guestId?byGuest.get(b.guestId):undefined).find(Boolean)||(key.startsWith('n:')?undefined:byPhone.get(key));
     const completed=stays.filter(b=>b.status==='In house'||b.status==='Departed');
-    const latest=stays[0];
+    const latest=head[0];
     const spent=completed.reduce((t,b)=>t+totals(b).total,0);
-    const legacyStays=[...(legacy?.(key)??[])].sort((a,b)=>b.arrival.localeCompare(a.arrival)||b.bookingId-a.bookingId);
+    const legacyStays=[key,...(merged.get(key)??[])].flatMap(k=>legacy?.(k)??[]).sort((a,b)=>b.arrival.localeCompare(a.arrival)||b.bookingId-a.bookingId);
     const lc=legacyStays.filter(legacyCounts);
     const firsts=[completed.length?completed[completed.length-1].arrival:'',...lc.map(l=>l.arrival)].filter(Boolean).sort();
     const lasts=[completed[0]?.arrival??'',...lc.map(l=>l.arrival)].filter(Boolean).sort();
-    out.push({key,name:clean(guest?.name||latest.guest),phone:guest?.phone||stays.find(b=>b.phone)?.phone||'',email:guest?.email||stays.find(b=>b.email)?.email||'',guest,
+    out.push({key,name:clean(guest?.name||latest.guest),phone:guest?.phone||head.find(b=>b.phone)?.phone||stays.find(b=>b.phone)?.phone||'',email:guest?.email||head.find(b=>b.email)?.email||stays.find(b=>b.email)?.email||'',guest,
       stays,legacyStays,legacyCount:lc.length,completed,nights:completed.reduce((t,b)=>t+nights(b.arrival,b.departure),0)+lc.reduce((t,l)=>t+l.nights,0),lifetime:spent+lc.reduce((t,l)=>t+(l.net??0),0),avgRate:completed.length?Math.round(completed.reduce((t,b)=>t+b.rate,0)/completed.length):0,
       firstStay:firsts[0],lastStay:lasts[lasts.length-1],
       current:stays.find(b=>b.status==='In house'),upcoming:stays.filter(b=>(b.status==='Confirmed'||b.status==='Held')&&b.departure>=s.date).reverse(),
@@ -70,7 +77,7 @@ export function customerIndex(s:State,legacy?:LegacyLookup):Customer[]{
       topRooms:top(completed.map(b=>b.room),3),topSources:top(completed.map(b=>b.source),3)});
   }
   out.sort((a,b)=>(b.stays[0].arrival.localeCompare(a.stays[0].arrival))||a.name.localeCompare(b.name));
-  cache={b:s.bookings,g:s.guests,date:s.date,legacy,list:out};
+  cache={b:s.bookings,g:s.guests,al:aliases,date:s.date,legacy,list:out};
   return out;
 }
 

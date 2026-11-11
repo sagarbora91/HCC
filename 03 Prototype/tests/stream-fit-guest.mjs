@@ -83,7 +83,7 @@ export async function register({test,M,assert}){
     assert.match(html,/^<section class="fit-page fit-split" data-fit-page="customers"/);
     assert.ok(html.includes('aria-label="Customer list"')&&html.includes('class="card cust-panel cust-fit"'));
     // LF-DESK: the page bar gained Customers · Foreigner register (Form C); the record pane's inner bar is unchanged
-    assert.deepEqual(tabIds(html),['customers','foreigner-register','overview','stays','legacy','money','notes']);assert.deepEqual(subs('customers'),['customers','foreigner-register']);
+    assert.deepEqual(tabIds(html),['customers','duplicates','foreigner-register','overview','stays','legacy','money','notes']);assert.deepEqual(subs('customers'),['customers','duplicates','foreigner-register']); // FX-MERGE-UI: + Possible duplicates (Owner / Manager)
     assert.ok(/\(3 legacy\)/.test(text(html)),'list keeps the legacy count');
     assert.ok(!html.includes('cust-back'),'the split view owns the Back button');
   });

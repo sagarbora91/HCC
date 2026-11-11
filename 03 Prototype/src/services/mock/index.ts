@@ -28,6 +28,7 @@ export * from '../../domain/streams/maintenance';
 export * from '../../domain/streams/inventory';
 export * from '../../domain/streams/handover';
 export * from '../../domain/streams/keys'; // KEYS room keys
+export * from '../../domain/streams/customer-merge'; // FX-MERGE-UI
 export * from '../../domain/streams/cashbook';
 export * from '../../domain/streams/cashout';
 export * from '../../domain/memo';

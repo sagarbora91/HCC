@@ -168,7 +168,9 @@
     "GET /tariff-card": "/tariff-card",
     "GET /reports/favourites": "/reports/favourites",
     "GET /reports/schedules": "/reports/schedules",
-    "GET /reports/runs": "/reports/runs"
+    "GET /reports/runs": "/reports/runs",
+    "GET /customers/duplicates": "/customers/duplicates",
+    "GET /customers/merges": "/customers/merges"
   },
   "roles": {
     "OWN": {
@@ -1248,7 +1250,9 @@
         "GET /tariff-card": "200",
         "GET /reports/favourites": "200",
         "GET /reports/schedules": "200",
-        "GET /reports/runs": "200"
+        "GET /reports/runs": "200",
+        "GET /customers/duplicates": "200",
+        "GET /customers/merges": "200"
       }
     },
     "MGR": {
@@ -2093,7 +2097,9 @@
         "GET /tariff-card": "200",
         "GET /reports/favourites": "200",
         "GET /reports/schedules": "200",
-        "GET /reports/runs": "200"
+        "GET /reports/runs": "200",
+        "GET /customers/duplicates": "200",
+        "GET /customers/merges": "200"
       }
     },
     "REC": {
@@ -2633,7 +2639,9 @@
         "GET /tariff-card": "200",
         "GET /reports/favourites": "200",
         "GET /reports/schedules": "403",
-        "GET /reports/runs": "403"
+        "GET /reports/runs": "403",
+        "GET /customers/duplicates": "403",
+        "GET /customers/merges": "403"
       }
     },
     "CSH": {
@@ -3013,7 +3021,9 @@
         "GET /tariff-card": "200",
         "GET /reports/favourites": "200",
         "GET /reports/schedules": "403",
-        "GET /reports/runs": "403"
+        "GET /reports/runs": "403",
+        "GET /customers/duplicates": "403",
+        "GET /customers/merges": "403"
       }
     },
     "ACC": {
@@ -3493,7 +3503,9 @@
         "GET /tariff-card": "200",
         "GET /reports/favourites": "200",
         "GET /reports/schedules": "200",
-        "GET /reports/runs": "200"
+        "GET /reports/runs": "200",
+        "GET /customers/duplicates": "403",
+        "GET /customers/merges": "403"
       }
     },
     "SUP": {
@@ -3773,7 +3785,9 @@
         "GET /tariff-card": "403",
         "GET /reports/favourites": "200",
         "GET /reports/schedules": "403",
-        "GET /reports/runs": "403"
+        "GET /reports/runs": "403",
+        "GET /customers/duplicates": "403",
+        "GET /customers/merges": "403"
       }
     },
     "HKP": {
@@ -4018,7 +4032,9 @@
         "GET /tariff-card": "403",
         "GET /reports/favourites": "200",
         "GET /reports/schedules": "403",
-        "GET /reports/runs": "403"
+        "GET /reports/runs": "403",
+        "GET /customers/duplicates": "403",
+        "GET /customers/merges": "403"
       }
     },
     "MNT": {
@@ -4253,7 +4269,9 @@
         "GET /tariff-card": "403",
         "GET /reports/favourites": "200",
         "GET /reports/schedules": "403",
-        "GET /reports/runs": "403"
+        "GET /reports/runs": "403",
+        "GET /customers/duplicates": "403",
+        "GET /customers/merges": "403"
       }
     },
     "TAD": {
@@ -4528,7 +4546,9 @@
         "GET /tariff-card": "403",
         "GET /reports/favourites": "200",
         "GET /reports/schedules": "403",
-        "GET /reports/runs": "403"
+        "GET /reports/runs": "403",
+        "GET /customers/duplicates": "403",
+        "GET /customers/merges": "403"
       }
     },
     "RST": {
@@ -4733,7 +4753,9 @@
         "GET /tariff-card": "403",
         "GET /reports/favourites": "200",
         "GET /reports/schedules": "403",
-        "GET /reports/runs": "403"
+        "GET /reports/runs": "403",
+        "GET /customers/duplicates": "403",
+        "GET /customers/merges": "403"
       }
     }
   }
