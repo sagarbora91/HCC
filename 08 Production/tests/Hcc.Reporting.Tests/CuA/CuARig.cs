@@ -48,15 +48,17 @@ internal static class CuARig
         [
             new AuditLogReport(db.Platform, p, roles), new DailyOpsReport(new SqlReportSource(c), closing, expenses),
             new CashBookReport(new SqlCashBookSource(c), closing, new SqlMoneyReportSource(c)),
-            new ExpensesCashReport(new SqlCashBookSource(c), closing, expenses, new SqlPaymentMethodSource(c)),
+            new ExpensesCashReport(db.Platform, new SqlCashBookSource(c), closing, expenses, new SqlPaymentMethodSource(c)),
         ];
     }
 
     public static ReportRunner Runner(ReportDatabase db, FakePolicy p) => Rig.Runner(p, Selectors(db, p, new MemoryStores()));
 
-    public static async Task<ReportResult> Run(ReportDatabase db, FakePolicy p, int principal, string id, params (string K, string V)[] raw)
+    public static Task<ReportResult> Run(ReportDatabase db, FakePolicy p, int principal, string id, params (string K, string V)[] raw) => RunFor(db, p, db.PropertyId, principal, id, raw);
+
+    public static async Task<ReportResult> RunFor(ReportDatabase db, FakePolicy p, int propertyId, int principal, string id, params (string K, string V)[] raw)
     {
-        var r = await Runner(db, p).RunAsync(new Hcc.Application.Billing.Caller(db.PropertyId, principal), id, raw.ToDictionary(x => x.K, x => (string?)x.V), new RunOptions(All: true), Ct);
+        var r = await Runner(db, p).RunAsync(new Hcc.Application.Billing.Caller(propertyId, principal), id, raw.ToDictionary(x => x.K, x => (string?)x.V), new RunOptions(All: true), Ct);
         RendererTests.ThreeWay(r);
         return r;
     }
@@ -94,10 +96,10 @@ internal static class CuARig
             DECLARE @s22 BIGINT = (SELECT shift_id FROM pay.shift WHERE till_id = @t AND business_date = '2026-10-22'),
                     @s23 BIGINT = (SELECT shift_id FROM pay.shift WHERE till_id = @t AND business_date = '2026-10-23');
             INSERT pay.cash_movement(shift_id, till_id, business_date, kind, source_type, source_id, amount_paise, label, reference, principal_id, recorded_utc) VALUES
-              (@s22, @t, '2026-10-22', 'payment', 'cua-test', 1, 500000, N'Payment / advance', N'RC-000001', {csh}, '2026-10-22 06:00'),
+              (@s22, @t, '2026-10-22', 'payment', 'receipt', 1, 500000, N'Payment / advance', N'RC-000001', {csh}, '2026-10-22 06:00'),
               (@s22, @t, '2026-10-22', 'expense', 'cua-test', 2, -100000, N'Expense', N'Repairs', {csh}, '2026-10-22 07:00'),
-              (@s23, @t, '2026-10-23', 'payment', 'cua-test', 3, 200000, N'Payment / advance', N'RC-000002', {csh}, '2026-10-23 06:00'),
-              (@s23, @t, '2026-10-23', 'refund', 'cua-test', 4, -50000, N'Payment refund', N'RC-000003', {csh}, '2026-10-23 07:00'),
+              (@s23, @t, '2026-10-23', 'payment', 'receipt', 3, 200000, N'Payment / advance', N'RC-000002', {csh}, '2026-10-23 06:00'),
+              (@s23, @t, '2026-10-23', 'refund', 'receipt', 4, -50000, N'Payment refund', N'RC-000003', {csh}, '2026-10-23 07:00'),
               (@s23, @t, '2026-10-23', 'banking', 'cua-test', 5, -300000, N'Banked after count', N'Bank deposit', {mgr}, '2026-10-23 17:00');
             INSERT cls.close_run(property_id, business_date, run_ref, last_run_ref, status, current_step, attempts, started_by, started_utc, last_attempt_by, last_attempt_utc) VALUES
               (@p, '2026-10-22', 'r22', 'r22', 'Completed', 'done', 1, {mgr}, '2026-10-22 17:00', {mgr}, '2026-10-22 17:00'),

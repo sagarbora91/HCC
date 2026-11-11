@@ -1,6 +1,7 @@
 // CU-RPT-A · rpt.money.expenses-cash — the closing pack's "Expenses & cash" tab: per business date the drawer opening, expected, counted and difference (cash book calculator) and the
 // drawer-cash expenses, then the range tiles. Server twin of built/pack.ts `expensesCash`. Money gate PERM-RPT-002.
 // Expenses are the counted non-capital records; "drawer" / "bank" / "credit" come from the payment-method master (settles to a till; any other non-credit method; credit kind).
+// The in / out tiles count folio receipts, Udhaar and POS only (the prototype's tiles; hall receipts and counter bills are in the drawer but not in these tiles; DONE file, fix round).
 // A date with no cash-book day (no shift, no movement, not closed, not the current date) shows a dash and blank cash figures, as the prototype does.
 using Hcc.Application.Billing;
 using Hcc.Application.Closing;
@@ -14,11 +15,12 @@ using Hcc.Domain.Closing;
 using Hcc.Domain.Errors;
 using Hcc.Domain.Expenses;
 using Hcc.Domain.MoneyMasters;
+using Hcc.Infrastructure.SqlServer;
 using static Hcc.Reporting.Reports.Money.MoneyRules;
 
 namespace Hcc.Reporting.Reports.CuA;
 
-public sealed class ExpensesCashReport(ICashBookSource source, IClosingStore closing, IExpenseStore expenses, IPaymentMethodSource methods) : IReportSelector
+public sealed class ExpensesCashReport(SqlPlatform platform, ICashBookSource source, IClosingStore closing, IExpenseStore expenses, IPaymentMethodSource methods) : IReportSelector
 {
     public const string Id = "rpt.money.expenses-cash";
 
@@ -35,12 +37,9 @@ public sealed class ExpensesCashReport(ICashBookSource source, IClosingStore clo
         "Expenses by business date, split by what they settle to; drawer opening, expected, counted and difference from the closing record (open day: the live shift). Cash in / out by receipt date.",
         [ReportFormat.Screen, ReportFormat.Xlsx, ReportFormat.Pdf, ReportFormat.Csv], ReportPhone.Yes);
 
-    private static readonly string[] CashIn = ["payment", "deposit", "pos-sale"];
-    private static readonly string[] CashOut = ["refund", "deposit-return", "pos-void"];
-
     /// <summary>The two blocks (pure): the day table with its total row, and the seven range tiles.</summary>
     public static (List<ReportRow> Days, List<ReportRow> Tiles) Blocks(DateOnly from, DateOnly to, CashBookRangeView view, IEnumerable<LedgerRow> ledger,
-        IReadOnlyList<TenderMethod>? master, IEnumerable<CashBookMovement> movements)
+        IReadOnlyList<TenderMethod>? master, (long In, long Out) drawer)
     {
         ArgumentNullException.ThrowIfNull(view);
         var counted = ledger.Where(e => e.Counts && !e.Capital).ToList();
@@ -52,21 +51,21 @@ public sealed class ExpensesCashReport(ICashBookSource source, IClosingStore clo
         var rows = new List<ReportRow>();
         for (var d = from; d <= to; d = d.AddDays(1))
         {
-            var day = view.Days.FirstOrDefault(x => x.BusinessDate == d);
+            // The prototype shows a dash and blank cash figures for a date that is neither closed nor the current date (the server's "Past" day: unclosed, imported or pre-HCC).
+            var day = view.Days.FirstOrDefault(x => x.BusinessDate == d && x.Status != "Past");
             rows.Add(CuASql.Row(ReportRowKind.Row, ("date", d), ("day", day?.Status ?? "—"), ("opening", day?.OpeningPaise), ("expected", day?.ExpectedPaise), ("counted", day?.CountedPaise),
                 ("difference", day?.DifferencePaise), ("cashExpenses", cashByDate.GetValueOrDefault(d))));
         }
 
         var cashTotal = cash.Sum(e => e.Amount);
         rows.Add(CuASql.Row(ReportRowKind.Total, ("date", "Total"), ("day", null), ("opening", null), ("expected", null), ("counted", null), ("difference", null), ("cashExpenses", cashTotal)));
-        var mv = movements.Where(m => m.BusinessDate >= from && m.BusinessDate <= to).ToList();
         ReportRow Tile(string label, long amount) => CuASql.Row(ReportRowKind.Row, ("tile", label), ("amount", amount));
         var tiles = new List<ReportRow>
         {
             Tile("Drawer-cash expenses", cashTotal), Tile("UPI / bank expenses", bank.Sum(e => e.Amount)), Tile("Vendor-credit expenses (no drawer effect)", credit.Sum(e => e.Amount)),
             Tile("Reversals included above", counted.Where(e => e.IsReversal).Sum(e => e.Amount)), Tile("Posted expenses (net of reversals)", counted.Sum(e => e.Amount)),
-            Tile("Cash into drawer (payments + deposits + POS sales)", mv.Where(m => CashIn.Contains(m.Kind)).Sum(m => m.Amount)),
-            Tile("Cash out of drawer (refunds + returns + POS voids)", mv.Where(m => CashOut.Contains(m.Kind)).Sum(m => m.Amount)),
+            Tile("Cash into drawer (payments + deposits + POS sales)", drawer.In),
+            Tile("Cash out of drawer (refunds + returns + POS voids)", drawer.Out),
         };
         return (rows, tiles);
     }
@@ -81,7 +80,8 @@ public sealed class ExpensesCashReport(ICashBookSource source, IClosingStore clo
         var view = CashBookCalculator.Compute(from, to, bd, data);
         var ledger = await expenses.LedgerAsync(null, caller.PropertyId, from, to, ct).ConfigureAwait(false);
         var master = await methods.MethodsAsync(null, caller.PropertyId, ct).ConfigureAwait(false);
-        var (days, tiles) = Blocks(from, to, view, ledger, master, data.Movements);
+        var drawer = await CuASql.DrawerTilesAsync(platform.Connections, caller.PropertyId, from, to, ct).ConfigureAwait(false);
+        var (days, tiles) = Blocks(from, to, view, ledger, master, drawer);
         return new ReportResult(Id, Definition.Title, parameters, Columns, days, About(Definition, parameters), null, 0, 0, 0,
             [new ReportTable("days", "By business date", Columns, days), new ReportTable("tiles", "Totals for the range", TileColumns, tiles)]);
     }

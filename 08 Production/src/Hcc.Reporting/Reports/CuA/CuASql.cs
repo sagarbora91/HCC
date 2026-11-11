@@ -89,6 +89,30 @@ public static partial class CuASql
         return list;
     }
 
+    /// <summary>Drawer movement sources the prototype's "cash into / out of drawer" tiles count: folio receipts, Udhaar (and its reversal) and POS bills / voids. Hall receipts, counter bills, vendor payments and the rest are not in those tiles.</summary>
+    public static readonly string[] TileSources = ["receipt", "udhaar", "udhaar-reversal", "pos-bill", "pos-void"];
+
+    /// <summary>Σ cash into the drawer (payment, deposit, pos-sale) and Σ cash out (refund, deposit-return, pos-void), signed, by business date in [from, to], counting only the sources the
+    /// prototype's tiles count: folio receipts, Udhaar (and its reversal) and POS bills / voids. Hall receipts, counter bills, vendor payments and the rest are in the drawer but not in those tiles.</summary>
+    public static async Task<(long In, long Out)> DrawerTilesAsync(SqlConnectionFactory connections, int propertyId, DateOnly from, DateOnly to, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(connections);
+        await using var conn = await connections.OpenAsync(ct).ConfigureAwait(false);
+        await using var cmd = connections.Command("""
+            SELECT ISNULL(SUM(CASE WHEN m.kind IN ('payment','deposit','pos-sale') THEN m.amount_paise END), 0),
+                   ISNULL(SUM(CASE WHEN m.kind IN ('refund','deposit-return','pos-void') THEN m.amount_paise END), 0)
+              FROM pay.cash_movement m JOIN pay.till t ON t.till_id = m.till_id
+             WHERE t.property_id = @p AND m.business_date BETWEEN @from AND @to
+               AND m.source_type IN ('receipt','udhaar','udhaar-reversal','pos-bill','pos-void');
+            """, conn);
+        cmd.Parameters.Add("@p", SqlDbType.Int).Value = propertyId;
+        cmd.Parameters.Add("@from", SqlDbType.Date).Value = from.ToDateTime(TimeOnly.MinValue);
+        cmd.Parameters.Add("@to", SqlDbType.Date).Value = to.ToDateTime(TimeOnly.MinValue);
+        await using var rd = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+        await rd.ReadAsync(ct).ConfigureAwait(false);
+        return (rd.GetInt64(0), rd.GetInt64(1));
+    }
+
     private static object Nz(string? v) => string.IsNullOrWhiteSpace(v) ? DBNull.Value : v.Trim();
 
     public static string Param(BoundParams p, string key) => MoneyRules.Param(p, key);

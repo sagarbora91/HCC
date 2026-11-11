@@ -79,7 +79,7 @@ public sealed class EngineTests
         // F8-RPT-P2-C end
         // CU-RPT-A
         new Hcc.Reporting.Reports.CuA.AuditLogReport(null!, null!, null!), new Hcc.Reporting.Reports.CuA.DailyOpsReport(null!, null!, null!),
-        new Hcc.Reporting.Reports.CuA.CashBookReport(null!, null!, null!), new Hcc.Reporting.Reports.CuA.ExpensesCashReport(null!, null!, null!, null!),
+        new Hcc.Reporting.Reports.CuA.CashBookReport(null!, null!, null!), new Hcc.Reporting.Reports.CuA.ExpensesCashReport(null!, null!, null!, null!, null!),
         // /CU-RPT-A
     ]).All;
 
