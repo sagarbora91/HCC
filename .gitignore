@@ -53,3 +53,7 @@ tools/legacy/__pycache__/
 06 Training/**/*.mp4
 06 Training/**/*.pptx
 06 Training/**/__pycache__/
+
+# INST-CLIENT
+**/installer/Output/
+# /INST-CLIENT
