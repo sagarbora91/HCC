@@ -26,6 +26,7 @@ import {HccClientError} from '../errors';
 import type {SyncArea,LoaderCtx,CommandCtx} from './types';
 import {protoUserId,serverId,utcToClock,utcToDate} from './map';
 import {CASH_SLICES} from './money';
+import {mnyPick,mnyIsDrawer} from '../../domain/streams/money-master'; // CU-PAY-A: POS tenders come from the payment-method master
 
 // ── Server DTOs (08 Production/src/Hcc.Contracts/Pos/PosContracts.cs) ──
 type SrvTable={tableId:number;code:string;name:string;tableNo:string;seats:number|null;section:string|null;counter:boolean;sortOrder:number;active:boolean;retiredOn:string|null;version:string};
@@ -188,8 +189,11 @@ export const pos:SyncArea={id:'pos',
       precheck:(cmd,s)=>{
         if(cmd.mode==='folio')return Object.keys(buyerOf(cmd)).length?'A bill charged to a room folio is invoiced to the guest after checkout; give the business GSTIN on the room invoice.':undefined;
         if(cmd.mode!=='outlet')return 'Choose how the bill is settled.';
-        if(!['Cash','UPI','Card'].includes(cmd.method))return 'Select Cash, UPI or Card.';
-        if(cmd.method!=='Cash'&&!String(cmd.reference??'').trim())return 'Enter the transaction reference.';
+        // CU-PAY-A: the tender must be an active method usable at the POS in the payment-method master (name, code or an earlier name);
+        // retired / unknown / not-for-POS are refused with the server's words; the reference follows the row's "needs a reference".
+        const pm=mnyPick(s,cmd.method,'pos',undefined,{requireReference:false});
+        if(!pm.method)return pm.problem;
+        if(pm.method.needsReference&&!String(cmd.reference??'').trim())return 'Enter the transaction reference.';
         const o=s.posX?.orders.find(x=>x.id===String(cmd.id)),b=o?posBuyerOf(cmd,posOrderTotals(s,o).total):undefined;
         return b&&'error' in b?b.error:undefined;},
       async send(c){
@@ -199,14 +203,17 @@ export const pos:SyncArea={id:'pos',
           const stayId=await stayOf(c);
           await c.api.command('SettleCheck',{orderId:checkId(cmd),mode:'folio',...(stayId?{stayId}:{})},{expectedVersion:v});
           return {reload:['bookings']};}
+        // CU-PAY-A: tender = the master's current name for the chosen method; the till follows "settles to a till", not the literal "Cash".
+        const tender=mnyPick(c.state,cmd.method,'pos',undefined,{requireReference:false}).method?.name??String(cmd.method);
+        const drawer=mnyIsDrawer(c.state,tender);
         let tillId:number|undefined;
-        if(cmd.method==='Cash'){
+        if(drawer){
           // Shared till (DEC-052): outlet cash goes into the front-desk drawer, so the till must have an open shift.
           const till=await c.api.get<SrvTill>('/pos/till');
           if(till.tillId===null||!till.shiftOpen)throw new HccClientError('INVALID_TRANSITION','The cash shift is closed, so no more cash can be taken today. Settle by UPI or card, or charge the room.');
           tillId=till.tillId;}
         const reference=String(cmd.reference??'').trim();
-        await c.api.command('SettleCheck',{orderId:checkId(cmd),mode:'outlet',tender:String(cmd.method),...(reference?{reference}:{}),...(tillId!==undefined?{tillId}:{}),...buyerOf(cmd)},{expectedVersion:v});
+        await c.api.command('SettleCheck',{orderId:checkId(cmd),mode:'outlet',tender,...(reference?{reference}:{}),...(tillId!==undefined?{tillId}:{}),...buyerOf(cmd)},{expectedVersion:v});
         // Cash went into the shared drawer: the money area's cash desk and cash book reload too.
         return tillId!==undefined?{reload:CASH_SLICES}:undefined;}},
     {type:'POS_VOID_ITEM',reload:['posX','approvals'],precheck:reasonCheck,
