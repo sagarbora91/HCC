@@ -142,7 +142,7 @@ export function register({test,M,assert}){
     const bf=v.lines.find(x=>x.kind==='meal'&&x.mealPlan==='CP');assert.equal(bf.taxBps,500,'breakfast 5 %');assert.equal(bf.rateExcl,M.trcExclusiveFromInclusive(10000,500),'breakfast ₹100 a guest incl → ₹95.24');
     assert.equal(M.trcPriceLine(s,{kind:'hall',rateExcl:1000000},'2026-11-01','H1').taxBps,1800,'hall 18 % (banquet)');
     // Open (CU-GST5 default): the 3rd-guest lines stay "other services" 18 % exactly as the occupancy master posts them (unchanged rate rule); see cu-gst5-DONE.md
-    assert.ok(v.lines.filter(x=>x.kind==='occupancy'&&x.occKind==='adult').every(x=>x.taxBps===1800));
+    {const ad=v.lines.filter(x=>x.kind==='occupancy'&&x.occKind==='adult');assert.equal(ad.length,5,'one 3rd-guest line per room type');assert.ok(ad.every(x=>x.taxBps===1800));}
   });
   test('[TRC] nothing reads the card for a price: deleting the slice leaves rates unchanged',()=>{
     let s=draft(seed(),[{kind:'room',roomType:'Suite',rateExcl:470000}]);s=execute(s,'owner',{type:'TRC_PUBLISH',id:last(s).id});

@@ -21,7 +21,7 @@ Server import path of the same CSVs; the real owner card; CA view on 3rd-guest G
 - Left the 3rd-guest charge as is: occupancy-charges.csv carries 423.73 / 338.98 (= Rs 500 / 400 incl at 18 %), because the rate rule posts occupancy as "other services" 18 % (documented in GST-CA-2026-11-03.md). Changing it needs a rate-rule change, which this lane must not do. The new test pins this current behaviour (adult lines taxBps 1800).
 
 ## Open questions
-1. Owner ruling says rooms 5 %: should the 3rd-guest (extra person) charge follow the room (5 %)? If yes, a rate-rule change in `trcLineBps` / occupancy posting plus CSV values 476.19 / 380.95 are needed, and the pinned assertion flips.
+1. Owner ruling says rooms 5 %: should the 3rd-guest (extra person) charge follow the room (5 %)? If yes, a rate-rule change in `trcLineBps` / occupancy posting plus CSV values 476.19 / 380.96 are needed, and the pinned assertion flips.
 
 ## Shared files touched
 None.

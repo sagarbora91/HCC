@@ -42,8 +42,8 @@ export async function register({test,assert}){
     return (await build({entryPoints:['src/main.tsx'],bundle:true,write:false,format:'iife',target:['es2020'],minify:true,logLevel:'error',define:{...define,__HCC_SCENARIO_WORKER__:JSON.stringify(w)}})).outputFiles[0].text;};
   const [proto,prod]=await Promise.all([bundle('prototype'),bundle('production')]);
   test('[TRN] production bundle contains no part of the training driver; the prototype bundle does',()=>{
-    for(const m of ['TRAINING','/training/steps.json','/training/phone.json','data-tr="','target not found: ','app never became ready'])assert.ok(!prod.includes(m),'production bundle contains '+m);
+    for(const m of ['window.TRAINING','/training/steps.json','/training/phone.json','data-tr="','target not found: ','app never became ready'])assert.ok(!prod.includes(m),'production bundle contains '+m);
     assert.ok(!/has\(["']training["']\)/.test(prod),'production bundle checks ?training');
-    for(const m of ['TRAINING','/training/steps.json'])assert.ok(proto.includes(m),'prototype bundle lacks '+m);
+    for(const m of ['window.TRAINING','/training/steps.json'])assert.ok(proto.includes(m),'prototype bundle lacks '+m);
   });
 }
