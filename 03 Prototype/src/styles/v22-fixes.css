@@ -14,3 +14,18 @@ button.pill.cfg-switch:focus-visible{outline:3px solid var(--primary);outline-of
 .cfg-mod .cfg-lock svg{flex:none;margin-top:2px}
 .cfg-mod .cfg-stays{color:var(--ink);font-weight:600}
 .drawer-item .drawer-hint{display:block;font-weight:400;opacity:.8}
+/* CU-ADMIN-UI: desktop display mode on a 360 dp phone. The top bar keeps the menu, the breadcrumb (current page only; parents are in the menu), search and the DEMO pill;
+   business date, user chip, text size and display toggle (all also in the menu / user menu) are dropped so nothing is clipped. */
+@media(max-width:480px){
+  .app-shell.fit-shell .topbar.fit-topbar{padding:0 8px;gap:6px}
+  .app-shell.fit-shell .fit-topbar .topbar-left{flex:1 1 0;min-width:0;gap:4px}
+  .app-shell.fit-shell .fit-topbar .topbar-right{flex:0 0 auto;gap:6px;overflow:visible}
+  .app-shell.fit-shell .fit-topbar .topbar-right>.today,.app-shell.fit-shell .fit-topbar .topbar-right>.current-user,.app-shell.fit-shell .fit-topbar .topbar-right>.pf-quick,.app-shell.fit-shell .fit-topbar .topbar-right>.display-toggle{display:none!important}
+  .app-shell.fit-shell .fit-topbar .search-btn .fit-search-text,.app-shell.fit-shell .fit-topbar .search-btn kbd{display:none}
+  .app-shell.fit-shell .fit-topbar .crumbs li:not(:last-child){display:none}
+  .app-shell.fit-shell .fit-topbar .crumbs li:last-child{min-width:0;flex-shrink:1}
+  .app-shell.fit-shell .fit-topbar .crumbs li:not(:first-child):not(:last-child){min-width:0}
+  .app-shell.fit-shell .fit-topbar .fit-demo-pill{padding:0 8px;letter-spacing:.5px}
+  .app-shell.fit-shell .fit-demo-pop{right:8px;width:calc(100vw - 16px)}
+}
+/* /CU-ADMIN-UI */

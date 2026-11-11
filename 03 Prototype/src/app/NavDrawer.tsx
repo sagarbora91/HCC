@@ -19,7 +19,8 @@ export function NavDrawer({onClose}:{onClose:()=>void}){
   useEffect(()=>{ref.current?.querySelector<HTMLElement>('button')?.focus();},[]);
   const nav=(p:string)=>{onClose();go(p);};
   const onKey=(e:React.KeyboardEvent)=>{if(e.key==='Escape'){e.preventDefault();onClose();}else if(ref.current)trapTab(e,ref.current);};
-  const cats=NAV_CATEGORIES.map(c=>({c,items:navItems.filter(n=>pagesOfCategory(c.id).includes(n.id)&&allowed.has(n.id))})).filter(x=>x.items.length);
+  const adminShortcut=permission('admin'); // CU-ADMIN-UI: Owner and Tech admin get the top "Admin & Setup" shortcut (it opens the category page, which lists every admin page) instead of a second category entry
+  const cats=NAV_CATEGORIES.filter(c=>!(adminShortcut&&c.id==='admin')).map(c=>({c,items:navItems.filter(n=>pagesOfCategory(c.id).includes(n.id)&&allowed.has(n.id))})).filter(x=>x.items.length);
   return <div className="drawer-overlay" role="presentation" onMouseDown={e=>{if(e.target===e.currentTarget)onClose();}}>
     <aside className="drawer" role="dialog" aria-modal="true" aria-label="Menu" ref={ref} onKeyDown={onKey}>
       <div className="drawer-head"><span className="brand-mark"><Hotel size={22}/></span><div><strong>HOTEL CONTROL CENTRE</strong><small>{s.settings.hotel}</small></div>
@@ -27,7 +28,7 @@ export function NavDrawer({onClose}:{onClose:()=>void}){
       <button type="button" className="drawer-search" onClick={()=>{onClose();openSearch();}}><Search size={18}/>Search pages and actions<kbd>Ctrl K</kbd></button>
       <nav aria-label="Modules" className="drawer-nav">
         <button type="button" className={'drawer-item'+(page===HOME_PAGE?' on':'')} aria-current={page===HOME_PAGE?'page':undefined} onClick={()=>nav(HOME_PAGE)}><LayoutGrid size={19}/>Modules Home</button>
-        {permission('admin')&&<button type="button" data-page="admin-setup" className={'drawer-item'+(page===catPage('admin')?' on':'')} aria-current={page===catPage('admin')?'page':undefined} onClick={()=>nav(catPage('admin'))}><ShieldCheck size={19}/><span>Admin &amp; Setup<small className="drawer-hint">Modules on/off, users, roles, audit</small></span></button>}
+        {adminShortcut&&<button type="button" data-page="admin-setup" className={'drawer-item'+(page===catPage('admin')||here==='admin'?' on':'')} aria-current={page===catPage('admin')||here==='admin'?'page':undefined} onClick={()=>nav(catPage('admin'))}><ShieldCheck size={19}/><span>Admin &amp; Setup<small className="drawer-hint">Modules on/off, users, roles, audit</small></span></button>}
         {allowed.has(DASHBOARD.id)&&<button type="button" className={'drawer-item'+(page===DASHBOARD.id?' on':'')} aria-current={page===DASHBOARD.id?'page':undefined} onClick={()=>nav(DASHBOARD.id)}><DASHBOARD.icon size={19}/>{DASHBOARD.label}</button>}
         {cats.map(({c,items})=>{const isOpen=openCat===c.id;return <div key={c.id} className="drawer-cat">
           <button type="button" className={'drawer-item drawer-cat-btn'+(here===c.id?' here':'')} aria-expanded={isOpen} onClick={()=>setOpenCat(isOpen?undefined:c.id)}>
