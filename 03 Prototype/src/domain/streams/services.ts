@@ -81,6 +81,8 @@ export function gsvCanWork(s:State,uid:string,r:GSVRequest){
   const u=s.users.find(x=>x.id===uid);if(!u)return false;
   if(u.role==='Housekeeper'||u.role==='Maintenance')return can(s,uid,'housekeeping')&&r.assignee===uid;
   if(can(s,uid,'reservations'))return true;
+  // CU-TRN-FIX F8: the desk banner's Done on a wake-up call belongs to Reception, Manager and Owner whatever their coarse grants say (DEC: the banner is a desk duty)
+  if(r.type==='Wake-up call'&&r.dept==='Front desk'&&u.enabled&&['Reception','Manager','Owner'].includes(u.role))return true;
   return can(s,uid,'inspect')&&r.dept!=='Front desk';
 }
 export const gsvMyRequests=(s:State,uid:string)=>gsvSlice(s).requests.filter(r=>r.assignee===uid);

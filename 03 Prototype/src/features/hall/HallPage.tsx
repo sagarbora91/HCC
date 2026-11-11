@@ -7,6 +7,7 @@ import {Pill,Empty} from '../../components/ui';
 import {FitPage,FitTabs,ScrollPanel,StatStrip,BoardColumns,useFitTab,FitNote} from '../../components/fit';
 import {money} from '../../domain/money';
 import {hallSlice,hallHasPlaceholder,type TncTemplate,type TncClause} from '../../domain/streams/hall';
+import {hallTemplates} from '../../domain/streams/hall-quote'; // CU-TRN-FIX F17: the seeded templates until the first save
 import {hallUi,hallTabsFor,HALL_TAB_LABEL,type HallTab} from './access';
 import {hallBoard,hallQuoteRows,hallEventRows,hallMonthCells,hallMonthShift,hallDayGrid,hallAlerts,hallAvailability,venueName,SLOT_LABEL,SLOT_STATE_LABEL,SLOT_STATE_TONE,
   EVENT_LABEL,ENQ_TONE,QUOTE_TONE,EVENT_TONE,SETUP_LABEL,dayLabel} from './logic';
@@ -115,10 +116,10 @@ function MenusTab(){
 }
 
 function TemplatesTab(){
-  const {s,uid}=useHcc();const ui=hallUi(s,uid),x=hallSlice(s);const [sel,setSel]=useState(x.templates[0]?.id??'');
-  const t=x.templates.find(o=>o.id===sel)??x.templates[0];
+  const {s,uid}=useHcc();const ui=hallUi(s,uid),tpls=hallTemplates(hallSlice(s));const [sel,setSel]=useState(tpls[0]?.id??'');
+  const t=tpls.find(o=>o.id===sel)??tpls[0];
   return <div className="hall-cal">
-    <ScrollPanel label="Terms templates" title="Terms and conditions"><ul className="hall-tlist">{x.templates.map(o=>{const v=o.versions[o.versions.length-1],ph=!!v&&hallHasPlaceholder(v.clauses);
+    <ScrollPanel label="Terms templates" title="Terms and conditions"><ul className="hall-tlist">{tpls.map(o=>{const v=o.versions[o.versions.length-1],ph=!!v&&hallHasPlaceholder(v.clauses);
       return <li key={o.id}><button type="button" className={'hall-trow'+(o.id===t?.id?' on':'')} aria-pressed={o.id===t?.id} onClick={()=>setSel(o.id)}><strong>{o.eventType==='GENERAL'?'General (all events)':EVENT_LABEL[o.eventType]}</strong>
         <small>v{v?.v} from {v?dayLabel(v.effectiveFrom):'—'}</small>{ph&&<Pill tone="orange">Owner to replace</Pill>}</button></li>;})}</ul>
       {!ui.tnc&&<p className="muted">Only the Owner changes the terms. A quotation keeps the version it was sent with.</p>}</ScrollPanel>

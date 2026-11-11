@@ -15,7 +15,7 @@ import {advHeld,advTotals} from '../../services/mock';
 // F8-QW-ADV end
 
 /** Detail column of a drawer movement without a booking or outlet bill (Wave B1: banking, transfers, drawings). */
-const MOVE_KIND:Record<string,string>={'expense-reversal':'Reversal',expense:'Expense',banking:'Bank deposit','transfer-out':'Till transfer','transfer-in':'Till transfer','owner-drawing':'Owner drawing','staff-advance':'Salary advance'}; // ACC-2 integration: the parity lane's cash advance movement
+const MOVE_KIND:Record<string,string>={'expense-reversal':'Reversal',expense:'Expense',banking:'Bank deposit','transfer-out':'Till transfer','transfer-in':'Till transfer','owner-drawing':'Owner drawing','staff-advance':'Salary advance','vendor-payment':'Vendor payments','counter-bill':'Counter bills','hall-receipt':'Hall booking'}; // ACC-2 integration: the parity lane's cash advance movement
 
 /** Step ids = SUB_SCREENS 'cashier' (kebab-case of the labels). */
 export const CASHIER_STEPS=['expected-cash','count-and-result','cash-movements','cash-out','credit-guests','advances-held'] as const; // F8-QW-ADV
@@ -63,13 +63,13 @@ export function Cashier(){
             {row('Cash refundable deposits',ex.deposits,'+')}
             {row('Restaurant / room-service cash (net of voids)',ex.restaurant,'+')}
             {ex.other!==0&&row('Other cash movements',ex.other,'+')}
-            {ex.transfers!==0&&row('Bank deposits, till transfers and Owner drawings (net)',Math.abs(ex.transfers),ex.transfers<0?'−':'+')}
+            {ex.transfers!==0&&row('Bank deposits, till transfers, Owner drawings and vendor payments (net)',Math.abs(ex.transfers),ex.transfers<0?'−':'+')}
             {row('Cash payment refunds',ex.refunds,'−')}
             {row('Cash deposit returns',ex.returns,'−')}
             {row('Drawer-cash expenses (net of reversals)',ex.expenses,'−')}
             <div className="f-total"><span>= Expected cash in drawer</span><strong>{money(ex.expected)}</strong></div>
           </div>
-          <p className="footnote padded">{money(ex.opening)} + {money(ex.payments)} + {money(ex.deposits)} + {money(ex.restaurant)} − {money(ex.refunds)} − {money(ex.returns)} − {money(ex.expenses)}{ex.transfers!==0?` ${ex.transfers<0?'−':'+'} ${money(Math.abs(ex.transfers))}`:''} = {money(ex.expected)}. Restaurant and room-service cash bills go into this drawer (one shared till); UPI, card, bank, vendor-credit amounts and room charges to a folio are excluded.</p>
+          <p className="footnote padded">{money(ex.opening)} + {money(ex.payments)} + {money(ex.deposits)} + {money(ex.restaurant)}{ex.other!==0?` + ${money(ex.other)}`:''} − {money(ex.refunds)} − {money(ex.returns)} − {money(ex.expenses)}{ex.transfers!==0?` ${ex.transfers<0?'−':'+'} ${money(Math.abs(ex.transfers))}`:''} = {money(ex.expected)}. Restaurant and room-service cash bills go into this drawer (one shared till); UPI, card, bank, vendor-credit amounts and room charges to a folio are excluded.</p>
         </ScrollPanel>;
   else if(step==='count-and-result')body=<ScrollPanel title={st==='Open'?'Count the drawer':st==='Submitted'?'Difference approval':'Shift result'} label="Cash count">
           <div className="padded cashier-shift">{st==='Open'?(closed?<Empty title="Business day closed" body="Open the next business day to start a new shift."/>:<ShiftCountForm/>):st==='Submitted'?<DifferencePanel/>:<><ClosedPanel name={name}/>{!closed&&(process.env.HCC_BUILD==='production'||!s.shiftClose)?<OpenShiftForm/>:null}</>}</div>
