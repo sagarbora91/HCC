@@ -88,7 +88,7 @@ public sealed class SqlLegacyStore(SqlConnectionFactory connections) : ILegacySt
             ELSE SELECT 0;
             """);
         cmd.Parameters.Add("@p", SqlDbType.Int).Value = propertyId;
-        cmd.Parameters.Add("@k", SqlDbType.VarChar, 80).Value = customerKey;
+        cmd.Parameters.Add("@k", SqlDbType.NVarChar, 80).Value = customerKey;
         cmd.Parameters.Add("@t", SqlDbType.NVarChar, 30).Value = tag;
         cmd.Parameters.Add("@u", SqlDbType.Int).Value = actor;
         cmd.Parameters.Add("@now", SqlDbType.DateTime2).Value = utc;
@@ -114,6 +114,11 @@ public sealed class SqlLegacyStore(SqlConnectionFactory connections) : ILegacySt
         {
             // LG-R15: a value longer than its column is a data problem of the run folder, not an outage.
             throw HccException.Validation($"{table} ({batch}): the database refused a value longer than its column (SQL {e.Number.ToString(CultureInfo.InvariantCulture)}). Fix the extractor output; nothing was imported.");
+        }
+        catch (InvalidOperationException e) when (e.Message.Contains("would be truncated", StringComparison.Ordinal) || (e.InnerException?.Message.Contains("would be truncated", StringComparison.Ordinal) ?? false))
+        {
+            // CU-NVARCHAR: for an NVARCHAR column SqlBulkCopy reports the over-long value itself (client side) instead of SQL error 8152.
+            throw HccException.Validation($"{table} ({batch}): the database refused a value longer than its column. Fix the extractor output; nothing was imported.");
         }
     }
 
