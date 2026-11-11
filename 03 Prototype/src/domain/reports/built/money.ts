@@ -32,7 +32,7 @@ export const cashBook=registerReport({
 
 export const CLOSING_COLS:RptColumn[]=[col('date','Business date','date'),col('closedBy','Closed by','text'),col('closedAt','Closed at','text'),col('netRevenue','Net revenue','money',true),
   col('netReceipts','Net receipts','money',true),col('cashDifference','Cash difference','money',true),col('corrections','Corrections','int')];
-export const closingRecords=registerReport({serverMirror:false,
+export const closingRecords=registerReport({
   id:'rpt.money.closing-records',title:'Earlier closing records',area:'money',priority:'P2',status:'built',moneyFlag:true,moneyGate:GATE,viewPerms:['PERM-CLS-001'],dateClass:'D-FY',
   params:[{key:'fy',label:'Financial year',type:'fy',dateClass:'D-FY'}],columns:CLOSING_COLS,
   dateBasis:'One row per closed business date, newest first, from the stored closing record. Corrections = how many times the Owner reopened that date.',
@@ -47,7 +47,7 @@ export const closingRecords=registerReport({serverMirror:false,
 export const CASHOUT_COLS:RptColumn[]=[col('date','Date','date'),col('kind','Kind','text'),col('amount','Amount','money',true),col('bankSlip','Bank and slip','text'),col('fromTill','From till','text'),
   col('toTill','To till','text'),col('reason','Reason','text'),col('status','Status','text'),col('decidedBy','Decided by','text')];
 const KIND:Record<string,string>={banking:'bank deposit',till:'till transfer',drawing:'owner drawing'};
-export const cashOutRegister=registerReport({serverMirror:false,
+export const cashOutRegister=registerReport({
   id:'rpt.money.cash-out-register',title:'Banking, transfers and drawings',area:'money',priority:'P2',status:'built',moneyFlag:true,moneyGate:GATE,viewPerms:[GATE],dateClass:'D-B',
   params:[...rangeParams('D-B'),{key:'kind',label:'Kind',type:'enum',options:['all','bank deposit','till transfer','owner drawing'],default:'all'}],columns:CASHOUT_COLS,
   dateBasis:'Cash-out records by the business date the cash left the drawer. The slip photo is never in the report. Totals per kind leave out rejected records.',
@@ -64,7 +64,7 @@ export const cashOutRegister=registerReport({serverMirror:false,
 });
 
 export const EXPMONTH_COLS:RptColumn[]=[col('head','Head','text'),col('amount','Amount','money',true),col('entries','Entries','int'),col('gstPaid','GST paid','money',true),col('itcAllowed','ITC allowed','money',true),col('itcDisallowed','ITC disallowed','money',true)];
-export const expenseMonth=registerReport({serverMirror:false,
+export const expenseMonth=registerReport({
   id:'rpt.money.expense-month',title:'Expenses month and tax feed',area:'money',priority:'P2',status:'built',moneyFlag:true,moneyGate:GATE,viewPerms:[GATE],dateClass:'D-M',
   params:[{key:'month',label:'Month',type:'month',dateClass:'D-M'}],columns:EXPMONTH_COLS,
   dateBasis:'The month\'s counted expenses (the tax-feed figures of expMonthSummary), by head; GST paid and ITC allowed are month totals, shown on the total row.',

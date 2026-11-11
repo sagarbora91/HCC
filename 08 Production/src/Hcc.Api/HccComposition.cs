@@ -300,6 +300,15 @@ public static class HccComposition
         Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.CuA.CashBookReport>(services); // CU-RPT-A
         Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.CuA.ExpensesCashReport>(services); // CU-RPT-A
         // /CU-RPT-A
+        // FX-RPT-C
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.FxC.ConfigHistoryReport>(services); // FX-RPT-C
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.FxC.ExportLogReport>(services); // FX-RPT-C
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.FxC.ReportDictionaryReport>(services); // FX-RPT-C
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.FxC.ClosingRecordsReport>(services); // FX-RPT-C
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.FxC.CashOutRegisterReport>(services); // FX-RPT-C
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.FxC.ExpenseMonthReport>(services); // FX-RPT-C
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.FxC.ClosedBillsReport>(services); // FX-RPT-C
+        // /FX-RPT-C
         return services;
     }
 
