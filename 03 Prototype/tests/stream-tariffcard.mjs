@@ -129,6 +129,21 @@ export function register({test,M,assert}){
     const bf=v.lines.find(l=>l.kind==='meal'&&l.mealPlan==='CP');assert.equal(bf.rateExcl,9524);assert.equal(bf.taxBps,500);assert.ok(Math.abs(2*bf.displayIncl-20000)<=2,'breakfast ₹200 a room');
     assert.throws(()=>execute(s,'manager',{type:'TRC_IMPORT',files:files()}),e=>e.code==='FORBIDDEN');
   });
+  // CU-GST5: per-line GST split of the committed rate-card files (owner 7 Nov 2026: rooms + breakfast 5 %, halls 18 %; DEC-198 prices incl. GST, DEC-239)
+  test('[TRC] CU-GST5 split per line: room + breakfast 5 %, hall 18 %; card CSVs carry exclusive = incl / 1.05, never / 1.18',()=>{
+    let s=seed();s=execute(s,'owner',{type:'TRC_IMPORT',files:files(),effectiveFrom:'2026-11-01'});
+    const v=last(s);const incl={LUX:[3300,3500],PRM:[2800,3000],DLX:[2000,2200],TWN:[2200,2400],NAC:[1500,1700]};
+    for(const [t,[ep,cp]] of Object.entries(incl))for(const [plan,price] of [['EP',ep],['CP',cp]]){
+      const l=v.lines.find(x=>x.kind==='room'&&x.roomType===t&&x.plan===plan);
+      assert.equal(l.taxBps,500,`${t} ${plan} room GST 5 %`);assert.equal(l.displayIncl,price*100,`${t} ${plan} incl price unchanged`);
+      assert.equal(l.rateExcl,M.trcExclusiveFromInclusive(price*100,500),`${t} ${plan} excl = incl / 1.05`);
+      assert.notEqual(l.rateExcl,M.trcExclusiveFromInclusive(price*100,1800),`${t} ${plan} not the 18 % split`);
+      }
+    const bf=v.lines.find(x=>x.kind==='meal'&&x.mealPlan==='CP');assert.equal(bf.taxBps,500,'breakfast 5 %');assert.equal(bf.rateExcl,M.trcExclusiveFromInclusive(10000,500),'breakfast ₹100 a guest incl → ₹95.24');
+    assert.equal(M.trcPriceLine(s,{kind:'hall',rateExcl:1000000},'2026-11-01','H1').taxBps,1800,'hall 18 % (banquet)');
+    // Open (CU-GST5 default): the 3rd-guest lines stay "other services" 18 % exactly as the occupancy master posts them (unchanged rate rule); see cu-gst5-DONE.md
+    assert.ok(v.lines.filter(x=>x.kind==='occupancy'&&x.occKind==='adult').every(x=>x.taxBps===1800));
+  });
   test('[TRC] nothing reads the card for a price: deleting the slice leaves rates unchanged',()=>{
     let s=draft(seed(),[{kind:'room',roomType:'Suite',rateExcl:470000}]);s=execute(s,'owner',{type:'TRC_PUBLISH',id:last(s).id});
     const r=M.rateFor(s,room(s,'Suite'),'2026-11-03');const t={...s};delete t.tariffCardX;assert.equal(M.rateFor(t,room(t,'Suite'),'2026-11-03'),r);
