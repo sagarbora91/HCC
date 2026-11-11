@@ -266,6 +266,12 @@ public static class HccComposition
         Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.P2C.CancelledLinesReport>(services); // F8-RPT-P2-C
         Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.P2C.RateSheetReport>(services); // F8-RPT-P2-C
         // F8-RPT-P2-C end
+        // CU-RPT-B
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.CuB.ReceiptsDepositsReport>(services);
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.CuB.RestDaySummaryReport>(services);
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.CuB.RoomsOccupancyReport>(services);
+        Hcc.Reporting.ReportingModule.AddReport<Hcc.Reporting.Reports.CuB.StockSheetReport>(services);
+        // /CU-RPT-B
         // F8-QW-NA
         services.AddNightAuditModule();
         // F8-QW-NA end

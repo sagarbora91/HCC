@@ -4882,7 +4882,7 @@
   ],
   "phone": "yes",
   "layout": "table",
-  "side": "prototype"
+  "side": "both"
  },
  {
   "id": "rpt.money.refunds",
@@ -5926,7 +5926,7 @@
   ],
   "phone": "yes",
   "layout": "table",
-  "side": "prototype"
+  "side": "both"
  },
  {
   "id": "rpt.rest.sales-by-item",
@@ -7152,7 +7152,7 @@
   ],
   "phone": "yes",
   "layout": "table",
-  "side": "prototype"
+  "side": "both"
  },
  {
   "id": "rpt.rooms.ooo-days",
@@ -8636,7 +8636,7 @@
   ],
   "phone": "yes",
   "layout": "table",
-  "side": "prototype"
+  "side": "both"
  },
  {
   "id": "rpt.study.channel-economics",
