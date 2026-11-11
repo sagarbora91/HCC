@@ -5,12 +5,13 @@ import {csvQuoted} from '../csv';
 import {bookingRef} from '../bookingRef';
 import type {State,Booking,Expense,Receipt,Line} from '../types';
 import {money,addDays} from '../money';
-import {drawer,blockedDuring,totals} from '../selectors';
+import {drawer,blockedDuring,totals,hallDrawerCash,lfCounterCash} from '../selectors';
 import {posSlice,posOpenOrders,posOrderTotals,posSpot} from './pos';
 import {lineTax} from '../gst';
 import {mnyIsDrawer,mnyIsCredit,mnySettlesTo,mnyNames} from './money-master';
 import {cxDeskMovements,cxPendingTransfers} from './cashout';
 import {expUdDeskMovements} from './udhaar-desk';
+import {expVendorPayCash} from './expenses-vendor'; // CU-TRN-FIX F14
 
 // ── Limits (RBAC Matrix §6, demonstration defaults) ──
 /** Manager may accept a cash difference up to ₹200; above → Owner (PERM-SHF-002). */
@@ -70,6 +71,14 @@ export function shiftStatus(s:State):ShiftStatus{
 }
 export type CashMovement={id:string;kind:string;label:string;booking?:string;guest?:string;reference:string;amount:number;actor:string;
   /** POS check behind a restaurant / room-service movement. */ order?:string};
+/** CU-TRN-FIX F14: drawer cash that drawer(s) counts but no receipt / expense record carries - vendor payments (out), counter bills and hall receipts.
+ *  One signed movement each (only when not zero) so the page, the cash book and the close command all agree to the paise. */
+const otherDrawerMovements=(s:State,d:string):CashMovement[]=>{
+  const out:CashMovement[]=[],vp=expVendorPayCash(s,d),cb=lfCounterCash(s,d),hl=hallDrawerCash(s,d);
+  if(vp)out.push({id:'vendor-pay:'+d,kind:'vendor-payment',label:'Vendor payments in cash',reference:'Vendor payments',amount:-vp,actor:'system'});
+  if(cb)out.push({id:'counter:'+d,kind:'counter-bill',label:'Counter bills in cash',reference:'Counter billing',amount:cb,actor:'system'});
+  if(hl)out.push({id:'hall:'+d,kind:'hall-receipt',label:'Hall advances and balances in cash',reference:'Hall booking',amount:hl,actor:'system'});
+  return out;};
 /** Today's cash movements, signed (+ into the drawer, − out). Sum + opening float = drawer(s).
  *  Shared till (DEC-052): POS cash sales and same-day voids count once here; UPI/card bills and room charges to a folio do not. */
 export function shiftMovements(s:State):CashMovement[]{
@@ -77,7 +86,7 @@ export function shiftMovements(s:State):CashMovement[]{
   const exp=s.expenses.filter(e=>e.date===s.date&&mnyIsDrawer(s,e.method)&&expenseCounts(e)).map(expMovement);
   const p=posSlice(s);
   const pos=p.receipts.filter(r=>r.date===s.date&&mnyIsDrawer(s,r.method)).map(r=>posMovement(p,r,p.orders.find(x=>x.id===r.order)));
-  return [...rec,...expUdDeskMovements(s,s.date),...pos,...exp,...cxDeskMovements(s,s.date)]; // DEC-073: bank deposits, till transfers, Owner drawings; DEC-130: Udhaar cash
+  return [...rec,...expUdDeskMovements(s,s.date),...pos,...exp,...cxDeskMovements(s,s.date),...otherDrawerMovements(s,s.date)]; // DEC-073: bank deposits, till transfers, Owner drawings; DEC-130: Udhaar cash
 }
 const recMovement=(b:Booking,r:Receipt):CashMovement=>({id:r.id,kind:r.kind,booking:b.id,guest:b.guest,
   label:receiptLabel(r.kind),reference:r.reference,amount:['payment','deposit'].includes(r.kind)?r.amount:-r.amount,actor:r.actor});
@@ -99,7 +108,7 @@ export function shiftMovementsByDate(s:State,from:string,to:string):(d:string)=>
   const p=posSlice(s),orders=new Map<string,(typeof p.orders)[number]>();
   for(const o of p.orders)if(!orders.has(o.id))orders.set(o.id,o);
   for(const r of p.receipts)if(mnyIsDrawer(s,r.method)&&inR(r.date))add(pos,r.date,posMovement(p,r,orders.get(r.order)));
-  return d=>[...(rec.get(d)??[]),...expUdDeskMovements(s,d),...(pos.get(d)??[]),...(exp.get(d)??[]),...cxDeskMovements(s,d)];
+  return d=>[...(rec.get(d)??[]),...expUdDeskMovements(s,d),...(pos.get(d)??[]),...(exp.get(d)??[]),...cxDeskMovements(s,d),...otherDrawerMovements(s,d)];
 }
 export function receiptLabel(kind:string){return kind==='payment'?'Payment / advance':kind==='deposit'?'Refundable deposit':kind==='refund'?'Payment refund':kind==='deposit-return'?'Deposit returned':kind==='company-credit'?'Company credit':kind;}
 /** AC-03: every cash-in component (receipts, deposits, shared-till restaurant / room-service cash, other) so opening + in − out = expected. */
@@ -109,9 +118,9 @@ export function shiftExpected(s:State){
   const mv=shiftMovements(s),sum=(k:string[])=>mv.filter(m=>k.includes(m.kind)).reduce((a,m)=>a+m.amount,0);
   const neg=(n:number)=>0-n||0; // avoid −0 ("-₹0" on screen)
   const parts={opening:s.openingCash,payments:sum(['payment']),deposits:sum(['deposit']),refunds:neg(sum(['refund'])),returns:neg(sum(['deposit-return'])),
-    expenses:neg(sum(['expense','expense-reversal'])),other:sum(['company-credit']),restaurant:sum(['pos-sale','pos-void']),
+    expenses:neg(sum(['expense','expense-reversal'])),other:sum(['company-credit','counter-bill','hall-receipt']),restaurant:sum(['pos-sale','pos-void']),
     /** DEC-073: bank deposits, till transfers and Owner drawings, signed (usually negative: cash out of the drawer). */
-    transfers:sum(['banking','transfer-out','transfer-in','owner-drawing','staff-advance'])}; // ACC-2: a cash salary advance leaves the drawer
+    transfers:sum(['banking','transfer-out','transfer-in','owner-drawing','staff-advance','vendor-payment'])}; // ACC-2: a cash salary advance leaves the drawer
   const expected=parts.opening+parts.payments+parts.deposits+parts.restaurant+parts.other+parts.transfers-parts.refunds-parts.returns-parts.expenses;
   return {...parts,expected,consistent:expected===drawer(s)};
 }

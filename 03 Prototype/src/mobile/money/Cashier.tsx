@@ -25,7 +25,7 @@ export function MmCashier(){
       <div className="mm-hero-main"><span>Expected cash in drawer</span><strong className="number">{money(ex.expected)}</strong></div>
       <div className="mm-hero-status"><Pill tone={st==='Open'?'green':st==='Submitted'?'orange':'neutral'}>{st==='Open'?'Shift open':st==='Submitted'?'Awaiting approval':'Shift closed'}</Pill><span>{dateLabel(s.date)}</span></div>
       <div className="mm-hero-sub"><div><span>Opening float</span><strong className="number">{money(ex.opening)}</strong></div><div><span>Cash in</span><strong className="number">+{money(cashIn)}</strong></div><div><span>Cash out</span><strong className="number">−{money(cashOut)}</strong></div></div>
-      <p className="mm-formula">{money(ex.opening)} + {money(cashIn)} − {money(cashOut)} = {money(ex.expected)}. Cash in includes restaurant cash {money(ex.restaurant)} (one shared till){ex.transfers!==0?`; bank deposits, till transfers and Owner drawings net ${money(ex.transfers)}`:''}. UPI, card, bank, vendor credit and room charges are excluded.</p>
+      <p className="mm-formula">{money(ex.opening)} + {money(cashIn)} − {money(cashOut)} = {money(ex.expected)}. Cash in includes restaurant cash {money(ex.restaurant)} (one shared till){ex.transfers!==0?`; bank deposits, till transfers, Owner drawings and vendor payments net ${money(ex.transfers)}`:''}. UPI, card, bank, vendor credit and room charges are excluded.</p>
       {mine&&<p className="mm-formula">Opened by {name(mine.by)}{mine.handover!==undefined?` · handover count ${money(mine.handover)}${mine.difference?` · ${mine.difference>0?'over':'short'} ${money(Math.abs(mine.difference))}`:''}`:''}</p>}
     </section>
 

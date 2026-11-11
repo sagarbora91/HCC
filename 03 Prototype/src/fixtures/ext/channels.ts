@@ -37,5 +37,14 @@ export function extendBase(s:State):void{
     webRequests:[],
   };
 }
-export const scenarioPatches:Record<string,(s:State)=>void>={};
+// CU-TRN-FIX F19 · FY26 only (BASE is never edited): the demo clock is moved on by the day-close chapters, after which the BASE inbox rows
+// (arrivals 25-26 Oct, a party of 3 in a Classic room) can no longer be accepted. The pending / outbox rows that arrive before 27 Oct
+// move 4 days on (29-31 Oct), keeping their length of stay, and the Classic party is two adults, so a normal share can be accepted.
+const addD=(d:string,n:number)=>new Date(Date.parse(d+'T12:00:00Z')+n*86400000).toISOString().slice(0,10);
+export const scenarioPatches:Record<string,(s:State)=>void>={
+  FY26:s=>{const x=s.channelsX;if(!x)return;
+    const shift=(m:CHNMessage)=>{if(m.status!=='Pending'||m.arrival>='2026-10-27')return m;
+      return {...m,arrival:addD(m.arrival,4),departure:addD(m.departure,4),adults:m.roomType==='Classic'&&m.adults+m.children>2?Math.max(1,2-m.children):m.adults};};
+    x.messages=x.messages.map(shift);x.outbox=x.outbox.map(m=>m.arrival<'2026-10-27'?{...m,arrival:addD(m.arrival,4),departure:addD(m.departure,4)}:m);},
+};
 export const scenarioInfo:ScenarioInfo[]=[];

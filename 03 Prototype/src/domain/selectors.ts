@@ -72,11 +72,11 @@ export function drawer(s:State){
   return s.openingCash+receipts+outlet-expenses+cxDeskNet(s,s.date)+expUdDeskCash(s,s.date)-expVendorPayCash(s,s.date)+lfCounterCash(s,s.date)+hallDrawerCash(s,s.date); // F6-H3 hall cash; LF-COUNTER (§6): counter bills in drawer cash
 }
 /** F6-H3: hall advances / balances taken and refunds paid in drawer cash on a date (inlined like lfCounterCash: selectors import no stream). */
-function hallDrawerCash(s:State,date:string){let n=0;for(const e of s.hallX?.events??[])for(const r of e.receipts??[]){
+export function hallDrawerCash(s:State,date:string){let n=0;for(const e of s.hallX?.events??[])for(const r of e.receipts??[]){
   if(r.date!==date||!r.method||!mnyIsDrawer(s,r.method))continue;n+=r.kind==='REFUND'?-r.amountPaise:r.amountPaise;}return n;}
 /** LF-COUNTER (§6): counter-bill drawer cash on a date — paid in drawer cash (+), credited on its credit date (−). Same as ctrDrawerCash
  *  (domain/streams/counter.ts), inlined here to keep selectors free of stream imports (module order). */
-function lfCounterCash(s:State,date:string){let n=0;for(const b of s.counterX?.bills??[]){if(b.settlement.mode!=='paid'||!mnyIsDrawer(s,b.settlement.method??''))continue;
+export function lfCounterCash(s:State,date:string){let n=0;for(const b of s.counterX?.bills??[]){if(b.settlement.mode!=='paid'||!mnyIsDrawer(s,b.settlement.method??''))continue;
   if(b.date===date)n+=b.total;if(b.status==='Credited'&&(s.approvals.find(a=>a.id===b.voidApprovalId)?.decidedAt?.slice(0,10)??b.date)===date)n-=b.total;}return n;}
 /** POS cash settled today (sale receipts +, void receipts −). Room-service bills charged to a folio have no POS receipt. */
 export function drawerOutletCash(s:State){return (s.posX?.receipts??[]).filter(r=>r.date===s.date&&mnyIsDrawer(s,r.method)).reduce((a,r)=>a+r.amount,0);}

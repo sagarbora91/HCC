@@ -8,6 +8,7 @@ import {hallSlice,hallCalendar,hallClashes,hallSoftHoldsOn,hallCapacity,hallEnqu
   type HallEvent,type Venue,type TncSnapshot,type TncTemplate,type HallReceipt} from '../../domain/streams/hall';
 import {hallPrice,hallAdvancePlan,hallPlanAmounts,hallPaid,hallBillLines,hallBilledPax,hallDiscountBps,hallDiscountLimit,hallDiscountWithin,type HallTotals} from '../../domain/streams/hall-billing';
 import {hallRoleOf} from './access';
+import {hallTemplates} from '../../domain/streams/hall-quote'; // CU-TRN-FIX F17
 
 export const SLOT_LABEL:Record<HallSlot,string>={MORNING:'Morning',AFTERNOON:'Afternoon',EVENING:'Evening',FULL_DAY:'Full day'};
 export const SETUP_LABEL:Record<HallSetup,string>={THEATRE:'Theatre',ROUND:'Round tables',USHAPE:'U-shape',FLOATING:'Floating',CLASSROOM:'Classroom'};
@@ -80,7 +81,7 @@ export function hallDiscountState(s:State,uid:string,lines:readonly QuoteLine[])
 }
 /** Template for an event type (its own, else GENERAL) and the version in force on `date`, as a snapshot (the server / H2 stores the snapshot on SEND). */
 export function hallTncFor(s:State,eventType:HallEventType,date=s.date,templateId?:string):TncSnapshot|undefined{
-  const x=hallSlice(s),t:TncTemplate|undefined=x.templates.find(t=>t.id===templateId)??x.templates.find(t=>t.eventType===eventType)??x.templates.find(t=>t.eventType==='GENERAL');
+  const tp=hallTemplates(hallSlice(s)),t:TncTemplate|undefined=tp.find(t=>t.id===templateId)??tp.find(t=>t.eventType===eventType)??tp.find(t=>t.eventType==='GENERAL'); // CU-TRN-FIX F17: seeded until the first save
   if(!t)return undefined;
   const vs=[...t.versions].sort((a,b)=>b.v-a.v),v=vs.find(v=>v.effectiveFrom<=date)??vs[0];if(!v)return undefined;
   return {templateId:t.id,v:v.v,clauses:v.clauses,hasPlaceholder:hallHasPlaceholder(v.clauses)};
