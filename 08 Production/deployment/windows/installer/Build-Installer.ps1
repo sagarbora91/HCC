@@ -423,6 +423,7 @@ try {
                 Invoke-HccHeavy -Directory $proto -Command 'npm ci --prefer-offline --no-audit --no-fund' -What 'npm ci'
                 $nodeModulesMode = 'npm ci in the throw-away worktree'
             } catch {
+                if ($_.Exception.Message -match 'lock is busy') { throw }
                 Write-Warning "npm ci did not work here ($($_.Exception.Message)); reusing the existing node_modules of the real tree through a junction."
                 if (Test-Path -LiteralPath $nm) {
                     $item = Get-Item -LiteralPath $nm -Force
