@@ -973,7 +973,7 @@ try {
     function New-FakeRootStore([object[]]$Initial = @()) {
         $f = [pscustomobject]@{ Certs = (New-Object System.Collections.ArrayList); Calls = (New-Object System.Collections.ArrayList) }
         foreach ($c in $Initial) { [void]$f.Certs.Add($c) }
-        $f | Add-Member -MemberType ScriptMethod -Name Open -Value { param($flags) [void]$this.Calls.Add('open') }
+        $f | Add-Member -MemberType ScriptMethod -Name Open -Value { param($flags) [void]$this.Calls.Add('open:' + $flags) }
         $f | Add-Member -MemberType ScriptMethod -Name Close -Value { [void]$this.Calls.Add('close') }
         $f | Add-Member -MemberType ScriptMethod -Name Add -Value { param($c) [void]$this.Calls.Add('add:' + $c.Thumbprint); [void]$this.Certs.Add($c) }
         $f | Add-Member -MemberType ScriptMethod -Name Remove -Value { param($c) [void]$this.Calls.Add('remove:' + $c.Thumbprint); $this.Certs.Remove($c) }
@@ -1002,7 +1002,7 @@ try {
         $r1 = Remove-HccTrustedRoot -Sha256 $caSha -StoreFactory $sf
         $r2 = Remove-HccTrustedRoot -Sha256 $caSha -StoreFactory $sf
         $removes = @($fake.Calls | Where-Object { $_ -like 'remove:*' })
-        $w -eq 'whatif' -and $noRemoveYet -and $r1 -eq 'removed' -and $r2 -eq 'absent' -and $removes.Count -eq 1 -and $removes[0] -eq ('remove:' + $caCert.Thumbprint) -and $fake.Certs.Count -eq 1 -and (Throws { Remove-HccTrustedRoot -Sha256 'zz' -StoreFactory $sf })
+        $w -eq 'whatif' -and $noRemoveYet -and @($fake.Calls | Where-Object { $_ -eq 'open:ReadWrite' }).Count -eq 1 -and $r1 -eq 'removed' -and $r2 -eq 'absent' -and $removes.Count -eq 1 -and $removes[0] -eq ('remove:' + $caCert.Thumbprint) -and $fake.Certs.Count -eq 1 -and (Throws { Remove-HccTrustedRoot -Sha256 'zz' -StoreFactory $sf })
     }
 
     # --- Name Constraints content (item 1) ---------------------------------------------------------------------------------------------
@@ -1104,6 +1104,41 @@ try {
     Check 'INST-CLIENT HccClient.iss gating text: tick box and silent rule decided in NextButtonClick / PrepareToInstall, trusted list, wording points at the server PC' {
         $issText -match 'CurPageID = ConfirmPage\.ID\) and not WizardSilent' -and $issText -match 'InspectOk and ConfirmCheck\.Checked' -and $issText -match 'if WizardSilent then' -and $issText -match 'not ExpectedKnown' -and
         $issText -match 'ca-trusted\.txt' -and $issText -match '"added"|= ''added''' -and $issText -match 'SERVER PC' -and $issText -notmatch 'READ-ME\.txt of the kit'
+    }
+
+    # --- second audit round: allow-list for DNS names, duplicate extension, untrust guard, files swapped after the check ----------------
+    Check 'INST-CLIENT permitted DNS names are an allow-list: single-label names and private-use suffixes only; a real public name is refused and named' {
+        $okNames = foreach ($n in 'hotelpc', 'localhost', 'hotel.lan', 'pms.home.arpa', 'srv.local', 'a.internal', 'x.localdomain', 'x.intranet', 'x.corp', 'x.home') { (Get-NcInfo (Get-HccNameConstraintsDer -DnsNames @($n) -IpNetworks @('192.168.1.10')) $true).Ok }
+        $bad = foreach ($n in 'sbi.co.in', 'github.io', 'hotel.com', 'home.arpa', 'www.example.org', 'a.b.c.d') { Get-NcInfo (Get-HccNameConstraintsDer -DnsNames @($n) -IpNetworks @('192.168.1.10')) $true }
+        $sbi = Get-NcInfo (Get-HccNameConstraintsDer -DnsNames @('sbi.co.in') -IpNetworks @('192.168.1.10')) $true
+        -not ($okNames -contains $false) -and -not (@($bad | Where-Object { $_.Ok }).Count) -and $sbi.Error -match 'sbi\.co\.in' -and $sbi.Error -match 'real internet name' -and $realCa.Ok
+    }
+    Check 'INST-CLIENT the kit refuses early, naming the offending permitted name, when the CA permits a real public name' {
+        $f = Save-Cer (New-NcCert (Get-HccNameConstraintsDer -DnsNames @('hotel-pc', 'sbi.co.in') -IpNetworks @('192.168.1.10')) $true) 'public-name-ca.cer'
+        $o = Join-Path $ct 'kit-public'
+        $r = RunKit @('-ServerName', 'hotel-pc', '-HotelName', 'H', '-CaCer', $f, '-OutDir', $o, '-ClientSetupExe', $stub)
+        $r.Exit -ne 0 -and $r.Out -match 'sbi\.co\.in' -and -not (Test-Path -LiteralPath $o)
+    }
+    Check 'INST-CLIENT a certificate with two Name Constraints extensions is refused' {
+        $e1 = New-Object Security.Cryptography.X509Certificates.X509Extension('2.5.29.30', (Get-HccNameConstraintsDer -DnsNames @('hotel-pc') -IpNetworks @('192.168.1.10')), $true)
+        $e2 = New-Object Security.Cryptography.X509Certificates.X509Extension('2.5.29.30', (Get-HccNameConstraintsDer -DnsNames @('hotel-pc') -IpNetworks @('192.168.1.10')), $true)
+        $two = Get-HccNameConstraintInfo ([pscustomobject]@{ Extensions = @($e1, $e2) })
+        $one = Get-HccNameConstraintInfo ([pscustomobject]@{ Extensions = @($e1) })
+        -not $two.Ok -and $two.Error -match 'more than one' -and $one.Ok
+    }
+    Check 'INST-CLIENT Untrust (fake store) refuses a public-style root that a list names: not removed, store never opened read-write' {
+        $pub = New-TestCert 'CN=Some Public Root CA' $true $false
+        $pubSha = Get-HccCertificateSha256 $pub
+        $fake = New-FakeRootStore @($pub); $sf = { $fake }.GetNewClosure()
+        $r = Remove-HccTrustedRoot -Sha256 $pubSha -StoreFactory $sf
+        $leaf = New-TestCert 'CN=Leaf Server' $false $false
+        $fake2 = New-FakeRootStore @($leaf); $sf2 = { $fake2 }.GetNewClosure()
+        $r2 = Remove-HccTrustedRoot -Sha256 (Get-HccCertificateSha256 $leaf) -StoreFactory $sf2
+        $r -match '^refused' -and $fake.Certs.Count -eq 1 -and @($fake.Calls | Where-Object { $_ -like 'remove:*' -or $_ -eq 'open:ReadWrite' }).Count -eq 0 -and $r2 -match '^refused' -and $fake2.Certs.Count -eq 1
+    }
+    Check 'INST-CLIENT iss: PrepareToInstall stops when the files changed after the confirmation; uninstall keeps the trusted list while a certificate stays' {
+        $issText -match 'ShownSha := ApprovedSha' -and $issText -match 'ApprovedSha <> ShownSha' -and $issText -match 'ApprovedUrl <> ShownUrl' -and $issText -match 'The files changed after you checked them' -and
+        $issText -notmatch 'Name: "\{app\}\\ca-trusted\.txt"' -and $issText -match "DeleteFile\(ExpandConstant\('\{app\}\\ca-trusted\.txt'\)\)"
     }
     $iscc = Get-Command ISCC -ErrorAction SilentlyContinue
     if (-not $iscc) { foreach ($c in 'E:\Tools\Inno Setup 6\ISCC.exe', "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe", "$env:ProgramFiles\Inno Setup 6\ISCC.exe") { if (Test-Path $c) { $iscc = Get-Item $c; break } } }

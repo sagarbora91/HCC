@@ -95,3 +95,26 @@ See the last lines below (filled in after the runs).
 - ISCC: `ISCC /Q /DAppVersion=0.0.1.0 /DOutputDir=<temp> HccClient.iss` exit 0; the gating text is also asserted by a test, and the test suite compiles it again (and refuses without a version).
 - Full `tests\Test-HccDeployment.ps1`: Windows PowerShell 5.1 **Passed: 117 Failed: 0**; PowerShell 7 **Passed: 117 Failed: 0** (INST-CLIENT block now 25 checks).
 - Still NOT verified: everything in the trial-machine checklist above (Pascal at runtime, silent path, real store writes, launcher).
+
+---
+# Second fix round (after the second Opus audit) - 12 Nov 2026
+
+| # | Done |
+|---|---|
+| 1 | `HccClient.iss`: `FillConfirmPage` saves `ShownSha` / `ShownUrl`; when not silent, `PrepareToInstall` stops with "The files changed after you checked them. Nothing was installed." if the re-checked fingerprint or address differs. |
+| 2 | `Remove-HccTrustedRoot`: searches read-only first; removes only a self-signed CA whose Name Constraints pass `Get-HccNameConstraintInfo`, otherwise answers `refused: not an HCC hotel CA` (never a Microsoft / public root, whatever `ca-trusted.txt` says); `ShouldProcess` is asked before the store is opened read-write. Fake-store tests: a public-style root and a leaf are refused and the store is never opened read-write. |
+| 3 | Permitted DNS names are an allow-list (see Defaults used below), in the client and, through the same function, in `New-HccClientKit.ps1` (the kit refuses early and the message names the offending permitted name, tested with `sbi.co.in`). The CA built exactly as `New-HccCertificate.ps1` builds it is still accepted (tested). |
+| 4 | A certificate with more than one Name Constraints extension is refused (tested with a mock certificate object, because .NET cannot build a duplicate). |
+| 5 | Uninstall keeps `ca-trusted.txt` while any `added` certificate stays trusted (answer No / silent / a failed removal), and deletes it only when none remains. READ-ME says so (removal later in certlm.msc or by running the setup again). |
+
+## Defaults used (added)
+- **Private-use suffix allow-list for permitted DNS names:** a single-label name (for example `HOTELPC`, `localhost`; not a known top-level domain, not 1-2 letters) or a name with at least one label before one of: `.local`, `.lan`, `.internal`, `.home.arpa`, `.localdomain`, `.intranet`, `.corp`, `.home`. Every other dotted name is refused. **A hotel with a real DNS domain for the server (for example `hcc.hotel-example.in`) needs this list extended** (`$script:HccPrivateSuffixes` in `Hcc-ClientTrust.ps1`) or the name changed to a private one; this is an owner / keys-session decision.
+
+## Trial-machine checklist (added)
+11. Swap the `.cer` (and json) in the kit folder for another valid kit while the Ready page is open, then press Install: the setup must stop with "The files changed after you checked them", nothing trusted, no icon.
+12. Uninstall with answer No (or `/VERYSILENT`): the certificate stays and `ca-trusted.txt` stays in `{autopf}\HCC Client`; reinstall then offers it for removal when a different CA kit is installed. Uninstall with Yes and a successful removal: the file is deleted.
+13. A tampered `ca-trusted.txt` naming a Microsoft root: the setup / uninstall report `refused: not an HCC hotel CA` and the root stays.
+
+## Results of the second round
+- Full `tests\Test-HccDeployment.ps1`: Windows PowerShell 5.1 **Passed: 122 Failed: 0**; PowerShell 7 **Passed: 122 Failed: 0** (INST-CLIENT block 30 checks, includes ISCC compile and refusal without a version).
+- Plain ISCC compile of `HccClient.iss`: exit 0. Not verified: everything in the Trial-machine checklist (items 1-13).

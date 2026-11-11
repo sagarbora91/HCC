@@ -57,7 +57,6 @@ Name: "{commonprograms}\HCC"; Filename: "{sys}\wscript.exe"; Parameters: """{app
 
 [UninstallDelete]
 Type: files; Name: "{app}\server-url.txt"
-Type: files; Name: "{app}\ca-trusted.txt"
 
 [Code]
 const
@@ -72,6 +71,7 @@ var
   KitCer, KitCfg: String;
   HaveCer, HaveCfg: Boolean;
   InspectOk: Boolean;
+  ShownSha, ShownUrl: String;
   InspectError, ApprovedSha, ApprovedUrl, ApprovedHotel, ApprovedSubject, ApprovedDisplay, ApprovedUntil, ApprovedPermitted, TrustResult: String;
   ExpectedKnown: Boolean;
   PsExe: String;
@@ -218,6 +218,8 @@ begin
     ConfirmCheck.Enabled := True;
   end;
   ConfirmMemo.Text := T;
+  // What the person is shown and ticks: PrepareToInstall must trust exactly this, nothing else.
+  if InspectOk then begin ShownSha := ApprovedSha; ShownUrl := ApprovedUrl; end else begin ShownSha := ''; ShownUrl := ''; end;
   UpdateConfirmButtons;
 end;
 
@@ -312,10 +314,17 @@ begin
       Exit;
     end;
   end
-  else if not ConfirmCheck.Checked then
-  begin
-    Result := 'The HCC setup stopped and changed nothing. The certificate was not confirmed.';
-    Exit;
+  else begin
+    if not ConfirmCheck.Checked then
+    begin
+      Result := 'The HCC setup stopped and changed nothing. The certificate was not confirmed.';
+      Exit;
+    end;
+    if (ShownSha = '') or (ApprovedSha <> ShownSha) or (ApprovedUrl <> ShownUrl) then
+    begin
+      Result := 'The files changed after you checked them. Nothing was installed. Run the setup again and check the fingerprint again.';
+      Exit;
+    end;
   end;
   OutF := ExpandConstant('{tmp}\trust.txt');
   if not RunTrustScript(ExpandConstant('{tmp}\Hcc-ClientTrust.ps1'), '-Action Trust -CerPath "' + CurrentCer + '" -ExpectedSha256 "' + ApprovedSha + '"', OutF) then
@@ -394,20 +403,25 @@ begin
         if Copy(Lines[I], 66, Length(Lines[I])) = 'added' then Added := Added + 1;
       // Only certificates this setup added are offered. One that was already trusted before stays.
       // A silent uninstall keeps them (default answer No): only a person who answers Yes removes them.
-      if Added > 0 then
-        if SuppressibleMsgBox('The HCC icon is removed.' + #13#10 + #13#10 + 'Also remove the hotel certificate that this setup added to this PC? Choose No if other HCC tools on this PC still need it.',
-          mbConfirmation, MB_YESNO or MB_DEFBUTTON2, IDNO) = IDYES then
-        begin
-          Report := '';
-          for I := 0 to Lines.Count - 1 do
-            if Copy(Lines[I], 66, Length(Lines[I])) = 'added' then
-            begin
-              Sha := Copy(Lines[I], 1, 64);
-              R := UntrustSha(Sha);
-              Report := Report + ShortFp(Sha) + ': ' + R + #13#10;
-            end;
-          SuppressibleMsgBox('Hotel certificate result:' + #13#10 + Report, mbInformation, MB_OK, IDOK);
-        end;
+      // The list stays while any added certificate is still trusted, so a later reinstall can offer it again.
+      if Added = 0 then DeleteFile(ExpandConstant('{app}\ca-trusted.txt'))
+      else if SuppressibleMsgBox('The HCC icon is removed.' + #13#10 + #13#10 + 'Also remove the hotel certificate that this setup added to this PC? Choose No if other HCC tools on this PC still need it.',
+        mbConfirmation, MB_YESNO or MB_DEFBUTTON2, IDNO) = IDYES then
+      begin
+        Report := '';
+        Added := 0;
+        for I := Lines.Count - 1 downto 0 do
+          if Copy(Lines[I], 66, Length(Lines[I])) = 'added' then
+          begin
+            Sha := Copy(Lines[I], 1, 64);
+            R := UntrustSha(Sha);
+            Report := Report + ShortFp(Sha) + ': ' + R + #13#10;
+            if (R = 'removed') or (R = 'absent') then Lines.Delete(I) else Added := Added + 1;
+          end;
+        if Added = 0 then DeleteFile(ExpandConstant('{app}\ca-trusted.txt'))
+        else Lines.SaveToFile(ExpandConstant('{app}\ca-trusted.txt'));
+        SuppressibleMsgBox('Hotel certificate result:' + #13#10 + Report, mbInformation, MB_OK, IDOK);
+      end;
     finally
       Lines.Free;
     end;

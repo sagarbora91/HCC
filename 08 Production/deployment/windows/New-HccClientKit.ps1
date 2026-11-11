@@ -109,6 +109,7 @@ If the setup says the files could not be checked on a PC managed by an IT depart
 needs 64-bit Windows.
 
 Removing: Settings > Apps > "HCC (client)" > Uninstall. It removes the icon and asks whether to remove the certificate too.
+If you keep the certificate, running this setup again can offer to remove it later; or remove it in certlm.msc (Trusted Root).
 Do not copy this kit to phones or to PCs outside the hotel. Phones and tablets: see ANDROID_SERVER_ADDRESS.md on the server PC.
 "@
 [IO.File]::WriteAllText($readmeOut, ($readme -replace "`r?`n", "`r`n"), (New-Object Text.UTF8Encoding($true)))

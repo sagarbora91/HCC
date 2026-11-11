@@ -127,26 +127,31 @@ function Test-HccPrivateRange {
     if ($Range.Prefix -eq 128 -and (Test-HccIpInRange $Range.Address ([pscustomobject]@{ Family = 6; Address = $loop; Prefix = 128 }))) { return $true }
     return ($Range.Prefix -ge 7 -and (([int]$Range.Address[0] -band 254) -eq 252))
 }
-$script:HccPublicSuffixes = @('com', 'net', 'org', 'edu', 'gov', 'mil', 'int', 'info', 'biz', 'name', 'pro', 'io', 'co', 'in', 'us', 'uk', 'de', 'fr', 'cn', 'ru', 'app', 'dev', 'xyz', 'online', 'site', 'shop', 'tech', 'cloud', 'local', 'lan', 'internal', 'home', 'corp', 'localdomain', 'test', 'example', 'invalid',
-    'co.in', 'org.in', 'net.in', 'gov.in', 'ac.in', 'edu.in', 'res.in', 'firm.in', 'gen.in', 'ind.in', 'nic.in', 'co.uk', 'org.uk', 'ac.uk', 'gov.uk', 'com.au', 'net.au', 'org.au', 'co.nz', 'com.cn', 'co.jp', 'com.br', 'co.za')
+$script:HccPublicSuffixes = @('com', 'net', 'org', 'edu', 'gov', 'mil', 'int', 'info', 'biz', 'name', 'pro', 'io', 'co', 'in', 'us', 'uk', 'de', 'fr', 'cn', 'ru', 'app', 'dev', 'xyz', 'online', 'site', 'shop', 'tech', 'cloud', 'local', 'lan', 'internal', 'home', 'corp', 'localdomain', 'test', 'example', 'invalid')
+$script:HccPrivateSuffixes = @('local', 'lan', 'internal', 'home.arpa', 'localdomain', 'intranet', 'corp', 'home')
 function Test-HccPermittedDnsName {
-    # $null when acceptable, else the reason
+    # Allow-list: a single-label name (HOTELPC, localhost) or a name under a private-use suffix. $null when acceptable, else the reason.
     param([string]$Name)
     $d = $Name.Trim().ToLowerInvariant()
     if (-not $d) { return 'an empty name is permitted' }
     if ($d.StartsWith('.')) { return "'$d' starts with a dot (it would cover a whole domain)" }
     if ($d -match '[*\s]') { return "'$d' contains a wildcard" }
     if ($d -notmatch '^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$') { return "'$d' is not a plain host name" }
-    if ($script:HccPublicSuffixes -contains $d) { return "'$d' is a whole top-level domain" }
-    if ($d -notmatch '\.' -and $d.Length -le 2) { return "'$d' is a country-code top-level domain" }
-    return $null
+    if ($d -notmatch '\.') {
+        if ($script:HccPublicSuffixes -contains $d) { return "'$d' is a whole top-level domain" }
+        if ($d.Length -le 2) { return "'$d' is a country-code top-level domain" }
+        return $null
+    }
+    foreach ($suf in $script:HccPrivateSuffixes) { if ($d.EndsWith('.' + $suf)) { return $null } }
+    return "'$d' looks like a real internet name; HCC accepts only single-label names or names ending in .$($script:HccPrivateSuffixes -join ', .')"
 }
 function Get-HccNameConstraintInfo {
     # Parses the Name Constraints extension of the CA and decides whether it really limits the CA to the hotel server.
-    param([Security.Cryptography.X509Certificates.X509Certificate2]$Cert)
+    param($Cert)
     $r = [pscustomobject]@{ Ok = $false; Error = ''; PermittedDns = @(); PermittedIp = @(); ExcludedDns = @(); ExcludedIp = @(); Permitted = '' }
     $ext = @($Cert.Extensions | Where-Object { $_.Oid.Value -eq '2.5.29.30' })
     if ($ext.Count -eq 0) { $r.Error = 'This CA has no name restriction, so it could vouch for any website. HCC only installs a CA limited to the hotel server. Make a new certificate on the server (New-HccCertificate.ps1) and a new client kit.'; return $r }
+    if ($ext.Count -ne 1) { $r.Error = 'This CA has more than one name restriction, which is not valid.'; return $r }
     if (-not $ext[0].Critical) { $r.Error = 'The name restriction of this CA is not marked critical, so some programs would ignore it. Make a new certificate on the server and a new client kit.'; return $r }
     $pd = New-Object System.Collections.Generic.List[string]; $pi = New-Object System.Collections.Generic.List[object]
     $ed = New-Object System.Collections.Generic.List[string]; $ei = New-Object System.Collections.Generic.List[object]
@@ -329,17 +334,32 @@ function Add-HccTrustedRoot {
 }
 
 function Remove-HccTrustedRoot {
+    # Removes only a certificate that is an HCC-style hotel CA (self-signed CA with private-network Name Constraints). A Microsoft or public
+    # root is never removed, whatever the caller's list says.
     [CmdletBinding(SupportsShouldProcess)]
     param([string]$Sha256, [scriptblock]$StoreFactory = { New-Object Security.Cryptography.X509Certificates.X509Store('Root', [Security.Cryptography.X509Certificates.StoreLocation]::LocalMachine) })
     $want = ConvertTo-HccFingerprint $Sha256
     if (-not $want) { throw 'Not a SHA-256 fingerprint.' }
-    $store = & $StoreFactory   # the seam: tests pass a fake store, so no test touches LocalMachine\Root
+    $find = {
+        param($Flags)
+        $st = & $StoreFactory
+        try {
+            $st.Open($Flags)
+            return , @($st.Certificates | Where-Object { (Get-HccCertificateSha256 $_) -eq $want })
+        }
+        finally { $st.Close() }
+    }
+    $hit = & $find ([Security.Cryptography.X509Certificates.OpenFlags]::ReadOnly)
+    if ($hit.Count -eq 0) { return 'absent' }
+    foreach ($c in $hit) {
+        $isCa = @($c.Extensions | Where-Object { $_.Oid.Value -eq '2.5.29.19' -and $_.CertificateAuthority }).Count -gt 0
+        if (-not $isCa -or $c.Subject -ne $c.Issuer -or -not (Get-HccNameConstraintInfo $c).Ok) { return 'refused: not an HCC hotel CA' }
+    }
+    if (-not $PSCmdlet.ShouldProcess('LocalMachine\Root', "Remove the hotel CA $want")) { return 'whatif' }
+    $store = & $StoreFactory   # opened read-write only now
     try {
         $store.Open([Security.Cryptography.X509Certificates.OpenFlags]::ReadWrite)
-        $hit = @($store.Certificates | Where-Object { (Get-HccCertificateSha256 $_) -eq $want })
-        if ($hit.Count -eq 0) { return 'absent' }
-        if (-not $PSCmdlet.ShouldProcess('LocalMachine\Root', "Remove the hotel CA $want")) { return 'whatif' }
-        foreach ($c in $hit) { $store.Remove($c) }
+        foreach ($c in @($store.Certificates | Where-Object { (Get-HccCertificateSha256 $_) -eq $want })) { $store.Remove($c) }
         return 'removed'
     }
     finally { $store.Close() }
