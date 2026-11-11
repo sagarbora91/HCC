@@ -241,7 +241,7 @@ public sealed class AccountingVoucherProjector(SqlConnectionFactory connections,
             {
                 var e = Parse<Hcc.Application.Counter.CounterBillPostedEvent>(evt);
                 var tender = e.Mode == "paid" && e.Tender is { } t ? await TenderPartyAsync(connection, transaction, propertyId, t, ct).ConfigureAwait(false) : null;
-                source = AccountingEventMapper.CounterBill(e, evt.EventType == AccountingEvents.CounterBillCredited, new PartyContext(Tender: tender));
+                source = AccountingEventMapper.CounterBill(e, evt.EventType == AccountingEvents.CounterBillCredited, new PartyContext(Tender: tender, Udhaar: e.Mode == "udhaar" ? await CounterUdhaarPartyAsync(connection, transaction, propertyId, e.BillId, e.PartyName, e.PartyPhone, ct).ConfigureAwait(false) : null)); // CU digits: the payload holds no number
                 break;
             }
 
@@ -553,6 +553,16 @@ public sealed class AccountingVoucherProjector(SqlConnectionFactory connections,
         cmd.Parameters.Set("@r", SqlDbType.BigInt, receivableId);
         await using var rd = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
         return await rd.ReadAsync(ct).ConfigureAwait(false) ? PartyLedgers.Udhaar(rd.GetString(0), rd.IsDBNull(1) ? null : rd.GetString(1)) : PartyLedgers.Udhaar(customer, null);
+    }
+
+    /// <summary>CU digits: the Udhaar party of a counter bill (UD-&lt;10-digit mobile&gt;, else UD-&lt;slug of name&gt;) read from ctr.bill, because the outbox payload carries only the masked number.</summary>
+    private static async Task<string> CounterUdhaarPartyAsync(SqlConnection c, SqlTransaction t, int propertyId, long billId, string fallbackName, string? fallbackPhone, CancellationToken ct)
+    {
+        await using var cmd = new SqlCommand("SELECT party_name, party_phone FROM ctr.bill WHERE bill_id = @b AND property_id = @p;", c, t);
+        cmd.Parameters.Set("@b", SqlDbType.BigInt, billId);
+        cmd.Parameters.Set("@p", SqlDbType.Int, propertyId);
+        await using var rd = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+        return await rd.ReadAsync(ct).ConfigureAwait(false) ? PartyLedgers.Udhaar(rd.GetString(0), rd.IsDBNull(1) ? null : rd.GetString(1)) /* row missing: an old payload still carries the number (exact UD-<mobile>); a masked one has 4 digits and falls to the name slug */ : PartyLedgers.Udhaar(fallbackName, fallbackPhone);
     }
 
     /// <summary>LF B2: the Udhaar party of a guest-credit receipt = UD-&lt;the guest's credit account key&gt; (4691 links the receivable to the receipt).</summary>

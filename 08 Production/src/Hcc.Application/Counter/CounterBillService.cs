@@ -8,6 +8,7 @@ using Hcc.Application.Tax;
 using Hcc.Contracts;
 using Hcc.Contracts.Billing;
 using Hcc.Contracts.Invoices;
+using Hcc.Domain.Audit;
 using Hcc.Domain.Billing;
 using Hcc.Domain.Counter;
 using Hcc.Domain.Errors;
@@ -15,6 +16,7 @@ using Hcc.Domain.Groups;
 using Hcc.Domain.Invoices;
 using Hcc.Domain.Money;
 using Hcc.Domain.Payments;
+using Hcc.Domain.Stays;
 using Hcc.Domain.Tax;
 
 namespace Hcc.Application.Counter;
@@ -232,7 +234,7 @@ public sealed class CounterBillService(ICommandRunner runner, IAccessPolicy poli
 
             await store.SetSettlementAsync(tx, billId, cash ? s.TillId : null, movementId, udhaarId, c).ConfigureAwait(false);
             await tx.AuditAsync("COUNTER_BILL_ISSUED", "counter-" + N(billId),
-                $"{issued.InvoiceNo} · {name} · {priced.Count} line(s) · net {totals.Net.Value} + tax {totals.Tax.Value} = {totals.Total.Value} · {mode}" + (discount.Value > 0 ? $" · discount {discount.Value}" : ""), c).ConfigureAwait(false);
+                $"{issued.InvoiceNo} · {PhoneDigitsScrub.Scrub(name)} · {priced.Count} line(s) · net {totals.Net.Value} + tax {totals.Tax.Value} = {totals.Total.Value} · {mode}" + (discount.Value > 0 ? $" · discount {discount.Value}" : ""), c).ConfigureAwait(false);
             await tx.PublishAsync(EventIssued, billId, Posted(billId, issued.InvoiceNo, bd, mode, tender, name, phone, companyId, priced, discount, totals), c).ConfigureAwait(false);
             return new CounterBillResult(billId, issued.InvoiceNo, totals.Net.Value, totals.Tax.Value, totals.Cgst.Value, totals.Sgst.Value, totals.Total.Value, mode, udhaarId, "Issued");
         }, ct).ConfigureAwait(false);
@@ -329,7 +331,9 @@ public sealed class CounterBillService(ICommandRunner runner, IAccessPolicy poli
         IReadOnlyList<CounterLine> lines, Paise discount, CounterTotals t)
     {
         long Sum(Func<CounterLine, bool> f) => lines.Where(f).Sum(l => l.Amount.Value);
-        return new CounterBillPostedEvent(billId, no, date, mode, tender, name, phone, companyId, Sum(l => l.Category == GstCategory.Food), Sum(l => l.Category == GstCategory.Room),
+        // CU digits: the outbox never carries the raw number. The phone travels as the "••••••1234" display mask and the name is scrubbed; the accounting
+        // projector reads the real Udhaar party (UD-<mobile>) from ctr.bill itself (see AccountingVoucherProjector, counter cases).
+        return new CounterBillPostedEvent(billId, no, date, mode, tender, PhoneDigitsScrub.Scrub(name), string.IsNullOrEmpty(phone) ? null : GuestRules.MaskPhone(phone), companyId, Sum(l => l.Category == GstCategory.Food), Sum(l => l.Category == GstCategory.Room),
             Sum(l => l.Category is not (GstCategory.Food or GstCategory.Room)), discount.Value, t.Cgst.Value, t.Sgst.Value, t.Total.Value);
     }
 

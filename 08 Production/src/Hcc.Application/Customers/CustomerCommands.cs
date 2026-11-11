@@ -31,16 +31,13 @@ public sealed class CustomerCommands(ICommandRunner runner, IAccessPolicy policy
     /// <summary>AF2 (phone digits): the audit target is the opaque ck_ token, never the raw key (a mobile number for walk-in customers).</summary>
     private static string Target(CustomerKeySpace keys, string rawKey) => "crm:" + keys.TokenOf(rawKey);
 
-    /// <summary>A run of digits joined by spaces, hyphens, plus signs or parentheses ("+91 (98765) 43-210"), starting and ending on a digit.</summary>
-    private static readonly System.Text.RegularExpressions.Regex DigitRun = new(@"[+(]*\d(?:[\s\-+()]*\d)*\)?", System.Text.RegularExpressions.RegexOptions.CultureInvariant);
-
     /// <summary>A customer name goes into audit text; a name that is itself a phone number (or holds one) is masked so no raw number reaches the audit trail.
     /// af2-fix: a name whose digits total 8 or more (spaces, hyphens, plus signs and parentheses ignored) has every digit run masked, so
     /// "98765 43210" or "+91-98765-43210" no longer slips through; names with fewer digits (and Devanagari / ordinary names) are unchanged.</summary>
     internal static string SafeName(string? name)
     {
         var s = name ?? string.Empty;
-        return s.Count(char.IsDigit) >= 8 ? DigitRun.Replace(s, "***") : s;
+        return s.Count(char.IsDigit) >= 8 ? Hcc.Domain.Audit.PhoneDigitsScrub.DigitRun.Replace(s, "***") : s;
     }
 
     /// <summary>
