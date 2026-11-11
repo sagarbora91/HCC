@@ -300,6 +300,10 @@ try {
     Step 'Inno Setup compiler'
     $iscc = Resolve-HccInnoSetupCompiler -Requested $InnoSetupCompiler
     $isccVersion = (Get-Item -LiteralPath $iscc).VersionInfo.ProductVersion
+    if (-not $isccVersion -or $isccVersion -eq '0.0.0.0') {
+        $uninst = Join-Path (Split-Path -Parent $iscc) 'unins000.exe'
+        $isccVersion = if (Test-Path -LiteralPath $uninst) { 'Inno Setup ' + (Get-Item -LiteralPath $uninst).VersionInfo.ProductVersion.Trim() } else { 'unknown' }
+    }
     $isccSig = (Get-AuthenticodeSignature -LiteralPath $iscc).Status
     Write-Host "ISCC: $iscc  (version $isccVersion, signature $isccSig)"
 
@@ -376,6 +380,15 @@ try {
     }
     $env:HCC_RELEASE = 'true'
 
+    $nodeModulesMode = 'n/a (existing publish folder)'
+    if ($useWorktree) {
+        Step 'Throw-away worktree of the current commit'
+        $r = Invoke-HccNative -File $script:Git -Arguments @('-C', $repo, 'worktree', 'add', '--detach', $srcRoot, $commit) -Show
+        if ($r.Code -ne 0) { throw "git worktree add failed (exit $($r.Code))." }
+        $worktreePath = $srcRoot
+        foreach ($f in @($ClientIss, $ServerIss)) { if (-not (Test-Path -LiteralPath $f -PathType Leaf)) { throw "Installer script not found in the built commit: $f" } }
+    }
+
     $sqlIncluded = $false
     if ($sqlSource) {
         Step 'SQL Server media'
@@ -396,15 +409,6 @@ try {
         $sqlIncluded = $true
     } else {
         Write-Warning 'SQL payload skipped: the server installer will NOT be able to install SQL Server by itself.'
-    }
-
-    $nodeModulesMode = 'n/a (existing publish folder)'
-    if ($useWorktree) {
-        Step 'Throw-away worktree of the current commit'
-        $r = Invoke-HccNative -File $script:Git -Arguments @('-C', $repo, 'worktree', 'add', '--detach', $srcRoot, $commit) -Show
-        if ($r.Code -ne 0) { throw "git worktree add failed (exit $($r.Code))." }
-        $worktreePath = $srcRoot
-        foreach ($f in @($ClientIss, $ServerIss)) { if (-not (Test-Path -LiteralPath $f -PathType Leaf)) { throw "Installer script not found in the built commit: $f" } }
     }
 
     if ($PublishDir) {
