@@ -3,6 +3,7 @@ using System.Text.Json;
 using Hcc.Application.Accounting;
 using Hcc.Contracts;
 using Hcc.Contracts.Accounting;
+using Hcc.Contracts.Billing;
 using Hcc.Contracts.Expenses;
 using Hcc.Domain.Accounting;
 using Hcc.Domain.Errors;
@@ -215,6 +216,44 @@ public class PurchaseSqlTests(ExpensesDb db) : IClassFixture<ExpensesDb>
         var later = AccountingEventMapper.VendorPaymentVoid(new VendorPaymentEvent(9, new DateOnly(2026, 10, 20), code, v, "UPI", 50_000, 0, VoidDate: ExpensesDb.Day, VoidReason: "Bounced"))!;
         Assert.Equal((ExpensesDb.Day, "vendor-payment-void", "vendor-payment:9/void"), (later.BusinessDate, later.Sub, later.SourceKey));
         Assert.Equal(new[] { (SourceRules.VendorPayableKey, 0L, 50_000L), ("method:UPI", 50_000L, 0L) }, later.Entries.Select(e => (e.MapKey, e.DebitPaise, e.CreditPaise)).ToList());
+    }
+
+    // FX-SMALL: the Cashier shift page (GetShiftAsync), the cash desk (GetCashDeskAsync) and the shift-close command (SubmitShiftCountAsync) all read the same
+    // pay.cash_movement rows through CashDrawer.Expected, so the page's expected cash cannot differ from what the close compares against (prototype F14 was the demo's own gap).
+    [Fact]
+    public async Task Expected_cash_on_the_shift_page_and_the_cash_desk_equals_what_the_close_command_compares_to_the_paisa_with_vendor_payments_included()
+    {
+        var (till, shift) = await db.OpenTillAsync(500_000);
+        var cat = await CategoryAsync();
+        var (code, v) = await VendorAsync();
+        await BillAsync(v, cat, 300_000);
+        await db.Vendor.PayAsync(db.Ctx(Who.Manager), new RecordVendorPaymentRequest(code, 120_345, "Cash", TillId: till), Ct);
+        var exp = await db.SubmitAsync(Who.Cashier, "Aqua Water Cans", 30_075);
+        await db.ApproveAsync(Who.Manager, exp, till);
+        const long want = 500_000 - 120_345 - 30_075;   // float less the cash vendor payment less the cash expense = 349,580 paise
+        var page = await db.Billing.GetShiftAsync(db.As(Who.Owner), shift.ShiftId, Ct);
+        Assert.Equal(want, page.Expected.ExpectedPaise);
+        Assert.True(page.Expected.Consistent);
+        Assert.Contains(page.Movements, m => m.AmountPaise == -120_345);
+        var desk = await db.Billing.GetCashDeskAsync(db.As(Who.Owner), Ct);
+        Assert.Equal(want, desk.Tills.Single(t => t.Till.TillId == till).Expected!.ExpectedPaise);
+        // One paisa short is a difference that needs a reason and a second person; the expected the command records is the page's figure.
+        var short1 = (await db.Cashier.SubmitShiftCountAsync(db.As(Who.Cashier), ExpensesDb.Key(), new SubmitShiftCountRequest(shift.ShiftId, want - 1, null, null, "One paisa short", page.Shift.Version), Ct)).Value;
+        Assert.Equal(("Submitted", (long?)want, (long?)(want - 1)), (short1.Status, short1.ExpectedPaise, short1.CountedPaise));
+    }
+
+    [Fact]
+    public async Task The_exact_count_of_the_expected_cash_on_the_page_closes_the_shift_with_no_difference_after_a_cash_vendor_payment()
+    {
+        var (till, shift) = await db.OpenTillAsync(250_000);
+        var cat = await CategoryAsync();
+        var (code, v) = await VendorAsync();
+        await BillAsync(v, cat, 90_000);
+        await db.Vendor.PayAsync(db.Ctx(Who.Manager), new RecordVendorPaymentRequest(code, 45_001, "Cash", TillId: till), Ct);
+        var page = await db.Billing.GetShiftAsync(db.As(Who.Owner), shift.ShiftId, Ct);
+        Assert.Equal(204_999, page.Expected.ExpectedPaise);
+        var closed = (await db.Cashier.SubmitShiftCountAsync(db.As(Who.Cashier), ExpensesDb.Key(), new SubmitShiftCountRequest(shift.ShiftId, page.Expected.ExpectedPaise, null, null, null, page.Shift.Version), Ct)).Value;
+        Assert.Equal(("Closed", (long?)204_999, (long?)204_999), (closed.Status, closed.ExpectedPaise, closed.CountedPaise));
     }
 
     [Fact]

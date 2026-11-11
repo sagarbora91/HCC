@@ -404,7 +404,7 @@ public sealed class SqlHallStore(SqlConnectionFactory connections) : IHallStore
         }
 
         await using (var cmd = Q(conn, """
-            SELECT v.version_id, v.quotation_id, v.v, v.status, v.event_type, v.dates, v.slot, v.venue_id, v.setup, v.pax, v.guaranteed_pax, v.valid_until, v.created_utc, v.sent_utc, v.override_reason
+            SELECT v.version_id, v.quotation_id, v.v, v.status, v.event_type, v.dates, v.slot, v.venue_id, v.setup, v.pax, v.guaranteed_pax, v.valid_until, v.created_utc, v.sent_utc, v.override_reason, v.tnc_template_code, v.tnc_v
             FROM hall.quotation_version v JOIN hall.quotation q ON q.quotation_id = v.quotation_id WHERE q.property_id = @p ORDER BY v.quotation_id, v.v;
             """, propertyId))
         await using (var r = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false))
@@ -413,7 +413,8 @@ public sealed class SqlHallStore(SqlConnectionFactory connections) : IHallStore
                 var vid = r.GetInt64(0);
                 if (!versions.TryGetValue(r.GetInt64(1), out var l)) versions[r.GetInt64(1)] = l = [];
                 l.Add(new HallQuotationVersionView(r.GetInt32(2), r.GetString(3), r.GetString(4), Split(r.GetString(5)), r.GetString(6), r.GetInt32(7), r.GetString(8), r.GetInt32(9), r.GetInt32(10), Wire(Day(r, 11)),
-                    Utc(r.GetDateTime(12)), r.IsDBNull(13) ? null : Utc(r.GetDateTime(13)), S(r, 14), lines.GetValueOrDefault(vid) ?? [], adv.GetValueOrDefault(vid) ?? []));
+                    Utc(r.GetDateTime(12)), r.IsDBNull(13) ? null : Utc(r.GetDateTime(13)), S(r, 14), lines.GetValueOrDefault(vid) ?? [], adv.GetValueOrDefault(vid) ?? [],
+                    S(r, 15), r.IsDBNull(16) ? null : r.GetInt32(16))); // FX-SMALL: locked T&C version
             }
 
         return heads.Select(h => new HallQuotationView(h.Id, h.Number, h.Fy, h.Enq, h.Cur, h.Name, h.Phone, h.Co, versions.GetValueOrDefault(h.Id) ?? []))

@@ -27,6 +27,26 @@ export async function register({test,M,assert}){
     for(const e of bare.events){for(const k of ['totalPaise','taxablePaise','cgstPaise','sgstPaise','advanceAppliedPaise','balancePaise'])e[k]=null;e.invoiceNo=null;e.invoiceId=null;e.receipts=[];e.advance=[];for(const l of e.lines){l.ratePaise=null;l.listRatePaise=null;l.discountPaise=null;}}
     const h=X.hallFromServer(bare);assert.equal(h.events[0].invoice,undefined);assert.equal(h.venues[0].slots[0].ratePaise,0);assert.equal(h.events[0].lines[0].ratePaise,0);
   });
+  // FX-SMALL: the Owner's saved terms round-trip through the production sync (they were dropped: templates:[] and an empty snapshot on every quotation).
+  const terms=[{templateId:2,code:'T-WEDDING',eventType:'WEDDING',versions:[{v:1,effectiveFrom:'2026-04-01',clauses:[{n:1,heading:'OWNER TO REPLACE',text:'OWNER TO REPLACE'}]},
+    {v:2,effectiveFrom:'2026-11-01',clauses:[{n:1,heading:'Payment',text:'Balance on the day of the event.'},{n:2,heading:'Cancellation',text:'Advance is kept after 7 days.'}]}]}];
+  const qv=(v,status,sentUtc,tc,tv)=>({v,status,eventType:'WEDDING',dates:['2026-12-05'],slot:'EVENING',venueId:1,setup:'ROUND',pax:120,guaranteedPax:100,validUntil:'2026-11-20',createdUtc:'2026-11-05T05:30:00Z',sentUtc,overrideReason:null,lines:[],advance:[],tncTemplateCode:tc,tncV:tv});
+  const withQ={...snap,quotations:[{quotationId:4,number:'QT/2627/0001',fy:'2627',enquiryId:7,currentVersion:2,customerName:'Test',customerPhone:'9000000001',companyId:null,
+    versions:[qv(1,'SUPERSEDED','2026-11-05T06:00:00Z','T-WEDDING',1),qv(2,'DRAFT',null,null,null)]}]};
+  test('[HSYNC] FX-SMALL saved hall terms: templates come from the server, a sent quotation keeps its locked version, a draft shows the version in force',()=>{
+    const h=X.hallFromServer(withQ,terms);
+    assert.equal(h.templates.length,1);assert.equal(h.templates[0].id,'T-WEDDING');assert.equal(h.templates[0].versions[1].clauses[0].heading,'Payment');
+    const [v1,v2]=h.quotations[0].versions;
+    assert.equal(v1.tnc.templateId,'T-WEDDING');assert.equal(v1.tnc.v,1);assert.equal(v1.tnc.hasPlaceholder,true);   // locked to v1 when it was sent
+    assert.equal(v2.tnc.v,2);assert.equal(v2.tnc.clauses.length,2);assert.equal(v2.tnc.hasPlaceholder,false);assert.equal(v2.tnc.clauses[1].text,'Advance is kept after 7 days.');
+    assert.equal(X.hallFromServer(withQ).templates.length,0);   // nothing saved yet: seeded placeholder terms stay in force (no crash, no empty terms)
+  });
+  test('[HSYNC] FX-SMALL loader reads GET /hall/templates and survives a role without it',async()=>{
+    const calls=[],mk=fail=>({api:{get:async u=>{calls.push(u);if(u==='/hall/templates'){if(fail)throw new Error('403');return terms;}return withQ;}},ids:{learn(){}}});
+    const L=X.hall.loaders[0];assert.ok(L.reads.includes('GET /hall/templates'));
+    const ok=await L.load(mk(false));assert.equal(ok.templates[0].versions.length,2);assert.equal(ok.quotations[0].versions[1].tnc.v,2);
+    const bad=await L.load(mk(true));assert.equal(bad.templates.length,0);assert.ok(bad.quotations[0].versions[1].tnc.clauses.length>0);
+  });
   test('[HSYNC] area: registered once, owns hallX, maps the money commands and lists H2 / groups commands as unmapped with a reason',()=>{
     assert.equal(X.AREAS.filter(a=>a.id==='hall').length,1);
     const mapped=X.hall.commands.map(c=>c.type);

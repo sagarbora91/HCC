@@ -9,8 +9,10 @@
 //   not yet   HALL_ROOM_BLOCK (the server blocks rooms inside AcceptQuotation when the request names roomBlock), HALL_NIGHT_RUN (the server night run does it), hall-menu master writes.
 import {HccClientError} from '../errors';
 import type {SyncArea} from './types';
-import type {HallState,Venue,Enquiry,Quotation,QuoteVersion,QuoteLine,AdvanceRow,HallEvent,HallReceipt,HallInvoice} from '../../domain/streams/hall';
+import type {HallState,TncTemplate,TncSnapshot,Venue,Enquiry,Quotation,QuoteVersion,QuoteLine,AdvanceRow,HallEvent,HallReceipt,HallInvoice} from '../../domain/streams/hall';
 import {hallSeed} from '../../fixtures/ext/hall';
+import {hallTncSnapshot} from '../../domain/streams/hall-quote'; // FX-SMALL
+import {hallHasPlaceholder} from '../../domain/streams/hall';
 import {mnyPick,mnySameMethod,mnyIsDrawer} from '../../domain/streams/money-master';
 import {shiftClosedText} from './money';
 import type {State} from '../../domain/types';
@@ -34,7 +36,9 @@ type SrvVenue={venueId:number;code:string;name:string;kind:string;active:boolean
   slots:{slot:string;from:string;to:string;ratePaise:number|null;minPlates:number|null}[]};
 type SrvEnquiry={enquiryId:number;name:string;phone:string;eventType:string;dates:string[];slot:string;pax:number;venueId:number|null;source:string;followUp:string;note:string|null;status:string;
   lostReasonId:string|null;lostNote:string|null;softVenueId:number|null;softUntil:string|null;version:number;guestId:number|null;companyId:number|null;createdUtc:string};
-type SrvVersion={v:number;status:string;eventType:string;dates:string[];slot:string;venueId:number;setup:string;pax:number;guaranteedPax:number;validUntil:string;createdUtc:string;sentUtc:string|null;
+/** FX-SMALL: GET /hall/templates row (the Owner's saved T&C; code is the template id, e.g. T-WEDDING). */
+export type SrvTncTemplate={templateId?:number;code:string;eventType:string;versions:{v:number;effectiveFrom:string;clauses:{n:number;heading:string;text:string}[]}[]};
+type SrvVersion={tncTemplateCode?:string|null;tncV?:number|null;v:number;status:string;eventType:string;dates:string[];slot:string;venueId:number;setup:string;pax:number;guaranteedPax:number;validUntil:string;createdUtc:string;sentUtc:string|null;
   overrideReason:string|null;lines:SrvLine[];advance:SrvAdv[]};
 type SrvQuotation={quotationId:number;number:string;fy:string;enquiryId:number;currentVersion:number;customerName:string;customerPhone:string;companyId:number|null;versions:SrvVersion[]};
 type SrvReceipt={receiptId:number;date:string;kind:string;tender:string|null;companyId:number|null;udhaar:boolean;reference:string|null;amountPaise:number|null;atUtc:string};
@@ -55,7 +59,7 @@ const quoLines=(ls:any)=>Array.isArray(ls)?ls.map((l:any)=>({kind:String(l.kind)
   listRatePaise:l.listRatePaise===undefined?undefined:Number(l.listRatePaise),discountPaise:Number(l.discountPaise??0),gstClass:l.gstClass})):undefined;
 const quoAdvance=(a:any)=>Array.isArray(a)&&a.length?a.map((r:any)=>({due:String(r.due),pctBps:r.pctBps,amountPaise:r.amountPaise,label:r.label})):undefined;
 /** GET /hall/snapshot → s.hallX (pure; the prototype screens and rules read this shape). */
-export function hallFromServer(r:SrvHallSnapshot):HallState{
+export function hallFromServer(r:SrvHallSnapshot,srvTemplates:readonly SrvTncTemplate[]=[]):HallState{
   const seed=hallSeed(),code=new Map(r.venues.map(v=>[v.venueId,v.code]));
   const vc=(id:number|null|undefined)=>(id===null||id===undefined?undefined:code.get(id)??'V-'+id);
   const venues:Venue[]=r.venues.map(v=>({id:v.code,name:v.name,kind:v.kind as Venue['kind'],capacity:v.capacity as Venue['capacity'],active:v.active,version:v.version,gstClass:v.gstClass,
@@ -65,11 +69,19 @@ export function hallFromServer(r:SrvHallSnapshot):HallState{
     ...(q.venueId!==null?{venueId:vc(q.venueId)}:{}),source:q.source as Enquiry['source'],followUp:q.followUp,...(q.note?{note:q.note}:{}),status:q.status as Enquiry['status'],
     ...(q.lostReasonId?{lostReasonId:q.lostReasonId}:{}),...(q.lostNote?{lostNote:q.lostNote}:{}),
     ...(q.softVenueId!==null&&q.softUntil?{softHold:{venueId:vc(q.softVenueId)!,until:q.softUntil+'T23:59',by:''}}:{}),createdAt:clock(q.createdUtc),version:q.version}));
+  // FX-SMALL: the Owner's saved terms (empty list = nothing saved yet, so the seeded placeholders stay in force, same as the demo).
+  const templates:TncTemplate[]=srvTemplates.map(t=>({id:t.code,eventType:t.eventType as TncTemplate['eventType'],
+    versions:t.versions.map(v=>({v:v.v,effectiveFrom:v.effectiveFrom,clauses:v.clauses.map(c=>({n:c.n,heading:c.heading,text:c.text}))}))}));
+  const tncOf=(v:SrvVersion):TncSnapshot=>{
+    const locked=v.tncTemplateCode&&v.tncV?templates.find(t=>t.id===v.tncTemplateCode)?.versions.find(x=>x.v===v.tncV):undefined;
+    if(locked&&v.tncTemplateCode){const clauses=locked.clauses.map(c=>({...c}));return {templateId:v.tncTemplateCode,v:locked.v,clauses,hasPlaceholder:!clauses.length||hallHasPlaceholder(clauses)};}
+    return hallTncSnapshot({...seed,templates} as HallState,v.eventType as Quotation['versions'][number]['header']['eventType'],(v.sentUtc??v.createdUtc).slice(0,10)); // a draft shows the version in force that day
+  };
   const quotations:Quotation[]=r.quotations.map(q=>({id:'QUO-'+q.quotationId,number:q.number,fy:q.fy,enquiryId:'ENQ-'+q.enquiryId,currentVersion:q.currentVersion,
     customer:{name:q.customerName,phone:q.customerPhone},
     versions:q.versions.map((v):QuoteVersion=>({v:v.v,status:v.status as QuoteVersion['status'],header:{eventType:v.eventType as QuoteVersion['header']['eventType'],dates:v.dates,slot:v.slot as QuoteVersion['header']['slot'],
       venueId:vc(v.venueId)!,setup:v.setup as QuoteVersion['header']['setup'],pax:v.pax,guaranteedPax:v.guaranteedPax},lines:v.lines.map(line),advance:v.advance.map(advance),
-      tnc:{templateId:'',v:0,clauses:[],hasPlaceholder:false},validUntil:v.validUntil,createdBy:'',createdAt:clock(v.createdUtc),...(v.sentUtc?{sentAt:clock(v.sentUtc)}:{}),
+      tnc:tncOf(v),validUntil:v.validUntil,createdBy:'',createdAt:clock(v.createdUtc),...(v.sentUtc?{sentAt:clock(v.sentUtc)}:{}),
       ...(v.overrideReason?{placeholderOverride:{by:'',reason:v.overrideReason,at:clock(v.createdUtc)}}:{})}))}));
   const events:HallEvent[]=r.events.map(e=>{
     const lines=e.lines.filter(l=>!l.extra).map(line),extras=e.lines.filter(l=>l.extra).map(line);
@@ -87,7 +99,7 @@ export function hallFromServer(r:SrvHallSnapshot):HallState{
     if(e.status==='CANCELLED'&&e.cancelDate)ev.cancellation={at:e.cancelDate+'T00:00',date:e.cancelDate,keptPaise:n(e.cancelKeptPaise),refundPaise:n(e.cancelRefundPaise),by:'',daysBefore:0,keptBps:0,taxBps:0,
       refund:(e.refundState??'NONE') as 'NONE'|'PENDING'|'PAID',reason:e.cancelReason??''};
     return ev;});
-  return {...seed,venues,enquiries,quotations,events,templates:[],lostReasons:r.lostReasons,seq:0};
+  return {...seed,venues,enquiries,quotations,events,templates,lostReasons:r.lostReasons,seq:0};
 }
 
 const num=(v:unknown,prefix:string,what:string)=>{const m=new RegExp('^(?:'+prefix+'-)?(\\d+)$').exec(String(v??''));if(!m)throw new HccClientError('VALIDATION',`Choose the ${what}.`);return Number(m[1]);};
@@ -95,13 +107,15 @@ const day=(v:unknown)=>String(v??'');
 
 export const hall:SyncArea={
   id:'hall',
-  loaders:[{slice:'hallX',reads:['GET /hall/snapshot'],async load(c){
+  loaders:[{slice:'hallX',reads:['GET /hall/snapshot','GET /hall/templates'],async load(c){
     const r=await c.api.get<SrvHallSnapshot>('/hall/snapshot');
     for(const v of r.venues)c.ids.learn('hallVenue',v.code,v.venueId);
     for(const q of r.enquiries)c.ids.learn('hallEnquiry','ENQ-'+q.enquiryId,q.enquiryId);
     for(const q of r.quotations)c.ids.learn('hallQuotation','QUO-'+q.quotationId,q.quotationId);
     for(const e of r.events){c.ids.learn('hallEvent','HEV-'+e.eventId,e.eventId);if(e.invoiceNo&&e.invoiceId!==null)c.ids.learn('hallInvoice',e.invoiceNo,e.invoiceId);}
-    return hallFromServer(r);}}],
+    // FX-SMALL: terms the Owner saved live in their own table; a role without the view keeps the seeded terms.
+    const tp=await c.api.get<SrvTncTemplate[]>('/hall/templates').catch(()=>[] as SrvTncTemplate[]);
+    return hallFromServer(r,tp);}}],
   commands:[
     {type:'HALL_ENQUIRY_ADD',reload:['hallX'],async send(c){const k=c.cmd;
       await c.api.command('AddHallEnquiry',{name:String(k.name??''),phone:String(k.phone??''),eventType:String(k.eventType??''),dates:k.dates,slot:String(k.slot??''),pax:Number(k.pax),

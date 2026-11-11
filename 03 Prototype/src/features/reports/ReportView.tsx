@@ -17,7 +17,7 @@ export function fmtCell(c:RptColumn,v:RptCell):string{
   if(v===null||v===undefined||v==='')return '';
   if(c.type==='money'&&typeof v==='number')return money(v);
   if(c.type==='pct'&&typeof v==='number')return v.toFixed(1)+'%';
-  if(c.type==='date'&&typeof v==='string')return shortDate(v);
+  if(c.type==='date'&&typeof v==='string')return /^\d{4}-\d{2}-\d{2}$/.test(v)?shortDate(v):v; // FX-SMALL D25-1: a total row's "Total" / "Range total" is a label, not a date
   if(c.type==='bool')return v?'Yes':'No';
   if(c.type==='int'&&typeof v==='number')return v.toLocaleString('en-IN');
   return String(v);
