@@ -71,3 +71,46 @@ All on this PC, light commands only. Everything below ran with mocks / stubs; no
 ## Interface notes for the other lanes
 - Orchestrator calls: `Bootstrap-HccSql.ps1 -Mode -MediaDir [-LogFile] [-WarningsFile]`; `New-HccClientKit.ps1 -ServerName -Port -HotelName -CaCer -OutDir` (the `.cer` is `C:\ProgramData\HCC\certs\HCC-Hotel-CA.cer`); the client setup exe is placed in `{app}\ClientKit` by the installer.
 - `/D` defines used: `AppVersion`, `PublishDir`, `OpsDir`, `TemplatesDir`, `SqlMediaDir`, `ClientSetupExe`, `OutputDir`. `OpsDir` must contain `sql-media.manifest.json` whenever `SqlMediaDir` is passed.
+
+---
+
+# Fix round (12 Nov 2026) - answers to the Opus audit (inst-server-AUDIT.md, items 1-19, notes 20-26)
+
+Merged `origin/claude/inst` first (real `Bootstrap-HccSql.ps1`, `New-HccClientKit.ps1`, `Hcc-ClientTrust.ps1`, `HccClient.iss`, manifest); the test file keeps the marked blocks SQL, CLIENT, then SERVER (mine last, before the summary lines).
+
+## Step order (changed on the orchestrator's decision; contract section 2 and INSTALL.md need the same)
+1 sql, 2 **service-register** (`Install-HccService.ps1`, creates the service stopped, so `NT SERVICE\HccServer` exists), 3 database, 4 certificate, 5 settings, 6 keys, 7 migrate, 8 **service-start** (certificate-key grant, FAILS the install if it fails; then start), 9 property, 10 backup-tasks, 11 egress, 12 client-kit, 13 health. `Install-HccService.ps1` needed no change (it never starts the service). `INSTALL.md` (my block) says in one sentence that the service must be registered before the database step.
+
+## Items
+1. Order above; `Step-Database` refuses without the service; test asserts the call order service < database < migrate < start (and that the database step throws without the service).
+2. `Assert-HccSettingsAcl` after service-register, settings and keys (SYSTEM, Administrators and the service only; same rule as the server's start-up check); no reliance on the SQL-media folder's lock. Test with the failing ACL and with a real temp file (protected ACL passes, one extra account is reported).
+3. `Set-HccTrialPage`: only the first `<title>` and the first `<body>` that lie before the first `<script`; refuses any other shape; checks the result with `Test-HccPageCsp` (hashes computed like `WebAppHosting.cs`) before writing; Trial health step re-checks the served page's inline script hash against its CSP meta. Fixtures: `<title>`/`<body>` inside the script, no title, body after script, no CSP meta, stale hash; the old blind replace is shown to break the page.
+4/19. `CreatePrivateFolder` (installer) and `Repair-HccPrivateDirectory` (orchestrator): refuse links, set owner Administrators (`icacls /setowner`), REPLACE the DACL (new `DirectorySecurity` + `Set-Acl`), never merge. `DataDir` is now created from the installer at ssInstall (not by `[Dirs]`). The answer file is emptied and deleted before it is written fresh (installer), and the orchestrator checks folder AND file (owner, link, no other account) before reading. Real temp folder/file checks run without mocks.
+5. Answer-file parse error logs a fixed sentence only (test: marker password not in log).
+6. Stray `Setup\answers.json` is removed at the start of upgrade and uninstall (after the folder check); early returns are inside the `try`. Installer `RemoveAnswerFile` empties before it deletes.
+7. Upgrade failure writes `UpgradeFailed` with the current log and the backup folder; the wizard treats `UpgradeFailed` as an upgrade and says "HCC could not be updated and is STOPPED ... backup folder ... run this setup again".
+8. Key grant failure fails the start step.
+9. `Update-HccProcessPath` adds registry entries to the current PATH (keeps what the bootstrap put in front) and puts the protected sqlcmd folder (`...\Client SDK\ODBC\180|170\Tools\Binn`) first; runs at the start of every real install/upgrade run (resume included).
+10. Property step is idempotent (`/setup/status`: if not required only the listener is closed and the service restarted); `-ServerUrl http://127.0.0.1:<LoopbackHttpPort>` is passed.
+11. Port 5080 refused (orchestrator and wizard).
+12. Backup folder: refused on a drive top, under Users, Windows, Program Files, ProgramData, `{app}`, and when it holds other files (accepted: new, empty, only HCC backup files/`Logs`/`DrillScratch`, or already carrying the HCC backup ACL); wizard checks the same plus that the drive exists.
+13. Production USB folder must be on a removable drive (`Get-HccDriveType` / `GetDriveTypeW`); Trial does not ask.
+14. Only four-part private IPv4 addresses (10/8, 172.16/12, 192.168/16) that this PC's adapters have; normalised address passed on.
+15. Merge never fills `AllowedHosts`, `Hcc:Hosting:LoopbackHttpPort`, `...CertificateThumbprint`, `...ServerName`, `Hcc:Sql:BackupDirectory`, `Hcc:GuestIdKeys` from the sample and logs a WARN naming any that are missing.
+16. `*.before-upgrade` copies are written into the private `Setup` folder.
+17. Mode recorded in `install-state.json` and `Hcc:Install:Mode` (ignored by the server). Upgrade: record, then setting, then Trial files (`TrialKeyCopies`, `Keys\HCC-Hotel-CA-password.txt`); with none it stops with a plain message and `UpgradeFailed`.
+18. Uninstall: passes the HTTPS port, does not need healthy data folders, reports `UninstallPartial` with a note (shown on the uninstall end message) and says the scripts are removed with the program files. Egress removal sits behind an adapter (mocked in tests).
+20. Start-menu address uses the parsed port. 21. Hotel-name rule = client kit's. 22. Resume with changed answers is refused and names them. 23/26. Documented in INSTALL.md (module logging; helper script in the setup's temp folder). 24. 3010 kept; the message now says setup is NOT finished and must be run again. 25. Timeout/failure messages name the execution policy `AllSigned` as a likely cause.
+
+Also: finish page says the hotel address and display name are set inside HCC; Format-HccFingerprint renamed `Format-HccCaFingerprint` (the client lane has a function of the same name); `#ifdef SqlMediaDir` as the build lane needs.
+
+## Results
+- `powershell -NoProfile -File tests\Test-HccDeployment.ps1` (Windows PowerShell 5.1.26100): **Passed 213, Failed 0** (includes the SQL, CLIENT and SERVER blocks and the ISCC compiles with stub inputs).
+- PowerShell 7: PS7_PLACEHOLDER
+- ISCC compile of `Hcc.iss` with stub inputs (with and without SQL media): exit 0 (inside the test run); refuses a compile without `AppVersion` / `ClientSetupExe`.
+
+## Still NOT verified (nothing was installed)
+Same list as above, plus: the new Pascal code (IPv4 / backup-folder / drive-type checks, `CreatePrivateFolder` with owner + link refusal, uninstall messages) compiles but never ran; `Repair-HccPrivateDirectory` and `New-HccPrivateDirectory` were not run against real ProgramData; `Get-HccFileProblems` / `Get-HccFolderProblems` are exercised only on temp items; the real `Install-HccService.ps1` was not run, so "service registered stopped, then SQL login for `NT SERVICE\HccServer`" is by reading the scripts and the audit's checks, not by execution.
+
+## Notes 20-26 left as documented
+24 (3010 meaning "success + restart" to deployment tools): kept by the orchestrator's decision. 26 (helper `.ps1` in `{tmp}`): kept, documented in INSTALL.md.

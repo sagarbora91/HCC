@@ -140,6 +140,8 @@ function GetExitCodeProcess(hProcess: Cardinal; var lpExitCode: Cardinal): Integ
   external 'GetExitCodeProcess@kernel32.dll stdcall';
 function CloseHandle(hObject: Cardinal): Integer;
   external 'CloseHandle@kernel32.dll stdcall';
+function GetDriveTypeW(lpRootPathName: String): Cardinal;
+  external 'GetDriveTypeW@kernel32.dll stdcall';
 
 // Message pump for the progress page (Inno exposes no Application.ProcessMessages): setup is a 32-bit process, so a MSG is 28 bytes.
 type
@@ -428,7 +430,7 @@ var
   Status: String;
 begin
   Status := ReadSetting(SetupDir + '\install-summary.txt', 'status');
-  UpgradeRun := ServiceExists and ((Status = '') or (Status = 'Done'));
+  UpgradeRun := ServiceExists and ((Status = '') or (Status = 'Done') or (Status = 'UpgradeFailed'));
   ResumeRun := (not UpgradeRun) and ((Status = 'InProgress') or (Status = 'Failed') or (Status = 'RestartNeeded'));
   if UpgradeRun then UpgradeServerUrl := ReadSetting(SetupDir + '\install-summary.txt', 'serverUrl');
 end;
@@ -446,7 +448,7 @@ begin
   if UpgradeRun then
     Result := UpgradeServerUrl
   else if HotelPage <> nil then
-    Result := 'https://' + Lowercase(Trim(HotelPage.Values[1])) + ':' + Trim(HotelPage.Values[3]) + '/'
+    Result := 'https://' + Lowercase(Trim(HotelPage.Values[1])) + ':' + IntToStr(StrToIntDef(Trim(HotelPage.Values[3]), 5443)) + '/'
   else
     Result := '';
 end;
@@ -600,6 +602,141 @@ begin
     Result := ModePage.Values[0];   // Trial: no CA password and no USB stick
 end;
 
+// An address typed as four plain numbers, in the hotel's private ranges (10/8, 172.16/12, 192.168/16); '' when fine.
+function Ipv4Problem(const Ip: String): String;
+var
+  Rest, Part: String;
+  P, N, V, First, Second: Integer;
+  Bad: Boolean;
+begin
+  Result := '';
+  Rest := Ip;
+  N := 0;
+  First := -1;
+  Second := -1;
+  Bad := False;
+  while True do
+  begin
+    P := Pos('.', Rest);
+    if P > 0 then
+    begin
+      Part := Copy(Rest, 1, P - 1);
+      Rest := Copy(Rest, P + 1, Length(Rest));
+    end
+    else
+    begin
+      Part := Rest;
+      Rest := '';
+    end;
+    if (not IsDigits(Part)) or (Length(Part) > 3) or ((Length(Part) > 1) and (Part[1] = '0')) then Bad := True
+    else
+    begin
+      V := StrToInt(Part);
+      if V > 255 then Bad := True;
+      if N = 0 then First := V;
+      if N = 1 then Second := V;
+    end;
+    N := N + 1;
+    if P = 0 then Break;
+  end;
+  if Bad or (N <> 4) then
+  begin
+    Result := Ip + ' must be written as four numbers separated by dots, for example 192.168.1.10.';
+    Exit;
+  end;
+  if not ((First = 10) or ((First = 172) and (Second >= 16) and (Second <= 31)) or ((First = 192) and (Second = 168))) then
+    Result := Ip + ' is not a private network address. Use an address of the hotel network (10.x.x.x, 172.16-31.x.x or 192.168.x.x).';
+end;
+
+function IpListProblem(const Text: String): String;
+var
+  I, Count: Integer;
+  C: Char;
+  Cur: String;
+begin
+  Result := '';
+  Count := 0;
+  Cur := '';
+  for I := 1 to Length(Text) + 1 do
+  begin
+    if I <= Length(Text) then C := Text[I] else C := ',';
+    if (C = ',') or (C = ';') or (C = ' ') then
+    begin
+      if Cur <> '' then
+      begin
+        Count := Count + 1;
+        if Result = '' then Result := Ipv4Problem(Cur);
+        Cur := '';
+      end;
+    end
+    else Cur := Cur + C;
+  end;
+  if (Result = '') and (Count = 0) then Result := 'Type at least one network address of this PC, for example 192.168.1.10.';
+end;
+
+function StartsWithFolder(const Path, Folder: String): Boolean;
+var
+  P, F: String;
+begin
+  P := Lowercase(RemoveBackslash(Path));
+  F := Lowercase(RemoveBackslash(Folder));
+  Result := (P = F) or (Pos(F + '\', P) = 1);
+end;
+
+// The backup folder gets private permissions that reach everything inside it: a new or empty folder, or one that holds only HCC backups.
+function BackupFolderProblem(const Path: String): String;
+var
+  Find: TFindRec;
+  Low, Name: String;
+  Foreign: Boolean;
+begin
+  Result := '';
+  if not IsFullFolderPath(Path) then
+  begin
+    Result := 'Type a full folder path on a drive, for example D:\HccBackups.';
+    Exit;
+  end;
+  if not DirExists(Copy(Path, 1, 3)) then
+  begin
+    Result := 'The drive ' + Copy(Path, 1, 2) + ' was not found on this PC. Choose a folder on an existing drive.';
+    Exit;
+  end;
+  Low := Lowercase(RemoveBackslash(Path));
+  if Length(Low) <= 2 then
+  begin
+    Result := 'The backup folder must not be the top of a drive: choose a folder, for example D:\HccBackups.';
+    Exit;
+  end;
+  if StartsWithFolder(Path, ExpandConstant('{app}')) or StartsWithFolder(Path, ExpandConstant('{win}')) or StartsWithFolder(Path, ExpandConstant('{pf}')) or
+     StartsWithFolder(Path, ExpandConstant('{pf32}')) or StartsWithFolder(Path, ExpandConstant('{commonappdata}')) then
+  begin
+    Result := 'The backup folder must not be inside the HCC program folder, Windows, Program Files or ProgramData.';
+    Exit;
+  end;
+  if (Copy(Low, 2, 8) = ':\users\') or (Copy(Low, 2, 7) = ':\users') and (Length(Low) = 8) then
+  begin
+    Result := 'The backup folder must not be inside a user profile (C:\Users): it is made private to SQL Server and administrators.';
+    Exit;
+  end;
+  if DirExists(Path) then
+  begin
+    Foreign := False;
+    if FindFirst(RemoveBackslash(Path) + '\*', Find) then
+    begin
+      try
+        repeat
+          Name := Lowercase(Find.Name);
+          if (Name <> '.') and (Name <> '..') then
+            if not ((Pos('hcc_', Name) = 1) or (Pos('hccdocuments_', Name) = 1) or (Name = 'logs') or (Name = 'drillscratch')) then Foreign := True;
+        until not FindNext(Find);
+      finally
+        FindClose(Find);
+      end;
+    end;
+    if Foreign then Result := 'That folder already holds other files. Choose a new or empty folder: the setup makes the backup folder private, which would lock other users out of their files.';
+  end;
+end;
+
 function NextButtonClick(CurPageID: Integer): Boolean;
 var
   Problem, Ip, Rest: String;
@@ -616,26 +753,20 @@ begin
       Problem := 'Type the hotel name (up to 100 characters).'
     else if not IsHostNameOk(Trim(HotelPage.Values[1])) then
       Problem := 'This PC''s name may contain only letters, digits, dots and dashes.'
-    else if Length(Trim(HotelPage.Values[2])) < 7 then
-      Problem := 'Type at least one network address of this PC, for example 192.168.1.10.'
-    else if (Port < 1024) or (Port > 65535) then
+    else if IpListProblem(HotelPage.Values[2]) <> '' then
+      Problem := IpListProblem(HotelPage.Values[2])
+    else if (not IsDigits(Trim(HotelPage.Values[3]))) or (Port < 1024) or (Port > 65535) then
       Problem := 'The port must be a number between 1024 and 65535.'
+    else if Port = 5080 then
+      Problem := 'Port 5080 is used by the setup listener of HCC; choose another port (the usual one is 5443).'
     else
       Problem := '';
     if Problem <> '' then begin MsgBox(Problem, mbError, MB_OK); Result := False; end;
   end
   else if CurPageID = BackupPage.ID then
   begin
-    if not IsFullFolderPath(BackupPage.Values[0]) then
-    begin
-      MsgBox('Type a full folder path on a drive, for example D:\HccBackups.', mbError, MB_OK);
-      Result := False;
-    end
-    else if Pos(Lowercase(ExpandConstant('{app}')), Lowercase(BackupPage.Values[0])) = 1 then
-    begin
-      MsgBox('The backup folder must not be inside the HCC program folder.', mbError, MB_OK);
-      Result := False;
-    end;
+    Problem := BackupFolderProblem(BackupPage.Values[0]);
+    if Problem <> '' then begin MsgBox(Problem, mbError, MB_OK); Result := False; end;
   end
   else if CurPageID = OwnerPage.ID then
   begin
@@ -680,6 +811,8 @@ begin
       Problem := 'That folder was not found. Plug in the USB stick and choose a folder on it.'
     else if Lowercase(Copy(UsbPage.Values[0], 1, 3)) = Sys then
       Problem := 'Choose a folder on the USB stick, not on this PC''s system drive: the keys would stay on this PC.'
+    else if GetDriveTypeW(Copy(UsbPage.Values[0], 1, 3)) <> 2 then
+      Problem := 'Choose a folder on a removable USB stick: the key copies must leave this PC (a second disk inside the PC does not count).'
     else
       Problem := '';
     if Problem <> '' then begin MsgBox(Problem, mbError, MB_OK); Result := False; end;
@@ -770,7 +903,7 @@ var
 begin
   Result := False;
   ScriptFile := ExpandConstant('{tmp}\hcc-private-folder.ps1');
-  SetArrayLength(Lines, 11);
+  SetArrayLength(Lines, 14);
   Lines[0] := 'param([string]$Path)';
   Lines[1] := '$ErrorActionPreference = ''Stop''';
   Lines[2] := '$admins = New-Object Security.Principal.SecurityIdentifier(''S-1-5-32-544'')';
@@ -778,10 +911,13 @@ begin
   Lines[4] := '$sec = New-Object Security.AccessControl.DirectorySecurity';
   Lines[5] := '$sec.SetAccessRuleProtection($true, $false)';
   Lines[6] := 'foreach ($sid in @($system, $admins)) { $sec.AddAccessRule((New-Object Security.AccessControl.FileSystemAccessRule($sid, ''FullControl'', ''ContainerInherit,ObjectInherit'', ''None'', ''Allow''))) }';
-  Lines[7] := 'if (Test-Path -LiteralPath $Path) { Set-Acl -LiteralPath $Path -AclObject $sec }';
-  Lines[8] := 'else { $sec.SetOwner($admins); [void][IO.Directory]::CreateDirectory($Path, $sec) }';
-  Lines[9] := 'exit 0';
-  Lines[10] := '';
+  Lines[7] := 'if (Test-Path -LiteralPath $Path) {';
+  Lines[8] := '  if ((Get-Item -LiteralPath $Path -Force).Attributes -band [IO.FileAttributes]::ReparsePoint) { throw ''the folder is a link'' }';
+  Lines[9] := '  & icacls.exe $Path /setowner ''*S-1-5-32-544'' | Out-Null; if ($LASTEXITCODE -ne 0) { throw ''owner'' }';
+  Lines[10] := '  Set-Acl -LiteralPath $Path -AclObject $sec';
+  Lines[11] := '} else { $sec.SetOwner($admins); [void][IO.Directory]::CreateDirectory($Path, $sec) }';
+  Lines[12] := 'exit 0';
+  Lines[13] := '';
   if not SaveStringsToUTF8File(ScriptFile, Lines, False) then Exit;
   Result := Exec(PowerShellExe, '-NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' + ScriptFile + '" -Path "' + Path + '"', '', SW_HIDE, ewWaitUntilTerminated, rc) and (rc = 0);
   DeleteFile(ScriptFile);
@@ -857,7 +993,7 @@ begin
     Waited := Waited + 1;
     if (PidValue = 0) and (Waited > 240) then
     begin
-      Log('The HCC setup step did not report back within two minutes.');
+      Log('The HCC setup step did not report back within two minutes (the PowerShell script did not start - for example a Windows execution policy of AllSigned).');
       Result := 1;
       Break;
     end;
@@ -877,21 +1013,32 @@ end;
 
 procedure RemoveAnswerFile;
 begin
-  if FileExists(AnswerFileName) then DeleteFile(AnswerFileName);
+  if FileExists(AnswerFileName) then
+  begin
+    SaveStringToFile(AnswerFileName, '', False);   // empty it first, then delete
+    DeleteFile(AnswerFileName);
+  end;
 end;
 
 procedure FailSetup(Outcome: Integer);
 var
-  LogFile, Msg: String;
+  LogFile, Msg, Backup: String;
 begin
   RemoveAnswerFile;
   DelTree(ExpandConstant('{app}\SqlSetupMedia'), True, True, True);
   LogFile := ReadSetting(SetupDir + '\install-summary.txt', 'logFile');
   if LogFile = '' then LogFile := DataDir + '\Logs';
   if Outcome = 2 then
-    Msg := 'Windows must restart before HCC setup can finish.' + #13#10 + #13#10 + 'Restart this PC, then run the HCC setup again. It continues where it stopped.' + #13#10 + #13#10 + 'Log: ' + LogFile
+    Msg := 'HCC setup is NOT finished. Windows must restart first.' + #13#10 + #13#10 + 'Restart this PC, then run the HCC setup again: it continues where it stopped. HCC does not work until it has finished.' + #13#10 + #13#10 + 'Log: ' + LogFile
+  else if UpgradeRun then
+  begin
+    Backup := ReadSetting(SetupDir + '\install-summary.txt', 'backupDirectory');
+    Msg := 'HCC could not be updated and is STOPPED.' + #13#10 + #13#10 + 'Your data is safe: a backup is taken before the database is changed' + #13#10 +
+      'Backup folder: ' + Backup + #13#10 + #13#10 + 'Run this setup again to retry. If it fails again, call support and give them this log: ' + LogFile;
+  end
   else
-    Msg := 'The HCC setup did NOT finish. HCC is not ready to use.' + #13#10 + #13#10 + 'The log says which step failed: ' + LogFile + #13#10 + #13#10 + 'Fix the problem named there and run this setup again: it continues at the step that failed. Nothing already made (databases, keys, certificates) is thrown away.';
+    Msg := 'The HCC setup did NOT finish. HCC is not ready to use.' + #13#10 + #13#10 + 'The log says which step failed: ' + LogFile + #13#10 + #13#10 + 'Fix the problem named there and run this setup again: it continues at the step that failed. Nothing already made (databases, keys, certificates) is thrown away.' + #13#10 + #13#10 +
+      'If there is no log, a Windows policy (execution policy AllSigned) may be blocking the setup script: ask your IT person.';
   SaveStringToFile(ExpandConstant('{app}\SETUP-INCOMPLETE.txt'), Msg + #13#10, False);
   Log(Msg);
   if not WizardSilent then MsgBox(Msg, mbError, MB_OK);
@@ -924,6 +1071,13 @@ begin
     if not PrepareSetupFolder then
     begin
       Log('Could not lock the Setup folder, so no answers were written.');
+      FailSetup(1);
+    end;
+    // never write into an existing file (it would keep its owner and permissions): delete it, then create it fresh
+    RemoveAnswerFile;
+    if FileExists(AnswerFileName) then
+    begin
+      Log('An old answer file could not be removed, so no answers were written.');
       FailSetup(1);
     end;
     SetArrayLength(Lines, 1);
@@ -969,6 +1123,7 @@ begin
         'Compare this with what the client setup shows on each PC before you confirm.';
     W := WarningsText;
     if W <> '' then Extra := Extra + #13#10 + #13#10 + 'Please read (also in the log):' + #13#10 + W;
+    Extra := Extra + #13#10 + #13#10 + 'The hotel address and your display name are not asked here: set them inside HCC (Master configuration) after you sign in.';
     if IsTrialInstall then Extra := Extra + #13#10 + #13#10 + 'TRIAL install - not for real guest data.';
     if Extra <> '' then WizardForm.FinishedLabel.Caption := WizardForm.FinishedLabel.Caption + Extra;
   end;
@@ -997,9 +1152,21 @@ begin
 end;
 
 procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
+var
+  Status, Note: String;
 begin
   if (CurUninstallStep = usPostUninstall) and (not UninstallSilent) then
-    MsgBox('HCC was removed from this PC.' + #13#10 + #13#10 +
-      'Kept on purpose: SQL Server, the HCC databases, the backups, the keys and certificates, and the settings files (C:\Program Files\HCC\Server\appsettings.Production.json and C:\Program Files\HCC\Operations\hcc-ops.json). The hotel certificate stays trusted on this PC.' + #13#10 +
-      'Installing HCC again later finds them and keeps using them.', mbInformation, MB_OK);
+  begin
+    Status := ReadSetting(ExpandConstant('{commonappdata}\HCC\Setup\install-summary.txt'), 'status');
+    Note := ReadSetting(ExpandConstant('{commonappdata}\HCC\Setup\install-summary.txt'), 'note');
+    if Status = 'UninstallPartial' then
+      MsgBox('The program files were removed, but NOT everything else: ' + Note + #13#10 + #13#10 +
+        'The HCC service or its tasks may still be listed. Install HCC again with this setup program and remove it again, or ask your IT person.' + #13#10 + #13#10 +
+        'Kept on purpose: SQL Server, the HCC databases, the backups, the keys and certificates, and the settings files.', mbError, MB_OK)
+    else
+      MsgBox('HCC was removed from this PC.' + #13#10 + #13#10 +
+        'Kept on purpose: SQL Server, the HCC databases, the backups, the keys and certificates, and the settings files (C:\Program Files\HCC\Server\appsettings.Production.json and C:\Program Files\HCC\Operations\hcc-ops.json). The hotel certificate stays trusted on this PC.' + #13#10 +
+        'The setup scripts were removed with the program files: to repair or move HCC later, run this setup program again.' + #13#10 +
+        'Installing HCC again later finds the data and keeps using it.', mbInformation, MB_OK);
+  end;
 end;

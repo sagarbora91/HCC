@@ -100,9 +100,9 @@ function Test-HccElevated {
 
 # ----- adapters: every change to the PC goes through these (the tests replace them with recorders) ------------------------
 # A folder that holds secrets or things run as administrator is created WITH its permissions in one call (owner Administrators,
-# only SYSTEM and Administrators, inheritance off) - never created first and locked afterwards.
-function New-HccPrivateDirectory {
-    param([string]$Path)
+# only SYSTEM and Administrators, inheritance off) - never created first and locked afterwards. A pre-existing folder gets its DACL
+# REPLACED (not merged) and its owner set to Administrators; a link is refused.
+function Get-HccPrivateSecurity {
     $admins = New-Object Security.Principal.SecurityIdentifier('S-1-5-32-544')
     $system = New-Object Security.Principal.SecurityIdentifier('S-1-5-18')
     $sec = New-Object Security.AccessControl.DirectorySecurity
@@ -110,35 +110,75 @@ function New-HccPrivateDirectory {
     foreach ($sid in @($system, $admins)) {
         $sec.AddAccessRule((New-Object Security.AccessControl.FileSystemAccessRule($sid, 'FullControl', 'ContainerInherit,ObjectInherit', 'None', 'Allow')))
     }
-    $sec.SetOwner($admins)
+    return $sec
+}
+
+function New-HccPrivateDirectory {
+    param([string]$Path)
+    $sec = Get-HccPrivateSecurity
+    $sec.SetOwner((New-Object Security.Principal.SecurityIdentifier('S-1-5-32-544')))
     $parent = Split-Path -Parent $Path
     if ($parent -and -not (Test-Path -LiteralPath $parent)) { New-Item -ItemType Directory -Path $parent -Force | Out-Null }
     if ($PSVersionTable.PSVersion.Major -ge 6) { [void][System.IO.FileSystemAclExtensions]::Create((New-Object System.IO.DirectoryInfo($Path)), $sec) }
     else { [void][System.IO.Directory]::CreateDirectory($Path, $sec) }
 }
 
-# Problems that make a data folder unsafe for files written/executed with administrator rights: a link, or writable by non-administrators.
+function Repair-HccPrivateDirectory {
+    param([string]$Path)
+    $item = Get-Item -LiteralPath $Path -Force
+    if (($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) { throw "$Path is a link" }
+    & icacls.exe $Path /setowner '*S-1-5-32-544' | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "Could not make Administrators the owner of $Path." }
+    Set-Acl -LiteralPath $Path -AclObject (Get-HccPrivateSecurity)
+}
+
+function Get-HccOwnerSid {
+    param([string]$Path)
+    return (Get-Acl -LiteralPath $Path).GetOwner([Security.Principal.SecurityIdentifier]).Value
+}
+
+# Problems that make a data folder unsafe for files written/executed with administrator rights: a link, an owner other than SYSTEM /
+# Administrators, or any account other than SYSTEM / Administrators in its permissions (or inheritance still on).
 function Get-HccFolderProblems {
     param([string]$Path)
     $problems = @()
     $item = Get-Item -LiteralPath $Path -Force
     if (($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) { $problems += "$Path is a link" }
-    $problems += @(Test-HccAdminOnlyWritable -Path $Path)
+    $owner = Get-HccOwnerSid -Path $Path
+    if (@('S-1-5-18', 'S-1-5-32-544') -notcontains $owner) { $problems += ('{0} is owned by {1}' -f $Path, (Get-HccAccountName $owner)) }
+    $problems += @(Test-HccProtectedDirectory -Path $Path)
     return @($problems)
 }
 
-# First action of every run: C:\ProgramData\HCC, Setup and Logs exist, are not links and can be written only by SYSTEM and Administrators
-# (created with that security; a pre-existing folder is repaired, or the run is refused). Only then are log / warnings / answer paths used.
+# Same for one file (the answer file): not a link, owner SYSTEM / Administrators, no other account allowed.
+function Get-HccFileProblems {
+    param([string]$Path)
+    $problems = @()
+    $item = Get-Item -LiteralPath $Path -Force
+    if (($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) { $problems += "$Path is a link" }
+    $owner = Get-HccOwnerSid -Path $Path
+    if (@('S-1-5-18', 'S-1-5-32-544') -notcontains $owner) { $problems += ('{0} is owned by {1}' -f $Path, (Get-HccAccountName $owner)) }
+    $acl = Get-Acl -LiteralPath $Path
+    foreach ($r in $acl.GetAccessRules($true, $true, [Security.Principal.SecurityIdentifier])) {
+        if ($r.AccessControlType -ne 'Allow') { continue }
+        if (($r.PropagationFlags -band [Security.AccessControl.PropagationFlags]::InheritOnly) -ne 0) { continue }
+        if (@('S-1-5-18', 'S-1-5-32-544') -notcontains $r.IdentityReference.Value) { $problems += ('{0} has access to {1}' -f (Get-HccAccountName $r.IdentityReference.Value), $Path) }
+    }
+    return @($problems)
+}
+
+# First action of every install / upgrade run: C:\ProgramData\HCC, Setup and Logs exist, are not links, are owned by Administrators and
+# can be used only by SYSTEM and Administrators (created with that security; a pre-existing folder has its DACL replaced, or the run is
+# refused with a sentence that says what to delete). Only then are log / warnings / answer paths used.
 function Initialize-HccDataFolders {
     foreach ($f in @($script:DataDir, $script:SetupDir, $script:LogsDir)) {
         if (-not (Test-Path -LiteralPath $f)) { Protect-HccFolder -Path $f; continue }
         $problems = @(Get-HccFolderProblems -Path $f)
-        if ($problems.Count -gt 0) {
-            if ($problems -match 'is a link') { throw ("Refusing to use ${f}: " + ($problems -join '; ')) }
-            Set-HccProtectedDirectory -Path $f
-            $problems = @(Get-HccFolderProblems -Path $f)
-            if ($problems.Count -gt 0) { throw ("The folder $f is not safe and could not be repaired: " + ($problems -join '; ')) }
-        }
+        if ($problems.Count -eq 0) { continue }
+        if (@($problems | Where-Object { $_ -like '* is a link' }).Count -gt 0) { throw ("Refusing to use ${f}: it is a link. Delete the link $f and run the setup again.") }
+        try { Repair-HccPrivateDirectory -Path $f } catch { throw ("The folder $f is not safe and could not be repaired ($($_.Exception.Message)). Delete the folder $f (it holds only HCC setup files) and run the setup again.") }
+        $problems = @(Get-HccFolderProblems -Path $f)
+        if ($problems.Count -gt 0) { throw ("The folder $f is not safe and could not be repaired: " + ($problems -join '; ') + ". Delete the folder $f and run the setup again.") }
     }
 }
 
@@ -156,10 +196,72 @@ function Protect-HccFile {
 
 function Get-HccInstallDriveRoot { return [IO.Path]::GetPathRoot($script:AppDir) }
 
+# The folder AND the file are checked before the answers (they hold passwords) are read.
 function Assert-HccAnswerFolderPrivate {
+    param([string]$Path, [string]$FilePath)
+    $problems = @(Get-HccFolderProblems -Path $Path)
+    if ($FilePath -and (Test-Path -LiteralPath $FilePath)) { $problems += @(Get-HccFileProblems -Path $FilePath) }
+    if ($problems.Count -gt 0) { throw ("The folder or file that holds the answers is not private, so the answers (they contain passwords) are not read: " + ($problems -join '; ')) }
+}
+
+function Get-HccLocalIpv4 {
+    try { return @(Get-NetIPAddress -AddressFamily IPv4 -ErrorAction Stop | ForEach-Object { [string]$_.IPAddress }) } catch { return @() }
+}
+
+# 'a.b.c.d' written as four plain decimal numbers 0-255 (no short forms, no leading zeros, no scope id); returns the text or $null.
+function ConvertTo-HccIpv4 {
+    param([string]$Text)
+    if ($null -eq $Text -or $Text -notmatch '^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$') { return $null }
+    $parts = @($Matches[1], $Matches[2], $Matches[3], $Matches[4])
+    foreach ($p in $parts) { if ($p.Length -gt 1 -and $p.StartsWith('0')) { return $null }; if ([int]$p -gt 255) { return $null } }
+    return ($parts -join '.')
+}
+
+function Test-HccPrivateIpv4 {
+    param([string]$Ip)
+    $o = @($Ip.Split('.') | ForEach-Object { [int]$_ })
+    return ($o[0] -eq 10) -or ($o[0] -eq 172 -and $o[1] -ge 16 -and $o[1] -le 31) -or ($o[0] -eq 192 -and $o[1] -eq 168)
+}
+
+# Same rule as the client kit (Test-HccHotelName in Hcc-ClientTrust.ps1): 1-100 characters, no control / format / line-separator characters.
+function Test-HccHotelNameOk {
+    param([string]$Name)
+    if ($null -eq $Name) { return $false }
+    $n = $Name.Trim()
+    return ($n.Length -ge 1 -and $n.Length -le 100 -and $n -notmatch '[\p{Cc}\p{Cf}\p{Zl}\p{Zp}]')
+}
+
+# Where the backups may go: not a drive top, not under the HCC folders, Windows, Program Files, ProgramData or any user profile.
+function Get-HccBackupLocationProblem {
     param([string]$Path)
-    $problems = @(Test-HccProtectedDirectory -Path $Path)
-    if ($problems.Count -gt 0) { throw ("The folder that holds the answers is not private, so the answers (they contain passwords) are not read: " + ($problems -join '; ')) }
+    if ($Path -notmatch '^[A-Za-z]:\\.+') { return 'The backup folder must be a full folder path on a drive, for example D:\HccBackups.' }
+    $full = [IO.Path]::GetFullPath($Path).TrimEnd('\')
+    if ($full -match '^[A-Za-z]:$') { return 'The backup folder must not be the top of a drive: choose a folder, for example D:\HccBackups.' }
+    $blocked = @($script:AppDir, $env:SystemRoot, $env:ProgramFiles, ${env:ProgramFiles(x86)}, $env:ProgramData) | Where-Object { $_ }
+    foreach ($b in $blocked) {
+        $bb = [IO.Path]::GetFullPath($b).TrimEnd('\')
+        if ($full -ieq $bb -or $full.StartsWith($bb + '\', [StringComparison]::OrdinalIgnoreCase)) { return "The backup folder must not be inside $bb." }
+    }
+    if ($full -match '^[A-Za-z]:\\Users(\\|$)') { return 'The backup folder must not be inside a user profile (C:\Users): the setup makes it private to SQL Server and administrators.' }
+    return ''
+}
+
+# A new or empty folder, or one that already holds only HCC backups (or already has the HCC backup permissions). Anything else is refused,
+# because the setup removes inherited permissions from the backup folder and everything in it.
+function Get-HccBackupContentsProblem {
+    param([string]$Path)
+    if (-not (Test-Path -LiteralPath $Path)) { return '' }
+    if (-not (Test-Path -LiteralPath $Path -PathType Container)) { return "$Path is a file, not a folder." }
+    $items = @(Get-ChildItem -LiteralPath $Path -Force)
+    if ($items.Count -eq 0) { return '' }
+    $foreign = @($items | Where-Object {
+            if ($_.PSIsContainer) { @('Logs', 'DrillScratch') -notcontains $_.Name }
+            else { -not (ConvertFrom-HccBackupFileName $_.Name) }
+        })
+    if ($foreign.Count -eq 0) { return '' }
+    $acl = @(Test-HccProtectedDirectory -Path $Path -AllowedAccounts @((Get-HccSqlServiceAccount), 'NT AUTHORITY\SYSTEM'))
+    if ($acl.Count -eq 0) { return '' }
+    return "The backup folder $Path already holds other files ($($foreign[0].Name) ...). Choose a new or empty folder: the setup makes the backup folder private and that would lock other users out of their files."
 }
 
 function Invoke-HccOps {
@@ -347,14 +449,18 @@ function Get-HccCaFingerprint {
     return ''
 }
 
-function Format-HccFingerprint {
+function Format-HccCaFingerprint {
     param([string]$Hex)
     if (-not $Hex) { return '' }
     return (($Hex -split '(?<=\G.{2})(?=.)') -join ':')
 }
 
 function Write-HccSummary {
-    param($State, [string]$Status)
+    param($State, [string]$Status, [string]$Note = '')
+    $backup = [string](Get-HccProp $State 'backupDirectory' '')
+    if (-not $backup -and $script:SettingsFile -and (Test-Path -LiteralPath $script:SettingsFile)) {
+        try { $backup = [string](Get-HccProp (Get-HccProp (Get-HccProp ((Read-HccTextFile $script:SettingsFile) | ConvertFrom-Json) 'Hcc') 'Sql') 'BackupDirectory' '') } catch { $backup = '' }
+    }
     $lines = @(
         'status=' + $Status,
         'mode=' + [string](Get-HccProp $State 'mode' ''),
@@ -362,8 +468,10 @@ function Write-HccSummary {
         'serverName=' + [string](Get-HccProp $State 'serverName' ''),
         'httpsPort=' + [string](Get-HccProp $State 'httpsPort' ''),
         'serverUrl=' + [string](Get-HccProp $State 'serverUrl' ''),
+        'backupDirectory=' + $backup,
         'caSha256=' + (Get-HccCaFingerprint),
-        'logFile=' + [string]$script:LogFile)
+        'logFile=' + [string]$script:LogFile,
+        'note=' + (($Note -replace '[\r\n]+', ' ').Trim()))
     Write-HccTextFile $script:SummaryFile (($lines -join "`r`n") + "`r`n")
 }
 
@@ -372,7 +480,7 @@ function Write-HccSummary {
 # ======================================================================================================================
 function ConvertTo-HccAnswers {
     param($Json)
-    $ips = @(Get-HccProp $Json 'serverIps' @() | ForEach-Object { ([string]$_).Trim() } | Where-Object { $_ })
+    $ips = @(Get-HccProp $Json 'serverIps' @() | ForEach-Object { $t = ([string]$_).Trim(); $n = ConvertTo-HccIpv4 $t; if ($n) { $n } else { $t } } | Where-Object { $_ })
     return @{
         mode = ([string](Get-HccProp $Json 'mode' '')).Trim()
         hotelName = ([string](Get-HccProp $Json 'hotelName' '')).Trim()
@@ -393,17 +501,22 @@ function Test-HccAnswers {
     param([hashtable]$A)
     $p = New-Object System.Collections.Generic.List[string]
     if ($A.mode -notin @('Trial', 'Production')) { $p.Add('The kind of installation must be Trial or Production.') }
-    if ($A.hotelName.Length -lt 1 -or $A.hotelName.Length -gt 100) { $p.Add('The hotel name must be 1 to 100 characters.') }
-    if ($A.hotelName -match '[\x00-\x1f]') { $p.Add('The hotel name must not contain control characters.') }
+    if (-not (Test-HccHotelNameOk $A.hotelName)) { $p.Add('The hotel name must be 1 to 100 characters, without control, invisible or line-break characters.') }
     if ($A.serverName -notmatch '^[a-z0-9]([a-z0-9.-]{0,61}[a-z0-9])?$') { $p.Add('This PC''s name may contain only letters, digits, dots and dashes.') }
     if ($A.serverIps.Count -lt 1) { $p.Add('Give at least one network address of this PC (for example 192.168.1.10).') }
+    $local = $null
     foreach ($ip in $A.serverIps) {
-        $parsed = $null
-        if (-not [Net.IPAddress]::TryParse($ip, [ref]$parsed)) { $p.Add("'$ip' is not a valid network address.") }
+        $n = ConvertTo-HccIpv4 $ip
+        if (-not $n) { $p.Add("'$ip' must be written as four numbers separated by dots, for example 192.168.1.10."); continue }
+        if (-not (Test-HccPrivateIpv4 $n)) { $p.Add("$n is not a private network address. Use an address of the hotel network (10.x.x.x, 172.16-31.x.x or 192.168.x.x)."); continue }
+        if ($null -eq $local) { $local = @(Get-HccLocalIpv4) }
+        if ($local -notcontains $n) { $p.Add("$n is not an address of this PC's network adapters. Use the address this PC has on the hotel network.") }
     }
     if ($A.httpsPort -lt 1024 -or $A.httpsPort -gt 65535) { $p.Add('The port must be between 1024 and 65535.') }
-    if ($A.backupDirectory -notmatch '^[A-Za-z]:\\.+') { $p.Add('The backup folder must be a full folder path on a drive, for example D:\HccBackups.') }
-    elseif ($A.backupDirectory.StartsWith($script:AppDir, [StringComparison]::OrdinalIgnoreCase)) { $p.Add('The backup folder must not be inside the HCC program folder.') }
+    elseif ($A.httpsPort -eq 5080) { $p.Add('Port 5080 is used by the setup listener of HCC; choose another port (the usual one is 5443).') }
+    $loc = Get-HccBackupLocationProblem $A.backupDirectory
+    if ($loc) { $p.Add($loc) }
+    else { $con = Get-HccBackupContentsProblem $A.backupDirectory; if ($con) { $p.Add($con) } }
     if ($A.ownerUserName -notmatch '^[a-z0-9._-]{3,40}$') { $p.Add('The Owner''s sign-in name must be 3 to 40 characters: letters, digits, dot, dash or underscore.') }
     $pw = $A.ownerPassword
     if ($pw.Length -lt 12 -or $pw.Length -gt 128) { $p.Add('The Owner''s password must be 12 to 128 characters.') }
@@ -417,6 +530,7 @@ function Test-HccAnswers {
         else {
             $sysRoot = Get-HccInstallDriveRoot
             if ([IO.Path]::GetPathRoot($A.offlineCopyDirectory) -ieq $sysRoot) { $p.Add('The key copies must go to a USB stick, not to the drive HCC is installed on (they would stay on this PC).') }
+            elseif ((Get-HccDriveType $A.offlineCopyDirectory) -ne 'Removable') { $p.Add('The key copies must go to a removable USB stick (this drive is not one), so that they leave this PC.') }
             if ($A.offlineCopyDirectory.StartsWith($script:KeysDir, [StringComparison]::OrdinalIgnoreCase) -or $A.offlineCopyDirectory.StartsWith($script:AppDir, [StringComparison]::OrdinalIgnoreCase)) { $p.Add('The USB folder must not be inside the HCC folders.') }
         }
     }
@@ -438,23 +552,31 @@ function Set-HccJsonValue {
     $node | Add-Member -NotePropertyName $parts[-1] -NotePropertyValue $Value -Force
 }
 
-# Adds what the sample has and the existing file lacks, recursively. An existing value is never changed. Keys that start with '_' (notes) are skipped.
+# Adds what the sample has and the existing file lacks, recursively. An existing value is never changed. Keys that start with '_' (notes) are
+# skipped. -Deny lists dotted key paths that are never taken from the sample (their sample value is a placeholder); a denied key that is
+# missing is added to -Missing so the caller can warn.
 function Merge-HccJsonMissing {
-    param($Existing, $Sample)
+    param($Existing, $Sample, [string]$Prefix = '', [string[]]$Deny = @(), $Missing = $null)
     $added = 0
     foreach ($prop in $Sample.PSObject.Properties) {
         if ($prop.Name.StartsWith('_')) { continue }
+        $path = if ($Prefix) { $Prefix + '.' + $prop.Name } else { $prop.Name }
         $have = $Existing.PSObject.Properties[$prop.Name]
-        if (-not $have) { $Existing | Add-Member -NotePropertyName $prop.Name -NotePropertyValue $prop.Value; $added++; continue }
-        if ($prop.Value -is [pscustomobject] -and $have.Value -is [pscustomobject]) { $added += Merge-HccJsonMissing -Existing $have.Value -Sample $prop.Value }
+        if (-not $have) {
+            if ($Deny -contains $path) { if ($null -ne $Missing) { $Missing.Add($path) }; continue }
+            $Existing | Add-Member -NotePropertyName $prop.Name -NotePropertyValue $prop.Value; $added++; continue
+        }
+        if ($prop.Value -is [pscustomobject] -and $have.Value -is [pscustomobject]) { $added += Merge-HccJsonMissing -Existing $have.Value -Sample $prop.Value -Prefix $path -Deny $Deny -Missing $Missing }
     }
     return $added
 }
 
+$script:HccNoSampleKeys = @('AllowedHosts', 'Hcc.Hosting.LoopbackHttpPort', 'Hcc.Hosting.CertificateThumbprint', 'Hcc.Hosting.ServerName', 'Hcc.Sql.BackupDirectory', 'Hcc.GuestIdKeys')
+
 function Save-HccJsonInPlace {
-    # Overwrites the file's content (its protective permissions stay) after a private safety copy.
+    # Overwrites the file's content (its protective permissions stay) after a safety copy made in the private Setup folder.
     param([string]$Path, $Object, [string]$Tag)
-    $safety = "$Path.before-$Tag"
+    $safety = Join-Path $script:SetupDir ((Split-Path -Leaf $Path) + ".before-$Tag")
     Copy-Item -LiteralPath $Path -Destination $safety -Force
     Protect-HccFile -Path $safety
     Write-HccTextFile $Path ($Object | ConvertTo-Json -Depth 12)
@@ -476,6 +598,7 @@ function Update-HccSettingsFresh {
     Set-HccJsonValue $json 'Hcc.Hosting.HttpsPort' $A.httpsPort
     Set-HccJsonValue $json 'Hcc.Operations.BackupScript' (Join-Path $script:OpsDir 'Backup-HccDatabase.ps1')
     Set-HccJsonValue $json 'Hcc.Operations.SqlInstance' '.\SQLEXPRESS'
+    Set-HccJsonValue $json 'Hcc.Install.Mode' $A.mode   # ignored by the server; lets an upgrade know this is a Trial install
     Write-HccTextFile $script:SettingsFile ($json | ConvertTo-Json -Depth 12)
     Write-InstallLog "Settings written to $script:SettingsFile (server name, port, backup folder)."
 
@@ -485,8 +608,8 @@ function Update-HccSettingsFresh {
     }
     $ops = (Read-HccTextFile $script:OpsConfigFile) | ConvertFrom-Json
     Set-HccJsonValue $ops 'BackupDirectory' $A.backupDirectory
-    Set-HccJsonValue $ops 'LogDirectory' (Join-Path $A.backupDirectory 'Logs')
-    Set-HccJsonValue $ops 'ScratchDirectory' (Join-Path $A.backupDirectory 'DrillScratch')
+    Set-HccJsonValue $ops 'LogDirectory' ([IO.Path]::Combine($A.backupDirectory, 'Logs'))
+    Set-HccJsonValue $ops 'ScratchDirectory' ([IO.Path]::Combine($A.backupDirectory, 'DrillScratch'))
     Set-HccJsonValue $ops 'ServerDirectory' $script:ServerDir
     Set-HccJsonValue $ops 'BackupKeyFile' (Join-Path $script:KeysDir 'hcc-backup-key.txt')
     Write-HccTextFile $script:OpsConfigFile ($ops | ConvertTo-Json -Depth 6)
@@ -498,9 +621,11 @@ function Update-HccSettingsMerge {
     if ((Test-Path -LiteralPath $script:SettingsFile) -and (Test-Path -LiteralPath $script:SettingsSample)) {
         $existing = (Read-HccTextFile $script:SettingsFile) | ConvertFrom-Json
         $sample = (Read-HccTextFile $script:SettingsSample) | ConvertFrom-Json
-        $n = Merge-HccJsonMissing -Existing $existing -Sample $sample
+        $missing = New-Object System.Collections.Generic.List[string]
+        $n = Merge-HccJsonMissing -Existing $existing -Sample $sample -Deny $script:HccNoSampleKeys -Missing $missing
         if ($n -gt 0) { Save-HccJsonInPlace -Path $script:SettingsFile -Object $existing -Tag 'upgrade' }
         Write-InstallLog "Settings: $n new setting(s) added to appsettings.Production.json; existing values were not changed."
+        foreach ($m in $missing) { Write-InstallLog "Settings: '$m' is missing in appsettings.Production.json and was NOT filled from the sample (its sample value is only a placeholder). Check it." 'WARN' }
         $total += $n
     }
     else { Write-InstallLog 'Settings: no appsettings.Production.json or sample to merge.' 'WARN' }
@@ -516,19 +641,44 @@ function Update-HccSettingsMerge {
 }
 
 $script:TrialMarker = '<!--HCC-TRIAL-BANNER-->'
+
+# The inline <script>/<style> blocks must still match the hashes in the page's own Content-Security-Policy meta (A10-05); the blocks are
+# found the way WebAppHosting.cs finds them. Returns the problems (empty = the page will run).
+function Test-HccPageCsp {
+    param([string]$Html)
+    $metas = [regex]::Matches($Html, '<meta\s+http-equiv="Content-Security-Policy"\s+content="([^"]*)"\s*/?>', 'IgnoreCase')
+    if ($metas.Count -ne 1) { return @('the page has no single Content-Security-Policy meta') }
+    $csp = $metas[0].Groups[1].Value
+    $problems = @()
+    foreach ($m in [regex]::Matches($Html, '<(script|style)(?<attrs>[^>]*)>(?<body>.*?)</\1>', 'IgnoreCase,Singleline')) {
+        $sha = [Security.Cryptography.SHA256]::Create()
+        try { $h = 'sha256-' + [Convert]::ToBase64String($sha.ComputeHash([Text.Encoding]::UTF8.GetBytes($m.Groups['body'].Value))) } finally { $sha.Dispose() }
+        if (-not $csp.Contains("'$h'")) { $problems += ("the inline <{0}> does not match the hash in the page's Content-Security-Policy" -f $m.Groups[1].Value.ToLowerInvariant()) }
+    }
+    return @($problems)
+}
+
 function Set-HccTrialPage {
-    # TRIAL - not for real guest data: the browser-tab title and a banner at the top of the sign-in page. Only presentational HTML
-    # (no script, no style block, no style attribute), so the page's Content-Security-Policy hashes stay valid.
+    # TRIAL - not for real guest data: a banner at the top of the sign-in page and "TRIAL - " in the browser-tab title. Only the first
+    # <title> that lies before the first <script>, and a banner after the first <body> that lies before it, are touched; the inline
+    # script and style stay byte for byte, so the page's Content-Security-Policy hashes stay valid. Anything else is refused (a failed
+    # step is better than a blank page), and the result is checked against the page's CSP before it is written.
     param([string]$IndexHtml)
-    if (-not (Test-Path -LiteralPath $IndexHtml)) { throw "The web page $IndexHtml is missing, so the TRIAL banner cannot be added. The installation is incomplete." }
+    if (-not (Test-Path -LiteralPath $IndexHtml)) { throw "The web page $IndexHtml is missing, so the TRIAL mark cannot be added. The installation is incomplete." }
     $html = Read-HccTextFile $IndexHtml
     if ($html.Contains($script:TrialMarker)) { return }
-    $banner = $script:TrialMarker + '<table width="100%" bgcolor="#b00020" cellpadding="6" cellspacing="0" border="0"><tr><td align="center"><font color="#ffffff" face="Arial" size="3"><b>TRIAL - not for real guest data</b></font></td></tr></table>'
+    $firstScript = [regex]::Match($html, '<script', 'IgnoreCase')
+    $title = [regex]::Match($html, '<title>', 'IgnoreCase')
     $body = [regex]::Match($html, '<body[^>]*>', 'IgnoreCase')
-    if (-not $body.Success) { throw "The web page $IndexHtml has no <body> tag; the TRIAL banner cannot be added." }
-    $html = $html.Insert($body.Index + $body.Length, $banner)
-    $html = [regex]::Replace($html, '<title>', '<title>TRIAL - ', 'IgnoreCase')
-    Write-HccTextFile $IndexHtml $html
+    $limit = if ($firstScript.Success) { $firstScript.Index } else { $html.Length }
+    if (-not $title.Success -or $title.Index -gt $limit) { throw "The web page $IndexHtml does not have the expected shape (no <title> before its first script), so the TRIAL mark is not added." }
+    if (-not $body.Success -or $body.Index -gt $limit) { throw "The web page $IndexHtml does not have the expected shape (no <body> before its first script), so the TRIAL mark is not added." }
+    if ($title.Index -gt $body.Index) { throw "The web page $IndexHtml does not have the expected shape (<title> after <body>), so the TRIAL mark is not added." }
+    $banner = $script:TrialMarker + '<table width="100%" bgcolor="#b00020" cellpadding="6" cellspacing="0" border="0"><tr><td align="center"><font color="#ffffff" face="Arial" size="3"><b>TRIAL - not for real guest data</b></font></td></tr></table>'
+    $new = $html.Insert($body.Index + $body.Length, $banner).Insert($title.Index + $title.Length, 'TRIAL - ')   # later position first
+    $problems = @(Test-HccPageCsp $new)
+    if ($problems.Count -gt 0) { throw ("The TRIAL mark would break the web page ($($problems[0])); it was not added.") }
+    Write-HccTextFile $IndexHtml $new
     Write-InstallLog 'TRIAL banner added to the sign-in page.'
 }
 
@@ -543,10 +693,24 @@ function Test-HccGuestIdKeyConfigured {
     return [bool](Get-HccProp (Get-HccProp (Get-HccProp $s 'Hcc') 'GuestIdKeys') 'Current' '')
 }
 
+# The protected sqlcmd folder (where Bootstrap-HccSql.ps1 finds or installs it).
+function Get-HccProtectedSqlcmdFolder {
+    foreach ($v in @('180', '170')) {
+        $d = Join-Path $env:ProgramFiles "Microsoft SQL Server\Client SDK\ODBC\$v\Tools\Binn"
+        if (Test-Path -LiteralPath (Join-Path $d 'sqlcmd.exe')) { return $d }
+    }
+    return ''
+}
+
+# Adds what the registry PATH has and this process lacks (a tool installed by an earlier step), keeps what the bootstrap put in front,
+# and puts the protected sqlcmd folder first so no other sqlcmd.exe is used.
 function Update-HccProcessPath {
-    $machine = [Environment]::GetEnvironmentVariable('Path', 'Machine')
-    $user = [Environment]::GetEnvironmentVariable('Path', 'User')
-    $env:Path = (@($machine, $user) | Where-Object { $_ }) -join ';'
+    $current = @(([string]$env:Path) -split ';' | Where-Object { $_ })
+    $registry = @(([Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' + [Environment]::GetEnvironmentVariable('Path', 'User')) -split ';' | Where-Object { $_ })
+    $merged = @($current) + @($registry | Where-Object { $current -notcontains $_ })
+    $sq = Get-HccProtectedSqlcmdFolder
+    if ($sq) { $merged = @($sq) + @($merged | Where-Object { $_ -ne $sq }) }
+    $env:Path = $merged -join ';'
 }
 
 function Test-HccScriptParameter {
@@ -592,8 +756,30 @@ function Step-Sql {
     if (Test-Path -LiteralPath $script:SqlMediaDir) { Remove-Item -LiteralPath $script:SqlMediaDir -Recurse -Force -ErrorAction SilentlyContinue }
 }
 
+function Assert-HccSettingsAcl {
+    # Only SYSTEM, Administrators and the service may be able to use the settings file (it holds the guest ID key); same rule as the server's
+    # start-up check. Never relies on a side effect of another folder's permissions.
+    $problems = @(Get-HccSettingsAclProblems)
+    if ($problems.Count -gt 0) { throw ('The settings file is readable by others: ' + ($problems -join '; ')) }
+}
+
+function Get-HccSettingsAclProblems {
+    return @(Test-HccProtectedDirectory -Path $script:SettingsFile -AllowedAccounts @($script:ServiceAccountName))
+}
+
+function Step-ServiceRegister {
+    param([hashtable]$A)
+    Confirm-HccSettingsFile
+    if (Test-HccServiceInstalled) { Write-InstallLog 'The service HccServer already exists; it is kept.' }
+    else { Invoke-HccOps -Script 'Install-HccService.ps1' -Params @{ InstallDirectory = $script:ServerDir; HttpsPort = $A.httpsPort } | Out-Null }
+    if (-not (Test-HccServiceInstalled)) { throw 'The HCC service was not registered, so SQL Server cannot be given its account.' }
+    Assert-HccSettingsAcl
+    Write-InstallLog 'The HCC service is registered (not started yet).'
+}
+
 function Step-Database {
     param([hashtable]$A)
+    if (-not (Test-HccServiceInstalled)) { throw 'The HCC service must be registered before the database step (its Windows account must exist).' }
     Invoke-HccOps -Script 'Initialize-HccDatabase.ps1' -Params @{ ServiceAccount = $script:ServiceAccountName; BackupDirectory = $A.backupDirectory; GrantDrillRights = $true } | Out-Null
 }
 
@@ -644,6 +830,7 @@ function Step-Settings {
     param([hashtable]$A)
     Update-HccSettingsFresh -A $A
     if ($A.mode -eq 'Trial') { Set-HccTrialPage -IndexHtml (Join-Path $script:ServerDir 'web\index.html') }
+    Assert-HccSettingsAcl
 }
 
 function Step-Keys {
@@ -666,6 +853,7 @@ function Step-Keys {
         $dest = Join-Path $copyDir ("HCC-backup-key-$stamp.txt")
         Invoke-HccOps -Script 'New-HccBackupKey.ps1' -Params @{ OfflineCopyPath = $dest } | Out-Null
     }
+    Assert-HccSettingsAcl   # the guest ID key is now in the file: migrate and the server refuse a file others can read
 }
 
 function Step-Migrate {
@@ -677,25 +865,47 @@ function Step-Migrate {
     if ($r.ExitCode -ne 0) { throw "Hcc.Api.exe migrate failed with code $($r.ExitCode) (see the lines above)." }
 }
 
-function Step-Service {
+function Step-ServiceStart {
     param([hashtable]$A)
-    if (Test-HccServiceInstalled) { Write-InstallLog 'The service HccServer already exists; it is kept.' }
-    else { Invoke-HccOps -Script 'Install-HccService.ps1' -Params @{ InstallDirectory = $script:ServerDir; HttpsPort = $A.httpsPort } | Out-Null }
+    if (-not (Test-HccServiceInstalled)) { throw 'The HCC service is not registered.' }
     $thumb = Get-HccThumbprint
     try { Grant-HccCertificateKeyAccess -Thumbprint $thumb -Account $script:ServiceAccountName }
-    catch { Write-InstallLog ("Could not confirm the service's access to the certificate key: " + $_.Exception.Message) 'WARN' }
+    catch { throw ("The HCC service cannot be given access to its certificate key, so it could not start: " + $_.Exception.Message) }
     Start-HccServerService
     Write-InstallLog 'The HCC service is running.'
 }
 
+function Restart-HccServerService {
+    Stop-HccServerService
+    Start-HccServerService
+}
+
+# The server says "already set up" only once: if the hotel exists but the setup listener is still on (an earlier run stopped half way),
+# only close the listener and restart.
+function Close-HccSetupListener {
+    $json = (Read-HccTextFile $script:SettingsFile) | ConvertFrom-Json
+    Set-HccJsonValue $json 'Hcc.Hosting.LoopbackHttpPort' 0
+    Write-HccTextFile $script:SettingsFile ($json | ConvertTo-Json -Depth 12)
+    Restart-HccServerService
+}
+
 function Step-Property {
     param([hashtable]$A)
-    if ((Get-HccLoopbackPort) -eq 0) { Write-InstallLog 'The hotel and the first Owner are already set up (the setup listener is off).'; return }
-    $status = Wait-HccUrl -Url ('http://127.0.0.1:' + (Get-HccLoopbackPort) + '/api/v1/setup/status') -Seconds 120
+    $port = Get-HccLoopbackPort
+    if ($port -eq 0) { Write-InstallLog 'The hotel and the first Owner are already set up (the setup listener is off).'; return }
+    $status = Wait-HccUrl -Url ("http://127.0.0.1:$port/api/v1/setup/status") -Seconds 120
     if ($status.Status -ne 200) { throw 'The HCC server did not answer on this PC in time, so the hotel could not be set up. Check the Windows Event Log (source HCC) and run the setup again.' }
+    $required = $true
+    try { $required = [bool](ConvertFrom-Json $status.Body).setupRequired } catch { $required = $true }
+    if (-not $required) {
+        Write-InstallLog 'The hotel and the first Owner already exist (an earlier run stopped before closing the setup listener); closing it now.'
+        Close-HccSetupListener
+        return
+    }
     $params = @{
         HotelName = $A.hotelName; Address = '(enter the address in Master configuration after signing in)'; OwnerLogin = $A.ownerUserName
         OwnerDisplayName = $A.ownerUserName; OwnerPassword = (ConvertTo-HccSecureString $A.ownerPassword); SettingsFile = $script:SettingsFile
+        ServerUrl = "http://127.0.0.1:$port"
     }
     Invoke-HccOps -Script 'Initialize-HccProperty.ps1' -Params $params | Out-Null
 }
@@ -742,9 +952,13 @@ function Step-Health {
         if ($local.Status -ne 200) { throw "The HCC web page does not open at $base/ (HTTP $($page.Status)). Is Server\web\index.html present?" }
         Write-InstallLog "The web page opens on https://localhost:$($A.httpsPort)/ but not on $base/." 'WARN'
     }
+    if ($A.mode -eq 'Trial' -and $page.Status -eq 200) {
+        $csp = @(Test-HccPageCsp $page.Body)
+        if ($csp.Count -gt 0) { throw ("The web page served by HCC would not run in a browser ($($csp[0])). The TRIAL mark must not touch the page's scripts.") }
+    }
     Write-InstallLog "Health check passed: $base/ answers and the database is current."
     $fp = Get-HccCaFingerprint
-    if ($fp) { Write-InstallLog ('Hotel CA SHA-256 fingerprint: ' + (Format-HccFingerprint $fp) + ' - compare this with what the client setup shows on each PC.') }
+    if ($fp) { Write-InstallLog ('Hotel CA SHA-256 fingerprint: ' + (Format-HccCaFingerprint $fp) + ' - compare this with what the client setup shows on each PC.') }
 }
 
 function Get-HccInstallSteps {
@@ -752,12 +966,13 @@ function Get-HccInstallSteps {
     $mode = [string]$A.mode
     return @(
         @{ Id = 'sql'; Title = 'Preparing SQL Server'; Run = { param($A) Step-Sql $A }; Plan = "Bootstrap-HccSql.ps1 -Mode $($A.sql) -MediaDir <app>\SqlSetupMedia (exit 2 = restart Windows)" }
+        @{ Id = 'service-register'; Title = 'Registering the HCC service'; Run = { param($A) Step-ServiceRegister $A }; Plan = "Install-HccService.ps1 -HttpsPort $($A.httpsPort) (registers HccServer, NOT started: its account must exist before SQL Server and the key files are given to it)" }
         @{ Id = 'database'; Title = 'Creating the HCC databases'; Run = { param($A) Step-Database $A }; Plan = "Initialize-HccDatabase.ps1 -ServiceAccount 'NT SERVICE\HccServer' -BackupDirectory '$($A.backupDirectory)' -GrantDrillRights" }
         @{ Id = 'certificate'; Title = 'Creating the hotel certificate'; Run = { param($A) Step-Certificate $A }; Plan = $(if ($mode -eq 'Trial') { 'New-HccCertificate.ps1 -UpdateConfig (TRIAL: CA key kept in an ACL''d PFX in ProgramData\HCC\Keys, generated password beside it); trust the CA on this PC' } else { "New-HccCertificate.ps1 -UpdateConfig; CA key written to the USB folder '$($A.offlineCopyDirectory)' and removed from this PC; trust the CA on this PC" }) }
-        @{ Id = 'settings'; Title = 'Writing the settings'; Run = { param($A) Step-Settings $A }; Plan = $(if ($mode -eq 'Trial') { 'Write appsettings.Production.json and hcc-ops.json; add the TRIAL banner to the sign-in page' } else { 'Write appsettings.Production.json and hcc-ops.json' }) }
-        @{ Id = 'keys'; Title = 'Creating the guest ID key and the backup key'; Run = { param($A) Step-Keys $A }; Plan = $(if ($mode -eq 'Trial') { 'New-HccGuestIdKey.ps1, New-HccBackupKey.ps1 (TRIAL: copies stay in ProgramData\HCC\TrialKeyCopies)' } else { "New-HccGuestIdKey.ps1, New-HccBackupKey.ps1 (key copies to '$($A.offlineCopyDirectory)')" }) }
+        @{ Id = 'settings'; Title = 'Writing the settings'; Run = { param($A) Step-Settings $A }; Plan = $(if ($mode -eq 'Trial') { 'Write appsettings.Production.json (also Hcc:Install:Mode) and hcc-ops.json; add the TRIAL mark to the sign-in page; check the settings file permissions' } else { 'Write appsettings.Production.json (also Hcc:Install:Mode) and hcc-ops.json; check the settings file permissions' }) }
+        @{ Id = 'keys'; Title = 'Creating the guest ID key and the backup key'; Run = { param($A) Step-Keys $A }; Plan = $(if ($mode -eq 'Trial') { 'New-HccGuestIdKey.ps1, New-HccBackupKey.ps1 (TRIAL: copies stay in ProgramData\HCC\TrialKeyCopies); check the settings file permissions' } else { "New-HccGuestIdKey.ps1, New-HccBackupKey.ps1 (key copies to '$($A.offlineCopyDirectory)'); check the settings file permissions" }) }
         @{ Id = 'migrate'; Title = 'Building the database tables'; Run = { param($A) Step-Migrate $A }; Plan = 'Hcc.Api.exe migrate (ASPNETCORE_ENVIRONMENT=Production, as the administrator)' }
-        @{ Id = 'service'; Title = 'Installing and starting the HCC service'; Run = { param($A) Step-Service $A }; Plan = "Install-HccService.ps1 -HttpsPort $($A.httpsPort); start HccServer" }
+        @{ Id = 'service-start'; Title = 'Starting the HCC service'; Run = { param($A) Step-ServiceStart $A }; Plan = 'Give the service access to the certificate key (the step fails if that fails); start HccServer' }
         @{ Id = 'property'; Title = 'Setting up the hotel and the first Owner'; Run = { param($A) Step-Property $A }; Plan = "Initialize-HccProperty.ps1 (hotel '$($A.hotelName)', Owner '$($A.ownerUserName)', password hidden); then the setup listener is closed" }
         @{ Id = 'backup-tasks'; Title = 'Scheduling the backups'; Run = { param($A) Step-BackupTasks $A }; Plan = 'Backup-HccDatabase.ps1 -Type Full; Register-HccBackupTasks.ps1' }
         @{ Id = 'egress'; Title = 'Blocking internet access for HCC'; Run = { param($A) Step-Egress $A }; Plan = 'Set-HccEgress.ps1 -State Install' }
@@ -769,9 +984,9 @@ function Get-HccInstallSteps {
 function Get-HccUpgradeSteps {
     param([hashtable]$A)
     return @(
-        @{ Id = 'settings'; Title = 'Merging new settings'; Run = { param($A) Update-HccSettingsMerge | Out-Null; if ($A.mode -eq 'Trial') { Set-HccTrialPage -IndexHtml (Join-Path $script:ServerDir 'web\index.html') } }; Plan = 'Add new settings to appsettings.Production.json and hcc-ops.json (existing values are never changed)' }
+        @{ Id = 'settings'; Title = 'Merging new settings'; Run = { param($A) Update-HccSettingsMerge | Out-Null; Set-HccInstallModeSetting $A.mode; if ($A.mode -eq 'Trial') { Set-HccTrialPage -IndexHtml (Join-Path $script:ServerDir 'web\index.html') }; Assert-HccSettingsAcl }; Plan = 'Add new settings to appsettings.Production.json and hcc-ops.json (existing values are never changed; placeholders for AllowedHosts, thumbprint, port 5080 etc. are never taken from the sample)' }
         @{ Id = 'migrate'; Title = 'Updating the database tables'; Run = { param($A) Stop-HccServerService; Step-Migrate $A }; Plan = 'Hcc.Api.exe migrate (the server is stopped first)' }
-        @{ Id = 'service'; Title = 'Starting the HCC service'; Run = { param($A) Start-HccServerService }; Plan = 'Start HccServer' }
+        @{ Id = 'service-start'; Title = 'Starting the HCC service'; Run = { param($A) Start-HccServerService }; Plan = 'Start HccServer' }
         @{ Id = 'client-kit'; Title = 'Refreshing the client kit'; Run = { param($A) if ($A.hotelName -and (Test-Path -LiteralPath $script:CaCer)) { Step-ClientKit $A } else { Write-InstallLog 'No client kit to refresh (no earlier setup information).' } }; Plan = 'New-HccClientKit.ps1 -OutDir <app>\ClientKit' }
         @{ Id = 'health'; Title = 'Checking that HCC answers'; Run = { param($A) Step-Health $A }; Plan = "https://$($A.serverName):$($A.httpsPort)/ answers" }
     )
@@ -835,6 +1050,22 @@ function Show-HccPlan {
     Write-Host 'PLAN ONLY: nothing was changed (no file, service, certificate, firewall rule, scheduled task or SQL object).'
 }
 
+function Remove-HccEgressObjects {
+    Get-NetFirewallRule -DisplayName 'HCC Egress Block' -ErrorAction SilentlyContinue | Remove-NetFirewallRule
+    Unregister-ScheduledTask -TaskName 'ToggleEgress' -TaskPath '\HCC\' -Confirm:$false -ErrorAction SilentlyContinue
+}
+
+function Get-HccConfiguredHttpsPort {
+    param([int]$Default = 5443)
+    $st = Read-HccState
+    $port = [int](Get-HccProp $st 'httpsPort' 0)
+    if ($port -gt 0) { return $port }
+    if (Test-Path -LiteralPath $script:SettingsFile) {
+        try { return [int](Get-HccProp (Get-HccProp (Get-HccProp ((Read-HccTextFile $script:SettingsFile) | ConvertFrom-Json) 'Hcc') 'Hosting') 'HttpsPort' $Default) } catch { }
+    }
+    return $Default
+}
+
 function Invoke-HccUninstall {
     param([switch]$Plan)
     $actions = @(
@@ -843,18 +1074,49 @@ function Invoke-HccUninstall {
         'Remove the firewall rule "HCC Egress Block"',
         'KEPT: SQL Server, the databases Hcc and HccDocuments, the backups, the keys, the certificates, the settings files (appsettings.Production.json, hcc-ops.json)')
     if ($Plan) { foreach ($a in $actions) { Write-Host "  $a" }; Write-Host 'PLAN ONLY: nothing was changed.'; return 0 }
-    $failed = 0
-    try { Invoke-HccOps -Script 'Install-HccService.ps1' -Params @{ Uninstall = $true } | Out-Null } catch { $failed++; Write-InstallLog ('Service removal: ' + $_.Exception.Message) 'WARN' }
-    try { Invoke-HccOps -Script 'Register-HccBackupTasks.ps1' -Params @{ Unregister = $true } | Out-Null } catch { $failed++; Write-InstallLog ('Backup tasks removal: ' + $_.Exception.Message) 'WARN' }
-    try {
-        Get-NetFirewallRule -DisplayName 'HCC Egress Block' -ErrorAction SilentlyContinue | Remove-NetFirewallRule
-        Unregister-ScheduledTask -TaskName 'ToggleEgress' -TaskPath '\HCC\' -Confirm:$false -ErrorAction SilentlyContinue
+    $setupSafe = (Test-Path -LiteralPath $script:SetupDir) -and (@(Get-HccFolderProblems -Path $script:SetupDir).Count -eq 0)
+    if ($setupSafe) { Remove-HccAnswerFile (Join-Path $script:SetupDir 'answers.json') }
+    $port = Get-HccConfiguredHttpsPort
+    $failed = New-Object System.Collections.Generic.List[string]
+    try { Invoke-HccOps -Script 'Install-HccService.ps1' -Params @{ Uninstall = $true; HttpsPort = $port } | Out-Null } catch { $failed.Add('the service and its firewall rule'); Write-InstallLog ('Service removal: ' + $_.Exception.Message) 'WARN' }
+    try { Invoke-HccOps -Script 'Register-HccBackupTasks.ps1' -Params @{ Unregister = $true } | Out-Null } catch { $failed.Add('the backup tasks'); Write-InstallLog ('Backup tasks removal: ' + $_.Exception.Message) 'WARN' }
+    try { Remove-HccEgressObjects }
+    catch { $failed.Add('the internet-block rule and its task'); Write-InstallLog ('Egress removal: ' + $_.Exception.Message) 'WARN' }
+    $st = if ($setupSafe) { Read-HccState } else { $null }
+    if ($failed.Count -gt 0) {
+        $note = 'NOT removed: ' + ($failed -join ', ') + '. The program files are removed anyway.'
+        Write-InstallLog "$note Run Install-HccService.ps1 -Uninstall by hand if the service is still listed." 'WARN'
+        if ($setupSafe) { Write-HccSummary $st 'UninstallPartial' $note }
+        return 1
     }
-    catch { $failed++; Write-InstallLog ('Egress removal: ' + $_.Exception.Message) 'WARN' }
-    if ($failed -gt 0) { Write-InstallLog "$failed removal step(s) did not finish; the program files are removed anyway. Run Install-HccService.ps1 -Uninstall by hand if the service is still listed." 'WARN'; return 1 }
-    if (Test-Path -LiteralPath $script:SetupDir) { Write-HccSummary (Read-HccState) 'Uninstalled' }
+    if ($setupSafe) { Write-HccSummary $st 'Uninstalled' }
     Write-InstallLog 'HCC service, firewall rules and scheduled tasks removed. SQL Server, the databases, the backups, the keys, the certificates and the settings files were not touched.'
     return 0
+}
+
+# Trial or Production: the setup record first, then Hcc:Install:Mode in the settings file, then the Trial files; '' = unknown (never guessed).
+function Get-HccInstallMode {
+    param($State)
+    $m = [string](Get-HccProp $State 'mode' '')
+    if ($m -in @('Trial', 'Production')) { return $m }
+    if (Test-Path -LiteralPath $script:SettingsFile) {
+        try {
+            $m = [string](Get-HccProp (Get-HccProp (Get-HccProp ((Read-HccTextFile $script:SettingsFile) | ConvertFrom-Json) 'Hcc') 'Install') 'Mode' '')
+            if ($m -in @('Trial', 'Production')) { return $m }
+        }
+        catch { }
+    }
+    if ((Test-Path -LiteralPath $script:TrialCopiesDir) -or (Test-Path -LiteralPath (Join-Path $script:KeysDir 'HCC-Hotel-CA-password.txt'))) { return 'Trial' }
+    return ''
+}
+
+function Set-HccInstallModeSetting {
+    param([string]$Mode)
+    if (-not $Mode -or -not (Test-Path -LiteralPath $script:SettingsFile)) { return }
+    $json = (Read-HccTextFile $script:SettingsFile) | ConvertFrom-Json
+    if ([string](Get-HccProp (Get-HccProp (Get-HccProp $json 'Hcc') 'Install') 'Mode' '')) { return }
+    Set-HccJsonValue $json 'Hcc.Install.Mode' $Mode
+    Write-HccTextFile $script:SettingsFile ($json | ConvertTo-Json -Depth 12)
 }
 
 function Start-HccInstall {
@@ -868,21 +1130,36 @@ function Start-HccInstall {
     $script:LogFile = $null
     $version = ''
     try { $version = (Read-HccTextFile (Join-Path $script:AppDir 'VERSION.txt')).Trim() } catch { $version = '' }
-    if (-not $plan) {
-        if (-not (Test-HccElevated)) { Write-Host 'Run this from an administrator window.'; return 1 }
-        try { Initialize-HccDataFolders } catch { Write-Host ('The installation stopped: ' + $_.Exception.Message); return 1 }
-        $script:LogFile = Join-Path $script:LogsDir ('install-{0}.log' -f (Get-Date -Format 'yyyyMMdd-HHmmss'))
-    }
     try {
-        if ($Uninstall) {
-            if (-not $plan -and -not (Test-HccElevated)) { Write-Host 'Run this from an administrator window.'; return 1 }
-            return (Invoke-HccUninstall -Plan:$plan)
+        if (-not $plan) {
+            if (-not (Test-HccElevated)) { Write-Host 'Run this from an administrator window.'; return 1 }
+            if ($Uninstall) {
+                # the uninstall must not depend on the data folders being healthy: it logs only if the Logs folder is safe
+                if ((Test-Path -LiteralPath $script:LogsDir) -and @(Get-HccFolderProblems -Path $script:LogsDir).Count -eq 0) { $script:LogFile = Join-Path $script:LogsDir ('install-{0}.log' -f (Get-Date -Format 'yyyyMMdd-HHmmss')) }
+            }
+            else {
+                Initialize-HccDataFolders
+                $script:LogFile = Join-Path $script:LogsDir ('install-{0}.log' -f (Get-Date -Format 'yyyyMMdd-HHmmss'))
+                Update-HccProcessPath
+                if ($Upgrade) { Remove-HccAnswerFile (Join-Path $script:SetupDir 'answers.json') }   # a stray answer file of a crashed run
+            }
         }
+        if ($Uninstall) { return (Invoke-HccUninstall -Plan:$plan) }
 
         # ----- upgrade: no questions ------------------------------------------------------------------------------------------
         if ($Upgrade) {
             $old = Read-HccState
-            $A = @{ mode = [string](Get-HccProp $old 'mode' 'Production'); hotelName = [string](Get-HccProp $old 'hotelName' ''); serverName = [string](Get-HccProp $old 'serverName' ''); httpsPort = [int](Get-HccProp $old 'httpsPort' 5443) }
+            $mode = Get-HccInstallMode $old
+            if (-not $mode) {
+                if ($plan) { $mode = 'Production' }
+                else {
+                    $note = 'Cannot tell whether this is a Trial or a Production install (no setup record and no Hcc:Install:Mode in appsettings.Production.json). Nothing was changed.'
+                    Write-InstallLog ($note + ' Add "Install": { "Mode": "Production" } (or "Trial") under "Hcc" in appsettings.Production.json and run the setup again.') 'ERROR'
+                    Write-HccSummary $old 'UpgradeFailed' $note
+                    return 1
+                }
+            }
+            $A = @{ mode = $mode; hotelName = [string](Get-HccProp $old 'hotelName' ''); serverName = [string](Get-HccProp $old 'serverName' ''); httpsPort = [int](Get-HccProp $old 'httpsPort' 5443) }
             if (-not $A.serverName) {
                 $A.serverName = $env:COMPUTERNAME.ToLowerInvariant()
                 if (Test-Path -LiteralPath $script:SettingsFile) {
@@ -892,9 +1169,8 @@ function Start-HccInstall {
             }
             $steps = Get-HccUpgradeSteps -A $A
             if ($plan) { Show-HccPlan $steps 'HCC server upgrade:'; return 0 }
-            if (-not (Test-HccElevated)) { Write-Host 'Run this from an administrator window.'; return 1 }
             Write-InstallLog "HCC server upgrade started (PowerShell $($PSVersionTable.PSVersion))."
-            $state = if ($old) { $old } else { [pscustomobject]@{ mode = $A.mode; hotelName = $A.hotelName; serverName = $A.serverName; httpsPort = $A.httpsPort; completed = @(); status = 'Done' } }
+            $state = if ($old) { $old } else { [pscustomobject]@{ mode = $A.mode; hotelName = $A.hotelName; serverName = $A.serverName; httpsPort = $A.httpsPort; serverUrl = ('https://{0}:{1}/' -f $A.serverName, $A.httpsPort); completed = @(); status = 'Done' } }
             # the upgrade keeps its own progress; the original install record stays as it was
             $up = [pscustomobject]@{ completed = @(); currentStep = ''; failedStep = ''; status = 'InProgress' }
             $backup = $script:StateFile
@@ -906,15 +1182,21 @@ function Start-HccInstall {
                 Write-HccProgress -Index @($steps).Count -Count @($steps).Count -Title 'Done' -Status 'done'
                 Write-InstallLog 'HCC server upgrade finished.'
             }
-            else { Write-InstallLog "The upgrade did not finish. The log is $script:LogFile. Run the setup again to continue." 'ERROR' }
+            else {
+                Write-HccSummary $state 'UpgradeFailed' ("Failed step: " + [string]$up.failedStep)
+                Write-InstallLog "The upgrade did not finish (step $($up.failedStep)). The log is $script:LogFile. Run the setup again to retry." 'ERROR'
+            }
             return $code
         }
 
         # ----- install ------------------------------------------------------------------------------------------------------
         if (-not $AnswerFile) { Write-Host 'Give -AnswerFile <path to answers.json>.'; return 1 }
         if (-not (Test-Path -LiteralPath $AnswerFile)) { Write-Host "The answer file $AnswerFile was not found."; return 1 }
-        if (-not $plan) { Assert-HccAnswerFolderPrivate -Path (Split-Path -Parent $AnswerFile) }
-        $A = ConvertTo-HccAnswers -Json ((Read-HccTextFile $AnswerFile) | ConvertFrom-Json)
+        if (-not $plan) { Assert-HccAnswerFolderPrivate -Path (Split-Path -Parent $AnswerFile) -FilePath $AnswerFile }
+        # the parse error of Windows PowerShell 5.1 quotes the whole text (it holds the passwords): never log the exception here
+        try { $answerJson = (Read-HccTextFile $AnswerFile) | ConvertFrom-Json }
+        catch { Write-InstallLog 'The answer file is not valid JSON, so nothing was installed.' 'ERROR'; return 1 }
+        $A = ConvertTo-HccAnswers -Json $answerJson
         Add-HccSecret $A.ownerPassword
         Add-HccSecret $A.caPfxPassword
         $problems = @(Test-HccAnswers -A $A)
@@ -925,16 +1207,22 @@ function Start-HccInstall {
         }
         $steps = Get-HccInstallSteps -A $A
         if ($plan) { Show-HccPlan $steps ("HCC server install ({0} mode) for '{1}' on {2}:" -f $A.mode, $A.hotelName, $A.serverName); return 0 }
-        if (-not (Test-HccElevated)) { Write-Host 'Run this from an administrator window.'; return 1 }
 
         $old = Read-HccState
         $completed = @()
         if ($Resume -and $old) {
             $oldMode = [string](Get-HccProp $old 'mode' '')
             if ($oldMode -and $oldMode -ne $A.mode) { Write-InstallLog "The earlier attempt was a $oldMode install; it cannot continue as $($A.mode). Run the setup again with the same kind." 'ERROR'; return 1 }
-            $oldName = [string](Get-HccProp $old 'serverName' '')
-            if ($oldName -and ($oldName -ne $A.serverName -or [int](Get-HccProp $old 'httpsPort' 0) -ne $A.httpsPort)) { Write-InstallLog 'The PC name or port differs from the earlier attempt; use the same values to continue.' 'ERROR'; return 1 }
             $completed = @(Get-HccProp $old 'completed' @())
+            if ($completed.Count -gt 0) {
+                # the finished steps used the earlier values: refuse changed answers instead of silently keeping the old ones
+                $changed = @()
+                foreach ($f in @('serverName', 'httpsPort', 'hotelName', 'backupDirectory', 'ownerUserName', 'sql')) {
+                    $ov = [string](Get-HccProp $old $f ''); if ($ov -and $ov -ne [string]$A[$f]) { $changed += $f }
+                }
+                $oldIps = (@(Get-HccProp $old 'serverIps' @()) -join ','); if ($oldIps -and $oldIps -ne ($A.serverIps -join ',')) { $changed += 'serverIps' }
+                if ($changed.Count -gt 0) { Write-InstallLog ('These answers differ from the earlier attempt, whose finished steps used the old values: ' + ($changed -join ', ') + '. Type the same values to continue.') 'ERROR'; return 1 }
+            }
         }
         elseif ($old -and [string](Get-HccProp $old 'status' '') -eq 'Done' -and [string](Get-HccProp $old 'mode' '') -ne $A.mode) {
             Write-InstallLog "This PC already has a finished $(Get-HccProp $old 'mode' '') install. A trial cannot be turned into a production install by this setup (the keys session does that)." 'ERROR'; return 1
