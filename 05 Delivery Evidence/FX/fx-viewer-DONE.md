@@ -13,7 +13,8 @@ Lane `viewer` / branch `claude/fx-viewer` / base 9c5abf01. Paging and a PDF butt
 ## Tests
 - `tests/stream-fx-viewer.mjs`: 8 / 8 pass (splitTail; 250 rows -> 100 + total row + "Showing 100 of 250", total = whole-report figure; short report no Show more; phone 50 cards + total card; PDF button present / absent without export right / absent without pdf format / disabled with no result; demo build has no PDF button and paging unchanged; click wiring; `exportHubFile` pdf over a fake server: query, mime, file name, no POST).
 - `npx tsc --noEmit`: clean.
-- Full `npm test` through the lock: see the lane reply for the final count.
+- `HCC_TEST_ONLY='fx-viewer|rpt-hub|hub-server|reports-hub|f7' npm test` through the lock: **92/92 passed** (includes [AF2-HUB], [F7-R*] and the 8 [FX-VIEWER] tests).
+- Full `npm test` through the lock: started once; the console log showed 2606 PASS lines and 0 FAIL, but it never printed the closing "N/N tests passed" line (stalled at ~7.5 GB heap under lane contention; I stopped the node process). So the full suite is NOT confirmed (baseline is about 3385); the orchestrator's gate must run it.
 
 ## Not verified
 - Real click in a browser / APK (save dialog), and a real server PDF byte stream: only the loader against a fake server and static render were tested. Server PDF export of each report not re-checked (existing af2 server tests).
