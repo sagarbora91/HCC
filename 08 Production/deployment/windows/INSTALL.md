@@ -6,6 +6,16 @@ Nothing here is sent outside the hotel. Do the steps in order; each one says how
 
 **Words used:** *PowerShell (Admin)* = Start menu, type PowerShell, right-click, "Run as administrator". *The scripts folder* = `C:\Program Files\HCC\Operations` (the installer puts them there; only administrators can change files there, which the backup tasks rely on; from the source tree they are in `08 Production\deployment\windows`).
 
+<!-- INST-BUILD -->
+## Installing with the setup program (the easy way)
+Two setup programs are made by `installer\Build-Installer.ps1` and saved in `E:\Projects\HCC\Installers` (outside the project, never committed):
+- `HCC-Server-Setup-<version>-x64.exe` - for the hotel's main PC. It carries everything: the server (no separate .NET install needed), the web app, the scripts, the masters templates and, when it was built with it, SQL Server Express. Run it once as administrator and answer the questions; it does the numbered steps below for you. Trial mode is for trying HCC on a spare PC (**not for real guest data**); a trial install cannot later be turned into a production one except by the keys session.
+- `HCC-Client-Setup-<version>.exe` - for every other Windows PC. It installs no program: it makes the PC trust the hotel's certificate and puts an HCC icon on the desktop. The server setup also leaves a ready-to-copy `ClientKit` folder (`C:\Program Files\HCC\ClientKit`): copy it to a USB stick and run the setup inside it on each PC.
+Check that the files are what was built: run `Get-FileHash <file> -Algorithm SHA256` and compare with `SHA256SUMS.txt` in the same folder. These setup programs are **not code-signed** yet, so Windows may show "Windows protected your PC": choose More info, then Run anyway, but only for a file whose checksum matches.
+To build them (developer): `pwsh -File installer\Build-Installer.ps1` (optional `-Version x.y.z`, `-SqlPayloadDir <folder>` or `-SkipSqlPayload`, `-OutDir <folder>`, `-DryRun` to list the steps without building). Inno Setup 6 must be installed; if it is missing the build stops with an error.
+Uninstalling never removes SQL Server, the databases, the backups, the keys or your settings. The numbered manual steps below stay valid as the fallback if the setup program cannot be used.
+<!-- /INST-BUILD -->
+
 ## 0. Before you start
 - A Windows 10/11 PC that stays on, with a fixed address on the hotel network (ask your router/IT person to give it a "reservation" so it always gets the same number, for example `192.168.1.20`). Write the PC name and that number down.
 - A second drive or folder for backups, ideally **not** the same disk as the data (for example `D:\HccBackups`, or a USB/NAS disk). Turn on **BitLocker** for that drive (Settings > Privacy & security > Device encryption / BitLocker; Windows Pro) so a stolen disk cannot be read.
