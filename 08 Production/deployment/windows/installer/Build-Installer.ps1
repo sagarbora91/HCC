@@ -1,41 +1,47 @@
 <#
 .SYNOPSIS
   Builds the two HCC Windows installers (wave INST, lane build):
-    HCC-Client-Setup-<ver>.exe   the small client setup (trusts the hotel certificate, puts the HCC icon on the desktop)
+    HCC-Client-Setup-<ver>.exe      the small client setup (trusts the hotel certificate, puts the HCC icon on the desktop)
     HCC-Server-Setup-<ver>-x64.exe  the server installer (self-contained server, web page, scripts, optional SQL Server media)
-  plus SHA256SUMS.txt, all in -OutDir (default E:\Projects\HCC\Installers, outside the repository, never committed).
+  plus SHA256SUMS.txt and BUILDINFO.txt, all in -OutDir (default E:\Projects\HCC\Installers, outside the repository, never committed).
 
 .DESCRIPTION
-  Order: find ISCC (a missing Inno Setup is an ERROR) -> check the SQL media -> production web page (npm run build:production in
-  03 Prototype) -> self-contained win-x64 publish of Hcc.Api -> copy the web page into <publish>\web\index.html -> compile the CLIENT
-  setup -> compile the SERVER installer (it embeds the client setup) -> optional signing -> SHA256SUMS.txt.
-  Any failing step stops the build with exit code 1 and a plain "BUILD FAILED" message. Nothing is installed or changed on this PC:
-  the script only writes into -OutDir and the work folder.
+  Provenance: the build refuses a dirty git tree (-AllowDirty overrides, loudly). By default it builds from a throw-away detached
+  git worktree of the current commit under the work folder, so the eight packages.lock.json files of the real tree are never
+  rewritten and only committed files can ship. The worktree is removed in a finally.
+  Order: find ISCC (a missing Inno Setup is an ERROR) -> stage + hash the SQL media -> worktree -> production web page
+  (npm run build:production in 03 Prototype) -> self-contained win-x64 publish -> web page into <publish>\web\index.html ->
+  sanity check -> compile the CLIENT setup -> compile the SERVER installer (embeds the client setup) -> optional signing ->
+  SHA256SUMS.txt + BUILDINFO.txt -> only then move everything into -OutDir. All compiling, signing and hashing happens in
+  <WorkDir>\out: a failed build leaves -OutDir without a finished-looking file or a stale sums file.
+  Any failing step stops the build with exit code 1 and "BUILD FAILED". Nothing is installed or changed on this PC.
 
   /D defines passed to ISCC (the .iss files of lanes server and client use exactly these names):
-    AppVersion      x.y.z (the client setup gets x.y.z.0 because HccClient.iss needs four parts; its exe is renamed to x.y.z)
-    PublishDir      self-contained publish output, including web\index.html
-    OpsDir          deployment\windows (the .ps1 scripts, samples, INSTALL.md)
-    TemplatesDir    08 Production\deployment\import-templates
-    SqlMediaDir     staged folder with exactly SQLEXPR_x64_ENU.exe, MsSqlCmdLnUtils.msi, msodbcsql17.msi (hashes checked against sql-media.manifest.json when present); NOT defined when the SQL payload is skipped (use #ifdef SqlMediaDir)
-    ClientSetupExe  full path of the client setup exe just built (the server installer ships it inside the client kit)
-    OutputDir       where the compiled setup is written (-OutDir)
+    AppVersion      x.y.z (both installers)
+    OutputDir       <WorkDir>\out (also given as /O) (both)
+    OpsDir          deployment\windows of the built commit (both)
+    PublishDir      self-contained publish output, including web\index.html (server)
+    TemplatesDir    08 Production\deployment\import-templates (server)
+    SqlMediaDir     staged folder with exactly SQLEXPR_x64_ENU.exe, MsSqlCmdLnUtils.msi, msodbcsql17.msi, hashes checked against
+                    sql-media.manifest.json; NOT defined with -SkipSqlPayload (use #ifdef SqlMediaDir) (server)
+    ClientSetupExe  full path of the client setup exe just built (server)
 
   Unsigned: no code-signing certificate exists yet. A clear note is printed; -SignThumbprint signs both exes with signtool.
 
 .PARAMETER Version        x.y.z; default: <Version> in 08 Production\Directory.Build.props.
-.PARAMETER SqlPayloadDir  Folder with SQLEXPR*_x64_*.exe, MsSqlCmdLnUtils.msi and msodbcsql17.msi. Default: the ETP payload folder
-                          (E:\ETP\Installers\SQL payload for the ETP installer (2025 + ODBC 17)) when it exists.
+.PARAMETER SqlPayloadDir  Folder with SQLEXPR_x64_ENU.exe, MsSqlCmdLnUtils.msi and msodbcsql17.msi. Default: the ETP payload folder.
 .PARAMETER SkipSqlPayload Build a server installer without SQL media (it then cannot install SQL Server itself).
 .PARAMETER OutDir         Output folder. Default E:\Projects\HCC\Installers.
 .PARAMETER DryRun         Print every step and the ISCC command lines; build nothing, create nothing, change nothing.
+.PARAMETER AllowDirty     Build although the git tree has uncommitted changes, in place (no worktree). Loud warning; the real tree's lock files get rewritten.
 .PARAMETER SignThumbprint Certificate thumbprint for signtool (optional).
 .PARAMETER TimestampUrl   RFC 3161 timestamp server used with -SignThumbprint.
+.PARAMETER SignToolPath   signtool.exe to use (default: PATH, then Windows Kits).
 .PARAMETER InnoSetupCompiler  ISCC.exe or its folder; default: PATH, registry, default folders.
-.PARAMETER ServerIss      Default installer\Hcc.iss next to this script.
-.PARAMETER ClientIss      Default installer\HccClient.iss next to this script.
-.PARAMETER WorkDir        Scratch folder for the publish output. Default %TEMP%\HccInstallerBuild.
-.PARAMETER PublishDir     Use an already built publish folder (needs Hcc.Api.exe, hostfxr.dll, web\index.html); skips web build and publish.
+.PARAMETER ServerIss      Default installer\Hcc.iss of the built commit.
+.PARAMETER ClientIss      Default installer\HccClient.iss of the built commit.
+.PARAMETER WorkDir        Scratch folder. Default %TEMP%\HccInstallerBuild. Its publish, sqlmedia, out, tmp and src folders are emptied at the start.
+.PARAMETER PublishDir     Use an already built publish folder (copied through a filter; skips web build and publish). For tests.
 .PARAMETER LockScript     Path of Invoke-Serialized.ps1: npm and dotnet then run through the heavy-job lock (exit 75 = busy = build fails).
 #>
 [CmdletBinding()]
@@ -45,8 +51,10 @@ param(
     [switch]$SkipSqlPayload,
     [string]$OutDir = 'E:\Projects\HCC\Installers',
     [switch]$DryRun,
+    [switch]$AllowDirty,
     [string]$SignThumbprint,
     [string]$TimestampUrl = 'http://timestamp.digicert.com',
+    [string]$SignToolPath,
     [string]$InnoSetupCompiler,
     [string]$ServerIss,
     [string]$ClientIss,
@@ -58,8 +66,47 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 $DefaultSqlPayload = 'E:\ETP\Installers\SQL payload for the ETP installer (2025 + ODBC 17)'
+$script:HeavyCounter = 0
 
-# ---- helpers (ISCC lookup ported from ETP Resolve-EtpInnoSetupCompiler) ---------------------------------------------------------
+# ---- helpers ----------------------------------------------------------------------------------------------------------------------
+function Step { param([string]$Text) Write-Host ''; Write-Host "== $Text" }
+
+function Get-HccFullPath {
+    param([string]$Path)
+    $p = [IO.Path]::GetFullPath($Path)
+    if ($p.Length -gt 3) { $p = $p.TrimEnd('\') }
+    return $p
+}
+
+# Runs a native command with stderr tolerated (Windows PowerShell 5.1 turns native stderr into errors under 'Stop'); returns code + lines.
+function Invoke-HccNative {
+    param([string]$File, [string[]]$Arguments, [switch]$Show)
+    $old = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        $global:LASTEXITCODE = 0
+        $lines = @()
+        & $File @Arguments 2>&1 | ForEach-Object { $t = "$_"; $lines += $t; if ($Show) { Write-Host $t } }
+        $code = $LASTEXITCODE
+    } finally { $ErrorActionPreference = $old }
+    return [pscustomobject]@{ Code = $code; Lines = $lines }
+}
+
+function Format-HccArg { param([string]$A) if ($A -match '\s') { return '"' + $A + '"' } return $A }
+
+# Deletes a folder inside the work folder only (never anything else); unlinks junctions instead of following them.
+function Remove-HccWorkTree {
+    param([string]$Path, [string]$Root)
+    if (-not (Test-Path -LiteralPath $Path)) { return }
+    $full = Get-HccFullPath $Path
+    if (-not $full.StartsWith($Root.TrimEnd('\') + '\', [StringComparison]::OrdinalIgnoreCase)) { throw "Refusing to delete $full (outside the work folder $Root)." }
+    Get-ChildItem -LiteralPath $full -Recurse -Force -Directory -ErrorAction SilentlyContinue |
+        Where-Object { $_.Attributes -band [IO.FileAttributes]::ReparsePoint } |
+        ForEach-Object { try { [IO.Directory]::Delete($_.FullName, $false) } catch { Write-Verbose "could not unlink $($_.FullName)" } }
+    Remove-Item -LiteralPath $full -Recurse -Force
+}
+
+# ISCC lookup ported from ETP Resolve-EtpInnoSetupCompiler.
 function Resolve-HccInnoSetupCompiler {
     param([string]$Requested)
     if ($Requested) {
@@ -91,6 +138,10 @@ function Resolve-HccInnoSetupCompiler {
 }
 
 function Resolve-HccSignTool {
+    if ($SignToolPath) {
+        if (-not (Test-Path -LiteralPath $SignToolPath -PathType Leaf)) { throw "signtool not found at $SignToolPath" }
+        return (Get-HccFullPath $SignToolPath)
+    }
     $onPath = Get-Command -Name 'signtool.exe' -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
     if ($onPath) { return $onPath.Source }
     foreach ($base in @(${env:ProgramFiles(x86)}, $env:ProgramFiles)) {
@@ -105,23 +156,27 @@ function Resolve-HccSignTool {
     throw 'signtool.exe was not found (install the Windows SDK) but -SignThumbprint was given. Nothing was signed.'
 }
 
-# Runs a heavy command (npm, dotnet) in a folder: through the heavy-job lock when -LockScript is given, else directly.
+# Runs a heavy command (npm, dotnet): written to a temporary .ps1 (quotes survive Windows PowerShell 5.1), then run directly or
+# through the heavy-job lock when -LockScript is given.
 function Invoke-HccHeavy {
     param([string]$Directory, [string]$Command, [string]$What)
     Write-Host "  > ($Directory) $Command"
+    $script:HeavyCounter++
+    $tmp = Join-Path $script:TmpDir ("heavy-{0}.ps1" -f $script:HeavyCounter)
+    $body = "`$ErrorActionPreference = 'Continue'`r`nSet-Location -LiteralPath '$($Directory.Replace("'", "''"))'`r`n$Command`r`nexit `$LASTEXITCODE`r`n"
+    Set-Content -LiteralPath $tmp -Value $body -Encoding UTF8
     if ($LockScript) {
         $pwsh = Get-Command -Name 'pwsh' -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
         if (-not $pwsh) { throw 'pwsh (PowerShell 7) is needed to call the heavy-job lock but was not found on PATH.' }
-        & $pwsh.Source -NoProfile -File $LockScript -WorkingDirectory $Directory -Label 'inst-build' -Command $Command
+        $lockCmd = "& '" + $tmp.Replace("'", "''") + "'; exit `$LASTEXITCODE"
+        $global:LASTEXITCODE = 0
+        & $pwsh.Source -NoProfile -File $LockScript -WorkingDirectory $Directory -Label 'inst-build' -Command $lockCmd
         $code = $LASTEXITCODE
         if ($code -eq 75) { throw "$What did not run: the heavy-job lock is busy (exit 75). Run the build again later." }
     } else {
-        Push-Location -LiteralPath $Directory
-        try {
-            $global:LASTEXITCODE = 0
-            Invoke-Expression $Command
-            $code = $LASTEXITCODE
-        } finally { Pop-Location }
+        $global:LASTEXITCODE = 0
+        & $tmp
+        $code = $LASTEXITCODE
     }
     if ($code -ne 0) { throw "$What failed (exit code $code)." }
 }
@@ -129,38 +184,110 @@ function Invoke-HccHeavy {
 function Invoke-HccIscc {
     param([string]$Iscc, [string]$Script, [string[]]$Defines, [string]$What)
     $argList = @($Defines) + @($Script)
-    Write-Host ("  > ISCC {0}" -f ($argList -join ' '))
-    $global:LASTEXITCODE = 0
-    & $Iscc @argList
-    if ($LASTEXITCODE -ne 0) { throw "$What failed: Inno Setup compile exit code $LASTEXITCODE." }
+    Write-Host ("  > ISCC {0}" -f (($argList | ForEach-Object { Format-HccArg $_ }) -join ' '))
+    $r = Invoke-HccNative -File $Iscc -Arguments $argList -Show
+    if ($r.Code -ne 0) { throw "$What failed: Inno Setup compile exit code $($r.Code)." }
 }
 
 function Invoke-HccSign {
     param([string]$SignTool, [string]$File)
     Write-Host "  > signtool sign $File"
-    $global:LASTEXITCODE = 0
-    & $SignTool sign /sha1 $SignThumbprint /fd SHA256 /tr $TimestampUrl /td SHA256 $File
-    if ($LASTEXITCODE -ne 0) { throw "Signing failed for $File (signtool exit code $LASTEXITCODE)." }
+    $r = Invoke-HccNative -File $SignTool -Arguments @('sign', '/sha1', $SignThumbprint, '/fd', 'SHA256', '/tr', $TimestampUrl, '/td', 'SHA256', $File) -Show
+    if ($r.Code -ne 0) { throw "Signing failed for $File (signtool exit code $($r.Code)). Nothing was moved to the output folder." }
 }
 
-function Step { param([string]$Text) Write-Host ''; Write-Host "== $Text" }
+# Copies a caller-given publish folder into the fresh work publish folder, dropping everything that must never ship.
+function Copy-HccPublishFiltered {
+    param([string]$Source, [string]$Dest)
+    $srcFull = Get-HccFullPath $Source
+    $dropped = New-Object System.Collections.Generic.List[string]
+    $blockedDirs = @('logs', 'certs', 'keys')
+    foreach ($f in Get-ChildItem -LiteralPath $srcFull -Recurse -File -Force) {
+        $rel = $f.FullName.Substring($srcFull.Length).TrimStart('\')
+        $segments = $rel.Split('\')
+        $drop = $false
+        for ($i = 0; $i -lt $segments.Count - 1; $i++) { if ($blockedDirs -contains $segments[$i].ToLowerInvariant()) { $drop = $true } }
+        $n = $f.Name.ToLowerInvariant()
+        if ($n -like '*.pfx' -or $n -like '*.p12' -or $n -like '*.key' -or $n -like '*.pem' -or $n -like '*.log' -or $n -eq 'hcc-ops.json') { $drop = $true }
+        if ($n -like 'appsettings.*.json') { $drop = $true }
+        if ($drop) { $dropped.Add($rel); continue }
+        $target = Join-Path $Dest $rel
+        New-Item -ItemType Directory -Path (Split-Path -Parent $target) -Force | Out-Null
+        Copy-Item -LiteralPath $f.FullName -Destination $target -Force
+    }
+    if ($dropped.Count) { Write-Warning ("Dropped {0} file(s) that must never ship from the given publish folder, e.g. {1}" -f $dropped.Count, (($dropped | Select-Object -First 5) -join ', ')) }
+}
+
+function Remove-HccGitWorktree {
+    param([string]$Repo, [string]$Path)
+    if (-not (Test-Path -LiteralPath $Path)) { Invoke-HccNative -File $script:Git -Arguments @('-C', $Repo, 'worktree', 'prune') | Out-Null; return }
+    # junction first (node_modules), never follow it
+    $nm = Join-Path $Path '03 Prototype\node_modules'
+    if (Test-Path -LiteralPath $nm) {
+        $item = Get-Item -LiteralPath $nm -Force
+        if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) { [IO.Directory]::Delete($nm, $false) }
+    }
+    Invoke-HccNative -File $script:Git -Arguments @('-C', $Repo, 'worktree', 'remove', '--force', $Path) | Out-Null
+    if (Test-Path -LiteralPath $Path) { Remove-HccWorkTree -Path $Path -Root $script:WorkRoot }
+    Invoke-HccNative -File $script:Git -Arguments @('-C', $Repo, 'worktree', 'prune') | Out-Null
+}
 
 # ---- main -----------------------------------------------------------------------------------------------------------------------
+$savedRelease = $env:HCC_RELEASE
+$worktreePath = $null
+$repo = $null
+$exitCode = 1
 try {
-    $winDir = Split-Path -Parent $PSScriptRoot                              # ...\deployment\windows
-    $prod = [IO.Path]::GetFullPath((Join-Path $winDir '..\..'))             # ...\08 Production
-    $repo = Split-Path -Parent $prod
-    $proto = Join-Path $repo '03 Prototype'
-    $templates = [IO.Path]::GetFullPath((Join-Path $winDir '..\import-templates'))
-    if (-not $ServerIss) { $ServerIss = Join-Path $PSScriptRoot 'Hcc.iss' }
-    if (-not $ClientIss) { $ClientIss = Join-Path $PSScriptRoot 'HccClient.iss' }
+    $realWin = Split-Path -Parent $PSScriptRoot                                  # ...\deployment\windows
+    $realProd = [IO.Path]::GetFullPath((Join-Path $realWin '..\..'))             # ...\08 Production
+    $repo = Split-Path -Parent $realProd
     if (-not $WorkDir) { $WorkDir = Join-Path ([IO.Path]::GetTempPath()) 'HccInstallerBuild' }
-    $OutDir = [IO.Path]::GetFullPath($OutDir)
-    $WorkDir = [IO.Path]::GetFullPath($WorkDir)
+    $OutDir = Get-HccFullPath $OutDir
+    $WorkDir = Get-HccFullPath $WorkDir
+    $script:WorkRoot = $WorkDir
+    $script:TmpDir = Join-Path $WorkDir 'tmp'
+    $stageOut = Join-Path $WorkDir 'out'
+    $publishOut = Join-Path $WorkDir 'publish'
+    $sqlStage = Join-Path $WorkDir 'sqlmedia'
+    $srcRoot = Join-Path $WorkDir 'src'
+
+    Step 'Source control'
+    $gitCmd = Get-Command -Name 'git' -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+    if (-not $gitCmd) { throw 'git was not found on PATH (needed to record and check the commit being built).' }
+    $script:Git = $gitCmd.Source
+    $r = Invoke-HccNative -File $script:Git -Arguments @('-C', $repo, 'rev-parse', 'HEAD')
+    if ($r.Code -ne 0) { throw "git rev-parse failed in $repo." }
+    $commit = ($r.Lines | Select-Object -First 1).Trim()
+    $r = Invoke-HccNative -File $script:Git -Arguments @('-C', $repo, 'branch', '--show-current')
+    $branch = if ($r.Code -eq 0 -and $r.Lines.Count -and $r.Lines[0].Trim()) { $r.Lines[0].Trim() } else { '(detached)' }
+    $r = Invoke-HccNative -File $script:Git -Arguments @('-C', $repo, 'status', '--porcelain')
+    if ($r.Code -ne 0) { throw 'git status failed.' }
+    $dirtyLines = @($r.Lines | Where-Object { $_.Trim() })
+    $dirty = $dirtyLines.Count -gt 0
+    Write-Host "Commit $commit on $branch; working tree $(if ($dirty) { 'DIRTY (' + $dirtyLines.Count + ' entries)' } else { 'clean' })"
+    if ($dirty) {
+        if ($AllowDirty) {
+            Write-Warning 'DIRTY TREE: -AllowDirty was given. The build runs IN PLACE, uncommitted files can ship, and the real packages.lock.json files will be rewritten. Not a gated build.'
+        } elseif ($DryRun) {
+            Write-Warning 'The git tree is dirty: a real build would be REFUSED (commit the changes or pass -AllowDirty).'
+        } else {
+            throw "The git tree has uncommitted changes ($($dirtyLines.Count) entries, e.g. $($dirtyLines[0].Trim())). Commit them, or pass -AllowDirty (not a gated build)."
+        }
+    }
+    $useWorktree = (-not $AllowDirty) -and (-not $DryRun)
+    $buildRoot = if ($useWorktree) { $srcRoot } else { $repo }
+    $prod = Join-Path $buildRoot '08 Production'
+    $winDir = Join-Path $prod 'deployment\windows'
+    $proto = Join-Path $buildRoot '03 Prototype'
+    $templates = Join-Path $prod 'deployment\import-templates'
+    if (-not $ServerIss) { $ServerIss = Join-Path $winDir 'installer\Hcc.iss' }
+    if (-not $ClientIss) { $ClientIss = Join-Path $winDir 'installer\HccClient.iss' }
+    $apiProject = Join-Path $prod 'src\Hcc.Api\Hcc.Api.csproj'
+    $webSource = Join-Path $proto 'dist\production\index.html'
 
     Step 'Version'
     if (-not $Version) {
-        $propsFile = Join-Path $prod 'Directory.Build.props'
+        $propsFile = Join-Path $realProd 'Directory.Build.props'
         if (-not (Test-Path -LiteralPath $propsFile)) { throw "Directory.Build.props not found: $propsFile" }
         [xml]$props = Get-Content -LiteralPath $propsFile
         $node = $props.SelectSingleNode('/Project/PropertyGroup/Version')
@@ -172,46 +299,13 @@ try {
 
     Step 'Inno Setup compiler'
     $iscc = Resolve-HccInnoSetupCompiler -Requested $InnoSetupCompiler
-    Write-Host "ISCC: $iscc"
-
-    Step 'SQL Server media'
-    $sqlMedia = $null
-    if ($SkipSqlPayload) {
-        Write-Warning 'SQL payload skipped: the server installer will NOT be able to install SQL Server by itself.'
-    } else {
-        $dir = if ($SqlPayloadDir) { $SqlPayloadDir } else { $DefaultSqlPayload }
-        if (-not (Test-Path -LiteralPath $dir -PathType Container)) {
-            throw "SQL media folder not found: $dir. Pass -SqlPayloadDir <folder> or -SkipSqlPayload."
-        }
-        $sqlSource = [IO.Path]::GetFullPath($dir)
-        # Only these three files ship (ODBC 18 msodbcsql.msi and SqlLocalDB.msi stay out); they are staged into a build folder.
-        $sqlFiles = @('SQLEXPR_x64_ENU.exe', 'MsSqlCmdLnUtils.msi', 'msodbcsql17.msi')
-        foreach ($n in $sqlFiles) {
-            if (-not (Test-Path -LiteralPath (Join-Path $sqlSource $n) -PathType Leaf)) { throw "$n is missing in the SQL media folder: $sqlSource" }
-        }
-        $manifestFile = Join-Path $winDir 'sql-media.manifest.json'
-        if (Test-Path -LiteralPath $manifestFile) {
-            $manifest = Get-Content -Raw -LiteralPath $manifestFile | ConvertFrom-Json
-            foreach ($n in $sqlFiles) {
-                $entry = @($manifest.files | Where-Object { $_.name -eq $n }) | Select-Object -First 1
-                if (-not $entry) { throw "sql-media.manifest.json has no entry for $n." }
-                $actual = (Get-FileHash -LiteralPath (Join-Path $sqlSource $n) -Algorithm SHA256).Hash
-                if ($actual -ne ([string]$entry.sha256).ToUpperInvariant()) { throw "SQL media file $n does not match sql-media.manifest.json (SHA-256 differs). Wrong or damaged media: $sqlSource" }
-            }
-            Write-Host 'The three SQL media files match sql-media.manifest.json.'
-        } else {
-            Write-Warning 'sql-media.manifest.json is not present in this branch: the SQL media hashes were NOT verified.'
-        }
-        $sqlMedia = Join-Path $WorkDir 'sqlmedia'
-        if ($DryRun) {
-            Write-Host "(dry run) would stage $($sqlFiles -join ', ') into $sqlMedia"
-        } else {
-            New-Item -ItemType Directory -Path $sqlMedia -Force | Out-Null
-            Get-ChildItem -LiteralPath $sqlMedia -File | Where-Object { $sqlFiles -notcontains $_.Name } | Remove-Item -Force
-            foreach ($n in $sqlFiles) { Copy-Item -LiteralPath (Join-Path $sqlSource $n) -Destination (Join-Path $sqlMedia $n) -Force }
-        }
-        Write-Host "SQL media (staged): $sqlMedia"
+    $isccVersion = (Get-Item -LiteralPath $iscc).VersionInfo.ProductVersion
+    if (-not $isccVersion -or $isccVersion -eq '0.0.0.0') {
+        $uninst = Join-Path (Split-Path -Parent $iscc) 'unins000.exe'
+        $isccVersion = if (Test-Path -LiteralPath $uninst) { 'Inno Setup ' + (Get-Item -LiteralPath $uninst).VersionInfo.ProductVersion.Trim() } else { 'unknown' }
     }
+    $isccSig = (Get-AuthenticodeSignature -LiteralPath $iscc).Status
+    Write-Host "ISCC: $iscc  (version $isccVersion, signature $isccSig)"
 
     Step 'Signing'
     $signTool = $null
@@ -222,63 +316,130 @@ try {
         Write-Warning 'UNSIGNED build: no code-signing certificate was given (-SignThumbprint). Windows SmartScreen will warn when the setup is run; this is expected in this wave.'
     }
 
-    $publishOut = if ($PublishDir) { [IO.Path]::GetFullPath($PublishDir) } else { Join-Path $WorkDir 'publish' }
-    $clientExe = Join-Path $OutDir ("HCC-Client-Setup-$Version.exe")
-    $serverExe = Join-Path $OutDir ("HCC-Server-Setup-$Version-x64.exe")
-    $sumsFile = Join-Path $OutDir 'SHA256SUMS.txt'
-    $apiProject = Join-Path $prod 'src\Hcc.Api\Hcc.Api.csproj'
-    $webSource = Join-Path $proto 'dist\production\index.html'
+    $clientExeName = "HCC-Client-Setup-$Version.exe"
+    $serverExeName = "HCC-Server-Setup-$Version-x64.exe"
+    $clientExe = Join-Path $stageOut $clientExeName
+    $serverExe = Join-Path $stageOut $serverExeName
+    $manifestFile = Join-Path $winDir 'sql-media.manifest.json'
+    $sqlFiles = @('SQLEXPR_x64_ENU.exe', 'MsSqlCmdLnUtils.msi', 'msodbcsql17.msi')
+    $sqlSource = $null
+    if (-not $SkipSqlPayload) {
+        $dir = if ($SqlPayloadDir) { $SqlPayloadDir } else { $DefaultSqlPayload }
+        if (-not (Test-Path -LiteralPath $dir -PathType Container)) { throw "SQL media folder not found: $dir. Pass -SqlPayloadDir <folder> or -SkipSqlPayload." }
+        $sqlSource = Get-HccFullPath $dir
+    }
 
-    $common = @("/DAppVersion=$Version", "/DOutputDir=$OutDir", "/O$OutDir")
-    # HccClient.iss validates a four-part version (VersionInfoVersion): it gets x.y.z.0 and its exe is renamed to the three-part name.
-    $clientVersion4 = "$Version.0"
-    $clientExe4 = Join-Path $OutDir ("HCC-Client-Setup-$clientVersion4.exe")
-    $clientDefines = @("/DAppVersion=$clientVersion4", "/DOutputDir=$OutDir", "/O$OutDir", "/DOpsDir=$winDir")
-    $serverDefines = $common + @("/DPublishDir=$publishOut", "/DOpsDir=$winDir", "/DTemplatesDir=$templates", "/DClientSetupExe=$clientExe")
-    if ($sqlMedia) { $serverDefines += "/DSqlMediaDir=$sqlMedia" }
+    $common = @("/DAppVersion=$Version", "/DOutputDir=$stageOut", "/O$stageOut", "/DOpsDir=$winDir")
+    $clientDefines = $common
+    $serverDefines = $common + @("/DPublishDir=$publishOut", "/DTemplatesDir=$templates", "/DClientSetupExe=$clientExe")
+    if ($sqlSource) { $serverDefines += "/DSqlMediaDir=$sqlStage" }
 
     if ($DryRun) {
         Step 'DRY RUN (nothing is built, created or changed)'
-        Write-Host "Output folder : $OutDir"
-        Write-Host "Work folder   : $WorkDir"
-        Write-Host "Client script : $ClientIss  $(if (Test-Path -LiteralPath $ClientIss) { '(present)' } else { '(NOT PRESENT YET: a real build fails here)' })"
-        Write-Host "Server script : $ServerIss  $(if (Test-Path -LiteralPath $ServerIss) { '(present)' } else { '(NOT PRESENT YET: a real build fails here)' })"
+        Write-Host "Output folder : $OutDir  (files are moved there only after everything succeeded)"
+        Write-Host "Work folder   : $WorkDir  (publish, sqlmedia, out, tmp, src are emptied first)"
+        Write-Host "Client script : $ClientIss  $(if (Test-Path -LiteralPath $ClientIss) { '(present)' } else { '(NOT PRESENT)' })"
+        Write-Host "Server script : $ServerIss  $(if (Test-Path -LiteralPath $ServerIss) { '(present)' } else { '(NOT PRESENT)' })"
+        if ($sqlSource) {
+            Write-Host "0. stage the three SQL files from $sqlSource into $sqlStage and verify the staged copies against $manifestFile (missing manifest = error)"
+            foreach ($n in $sqlFiles) { if (-not (Test-Path -LiteralPath (Join-Path $sqlSource $n))) { Write-Warning "SQL media file missing: $n" } }
+            if (-not (Test-Path -LiteralPath $manifestFile)) { Write-Warning 'sql-media.manifest.json is missing: a real build fails.' }
+        } else { Write-Warning 'SQL payload skipped: the server installer will not install SQL Server.' }
         if ($PublishDir) {
-            Write-Host "1. use the existing publish folder $publishOut (no web build, no publish)"
+            Write-Host "1. copy the existing publish folder $PublishDir through the filter into $publishOut (no web build, no publish)"
         } else {
-            Write-Host "1. ($proto) npm run build:production   -> $webSource"
-            Write-Host "2. ($prod) dotnet publish `"$apiProject`" -c Release -r win-x64 --self-contained true -p:Version=$Version -o `"$publishOut`""
-            Write-Host "3. copy $webSource -> $(Join-Path $publishOut 'web\index.html')"
+            Write-Host "1. git worktree add --detach `"$srcRoot`" $commit   (throw-away, removed in a finally); node_modules: npm ci, else a junction to the real one"
+            Write-Host "2. ($proto) npm run build:production   -> $webSource"
+            Write-Host "3. ($prod) dotnet publish `"$apiProject`" -c Release -r win-x64 --self-contained true -p:Version=$Version -o `"$publishOut`""
+            Write-Host "4. copy the web page -> $(Join-Path $publishOut 'web\index.html')"
         }
-        Write-Host '4. check the publish folder: Hcc.Api.exe, hostfxr.dll (self-contained), web\index.html'
-        Write-Host "5. ISCC (client first) : $iscc $(($clientDefines + @($ClientIss)) -join ' ')"
+        Write-Host '5. check the publish folder (Hcc.Api.exe, hostfxr.dll, web\index.html, service + Event Log DLLs) and the exe version'
+        Write-Host ("6. ISCC (client first) : {0} {1}" -f (Format-HccArg $iscc), ((($clientDefines + @($ClientIss)) | ForEach-Object { Format-HccArg $_ }) -join ' '))
         if ($signTool) { Write-Host "   sign $clientExe" }
-        Write-Host "6. ISCC (server)       : $iscc $(($serverDefines + @($ServerIss)) -join ' ')"
+        Write-Host ("7. ISCC (server)       : {0} {1}" -f (Format-HccArg $iscc), ((($serverDefines + @($ServerIss)) | ForEach-Object { Format-HccArg $_ }) -join ' '))
         if ($signTool) { Write-Host "   sign $serverExe" }
-        Write-Host "7. write $sumsFile (SHA-256 of both setup programs)"
+        Write-Host "8. write SHA256SUMS.txt and BUILDINFO.txt in $stageOut, then move the 4 files into $OutDir"
         Write-Host 'DRY RUN finished: nothing was changed.'
-        exit 0
+        $exitCode = 0
+        return
     }
 
     foreach ($f in @($ClientIss, $ServerIss)) {
-        if (-not (Test-Path -LiteralPath $f -PathType Leaf)) { throw "Installer script not found: $f" }
+        if (-not (Test-Path -LiteralPath $f -PathType Leaf)) { if ($useWorktree) { } else { throw "Installer script not found: $f" } }
     }
-    New-Item -ItemType Directory -Path $OutDir -Force | Out-Null
+
+    Step 'Preparing the work folder'
+    New-Item -ItemType Directory -Path $WorkDir -Force | Out-Null
+    Remove-HccGitWorktree -Repo $repo -Path $srcRoot
+    foreach ($p in @($stageOut, $publishOut, $sqlStage, $script:TmpDir)) { Remove-HccWorkTree -Path $p -Root $WorkDir }
+    foreach ($p in @($stageOut, $script:TmpDir)) { New-Item -ItemType Directory -Path $p -Force | Out-Null }
+    # a build that starts must not leave an old sums file or same-version exes in the output folder
+    foreach ($n in @('SHA256SUMS.txt', 'BUILDINFO.txt', $clientExeName, $serverExeName)) {
+        $old = Join-Path $OutDir $n
+        if (Test-Path -LiteralPath $old) { Remove-Item -LiteralPath $old -Force; Write-Host "Removed stale $old" }
+    }
     $env:HCC_RELEASE = 'true'
 
+    $nodeModulesMode = 'n/a (existing publish folder)'
+    if ($useWorktree) {
+        Step 'Throw-away worktree of the current commit'
+        $r = Invoke-HccNative -File $script:Git -Arguments @('-C', $repo, 'worktree', 'add', '--detach', $srcRoot, $commit) -Show
+        if ($r.Code -ne 0) { throw "git worktree add failed (exit $($r.Code))." }
+        $worktreePath = $srcRoot
+        foreach ($f in @($ClientIss, $ServerIss)) { if (-not (Test-Path -LiteralPath $f -PathType Leaf)) { throw "Installer script not found in the built commit: $f" } }
+    }
+
+    $sqlIncluded = $false
+    if ($sqlSource) {
+        Step 'SQL Server media'
+        foreach ($n in $sqlFiles) {
+            if (-not (Test-Path -LiteralPath (Join-Path $sqlSource $n) -PathType Leaf)) { throw "$n is missing in the SQL media folder: $sqlSource" }
+        }
+        if (-not (Test-Path -LiteralPath $manifestFile -PathType Leaf)) { throw "sql-media.manifest.json is missing ($manifestFile): the installer's SQL step could not verify the media. Use -SkipSqlPayload to build without SQL media." }
+        $manifest = Get-Content -Raw -LiteralPath $manifestFile | ConvertFrom-Json
+        New-Item -ItemType Directory -Path $sqlStage -Force | Out-Null
+        foreach ($n in $sqlFiles) { Copy-Item -LiteralPath (Join-Path $sqlSource $n) -Destination (Join-Path $sqlStage $n) -Force }
+        foreach ($n in $sqlFiles) {
+            $entry = @($manifest.files | Where-Object { $_.name -eq $n }) | Select-Object -First 1
+            if (-not $entry) { throw "sql-media.manifest.json has no entry for $n." }
+            $actual = (Get-FileHash -LiteralPath (Join-Path $sqlStage $n) -Algorithm SHA256).Hash
+            if ($actual -ne ([string]$entry.sha256).ToUpperInvariant()) { throw "SQL media file $n does not match sql-media.manifest.json (SHA-256 of the staged copy differs). Wrong or damaged media: $sqlSource" }
+        }
+        Write-Host "The three staged SQL media files match sql-media.manifest.json ($sqlStage)."
+        $sqlIncluded = $true
+    } else {
+        Write-Warning 'SQL payload skipped: the server installer will NOT be able to install SQL Server by itself.'
+    }
+
     if ($PublishDir) {
-        Step "Using existing publish folder $publishOut"
+        Step "Copying the given publish folder (filtered) to $publishOut"
+        New-Item -ItemType Directory -Path $publishOut -Force | Out-Null
+        Copy-HccPublishFiltered -Source $PublishDir -Dest $publishOut
     } else {
         Step 'Production web page (npm run build:production)'
+        if ($useWorktree) {
+            $nm = Join-Path $proto 'node_modules'
+            try {
+                Invoke-HccHeavy -Directory $proto -Command 'npm ci --prefer-offline --no-audit --no-fund' -What 'npm ci'
+                $nodeModulesMode = 'npm ci in the throw-away worktree'
+            } catch {
+                if ($_.Exception.Message -match 'lock is busy') { throw }
+                Write-Warning "npm ci did not work here ($($_.Exception.Message)); reusing the existing node_modules of the real tree through a junction."
+                if (Test-Path -LiteralPath $nm) {
+                    $item = Get-Item -LiteralPath $nm -Force
+                    if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) { [IO.Directory]::Delete($nm, $false) } else { Remove-Item -LiteralPath $nm -Recurse -Force }
+                }
+                $realNm = Join-Path $repo '03 Prototype\node_modules'
+                if (-not (Test-Path -LiteralPath $realNm)) { throw "No node_modules in the real tree ($realNm); run npm ci there first." }
+                New-Item -ItemType Junction -Path $nm -Target $realNm | Out-Null
+                $nodeModulesMode = 'junction to the real tree node_modules (npm ci not possible offline)'
+            }
+        } else { $nodeModulesMode = 'existing node_modules of the real tree (in place, -AllowDirty)' }
         if (Test-Path -LiteralPath $webSource) { Remove-Item -LiteralPath $webSource -Force }
         Invoke-HccHeavy -Directory $proto -Command 'npm run build:production' -What 'The production web build'
         if (-not (Test-Path -LiteralPath $webSource -PathType Leaf)) { throw "The web build did not produce $webSource." }
 
         Step 'Self-contained server publish (win-x64)'
-        if (Test-Path -LiteralPath $publishOut) {
-            if (-not $publishOut.StartsWith($WorkDir, [StringComparison]::OrdinalIgnoreCase)) { throw "Refusing to clean $publishOut (outside the work folder)." }
-            Remove-Item -LiteralPath $publishOut -Recurse -Force
-        }
         New-Item -ItemType Directory -Path $publishOut -Force | Out-Null
         Invoke-HccHeavy -Directory $prod -Command ("dotnet publish `"$apiProject`" -c Release -r win-x64 --self-contained true -p:Version=$Version -o `"$publishOut`"") -What 'dotnet publish'
         $webDest = Join-Path $publishOut 'web'
@@ -287,41 +448,83 @@ try {
     }
 
     Step 'Checking the publish folder'
-    foreach ($n in @('Hcc.Api.exe', 'hostfxr.dll', 'web\index.html')) {
-        if (-not (Test-Path -LiteralPath (Join-Path $publishOut $n) -PathType Leaf)) { throw "The publish folder lacks $n ($publishOut). hostfxr.dll proves a self-contained publish (Install-HccService.ps1 then needs no .NET install)." }
+    foreach ($n in @('Hcc.Api.exe', 'hostfxr.dll', 'web\index.html', 'System.ServiceProcess.ServiceController.dll', 'System.Diagnostics.EventLog.dll', 'Microsoft.Extensions.Hosting.WindowsServices.dll', 'Microsoft.Extensions.Logging.EventLog.dll')) {
+        if (-not (Test-Path -LiteralPath (Join-Path $publishOut $n) -PathType Leaf)) { throw "The publish folder lacks $n ($publishOut). hostfxr.dll proves a self-contained publish (Install-HccService.ps1 then needs no .NET install); the service and Event Log DLLs are needed to run as a Windows service and write alerts." }
     }
-    Write-Host 'Hcc.Api.exe, hostfxr.dll (self-contained) and web\index.html are present.'
+    Write-Host 'Hcc.Api.exe, hostfxr.dll, web\index.html and the Windows-service / Event Log DLLs are present.'
+    $exeInfo = (Get-Item -LiteralPath (Join-Path $publishOut 'Hcc.Api.exe')).VersionInfo
+    if ($exeInfo.ProductVersion) {
+        if (-not $exeInfo.ProductVersion.StartsWith($Version)) { throw "Hcc.Api.exe reports version $($exeInfo.ProductVersion), expected $Version." }
+        Write-Host "Hcc.Api.exe product version: $($exeInfo.ProductVersion)"
+    } else { Write-Host 'Hcc.Api.exe has no version resource (stub?).' }
+    Write-Host 'Smoke start of Hcc.Api.exe skipped: the exe has no verb that exits without touching the system (only "migrate", which opens the database); the version resource check above is the smoke check.'
+    $runtimes = 'not found'
+    $rcFile = Join-Path $publishOut 'Hcc.Api.runtimeconfig.json'
+    if (Test-Path -LiteralPath $rcFile) {
+        $rc = Get-Content -Raw -LiteralPath $rcFile | ConvertFrom-Json
+        $inc = $null
+        if ($rc.PSObject.Properties['runtimeOptions'] -and $rc.runtimeOptions.PSObject.Properties['includedFrameworks']) { $inc = $rc.runtimeOptions.includedFrameworks }
+        if ($inc) { $runtimes = (@($inc) | ForEach-Object { "$($_.name) $($_.version)" }) -join '; ' }
+    }
 
     Step 'Client setup'
-    foreach ($old in @($clientExe, $clientExe4)) { if (Test-Path -LiteralPath $old) { Remove-Item -LiteralPath $old -Force } }
     Invoke-HccIscc -Iscc $iscc -Script $ClientIss -Defines $clientDefines -What 'The client setup'
-    if (Test-Path -LiteralPath $clientExe4 -PathType Leaf) { Move-Item -LiteralPath $clientExe4 -Destination $clientExe -Force }
-    if (-not (Test-Path -LiteralPath $clientExe -PathType Leaf)) { throw "ISCC finished but neither $clientExe4 nor $clientExe exists (the .iss must write OutputBaseFilename=HCC-Client-Setup-{#AppVersion})." }
+    if (-not (Test-Path -LiteralPath $clientExe -PathType Leaf)) { throw "ISCC finished but $clientExe does not exist (the .iss must write OutputBaseFilename=HCC-Client-Setup-{#AppVersion})." }
     if ($signTool) { Invoke-HccSign -SignTool $signTool -File $clientExe }
 
     Step 'Server installer'
-    if (Test-Path -LiteralPath $serverExe) { Remove-Item -LiteralPath $serverExe -Force }
     Invoke-HccIscc -Iscc $iscc -Script $ServerIss -Defines $serverDefines -What 'The server installer'
     if (-not (Test-Path -LiteralPath $serverExe -PathType Leaf)) { throw "ISCC finished but $serverExe does not exist (the .iss must write OutputBaseFilename=HCC-Server-Setup-{#AppVersion}-x64)." }
     if ($signTool) { Invoke-HccSign -SignTool $signTool -File $serverExe }
 
-    Step 'SHA256SUMS.txt'
+    Step 'SHA256SUMS.txt and BUILDINFO.txt'
     $lines = foreach ($f in @($serverExe, $clientExe)) {
-        $h = (Get-FileHash -LiteralPath $f -Algorithm SHA256).Hash.ToLowerInvariant()
-        '{0}  {1}' -f $h, (Split-Path -Leaf $f)
+        '{0}  {1}' -f (Get-FileHash -LiteralPath $f -Algorithm SHA256).Hash.ToLowerInvariant(), (Split-Path -Leaf $f)
     }
-    Set-Content -LiteralPath $sumsFile -Value $lines -Encoding ASCII
+    Set-Content -LiteralPath (Join-Path $stageOut 'SHA256SUMS.txt') -Value $lines -Encoding ASCII
     $lines | ForEach-Object { Write-Host $_ }
+    $dotnetV = (Invoke-HccNative -File 'dotnet' -Arguments @('--version')).Lines | Select-Object -First 1
+    $nodeV = (Invoke-HccNative -File 'node' -Arguments @('-v')).Lines | Select-Object -First 1
+    $info = @(
+        "HCC installers build information",
+        "Version        : $Version",
+        "Commit         : $commit",
+        "Branch         : $branch",
+        "Dirty          : $(if ($dirty) { 'yes (-AllowDirty)' } else { 'no' })",
+        "Built from     : $(if ($useWorktree) { 'throw-away detached git worktree of the commit' } else { 'the working tree in place' })",
+        "dotnet SDK     : $dotnetV",
+        "Bundled runtime: $runtimes",
+        "Node           : $nodeV",
+        "node_modules   : $nodeModulesMode",
+        "ISCC           : $iscc (version $isccVersion, signature $isccSig)",
+        "SQL media      : $(if ($sqlIncluded) { 'included (hashes match sql-media.manifest.json)' } else { 'NOT included' })",
+        "Signed         : $(if ($SignThumbprint) { 'yes, certificate ' + $SignThumbprint } else { 'unsigned' })",
+        "Built (UTC)    : $([DateTime]::UtcNow.ToString('yyyy-MM-dd HH:mm:ss'))"
+    )
+    Set-Content -LiteralPath (Join-Path $stageOut 'BUILDINFO.txt') -Value $info -Encoding ASCII
 
+    Step "Moving the finished files into $OutDir"
+    New-Item -ItemType Directory -Path $OutDir -Force | Out-Null
+    foreach ($n in @($serverExeName, $clientExeName, 'SHA256SUMS.txt', 'BUILDINFO.txt')) {
+        Move-Item -LiteralPath (Join-Path $stageOut $n) -Destination (Join-Path $OutDir $n) -Force
+    }
     Write-Host ''
     Write-Host 'BUILD OK'
-    Write-Host "  $serverExe"
-    Write-Host "  $clientExe"
-    Write-Host "  $sumsFile"
+    Write-Host "  $(Join-Path $OutDir $serverExeName)"
+    Write-Host "  $(Join-Path $OutDir $clientExeName)"
+    Write-Host "  $(Join-Path $OutDir 'SHA256SUMS.txt')"
+    Write-Host "  $(Join-Path $OutDir 'BUILDINFO.txt')"
     if (-not $SignThumbprint) { Write-Warning 'These setup programs are UNSIGNED.' }
-    exit 0
+    $exitCode = 0
 } catch {
     [Console]::Error.WriteLine('')
     [Console]::Error.WriteLine("BUILD FAILED: $($_.Exception.Message)")
-    exit 1
+    $exitCode = 1
+} finally {
+    $env:HCC_RELEASE = $savedRelease
+    if ($savedRelease -eq $null) { Remove-Item Env:\HCC_RELEASE -ErrorAction SilentlyContinue }
+    if ($worktreePath -and $repo) {
+        try { Remove-HccGitWorktree -Repo $repo -Path $worktreePath } catch { [Console]::Error.WriteLine("Warning: could not remove the throw-away worktree $worktreePath : $($_.Exception.Message)") }
+    }
 }
+exit $exitCode
