@@ -94,6 +94,7 @@ Source: "{#ClientSetupExe}"; DestDir: "{app}\ClientKit"; Flags: ignoreversion
 ; The SQL media runs with the administrator's full token, so it sits where only administrators can change it (inside the protected
 ; install folder, never in setup's {tmp}). Copied only when "install the bundled SQL Server" was chosen; deleted as soon as the
 ; orchestrator returns, whatever the outcome.
+Source: "{#OpsDir}\Hcc-ClientTrust.ps1"; DestDir: "{tmp}"; Flags: dontcopy
 Source: "{#OpsDir}\sql-media.manifest.json"; DestDir: "{app}\Operations"; Flags: ignoreversion
 ; The two small client MSIs (ODBC driver, sqlcmd) are needed even when the SQL Server already on this PC is used (a PC with an instance but no sqlcmd).
 Source: "{#SqlMediaDir}\msodbcsql17.msi"; DestDir: "{app}\SqlSetupMedia"; Check: WantsSqlMedia; Flags: ignoreversion deleteafterinstall
@@ -584,7 +585,7 @@ begin
   CaPage.Add('Certificate password:', True);
   CaPage.Add('Type it again:', True);
 
-  UsbPage := CreateInputDirPage(CaPage.ID, 'USB stick for the keys (Production)', 'Plug in the keys USB stick and choose a folder on it.',
+  UsbPage := CreateInputDirPage(CaPage.ID, 'USB stick for the keys (Production)', 'Plug in a USB FLASH stick and choose a folder on it. A USB hard disk may be refused (Windows reports some as fixed disks).',
     'The certificate key and the copies of the ID and backup keys are saved here. Keep this stick in the hotel safe and make a second one for off site.', False, '');
   UsbPage.Add('');
 end;
@@ -600,6 +601,46 @@ begin
   end;
   if (CaPage <> nil) and ((PageID = CaPage.ID) or (PageID = UsbPage.ID)) then
     Result := ModePage.Values[0];   // Trial: no CA password and no USB stick
+end;
+
+// Whether the client kit will accept this PC's name: its OWN rules (Test-HccPermittedDnsName / Test-HccServerUrl in Hcc-ClientTrust.ps1,
+// extracted from this setup and run, not copied here). '' = fine, or the check could not run (the setup checks again before it installs anything).
+function PcNameProblem(const Name: String; Port: Integer): String;
+var
+  ScriptFile, OutFile: String;
+  Lines: TArrayOfString;
+  Text: AnsiString;
+  rc: Integer;
+  Extracted: Boolean;
+begin
+  Result := '';
+  Extracted := True;
+  try
+    ExtractTemporaryFile('Hcc-ClientTrust.ps1');
+  except
+    Extracted := False;
+  end;
+  if not Extracted then Exit;
+  ScriptFile := ExpandConstant('{tmp}\hcc-check-name.ps1');
+  OutFile := ExpandConstant('{tmp}\hcc-check-name.txt');
+  DeleteFile(OutFile);
+  SetArrayLength(Lines, 8);
+  Lines[0] := 'param([string]$Name, [int]$Port, [string]$OutFile)';
+  Lines[1] := '$ErrorActionPreference = ''Stop''';
+  Lines[2] := '. (Join-Path $PSScriptRoot ''Hcc-ClientTrust.ps1'')';
+  Lines[3] := '$why = Test-HccPermittedDnsName $Name';
+  Lines[4] := 'if (-not $why) { $u = Test-HccServerUrl (''https://{0}:{1}/'' -f $Name, $Port); if (-not $u.Ok) { $why = $u.Error } }';
+  Lines[5] := '[IO.File]::WriteAllText($OutFile, [string]$why)';
+  Lines[6] := 'exit 0';
+  Lines[7] := '';
+  if not SaveStringsToUTF8File(ScriptFile, Lines, False) then Exit;
+  if Exec(PowerShellExe, '-NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' + ScriptFile + '" -Name "' + Name + '" -Port ' + IntToStr(Port) + ' -OutFile "' + OutFile + '"', '', SW_HIDE, ewWaitUntilTerminated, rc) and (rc = 0) and
+     FileExists(OutFile) and LoadStringFromFile(OutFile, Text) then
+    Result := Trim(String(Text));
+  DeleteFile(ScriptFile);
+  DeleteFile(OutFile);
+  if Result <> '' then
+    Result := 'This PC''s name cannot be used: ' + Result + '. HCC works with a PC name that is one word of at least three letters or digits (for example HOTELPC) or a name ending in .local or .lan; rename the PC in Windows settings if needed.';
 end;
 
 // An address typed as four plain numbers, in the hotel's private ranges (10/8, 172.16/12, 192.168/16); '' when fine.
@@ -761,6 +802,7 @@ begin
       Problem := 'Port 5080 is used by the setup listener of HCC; choose another port (the usual one is 5443).'
     else
       Problem := '';
+    if Problem = '' then Problem := PcNameProblem(Lowercase(Trim(HotelPage.Values[1])), Port);
     if Problem <> '' then begin MsgBox(Problem, mbError, MB_OK); Result := False; end;
   end
   else if CurPageID = BackupPage.ID then

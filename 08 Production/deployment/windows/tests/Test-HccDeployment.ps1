@@ -1600,6 +1600,9 @@ function Get-HccLocalIpv4 { return @('192.168.1.10') }
 function Get-HccDriveType { param([string]$Path) return $script:instDriveType }
 function Get-HccSettingsAclProblems { return @($script:instAclProblems) }
 function Restart-HccServerService { $script:instCalls.Add('restart-service') }
+$instLogon = 'NT SERVICE\HccServer'; $instLogonFixes = $true
+function Get-HccServiceLogon { return $script:instLogon }
+function Set-HccServiceLogon { $script:instCalls.Add('sc-config'); if ($script:instLogonFixes) { $script:instLogon = 'NT SERVICE\HccServer' } }
 function Remove-HccEgressObjects { $script:instCalls.Add('remove-egress') }
 function Repair-HccPrivateDirectory { param([string]$Path) $script:instCalls.Add('repair:' + (Split-Path -Leaf $Path)) }
 function Install-HccTrustedCa { param([string]$CerPath) $script:instCalls.Add('trust-ca') }
@@ -1915,7 +1918,7 @@ Check 'INST-SERVER data folders are the first action: created private (not creat
 
 Check 'INST-SERVER the service is registered BEFORE the database step (its account must exist for SQL Server): the database step refuses without it, and the call order is service then database' {
     $r = Invoke-InstRun 'svcfirst'
-    $iSvc = $instCalls.IndexOf('Install-HccService.ps1'); $iDb = $instCalls.IndexOf('Initialize-HccDatabase.ps1'); $iMig = $instCalls.IndexOf('native:Hcc.Api.exe migrate env=Production'); $iStart = $instCalls.IndexOf('start-service')
+    $iSvc = $instCalls.IndexOf('Install-HccService.ps1'); $iDb = $instCalls.IndexOf('Initialize-HccDatabase.ps1'); $iMig = $instCalls.IndexOf('native:Hcc.Api.exe migrate env=Production'); $iStart = $instCalls.IndexOf('restart-service')
     $script:instServiceInstalled = $false
     $refused = Throws { Step-Database @{ backupDirectory = 'Z:\b' } }
     $r.Code -eq 0 -and $iSvc -ge 0 -and $iSvc -lt $iDb -and $iDb -lt $iMig -and $iMig -lt $iStart -and $refused
@@ -1924,7 +1927,7 @@ Check 'INST-SERVER a failed grant of the certificate key to the service fails th
     $script:instGrantFail = $true
     $r = Invoke-InstRun 'grantfail'
     $script:instGrantFail = $false
-    $r.Code -eq 1 -and $r.State.failedStep -eq 'service-start' -and $r.Log -match 'cannot be given access to its certificate key' -and ($instCalls -notcontains 'start-service') -and ($instCalls -notcontains 'Initialize-HccProperty.ps1')
+    $r.Code -eq 1 -and $r.State.failedStep -eq 'service-start' -and $r.Log -match 'cannot be given access to its certificate key' -and ($instCalls -notcontains 'restart-service') -and ($instCalls -notcontains 'Initialize-HccProperty.ps1')
 }
 Check 'INST-SERVER a settings file readable by others stops the install after the settings step (the check does not rely on any other folder''s permissions)' {
     $script:instAclProblems = @('Users has access to appsettings.Production.json')
@@ -2097,6 +2100,59 @@ Check 'INST-SERVER PATH: the refresh keeps what the bootstrap put in front, adds
     }
     finally { $env:Path = $save }
     $frontKept -and $firstOk -and $allReg -and $orch -match "Update-HccProcessPath\s+# the bootstrap" -and $orch -match 'function Get-HccProtectedSqlcmdFolder' -and $orch -match 'Client SDK\\ODBC\\\$v\\Tools\\Binn'
+}
+Check 'INST-SERVER the service is registered as NT SERVICE\HccServer, not LocalSystem: Install-HccService.ps1 sets the logon account and the SID type right after New-Service, checks both exit codes, and its dry run says so' {
+    $t = Get-Content -LiteralPath (Join-Path $root 'Install-HccService.ps1') -Raw
+    $iNew = $t.IndexOf('New-Service @params'); $iCfg = $t.IndexOf('sc.exe config $ServiceName obj= $account', $iNew); $iSid = $t.IndexOf('sc.exe sidtype $ServiceName unrestricted', $iNew); $iAcl = $t.IndexOf('icacls.exe $InstallDirectory /grant', $iNew)
+    $d = DryRun 'Install-HccService.ps1' @()
+    $iNew -gt 0 -and $iNew -lt $iCfg -and $iCfg -lt $iSid -and $iSid -lt $iAcl -and $t -match 'if \(-not \$ServiceAccount\) \{\s*& sc\.exe config \$ServiceName obj= \$account \| Out-Null\s*if \(\$LASTEXITCODE -ne 0\)' -and
+    $t -match 'sidtype \$ServiceName unrestricted \| Out-Null\s*if \(\$LASTEXITCODE -ne 0\)' -and $d.Exit -eq 0 -and $d.Out -match 'sc\.exe config HccServer obj= "NT SERVICE\\HccServer"' -and $d.Out -match 'sc\.exe sidtype HccServer unrestricted'
+}
+Check 'INST-SERVER step service-register verifies the logon account: a wrong one (LocalSystem) is corrected with sc config / sidtype, and if it stays wrong the install stops before any database step' {
+    $script:instLogon = 'LocalSystem'; $script:instLogonFixes = $true
+    $r1 = Invoke-InstRun 'logonfix'
+    $c1 = @($instCalls)
+    $script:instLogon = 'LocalSystem'; $script:instLogonFixes = $false
+    $r2 = Invoke-InstRun 'logonbad'
+    $script:instLogon = 'NT SERVICE\HccServer'; $script:instLogonFixes = $true
+    $r1.Code -eq 0 -and ($c1 -contains 'sc-config') -and $r2.Code -eq 1 -and $r2.State.failedStep -eq 'service-register' -and $r2.Log -match "runs as 'LocalSystem'" -and ($instCalls -notcontains 'Initialize-HccDatabase.ps1') -and
+    $orch -match 'sc\.exe config \$script:ServiceName obj= \$script:ServiceAccountName' -and $orch -match 'sc\.exe sidtype \$script:ServiceName unrestricted' -and $orch -match "Win32_Service -Filter" -and $orch -match '\.StartName'
+}
+Check 'INST-SERVER earlier mode: a Trial install cannot be re-run as Production (and the reverse) even when the setup record is lost - the settings key and the Trial key files decide - and an existing Hcc:Install:Mode is never overwritten' {
+    $fx = Initialize-InstFixture 'modelost'
+    $r1 = Invoke-InstRun 'modelost' -Fx $fx
+    Remove-Item -LiteralPath (Join-Path $fx.Data 'Setup\install-state.json'), (Join-Path $fx.Data 'Setup\install-summary.txt') -Force
+    $usb = Join-Path $instRoot 'usb-lost'; New-Item -ItemType Directory -Path $usb -Force | Out-Null
+    $r2 = Invoke-InstRun 'modelost' @{ mode = 'Production'; caPfxPassword = $instCaMarker; offlineCopyDirectory = $usb } -Fx $fx
+    $calls2 = @($instCalls | Where-Object { $_ -match '\.ps1$' })
+    # no record and no settings key, only the Trial key files
+    Set-InstSettings $fx { param($j) $j.Hcc.PSObject.Properties.Remove('Install') }
+    $r3 = Invoke-InstRun 'modelost' @{ mode = 'Production'; caPfxPassword = $instCaMarker; offlineCopyDirectory = $usb } -Fx $fx
+    # a Production install answered as Trial
+    $fp = Initialize-InstFixture 'modelost2'
+    $s1 = Invoke-InstRun 'modelost2' @{ mode = 'Production'; caPfxPassword = $instCaMarker; offlineCopyDirectory = $usb } -Fx $fp
+    $s2 = Invoke-InstRun 'modelost2' @{ mode = 'Trial' } -Fx $fp
+    # the settings writer itself refuses a different mode
+    Initialize-HccInstallContext -AppDirectory $fp.App -DataDirectory $fp.Data -OperationsDirectory $fp.Ops
+    $threw = Throws { Update-HccSettingsFresh -A @{ mode = 'Trial'; backupDirectory = 'Z:\b'; serverName = 'hotelpc'; httpsPort = 5443 } }
+    $setting = (Get-Content -LiteralPath (Join-Path $fp.App 'Server\appsettings.Production.json') -Raw | ConvertFrom-Json).Hcc.Install.Mode
+    $r1.Code -eq 0 -and $r2.Code -eq 1 -and $r2.Log -match 'already has a Trial install' -and $calls2.Count -eq 0 -and $r3.Code -eq 1 -and $r3.Log -match 'already has a Trial install' -and
+    $s1.Code -eq 0 -and $s2.Code -eq 1 -and $s2.Log -match 'already has a Production install' -and $threw -and $setting -eq 'Production'
+}
+Check 'INST-SERVER the PC name must pass the client kit''s own rules before anything is installed (two-letter names, top-level-domain names, real internet names are refused with the kind of name that works); the rules come from Hcc-ClientTrust.ps1, not a copy' {
+    $fx = Initialize-InstFixture 'dnsname'; Initialize-HccInstallContext -AppDirectory $fx.App -DataDirectory $fx.Data -OperationsDirectory $fx.Ops
+    $base = @{ mode = 'Trial'; hotelName = 'H'; serverName = 'hotelpc'; serverIps = @('192.168.1.10'); httpsPort = 5443; backupDirectory = 'Z:\HccBackups'; ownerUserName = 'owner'; ownerPassword = $instMarker; sql = 'UseExisting'; caPfxPassword = ''; offlineCopyDirectory = '' }
+    $res = @{}
+    foreach ($n in @('hotelpc', 'frontdesk.lan', 'pc', 'home', 'shop', 'hotel.example.com', 'info')) { $b = $base.Clone(); $b.serverName = $n; $res[$n] = @(Test-HccAnswers $b) }
+    $kitSrc = Get-Content -LiteralPath (Join-Path $root 'Hcc-ClientTrust.ps1') -Raw
+    $res['hotelpc'].Count -eq 0 -and $res['frontdesk.lan'].Count -eq 0 -and $res['pc'].Count -eq 1 -and $res['pc'][0] -match 'one word of at least three letters' -and $res['home'].Count -eq 1 -and $res['shop'].Count -eq 1 -and $res['hotel.example.com'].Count -eq 1 -and $res['info'].Count -eq 1 -and
+    $orch -match '\. \(Join-Path \$PSScriptRoot ''Hcc-ClientTrust\.ps1''\)' -and $orch -notmatch 'HccPublicSuffixes\s*=' -and $kitSrc -match 'function Test-HccPermittedDnsName' -and
+    $iss.Contains('function PcNameProblem') -and $iss.Contains("Test-HccPermittedDnsName `$Name") -and $iss.Contains("ExtractTemporaryFile('Hcc-ClientTrust.ps1')") -and $iss -match 'Source: "\{#OpsDir\}\\Hcc-ClientTrust\.ps1"; DestDir: "\{tmp\}"; Flags: dontcopy' -and $iss.Contains('PcNameProblem(Lowercase(Trim(HotelPage.Values[1])), Port)')
+}
+Check 'INST-SERVER migrate stops a running service first and the start step RESTARTS it (so the settings and the guest ID key written since registration are loaded); the wizard asks for a USB flash stick' {
+    $r = Invoke-InstRun 'restart1'
+    $iStop = $instCalls.IndexOf('stop-service'); $iMig = $instCalls.IndexOf('native:Hcc.Api.exe migrate env=Production'); $iRe = $instCalls.IndexOf('restart-service')
+    $r.Code -eq 0 -and $iStop -ge 0 -and $iStop -lt $iMig -and $iMig -lt $iRe -and ($instCalls -notcontains 'start-service') -and $iss.Contains('USB FLASH stick') -and $iss.Contains('A USB hard disk may be refused')
 }
 # --- the real Invoke-HccOps adapter (not mocked): output goes through the scrubber, a throwing script fails, a nonzero exit code is returned for Bootstrap ----------
 ${function:Invoke-HccOps} = $instRealOps

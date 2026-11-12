@@ -36,6 +36,7 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'Hcc-Common.ps1')
+. (Join-Path $PSScriptRoot 'Hcc-ClientTrust.ps1')   # the client kit's own name / address rules (Test-HccPermittedDnsName, Test-HccServerUrl): not copied
 
 $script:ServiceName = 'HccServer'
 $script:ServiceAccountName = 'NT SERVICE\HccServer'
@@ -503,6 +504,15 @@ function Test-HccAnswers {
     if ($A.mode -notin @('Trial', 'Production')) { $p.Add('The kind of installation must be Trial or Production.') }
     if (-not (Test-HccHotelNameOk $A.hotelName)) { $p.Add('The hotel name must be 1 to 100 characters, without control, invisible or line-break characters.') }
     if ($A.serverName -notmatch '^[a-z0-9]([a-z0-9.-]{0,61}[a-z0-9])?$') { $p.Add('This PC''s name may contain only letters, digits, dots and dashes.') }
+    else {
+        # what the client kit will require at the end: refuse a name it would refuse BEFORE anything is installed
+        $dnsWhy = Test-HccPermittedDnsName $A.serverName
+        if ($dnsWhy) { $p.Add("This PC's name cannot be used: $dnsWhy. HCC works with a PC name that is one word of at least three letters or digits (for example HOTELPC) or a name ending in .local or .lan; rename the PC in Windows settings if needed.") }
+        else {
+            $u = Test-HccServerUrl ('https://{0}:{1}/' -f $A.serverName, $A.httpsPort)
+            if (-not $u.Ok) { $p.Add("The PC name and port do not make a usable address: $($u.Error)") }
+        }
+    }
     if ($A.serverIps.Count -lt 1) { $p.Add('Give at least one network address of this PC (for example 192.168.1.10).') }
     $local = $null
     foreach ($ip in $A.serverIps) {
@@ -598,6 +608,8 @@ function Update-HccSettingsFresh {
     Set-HccJsonValue $json 'Hcc.Hosting.HttpsPort' $A.httpsPort
     Set-HccJsonValue $json 'Hcc.Operations.BackupScript' (Join-Path $script:OpsDir 'Backup-HccDatabase.ps1')
     Set-HccJsonValue $json 'Hcc.Operations.SqlInstance' '.\SQLEXPRESS'
+    $have = [string](Get-HccProp (Get-HccProp (Get-HccProp $json 'Hcc') 'Install') 'Mode' '')
+    if ($have -and $have -ne $A.mode) { throw "appsettings.Production.json says this is a $have install; it is never changed to $($A.mode). Nothing was written." }
     Set-HccJsonValue $json 'Hcc.Install.Mode' $A.mode   # ignored by the server; lets an upgrade know this is a Trial install
     Write-HccTextFile $script:SettingsFile ($json | ConvertTo-Json -Depth 12)
     Write-InstallLog "Settings written to $script:SettingsFile (server name, port, backup folder)."
@@ -773,8 +785,29 @@ function Step-ServiceRegister {
     if (Test-HccServiceInstalled) { Write-InstallLog 'The service HccServer already exists; it is kept.' }
     else { Invoke-HccOps -Script 'Install-HccService.ps1' -Params @{ InstallDirectory = $script:ServerDir; HttpsPort = $A.httpsPort } | Out-Null }
     if (-not (Test-HccServiceInstalled)) { throw 'The HCC service was not registered, so SQL Server cannot be given its account.' }
+    # the service must run as its own low-privilege virtual account, never as LocalSystem (which is SQL sysadmin on the bundled instance)
+    $logon = Get-HccServiceLogon
+    if ($logon -ne $script:ServiceAccountName) {
+        Write-InstallLog "The HCC service is set to log on as '$logon'; setting it to $script:ServiceAccountName." 'WARN'
+        Set-HccServiceLogon
+        $logon = Get-HccServiceLogon
+    }
+    if ($logon -ne $script:ServiceAccountName) { throw "The HCC service runs as '$logon' instead of $script:ServiceAccountName. That would give HCC far too many rights, so the install stops." }
     Assert-HccSettingsAcl
-    Write-InstallLog 'The HCC service is registered (not started yet).'
+    Write-InstallLog "The HCC service is registered (not started yet) and logs on as $logon."
+}
+
+function Get-HccServiceLogon {
+    $svc = Get-CimInstance -ClassName Win32_Service -Filter "Name='$script:ServiceName'" -ErrorAction Stop
+    if (-not $svc) { return '' }
+    return [string]$svc.StartName
+}
+
+function Set-HccServiceLogon {
+    & sc.exe config $script:ServiceName obj= $script:ServiceAccountName | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "Could not set the logon account of $script:ServiceName (sc.exe exit code $LASTEXITCODE)." }
+    & sc.exe sidtype $script:ServiceName unrestricted | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "Could not set the service SID type of $script:ServiceName (sc.exe exit code $LASTEXITCODE)." }
 }
 
 function Step-Database {
@@ -860,6 +893,7 @@ function Step-Migrate {
     param([hashtable]$A)
     $exe = Join-Path $script:ServerDir 'Hcc.Api.exe'
     if (-not (Test-Path -LiteralPath $exe)) { throw "Hcc.Api.exe was not found in $script:ServerDir." }
+    Stop-HccServerService   # a service that was started by a reboot or by hand must not run beside the migration
     $r = Invoke-HccNative -FilePath $exe -Arguments 'migrate' -WorkingDirectory $script:ServerDir -Environment @{ ASPNETCORE_ENVIRONMENT = 'Production' }
     Write-InstallLog ([string]$r.Output)
     if ($r.ExitCode -ne 0) { throw "Hcc.Api.exe migrate failed with code $($r.ExitCode) (see the lines above)." }
@@ -871,7 +905,7 @@ function Step-ServiceStart {
     $thumb = Get-HccThumbprint
     try { Grant-HccCertificateKeyAccess -Thumbprint $thumb -Account $script:ServiceAccountName }
     catch { throw ("The HCC service cannot be given access to its certificate key, so it could not start: " + $_.Exception.Message) }
-    Start-HccServerService
+    Restart-HccServerService
     Write-InstallLog 'The HCC service is running.'
 }
 
@@ -972,7 +1006,7 @@ function Get-HccInstallSteps {
         @{ Id = 'settings'; Title = 'Writing the settings'; Run = { param($A) Step-Settings $A }; Plan = $(if ($mode -eq 'Trial') { 'Write appsettings.Production.json (also Hcc:Install:Mode) and hcc-ops.json; add the TRIAL mark to the sign-in page; check the settings file permissions' } else { 'Write appsettings.Production.json (also Hcc:Install:Mode) and hcc-ops.json; check the settings file permissions' }) }
         @{ Id = 'keys'; Title = 'Creating the guest ID key and the backup key'; Run = { param($A) Step-Keys $A }; Plan = $(if ($mode -eq 'Trial') { 'New-HccGuestIdKey.ps1, New-HccBackupKey.ps1 (TRIAL: copies stay in ProgramData\HCC\TrialKeyCopies); check the settings file permissions' } else { "New-HccGuestIdKey.ps1, New-HccBackupKey.ps1 (key copies to '$($A.offlineCopyDirectory)'); check the settings file permissions" }) }
         @{ Id = 'migrate'; Title = 'Building the database tables'; Run = { param($A) Step-Migrate $A }; Plan = 'Hcc.Api.exe migrate (ASPNETCORE_ENVIRONMENT=Production, as the administrator)' }
-        @{ Id = 'service-start'; Title = 'Starting the HCC service'; Run = { param($A) Step-ServiceStart $A }; Plan = 'Give the service access to the certificate key (the step fails if that fails); start HccServer' }
+        @{ Id = 'service-start'; Title = 'Starting the HCC service'; Run = { param($A) Step-ServiceStart $A }; Plan = 'Give the service access to the certificate key (the step fails if that fails); (re)start HccServer so it loads the settings and keys written since it was registered' }
         @{ Id = 'property'; Title = 'Setting up the hotel and the first Owner'; Run = { param($A) Step-Property $A }; Plan = "Initialize-HccProperty.ps1 (hotel '$($A.hotelName)', Owner '$($A.ownerUserName)', password hidden); then the setup listener is closed" }
         @{ Id = 'backup-tasks'; Title = 'Scheduling the backups'; Run = { param($A) Step-BackupTasks $A }; Plan = 'Backup-HccDatabase.ps1 -Type Full; Register-HccBackupTasks.ps1' }
         @{ Id = 'egress'; Title = 'Blocking internet access for HCC'; Run = { param($A) Step-Egress $A }; Plan = 'Set-HccEgress.ps1 -State Install' }
@@ -985,7 +1019,7 @@ function Get-HccUpgradeSteps {
     param([hashtable]$A)
     return @(
         @{ Id = 'settings'; Title = 'Merging new settings'; Run = { param($A) Update-HccSettingsMerge | Out-Null; Set-HccInstallModeSetting $A.mode; if ($A.mode -eq 'Trial') { Set-HccTrialPage -IndexHtml (Join-Path $script:ServerDir 'web\index.html') }; Assert-HccSettingsAcl }; Plan = 'Add new settings to appsettings.Production.json and hcc-ops.json (existing values are never changed; placeholders for AllowedHosts, thumbprint, port 5080 etc. are never taken from the sample)' }
-        @{ Id = 'migrate'; Title = 'Updating the database tables'; Run = { param($A) Stop-HccServerService; Step-Migrate $A }; Plan = 'Hcc.Api.exe migrate (the server is stopped first)' }
+        @{ Id = 'migrate'; Title = 'Updating the database tables'; Run = { param($A) Step-Migrate $A }; Plan = 'Hcc.Api.exe migrate (the server is stopped first)' }
         @{ Id = 'service-start'; Title = 'Starting the HCC service'; Run = { param($A) Start-HccServerService }; Plan = 'Start HccServer' }
         @{ Id = 'client-kit'; Title = 'Refreshing the client kit'; Run = { param($A) if ($A.hotelName -and (Test-Path -LiteralPath $script:CaCer)) { Step-ClientKit $A } else { Write-InstallLog 'No client kit to refresh (no earlier setup information).' } }; Plan = 'New-HccClientKit.ps1 -OutDir <app>\ClientKit' }
         @{ Id = 'health'; Title = 'Checking that HCC answers'; Run = { param($A) Step-Health $A }; Plan = "https://$($A.serverName):$($A.httpsPort)/ answers" }
@@ -1210,9 +1244,14 @@ function Start-HccInstall {
 
         $old = Read-HccState
         $completed = @()
+        # the earlier mode: the record, Hcc:Install:Mode, then the Trial files (a lost record must not let Trial key material into Production)
+        $earlier = Get-HccInstallMode $old
+        if ($earlier -and $earlier -ne $A.mode) {
+            if ($earlier -eq 'Trial') { Write-InstallLog "This PC already has a Trial install. A trial cannot be turned into a production install by this setup (the keys session does that); the trial's keys stay on this PC. Nothing was changed." 'ERROR' }
+            else { Write-InstallLog "This PC already has a $earlier install; it cannot be run again as $($A.mode). Nothing was changed." 'ERROR' }
+            return 1
+        }
         if ($Resume -and $old) {
-            $oldMode = [string](Get-HccProp $old 'mode' '')
-            if ($oldMode -and $oldMode -ne $A.mode) { Write-InstallLog "The earlier attempt was a $oldMode install; it cannot continue as $($A.mode). Run the setup again with the same kind." 'ERROR'; return 1 }
             $completed = @(Get-HccProp $old 'completed' @())
             if ($completed.Count -gt 0) {
                 # the finished steps used the earlier values: refuse changed answers instead of silently keeping the old ones
@@ -1223,9 +1262,6 @@ function Start-HccInstall {
                 $oldIps = (@(Get-HccProp $old 'serverIps' @()) -join ','); if ($oldIps -and $oldIps -ne ($A.serverIps -join ',')) { $changed += 'serverIps' }
                 if ($changed.Count -gt 0) { Write-InstallLog ('These answers differ from the earlier attempt, whose finished steps used the old values: ' + ($changed -join ', ') + '. Type the same values to continue.') 'ERROR'; return 1 }
             }
-        }
-        elseif ($old -and [string](Get-HccProp $old 'status' '') -eq 'Done' -and [string](Get-HccProp $old 'mode' '') -ne $A.mode) {
-            Write-InstallLog "This PC already has a finished $(Get-HccProp $old 'mode' '') install. A trial cannot be turned into a production install by this setup (the keys session does that)." 'ERROR'; return 1
         }
         $state = [pscustomobject]@{
             schema = 1; version = $version; mode = $A.mode; hotelName = $A.hotelName; serverName = $A.serverName; serverIps = @($A.serverIps); httpsPort = $A.httpsPort

@@ -114,3 +114,27 @@ Same list as above, plus: the new Pascal code (IPv4 / backup-folder / drive-type
 
 ## Notes 20-26 left as documented
 24 (3010 meaning "success + restart" to deployment tools): kept by the orchestrator's decision. 26 (helper `.ps1` in `{tmp}`): kept, documented in INSTALL.md.
+
+---
+
+# Second fix round (12 Nov 2026) - answers to the second Opus pass
+
+1. **S1, the service runs as LocalSystem (blocking) - fixed.** `Install-HccService.ps1` (existing script, changed here for its documented default): after `New-Service`, `sc.exe config HccServer obj= "NT SERVICE\HccServer"` (skipped when `-ServiceAccount` is given) and `sc.exe sidtype HccServer unrestricted`, both exit codes checked (it throws), before the `icacls` grants; the dry run prints both lines. `Step-ServiceRegister` reads `Win32_Service.StartName`; a wrong account (e.g. a service left behind by an earlier version) is corrected with the same two `sc.exe` calls, and if it is still wrong the step fails before any database step. Checked later steps for the account: folder ACL `RX` on `{app}\Server` and `M` on `Server\logs` only (the script's own icacls), settings file `R` for the service only, certificate-key read grant (step 4 inside `New-HccCertificate.ps1` and again, mandatory, in service-start), SQL login `NT SERVICE\HccServer` (runtime read/write/execute, not db_owner, so it works on an adopted instance too), Event Log source registered by the administrator. Nothing else under `{app}` is writable by the service. The service does not read `ProgramData\HCC` (keys, certs, setup): backups run as SYSTEM.
+2. **S2, earlier mode - fixed.** `Start-HccInstall` decides the earlier mode with `Get-HccInstallMode` (record, `Hcc:Install:Mode`, `TrialKeyCopies`, `Keys\HCC-Hotel-CA-password.txt`) and refuses a run in the other mode (both directions) with a plain message, before any step. `Update-HccSettingsFresh` never overwrites an existing `Hcc:Install:Mode` with a different value (throws).
+3. **S3, PC name - fixed.** `Test-HccAnswers` runs the name through `Test-HccPermittedDnsName` and `Test-HccServerUrl` (dot-sourced `Hcc-ClientTrust.ps1`, not copied); the wizard extracts the same file (`dontcopy`) and runs the same two functions on the name before leaving the page. The message tells the owner what works (one word of at least three letters or digits, or a name ending in .local / .lan).
+4. **S4 - fixed.** `Step-Migrate` stops a running service first; the start step restarts it.
+5. **S7 - fixed.** The USB page asks for a USB flash stick and says a USB hard disk may be refused.
+6. **S5, S6, S8 - documented only.** S5: `{tmp}` of an elevated Inno setup is under the installing user's own TEMP; the helper has the same exposure as Inno's own extracted files; `-EncodedCommand` would remove it (not done). S6: a handle opened earlier with WRITE_DAC on a pre-existing user-owned `ProgramData\HCC` survives the owner/DACL reset; the strict fix is to rename such a folder aside and create a new one (not done; needs a prepared attacker). S8: deleted answer-file bytes can remain in free clusters; BitLocker (INSTALL.md section 7) is the answer.
+
+Tests added: service logon (script text order, dry run, corrected, stays wrong -> install stops), earlier mode with a lost record (settings key, Trial files, Production answered as Trial, no overwrite), PC names (accepted: hotelpc, frontdesk.lan; refused: pc, home, shop, info, hotel.example.com), migrate stop / restart order, wizard static checks. Everything with the service calls mocked; nothing installed.
+
+## Only the trial machine can prove (checklist, from the audit)
+- [ ] The wizard itself: page flow, validation dialogs, progress polling, finish page, exit codes 1603 / 3010, the uninstall dialogs (the Pascal code is compiled, never executed).
+- [ ] Real SQL Express install from the media, the restart path (exit 2, then resume), and adopting an existing instance (ETP) with and without Administrators as sysadmin.
+- [ ] That the service runs as `NT SERVICE\HccServer` (S1 fix) and can read everything it needs at run time: `Server\` and `web\`, the settings file, the certificate private key, `Server\logs`, the Event Log source, both databases through its own login, and anything the server reads under `ProgramData\HCC` or `Operations` (for example a "back up now" action, if the server ever runs the backup script itself).
+- [ ] `migrate` as administrator against a fresh database, the pre-migration backup on an upgrade, and the server's start-up file check with the real ACLs.
+- [ ] Loopback setup on 5080, then the listener closed and the restart; the hotel and Owner created, sign-in with the typed password.
+- [ ] HTTPS from the server PC and from another PC/tablet through the client kit (name constraints in Windows/Chrome/Edge, firewall rule on the Private profile), the fingerprint on the finish page against the client setup.
+- [ ] The Trial banner and title in a real browser, and the layout effect of the extra row (DEC-213).
+- [ ] The backup tasks running as SYSTEM, the egress block rule against outbound traffic, uninstall then reinstall finding the kept data, and an upgrade from this version to the next.
+- [ ] Explorer behaviour on the admin-only folders reached from the Start menu ("HCC install logs", "client kit").

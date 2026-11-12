@@ -58,6 +58,8 @@ $runtimeHelp = 'Install the "ASP.NET Core Runtime 10.0 - Windows Hosting Bundle"
 if (-not $PSCmdlet.ShouldProcess($ServiceName, "Create service: $exe as $account, auto start, restart on failure; firewall allow TCP $HttpsPort (Private,Domain)")) {
     Write-Host ("DRY RUN: .NET runtime check: " + $(if ($selfContained) { 'self-contained publish, no runtime needed' } elseif ($runtimeMissing.Count) { 'MISSING ' + ($runtimeMissing -join ', ') + ' (the real run refuses). ' + $runtimeHelp } else { 'Microsoft.NETCore.App 10 and Microsoft.AspNetCore.App 10 found' }))
     Write-Host "DRY RUN: New-Service $ServiceName -BinaryPathName '$exe' -StartupType Automatic (account $account)"
+    if (-not $ServiceAccount) { Write-Host "DRY RUN: sc.exe config $ServiceName obj= `"$account`" (the service runs as $account, not as LocalSystem)" }
+    Write-Host "DRY RUN: sc.exe sidtype $ServiceName unrestricted"
     Write-Host "DRY RUN: sc.exe failure $ServiceName reset= 86400 actions= restart/5000/restart/30000/restart/60000"
     Write-Host "DRY RUN: grant $account Modify on $InstallDirectory\logs and ReadAndExecute on $InstallDirectory"
     Write-Host "DRY RUN: icacls $InstallDirectory\appsettings.Production.json /inheritance:r /grant:r SYSTEM:F Administrators:F ${account}:R (F-M05: only they may read the settings and the guest ID key)"
@@ -78,6 +80,15 @@ if ($ServiceAccount) {
     $params.Credential = New-Object System.Management.Automation.PSCredential($ServiceAccount, $ServiceAccountPassword)
 }
 New-Service @params | Out-Null
+# New-Service without -Credential registers the service as LocalSystem; the documented default is the virtual account (F-L08: the
+# runtime must not be a SQL sysadmin). A virtual account needs no password. The service SID type "unrestricted" lets the account's SID be
+# used in file permissions and SQL logins.
+if (-not $ServiceAccount) {
+    & sc.exe config $ServiceName obj= $account | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "Could not set the logon account of $ServiceName to $account (sc.exe exit code $LASTEXITCODE)." }
+}
+& sc.exe sidtype $ServiceName unrestricted | Out-Null
+if ($LASTEXITCODE -ne 0) { throw "Could not set the service SID type of $ServiceName (sc.exe exit code $LASTEXITCODE)." }
 & sc.exe failure $ServiceName reset= 86400 actions= restart/5000/restart/30000/restart/60000 | Out-Null
 & sc.exe config $ServiceName start= delayed-auto | Out-Null
 $logs = Join-Path $InstallDirectory 'logs'
