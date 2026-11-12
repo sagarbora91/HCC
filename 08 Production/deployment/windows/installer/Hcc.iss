@@ -625,16 +625,16 @@ begin
   OutFile := ExpandConstant('{tmp}\hcc-check-name.txt');
   DeleteFile(OutFile);
   SetArrayLength(Lines, 8);
-  Lines[0] := 'param([string]$Name, [int]$Port, [string]$OutFile)';
+  Lines[0] := 'param([string]$Name, [int]$Port, [string]$ResultFile)';
   Lines[1] := '$ErrorActionPreference = ''Stop''';
   Lines[2] := '. (Join-Path $PSScriptRoot ''Hcc-ClientTrust.ps1'')';
   Lines[3] := '$why = Test-HccPermittedDnsName $Name';
   Lines[4] := 'if (-not $why) { $u = Test-HccServerUrl (''https://{0}:{1}/'' -f $Name, $Port); if (-not $u.Ok) { $why = $u.Error } }';
-  Lines[5] := '[IO.File]::WriteAllText($OutFile, [string]$why)';
+  Lines[5] := '[IO.File]::WriteAllText($ResultFile, [string]$why)';   // not $OutFile: the dot-sourced script has a parameter of that name and would blank it
   Lines[6] := 'exit 0';
   Lines[7] := '';
   if not SaveStringsToUTF8File(ScriptFile, Lines, False) then Exit;
-  if Exec(PowerShellExe, '-NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' + ScriptFile + '" -Name "' + Name + '" -Port ' + IntToStr(Port) + ' -OutFile "' + OutFile + '"', '', SW_HIDE, ewWaitUntilTerminated, rc) and (rc = 0) and
+  if Exec(PowerShellExe, '-NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' + ScriptFile + '" -Name "' + Name + '" -Port ' + IntToStr(Port) + ' -ResultFile "' + OutFile + '"', '', SW_HIDE, ewWaitUntilTerminated, rc) and (rc = 0) and
      FileExists(OutFile) and LoadStringFromFile(OutFile, Text) then
     Result := Trim(String(Text));
   DeleteFile(ScriptFile);
@@ -791,8 +791,8 @@ begin
   if CurPageID = HotelPage.ID then
   begin
     Port := StrToIntDef(Trim(HotelPage.Values[3]), 0);
-    if (Length(Trim(HotelPage.Values[0])) < 1) or (Length(Trim(HotelPage.Values[0])) > 100) then
-      Problem := 'Type the hotel name (up to 100 characters).'
+    if (Length(Trim(HotelPage.Values[0])) < 1) or (Length(Trim(HotelPage.Values[0])) > 60) then
+      Problem := 'Type the hotel name (up to 60 characters).'
     else if not IsHostNameOk(Trim(HotelPage.Values[1])) then
       Problem := 'This PC''s name may contain only letters, digits, dots and dashes.'
     else if IpListProblem(HotelPage.Values[2]) <> '' then
@@ -1103,6 +1103,9 @@ begin
   if (CurStep = ssInstall) and WantsSqlMedia then
   begin
     // the SQL media runs elevated: its folder must be writable by Administrators and SYSTEM only BEFORE the files land
+    // {app} first, with its normal inherited permissions: otherwise the private ACL below is applied to C:\Program Files\HCC itself
+    // and the Start-menu folders and the README open with "access denied" for a normal user
+    ForceDirectories(ExpandConstant('{app}'));
     if not CreatePrivateFolder(ExpandConstant('{app}\SqlSetupMedia')) then
       RaiseException('Could not make the SQL media folder private to administrators.');
   end;

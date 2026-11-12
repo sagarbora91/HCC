@@ -2054,11 +2054,11 @@ Check 'INST-SERVER network addresses: only four-part private IPv4 addresses that
     @($good | Where-Object { -not $_ }).Count -eq 0 -and @($syntax | Where-Object { -not $_ }).Count -eq 0 -and @($notPrivate | Where-Object { -not $_ }).Count -eq 0 -and $a0.Count -eq 0 -and
     $a1.Count -eq 1 -and $a1[0] -match 'not an address of this PC' -and $a2.Count -eq 1 -and $a2[0] -match 'not a private network address' -and $a3.Count -eq 1 -and $a3[0] -match 'four numbers'
 }
-Check 'INST-SERVER port 5080 (the setup listener) is refused as the HTTPS port; hotel name rule is the client kit''s (no control / format / separator characters, 1-100)' {
+Check 'INST-SERVER port 5080 (the setup listener) is refused as the HTTPS port; hotel name rule is the client kit''s (no control / format / separator characters, 1-60 = the server''s limit)' {
     $fx = Initialize-InstFixture 'port'; Initialize-HccInstallContext -AppDirectory $fx.App -DataDirectory $fx.Data -OperationsDirectory $fx.Ops
     $base = @{ mode = 'Trial'; hotelName = 'H'; serverName = 'hotelpc'; serverIps = @('192.168.1.10'); httpsPort = 5443; backupDirectory = 'Z:\HccBackups'; ownerUserName = 'owner'; ownerPassword = $instMarker; sql = 'UseExisting'; caPfxPassword = ''; offlineCopyDirectory = '' }
     $b = $base.Clone(); $b.httpsPort = 5080; $p = @(Test-HccAnswers $b)
-    $names = @{ ok = 'Hotel ' + [string][char]0x0939; zw = 'Hotel' + [string][char]0x200B + 'X'; sep = 'A' + [string][char]0x2028 + 'B'; ctl = "A`tB"; long = ('x' * 101); empty = '   ' }
+    $names = @{ ok = 'Hotel ' + [string][char]0x0939; zw = 'Hotel' + [string][char]0x200B + 'X'; sep = 'A' + [string][char]0x2028 + 'B'; ctl = "A`tB"; long = ('x' * 61); empty = '   ' }
     $r = @{}; foreach ($k in $names.Keys) { $r[$k] = Test-HccHotelNameOk $names[$k] }
     $p.Count -eq 1 -and $p[0] -match '5080' -and $r.ok -and -not $r.zw -and -not $r.sep -and -not $r.ctl -and -not $r.long -and -not $r.empty -and (Get-Content -LiteralPath (Join-Path $root 'Hcc-ClientTrust.ps1') -Raw) -match '\\p\{Cc\}\\p\{Cf\}\\p\{Zl\}\\p\{Zp\}'
 }
@@ -2078,6 +2078,14 @@ Check 'INST-SERVER iss wizard: private IPv4 only, port 5080 refused, backup fold
     $iss.Contains('function Ipv4Problem') -and $iss.Contains('is not a private network address') -and $iss.Contains('Port = 5080') -and $iss.Contains('function BackupFolderProblem') -and $iss.Contains('inside a user profile') -and $iss.Contains('already holds other files') -and
     $iss.Contains("GetDriveTypeW(Copy(UsbPage.Values[0], 1, 3)) <> 2") -and $iss.Contains("IntToStr(StrToIntDef(Trim(HotelPage.Values[3]), 5443))") -and $iss -match 'RemoveAnswerFile;\s*if FileExists\(AnswerFileName\) then' -and
     $iss.Contains('execution policy AllSigned') -and $iss.Contains('HCC setup is NOT finished. Windows must restart first.') -and $iss.Contains('not asked here: set them inside HCC') -and $iss.Contains("/setowner ''*S-1-5-32-544''") -and $iss.Contains('the folder is a link')
+}
+
+# Review after trial finding 1 (12 Nov 2026): the PC-name helper's own -OutFile was blanked by the dot-sourced Hcc-ClientTrust.ps1 (same parameter
+# name), so the check never ran; {app} was first created by the private-folder helper, which made C:\Program Files\HCC administrators-only.
+Check 'INST-SERVER iss: name-check helper writes to $ResultFile (not $OutFile), {app} is created before the private SQL media folder, hotel name at most 60' {
+    $iss.Contains('[string]$ResultFile)') -and $iss.Contains('WriteAllText($ResultFile, [string]$why)') -and $iss.Contains('-ResultFile "') -and -not $iss.Contains('WriteAllText($OutFile') -and
+    $iss.IndexOf("ForceDirectories(ExpandConstant('{app}'));") -gt 0 -and $iss.IndexOf("ForceDirectories(ExpandConstant('{app}'));") -lt $iss.IndexOf("CreatePrivateFolder(ExpandConstant('{app}\SqlSetupMedia'))") -and
+    $iss.Contains('up to 60 characters') -and (Test-HccHotelNameOk ('x' * 60)) -and -not (Test-HccHotelNameOk ('x' * 61))
 }
 
 # Trial 12 Nov 2026: Next on the Backup folder page raised "An attempt was made to expand the "app" constant before it was initialized".

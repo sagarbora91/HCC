@@ -224,12 +224,12 @@ function Test-HccPrivateIpv4 {
     return ($o[0] -eq 10) -or ($o[0] -eq 172 -and $o[1] -ge 16 -and $o[1] -le 31) -or ($o[0] -eq 192 -and $o[1] -eq 168)
 }
 
-# Same rule as the client kit (Test-HccHotelName in Hcc-ClientTrust.ps1): 1-100 characters, no control / format / line-separator characters.
+# Same rule as the client kit (Test-HccHotelName in Hcc-ClientTrust.ps1) but 1-60 characters (the server's limit, PropertySetupRules.NameMax), no control / format / line-separator characters.
 function Test-HccHotelNameOk {
     param([string]$Name)
     if ($null -eq $Name) { return $false }
     $n = $Name.Trim()
-    return ($n.Length -ge 1 -and $n.Length -le 100 -and $n -notmatch '[\p{Cc}\p{Cf}\p{Zl}\p{Zp}]')
+    return ($n.Length -ge 1 -and $n.Length -le 60 -and $n -notmatch '[\p{Cc}\p{Cf}\p{Zl}\p{Zp}]')
 }
 
 # Where the backups may go: not a drive top, not under the HCC folders, Windows, Program Files, ProgramData or any user profile.
@@ -502,7 +502,7 @@ function Test-HccAnswers {
     param([hashtable]$A)
     $p = New-Object System.Collections.Generic.List[string]
     if ($A.mode -notin @('Trial', 'Production')) { $p.Add('The kind of installation must be Trial or Production.') }
-    if (-not (Test-HccHotelNameOk $A.hotelName)) { $p.Add('The hotel name must be 1 to 100 characters, without control, invisible or line-break characters.') }
+    if (-not (Test-HccHotelNameOk $A.hotelName)) { $p.Add('The hotel name must be 1 to 60 characters, without control, invisible or line-break characters.') }
     if ($A.serverName -notmatch '^[a-z0-9]([a-z0-9.-]{0,61}[a-z0-9])?$') { $p.Add('This PC''s name may contain only letters, digits, dots and dashes.') }
     else {
         # what the client kit will require at the end: refuse a name it would refuse BEFORE anything is installed
