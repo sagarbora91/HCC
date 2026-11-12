@@ -1037,7 +1037,7 @@
   ],
   "phone": "yes",
   "layout": "table",
-  "side": "prototype"
+  "side": "both"
  },
  {
   "id": "rpt.admin.export-log",
@@ -1110,7 +1110,7 @@
   ],
   "phone": "no",
   "layout": "table",
-  "side": "prototype"
+  "side": "both"
  },
  {
   "id": "rpt.admin.rate-sheet",
@@ -1258,7 +1258,7 @@
   ],
   "phone": "yes",
   "layout": "table",
-  "side": "prototype"
+  "side": "both"
  },
  {
   "id": "rpt.admin.scheduled-runs",
@@ -3804,7 +3804,7 @@
   ],
   "phone": "yes",
   "layout": "table",
-  "side": "prototype"
+  "side": "both"
  },
  {
   "id": "rpt.money.cashier-variance",
@@ -3981,7 +3981,7 @@
   ],
   "phone": "yes",
   "layout": "table",
-  "side": "prototype"
+  "side": "both"
  },
  {
   "id": "rpt.money.collection-detail",
@@ -4476,7 +4476,7 @@
   ],
   "phone": "yes",
   "layout": "table",
-  "side": "prototype"
+  "side": "both"
  },
  {
   "id": "rpt.money.expense-register",
@@ -5856,7 +5856,7 @@
   ],
   "phone": "yes",
   "layout": "table",
-  "side": "prototype"
+  "side": "both"
  },
  {
   "id": "rpt.rest.day-summary",

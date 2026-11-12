@@ -90,6 +90,11 @@ public sealed class EngineTests
         new Hcc.Reporting.Reports.FxD.StockLossesReport(null!, null!), new Hcc.Reporting.Reports.FxD.StockConsumptionReport(null!), new Hcc.Reporting.Reports.FxD.StockParReport(null!),
         new Hcc.Reporting.Reports.FxD.StockMovementsReport(null!, null!),
         // /FX-RPT-D
+        // FX-RPT-C
+        new Hcc.Reporting.Reports.FxC.ConfigHistoryReport(null!, null!), new Hcc.Reporting.Reports.FxC.ExportLogReport(null!, null!, null!), new Hcc.Reporting.Reports.FxC.ReportDictionaryReport(),
+        new Hcc.Reporting.Reports.FxC.ClosingRecordsReport(null!), new Hcc.Reporting.Reports.FxC.CashOutRegisterReport(null!), new Hcc.Reporting.Reports.FxC.ExpenseMonthReport(null!),
+        new Hcc.Reporting.Reports.FxC.ClosedBillsReport(null!, null!),
+        // /FX-RPT-C
     ]).All;
 
     // F12-RPT-GUEST

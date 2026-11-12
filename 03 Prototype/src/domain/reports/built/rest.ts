@@ -32,7 +32,7 @@ export const restDaySummary=registerReport({
 
 export const CLOSED_COLS:RptColumn[]=[col('check','Check','text'),col('outlet','Outlet','text'),col('table','Table','text'),col('closedAt','Closed at','text'),col('items','Items','int'),
   col('total','Total','money',true),col('tender','Tender','text'),col('server','Server','text')];
-export const restClosedBills=registerReport({serverMirror:false,
+export const restClosedBills=registerReport({
   id:'rpt.rest.closed-bills',title:'Closed bills',area:'rest',priority:'P2',status:'built',moneyFlag:true,moneyGate:GATE,viewPerms:[GATE],ownShift:true,dateClass:'D-DAY',params:dayParam,columns:CLOSED_COLS,
   dateBasis:'Checks settled on the business date, in closing order. A Cashier sees only the bills they settled.',formats:['screen','xlsx','pdf'],phone:'yes',
   select:(s,uid,p)=>{
