@@ -30,7 +30,8 @@ param(
     [string]$ServerUrl = 'http://127.0.0.1:5080',
     [string]$SettingsFile = 'C:\Program Files\HCC\Server\appsettings.Production.json',
     [string]$ServiceName = 'HccServer',
-    [switch]$KeepSetupListener
+    [switch]$KeepSetupListener,
+    [securestring]$OwnerPassword                      # INST-SERVER: the installer passes the Owner password here instead of the prompts
 )
 $ErrorActionPreference = 'Stop'
 $uri = [Uri]$ServerUrl
@@ -60,8 +61,15 @@ function Read-Secret([string]$Prompt) {
     $b = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($s)
     try { return [Runtime.InteropServices.Marshal]::PtrToStringBSTR($b) } finally { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($b) }
 }
-$p1 = Read-Secret "Owner password for '$OwnerLogin' (12 or more characters)"
-$p2 = Read-Secret 'Type the same password again'
+if ($OwnerPassword) {
+    $b0 = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($OwnerPassword)
+    try { $p1 = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($b0) } finally { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($b0) }
+    $p2 = $p1
+}
+else {
+    $p1 = Read-Secret "Owner password for '$OwnerLogin' (12 or more characters)"
+    $p2 = Read-Secret 'Type the same password again'
+}
 if ($p1 -ne $p2) { throw 'The two passwords are different. Nothing was changed; run the script again.' }
 $body.ownerPassword = $p1
 $json = $body | ConvertTo-Json -Compress

@@ -1399,7 +1399,784 @@ try {
 }
 finally { Remove-Item -LiteralPath $ct -Recurse -Force -ErrorAction SilentlyContinue }
 # /INST-CLIENT
+# INST-SERVER ---------------------------------------------------------------------------------------------------------
+# Server installer lane (wave INST): installer\Hcc.iss layout + ISCC compile with stub inputs, and Install-HccServer.ps1 with every
+# adapter mocked. Nothing here installs, starts or changes anything on this PC: the orchestrator is dot-sourced, its adapters
+# (Invoke-HccOps, Invoke-HccNative, services, HTTP, certificate store, ACLs) are replaced by recorders, and all files live in a temp folder.
+$instRoot = Join-Path ([IO.Path]::GetTempPath()) ('hcc-inst-test-' + [guid]::NewGuid().ToString('N'))
+New-Item -ItemType Directory -Path $instRoot -Force | Out-Null
+$instMarker = 'MARKER-Pw-9f3a!zz'            # fictional password: must never reach a log, state or summary file
+$instCaMarker = 'CA-MARKER-Pw-77qq#xx'
+$instHotelOdd = 'O''Brien & "Sons"; %PATH% ' + [string][char]0x0939 + [string][char]0x0949 + [string][char]0x091F + '\x'
+$iss = Get-Content -LiteralPath (Join-Path $root 'installer\Hcc.iss') -Raw
+$orch = Get-Content -LiteralPath (Join-Path $root 'Install-HccServer.ps1') -Raw
 
+# --- Hcc.iss layout -------------------------------------------------------------------------------------------------------
+Check 'INST-SERVER iss: setup logging, version info, locked install folder, admin, x64, downgrade refusal' {
+    $iss -match '(?m)^SetupLogging=yes' -and $iss -match '(?m)^VersionInfoVersion=\{#AppVersion\}' -and $iss -match '(?m)^DisableDirPage=yes' -and $iss -match '(?m)^DefaultDirName=\{autopf\}\\HCC' -and
+    $iss -match '(?m)^PrivilegesRequired=admin' -and $iss -match 'ArchitecturesInstallIn64BitMode=x64compatible' -and $iss -match 'function IsNewerVersion' -and $iss -match 'Setup will not put an older release over a newer one'
+}
+Check 'INST-SERVER iss: the /D defines of INST-CONTRACT 4.4 are required or optional exactly as documented' {
+    $iss -match '(?m)^#ifndef AppVersion' -and $iss -match '(?m)^#ifndef PublishDir' -and $iss -match '(?m)^#ifndef OpsDir' -and $iss -match '(?m)^#ifndef TemplatesDir' -and $iss -match '(?m)^#ifndef ClientSetupExe' -and
+    $iss -match '(?m)^#ifdef SqlMediaDir' -and $iss -match '(?m)^#ifndef OutputDir'
+}
+Check 'INST-SERVER iss: ships publish output, scripts to Operations, import templates, client setup exe to ClientKit, SQL media only when chosen and deleted after use' {
+    $iss -match 'Source: "\{#PublishDir\}\\\*"; DestDir: "\{app\}\\Server"' -and $iss -match 'Source: "\{#OpsDir\}\\\*\.ps1"; DestDir: "\{app\}\\Operations"' -and $iss -match 'Source: "\{#TemplatesDir\}\\\*"; DestDir: "\{app\}\\ImportTemplates"' -and
+    $iss -match 'Source: "\{#ClientSetupExe\}"; DestDir: "\{app\}\\ClientKit"' -and $iss -match 'Check: WantsBundledSql; Flags: .*deleteafterinstall' -and $iss -match 'msodbcsql17\.msi"; DestDir: "\{app\}\\SqlSetupMedia"; Check: WantsSqlMedia' -and $iss -match 'MsSqlCmdLnUtils\.msi"; DestDir: "\{app\}\\SqlSetupMedia"; Check: WantsSqlMedia' -and $iss -match 'Name: "\{app\}\\Server\\web"'
+}
+Check 'INST-SERVER iss: settings files are created once, never replaced and never removed (onlyifdoesntexist + uninsneveruninstall)' {
+    ([regex]::Matches($iss, 'DestName: "appsettings\.Production\.json"; Flags: onlyifdoesntexist uninsneveruninstall')).Count -eq 1 -and ([regex]::Matches($iss, 'DestName: "hcc-ops\.json"; Flags: onlyifdoesntexist uninsneveruninstall')).Count -eq 1 -and
+    $iss -notmatch '(?m)^Type: .*Name: "[^"*]*\.json"'
+}
+Check 'INST-SERVER iss: upgrade stops the service first and asks nothing; the post-install step is mandatory and a failure ends with an exit code and the log named' {
+    $iss -match 'function PrepareToInstall' -and $iss -match 'stop \{#ServiceName\} /y' -and $iss -match 'UpgradeRun then Exit' -and $iss -match 'SetupFailedExitCode = 1603' -and $iss -match 'RestartNeededExitCode = 3010' -and
+    $iss -match 'ExitProcess\(SetupFailedExitCode\)' -and $iss -match 'The log says which step failed' -and $iss -match '-Upgrade' -and $iss -match '-Resume'
+}
+Check 'INST-SERVER iss: uninstall removes service/rules/tasks via the orchestrator and says on screen that SQL, databases, backups, keys and settings stay' {
+    $iss -match '\[UninstallRun\][^\[]*Install-HccServer\.ps1""? -Uninstall' -and $iss -match 'It does NOT remove, and never will' -and $iss -match 'the HCC databases \(Hcc and HccDocuments\)' -and $iss -match 'the backups' -and $iss -match 'the keys' -and
+    $iss -match 'your settings files' -and $iss -notmatch 'DROP DATABASE' -and $iss -notmatch 'Type: filesandordirs; Name: "\{commonappdata\}'
+}
+Check 'INST-SERVER iss: wizard pages and the TRIAL wording exist (mode, hotel, backup, Owner twice, SQL, CA password twice, USB, summary)' {
+    $iss -match 'Kind of installation' -and $iss -match 'Your hotel and this PC' -and $iss -match 'Backup folder' -and $iss -match 'The first Owner' -and $iss -match 'Type the password again' -and $iss -match 'Database \(SQL Server\)' -and
+    $iss -match 'Hotel certificate password \(Production\)' -and $iss -match 'USB stick for the keys' -and $iss -match 'function UpdateReadyMemo' -and $iss -match 'TRIAL install - not for real guest data' -and
+    $iss -match 'HCC - TRIAL \(not for real guest data\)' -and $iss -match 'GetComputerNameString' -and $iss -match 'DetectSqlExpress' -and $iss -match '12 to 128 characters'
+}
+Check 'INST-SERVER iss: passwords never go on a command line, into the registry or into a log' {
+    $execLines = @($iss -split "`n" | Where-Object { $_ -match 'Exec\(' -or $_ -match 'Params := ' -or $_ -match 'Parameters:' })
+    @($execLines | Where-Object { $_ -match 'Password|ownerPassword|Values\[' }).Count -eq 0 -and $iss -notmatch 'RegWrite' -and $iss -notmatch 'Log\([^)]*(Password|Values\[1\])' -and
+    $iss -match 'function CreatePrivateFolder' -and $iss -match 'SetOwner\(\$admins\); \[void\]\[IO\.Directory\]::CreateDirectory\(\$Path, \$sec\)' -and $iss -match 'SaveStringsToUTF8File\(AnswerFileName' -and $iss.IndexOf('PrepareSetupFolder') -lt $iss.IndexOf('SaveStringsToUTF8File(AnswerFileName') -and
+    $iss -match 'procedure RemoveAnswerFile' -and $iss -match 'procedure DeinitializeSetup\(\);\s*begin\s*RemoveAnswerFile'
+}
+Check 'INST-SERVER iss: the answer JSON escapes quotes, backslashes and control characters (hotel name with quote, ampersand, percent, Unicode)' {
+    $iss.Contains('function JsonEscape') -and $iss.Contains('if C = ''\'' then R := R + ''\\''') -and $iss.Contains('else if C = ''"'' then R := R + ''\"''') -and $iss.Contains('Ord(C) < 32')
+}
+
+$isccPath = $null
+foreach ($c in @((Get-Command ISCC.exe -ErrorAction SilentlyContinue | ForEach-Object Source), 'E:\Tools\Inno Setup 6\ISCC.exe', "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe", "$env:ProgramFiles\Inno Setup 6\ISCC.exe")) { if ($c -and (Test-Path -LiteralPath $c)) { $isccPath = $c; break } }
+if (-not $isccPath) { Write-Host 'SKIP INST-SERVER iss compile (ISCC.exe not found; install Inno Setup 6)' -ForegroundColor Yellow }
+else {
+    $stub = Join-Path $instRoot 'stub'
+    foreach ($d in @('pub\web', 'tpl', 'sql', 'out')) { New-Item -ItemType Directory -Path (Join-Path $stub $d) -Force | Out-Null }
+    Set-Content -LiteralPath (Join-Path $stub 'pub\Hcc.Api.exe') -Value 'stub'; Set-Content -LiteralPath (Join-Path $stub 'pub\web\index.html') -Value '<html><body></body></html>'
+    Set-Content -LiteralPath (Join-Path $stub 'tpl\a.csv') -Value 'x'; Set-Content -LiteralPath (Join-Path $stub 'sql\SQLEXPR_x64_ENU.exe') -Value 'stub'; Set-Content -LiteralPath (Join-Path $stub 'sql\msodbcsql17.msi') -Value 'stub'; Set-Content -LiteralPath (Join-Path $stub 'sql\MsSqlCmdLnUtils.msi') -Value 'stub'; Set-Content -LiteralPath (Join-Path $stub 'HCC-Client-Setup-9.9.9.exe') -Value 'stub'
+    function Invoke-InstIscc([string[]]$Defines, [string]$OutName) {
+        $a = (@('/Q') + $Defines + @("`"/DOutputDir=$stub\$OutName`"", "`"$(Join-Path $root 'installer\Hcc.iss')`"")) -join ' '
+        $p = Start-Process -FilePath $isccPath -ArgumentList $a -NoNewWindow -Wait -PassThru -RedirectStandardOutput (Join-Path $stub "$OutName.txt") -RedirectStandardError (Join-Path $stub "$OutName.err")
+        return [pscustomobject]@{ Exit = $p.ExitCode; Out = ((Get-Content -LiteralPath (Join-Path $stub "$OutName.txt") -Raw) + (Get-Content -LiteralPath (Join-Path $stub "$OutName.err") -Raw)) }
+    }
+    $defs = @('/DAppVersion=9.9.9', "`"/DPublishDir=$stub\pub`"", "`"/DOpsDir=$root`"", "`"/DTemplatesDir=$stub\tpl`"", "`"/DClientSetupExe=$stub\HCC-Client-Setup-9.9.9.exe`"")
+    Check 'INST-SERVER ISCC compiles Hcc.iss with stub inputs (with and without SQL media) and writes HCC-Server-Setup-<ver>-x64.exe' {
+        $stubOps = Join-Path $stub 'ops'; New-Item -ItemType Directory -Path $stubOps -Force | Out-Null
+        foreach ($f in @('*.ps1', '*.json', '*.md')) { Copy-Item -Path (Join-Path $root $f) -Destination $stubOps -Force }
+        Set-Content -LiteralPath (Join-Path $stubOps 'sql-media.manifest.json') -Value '{}'   # the sql lane ships the real one
+        $defsSql = @($defs | Where-Object { $_ -notlike '*OpsDir*' }) + "`"/DOpsDir=$stubOps`""
+        $with = Invoke-InstIscc ($defsSql + "`"/DSqlMediaDir=$stub\sql`"") 'out1'
+        $without = Invoke-InstIscc $defs 'out2'
+        $with.Exit -eq 0 -and $without.Exit -eq 0 -and (Test-Path -LiteralPath (Join-Path $stub 'out1\HCC-Server-Setup-9.9.9-x64.exe')) -and (Test-Path -LiteralPath (Join-Path $stub 'out2\HCC-Server-Setup-9.9.9-x64.exe'))
+    }
+    Check 'INST-SERVER ISCC refuses a compile without AppVersion or ClientSetupExe (no silent default)' {
+        $a = Invoke-InstIscc @($defs | Where-Object { $_ -notlike '*AppVersion*' }) 'out3'
+        $c = Invoke-InstIscc @($defs | Where-Object { $_ -notlike '*ClientSetupExe*' }) 'out4'
+        $a.Exit -ne 0 -and $a.Out -match 'AppVersion is not defined' -and $c.Exit -ne 0 -and $c.Out -match 'ClientSetupExe is not defined'
+    }
+}
+
+# --- orchestrator: parse, interface, plan ------------------------------------------------------------------------------------
+Check 'INST-SERVER Install-HccServer.ps1 parses and follows the PowerShell rules (5.1 and 7: no &&, no ternary, no ??; strict mode; ShouldProcess)' {
+    $errs = $null; $null = [Management.Automation.Language.Parser]::ParseInput($orch, [ref]$null, [ref]$errs)
+    $errs.Count -eq 0 -and $orch -match '\[CmdletBinding\(SupportsShouldProcess\)\]' -and $orch -match 'Set-StrictMode -Version Latest' -and $orch -notmatch '&&' -and $orch -notmatch '\?\?' -and $orch -notmatch '\s\?\s.*\s:\s' -and
+    $orch -notmatch '[^\x00-\x7f]' -and $orch -match 'param\(\s*\[string\]\$AnswerFile,\s*\[switch\]\$Resume,\s*\[switch\]\$PlanOnly'
+}
+. (Join-Path $root 'Install-HccServer.ps1')   # dot-sourced: functions only
+$instRealOps = ${function:Invoke-HccOps}
+# A page shaped like the production build: CSP meta first, the real <title> and <body> before the inline script, and <title> / <body>
+# strings INSIDE the script (the audit's blank-page case).
+function New-InstPageHtml([string]$ScriptText = 'var t="<title>x</title><body>"; var a = 1; document.title = "<title>"+a;') {
+    $sha = [Security.Cryptography.SHA256]::Create()
+    try { $h = 'sha256-' + [Convert]::ToBase64String($sha.ComputeHash([Text.Encoding]::UTF8.GetBytes($ScriptText))) } finally { $sha.Dispose() }
+    return '<!DOCTYPE html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src ''none''; script-src ''' + $h + '''"><title>HCC</title></head><body><div id="root"></div><script>' + $ScriptText + '</script></body></html>'
+}
+function Initialize-InstFixture([string]$Name) {
+    $d = Join-Path $instRoot $Name
+    $app = Join-Path $d 'app'; $data = Join-Path $d 'data'
+    foreach ($x in @("$app\Server\web", "$app\Operations", "$data\Setup")) { New-Item -ItemType Directory -Path $x -Force | Out-Null }
+    Copy-Item -LiteralPath (Join-Path $root 'appsettings.Production.sample.json') -Destination (Join-Path $app 'Server\appsettings.Production.sample.json')
+    Copy-Item -LiteralPath (Join-Path $root 'appsettings.Production.sample.json') -Destination (Join-Path $app 'Server\appsettings.Production.json')
+    Copy-Item -LiteralPath (Join-Path $root 'hcc-ops.sample.json') -Destination (Join-Path $app 'Operations\hcc-ops.sample.json')
+    [IO.File]::WriteAllText((Join-Path $app 'Server\web\index.html'), (New-InstPageHtml), (New-Object Text.UTF8Encoding($false)))
+    Set-Content -LiteralPath (Join-Path $app 'Server\Hcc.Api.exe') -Value 'stub'
+    return [pscustomobject]@{ Dir = $d; App = $app; Data = $data; Ops = (Join-Path $app 'Operations'); Answers = (Join-Path $data 'Setup\answers.json') }
+}
+function New-InstAnswerFile($Fx, [hashtable]$Over = @{}) {
+    $a = [ordered]@{ mode = 'Trial'; hotelName = 'Hotel Test'; serverName = 'hotelpc'; serverIps = @('192.168.1.10'); httpsPort = 5443; backupDirectory = 'Z:\HccBackups'; ownerUserName = 'owner'
+        ownerPassword = $instMarker; sql = 'UseExisting'; caPfxPassword = ''; offlineCopyDirectory = '' }
+    foreach ($k in $Over.Keys) { $a[$k] = $Over[$k] }
+    [IO.File]::WriteAllText($Fx.Answers, ($a | ConvertTo-Json), (New-Object Text.UTF8Encoding($false)))
+    return $Fx.Answers
+}
+function Get-InstTreeText($Fx) { return ((Get-ChildItem -LiteralPath $Fx.Dir -Recurse -File | ForEach-Object { [IO.File]::ReadAllText($_.FullName) }) -join "`n") }
+
+Check 'INST-SERVER every INST-CONTRACT 2 step is present, in the contract order, each calling its script' {
+    $fx = Initialize-InstFixture 'order'
+    Initialize-HccInstallContext -AppDirectory $fx.App -DataDirectory $fx.Data -OperationsDirectory $fx.Ops
+    $steps = Get-HccInstallSteps -A @{ mode = 'Trial'; sql = 'UseExisting'; backupDirectory = 'D:\b'; offlineCopyDirectory = ''; httpsPort = 5443; serverName = 'x'; hotelName = 'h'; ownerUserName = 'o' }
+    $ids = ($steps | ForEach-Object { $_.Id }) -join ','
+    $plan = ($steps | ForEach-Object { $_.Plan }) -join "`n"
+    $order = @('Bootstrap-HccSql.ps1', 'Install-HccService.ps1', 'Initialize-HccDatabase.ps1', 'New-HccCertificate.ps1', 'appsettings.Production.json', 'New-HccGuestIdKey.ps1', 'New-HccBackupKey.ps1', 'Hcc.Api.exe migrate', 'start HccServer', 'Initialize-HccProperty.ps1', 'Register-HccBackupTasks.ps1', 'Set-HccEgress.ps1 -State Install', 'New-HccClientKit.ps1', 'answers')
+    $pos = @($order | ForEach-Object { $plan.IndexOf($_) })
+    $sorted = $true; for ($i = 1; $i -lt $pos.Count - 1; $i++) { if ($pos[$i] -lt 0 -or $pos[$i] -le $pos[$i - 1]) { $sorted = $false } }
+    $ids -eq 'sql,service-register,database,certificate,settings,keys,migrate,service-start,property,backup-tasks,egress,client-kit,health' -and $sorted -and
+    $orch.IndexOf('function Step-Migrate') -gt 0 -and $plan -match 'schema current' -and $plan.IndexOf('Install-HccService.ps1') -lt $plan.IndexOf('Initialize-HccDatabase.ps1') -and $plan -match 'NOT started'
+}
+$instRealGetIp = ${function:Get-HccLocalIpv4}
+$instRealPath = ${function:Update-HccProcessPath}
+$instRealRepair = ${function:Repair-HccPrivateDirectory}
+$instMyIp = @(& $instRealGetIp | Where-Object { (ConvertTo-HccIpv4 $_) -and (Test-HccPrivateIpv4 $_) }) | Select-Object -First 1
+if (-not $instMyIp) { Write-Host 'SKIP INST-SERVER -PlanOnly process check (this PC has no private IPv4 address)' -ForegroundColor Yellow }
+else { Check 'INST-SERVER -PlanOnly and -WhatIf print the 13 steps and change nothing (no folder, no answer-file deletion, no state)' {
+    $fx = Initialize-InstFixture 'plan'
+    $f = New-InstAnswerFile $fx @{ serverIps = @($instMyIp) }
+    $extraApp = Join-Path $fx.Dir 'noapp'; $extraData = Join-Path $fx.Dir 'nodata'
+    $out = & $psExe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File (Join-Path $root 'Install-HccServer.ps1') -AnswerFile $f -PlanOnly -AppDirectory $extraApp -DataDirectory $extraData 2>&1 | Out-String
+    $code = $LASTEXITCODE
+    $w = DryRun 'Install-HccServer.ps1' @('-AnswerFile', $f, '-AppDirectory', $extraApp, '-DataDirectory', $extraData)
+    $up = & $psExe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File (Join-Path $root 'Install-HccServer.ps1') -Upgrade -PlanOnly -AppDirectory $extraApp -DataDirectory $extraData 2>&1 | Out-String
+    $un = & $psExe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File (Join-Path $root 'Install-HccServer.ps1') -Uninstall -PlanOnly -AppDirectory $extraApp -DataDirectory $extraData 2>&1 | Out-String
+    $code -eq 0 -and $out -match ' 1\. Preparing SQL Server' -and $out -match '13\. Checking that HCC answers' -and $out -match 'PLAN ONLY: nothing was changed' -and $out -notmatch [regex]::Escape($instMarker) -and $out -match 'password hidden' -and
+    $w.Exit -eq 0 -and $w.Out -match 'PLAN ONLY' -and (Test-Path -LiteralPath $f) -and -not (Test-Path -LiteralPath $extraApp) -and -not (Test-Path -LiteralPath $extraData) -and
+    $up -match 'upgrade' -and $up -match 'Hcc.Api.exe migrate' -and $up -match 'PLAN ONLY' -and $un -match 'KEPT: SQL Server, the databases' -and $un -match 'PLAN ONLY'
+} }
+
+# --- ACL / owner checks against REAL temp folders and files (nothing mocked; the temp items are only read, and one file's own ACL is tightened) ---
+Check 'INST-SERVER real checks: an ordinary temp folder / file is reported as not private (inheritance on, other accounts), the owner SID is read, and the owner rule follows the real owner' {
+    $d = Join-Path $instRoot 'real-folder'; New-Item -ItemType Directory -Path $d -Force | Out-Null
+    $f = Join-Path $d 'answers.json'; Set-Content -LiteralPath $f -Value 'x'
+    $owner = Get-HccOwnerSid -Path $f
+    $fileP = @(Get-HccFileProblems -Path $f); $dirP = @(Get-HccFolderProblems -Path $d)
+    $ownerIsOurs = @('S-1-5-18', 'S-1-5-32-544') -contains $owner
+    $owner -match '^S-1-5-' -and $dirP.Count -gt 0 -and ($dirP -join ';') -match 'inherits|has access' -and $fileP.Count -gt 0 -and ((@($fileP | Where-Object { $_ -match 'is owned by' }).Count -eq 0) -eq $ownerIsOurs) -and
+    ((@($dirP | Where-Object { $_ -match 'is owned by' }).Count -eq 0) -eq (@('S-1-5-18', 'S-1-5-32-544') -contains (Get-HccOwnerSid -Path $d)))
+}
+Check 'INST-SERVER real checks: a link is reported; a settings-file style ACL (protected, only the allowed accounts) passes and one extra account is reported' {
+    $d = Join-Path $instRoot 'real-link'; New-Item -ItemType Directory -Path $d -Force | Out-Null
+    $target = Join-Path $d 'target'; New-Item -ItemType Directory -Path $target -Force | Out-Null
+    $link = Join-Path $d 'link'; $linkMade = $false
+    try { New-Item -ItemType Junction -Path $link -Target $target -ErrorAction Stop | Out-Null; $linkMade = $true } catch { }
+    $linkOk = if ($linkMade) { (@(Get-HccFolderProblems -Path $link) -join ';') -match 'is a link' } else { $true }
+    if ($linkMade) { (Get-Item -LiteralPath $link -Force).Delete() }   # removes the junction only
+    $f = Join-Path $d 'settings.json'; Set-Content -LiteralPath $f -Value '{}'
+    $me = [Security.Principal.WindowsIdentity]::GetCurrent().User
+    $acl = Get-Acl -LiteralPath $f
+    $acl.SetAccessRuleProtection($true, $false)
+    foreach ($r in @($acl.Access)) { [void]$acl.RemoveAccessRule($r) }
+    foreach ($sid in @($me, (New-Object Security.Principal.SecurityIdentifier('S-1-5-18')), (New-Object Security.Principal.SecurityIdentifier('S-1-5-32-544')))) { $acl.AddAccessRule((New-Object Security.AccessControl.FileSystemAccessRule($sid, 'FullControl', 'Allow'))) }
+    Set-Acl -LiteralPath $f -AclObject $acl
+    $myName = [Security.Principal.WindowsIdentity]::GetCurrent().Name
+    $clean = @(Test-HccProtectedDirectory -Path $f -AllowedAccounts @($myName))
+    $extra = @(Test-HccProtectedDirectory -Path $f)
+    $linkOk -and $clean.Count -eq 0 -and $extra.Count -gt 0 -and ($extra -join ';') -match 'has access'
+}
+
+# --- orchestrator with every adapter mocked ----------------------------------------------------------------------------------------
+$instCalls = New-Object System.Collections.Generic.List[string]
+$instParams = @{}
+$instFail = ''
+$instSqlExit = 0
+$instServiceInstalled = $false
+$instFolderPrivate = $true
+function Protect-HccFolder { param([string]$Path, [string[]]$ReadAccounts = @()) if (-not (Test-Path -LiteralPath $Path)) { New-Item -ItemType Directory -Path $Path -Force | Out-Null }; $script:instCalls.Add("protect-folder:$(Split-Path -Leaf $Path)") }
+function Protect-HccFile { param([string]$Path) $script:instCalls.Add('protect-file') }
+function Assert-HccAnswerFolderPrivate { param([string]$Path) if (-not $script:instFolderPrivate) { throw 'folder not private (mock)' } }
+function Test-HccElevated { return $true }
+function Update-HccProcessPath { }
+function Get-HccFolderProblems { param([string]$Path) return @($script:instFolderProblems) }
+$instFolderProblems = @()
+$instHasWarningsParam = $false
+$instSqlWarnings = $null
+function Test-HccScriptParameter { param([string]$Script, [string]$Name) return ($script:instHasWarningsParam -and $Name -eq 'WarningsFile') }
+function Get-HccInstallDriveRoot { return 'Z:\' }
+$instDriveType = 'Removable'; $instAclProblems = @(); $instSetupRequired = $true; $instPageOverride = $null; $instGrantFail = $false
+function Get-HccLocalIpv4 { return @('192.168.1.10') }
+function Get-HccDriveType { param([string]$Path) return $script:instDriveType }
+function Get-HccSettingsAclProblems { return @($script:instAclProblems) }
+function Restart-HccServerService { $script:instCalls.Add('restart-service') }
+$instLogon = 'NT SERVICE\HccServer'; $instLogonFixes = $true
+function Get-HccServiceLogon { return $script:instLogon }
+function Set-HccServiceLogon { $script:instCalls.Add('sc-config'); if ($script:instLogonFixes) { $script:instLogon = 'NT SERVICE\HccServer' } }
+function Remove-HccEgressObjects { $script:instCalls.Add('remove-egress') }
+function Repair-HccPrivateDirectory { param([string]$Path) $script:instCalls.Add('repair:' + (Split-Path -Leaf $Path)) }
+function Install-HccTrustedCa { param([string]$CerPath) $script:instCalls.Add('trust-ca') }
+function Test-HccServerCertificatePresent { param([string]$Thumbprint) return [bool]$Thumbprint }
+function Remove-HccLeftoverCaKey { }
+function Grant-HccCertificateKeyAccess { param([string]$Thumbprint, [string]$Account) if ($script:instGrantFail) { throw 'cannot grant (mock)' }; $script:instCalls.Add('grant-key') }
+function Test-HccServiceInstalled { return $script:instServiceInstalled }
+function Start-HccServerService { $script:instCalls.Add('start-service') }
+function Stop-HccServerService { $script:instCalls.Add('stop-service') }
+function Invoke-HccHttp { param([string]$Url, [int]$TimeoutSec = 15)
+    $script:instCalls.Add("http:$Url")
+    if ($Url -like '*/setup/status') { return [pscustomobject]@{ Status = 200; Body = ('{"setupRequired":' + ([string]$script:instSetupRequired).ToLowerInvariant() + '}'); Error = '' } }
+    if ($Url -like '*/system/health') { return [pscustomobject]@{ Status = 200; Body = '{"status":"ok"}'; Error = '' } }
+    $page = if ($null -ne $script:instPageOverride) { $script:instPageOverride } else { [IO.File]::ReadAllText((Join-Path $script:instFx.App 'Server\web\index.html'), [Text.Encoding]::UTF8) }
+    return [pscustomobject]@{ Status = 200; Body = $page; Error = '' } }
+function Invoke-HccNative { param([string]$FilePath, [string]$Arguments, [string]$WorkingDirectory, [hashtable]$Environment = @{})
+    $script:instCalls.Add("native:$(Split-Path -Leaf $FilePath) $Arguments env=$($Environment['ASPNETCORE_ENVIRONMENT'])")
+    return [pscustomobject]@{ ExitCode = $(if ($script:instFail -eq 'migrate') { 5 } else { 0 }); Output = "migrate output that wrongly echoes $script:instMarker" } }
+function Set-InstSettings($Fx, [scriptblock]$Edit) {
+    $p = Join-Path $Fx.App 'Server\appsettings.Production.json'
+    $j = Get-Content -LiteralPath $p -Raw | ConvertFrom-Json; & $Edit $j; [IO.File]::WriteAllText($p, ($j | ConvertTo-Json -Depth 12), (New-Object Text.UTF8Encoding($false)))
+}
+function Invoke-HccOps { param([string]$Script, [hashtable]$Params = @{}, [switch]$UseExitCode)
+    $script:instCalls.Add($Script); $script:instParams[$Script] = $Params
+    if ($script:instFail -eq $Script) { throw "simulated failure in $Script (and it echoes $script:instMarker)" }
+    $fx = $script:instFx
+    switch ($Script) {
+        'Install-HccService.ps1' { if (-not $Params.ContainsKey('Uninstall')) { $script:instServiceInstalled = $true } }
+        'Bootstrap-HccSql.ps1' { if ($Params.ContainsKey('WarningsFile') -and $script:instSqlWarnings) { Set-Content -LiteralPath $Params.WarningsFile -Value $script:instSqlWarnings -Encoding UTF8 }; return $script:instSqlExit }
+        'New-HccCertificate.ps1' {
+            New-Item -ItemType Directory -Path (Split-Path -Parent $Params.CaPfxPath) -Force | Out-Null
+            Set-Content -LiteralPath $Params.CaPfxPath -Value 'pfx'; Set-Content -LiteralPath (Join-Path $Params.OutputDirectory 'HCC-Hotel-CA.cer') -Value 'cer'
+            Set-InstSettings $fx { param($j) $j.Hcc.Hosting.CertificateThumbprint = 'AABBCCDD' }
+        }
+        'New-HccGuestIdKey.ps1' { Set-InstSettings $fx { param($j) $j.Hcc | Add-Member -NotePropertyName GuestIdKeys -NotePropertyValue ([pscustomobject]@{ Current = '2026-11' }) -Force } ; Set-Content -LiteralPath $Params.OfflineCopyPath -Value 'copy' }
+        'New-HccBackupKey.ps1' { New-Item -ItemType Directory -Path (Join-Path $fx.Data 'Keys') -Force | Out-Null; Set-Content -LiteralPath (Join-Path $fx.Data 'Keys\hcc-backup-key.txt') -Value 'k'; Set-Content -LiteralPath $Params.OfflineCopyPath -Value 'copy' }
+        'Initialize-HccProperty.ps1' {
+            Write-InstallLog "child script echoes the Owner password $script:instMarker and the CA one $script:instCaMarker"
+            Set-InstSettings $fx { param($j) $j.Hcc.Hosting.LoopbackHttpPort = 0 }
+        }
+        'New-HccClientKit.ps1' { New-Item -ItemType Directory -Path $Params.OutDir -Force | Out-Null; Set-Content -LiteralPath (Join-Path $Params.OutDir 'hcc-client.json') -Value '{}'; Set-Content -LiteralPath (Join-Path $Params.OutDir 'HCC-Hotel-CA.cer') -Value 'cer' }
+        default { }
+    }
+    return 0
+}
+function Invoke-InstRun([string]$Name, [hashtable]$Over = @{}, [switch]$Resume, [switch]$Upgrade, [scriptblock]$Before, $Fx) {
+    if (-not $Fx) { $Fx = Initialize-InstFixture $Name; $script:instServiceInstalled = $false }
+    $script:instFx = $Fx; $script:instCalls.Clear(); $script:instParams.Clear()
+    if ($Before) { & $Before $Fx }
+    $f = $null
+    if (-not $Upgrade) { $f = New-InstAnswerFile $Fx $Over }
+    $code = Start-HccInstall -AnswerFile $f -Resume:$Resume -Upgrade:$Upgrade -AppDirectory $Fx.App -DataDirectory $Fx.Data -OperationsDirectory $Fx.Ops
+    return [pscustomobject]@{ Code = [int]($code | Select-Object -Last 1); Fx = $Fx; Answers = $Fx.Answers
+        State = $(if (Test-Path -LiteralPath (Join-Path $Fx.Data 'Setup\install-state.json')) { [IO.File]::ReadAllText((Join-Path $Fx.Data 'Setup\install-state.json'), [Text.Encoding]::UTF8) | ConvertFrom-Json } else { $null })
+        Log = $(@(Get-ChildItem -LiteralPath (Join-Path $Fx.Data 'Logs') -Filter 'install-*.log' -ErrorAction SilentlyContinue | ForEach-Object { Get-Content -LiteralPath $_.FullName -Raw }) -join "`n") }
+}
+
+Check 'INST-SERVER trial run (mocked): exit 0, every step ran in contract order, answer file deleted, state lists 12 steps, TRIAL banner added, settings written' {
+    $r = Invoke-InstRun 'trial'
+    $names = @($instCalls | Where-Object { $_ -match '\.ps1$|^native:' })
+    $want = @('Bootstrap-HccSql.ps1', 'Install-HccService.ps1', 'Initialize-HccDatabase.ps1', 'New-HccCertificate.ps1', 'New-HccGuestIdKey.ps1', 'New-HccBackupKey.ps1', 'native:Hcc.Api.exe migrate env=Production', 'Initialize-HccProperty.ps1', 'Backup-HccDatabase.ps1', 'Register-HccBackupTasks.ps1', 'Set-HccEgress.ps1', 'New-HccClientKit.ps1')
+    $html = Get-Content -LiteralPath (Join-Path $r.Fx.App 'Server\web\index.html') -Raw
+    $set = Get-Content -LiteralPath (Join-Path $r.Fx.App 'Server\appsettings.Production.json') -Raw | ConvertFrom-Json
+    $ops = Get-Content -LiteralPath (Join-Path $r.Fx.Ops 'hcc-ops.json') -Raw | ConvertFrom-Json
+    $r.Code -eq 0 -and ($names -join '|') -eq ($want -join '|') -and -not (Test-Path -LiteralPath $r.Answers) -and @($r.State.completed).Count -eq 13 -and $r.State.status -eq 'Done' -and
+    $html.Contains('<!--HCC-TRIAL-BANNER-->') -and $html -match '<title>TRIAL - HCC</title>' -and $html -match 'TRIAL - not for real guest data' -and $set.Hcc.Hosting.ServerName -eq 'hotelpc' -and $ops.BackupDirectory -eq 'Z:\HccBackups' -and $set.Hcc.Install.Mode -eq 'Trial' -and
+    $ops.LogDirectory -eq 'Z:\HccBackups\Logs' -and $set.Hcc.Sql.BackupDirectory -eq 'Z:\HccBackups' -and (Test-Path -LiteralPath (Join-Path $r.Fx.Data 'Keys\HCC-Hotel-CA-password.txt')) -and ($instCalls -contains 'trust-ca') -and ($instCalls -contains 'http:https://hotelpc:5443/')
+}
+Check 'INST-SERVER trial mark: only the first <title> and the first <body> before the script are touched, the script stays byte for byte, the page still matches its own CSP, idempotent (fixture has <title> and <body> INSIDE its script)' {
+    $fx = Initialize-InstFixture 'banner'; $p = Join-Path $fx.App 'Server\web\index.html'
+    $before = [IO.File]::ReadAllText($p, [Text.Encoding]::UTF8)
+    Set-HccTrialPage -IndexHtml $p; Set-HccTrialPage -IndexHtml $p
+    $after = [IO.File]::ReadAllText($p, [Text.Encoding]::UTF8)
+    $scriptBefore = [regex]::Match($before, '<script>(.*?)</script>').Groups[1].Value
+    $scriptAfter = [regex]::Match($after, '<script>(.*?)</script>').Groups[1].Value
+    $added = [regex]::Match($after, '<!--HCC-TRIAL-BANNER-->.*?</table>').Value
+    ([regex]::Matches($after, 'HCC-TRIAL-BANNER')).Count -eq 1 -and $scriptAfter -ceq $scriptBefore -and $scriptAfter.Contains('<title>x</title><body>') -and ([regex]::Matches($after, '<title>TRIAL - HCC</title>')).Count -eq 1 -and
+    $added -notmatch '<script' -and $added -notmatch '<style' -and $added -notmatch 'style\s*=' -and $after.IndexOf('<!--HCC-TRIAL-BANNER-->') -gt $after.IndexOf('<body>') -and $after.IndexOf('<!--HCC-TRIAL-BANNER-->') -lt $after.IndexOf('<script>') -and
+    @(Test-HccPageCsp $after).Count -eq 0 -and @(Test-HccPageCsp $before).Count -eq 0 -and (Throws { Set-HccTrialPage -IndexHtml (Join-Path $fx.Dir 'missing.html') })
+}
+Check 'INST-SERVER trial mark refuses a page that does not have the expected shape (title after the script, body after the script, no title, no CSP meta, stale hash); nothing is written' {
+    $fx = Initialize-InstFixture 'shape'; $p = Join-Path $fx.App 'Server\web\index.html'
+    $good = New-InstPageHtml
+    $cases = @(
+        $good.Replace('<title>HCC</title></head>', '</head>'),                                           # no title before the script
+        $good.Replace('</head><body>', '</head>').Replace('</script></body>', '</script><body></body>'),   # body only after the script
+        [regex]::Replace($good, '<meta http-equiv="Content-Security-Policy"[^>]*>', ''),                  # no CSP meta
+        $good.Replace('script-src ''sha256-', 'script-src ''sha256-AAAA'))                                 # stale hash
+    $allRefused = $true
+    foreach ($c in $cases) {
+        [IO.File]::WriteAllText($p, $c, (New-Object Text.UTF8Encoding($false)))
+        if (-not (Throws { Set-HccTrialPage -IndexHtml $p }) -or ([IO.File]::ReadAllText($p, [Text.Encoding]::UTF8) -cne $c)) { $allRefused = $false }
+    }
+    $allRefused
+}
+Check 'INST-SERVER the old blind <title> replace would have broken the page (regression guard): replacing every <title> changes the script and Test-HccPageCsp says so' {
+    $good = New-InstPageHtml
+    $broken = [regex]::Replace($good, '<title>', '<title>TRIAL - ', 'IgnoreCase')
+    @(Test-HccPageCsp $good).Count -eq 0 -and @(Test-HccPageCsp $broken).Count -gt 0 -and $orch -notmatch "Replace\(\`$html, '<title>'"
+}
+Check 'INST-SERVER secrets: the passwords are SecureStrings in the script calls, and appear in no log, state, summary, progress or settings file (a child echoing them is scrubbed)' {
+    $r = Invoke-InstRun 'secrets' @{ caPfxPassword = $instCaMarker }
+    $all = Get-InstTreeText $r.Fx
+    $p = $instParams['Initialize-HccProperty.ps1']
+    $r.Code -eq 0 -and $p.OwnerPassword -is [securestring] -and $instParams['New-HccCertificate.ps1'].CaPfxPassword -is [securestring] -and $r.Log -match 'child script echoes the Owner password \[hidden\]' -and
+    $all -notmatch [regex]::Escape($instMarker) -and $all -notmatch [regex]::Escape($instCaMarker) -and $r.Log -match 'migrate output that wrongly echoes \[hidden\]' -and
+    (@($instParams.Values | ForEach-Object { $_.Values } | Where-Object { $_ -is [string] -and ($_ -match [regex]::Escape($instMarker)) }).Count -eq 0)
+}
+Check 'INST-SERVER the generated TRIAL CA password is a SecureString for the script, scrubbed from the log, and stored only in the ACL-protected Keys folder' {
+    $r = Invoke-InstRun 'trialpw'
+    $pwFile = Join-Path $r.Fx.Data 'Keys\HCC-Hotel-CA-password.txt'
+    $gen = ((Get-Content -LiteralPath $pwFile) | Select-Object -Last 1)
+    $r.Code -eq 0 -and $gen.Length -ge 32 -and $r.Log -notmatch [regex]::Escape($gen) -and $instParams['New-HccCertificate.ps1'].CaPfxPassword -is [securestring] -and ($instCalls -contains 'protect-folder:Keys') -and
+    ($instParams['New-HccCertificate.ps1'].CaPfxPath -eq (Join-Path $r.Fx.Data 'Keys\HCC-Hotel-CA.pfx')) -and ($instParams['New-HccGuestIdKey.ps1'].OfflineCopyPath -like "$($r.Fx.Data)\TrialKeyCopies\*") -and ($instCalls -contains 'protect-folder:TrialKeyCopies')
+}
+Check 'INST-SERVER hotel name with quote, ampersand, percent, semicolon, backslash and Unicode reaches Initialize-HccProperty and the client kit unchanged (no command line is built from it)' {
+    $r = Invoke-InstRun 'odd' @{ hotelName = $instHotelOdd }
+    $r.Code -eq 0 -and $instParams['Initialize-HccProperty.ps1'].HotelName -ceq $instHotelOdd -and $instParams['New-HccClientKit.ps1'].HotelName -ceq $instHotelOdd -and $r.State.hotelName -ceq $instHotelOdd -and
+    $orch -notmatch 'Invoke-Expression' -and $orch -notmatch 'iex ' -and $orch -notmatch 'cmd /c'
+}
+Check 'INST-SERVER answer file is deleted on failure too, a failed step stops the install with exit 1, the log names the step, nothing after it ran' {
+    $script:instFail = 'Initialize-HccDatabase.ps1'
+    $r = Invoke-InstRun 'fail'
+    $script:instFail = ''
+    $r.Code -eq 1 -and -not (Test-Path -LiteralPath $r.Answers) -and $r.State.status -eq 'Failed' -and $r.State.failedStep -eq 'database' -and (@($r.State.completed) -join ',') -eq 'sql,service-register' -and $r.Log -match 'Step 3 of 13 \(database\) FAILED' -and
+    $r.Log -notmatch [regex]::Escape($instMarker) -and ($instCalls -notcontains 'New-HccCertificate.ps1') -and (Get-Content -LiteralPath (Join-Path $r.Fx.Data 'Setup\install-summary.txt') -Raw) -match 'status=Failed'
+}
+Check 'INST-SERVER a failing migrate (exit code 5) fails the install; it is never reported as success' {
+    $script:instFail = 'migrate'
+    $r = Invoke-InstRun 'migfail'
+    $script:instFail = ''
+    $r.Code -eq 1 -and $r.State.failedStep -eq 'migrate' -and $r.Log -match 'migrate failed with code 5' -and ($instCalls -notcontains 'Initialize-HccProperty.ps1') -and ($instCalls -notcontains 'start-service') -and (Get-Content -LiteralPath (Join-Path $r.Fx.Data 'Setup\progress.txt') -Raw) -match 'status=failed'
+}
+Check 'INST-SERVER -Resume continues at the failed step: finished steps are not run again' {
+    $script:instFail = 'New-HccCertificate.ps1'
+    $r1 = Invoke-InstRun 'resume'
+    $script:instFail = ''
+    $firstCalls = @($instCalls)
+    $r2 = Invoke-InstRun 'resume' -Resume -Fx $r1.Fx
+    $r1.Code -eq 1 -and $r1.State.failedStep -eq 'certificate' -and (@($r1.State.completed) -join ',') -eq 'sql,service-register,database' -and $r2.Code -eq 0 -and @($r2.State.completed).Count -eq 13 -and ($instCalls -notcontains 'Bootstrap-HccSql.ps1') -and
+    ($instCalls -notcontains 'Install-HccService.ps1') -and ($instCalls -notcontains 'Initialize-HccDatabase.ps1') -and ($instCalls -contains 'New-HccCertificate.ps1') -and
+    ($instCalls -contains 'native:Hcc.Api.exe migrate env=Production') -and ($instCalls -contains 'New-HccClientKit.ps1') -and -not (Test-Path -LiteralPath $r2.Answers) -and ($firstCalls -notcontains 'native:Hcc.Api.exe migrate env=Production')
+}
+Check 'INST-SERVER SQL bootstrap exit 2 returns exit 2 (restart Windows), records it, and -Resume then continues at the SQL step' {
+    $script:instSqlExit = 2
+    $r1 = Invoke-InstRun 'restart'
+    $script:instSqlExit = 0
+    $r2 = Invoke-InstRun 'restart' -Resume -Fx $r1.Fx
+    $r1.Code -eq 2 -and $r1.State.status -eq 'RestartNeeded' -and $r1.State.failedStep -eq 'sql' -and @($r1.State.completed).Count -eq 0 -and -not (Test-Path -LiteralPath $r1.Answers) -and $r1.Log -match 'Windows must restart' -and
+    $r2.Code -eq 0 -and $r2.State.status -eq 'Done' -and ($instCalls -contains 'Bootstrap-HccSql.ps1')
+}
+Check 'INST-SERVER bad answers are refused before anything is done (weak password, password with the login, bad port, bad name, no IP, bad backup path, bad mode)' {
+    $bad = @(@{ ownerPassword = 'short' }, @{ ownerPassword = 'owner-owner-owner' }, @{ ownerPassword = 'aaaaaaaaaaaaaaaa' }, @{ httpsPort = 80 }, @{ serverName = 'bad name;calc' }, @{ serverIps = @() }, @{ serverIps = @('999.1.1.1') }, @{ backupDirectory = 'backups' },
+        @{ mode = 'Maybe' }, @{ ownerUserName = 'a b' }, @{ sql = 'Other' }, @{ hotelName = '' })
+    $allRefused = $true; $n = 0
+    foreach ($b in $bad) {
+        $n++; $r = Invoke-InstRun "bad$n" $b
+        if ($r.Code -ne 1 -or @($instCalls | Where-Object { $_ -notlike 'protect-folder:*' }).Count -ne 0 -or (Test-Path -LiteralPath $r.Answers)) { $allRefused = $false; Write-Host "  not refused: $($b.Keys -join ',')" }
+    }
+    $allRefused
+}
+Check 'INST-SERVER Production answers need the CA password (12+) and an existing USB folder that is not on the install drive' {
+    $usb = Join-Path $instRoot 'usb'; New-Item -ItemType Directory -Path $usb -Force | Out-Null
+    $r0 = Invoke-InstRun 'prod0' @{ mode = 'Production' }
+    $r1 = Invoke-InstRun 'prod1' @{ mode = 'Production'; caPfxPassword = 'short'; offlineCopyDirectory = $usb }
+    $r2 = Invoke-InstRun 'prod2' @{ mode = 'Production'; caPfxPassword = $instCaMarker; offlineCopyDirectory = (Join-Path $instRoot 'no-such-usb') }
+    $r3 = Invoke-InstRun 'prod3' @{ mode = 'Production'; caPfxPassword = $instCaMarker; offlineCopyDirectory = $usb }
+    $script:instDriveType = 'Fixed'
+    $r4 = Invoke-InstRun 'prod4' @{ mode = 'Production'; caPfxPassword = $instCaMarker; offlineCopyDirectory = $usb }
+    $script:instDriveType = 'Removable'
+    $r0.Code -eq 1 -and $r1.Code -eq 1 -and $r2.Code -eq 1 -and $r3.Code -eq 0 -and $r4.Code -eq 1 -and $r4.Log -match 'removable USB stick'
+}
+Check 'INST-SERVER Production run: CA key and key copies go to the USB folder (timestamped names), CA password passed as SecureString, no TRIAL banner, nothing in TrialKeyCopies' {
+    $usb = Join-Path $instRoot 'usb2'; New-Item -ItemType Directory -Path $usb -Force | Out-Null
+    $r = Invoke-InstRun 'prod' @{ mode = 'Production'; caPfxPassword = $instCaMarker; offlineCopyDirectory = $usb }
+    $html = Get-Content -LiteralPath (Join-Path $r.Fx.App 'Server\web\index.html') -Raw
+    $r.Code -eq 0 -and $instParams['New-HccCertificate.ps1'].CaPfxPath -like "$usb\HCC-Hotel-CA-*.pfx" -and $instParams['New-HccGuestIdKey.ps1'].OfflineCopyPath -like "$usb\HCC-guest-id-key-*.txt" -and
+    $instParams['New-HccBackupKey.ps1'].OfflineCopyPath -like "$usb\HCC-backup-key-*.txt" -and $instParams['New-HccCertificate.ps1'].CaPfxPassword -is [securestring] -and -not $html.Contains('HCC-TRIAL-BANNER') -and
+    -not (Test-Path -LiteralPath (Join-Path $r.Fx.Data 'TrialKeyCopies')) -and -not (Test-Path -LiteralPath (Join-Path $r.Fx.Data 'Keys\HCC-Hotel-CA-password.txt')) -and (Get-InstTreeText $r.Fx) -notmatch [regex]::Escape($instCaMarker)
+}
+Check 'INST-SERVER a trial install cannot be continued or re-run as Production (and the other way round)' {
+    $fx = Initialize-InstFixture 'modeswitch'
+    $r1 = Invoke-InstRun 'modeswitch' -Fx $fx
+    $usb = Join-Path $instRoot 'usb3'; New-Item -ItemType Directory -Path $usb -Force | Out-Null
+    $r2 = Invoke-InstRun 'modeswitch' @{ mode = 'Production'; caPfxPassword = $instCaMarker; offlineCopyDirectory = $usb } -Fx $fx
+    $r1.Code -eq 0 -and $r2.Code -eq 1 -and $r2.Log -match 'cannot be turned into a production install' -and @($instCalls | Where-Object { $_ -match '\.ps1$' }).Count -eq 0
+}
+Check 'INST-SERVER an answer folder that is not private makes the install refuse to read the answers (and the file is still deleted)' {
+    $script:instFolderPrivate = $false
+    $r = Invoke-InstRun 'notprivate'
+    $script:instFolderPrivate = $true
+    $r.Code -eq 1 -and @($instCalls | Where-Object { $_ -notlike 'protect-folder:*' }).Count -eq 0 -and -not (Test-Path -LiteralPath $r.Answers) -and $r.Log -match 'not private'
+}
+Check 'INST-SERVER running the install twice is idempotent: existing keys, service and certificate are kept, nothing is created again' {
+    $fx = Initialize-InstFixture 'twice'
+    $r1 = Invoke-InstRun 'twice' -Fx $fx
+    $script:instServiceInstalled = $true
+    $r2 = Invoke-InstRun 'twice' -Fx $fx
+    $script:instServiceInstalled = $false
+    $r1.Code -eq 0 -and $r2.Code -eq 0 -and ($instCalls -notcontains 'New-HccCertificate.ps1') -and ($instCalls -notcontains 'New-HccGuestIdKey.ps1') -and ($instCalls -notcontains 'New-HccBackupKey.ps1') -and ($instCalls -notcontains 'Install-HccService.ps1') -and ($instCalls -notcontains 'Initialize-HccProperty.ps1') -and
+    $r2.Log -match 'already exists; it is kept'
+}
+
+# --- settings merge and upgrade -----------------------------------------------------------------------------------------------
+Check 'INST-SERVER Merge-HccJsonMissing adds new settings, never changes an existing value (nested, arrays, empty strings, false), skips _notes' {
+    $existing = '{"A":{"x":1,"list":["keep"],"empty":"","flag":false},"B":"mine"}' | ConvertFrom-Json
+    $sample = '{"A":{"x":99,"list":["sample"],"empty":"default","flag":true,"new":5},"B":"sample","C":{"d":1},"_notes":["n"]}' | ConvertFrom-Json
+    $n = Merge-HccJsonMissing -Existing $existing -Sample $sample
+    $n -eq 2 -and $existing.A.x -eq 1 -and $existing.A.list[0] -eq 'keep' -and $existing.A.empty -eq '' -and $existing.A.flag -eq $false -and $existing.A.new -eq 5 -and $existing.B -eq 'mine' -and $existing.C.d -eq 1 -and -not $existing.PSObject.Properties['_notes']
+}
+Check 'INST-SERVER upgrade: no questions, settings merged without overwriting, files kept, stop -> migrate -> start -> client kit -> health; no database, certificate, key or Owner step' {
+    $fx = Initialize-InstFixture 'upgrade'
+    # an installed system: customised settings, an older sample without a setting the new sample has
+    Set-InstSettings $fx { param($j) $j.Hcc.Hosting.CertificateThumbprint = 'KEEPME'; $j.Hcc.Hosting.LoopbackHttpPort = 0; $j.Hcc.Sql.BackupDirectory = 'E:\Mine'; $j.Hcc.Hosting.PSObject.Properties.Remove('PublicPort') }
+    Write-HccTextFile (Join-Path $fx.Data 'Setup\install-state.json') (@{ mode = 'Production'; hotelName = 'H'; serverName = 'hotelpc'; httpsPort = 5443; status = 'Done'; completed = @('sql') } | ConvertTo-Json)
+    New-Item -ItemType Directory -Path (Join-Path $fx.Data 'certs') -Force | Out-Null; Set-Content -LiteralPath (Join-Path $fx.Data 'certs\HCC-Hotel-CA.cer') -Value 'cer'
+    Copy-Item -LiteralPath (Join-Path $root 'hcc-ops.sample.json') -Destination (Join-Path $fx.Ops 'hcc-ops.json')
+    $opsText = Get-Content -LiteralPath (Join-Path $fx.Ops 'hcc-ops.json') -Raw
+    $keysBefore = @(Get-ChildItem -LiteralPath $fx.Data -Recurse -File | ForEach-Object FullName)
+    $r = Invoke-InstRun 'upgrade' -Upgrade -Fx $fx
+    $set = Get-Content -LiteralPath (Join-Path $fx.App 'Server\appsettings.Production.json') -Raw | ConvertFrom-Json
+    $seq = ($instCalls | Where-Object { $_ -match '^(stop-service|native:|start-service|New-HccClientKit|http:)' }) -join '|'
+    $r.Code -eq 0 -and $set.Hcc.Hosting.CertificateThumbprint -eq 'KEEPME' -and $set.Hcc.Sql.BackupDirectory -eq 'E:\Mine' -and $set.Hcc.Hosting.LoopbackHttpPort -eq 0 -and $set.Hcc.Hosting.PublicPort -eq 0 -and (Test-Path -LiteralPath (Join-Path $fx.Data 'Setup\appsettings.Production.json.before-upgrade')) -and -not (Test-Path -LiteralPath (Join-Path $fx.App 'Server\appsettings.Production.json.before-upgrade')) -and
+    (Get-Content -LiteralPath (Join-Path $fx.Ops 'hcc-ops.json') -Raw) -eq $opsText -and
+    $seq -match '^stop-service\|native:Hcc.Api.exe migrate env=Production\|start-service\|New-HccClientKit.ps1\|http:' -and ($instCalls -notcontains 'Initialize-HccDatabase.ps1') -and ($instCalls -notcontains 'New-HccCertificate.ps1') -and ($instCalls -notcontains 'New-HccGuestIdKey.ps1') -and
+    ($instCalls -notcontains 'New-HccBackupKey.ps1') -and ($instCalls -notcontains 'Initialize-HccProperty.ps1') -and ($instCalls -notcontains 'Bootstrap-HccSql.ps1') -and ($instCalls -notcontains 'Install-HccService.ps1') -and
+    (@($keysBefore | Where-Object { -not (Test-Path -LiteralPath $_) }).Count -eq 0) -and (Get-Content -LiteralPath (Join-Path $fx.Data 'Setup\install-summary.txt') -Raw) -match 'status=Done'
+}
+Check 'INST-SERVER upgrade stops at a failing migrate with exit 1 and never starts the service afterwards' {
+    $fx = Initialize-InstFixture 'upgfail'
+    Write-HccTextFile (Join-Path $fx.Data 'Setup\install-state.json') (@{ mode = 'Production'; serverName = 'hotelpc'; httpsPort = 5443; status = 'Done'; completed = @('sql') } | ConvertTo-Json)
+    $script:instFail = 'migrate'
+    $r = Invoke-InstRun 'upgfail' -Upgrade -Fx $fx
+    $script:instFail = ''
+    $r.Code -eq 1 -and ($instCalls -notcontains 'start-service') -and ($instCalls -contains 'stop-service')
+}
+
+# --- uninstall ------------------------------------------------------------------------------------------------------------------
+Check 'INST-SERVER uninstall removes only the service, firewall rules and scheduled tasks; it never touches SQL, databases, backups, keys, certificates or settings' {
+    $fx = Initialize-InstFixture 'uninst'
+    Initialize-HccInstallContext -AppDirectory $fx.App -DataDirectory $fx.Data -OperationsDirectory $fx.Ops
+    $script:instCalls.Clear(); $script:instFx = $fx
+    $code = Start-HccInstall -Uninstall -AppDirectory $fx.App -DataDirectory $fx.Data -OperationsDirectory $fx.Ops
+    $body = (Get-Command Invoke-HccUninstall).ScriptBlock.ToString()
+    [int]($code | Select-Object -Last 1) -eq 0 -and ($instCalls -contains 'Install-HccService.ps1') -and ($instCalls -contains 'Register-HccBackupTasks.ps1') -and $instParams['Install-HccService.ps1'].Uninstall -eq $true -and $instParams['Install-HccService.ps1'].HttpsPort -eq 5443 -and $instParams['Register-HccBackupTasks.ps1'].Unregister -eq $true -and
+    $body -notmatch 'DROP |sqlcmd|Invoke-HccSql|Remove-Item|Remove-Certificate|Set-Content' -and (Test-Path -LiteralPath (Join-Path $fx.App 'Server\appsettings.Production.json')) -and (Get-Content -LiteralPath (Join-Path $fx.Data 'Setup\install-summary.txt') -Raw -ErrorAction SilentlyContinue) -notmatch 'status=Done'
+}
+
+Check 'INST-SERVER hotel CA SHA-256 fingerprint: written to the log and to the summary file the finish page reads, equal to the hash of the .cer' {
+    $r = Invoke-InstRun 'fp'
+    $hex = (Get-FileHash -LiteralPath (Join-Path $r.Fx.Data 'certs\HCC-Hotel-CA.cer') -Algorithm SHA256).Hash
+    $grouped = (($hex -split '(?<=\G.{2})(?=.)') -join ':')
+    $sum = Get-Content -LiteralPath (Join-Path $r.Fx.Data 'Setup\install-summary.txt') -Raw
+    $r.Code -eq 0 -and $sum -match "caSha256=$hex" -and $r.Log.Contains("Hotel CA SHA-256 fingerprint: $grouped") -and $r.Log -match 'compare this with what the client setup shows' -and
+    $iss.Contains("ReadSetting(SetupDir + '\install-summary.txt', 'caSha256')") -and $iss.Contains('SHA-256 fingerprint') -and $iss.Contains('WizardForm.FinishedLabel.Caption')
+}
+Check 'INST-SERVER SQL warnings: read from the bootstrap''s warnings file (strings or objects), logged as WARN, written to warnings.txt for the wizard; the parameter is passed only when the script declares it' {
+    $script:instSqlWarnings = '{ "warnings": [ { "code": "MixedMode", "text": "Mixed-mode logins are enabled." }, { "code": "TcpEnabled", "text": "TCP/IP is on." } ] }'
+    $script:instHasWarningsParam = $false
+    $r0 = Invoke-InstRun 'warn0'
+    $p0 = $instParams['Bootstrap-HccSql.ps1']
+    $script:instHasWarningsParam = $true
+    $r1 = Invoke-InstRun 'warn1'
+    $p1 = $instParams['Bootstrap-HccSql.ps1']
+    $script:instHasWarningsParam = $false; $script:instSqlWarnings = $null
+    $w = Get-Content -LiteralPath (Join-Path $r1.Fx.Data 'Setup\warnings.txt') -Raw
+    $r2 = Invoke-InstRun 'warn2'
+    $r0.Code -eq 0 -and -not $p0.ContainsKey('WarningsFile') -and $p1.ContainsKey('WarningsFile') -and $r1.Log -match 'WARN SQL Server: Mixed-mode logins are enabled' -and $r1.Log -match 'WARN SQL Server: TCP/IP is on' -and
+    $w -match 'SQL Server: Mixed-mode' -and $w -match 'SQL Server: TCP/IP is on' -and -not (Test-Path -LiteralPath (Join-Path $r2.Fx.Data 'Setup\warnings.txt')) -and
+    $iss.Contains("warnings.txt") -and $iss.Contains('Please read (also in the log)') -and $iss.Contains('FilenameLabel.Caption := Trim(WarningsText)')
+}
+Check 'INST-SERVER the SQL media folder always gets -MediaDir (the two client MSIs are shipped for "use existing" too); the log file is handed to the bootstrap' {
+    $r = Invoke-InstRun 'media' @{ sql = 'UseExisting' }
+    $p = $instParams['Bootstrap-HccSql.ps1']
+    $r.Code -eq 0 -and $p.Mode -eq 'UseExisting' -and $p.MediaDir -eq (Join-Path $r.Fx.App 'SqlSetupMedia') -and $p.LogFile -like '*install-*.log'
+}
+Check 'INST-SERVER private folders are created with their permissions in one call (no create-then-ACL): orchestrator and wizard' {
+    $fn = (Get-Command New-HccPrivateDirectory).ScriptBlock.ToString() + (Get-Command Get-HccPrivateSecurity).ScriptBlock.ToString()
+    $pf = [regex]::Match($orch, 'function Protect-HccFolder \{[\s\S]*?\n\}').Value   # the real one (the tests replace the function by a recorder)
+    $fn -match 'DirectorySecurity' -and $fn -match 'SetAccessRuleProtection\(\$true, \$false\)' -and $fn -match 'S-1-5-32-544' -and $fn -match 'S-1-5-18' -and $fn -match 'SetOwner' -and $fn -match '\[System\.IO\.Directory\]::CreateDirectory\(\$Path, \$sec\)' -and
+    $fn -match 'FileSystemAclExtensions\]::Create' -and $fn -notmatch 'icacls|New-Item -ItemType Directory -Path \$Path' -and $pf -match 'New-HccPrivateDirectory' -and
+    $iss -match 'procedure CurStepChanged[\s\S]*CreatePrivateFolder\(ExpandConstant\(''\{app\}\\SqlSetupMedia''\)\)' -and $iss -match 'function PrepareSetupFolder: Boolean;\s*begin\s*Result := CreatePrivateFolder\(SetupDir\)' -and $iss -notmatch 'ForceDirectories\(SetupDir\)' -and $iss -notmatch 'Exec\(ExpandConstant\(''\{sys\}\\icacls'
+}
+Check 'INST-SERVER Read-HccSqlWarnings understands { "warnings": [ { code, text } ] } and, defensively, a plain array of strings' {
+    $f1 = Join-Path $instRoot 'w1.json'; $f2 = Join-Path $instRoot 'w2.json'
+    Set-Content -LiteralPath $f1 -Value '{ "warnings": [ { "code": "TcpEnabled", "text": "TCP is on." } ] }'
+    Set-Content -LiteralPath $f2 -Value '["plain one", "plain two"]'
+    $a = @(Read-HccSqlWarnings -Path $f1); $b = @(Read-HccSqlWarnings -Path $f2); $c = @(Read-HccSqlWarnings -Path (Join-Path $instRoot 'none.json'))
+    $a.Count -eq 1 -and $a[0] -eq 'TCP is on.' -and $b.Count -eq 2 -and $c.Count -eq 0
+}
+Check 'INST-SERVER data folders are the first action: created private (not created then locked), a link is refused, a folder others can write is repaired or the run is refused; all paths passed to scripts lie inside them' {
+    $fx = Initialize-InstFixture 'folders'
+    $dd = Join-Path $fx.Dir 'newdata'
+    Initialize-HccInstallContext -AppDirectory $fx.App -DataDirectory $dd -OperationsDirectory $fx.Ops
+    $script:instCalls.Clear()
+    Initialize-HccDataFolders
+    $created = @($instCalls | Where-Object { $_ -like 'protect-folder:*' })
+    # an existing but unsafe folder is repaired; a link is refused; an unrepairable one is refused
+    $script:instRepairs = 0
+    function Repair-HccPrivateDirectory { param([string]$Path) $script:instRepairs++; $script:instFolderProblems = @() }
+    $script:instFolderProblems = @('Users can change x')
+    Initialize-HccInstallContext -AppDirectory $fx.App -DataDirectory $fx.Data -OperationsDirectory $fx.Ops
+    Initialize-HccDataFolders
+    $repaired = $script:instRepairs -ge 1
+    $script:instFolderProblems = @('C:\x is a link')
+    $link = Throws { Initialize-HccDataFolders }
+    $script:instFolderProblems = @()
+    $r = Invoke-InstRun 'folders2'
+    $logIn = $instParams['Bootstrap-HccSql.ps1'].LogFile -like "$($r.Fx.Data)\Logs\*"
+    $created.Count -eq 3 -and $created[0] -eq 'protect-folder:newdata' -and $created[1] -eq 'protect-folder:Setup' -and $created[2] -eq 'protect-folder:Logs' -and $repaired -and $link -and $r.Code -eq 0 -and $logIn -and
+    $iss -match 'if CurStep = ssInstall then\s*begin[^;]*\r?\n\s*if not CreatePrivateFolder\(DataDir\)' -and $iss -notmatch 'Name: "\{commonappdata\}\\HCC"'
+}
+
+Check 'INST-SERVER the service is registered BEFORE the database step (its account must exist for SQL Server): the database step refuses without it, and the call order is service then database' {
+    $r = Invoke-InstRun 'svcfirst'
+    $iSvc = $instCalls.IndexOf('Install-HccService.ps1'); $iDb = $instCalls.IndexOf('Initialize-HccDatabase.ps1'); $iMig = $instCalls.IndexOf('native:Hcc.Api.exe migrate env=Production'); $iStart = $instCalls.IndexOf('restart-service')
+    $script:instServiceInstalled = $false
+    $refused = Throws { Step-Database @{ backupDirectory = 'Z:\b' } }
+    $r.Code -eq 0 -and $iSvc -ge 0 -and $iSvc -lt $iDb -and $iDb -lt $iMig -and $iMig -lt $iStart -and $refused
+}
+Check 'INST-SERVER a failed grant of the certificate key to the service fails the install at the start step (no warning-only), before the hotel is set up' {
+    $script:instGrantFail = $true
+    $r = Invoke-InstRun 'grantfail'
+    $script:instGrantFail = $false
+    $r.Code -eq 1 -and $r.State.failedStep -eq 'service-start' -and $r.Log -match 'cannot be given access to its certificate key' -and ($instCalls -notcontains 'restart-service') -and ($instCalls -notcontains 'Initialize-HccProperty.ps1')
+}
+Check 'INST-SERVER a settings file readable by others stops the install after the settings step (the check does not rely on any other folder''s permissions)' {
+    $script:instAclProblems = @('Users has access to appsettings.Production.json')
+    $r = Invoke-InstRun 'aclfail'
+    $script:instAclProblems = @()
+    $r.Code -eq 1 -and $r.State.failedStep -eq 'service-register' -and $r.Log -match 'settings file is readable by others' -and ($instCalls -notcontains 'Initialize-HccDatabase.ps1') -and
+    $orch -match 'function Assert-HccSettingsAcl' -and $orch -match 'Test-HccProtectedDirectory -Path \$script:SettingsFile -AllowedAccounts @\(\$script:ServiceAccountName\)'
+}
+Check 'INST-SERVER a JSON error in the answer file does not put the file (passwords) into the log' {
+    $fx = Initialize-InstFixture 'badjson'
+    [IO.File]::WriteAllText($fx.Answers, '{ "ownerPassword": "' + $instMarker + '", "mode": }', (New-Object Text.UTF8Encoding($false)))
+    $script:instFx = $fx; $script:instCalls.Clear()
+    $code = Start-HccInstall -AnswerFile $fx.Answers -AppDirectory $fx.App -DataDirectory $fx.Data -OperationsDirectory $fx.Ops
+    $log = @(Get-ChildItem -LiteralPath (Join-Path $fx.Data 'Logs') -Filter 'install-*.log' | ForEach-Object { Get-Content -LiteralPath $_.FullName -Raw }) -join "`n"
+    [int]($code | Select-Object -Last 1) -eq 1 -and $log -match 'not valid JSON' -and (Get-InstTreeText $fx) -notmatch [regex]::Escape($instMarker) -and -not (Test-Path -LiteralPath $fx.Answers)
+}
+Check 'INST-SERVER hotel setup is idempotent: if the hotel already exists only the setup listener is closed and the service restarted; the loopback port is used for the call' {
+    $script:instSetupRequired = $false
+    $r1 = Invoke-InstRun 'prop1'
+    $c1 = @($instCalls)
+    $script:instSetupRequired = $true
+    $r2 = Invoke-InstRun 'prop2' -Before { param($fx) Set-InstSettings $fx { param($j) $j.Hcc.Hosting.LoopbackHttpPort = 5090 } }
+    $p2 = $instParams['Initialize-HccProperty.ps1']
+    $set1 = Get-Content -LiteralPath (Join-Path $r1.Fx.App 'Server\appsettings.Production.json') -Raw | ConvertFrom-Json
+    $script:instSetupRequired = $true
+    $r1.Code -eq 0 -and ($c1 -notcontains 'Initialize-HccProperty.ps1') -and ($c1 -contains 'restart-service') -and $r1.Log -match 'already exist' -and $set1.Hcc.Hosting.LoopbackHttpPort -eq 0 -and
+    $r2.Code -eq 0 -and $p2.ServerUrl -eq 'http://127.0.0.1:5090' -and ($instCalls -contains 'http:http://127.0.0.1:5090/api/v1/setup/status')
+}
+Check 'INST-SERVER Trial health check fails when the served page no longer matches its CSP (a broken page can never pass); Production does not need the check' {
+    $good = New-InstPageHtml
+    $bad = $good.Replace('var a = 1;', 'var a = 2;')
+    $fx = Initialize-InstFixture 'health'; Initialize-HccInstallContext -AppDirectory $fx.App -DataDirectory $fx.Data -OperationsDirectory $fx.Ops; $script:instFx = $fx
+    $A = @{ mode = 'Trial'; serverName = 'hotelpc'; httpsPort = 5443 }
+    $script:instPageOverride = $good; $ok = -not (Throws { Step-Health $A })
+    $script:instPageOverride = $bad; $broken = Throws { Step-Health $A }
+    $A.mode = 'Production'; $prodOk = -not (Throws { Step-Health $A })
+    $script:instPageOverride = $null
+    $ok -and $broken -and $prodOk
+}
+Check 'INST-SERVER merge never fills placeholders for AllowedHosts / LoopbackHttpPort / thumbprint / server name / backup folder / guest ID keys from the sample, and says which are missing' {
+    $existing = '{"Hcc":{"Hosting":{"HttpsPort":5443},"Sql":{"CommandTimeoutSeconds":30}}}' | ConvertFrom-Json
+    $sample = Get-Content -LiteralPath (Join-Path $root 'appsettings.Production.sample.json') -Raw | ConvertFrom-Json
+    $missing = New-Object System.Collections.Generic.List[string]
+    $n = Merge-HccJsonMissing -Existing $existing -Sample $sample -Deny $script:HccNoSampleKeys -Missing $missing
+    $existing.PSObject.Properties['AllowedHosts'] -eq $null -and $existing.Hcc.Hosting.PSObject.Properties['LoopbackHttpPort'] -eq $null -and $existing.Hcc.Hosting.PSObject.Properties['CertificateThumbprint'] -eq $null -and $existing.Hcc.Hosting.PSObject.Properties['ServerName'] -eq $null -and
+    $existing.Hcc.Sql.PSObject.Properties['BackupDirectory'] -eq $null -and $missing -contains 'AllowedHosts' -and $missing -contains 'Hcc.Hosting.LoopbackHttpPort' -and $missing -contains 'Hcc.Sql.BackupDirectory' -and $existing.Hcc.Hosting.PublicPort -eq 0 -and $n -gt 0
+}
+Check 'INST-SERVER upgrade mode: taken from the record, then Hcc:Install:Mode, then the Trial files; with none of them the upgrade stops and asks instead of assuming Production' {
+    $fx = Initialize-InstFixture 'modeup'
+    $r0 = Invoke-InstRun 'modeup' -Upgrade -Fx $fx
+    $log0 = $r0.Log; $calls0 = @($instCalls)
+    $sum0 = Get-Content -LiteralPath (Join-Path $fx.Data 'Setup\install-summary.txt') -Raw
+    Set-InstSettings $fx { param($j) $j.Hcc | Add-Member -NotePropertyName Install -NotePropertyValue ([pscustomobject]@{ Mode = 'Trial' }) -Force }
+    $r1 = Invoke-InstRun 'modeup' -Upgrade -Fx $fx
+    $html = Get-Content -LiteralPath (Join-Path $fx.App 'Server\web\index.html') -Raw
+    $fx2 = Initialize-InstFixture 'modeup2'; New-Item -ItemType Directory -Path (Join-Path $fx2.Data 'TrialKeyCopies') -Force | Out-Null
+    $r2 = Invoke-InstRun 'modeup2' -Upgrade -Fx $fx2
+    $fx3 = Initialize-InstFixture 'modeup3'; Set-InstSettings $fx3 { param($j) $j.Hcc | Add-Member -NotePropertyName Install -NotePropertyValue ([pscustomobject]@{ Mode = 'Production' }) -Force }
+    $r3 = Invoke-InstRun 'modeup3' -Upgrade -Fx $fx3
+    $html3 = Get-Content -LiteralPath (Join-Path $fx3.App 'Server\web\index.html') -Raw
+    $r0.Code -eq 1 -and $log0 -match 'Cannot tell whether this is a Trial or a Production install' -and ($calls0 -notcontains 'stop-service') -and $sum0 -match 'status=UpgradeFailed' -and
+    $r1.Code -eq 0 -and $html.Contains('HCC-TRIAL-BANNER') -and $r2.Code -eq 0 -and (Get-Content -LiteralPath (Join-Path $fx2.App 'Server\web\index.html') -Raw).Contains('HCC-TRIAL-BANNER') -and $r3.Code -eq 0 -and -not $html3.Contains('HCC-TRIAL-BANNER')
+}
+Check 'INST-SERVER a failed upgrade writes status UpgradeFailed with the CURRENT log and the backup folder (the wizard keeps treating the next run as an upgrade)' {
+    $fx = Initialize-InstFixture 'upgsum'
+    Write-HccTextFile (Join-Path $fx.Data 'Setup\install-state.json') (@{ mode = 'Production'; hotelName = 'H'; serverName = 'hotelpc'; httpsPort = 5443; status = 'Done'; backupDirectory = 'Z:\HccBackups'; completed = @('sql') } | ConvertTo-Json)
+    Write-HccTextFile (Join-Path $fx.Data 'Setup\install-summary.txt') "status=Done`r`nlogFile=C:\old\install-OLD.log`r`n"
+    $script:instFail = 'migrate'
+    $r = Invoke-InstRun 'upgsum' -Upgrade -Fx $fx
+    $script:instFail = ''
+    $sum = Get-Content -LiteralPath (Join-Path $fx.Data 'Setup\install-summary.txt') -Raw
+    $r.Code -eq 1 -and $sum -match 'status=UpgradeFailed' -and $sum -match 'backupDirectory=Z:\\HccBackups' -and $sum -match 'logFile=.*install-\d{8}-\d{6}\.log' -and $sum -notmatch 'OLD' -and
+    $iss.Contains("(Status = 'UpgradeFailed')") -and $iss.Contains('HCC could not be updated and is STOPPED') -and $iss.Contains("ReadSetting(SetupDir + '\install-summary.txt', 'backupDirectory')")
+}
+Check 'INST-SERVER resume with different answers than the finished steps used is refused and names them' {
+    $script:instFail = 'New-HccCertificate.ps1'
+    $r1 = Invoke-InstRun 'resumechg'
+    $script:instFail = ''
+    $r2 = Invoke-InstRun 'resumechg' @{ hotelName = 'Another Hotel'; backupDirectory = 'Z:\Other' } -Resume -Fx $r1.Fx
+    $r1.Code -eq 1 -and $r2.Code -eq 1 -and $r2.Log -match 'differ from the earlier attempt' -and $r2.Log -match 'hotelName' -and $r2.Log -match 'backupDirectory' -and @($instCalls | Where-Object { $_ -match '\.ps1$' }).Count -eq 0
+}
+Check 'INST-SERVER a stray answers.json of a crashed run is removed at the start of an upgrade and of an uninstall (after the folder check); the uninstall does not depend on healthy data folders and passes the HTTPS port' {
+    $fx = Initialize-InstFixture 'stray'
+    Write-HccTextFile (Join-Path $fx.Data 'Setup\install-state.json') (@{ mode = 'Production'; serverName = 'hotelpc'; httpsPort = 5555; status = 'Done'; completed = @('sql') } | ConvertTo-Json)
+    Set-Content -LiteralPath $fx.Answers -Value "secret $instMarker"
+    $r = Invoke-InstRun 'stray' -Upgrade -Fx $fx
+    $goneUp = -not (Test-Path -LiteralPath $fx.Answers)
+    # unsafe folders: the uninstall still runs (and does not trust the folder to delete from)
+    Set-Content -LiteralPath $fx.Answers -Value "secret $instMarker"
+    $script:instFolderProblems = @('Users can change the Logs folder')
+    $script:instCalls.Clear()
+    $code1 = Start-HccInstall -Uninstall -AppDirectory $fx.App -DataDirectory $fx.Data -OperationsDirectory $fx.Ops
+    $port1 = $instParams['Install-HccService.ps1'].HttpsPort
+    $calls1 = @($instCalls)
+    # safe folders: the stray file is removed
+    $script:instFolderProblems = @()
+    $script:instCalls.Clear()
+    $code2 = Start-HccInstall -Uninstall -AppDirectory $fx.App -DataDirectory $fx.Data -OperationsDirectory $fx.Ops
+    $goneUn = -not (Test-Path -LiteralPath $fx.Answers)
+    $r.Code -eq 0 -and $goneUp -and [int]($code1 | Select-Object -Last 1) -eq 0 -and $port1 -eq 5555 -and ($calls1 -contains 'Install-HccService.ps1') -and ($calls1 -notcontains 'repair:Setup') -and [int]($code2 | Select-Object -Last 1) -eq 0 -and $goneUn
+}
+Check 'INST-SERVER an uninstall step that fails is reported as UninstallPartial with a note, never as a clean removal' {
+    $fx = Initialize-InstFixture 'unipart'
+    Write-HccTextFile (Join-Path $fx.Data 'Setup\install-state.json') (@{ mode = 'Production'; serverName = 'hotelpc'; httpsPort = 5443; status = 'Done'; completed = @('sql') } | ConvertTo-Json)
+    $script:instFail = 'Register-HccBackupTasks.ps1'
+    $script:instCalls.Clear(); $script:instFx = $fx
+    $code = Start-HccInstall -Uninstall -AppDirectory $fx.App -DataDirectory $fx.Data -OperationsDirectory $fx.Ops
+    $script:instFail = ''
+    $sum = Get-Content -LiteralPath (Join-Path $fx.Data 'Setup\install-summary.txt') -Raw
+    [int]($code | Select-Object -Last 1) -eq 1 -and $sum -match 'status=UninstallPartial' -and $sum -match 'note=NOT removed: the backup tasks' -and $iss.Contains("'UninstallPartial'") -and $iss.Contains('but NOT everything else')
+}
+
+# --- checks of the answers (addresses, port, hotel name, backup folder) -------------------------------------------------------------
+Check 'INST-SERVER network addresses: only four-part private IPv4 addresses that this PC has (public, 0.0.0.0, loopback, short forms, leading zeros, scope id, IPv6 are refused)' {
+    $good = @('192.168.1.10', '10.0.0.5', '172.16.4.9', '172.31.255.1') | ForEach-Object { (ConvertTo-HccIpv4 $_) -and (Test-HccPrivateIpv4 $_) }
+    $syntax = @('10.1', '10.0.1', '192.168.001.5', '192.168.1.256', 'fe80::1%12', '::1', '192.168.1.10/24', ' 192.168.1.10', '1.2.3.4.5', 'abc') | ForEach-Object { $null -eq (ConvertTo-HccIpv4 $_) }
+    $notPrivate = @('0.0.0.0', '127.0.0.1', '255.255.255.255', '8.8.8.8', '172.15.0.1', '172.32.0.1', '224.0.0.1', '169.254.1.1', '192.169.1.1') | ForEach-Object { -not (Test-HccPrivateIpv4 $_) }
+    $fx = Initialize-InstFixture 'ips'; Initialize-HccInstallContext -AppDirectory $fx.App -DataDirectory $fx.Data -OperationsDirectory $fx.Ops
+    $base = @{ mode = 'Trial'; hotelName = 'H'; serverName = 'hotelpc'; serverIps = @('192.168.1.10'); httpsPort = 5443; backupDirectory = 'Z:\HccBackups'; ownerUserName = 'owner'; ownerPassword = $instMarker; sql = 'UseExisting'; caPfxPassword = ''; offlineCopyDirectory = '' }
+    $a0 = @(Test-HccAnswers $base)
+    $b = $base.Clone(); $b.serverIps = @('192.168.9.9'); $a1 = @(Test-HccAnswers $b)
+    $b = $base.Clone(); $b.serverIps = @('8.8.8.8'); $a2 = @(Test-HccAnswers $b)
+    $b = $base.Clone(); $b.serverIps = @('10.1'); $a3 = @(Test-HccAnswers $b)
+    @($good | Where-Object { -not $_ }).Count -eq 0 -and @($syntax | Where-Object { -not $_ }).Count -eq 0 -and @($notPrivate | Where-Object { -not $_ }).Count -eq 0 -and $a0.Count -eq 0 -and
+    $a1.Count -eq 1 -and $a1[0] -match 'not an address of this PC' -and $a2.Count -eq 1 -and $a2[0] -match 'not a private network address' -and $a3.Count -eq 1 -and $a3[0] -match 'four numbers'
+}
+Check 'INST-SERVER port 5080 (the setup listener) is refused as the HTTPS port; hotel name rule is the client kit''s (no control / format / separator characters, 1-100)' {
+    $fx = Initialize-InstFixture 'port'; Initialize-HccInstallContext -AppDirectory $fx.App -DataDirectory $fx.Data -OperationsDirectory $fx.Ops
+    $base = @{ mode = 'Trial'; hotelName = 'H'; serverName = 'hotelpc'; serverIps = @('192.168.1.10'); httpsPort = 5443; backupDirectory = 'Z:\HccBackups'; ownerUserName = 'owner'; ownerPassword = $instMarker; sql = 'UseExisting'; caPfxPassword = ''; offlineCopyDirectory = '' }
+    $b = $base.Clone(); $b.httpsPort = 5080; $p = @(Test-HccAnswers $b)
+    $names = @{ ok = 'Hotel ' + [string][char]0x0939; zw = 'Hotel' + [string][char]0x200B + 'X'; sep = 'A' + [string][char]0x2028 + 'B'; ctl = "A`tB"; long = ('x' * 101); empty = '   ' }
+    $r = @{}; foreach ($k in $names.Keys) { $r[$k] = Test-HccHotelNameOk $names[$k] }
+    $p.Count -eq 1 -and $p[0] -match '5080' -and $r.ok -and -not $r.zw -and -not $r.sep -and -not $r.ctl -and -not $r.long -and -not $r.empty -and (Get-Content -LiteralPath (Join-Path $root 'Hcc-ClientTrust.ps1') -Raw) -match '\\p\{Cc\}\\p\{Cf\}\\p\{Zl\}\\p\{Zp\}'
+}
+Check 'INST-SERVER backup folder: refused on a drive top, under Users, Windows, Program Files, ProgramData or the HCC folders, and when it already holds other files; accepted when new, empty or holding only HCC backups' {
+    $fx = Initialize-InstFixture 'bk'; Initialize-HccInstallContext -AppDirectory $fx.App -DataDirectory $fx.Data -OperationsDirectory $fx.Ops
+    $loc = @('D:\', 'C:\Users\Someone\Documents\Backups', 'C:\Users', "$env:SystemRoot\x", "$env:ProgramFiles\x", "$env:ProgramData\HCC\Backups", (Join-Path $fx.App 'Backups'), 'backups', '\\server\share\b') | ForEach-Object { [bool](Get-HccBackupLocationProblem $_) }
+    $locOk = @('Z:\HccBackups', 'D:\HccBackups', 'E:\Backups\HCC') | ForEach-Object { -not (Get-HccBackupLocationProblem $_) }
+    $empty = Join-Path $instRoot 'bk-empty'; New-Item -ItemType Directory -Path $empty -Force | Out-Null
+    $own = Join-Path $instRoot 'bk-own'; New-Item -ItemType Directory -Path (Join-Path $own 'Logs') -Force | Out-Null; Set-Content -LiteralPath (Join-Path $own 'Hcc_FULL_20261025T120000Z.bak.hccenc') -Value 'x'
+    $foreign = Join-Path $instRoot 'bk-foreign'; New-Item -ItemType Directory -Path $foreign -Force | Out-Null; Set-Content -LiteralPath (Join-Path $foreign 'holiday-photos.zip') -Value 'x'
+    @($loc | Where-Object { -not $_ }).Count -eq 0 -and @($locOk | Where-Object { -not $_ }).Count -eq 0 -and -not (Get-HccBackupContentsProblem $empty) -and -not (Get-HccBackupContentsProblem $own) -and -not (Get-HccBackupContentsProblem (Join-Path $instRoot 'bk-new')) -and
+    (Get-HccBackupContentsProblem $foreign) -match 'already holds other files' -and (Get-HccBackupContentsProblem (Join-Path $foreign 'holiday-photos.zip')) -match 'is a file'
+}
+
+# --- the setup wizard (.iss) rules that mirror the orchestrator --------------------------------------------------------------------
+Check 'INST-SERVER iss wizard: private IPv4 only, port 5080 refused, backup folder rules, removable USB, parsed port in the Start-menu address, answer file recreated, execution-policy hint, NOT finished text, upgrade failure text' {
+    $iss.Contains('function Ipv4Problem') -and $iss.Contains('is not a private network address') -and $iss.Contains('Port = 5080') -and $iss.Contains('function BackupFolderProblem') -and $iss.Contains('inside a user profile') -and $iss.Contains('already holds other files') -and
+    $iss.Contains("GetDriveTypeW(Copy(UsbPage.Values[0], 1, 3)) <> 2") -and $iss.Contains("IntToStr(StrToIntDef(Trim(HotelPage.Values[3]), 5443))") -and $iss -match 'RemoveAnswerFile;\s*if FileExists\(AnswerFileName\) then' -and
+    $iss.Contains('execution policy AllSigned') -and $iss.Contains('HCC setup is NOT finished. Windows must restart first.') -and $iss.Contains('not asked here: set them inside HCC') -and $iss.Contains("/setowner ''*S-1-5-32-544''") -and $iss.Contains('the folder is a link')
+}
+Check 'INST-SERVER data folder repair replaces the DACL (never merges), sets the owner to Administrators and refuses links; the checks cover owner, links and extra accounts (folder and answer file)' {
+    $rp = [regex]::Match($orch, 'function Repair-HccPrivateDirectory \{[\s\S]*?\n\}').Value
+    $fp = [regex]::Match($orch, 'function Get-HccFolderProblems \{[\s\S]*?\n\}').Value
+    $fl = [regex]::Match($orch, 'function Get-HccFileProblems \{[\s\S]*?\n\}').Value
+    $rp -match 'is a link' -and $rp -match '/setowner' -and $rp -match 'Set-Acl -LiteralPath \$Path -AclObject \(Get-HccPrivateSecurity\)' -and $rp -notmatch 'Set-HccProtectedDirectory' -and $fp -match 'ReparsePoint' -and $fp -match 'Get-HccOwnerSid' -and $fp -match 'Test-HccProtectedDirectory' -and
+    $fl -match 'ReparsePoint' -and $fl -match 'Get-HccOwnerSid' -and $fl -match 'GetAccessRules' -and $orch -match 'Assert-HccAnswerFolderPrivate -Path \(Split-Path -Parent \$AnswerFile\) -FilePath \$AnswerFile'
+}
+Check 'INST-SERVER PATH: the refresh keeps what the bootstrap put in front, adds registry entries that are missing, and puts the protected sqlcmd folder first when it exists (also on a resume run)' {
+    $save = $env:Path
+    try {
+        $env:Path = 'C:\hcc-test-front;' + $save
+        & $instRealPath
+        $list = @($env:Path -split ';' | Where-Object { $_ })
+        $reg = @(([Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' + [Environment]::GetEnvironmentVariable('Path', 'User')) -split ';' | Where-Object { $_ })
+        $sq = Get-HccProtectedSqlcmdFolder
+        $frontKept = $list -contains 'C:\hcc-test-front'
+        $firstOk = if ($sq) { $list[0] -eq $sq } else { $list[0] -eq 'C:\hcc-test-front' }
+        $allReg = @($reg | Where-Object { $list -notcontains $_ }).Count -eq 0
+    }
+    finally { $env:Path = $save }
+    $frontKept -and $firstOk -and $allReg -and $orch -match "Update-HccProcessPath\s+# the bootstrap" -and $orch -match 'function Get-HccProtectedSqlcmdFolder' -and $orch -match 'Client SDK\\ODBC\\\$v\\Tools\\Binn'
+}
+Check 'INST-SERVER the service is registered as NT SERVICE\HccServer, not LocalSystem: Install-HccService.ps1 sets the logon account and the SID type right after New-Service, checks both exit codes, and its dry run says so' {
+    $t = Get-Content -LiteralPath (Join-Path $root 'Install-HccService.ps1') -Raw
+    $iNew = $t.IndexOf('New-Service @params'); $iCfg = $t.IndexOf('sc.exe config $ServiceName obj= $account', $iNew); $iSid = $t.IndexOf('sc.exe sidtype $ServiceName unrestricted', $iNew); $iAcl = $t.IndexOf('icacls.exe $InstallDirectory /grant', $iNew)
+    $d = DryRun 'Install-HccService.ps1' @()
+    $iNew -gt 0 -and $iNew -lt $iCfg -and $iCfg -lt $iSid -and $iSid -lt $iAcl -and $t -match 'if \(-not \$ServiceAccount\) \{\s*& sc\.exe config \$ServiceName obj= \$account \| Out-Null\s*if \(\$LASTEXITCODE -ne 0\)' -and
+    $t -match 'sidtype \$ServiceName unrestricted \| Out-Null\s*if \(\$LASTEXITCODE -ne 0\)' -and $d.Exit -eq 0 -and $d.Out -match 'sc\.exe config HccServer obj= "NT SERVICE\\HccServer"' -and $d.Out -match 'sc\.exe sidtype HccServer unrestricted'
+}
+Check 'INST-SERVER step service-register verifies the logon account: a wrong one (LocalSystem) is corrected with sc config / sidtype, and if it stays wrong the install stops before any database step' {
+    $script:instLogon = 'LocalSystem'; $script:instLogonFixes = $true
+    $r1 = Invoke-InstRun 'logonfix'
+    $c1 = @($instCalls)
+    $script:instLogon = 'LocalSystem'; $script:instLogonFixes = $false
+    $r2 = Invoke-InstRun 'logonbad'
+    $script:instLogon = 'NT SERVICE\HccServer'; $script:instLogonFixes = $true
+    $r1.Code -eq 0 -and ($c1 -contains 'sc-config') -and $r2.Code -eq 1 -and $r2.State.failedStep -eq 'service-register' -and $r2.Log -match "runs as 'LocalSystem'" -and ($instCalls -notcontains 'Initialize-HccDatabase.ps1') -and
+    $orch -match 'sc\.exe config \$script:ServiceName obj= \$script:ServiceAccountName' -and $orch -match 'sc\.exe sidtype \$script:ServiceName unrestricted' -and $orch -match "Win32_Service -Filter" -and $orch -match '\.StartName'
+}
+Check 'INST-SERVER earlier mode: a Trial install cannot be re-run as Production (and the reverse) even when the setup record is lost - the settings key and the Trial key files decide - and an existing Hcc:Install:Mode is never overwritten' {
+    $fx = Initialize-InstFixture 'modelost'
+    $r1 = Invoke-InstRun 'modelost' -Fx $fx
+    Remove-Item -LiteralPath (Join-Path $fx.Data 'Setup\install-state.json'), (Join-Path $fx.Data 'Setup\install-summary.txt') -Force
+    $usb = Join-Path $instRoot 'usb-lost'; New-Item -ItemType Directory -Path $usb -Force | Out-Null
+    $r2 = Invoke-InstRun 'modelost' @{ mode = 'Production'; caPfxPassword = $instCaMarker; offlineCopyDirectory = $usb } -Fx $fx
+    $calls2 = @($instCalls | Where-Object { $_ -match '\.ps1$' })
+    # no record and no settings key, only the Trial key files
+    Set-InstSettings $fx { param($j) $j.Hcc.PSObject.Properties.Remove('Install') }
+    $r3 = Invoke-InstRun 'modelost' @{ mode = 'Production'; caPfxPassword = $instCaMarker; offlineCopyDirectory = $usb } -Fx $fx
+    # a Production install answered as Trial
+    $fp = Initialize-InstFixture 'modelost2'
+    $s1 = Invoke-InstRun 'modelost2' @{ mode = 'Production'; caPfxPassword = $instCaMarker; offlineCopyDirectory = $usb } -Fx $fp
+    $s2 = Invoke-InstRun 'modelost2' @{ mode = 'Trial' } -Fx $fp
+    # the settings writer itself refuses a different mode
+    Initialize-HccInstallContext -AppDirectory $fp.App -DataDirectory $fp.Data -OperationsDirectory $fp.Ops
+    $threw = Throws { Update-HccSettingsFresh -A @{ mode = 'Trial'; backupDirectory = 'Z:\b'; serverName = 'hotelpc'; httpsPort = 5443 } }
+    $setting = (Get-Content -LiteralPath (Join-Path $fp.App 'Server\appsettings.Production.json') -Raw | ConvertFrom-Json).Hcc.Install.Mode
+    $r1.Code -eq 0 -and $r2.Code -eq 1 -and $r2.Log -match 'already has a Trial install' -and $calls2.Count -eq 0 -and $r3.Code -eq 1 -and $r3.Log -match 'already has a Trial install' -and
+    $s1.Code -eq 0 -and $s2.Code -eq 1 -and $s2.Log -match 'already has a Production install' -and $threw -and $setting -eq 'Production'
+}
+Check 'INST-SERVER the PC name must pass the client kit''s own rules before anything is installed (two-letter names, top-level-domain names, real internet names are refused with the kind of name that works); the rules come from Hcc-ClientTrust.ps1, not a copy' {
+    $fx = Initialize-InstFixture 'dnsname'; Initialize-HccInstallContext -AppDirectory $fx.App -DataDirectory $fx.Data -OperationsDirectory $fx.Ops
+    $base = @{ mode = 'Trial'; hotelName = 'H'; serverName = 'hotelpc'; serverIps = @('192.168.1.10'); httpsPort = 5443; backupDirectory = 'Z:\HccBackups'; ownerUserName = 'owner'; ownerPassword = $instMarker; sql = 'UseExisting'; caPfxPassword = ''; offlineCopyDirectory = '' }
+    $res = @{}
+    foreach ($n in @('hotelpc', 'frontdesk.lan', 'pc', 'home', 'shop', 'hotel.example.com', 'info')) { $b = $base.Clone(); $b.serverName = $n; $res[$n] = @(Test-HccAnswers $b) }
+    $kitSrc = Get-Content -LiteralPath (Join-Path $root 'Hcc-ClientTrust.ps1') -Raw
+    $res['hotelpc'].Count -eq 0 -and $res['frontdesk.lan'].Count -eq 0 -and $res['pc'].Count -eq 1 -and $res['pc'][0] -match 'one word of at least three letters' -and $res['home'].Count -eq 1 -and $res['shop'].Count -eq 1 -and $res['hotel.example.com'].Count -eq 1 -and $res['info'].Count -eq 1 -and
+    $orch -match '\. \(Join-Path \$PSScriptRoot ''Hcc-ClientTrust\.ps1''\)' -and $orch -notmatch 'HccPublicSuffixes\s*=' -and $kitSrc -match 'function Test-HccPermittedDnsName' -and
+    $iss.Contains('function PcNameProblem') -and $iss.Contains("Test-HccPermittedDnsName `$Name") -and $iss.Contains("ExtractTemporaryFile('Hcc-ClientTrust.ps1')") -and $iss -match 'Source: "\{#OpsDir\}\\Hcc-ClientTrust\.ps1"; DestDir: "\{tmp\}"; Flags: dontcopy' -and $iss.Contains('PcNameProblem(Lowercase(Trim(HotelPage.Values[1])), Port)')
+}
+Check 'INST-SERVER migrate stops a running service first and the start step RESTARTS it (so the settings and the guest ID key written since registration are loaded); the wizard asks for a USB flash stick' {
+    $r = Invoke-InstRun 'restart1'
+    $iStop = $instCalls.IndexOf('stop-service'); $iMig = $instCalls.IndexOf('native:Hcc.Api.exe migrate env=Production'); $iRe = $instCalls.IndexOf('restart-service')
+    $r.Code -eq 0 -and $iStop -ge 0 -and $iStop -lt $iMig -and $iMig -lt $iRe -and ($instCalls -notcontains 'start-service') -and $iss.Contains('USB FLASH stick') -and $iss.Contains('A USB hard disk may be refused')
+}
+# --- the real Invoke-HccOps adapter (not mocked): output goes through the scrubber, a throwing script fails, a nonzero exit code is returned for Bootstrap ----------
+${function:Invoke-HccOps} = $instRealOps
+Check 'INST-SERVER real Invoke-HccOps: runs a script in-process, passes a SecureString, scrubs secrets from its output, returns its exit code, and a throwing script throws' {
+    $fx = Initialize-InstFixture 'realops'
+    Initialize-HccInstallContext -AppDirectory $fx.App -DataDirectory $fx.Data -OperationsDirectory $fx.Ops
+    $script:LogFile = Join-Path $fx.Dir 'ops.log'; $script:Secrets.Clear(); Add-HccSecret 'REALOPS-SECRET-123'
+    Set-Content -LiteralPath (Join-Path $fx.Ops 'Echo-Test.ps1') -Value 'param([securestring]$P, [string]$Name) Write-Host "hello $Name REALOPS-SECRET-123"; Write-Warning "warn REALOPS-SECRET-123"; exit 7'
+    Set-Content -LiteralPath (Join-Path $fx.Ops 'Throw-Test.ps1') -Value 'param() throw "boom REALOPS-SECRET-123"'
+    $code = Invoke-HccOps -Script 'Echo-Test.ps1' -Params @{ P = (ConvertTo-HccSecureString 'x1y2z3w4'); Name = 'n' } -UseExitCode
+    $threw = $false; try { Invoke-HccOps -Script 'Throw-Test.ps1' | Out-Null } catch { $threw = $true }
+    $missing = $false; try { Invoke-HccOps -Script 'Nope.ps1' | Out-Null } catch { $missing = $true }
+    $log = Get-Content -LiteralPath $script:LogFile -Raw
+    $script:Secrets.Clear(); $script:LogFile = $null
+    $code -eq 7 -and $threw -and $missing -and $log -match 'hello n \[hidden\]' -and $log -match 'warn \[hidden\]' -and $log -notmatch 'REALOPS-SECRET-123'
+}
+Check 'INST-SERVER scripts that gained parameters keep their old behaviour: New-HccCertificate -CaPfxPassword and Initialize-HccProperty -OwnerPassword are optional securestring parameters, the prompts remain the default' {
+    $c = Get-Command (Join-Path $root 'New-HccCertificate.ps1'); $p = Get-Command (Join-Path $root 'Initialize-HccProperty.ps1')
+    $c.Parameters['CaPfxPassword'].ParameterType -eq [securestring] -and -not ($c.Parameters['CaPfxPassword'].Attributes | Where-Object { $_ -is [Management.Automation.ParameterAttribute] -and $_.Mandatory }) -and
+    $p.Parameters['OwnerPassword'].ParameterType -eq [securestring] -and -not ($p.Parameters['OwnerPassword'].Attributes | Where-Object { $_ -is [Management.Automation.ParameterAttribute] -and $_.Mandatory }) -and
+    (Get-Content -LiteralPath (Join-Path $root 'New-HccCertificate.ps1') -Raw) -match "Read-Host 'Password to protect the CA backup file" -and (Get-Content -LiteralPath (Join-Path $root 'Initialize-HccProperty.ps1') -Raw) -match 'Read-Secret "Owner password for'
+}
+Remove-Item -LiteralPath $instRoot -Recurse -Force -ErrorAction SilentlyContinue
+# /INST-SERVER ---------------------------------------------------------------------------------------------------------
 Write-Host ''
 Write-Host "Passed: $script:passed  Failed: $script:failed"
 if ($script:failed -gt 0) { exit 1 }
