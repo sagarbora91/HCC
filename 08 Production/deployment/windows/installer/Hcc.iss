@@ -748,7 +748,8 @@ begin
     Result := 'The backup folder must not be the top of a drive: choose a folder, for example D:\HccBackups.';
     Exit;
   end;
-  if StartsWithFolder(Path, ExpandConstant('{app}')) or StartsWithFolder(Path, ExpandConstant('{win}')) or StartsWithFolder(Path, ExpandConstant('{pf}')) or
+  // WizardDirValue, not {app}: this runs on a wizard page, before Inno Setup has initialised {app} (it raises a runtime error there).
+  if StartsWithFolder(Path, WizardDirValue) or StartsWithFolder(Path, ExpandConstant('{win}')) or StartsWithFolder(Path, ExpandConstant('{pf}')) or
      StartsWithFolder(Path, ExpandConstant('{pf32}')) or StartsWithFolder(Path, ExpandConstant('{commonappdata}')) then
   begin
     Result := 'The backup folder must not be inside the HCC program folder, Windows, Program Files or ProgramData.';

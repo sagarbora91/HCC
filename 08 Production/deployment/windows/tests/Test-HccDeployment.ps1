@@ -2079,6 +2079,14 @@ Check 'INST-SERVER iss wizard: private IPv4 only, port 5080 refused, backup fold
     $iss.Contains("GetDriveTypeW(Copy(UsbPage.Values[0], 1, 3)) <> 2") -and $iss.Contains("IntToStr(StrToIntDef(Trim(HotelPage.Values[3]), 5443))") -and $iss -match 'RemoveAnswerFile;\s*if FileExists\(AnswerFileName\) then' -and
     $iss.Contains('execution policy AllSigned') -and $iss.Contains('HCC setup is NOT finished. Windows must restart first.') -and $iss.Contains('not asked here: set them inside HCC') -and $iss.Contains("/setowner ''*S-1-5-32-544''") -and $iss.Contains('the folder is a link')
 }
+
+# Trial 12 Nov 2026: Next on the Backup folder page raised "An attempt was made to expand the "app" constant before it was initialized".
+# The custom pages come before Inno's (disabled) folder page, so no code that runs on a wizard page may expand {app}; WizardDirValue is valid there.
+Check 'INST-SERVER iss wizard pages never expand {app} (only code from BuildAnswerJson onward, which runs during the install, may)' {
+    $code = $iss.Substring($iss.IndexOf('[Code]'))
+    $cut = $code.IndexOf('function BuildAnswerJson')
+    $cut -gt 0 -and -not $code.Substring(0, $cut).Contains("ExpandConstant('{app}") -and $code.Substring(0, $cut).Contains('StartsWithFolder(Path, WizardDirValue)')
+}
 Check 'INST-SERVER data folder repair replaces the DACL (never merges), sets the owner to Administrators and refuses links; the checks cover owner, links and extra accounts (folder and answer file)' {
     $rp = [regex]::Match($orch, 'function Repair-HccPrivateDirectory \{[\s\S]*?\n\}').Value
     $fp = [regex]::Match($orch, 'function Get-HccFolderProblems \{[\s\S]*?\n\}').Value
