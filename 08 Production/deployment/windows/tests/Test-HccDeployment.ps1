@@ -1299,7 +1299,7 @@ try {
     Check 'INST-CLIENT certificate file: a PFX, a PEM with a private key, a non-critical CA flag and a CA without keyCertSign are refused' {
         $pfx = Join-Path $ct 'key.pfx'; [IO.File]::WriteAllBytes($pfx, $caCert.Export([Security.Cryptography.X509Certificates.X509ContentType]::Pfx))
         $pemKey = Join-Path $ct 'withkey.pem'
-        [IO.File]::WriteAllText($pemKey, ([IO.File]::ReadAllText($pemFile)) + "-----BEGIN PRIVATE KEY-----`nQUJDRA==`n-----END PRIVATE KEY-----`n")
+        [IO.File]::WriteAllText($pemKey, ([IO.File]::ReadAllText($pemFile)) + "-----BEGIN PRIVATE KEY-----`nQUJDRA==`n-----END PRIVATE KEY-----`n")   # secret-scan:allow (fake key body "ABCD", test fixture)
         $good = Get-HccNameConstraintsDer -DnsNames @('hotel-pc') -IpNetworks @('192.168.1.10')
         $bcNc = Save-Cer (New-NcCert $good $true $false $true) 'bc-noncritical.cer'
         $noSign = Save-Cer (New-NcCert $good $true $true $false) 'no-certsign.cer'
