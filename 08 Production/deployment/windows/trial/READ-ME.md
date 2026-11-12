@@ -27,19 +27,30 @@ Nothing in this folder has been run: the agent has no administrator window, so t
 1. Look: `Get-VM ETP-Acceptance-186 | Format-List Name,State,Uptime` and `Get-VMSnapshot ETP-Acceptance-186 | Select-Object Name,CreationTime`.
 2. Checkpoint: `Checkpoint-VM -Name ETP-Acceptance-186 -SnapshotName before-hcc-trial`
 3. Start it if it is off and open its window: `Start-VM ETP-Acceptance-186; vmconnect.exe localhost ETP-Acceptance-186`
-4. Copy the three files in (run once per file; change the file name):
-   `Copy-VMFile ETP-Acceptance-186 -SourcePath "E:\Projects\HCC\Installers\HCC-Server-Setup-0.26.0-x64.exe" -DestinationPath "C:\HCC-Trial\" -CreateFullPath -FileSource Host`
-   Files: `HCC-Server-Setup-0.26.0-x64.exe`, `HCC-Client-Setup-0.26.0.exe`, `SHA256SUMS.txt`.
-   If it says the guest service is not enabled: `Enable-VMIntegrationService -VMName ETP-Acceptance-186 -Name "Guest Service Interface"`, then repeat.
+4. Copy the three files in (run once per file; change the file name in both places). Use the newest version in
+   `E:\Projects\HCC\Installers` (0.26.2 on 12 Nov 2026; 0.26.0 crashes on the backup-folder page):
+   `Copy-VMFile ETP-Acceptance-186 -SourcePath "E:\Projects\HCC\Installers\HCC-Server-Setup-0.26.2-x64.exe" -DestinationPath "C:\HCC-Trial\HCC-Server-Setup-0.26.2-x64.exe" -CreateFullPath -FileSource Host -Force`
+   Files: `HCC-Server-Setup-0.26.2-x64.exe`, `HCC-Client-Setup-0.26.2.exe`, `SHA256SUMS.txt`.
+   Learnt on the first run: the machine must be **running**; `-DestinationPath` must be the **full file name**, not a folder;
+   `-Force` is needed to overwrite. If it says the guest service is not enabled:
+   `Enable-VMIntegrationService -VMName ETP-Acceptance-186 -Name "Guest Service Interface"`, then repeat.
 
-## Steps inside the machine
+## Checks inside the machine, typed on this PC
+
+Commands typed in the host window run on the host. To run them inside the machine, wrap them (once: `$c = Get-Credential`, the
+machine's Windows login):
+`Invoke-Command -VMName ETP-Acceptance-186 -Credential $c -ScriptBlock { hostname; <commands> }`
 
 5. Check the files: `Get-FileHash C:\HCC-Trial\*.exe` and compare with `SHA256SUMS.txt`.
 6. Before installing, note what ETP uses, so a clash is seen and not guessed:
    `Get-NetTCPConnection -State Listen -LocalPort 5443,5080 -ErrorAction SilentlyContinue` (should print nothing: HCC needs both ports) and
-   `sqlcmd -S .\SQLEXPRESS -E -C -Q "SELECT name FROM sys.databases"` (keep the list).
-7. Run `HCC-Server-Setup-0.26.0-x64.exe`. Choose **Trial** and **use the existing SQL Server**. Windows will warn "unknown publisher":
-   the setup is unsigned.
+   `sqlcmd -S .\SQLEXPRESS -E -C -Q "SELECT name FROM sys.databases"` (keep the list). On 12 Nov 2026: both ports free;
+   databases `master`, `tempdb`, `model`, `msdb`, `EtpReporting`; SQL Server version 17.
+
+## Steps in the machine's own window
+
+7. Run `HCC-Server-Setup-0.26.2-x64.exe` (the wizard must be clicked by hand). Choose **Trial** and **use the existing SQL Server**.
+   Windows will warn "unknown publisher": the setup is unsigned. If it stops with an error, leave it as it is: no retry, no uninstall.
 8. Go through the checklist in `05 Delivery Evidence/INST/inst-server-DONE.md` ("Only the trial machine can prove"), then the client
    setup with the kit from the Start menu ("client kit") and `inst-client-DONE.md` ("Trial-machine checklist", items 1-13), and
    `inst-sql-AUDIT.md` (S7).
